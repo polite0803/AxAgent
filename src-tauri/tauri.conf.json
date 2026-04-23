@@ -39,9 +39,6 @@
       "webviewInstallMode": {
         "type": "downloadBootstrapper",
         "silent": true
-      },
-      "nsis": {
-        "languages": ["English", "SimpChinese"]
       }
     },
     "createUpdaterArtifacts": true
