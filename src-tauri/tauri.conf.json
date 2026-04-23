@@ -22,34 +22,12 @@
         "visible": true,
         "focus": true
       }
-    ],
-    "security": {
-      "csp": "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:* http://127.1.0.0:* ipc: http://ipc.localhost:*; font-src 'self' data:; worker-src 'self' blob: ipc: http://ipc.localhost:*"
-    }
-  },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "resources": [],
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "windows": {
-      "webviewInstallMode": {
-        "type": "downloadBootstrapper",
-        "silent": true
-      }
-    },
-    "createUpdaterArtifacts": true
+    ]
   },
   "plugins": {
     "updater": {
       "active": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1RDM1NDU5QzA5RThENzAKUldSd2paN0FXVlRUTlZ2QzQvSkZiNG1YRzdqcjlrNXVjc3hlNStna0pBOFQ2UCtEdi9UWDRYSFoK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg5NkUyODQxNTVEQTBFMQpSV1Rob0YwVmhPS1dDQlQvRkQ5MTdXTzNOMUlWdjJRL3JLSDR2RzBFakxaOTlpMjVBeXFjZ0NnbAo=",
       "endpoints": [
         "https://github.com/polite0803/AxAgent/releases/latest/download/latest.json"
       ]
