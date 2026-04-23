@@ -44,13 +44,15 @@
         "silent": true
       }
     },
-    "createUpdaterArtifacts": false
+    "createUpdaterArtifacts": true
   },
   "plugins": {
     "updater": {
       "active": true,
       "pubkey": "",
-      "endpoints": []
+      "endpoints": [
+        "https://github.com/polite0803/AxAgent/releases/latest/download/latest.json"
+      ]
     }
   }
 }
