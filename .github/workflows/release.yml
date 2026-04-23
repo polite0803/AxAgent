@@ -167,6 +167,22 @@ jobs:
           $zipName = "AxAgent_${{ github.ref_name }}_windows-${arch}-portable.zip"
           Compress-Archive -Path $exe -DestinationPath $zipName
 
+      - name: Package Linux x86_64 artifacts
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb
+          for deb in *.deb; do
+            new_name="AxAgent_${{ github.ref_name }}_linux-x64.deb"
+            mv "$deb" "$new_name"
+            mv "$new_name" "../../../$new_name"
+          done
+          cd ../../rpm
+          for rpm in *.rpm; do
+            new_name="AxAgent_${{ github.ref_name }}_linux-x64.rpm"
+            mv "$rpm" "$new_name"
+            mv "$new_name" "../../../$new_name"
+          done
+
       - name: Upload Windows portable to release
         if: contains(matrix.target, 'windows')
         uses: softprops/action-gh-release@v2
@@ -175,6 +191,41 @@ jobs:
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
           files: AxAgent_${{ github.ref_name }}_windows-*-portable.zip
+
+      - name: Package macOS artifacts
+        if: contains(matrix.target, 'apple-darwin')
+        run: |
+          cd src-tauri/target/${{ matrix.target }}/release/bundle/dmg
+          for dmg in *.dmg; do
+            if [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
+              new_name="AxAgent_${{ github.ref_name }}_macos-arm64.dmg"
+            else
+              new_name="AxAgent_${{ github.ref_name }}_macos-x64.dmg"
+            fi
+            mv "$dmg" "$new_name"
+            mv "$new_name" "../../../$new_name"
+          done
+
+      - name: Upload Linux x86_64 artifacts
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-x64.deb
+            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-x64.rpm
+
+      - name: Upload macOS artifacts
+        if: contains(matrix.target, 'apple-darwin')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ github.ref_name }}_macos-*.dmg
 
   # ── Build for Linux ARM64 (cross-compile) ──────────────
   release-linux-arm:
@@ -253,6 +304,21 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: Package Linux ARM64 artifacts
+        run: |
+          cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb
+          for deb in *.deb; do
+            new_name="AxAgent_${{ github.ref_name }}_linux-arm64.deb"
+            mv "$deb" "$new_name"
+            mv "$new_name" "../../../$new_name"
+          done
+          cd ../../rpm
+          for rpm in *.rpm; do
+            new_name="AxAgent_${{ github.ref_name }}_linux-arm64.rpm"
+            mv "$rpm" "$new_name"
+            mv "$new_name" "../../../$new_name"
+          done
+
       - name: Upload Linux ARM64 artifacts
         uses: softprops/action-gh-release@v2
         with:
@@ -262,8 +328,8 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb
-            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/*.rpm
+            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-arm64.deb
+            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-arm64.rpm
 
   # ── Publish draft release as latest ────────────────────
   publish-release:
