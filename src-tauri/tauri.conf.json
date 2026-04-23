@@ -41,7 +41,7 @@
         "silent": true
       },
       "nsis": {
-        "languages": ["en_US", "zh_CN"]
+        "languages": ["English", "SimpChinese"]
       }
     },
     "createUpdaterArtifacts": true
