@@ -49,7 +49,7 @@
   "plugins": {
     "updater": {
       "active": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVFNzQzMTMwNDA2MzQzNDIKUldSQ1EyTkFNREYwWGxSRERGdzFEN016MCtQN1pnd1NaaXNJNi9seWxFTzNibTkrU3NPWURVWVAK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1RDM1NDU5QzA5RThENzAKUldSd2paN0FXVlRUTlZ2QzQvSkZiNG1YRzdqcjlrNXVjc3hlNStna0pBOFQ2UCtEdi9UWDRYSFoK",
       "endpoints": [
         "https://github.com/polite0803/AxAgent/releases/latest/download/latest.json"
       ]
