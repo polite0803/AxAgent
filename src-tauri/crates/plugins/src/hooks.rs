@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+use std::path::Path;
 use std::process::Command;
 
 use serde_json::json;
@@ -340,7 +341,7 @@ impl CommandWithStdin {
             // (or exits early without reading stdin) closes its stdin
             // before the parent finishes writing the JSON payload, and
             // the kernel raises EPIPE on the parent's write_all. That is
-            // not a hook failure — the child still exited cleanly and we
+            // not a hook failure â€” the child still exited cleanly and we
             // still need to wait_with_output() to capture stdout/stderr
             // and the real exit code. Other write errors (e.g. EIO,
             // permission, OOM) still propagate.
