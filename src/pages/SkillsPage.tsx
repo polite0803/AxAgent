@@ -187,9 +187,21 @@ function MarketplaceCard({
             GitHub
           </Button>
           {skill.installed ? (
-            <Button size="small" disabled>
-              {t('skills.installed')}
-            </Button>
+            skill.hasUpdate ? (
+              <Button
+                size="small"
+                type="primary"
+                loading={installing === skill.repo}
+                icon={<RefreshCw size={14} />}
+                onClick={() => onInstall(skill.repo, 'axagent')}
+              >
+                {t('skills.update')}
+              </Button>
+            ) : (
+              <Button size="small" disabled>
+                {t('skills.installed')}
+              </Button>
+            )
           ) : (
             <Dropdown
               menu={{

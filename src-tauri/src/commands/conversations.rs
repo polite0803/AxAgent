@@ -3547,6 +3547,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::disallowed_types)]
     async fn persist_attachments_registers_stored_files_for_files_page() {
         use base64::Engine;
 

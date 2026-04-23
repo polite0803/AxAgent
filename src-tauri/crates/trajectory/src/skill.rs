@@ -42,6 +42,12 @@ pub struct HermesMetadata {
     pub fallback_for_toolsets: Vec<String>,
     pub requires_toolsets: Vec<String>,
     pub config: Vec<SkillConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commit: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,6 +73,7 @@ impl Default for SkillMetadata {
                 fallback_for_toolsets: Vec::new(),
                 requires_toolsets: Vec::new(),
                 config: Vec::new(),
+                ..Default::default()
             },
             references: Vec::new(),
         }
@@ -81,6 +88,9 @@ impl Default for HermesMetadata {
             fallback_for_toolsets: Vec::new(),
             requires_toolsets: Vec::new(),
             config: Vec::new(),
+            source_kind: None,
+            source_ref: None,
+            commit: None,
         }
     }
 }

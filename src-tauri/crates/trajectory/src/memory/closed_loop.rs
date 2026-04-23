@@ -328,6 +328,7 @@ impl ClosedLoopService {
                                         fallback_for_toolsets: vec![],
                                         requires_toolsets: vec![],
                                         config: vec![],
+                                        ..Default::default()
                                     },
                                     references: vec![],
                                 },

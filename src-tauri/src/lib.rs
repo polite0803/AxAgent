@@ -9,6 +9,7 @@ mod window_state;
 #[cfg(target_os = "windows")]
 mod windows_utils;
 
+#[allow(clippy::disallowed_types)]
 mod app_state;
 
 use tauri::{Manager, Emitter};

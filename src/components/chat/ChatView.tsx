@@ -2,7 +2,7 @@ import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react'
 import { CloseCircleFilled, SyncOutlined } from '@ant-design/icons';
 import { Typography, Button, Dropdown, Input, App, Avatar, Alert, Popconfirm, Popover, theme, Tag, Image, Tooltip, Modal, Spin } from 'antd';
 import type { InputRef } from 'antd';
-import { Pencil, Share2, FileImage, FileCode, FileText, FileType, Bot, Brain, Lightbulb, Code, Languages, Copy, Check, RotateCcw, User, Trash2, ChevronLeft, ChevronRight, ChevronDown, Scissors, Paperclip, AlertCircle, X, ArrowDown, ArrowUp, ArrowLeftRight, Zap, Sparkles, TextCursorInput, GitBranch, ChartNoAxesColumn, MessageSquare, ArrowUpRight, ArrowDownRight, Coins, Clock, Timer, Download } from 'lucide-react';
+import { Pencil, Share2, FileImage, FileCode, FileText, FileType, Bot, Brain, Lightbulb, Code, Languages, Copy, Check, RotateCcw, User, Trash2, ChevronLeft, ChevronRight, ChevronDown, Scissors, Paperclip, AlertCircle, X, ArrowDown, ArrowUp, ArrowLeftRight, Zap, Sparkles, TextCursorInput, GitBranch, ChartNoAxesColumn, MessageSquare, ArrowUpRight, ArrowDownRight, Coins, Clock, Timer, Download, Search, TrendingUp } from 'lucide-react';
 import { ModelIcon } from '@lobehub/icons';
 import { getConvIcon } from '@/lib/convIcon';
 import Bubble from '@ant-design/x/es/bubble';
@@ -2469,10 +2469,14 @@ function ChatViewInner() {
 
   const promptItems = useMemo(
     () => [
-      { key: '1', icon: <Lightbulb size={16} />, label: t('chat.welcomePrompt1'), scenario: 'creative' },
-      { key: '2', icon: <Languages size={16} />, label: t('chat.welcomePrompt2'), scenario: 'translation' },
-      { key: '3', icon: <Code size={16} />, label: t('chat.welcomePrompt3'), scenario: 'coding' },
-      { key: '4', icon: <Lightbulb size={16} />, label: t('chat.welcomePrompt4'), scenario: 'general' },
+      { key: '1', icon: <Code size={16} />, label: t('chat.welcomePromptCoding'), scenario: 'coding' },
+      { key: '2', icon: <Lightbulb size={16} />, label: t('chat.welcomePromptCreative'), scenario: 'creative' },
+      { key: '3', icon: <Languages size={16} />, label: t('chat.welcomePromptTranslation'), scenario: 'translation' },
+      { key: '4', icon: <FileText size={16} />, label: t('chat.welcomePromptWriting'), scenario: 'writing' },
+      { key: '5', icon: <Search size={16} />, label: t('chat.welcomePromptResearch'), scenario: 'research' },
+      { key: '6', icon: <ChartNoAxesColumn size={16} />, label: t('chat.welcomePromptAnalysis'), scenario: 'analysis' },
+      { key: '7', icon: <TrendingUp size={16} />, label: t('chat.welcomePromptInvestment'), scenario: 'investment' },
+      { key: '8', icon: <Share2 size={16} />, label: t('chat.welcomePromptSocialMedia'), scenario: 'social_media' },
     ],
     [t],
   );

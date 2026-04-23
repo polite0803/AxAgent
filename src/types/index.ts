@@ -632,6 +632,9 @@ export interface MarketplaceSkill {
   stars: number;
   installs: number;
   installed: boolean;
+  hasUpdate?: boolean;
+  currentVersion?: string;
+  latestVersion?: string;
 }
 
 export interface SkillUpdateInfo {
@@ -639,6 +642,8 @@ export interface SkillUpdateInfo {
   currentCommit: string;
   latestCommit: string;
   sourceRef: string;
+  currentVersion?: string;
+  latestVersion?: string;
 }
 
 export interface SkillProposal {

@@ -66,6 +66,7 @@ pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
             fallback_for_toolsets: Vec::new(),
             requires_toolsets: Vec::new(),
             config: Vec::new(),
+            ..Default::default()
         },
         references: Vec::new(),
     };

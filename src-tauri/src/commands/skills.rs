@@ -184,11 +184,17 @@ pub async fn install_skill(
     };
     std::fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
 
-    let skill_name = if source.starts_with('/') || source.starts_with('.') {
-        install_from_local(&source, &target_dir).await?
+    let (skill_name, commit, source_ref, source_kind) = if source.starts_with('/') || source.starts_with('.') {
+        let (name, commit) = install_from_local(&source, &target_dir).await?;
+        (name, commit, source.clone(), "local".to_string())
     } else {
         let (owner, repo) = parse_github_source(&source)?;
-        install_from_github(&owner, &repo, &target_dir).await?
+        let ((name, commit), source_ref, source_kind) = (
+            install_from_github(&owner, &repo, &target_dir).await?,
+            format!("{}/{}", owner, repo),
+            "github".to_string(),
+        );
+        (name, commit, source_ref, source_kind)
     };
 
     let skill_target = target_dir.join(&skill_name);
@@ -197,12 +203,13 @@ pub async fn install_skill(
 
     let manifest_scenarios = load_plugin_scenarios(&skill_target);
     let final_scenarios = merge_scenarios(manifest_scenarios, scenarios);
+    let version = load_plugin_version(&skill_target);
 
     let skill = Skill {
         id: uuid::Uuid::new_v4().to_string(),
         name: skill_name.clone(),
         description: String::new(),
-        version: "1.0.0".to_string(),
+        version,
         content,
         category: "installed".to_string(),
         tags: vec![],
@@ -223,6 +230,9 @@ pub async fn install_skill(
                 fallback_for_toolsets: vec![],
                 requires_toolsets: vec![],
                 config: vec![],
+                source_kind: Some(source_kind),
+                source_ref: Some(source_ref),
+                commit: Some(commit),
             },
             references: vec![],
         },
@@ -255,6 +265,18 @@ fn load_plugin_scenarios(skill_dir: &Path) -> Vec<String> {
         }
     }
     vec![]
+}
+
+fn load_plugin_version(skill_dir: &Path) -> String {
+    let manifest_path = skill_dir.join("plugin.json");
+    if let Ok(contents) = std::fs::read_to_string(&manifest_path) {
+        if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&contents) {
+            if let Some(version) = manifest.get("version").and_then(|v| v.as_str()) {
+                return version.to_string();
+            }
+        }
+    }
+    "1.0.0".to_string()
 }
 
 fn merge_scenarios(manifest_scenarios: Vec<String>, user_scenarios: Option<Vec<String>>) -> Vec<String> {
@@ -299,7 +321,7 @@ async fn install_from_github(
     owner: &str,
     repo: &str,
     target_dir: &Path,
-) -> Result<String, String> {
+) -> Result<(String, String), String> {
     let url = format!(
         "https://api.github.com/repos/{}/{}/zipball",
         owner, repo
@@ -337,6 +359,8 @@ async fn install_from_github(
         .map(String::from)
         .ok_or("Empty archive")?;
 
+    let commit = top_dir.split('-').last().unwrap_or("unknown").to_string();
+
     archive
         .extract(temp_dir.path())
         .map_err(|e| format!("Failed to extract: {}", e))?;
@@ -354,7 +378,7 @@ async fn install_from_github(
         "source_kind": "github",
         "source_ref": format!("{}/{}", owner, repo),
         "branch": "main",
-        "commit": top_dir.split('-').last().unwrap_or("unknown"),
+        "commit": commit,
         "installed_at": chrono::Utc::now().to_rfc3339(),
         "installed_via": "marketplace"
     });
@@ -365,10 +389,10 @@ async fn install_from_github(
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(repo.to_string())
+    Ok((repo.to_string(), commit))
 }
 
-async fn install_from_local(source: &str, target_dir: &Path) -> Result<String, String> {
+async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, String), String> {
     let source_path = PathBuf::from(source);
     if !source_path.exists() {
         return Err(format!("Source path does not exist: {}", source));
@@ -403,7 +427,7 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<String, S
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(name)
+    Ok((name, "local".to_string()))
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
@@ -528,6 +552,76 @@ fn read_source_ref(manifest: &Path) -> Option<String> {
     }
 }
 
+struct InstalledSkillInfo {
+    pub commit: String,
+    pub version: String,
+    pub source_ref: String,
+}
+
+fn get_installed_skill_info(repo: &str) -> Option<InstalledSkillInfo> {
+    let skills_path = skills_dir();
+    let skill_target = skills_path.join(repo);
+    let manifest_path = skill_target.join("skill-manifest.json");
+
+    if !manifest_path.exists() {
+        return None;
+    }
+
+    let manifest_str = std::fs::read_to_string(&manifest_path).ok()?;
+    let manifest: serde_json::Value = serde_json::from_str(&manifest_str).ok()?;
+
+    let source_kind = manifest["source_kind"].as_str().unwrap_or("");
+    if source_kind != "github" {
+        return None;
+    }
+
+    let commit = manifest["commit"].as_str().unwrap_or("").to_string();
+    let source_ref = manifest["source_ref"].as_str().unwrap_or("").to_string();
+
+    if source_ref.is_empty() || commit.is_empty() {
+        return None;
+    }
+
+    let version = load_plugin_version(&skill_target);
+
+    Some(InstalledSkillInfo {
+        commit,
+        version,
+        source_ref,
+    })
+}
+
+async fn check_github_update(owner: &str, repo: &str, current_commit: &str) -> Option<(String, String)> {
+    let url = format!(
+        "https://api.github.com/repos/{}/{}/commits?per_page=1",
+        owner, repo
+    );
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&url)
+        .header("User-Agent", "AxAgent")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .ok()?;
+
+    if !response.status().is_success() {
+        return None;
+    }
+
+    let body: serde_json::Value = response.json().await.ok()?;
+    let commits = body.as_array()?;
+    let latest = commits.first()?;
+    let latest_sha = latest["sha"].as_str()?;
+
+    if latest_sha.starts_with(current_commit) || current_commit == &latest_sha[..7.min(latest_sha.len())] {
+        return None;
+    }
+
+    Some((latest_sha[..7.min(latest_sha.len())].to_string(), latest_sha.to_string()))
+}
+
 #[tauri::command]
 pub async fn search_marketplace(
     query: String,
@@ -567,29 +661,44 @@ pub async fn search_marketplace(
                 response.json().await.map_err(|e| e.to_string())?;
             let items = body["items"].as_array().cloned().unwrap_or_default();
 
-            let results: Vec<MarketplaceSkill> = items
-                .into_iter()
-                .map(|item| {
-                    let skill_name = item["name"].as_str().unwrap_or("").to_string();
-                    let repo = item["full_name"]
+            let mut results: Vec<MarketplaceSkill> = Vec::new();
+            for item in items {
+                let skill_name = item["name"].as_str().unwrap_or("").to_string();
+                let repo = item["full_name"]
+                    .as_str()
+                    .unwrap_or("")
+                    .to_string();
+                let repo_lower = repo.trim().trim_end_matches('/').to_lowercase();
+                let installed = installed_refs.contains(&repo_lower);
+
+                let mut skill = MarketplaceSkill {
+                    name: skill_name,
+                    description: item["description"]
                         .as_str()
                         .unwrap_or("")
-                        .to_string();
-                    let installed = installed_refs
-                        .contains(&repo.trim().trim_end_matches('/').to_lowercase());
-                    MarketplaceSkill {
-                        name: skill_name,
-                        description: item["description"]
-                            .as_str()
-                            .unwrap_or("")
-                            .to_string(),
-                        repo,
-                        stars: item["stargazers_count"].as_i64().unwrap_or(0),
-                        installs: 0,
-                        installed,
+                        .to_string(),
+                    repo: repo.clone(),
+                    stars: item["stargazers_count"].as_i64().unwrap_or(0),
+                    installs: 0,
+                    installed,
+                    ..Default::default()
+                };
+
+                if installed {
+                    if let Some(info) = get_installed_skill_info(&repo) {
+                        skill.current_version = Some(info.version);
+                        let parts: Vec<&str> = info.source_ref.split('/').collect();
+                        if parts.len() == 2 {
+                            if let Some((latest_short, _)) = check_github_update(parts[0], parts[1], &info.commit).await {
+                                skill.has_update = Some(true);
+                                skill.latest_version = Some(latest_short);
+                            }
+                        }
                     }
-                })
-                .collect();
+                }
+
+                results.push(skill);
+            }
 
             Ok(results)
         }
@@ -599,9 +708,10 @@ pub async fn search_marketplace(
                 "stars" => ("stars", 20),
                 _ => ("downloads", 20),
             };
+            let search_query = if query.is_empty() { "claude".to_string() } else { query };
             let url = format!(
                 "https://skillshub.wtf/api/v1/skills/search?q={}&sort={}&limit={}",
-                urlencoding::encode(&query),
+                urlencoding::encode(&search_query),
                 sort_param,
                 limit
             );
@@ -623,29 +733,44 @@ pub async fn search_marketplace(
                 response.json().await.map_err(|e| e.to_string())?;
             let items = body["data"].as_array().cloned().unwrap_or_default();
 
-            let results: Vec<MarketplaceSkill> = items
-                .into_iter()
-                .filter_map(|item| {
-                    let name = item["name"].as_str().unwrap_or("").to_string();
-                    let slug = item["slug"].as_str().unwrap_or("").to_string();
-                    let description = item["description"].as_str().unwrap_or("").to_string();
-                    let repo_obj = item.get("repo")?;
-                    let github_owner = repo_obj.get("githubOwner")?.as_str()?;
-                    let github_repo_name = repo_obj.get("githubRepoName")?.as_str()?;
-                    let repo = format!("{}/{}", github_owner, github_repo_name);
-                    let installed = installed_refs.contains(&repo.to_lowercase());
-                    let stars = item["stars"].as_i64().unwrap_or(0);
-                    let installs = item["downloads"].as_i64().unwrap_or(0);
-                    Some(MarketplaceSkill {
-                        name: if !name.is_empty() { name } else { slug },
-                        description: description.to_string(),
-                        repo,
-                        stars,
-                        installs,
-                        installed,
-                    })
-                })
-                .collect();
+            let mut results: Vec<MarketplaceSkill> = Vec::new();
+            for item in items {
+                let name = item["name"].as_str().unwrap_or("").to_string();
+                let slug = item["slug"].as_str().unwrap_or("").to_string();
+                let description = item["description"].as_str().unwrap_or("").to_string();
+                let repo_obj = item.get("repo").ok_or("missing repo object")?;
+                let github_owner = repo_obj.get("githubOwner").and_then(|v| v.as_str()).ok_or("missing githubOwner")?;
+                let github_repo_name = repo_obj.get("githubRepoName").and_then(|v| v.as_str()).ok_or("missing githubRepoName")?;
+                let repo = format!("{}/{}", github_owner, github_repo_name);
+                let installed = installed_refs.contains(&repo.to_lowercase());
+                let stars = item["stars"].as_i64().unwrap_or(0);
+                let installs = item["downloads"].as_i64().unwrap_or(0);
+
+                let mut skill = MarketplaceSkill {
+                    name: if !name.is_empty() { name } else { slug },
+                    description: description.to_string(),
+                    repo: repo.clone(),
+                    stars,
+                    installs,
+                    installed,
+                    ..Default::default()
+                };
+
+                if installed {
+                    if let Some(info) = get_installed_skill_info(&repo) {
+                        skill.current_version = Some(info.version);
+                        let parts: Vec<&str> = info.source_ref.split('/').collect();
+                        if parts.len() == 2 {
+                            if let Some((latest_short, _)) = check_github_update(parts[0], parts[1], &info.commit).await {
+                                skill.has_update = Some(true);
+                                skill.latest_version = Some(latest_short);
+                            }
+                        }
+                    }
+                }
+
+                results.push(skill);
+            }
 
             Ok(results)
         }
@@ -726,6 +851,7 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
                                     current_commit: current_commit.clone(),
                                     latest_commit: short_latest.to_string(),
                                     source_ref: source_ref.clone(),
+                                    ..Default::default()
                                 });
                             }
                         }

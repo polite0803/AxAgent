@@ -1812,16 +1812,20 @@ pub struct SkillManifest {
     pub installed_via: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SkillUpdateInfo {
     pub name: String,
     pub current_commit: String,
     pub latest_commit: String,
     pub source_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latest_version: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct MarketplaceSkill {
     pub name: String,
@@ -1830,4 +1834,10 @@ pub struct MarketplaceSkill {
     pub stars: i64,
     pub installs: i64,
     pub installed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_update: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latest_version: Option<String>,
 }
