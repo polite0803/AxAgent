@@ -13,7 +13,7 @@ use rmcp::{
 type McpPeer = rmcp::service::Peer<RoleClient>;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
 use std::sync::Arc;
@@ -64,7 +64,6 @@ fn resolve_login_shell_path() -> Option<String> {
 
 #[cfg(unix)]
 fn shell_candidates() -> Vec<String> {
-    use std::collections::HashSet;
     let mut candidates = Vec::new();
     let mut seen = HashSet::new();
 
