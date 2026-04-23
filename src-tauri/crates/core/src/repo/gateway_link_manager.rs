@@ -243,6 +243,7 @@ impl GatewayLinkConnectionHandle {
                                         Some(latency_ms as i64),
                                         None,
                                     ).await;
+                                    manager.update_link_state(&link_id, LinkConnectionState::Connected, None).await;
                                     reconnect_attempts = 0;
                                 }
                                 Err(e) => {
@@ -258,15 +259,14 @@ impl GatewayLinkConnectionHandle {
                                         None,
                                     ).await;
 
-                                    reconnect_attempts += 1;
-                                    if reconnect_attempts <= manager.max_reconnect_attempts {
-                                        let delay = manager.calculate_backoff_delay(reconnect_attempts);
+                                    let new_attempts = manager.increment_reconnect_attempts(&link_id).await;
+                                    if new_attempts <= manager.max_reconnect_attempts {
+                                        let delay = manager.calculate_backoff_delay(new_attempts);
                                         tracing::info!(
                                             "Gateway link {} scheduling reconnect in {:?} (attempt {}/{})",
-                                            link_id, delay, reconnect_attempts, manager.max_reconnect_attempts
+                                            link_id, delay, new_attempts, manager.max_reconnect_attempts
                                         );
 
-                                        manager.increment_reconnect_attempts(&link_id).await;
                                         tokio::time::sleep(delay).await;
 
                                         if let Err(e) = link_repo::connect_gateway_link(&db, &link_id, api_key.as_deref()).await {
@@ -284,13 +284,19 @@ impl GatewayLinkConnectionHandle {
                                 let delay = manager.calculate_backoff_delay(reconnect_attempts);
                                 tokio::time::sleep(delay).await;
 
-                                reconnect_attempts += 1;
-                                if let Err(e) = link_repo::connect_gateway_link(&db, &link_id, api_key.as_deref()).await {
-                                    tracing::warn!("Gateway link {} reconnect failed: {}", link_id, e);
-                                    reconnect_attempts += 1;
-                                } else {
-                                    reconnect_attempts = 0;
+                                match link_repo::connect_gateway_link(&db, &link_id, api_key.as_deref()).await {
+                                    Ok(_) => {
+                                        reconnect_attempts = 0;
+                                    }
+                                    Err(e) => {
+                                        tracing::warn!("Gateway link {} reconnect failed: {}", link_id, e);
+                                        reconnect_attempts += 1;
+                                    }
                                 }
+                            } else {
+                                tracing::error!("Gateway link {} exceeded max reconnect attempts", link_id);
+                                manager.update_link_state(&link_id, LinkConnectionState::Failed, Some("Max reconnect attempts exceeded".to_string())).await;
+                                break;
                             }
                         }
                         Some(LinkConnectionState::Failed) => {

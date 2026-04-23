@@ -135,14 +135,10 @@ jobs:
         with:
           node-version: '20'
 
-      - uses: pnpm/action-setup@v4
-        with:
-          run_install: false
-
       # 使用npm包替代本地构建的依赖
 
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm install
 
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
@@ -237,14 +233,10 @@ jobs:
         with:
           node-version: '20'
 
-      - uses: pnpm/action-setup@v4
-        with:
-          run_install: false
-
       # 使用npm包替代本地构建的依赖
 
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm install
 
       - name: Build for Linux ARM64
         run: |

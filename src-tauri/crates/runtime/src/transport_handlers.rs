@@ -77,7 +77,7 @@ impl WebSocketTransportHandler {
             reason: e.to_string(),
         })?;
 
-        let (mut write, read) = ws_stream.split();
+        let (mut write, mut read) = ws_stream.split();
         let agent_id = endpoint.agent_id.clone();
         let connection_states = self.connection_states.clone();
         let connections = self.connections.clone();

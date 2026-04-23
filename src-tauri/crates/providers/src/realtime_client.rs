@@ -69,6 +69,9 @@ pub struct RealtimeClientConfig {
     pub timeout: Duration,
     pub connect_timeout: Duration,
     pub heartbeat_interval: Duration,
+    pub max_reconnect_attempts: u32,
+    pub initial_backoff_ms: u64,
+    pub max_backoff_ms: u64,
 }
 
 impl Default for RealtimeClientConfig {
@@ -80,6 +83,9 @@ impl Default for RealtimeClientConfig {
             timeout: DEFAULT_REALTIME_TIMEOUT,
             connect_timeout: DEFAULT_CONNECT_TIMEOUT,
             heartbeat_interval: DEFAULT_HEARTBEAT_INTERVAL,
+            max_reconnect_attempts: 5,
+            initial_backoff_ms: 1000,
+            max_backoff_ms: 30000,
         }
     }
 }
@@ -104,6 +110,7 @@ pub struct RealtimeClient {
     state: Arc<RwLock<RealtimeConnectionState>>,
     session_id: Arc<RwLock<Option<String>>>,
     sender: Arc<RwLock<Option<mpsc::Sender<RealtimeClientMessage>>>>,
+    reconnect_attempts: Arc<RwLock<u32>>,
 }
 
 impl RealtimeClient {
@@ -113,7 +120,27 @@ impl RealtimeClient {
             state: Arc::new(RwLock::new(RealtimeConnectionState::Disconnected)),
             session_id: Arc::new(RwLock::new(None)),
             sender: Arc::new(RwLock::new(None)),
+            reconnect_attempts: Arc::new(RwLock::new(0)),
         }
+    }
+
+    fn calculate_backoff_delay(&self, attempts: u32) -> Duration {
+        let delay_ms = std::cmp::min(
+            self.config.initial_backoff_ms * 2u64.pow(attempts.min(10)),
+            self.config.max_backoff_ms,
+        );
+        Duration::from_millis(delay_ms)
+    }
+
+    async fn increment_reconnect_attempts(&self) -> u32 {
+        let mut attempts = self.reconnect_attempts.write().await;
+        *attempts += 1;
+        *attempts
+    }
+
+    async fn reset_reconnect_attempts(&self) {
+        let mut attempts = self.reconnect_attempts.write().await;
+        *attempts = 0;
     }
 
     pub async fn connect(&self) -> Result<(), RealtimeClientError> {
@@ -296,6 +323,7 @@ impl Clone for RealtimeClient {
             state: self.state.clone(),
             session_id: self.session_id.clone(),
             sender: self.sender.clone(),
+            reconnect_attempts: self.reconnect_attempts.clone(),
         }
     }
 }
@@ -344,13 +372,53 @@ impl RealtimeStreamHandler {
             let state = self.client.get_state().await;
             match state {
                 RealtimeConnectionState::Connected => {
+                    self.client.reset_reconnect_attempts().await;
                     tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+                RealtimeConnectionState::Connecting => {
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+                RealtimeConnectionState::Reconnecting => {
+                    let attempts = *self.client.reconnect_attempts.read().await;
+                    if attempts >= self.client.config.max_reconnect_attempts {
+                        tracing::error!("Max reconnect attempts reached for RealtimeClient");
+                        break;
+                    }
+                    let delay = self.client.calculate_backoff_delay(attempts);
+                    tracing::info!("Reconnecting in {:?} (attempt {}/{})",
+                        delay, attempts + 1, self.client.config.max_reconnect_attempts);
+                    tokio::time::sleep(delay).await;
+                    if let Err(e) = self.client.connect().await {
+                        tracing::warn!("Reconnect failed: {}", e);
+                        let new_attempts = self.client.increment_reconnect_attempts().await;
+                        if new_attempts >= self.client.config.max_reconnect_attempts {
+                            tracing::error!("Max reconnect attempts reached for RealtimeClient");
+                            break;
+                        }
+                    }
                 }
                 RealtimeConnectionState::Disconnected | RealtimeConnectionState::Failed(_) => {
-                    break;
-                }
-                _ => {
-                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    let attempts = self.client.increment_reconnect_attempts().await;
+                    if attempts > self.client.config.max_reconnect_attempts {
+                        tracing::error!("Max reconnect attempts reached for RealtimeClient");
+                        break;
+                    }
+                    let delay = self.client.calculate_backoff_delay(attempts.saturating_sub(1));
+                    tracing::info!("Connection lost, attempting reconnect in {:?} (attempt {}/{})",
+                        delay, attempts, self.client.config.max_reconnect_attempts);
+                    {
+                        let mut state = self.client.state.write().await;
+                        *state = RealtimeConnectionState::Reconnecting;
+                    }
+                    tokio::time::sleep(delay).await;
+                    if let Err(e) = self.client.connect().await {
+                        tracing::warn!("Reconnect failed: {}", e);
+                        let new_attempts = *self.client.reconnect_attempts.read().await;
+                        if new_attempts >= self.client.config.max_reconnect_attempts {
+                            tracing::error!("Max reconnect attempts reached for RealtimeClient");
+                            break;
+                        }
+                    }
                 }
             }
         }
