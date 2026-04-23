@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "identifier": "top.axagent.desktop",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build:skip-typecheck",
+    "beforeBuildCommand": "npm run build:skip-typecheck",
     "frontendDist": "../dist"
   },
   "app": {
