@@ -62,15 +62,15 @@ jobs:
       - name: Check formatting
         run: |
           rustup component add rustfmt
-          cargo fmt --check
+          cargo fmt --check --manifest-path src-tauri/Cargo.toml
 
       - name: Clippy
         run: |
           rustup component add clippy
-          cargo clippy --all-targets --all-features -- -D warnings
+          cargo clippy --all-targets --all-features -- -D warnings --manifest-path src-tauri/Cargo.toml
 
       - name: Check build
-        run: cargo check --workspace
+        run: cargo check --workspace --manifest-path src-tauri/Cargo.toml
 
   # ── Unit tests ─────────────────────────────────────────
   test-unit:
@@ -95,7 +95,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Rust tests
-        run: cargo test --workspace
+        run: cargo test --workspace --manifest-path src-tauri/Cargo.toml
 
       - uses: actions/setup-node@v4
         with:
