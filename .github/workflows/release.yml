@@ -183,18 +183,25 @@ jobs:
       - name: Package Linux x86_64 artifacts
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
-          cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb
-          for deb in *.deb; do
-            new_name="AxAgent_${{ github.ref_name }}_linux-x64.deb"
-            mv "$deb" "$new_name"
-            mv "$new_name" "../../../$new_name"
-          done
-          cd ../../rpm
-          for rpm in *.rpm; do
-            new_name="AxAgent_${{ github.ref_name }}_linux-x64.rpm"
-            mv "$rpm" "$new_name"
-            mv "$new_name" "../../../$new_name"
-          done
+          # 处理deb包
+          if [ -d "src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb" ]; then
+            cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb
+            for deb in *.deb; do
+              new_name="AxAgent_${{ github.ref_name }}_linux-x64.deb"
+              mv "$deb" "$new_name"
+              mv "$new_name" "../../../$new_name"
+            done
+          fi
+          
+          # 处理rpm包（如果存在）
+          if [ -d "src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm" ]; then
+            cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm
+            for rpm in *.rpm; do
+              new_name="AxAgent_${{ github.ref_name }}_linux-x64.rpm"
+              mv "$rpm" "$new_name"
+              mv "$new_name" "../../../$new_name"
+            done
+          fi
 
       - name: Upload Windows artifacts to release
         if: contains(matrix.target, 'windows')
@@ -321,18 +328,25 @@ jobs:
 
       - name: Package Linux ARM64 artifacts
         run: |
-          cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb
-          for deb in *.deb; do
-            new_name="AxAgent_${{ github.ref_name }}_linux-arm64.deb"
-            mv "$deb" "$new_name"
-            mv "$new_name" "../../../$new_name"
-          done
-          cd ../../rpm
-          for rpm in *.rpm; do
-            new_name="AxAgent_${{ github.ref_name }}_linux-arm64.rpm"
-            mv "$rpm" "$new_name"
-            mv "$new_name" "../../../$new_name"
-          done
+          # 处理deb包
+          if [ -d "src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb" ]; then
+            cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb
+            for deb in *.deb; do
+              new_name="AxAgent_${{ github.ref_name }}_linux-arm64.deb"
+              mv "$deb" "$new_name"
+              mv "$new_name" "../../../$new_name"
+            done
+          fi
+          
+          # 处理rpm包（如果存在）
+          if [ -d "src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm" ]; then
+            cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm
+            for rpm in *.rpm; do
+              new_name="AxAgent_${{ github.ref_name }}_linux-arm64.rpm"
+              mv "$rpm" "$new_name"
+              mv "$new_name" "../../../$new_name"
+            done
+          fi
 
       - name: Upload Linux ARM64 artifacts
         uses: softprops/action-gh-release@v2
