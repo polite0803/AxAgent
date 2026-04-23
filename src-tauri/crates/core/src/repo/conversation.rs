@@ -32,6 +32,8 @@ fn conversation_from_entity(m: conversations::Model) -> Conversation {
         category_id: m.category_id,
         parent_conversation_id: m.parent_conversation_id,
         mode: m.mode,
+        scenario: m.scenario,
+        enabled_skill_ids: parse_string_list(&m.enabled_skill_ids),
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -94,6 +96,7 @@ pub async fn create_conversation(
         system_prompt: Set(system_prompt.map(|s| s.to_string())),
         message_count: Set(0),
         is_pinned: Set(0),
+        enabled_skill_ids: Set("[]".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
         ..Default::default()
@@ -177,6 +180,12 @@ pub async fn update_conversation(
     }
     if let Some(mode) = input.mode {
         am.mode = Set(mode);
+    }
+    if let Some(scenario) = input.scenario {
+        am.scenario = Set(Some(scenario));
+    }
+    if let Some(enabled_skill_ids) = input.enabled_skill_ids {
+        am.enabled_skill_ids = Set(stringify_string_list(&enabled_skill_ids));
     }
     am.updated_at = Set(now);
     am.update(db).await?;

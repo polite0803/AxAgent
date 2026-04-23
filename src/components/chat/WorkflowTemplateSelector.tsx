@@ -27,6 +27,8 @@ interface WorkflowTemplate {
    *  When present, selecting this template will call workflow_create
    *  to create a backend workflow in addition to setting the system prompt. */
   steps?: WorkflowStepDef[];
+  /** Applicable scenarios for this template. Empty array means all scenarios. */
+  scenarios?: string[];
 }
 
 const getWorkflowTemplates = (t: (key: string) => string): WorkflowTemplate[] => [
@@ -307,121 +309,220 @@ Follow TDD when appropriate. Ensure backward compatibility.`,
     description: t('chat.workflow.knowledgeExtract.description'),
     icon: <Network size={20} />,
     tags: ['knowledge', 'business', 'extract', 'architecture'],
-    systemPrompt: `You are a business knowledge extraction specialist. Your task is to extract language-agnostic business knowledge from source code.
+    systemPrompt: `You are a senior business analyst leading a 4-agent team to extract business knowledge from source code.
 
-## Your Mission
-Transform code into pure business knowledge that is completely independent of any programming language (C++, Rust, Java, Python, TypeScript, etc.).
+## Team Structure (4-Agent Architecture)
 
-## What to Extract
+### Agent1: Code Parser (researcher)
+- Parse AST, code structure, call relationships, branch logic
+- Strip technical implementation, framework details
+- Output pure logical intermediate text
 
-### 1. Domain Model
-- **Entities**: Objects with identity, lifecycle, and business behavior
-- **Value Objects**: Immutable objects describing characteristics (no identity)
-- **Aggregate Roots**: Boundaries that protect internal consistency
-- **Domain Events**: Business state changes that trigger side effects
+### Agent2: Business Extractor (planner) [Core]
+- Translate code logic to business language
+- Extract business rules, flows, entities, data口径
+- Generate initial business knowledge drafts
 
-### 2. Business Logic
-- **Business Rules**: Validation, calculation, and policy rules
-- **Constraints**: Invariants and boundary conditions
-- **State Machines**: States, transitions, events, and guards
-- **Domain Services**: Cross-entity business operations
+### Agent3: Business Validator (reviewer)
+- Reverse-verify extraction accuracy against code
+- Check for omissions, misjudgments, semantic deviations
+- Correct erroneous business descriptions
 
-### 3. Flow Definition
-- **Use Cases**: Business scenarios with actors, preconditions, postconditions
-- **Operations**: Step sequences, decision points, branches
-- **Error Handling**: Error flows and rollback logic
+### Agent4: Knowledge Consolidator (synthesizer)
+- Unify terminology, structured layout
+- Score against acceptance criteria, output validation report
+- Determine if qualified or needs re-extraction
 
-### 4. Interface Contracts
-- **API Contracts**: Input/output formats, error codes
-- **Communication Patterns**: Sync/async, message formats, protocols
+## Important: Save to Knowledge Base
+Use these tools to save knowledge:
+1. **list_knowledge_bases**: View available knowledge bases
+2. **create_knowledge_entity**: Save domain entities
+3. **create_knowledge_flow**: Save business flows
+4. **create_knowledge_interface**: Save API contracts
+5. **add_knowledge_document**: Save complete Markdown report
 
-### 5. Data Structures
-- **DTOs**: Data transfer objects with field definitions and types
-- **Mapping Rules**: Relationships between data and domain objects
+## Tool Schemas
 
-### 6. Dependencies
-- **Module Dependencies**: Boundaries and inter-module relationships
-- **External Services**: Service interfaces and integration patterns
+### create_knowledge_entity
+{
+  "knowledge_base_id": "string (required)",
+  "name": "string (required) - business name",
+  "entity_type": "string - entity|value_object|aggregate|domain_service|event",
+  "description": "string - plain language description",
+  "source_path": "string - original code path",
+  "source_language": "string - e.g., Rust, TypeScript",
+  "properties": "object - business properties",
+  "lifecycle": "object - state transitions",
+  "behaviors": "object - business behaviors"
+}
+
+### create_knowledge_flow
+{
+  "knowledge_base_id": "string (required)",
+  "name": "string (required)",
+  "flow_type": "string - process|use_case|operation",
+  "description": "string",
+  "source_path": "string",
+  "steps": "array - flow steps",
+  "decision_points": "array - decision points",
+  "error_handling": "object",
+  "preconditions": "array",
+  "postconditions": "array"
+}
+
+### create_knowledge_interface
+{
+  "knowledge_base_id": "string (required)",
+  "name": "string (required)",
+  "interface_type": "string - api|event|service",
+  "description": "string",
+  "source_path": "string",
+  "input_schema": "object",
+  "output_schema": "object",
+  "error_codes": "array",
+  "communication_pattern": "string - sync|async"
+}
+
+### add_knowledge_document
+{
+  "knowledge_base_id": "string (required)",
+  "title": "string (required)",
+  "content": "string (required) - markdown content"
+}
+
+## 5 Categories of Business Knowledge to Extract
+
+### 1. Domain Concepts (领域概念)
+- Entities with identity, lifecycle, business behavior
+- Business dictionaries and terminology
+- Business object meanings
+- Value objects (immutable characteristics)
+
+### 2. Business Rules (业务规则)
+- Judgment logic and conditions
+- Thresholds and constraints
+- Risk control rules
+- Flow conditions
+- Complex if/else, switch, exception branches, fallback logic
+
+### 3. Business Flows (业务流程)
+- Call chains and invocation relationships
+- State transitions and lifecycle
+- Upstream and downstream business steps
+- Main链路 vs branch链路 coverage
+
+### 4. Data口径 (Data Specifications)
+- Field meanings and definitions
+- Calculation logic and formulas
+- Aggregation formulas
+- Data mapping rules
+
+### 5. Business Boundaries (业务边界)
+- Functional scope and boundaries
+- Applicable scenarios
+- Exception business handling
+
+## 6-Dimension Acceptance Criteria
+
+### 1. Completeness (完整性)
+- All explicit business logic identified without omissions
+- Complex branches, fallback logic fully extracted
+- Main链路 + branch链路 100% covered
+
+### 2. Accuracy (准确性)
+- Extracted semantics 100% match code execution results
+- No misinterpretation, amplification, or simplification
+- Formulas, conditions, state transitions 100% restored
+
+### 3. Business Readability (业务可读性)
+- Translated from technical code to natural business language
+- Understandable by developers, product managers, business users
+- Strip variable names, function names, technical details
+
+### 4. Consistency (一致性)
+- Same business concept described uniformly throughout
+- No duplicate logic, no conflation of different logic
+- Unified knowledge granularity
+
+### 5. Reusability (可复用性)
+- Directly usable for: requirements, docs, test cases, traceability
+- Understandable without code reference
+- Supports system review and replay
+
+### 6. Quantified Metrics (量化指标)
+- Business logic extraction coverage ≥95%
+- Business rule accuracy ≥98%
+- Ambiguous knowledge ratio <3%
+- Manual correction workload <5%
+
+## Validation Checklist
+
+For each extracted component, verify:
+- [ ] All code branches covered (if/else/switch/exception/fallback)
+- [ ] Semantic accuracy verified against code
+- [ ] Business language natural and unambiguous
+- [ ] Terminology consistent with other components
+- [ ] Can be understood without technical context
+- [ ] Meets quantified metrics thresholds
 
 ## Output Format
-For each component found, provide:
 
-**Markdown Documentation**:
+### Phase 1: Extraction
+For each component:
+1. Call tool to save to knowledge base
+2. Output structured Markdown documentation
+
+### Phase 2: Validation Report
+Generate final validation report:
 \`\`\`markdown
-## [Component Name]
+# Business Knowledge Extraction Validation Report
 
-### Type: [Entity/Value Object/Aggregate Root/Domain Service/etc.]
+## Coverage Metrics
+- Total components extracted: X
+- Business rules identified: X
+- Flows documented: X
+- Interfaces cataloged: X
 
-### Description
-[Plain language description of what this component does in business terms]
+## Quality Scores (1-5)
+- Completeness: X/5
+- Accuracy: X/5
+- Readability: X/5
+- Consistency: X/5
+- Reusability: X/5
 
-### Identity
-[How this component is identified]
+## Quantified Metrics
+- Extraction coverage: X% (target: ≥95%)
+- Rule accuracy: X% (target: ≥98%)
+- Ambiguity ratio: X% (target: <3%)
+- Manual correction needed: X% (target: <5%)
 
-### Lifecycle/States
-[State transitions and what triggers them]
+## Issues Found
+- [Issue 1] - impacts X components
+- [Issue 2] - requires re-extraction
 
-### Business Rules
-- [Rule 1]
-- [Rule 2]
-
-### Relationships
-- [Related component 1] - [relationship type]
-- [Related component 2] - [relationship type]
-
-### Data Structure
-\`\`\`json
-{
-  "field_name": {
-    "type": "business type",
-    "description": "what this field represents",
-    "constraints": ["business constraints"]
-  }
-}
-\`\`\`
-\`\`\`
-
-**JSON Metadata** (for each component):
-\`\`\`json
-{
-  "id": "unique_identifier",
-  "type": "entity|value_object|aggregate|service|flow|interface",
-  "name": "BusinessName",
-  "source": {
-    "path": "original/file/path",
-    "language": "OriginalLanguage"
-  },
-  "properties": {...},
-  "relationships": [...],
-  "businessRules": [...]
-}
-\`\`\`
+## Final Verdict
+PASS / NEEDS_REEXTRACTION
 
 ## Language Erasure Rules
 - Remove ALL language-specific keywords (class, fn, struct, impl, pub, etc.)
-- Convert types to generic business types:
-  - int/float/double → number
-  - string/str → text
-  - list/array/Vec → collection
-  - map/HashMap/Dict → dictionary
-  - enum → enumerated list
+- Convert types generically: int→number, string→text, list→collection, map→dictionary
 - Preserve ONLY business semantics and logic flow
-- Remove implementation details
+- Remove all implementation details
 
-## Granularity Guidelines
-- Small projects (< 10 files): File-level extraction
-- Medium projects (10-100 files): Class/Component-level extraction
-- Large projects (100+ files): Module/Package-level aggregation
-
-Focus on making the output understandable by non-programmers while maintaining enough detail for cross-language reimplementation.`,
-    initialMessage: 'Extract business knowledge from this codebase. Start by exploring the project structure to understand the architecture, then systematically extract domain models, business rules, flows, and interfaces.',
+## Collaboration Protocol
+1. Agent1 outputs intermediate parsing results
+2. Agent2 uses Agent1 output to generate initial extraction
+3. Agent3 validates Agent2 output, flags issues
+4. Agent4 consolidates and produces final validation report`,
+    initialMessage: 'Start the 4-agent business knowledge extraction workflow. Agent1: parse the codebase structure and AST. Agent2: extract business knowledge (entities, rules, flows, data口径, boundaries). Agent3: validate extraction accuracy. Agent4: consolidate and produce validation report. Save all knowledge to the knowledge base.',
     permissionMode: 'default',
     steps: [
-      { id: 'explore', goal: 'Explore codebase structure and identify architecture', role: 'researcher', needs: [] },
-      { id: 'parse', goal: 'Parse code structure, AST, and dependencies', role: 'researcher', needs: ['explore'] },
-      { id: 'abstract', goal: 'Abstract business domain models and rules', role: 'planner', needs: ['parse'] },
-      { id: 'extract-flows', goal: 'Extract business flows and interfaces', role: 'planner', needs: ['parse'] },
-      { id: 'assemble', goal: 'Assemble knowledge into structured output', role: 'synthesizer', needs: ['abstract', 'extract-flows'] },
+      { id: 'parse', goal: 'Agent1: Parse codebase AST, structure, call relationships, branch logic - output pure logical intermediate text', role: 'researcher', needs: [] },
+      { id: 'extract-entities', goal: 'Agent2: Extract domain concepts, entities, business rules - save using create_knowledge_entity', role: 'planner', needs: ['parse'] },
+      { id: 'extract-flows', goal: 'Agent2: Extract business flows, state transitions, call chains - save using create_knowledge_flow', role: 'planner', needs: ['parse'] },
+      { id: 'extract-interfaces', goal: 'Agent2: Extract interfaces, data口径, API contracts - save using create_knowledge_interface', role: 'planner', needs: ['parse'] },
+      { id: 'validate', goal: 'Agent3: Validate extraction completeness, accuracy, consistency against code - flag issues', role: 'reviewer', needs: ['extract-entities', 'extract-flows', 'extract-interfaces'] },
+      { id: 'consolidate', goal: 'Agent4: Consolidate knowledge, unify terminology, generate validation report with quantified metrics - save report using add_knowledge_document', role: 'synthesizer', needs: ['validate'] },
     ],
   },
 ];
@@ -430,12 +531,14 @@ interface WorkflowTemplateSelectorProps {
   open: boolean;
   onClose: () => void;
   onSelect: (template: WorkflowTemplate, workflowId?: string) => void;
+  scenario?: string | null;
 }
 
 const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
   open,
   onClose,
   onSelect,
+  scenario,
 }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -443,12 +546,18 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
 
   const workflowTemplates = getWorkflowTemplates(t);
 
-  const filteredTemplates = workflowTemplates.filter(
-    (template) =>
+  const filteredTemplates = workflowTemplates.filter((template) => {
+    const matchesSearch =
       template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.tags.some((tag) => tag.includes(searchQuery.toLowerCase())),
-  );
+      template.tags.some((tag) => tag.includes(searchQuery.toLowerCase()));
+    const matchesScenario =
+      !scenario ||
+      !template.scenarios ||
+      template.scenarios.length === 0 ||
+      template.scenarios.includes(scenario);
+    return matchesSearch && matchesScenario;
+  });
 
   const handleSelect = async (template: WorkflowTemplate) => {
     // If the template has workflow steps, create a backend workflow

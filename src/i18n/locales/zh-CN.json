@@ -46,6 +46,7 @@
     "compressSuccess": "上下文已压缩",
     "compressFailed": "压缩失败",
     "agentInitFailed": "Agent 会话初始化失败",
+    "switchAgentModeNoConversation": "请先开始一个新会话，再切换到 Agent 模式",
     "contextCompressed": "上下文已压缩",
     "deleteCompressionConfirm": "确定删除压缩摘要？删除后将恢复为未压缩状态",
     "compressing": "正在压缩中...",

@@ -312,6 +312,7 @@ impl ClosedLoopService {
                                 category: "auto_created".to_string(),
                                 tags: vec![],
                                 platforms: vec![],
+                                scenarios: vec![],
                                 quality_score: 0.0,
                                 success_rate: 0.0,
                                 avg_execution_time_ms: 0,

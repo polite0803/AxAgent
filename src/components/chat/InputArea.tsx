@@ -770,7 +770,9 @@ export function InputArea() {
     try {
     console.debug('[ModeSwitch] handleModeSwitch called, activeConversation:', activeConversation?.id);
     if (!activeConversation) {
-      // No active conversation yet — this is normal on initial load, not an error
+      if (mode === 'agent') {
+        messageApi.warning(t('chat.switchAgentModeNoConversation', 'Please start a new conversation first before switching to Agent mode'));
+      }
       return;
     }
 
@@ -1917,6 +1919,7 @@ export function InputArea() {
         <WorkflowTemplateSelector
           open={workflowOpen}
           onClose={() => setWorkflowOpen(false)}
+          scenario={activeConversation?.scenario}
           onSelect={(template: WorkflowTemplate, workflowId?: string) => {
             setWorkflowOpen(false);
             // Set the template's system prompt and initial message

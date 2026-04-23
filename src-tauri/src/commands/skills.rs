@@ -2,6 +2,7 @@ use crate::paths::axagent_home;
 use crate::AppState;
 use axagent_core::types::*;
 use axagent_plugins::PluginManager;
+use axagent_trajectory::{Skill, SkillMetadata, HermesMetadata};
 use std::path::{Path, PathBuf};
 use tauri::State;
 
@@ -13,14 +14,28 @@ fn skills_dir() -> PathBuf {
     axagent_home().join("skills")
 }
 
-#[tauri::command]
-pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
+fn all_skills_dirs() -> Vec<PathBuf> {
+    let home = home_dir();
+    vec![
+        axagent_home().join("skills"),
+        home.join(".claude").join("skills"),
+        home.join(".agents").join("skills"),
+    ]
+}
+
+fn create_plugin_manager_with_skill_dirs() -> Result<PluginManager, String> {
     let home = home_dir();
     let config_home = home.join(".claw");
-    
-    let plugin_manager = PluginManager::new(axagent_plugins::PluginManagerConfig::new(config_home));
+    let mut config = axagent_plugins::PluginManagerConfig::new(config_home);
+    config.external_dirs = all_skills_dirs();
+    Ok(PluginManager::new(config))
+}
+
+#[tauri::command]
+pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
+    let plugin_manager = create_plugin_manager_with_skill_dirs()?;
     let plugins = plugin_manager.list_plugins().map_err(|e| e.to_string())?;
-    
+
     let disabled = axagent_core::repo::skill::get_disabled_skills(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?;
@@ -32,13 +47,13 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
             SkillInfo {
                 name: p.metadata.name.clone(),
                 description: p.metadata.description.clone(),
-                author: None, // Plugin system doesn't have author field
+                author: None,
                 version: Some(p.metadata.version.clone()),
                 source: p.metadata.source.clone(),
                 source_path: p.metadata.root.map(|p| p.to_string_lossy().to_string()).unwrap_or_default(),
                 enabled,
                 has_update: false,
-                user_invocable: true, // Assume all plugins are user invocable
+                user_invocable: true,
                 argument_hint: None,
                 when_to_use: None,
                 group: None,
@@ -51,12 +66,9 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
 
 #[tauri::command]
 pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<SkillDetail, String> {
-    let home = home_dir();
-    let config_home = home.join(".claw");
-    
-    let plugin_manager = PluginManager::new(axagent_plugins::PluginManagerConfig::new(config_home));
+    let plugin_manager = create_plugin_manager_with_skill_dirs()?;
     let plugins = plugin_manager.list_plugins().map_err(|e| e.to_string())?;
-    
+
     let plugin = plugins
         .into_iter()
         .find(|p| p.metadata.name == name)
@@ -159,7 +171,12 @@ pub async fn toggle_skill(
 }
 
 #[tauri::command]
-pub async fn install_skill(source: String, target: Option<String>) -> Result<String, String> {
+pub async fn install_skill(
+    state: State<'_, AppState>,
+    source: String,
+    target: Option<String>,
+    scenarios: Option<Vec<String>>,
+) -> Result<String, String> {
     let target_dir = match target.as_deref() {
         Some("claude") => home_dir().join(".claude").join("skills"),
         Some("agents") => home_dir().join(".agents").join("skills"),
@@ -167,11 +184,91 @@ pub async fn install_skill(source: String, target: Option<String>) -> Result<Str
     };
     std::fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
 
-    if source.starts_with('/') || source.starts_with('.') {
-        install_from_local(&source, &target_dir).await
+    let skill_name = if source.starts_with('/') || source.starts_with('.') {
+        install_from_local(&source, &target_dir).await?
     } else {
         let (owner, repo) = parse_github_source(&source)?;
-        install_from_github(&owner, &repo, &target_dir).await
+        install_from_github(&owner, &repo, &target_dir).await?
+    };
+
+    let skill_target = target_dir.join(&skill_name);
+    let content = collect_skill_content(&skill_target);
+    let now = chrono::Utc::now();
+
+    let manifest_scenarios = load_plugin_scenarios(&skill_target);
+    let final_scenarios = merge_scenarios(manifest_scenarios, scenarios);
+
+    let skill = Skill {
+        id: uuid::Uuid::new_v4().to_string(),
+        name: skill_name.clone(),
+        description: String::new(),
+        version: "1.0.0".to_string(),
+        content,
+        category: "installed".to_string(),
+        tags: vec![],
+        platforms: vec![],
+        scenarios: final_scenarios,
+        quality_score: 0.0,
+        success_rate: 0.0,
+        avg_execution_time_ms: 0,
+        total_usages: 0,
+        successful_usages: 0,
+        created_at: now,
+        updated_at: now,
+        last_used_at: None,
+        metadata: SkillMetadata {
+            hermes: HermesMetadata {
+                tags: vec![],
+                category: "installed".to_string(),
+                fallback_for_toolsets: vec![],
+                requires_toolsets: vec![],
+                config: vec![],
+            },
+            references: vec![],
+        },
+    };
+
+    state
+        .trajectory_storage
+        .save_skill(&skill)
+        .map_err(|e| e.to_string())?;
+
+    Ok(skill_name)
+}
+
+fn load_plugin_scenarios(skill_dir: &Path) -> Vec<String> {
+    let manifest_path = skill_dir.join("plugin.json");
+    if let Ok(contents) = std::fs::read_to_string(&manifest_path) {
+        if let Ok(manifest) = serde_json::from_str::<axagent_plugins::PluginManifest>(&contents) {
+            return manifest.scenarios;
+        }
+    }
+    let skill_manifest_path = skill_dir.join("skill-manifest.json");
+    if let Ok(contents) = std::fs::read_to_string(&skill_manifest_path) {
+        if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&contents) {
+            if let Some(scenarios) = manifest.get("scenarios").and_then(|v| v.as_array()) {
+                return scenarios
+                    .iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect();
+            }
+        }
+    }
+    vec![]
+}
+
+fn merge_scenarios(manifest_scenarios: Vec<String>, user_scenarios: Option<Vec<String>>) -> Vec<String> {
+    match user_scenarios {
+        Some(user) if !user.is_empty() => {
+            let mut merged = manifest_scenarios;
+            for s in user {
+                if !merged.contains(&s) {
+                    merged.push(s);
+                }
+            }
+            merged
+        }
+        _ => manifest_scenarios,
     }
 }
 

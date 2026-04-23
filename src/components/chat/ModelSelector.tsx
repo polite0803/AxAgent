@@ -178,9 +178,8 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
   }, [providers, search, excludeModelKeys]);
 
   const handleSelect = useCallback(
-    (providerId: string, model_id: string) => {
+    async (providerId: string, model_id: string) => {
       if (multiSelect) {
-        // In multi-select mode, toggle the selection
         const key = `${providerId}::${model_id}`;
         setMultiSelectedKeys((prev) => {
           const next = new Set(prev);
@@ -193,10 +192,18 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
       if (onSelect) {
         onSelect(providerId, model_id);
       } else if (activeConversationId) {
-        updateConversation(activeConversationId, {
-          provider_id: providerId,
-          model_id: model_id,
-        });
+        try {
+          await updateConversation(activeConversationId, {
+            provider_id: providerId,
+            model_id: model_id,
+          });
+        } catch (e) {
+          if (String(e).includes('Conversation') && String(e).includes('not found')) {
+            useConversationStore.getState().setActiveConversation(null);
+          } else {
+            throw e;
+          }
+        }
       } else {
         saveSettings({ default_provider_id: providerId, default_model_id: model_id });
       }

@@ -13,7 +13,7 @@ interface SkillState {
   loadSkills: () => Promise<void>;
   getSkill: (name: string) => Promise<void>;
   toggleSkill: (name: string, enabled: boolean) => Promise<void>;
-  installSkill: (source: string, target?: string) => Promise<string>;
+  installSkill: (source: string, target?: string, scenarios?: string[]) => Promise<string>;
   uninstallSkill: (name: string) => Promise<void>;
   uninstallSkillGroup: (group: string) => Promise<void>;
   openSkillsDir: () => Promise<void>;
@@ -75,10 +75,9 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     }
   },
 
-  installSkill: async (source: string, target?: string) => {
-    const name = await invoke<string>('install_skill', { source, target: target ?? null });
+  installSkill: async (source: string, target?: string, scenarios?: string[]) => {
+    const name = await invoke<string>('install_skill', { source, target: target ?? null, scenarios: scenarios ?? null });
     await get().loadSkills();
-    // Mark matching marketplace skill as installed
     set({
       marketplaceSkills: get().marketplaceSkills.map(s =>
         s.repo === source ? { ...s, installed: true } : s

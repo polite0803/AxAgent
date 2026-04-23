@@ -33,6 +33,8 @@ pub struct Model {
     pub category_id: Option<String>,
     pub parent_conversation_id: Option<String>,
     pub mode: String,
+    pub scenario: Option<String>,
+    pub enabled_skill_ids: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

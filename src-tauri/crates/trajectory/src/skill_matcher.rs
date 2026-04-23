@@ -365,6 +365,7 @@ mod tests {
             category: "general".to_string(),
             tags,
             platforms: vec!["web".to_string()],
+            scenarios: vec![],
             quality_score: 0.8,
             success_rate: 0.9,
             avg_execution_time_ms: 100,

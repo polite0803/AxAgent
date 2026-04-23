@@ -98,6 +98,7 @@ impl TrajectoryStorage {
                 content TEXT NOT NULL,
                 category TEXT NOT NULL,
                 tags TEXT NOT NULL,
+                scenarios TEXT NOT NULL DEFAULT '[]',
                 parameters TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -258,6 +259,10 @@ impl TrajectoryStorage {
             ",
         )
         .context("Failed to create database tables")?;
+
+        conn_arc.read().unwrap().execute_batch(
+            "ALTER TABLE skills ADD COLUMN scenarios TEXT NOT NULL DEFAULT '[]';",
+        ).ok();
 
         info!("Trajectory storage initialized with FTS5 tables");
 
@@ -750,9 +755,9 @@ impl TrajectoryStorage {
 
         conn.execute(
             "INSERT OR REPLACE INTO skills
-             (id, name, description, skill_type, content, category, tags, parameters,
+             (id, name, description, skill_type, content, category, tags, scenarios, parameters,
               created_at, updated_at, usage_count, success_rate, avg_execution_time_ms)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             params![
                 skill.id,
                 skill.name,
@@ -761,6 +766,7 @@ impl TrajectoryStorage {
                 skill.content,
                 skill.category,
                 serde_json::to_string(&skill.tags)?,
+                serde_json::to_string(&skill.scenarios)?,
                 serde_json::json!({}).to_string(),
                 skill.created_at.to_rfc3339(),
                 skill.updated_at.to_rfc3339(),
@@ -777,16 +783,17 @@ impl TrajectoryStorage {
         let conn = self.conn.read().unwrap();
 
         let mut stmt = conn.prepare(
-            "SELECT id, name, description, skill_type, content, category, tags, parameters,
+            "SELECT id, name, description, skill_type, content, category, tags, scenarios, parameters,
                     created_at, updated_at, usage_count, success_rate, avg_execution_time_ms
              FROM skills WHERE id = ?1",
         )?;
 
         let result = stmt.query_row(params![id], |row| {
             let tags_str: String = row.get(6)?;
-            let _parameters_str: String = row.get(7)?;
-            let created_at_str: String = row.get(8)?;
-            let updated_at_str: String = row.get(9)?;
+            let scenarios_str: String = row.get(7)?;
+            let _parameters_str: String = row.get(8)?;
+            let created_at_str: String = row.get(9)?;
+            let updated_at_str: String = row.get(10)?;
 
             Ok(Skill {
                 id: row.get(0)?,
@@ -797,10 +804,11 @@ impl TrajectoryStorage {
                 category: row.get(5)?,
                 tags: serde_json::from_str(&tags_str).unwrap_or_default(),
                 platforms: Vec::new(),
+                scenarios: serde_json::from_str(&scenarios_str).unwrap_or_default(),
                 quality_score: 0.0,
-                success_rate: row.get(11)?,
-                avg_execution_time_ms: row.get(12)?,
-                total_usages: row.get::<_, i32>(10)? as u32,
+                success_rate: row.get(12)?,
+                avg_execution_time_ms: row.get(13)?,
+                total_usages: row.get::<_, i32>(11)? as u32,
                 successful_usages: 0,
                 created_at: chrono::DateTime::parse_from_rfc3339(&created_at_str)
                     .map(|dt| dt.with_timezone(&chrono::Utc))
@@ -824,7 +832,7 @@ impl TrajectoryStorage {
         let conn = self.conn.read().unwrap();
 
         let mut stmt = conn.prepare(
-            "SELECT id, name, description, skill_type, content, category, tags, parameters,
+            "SELECT id, name, description, skill_type, content, category, tags, scenarios, parameters,
                     created_at, updated_at, usage_count, success_rate, avg_execution_time_ms
              FROM skills ORDER BY usage_count DESC",
         )?;
@@ -832,9 +840,10 @@ impl TrajectoryStorage {
         let skills = stmt
             .query_map([], |row| {
                 let tags_str: String = row.get(6)?;
-                let _parameters_str: String = row.get(7)?;
-                let created_at_str: String = row.get(8)?;
-                let updated_at_str: String = row.get(9)?;
+                let scenarios_str: String = row.get(7)?;
+                let _parameters_str: String = row.get(8)?;
+                let created_at_str: String = row.get(9)?;
+                let updated_at_str: String = row.get(10)?;
 
                 Ok(Skill {
                     id: row.get(0)?,
@@ -845,10 +854,11 @@ impl TrajectoryStorage {
                     category: row.get(5)?,
                     tags: serde_json::from_str(&tags_str).unwrap_or_default(),
                     platforms: Vec::new(),
+                    scenarios: serde_json::from_str(&scenarios_str).unwrap_or_default(),
                     quality_score: 0.0,
-                    success_rate: row.get(11)?,
-                    avg_execution_time_ms: row.get(12)?,
-                    total_usages: row.get::<_, i32>(10)? as u32,
+                    success_rate: row.get(12)?,
+                    avg_execution_time_ms: row.get(13)?,
+                    total_usages: row.get::<_, i32>(11)? as u32,
                     successful_usages: 0,
                     created_at: chrono::DateTime::parse_from_rfc3339(&created_at_str)
                         .map(|dt| dt.with_timezone(&chrono::Utc))

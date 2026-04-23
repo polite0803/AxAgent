@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+#[allow(unused_imports)]
 use std::path::Path;
 use std::process::Command;
 

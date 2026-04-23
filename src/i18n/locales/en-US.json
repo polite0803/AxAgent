@@ -46,6 +46,7 @@
     "compressSuccess": "Context compressed",
     "compressFailed": "Compression failed",
     "agentInitFailed": "Failed to initialize agent session",
+    "switchAgentModeNoConversation": "Please start a new conversation first before switching to Agent mode",
     "contextCompressed": "Context compressed",
     "deleteCompressionConfirm": "Delete compression summary? This will revert to uncompressed state",
     "compressing": "Compressing...",

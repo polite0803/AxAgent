@@ -44,6 +44,8 @@
     "manualCompress": "手動壓縮",
     "compressSuccess": "上下文已壓縮",
     "compressFailed": "壓縮失敗",
+    "agentInitFailed": "Agent 對話初始化失敗",
+    "switchAgentModeNoConversation": "請先開始一個新對話，再切換到 Agent 模式",
     "contextCompressed": "上下文已壓縮",
     "deleteCompressionConfirm": "確定刪除壓縮摘要？刪除後將恢復為未壓縮狀態",
     "compressing": "正在壓縮中...",

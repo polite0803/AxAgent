@@ -242,6 +242,8 @@ pub struct Conversation {
     pub category_id: Option<String>,
     pub parent_conversation_id: Option<String>,
     pub mode: String,
+    pub scenario: Option<String>,
+    pub enabled_skill_ids: Vec<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -369,6 +371,8 @@ pub struct UpdateConversationInput {
     #[serde(default, deserialize_with = "deserialize_double_option")]
     pub parent_conversation_id: Option<Option<String>>,
     pub mode: Option<String>,
+    pub scenario: Option<String>,
+    pub enabled_skill_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

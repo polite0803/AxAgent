@@ -13,6 +13,7 @@ use rmcp::{
 type McpPeer = rmcp::service::Peer<RoleClient>;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+#[allow(unused_imports)]
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 use tokio::sync::Mutex;

@@ -10,7 +10,7 @@ import Prompts from '@ant-design/x/es/prompts';
 import Actions from '@ant-design/x/es/actions';
 import Think from '@ant-design/x/es/think';
 import type { BubbleItemType, BubbleListRef, RoleType } from '@ant-design/x/es/bubble/interface';
-import type { PromptsItemType } from '@ant-design/x/es/prompts';
+
 import NodeRenderer, { setCustomComponents, type NodeComponentProps, type MermaidBlockActionContext, type InfographicBlockActionContext } from 'markstream-react';
 
 // These types are no longer exported from markstream-react, define them locally
@@ -2467,19 +2467,21 @@ function ChatViewInner() {
     return `👋 ${t(key)}`;
   }, [t]);
 
-  const promptItems: PromptsItemType[] = useMemo(
+  const promptItems = useMemo(
     () => [
-      { key: '1', icon: <Lightbulb size={16} />, label: t('chat.welcomePrompt1') },
-      { key: '2', icon: <Languages size={16} />, label: t('chat.welcomePrompt2') },
-      { key: '3', icon: <Code size={16} />, label: t('chat.welcomePrompt3') },
-      { key: '4', icon: <Lightbulb size={16} />, label: t('chat.welcomePrompt4') },
+      { key: '1', icon: <Lightbulb size={16} />, label: t('chat.welcomePrompt1'), scenario: 'creative' },
+      { key: '2', icon: <Languages size={16} />, label: t('chat.welcomePrompt2'), scenario: 'translation' },
+      { key: '3', icon: <Code size={16} />, label: t('chat.welcomePrompt3'), scenario: 'coding' },
+      { key: '4', icon: <Lightbulb size={16} />, label: t('chat.welcomePrompt4'), scenario: 'general' },
     ],
     [t],
   );
 
   const handlePromptClick = useCallback(
-    async (info: { data: PromptsItemType }) => {
-      const text = typeof info.data.label === 'string' ? info.data.label : '';
+    async (info: { data: { label?: unknown; scenario?: string } }) => {
+      const label = info.data.label;
+      const text = typeof label === 'string' ? label : '';
+      const scenario = info.data.scenario;
       if (!text) return;
 
       try {
@@ -2488,7 +2490,6 @@ function ChatViewInner() {
             messageApi.warning(t('chat.noModel'));
             return;
           }
-          // Prefer settings default model, fall back to first enabled
           let provider = settings.default_provider_id
             ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
             : undefined;
@@ -2503,10 +2504,9 @@ function ChatViewInner() {
             messageApi.warning(t('chat.noModel'));
             return;
           }
-          await createConversation(text.slice(0, 30), model.model_id, provider.id);
+          await createConversation(text.slice(0, 30), model.model_id, provider.id, { scenario });
         }
 
-        // Route through InputArea's send pipeline so companion models are respected
         useConversationStore.getState().setPendingPromptText(text);
       } catch (e) {
         console.error('[handlePromptClick] error:', e);

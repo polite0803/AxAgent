@@ -179,6 +179,61 @@ pub fn init_builtin_handlers() {
         })
     }));
 
+    register_builtin_handler("@axagent/knowledge", "create_knowledge_entity", make_handler(|args: Value| {
+        Box::pin(async move {
+            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+            let entity_type = args.get("entity_type").and_then(|v| v.as_str()).unwrap_or("entity");
+            let description = args.get("description").and_then(|v| v.as_str());
+            let source_path = args.get("source_path").and_then(|v| v.as_str()).unwrap_or_default();
+            let source_language = args.get("source_language").and_then(|v| v.as_str());
+            let properties = args.get("properties").cloned().unwrap_or(serde_json::Value::Null);
+            let lifecycle = args.get("lifecycle").cloned();
+            let behaviors = args.get("behaviors").cloned();
+            create_knowledge_entity_tool(kb_id, name, entity_type, description, source_path, source_language, properties, lifecycle, behaviors).await
+        })
+    }));
+
+    register_builtin_handler("@axagent/knowledge", "create_knowledge_flow", make_handler(|args: Value| {
+        Box::pin(async move {
+            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+            let flow_type = args.get("flow_type").and_then(|v| v.as_str()).unwrap_or("process");
+            let description = args.get("description").and_then(|v| v.as_str());
+            let source_path = args.get("source_path").and_then(|v| v.as_str()).unwrap_or_default();
+            let steps = args.get("steps").cloned().unwrap_or(serde_json::Value::Null);
+            let decision_points = args.get("decision_points").cloned();
+            let error_handling = args.get("error_handling").cloned();
+            let preconditions = args.get("preconditions").cloned();
+            let postconditions = args.get("postconditions").cloned();
+            create_knowledge_flow_tool(kb_id, name, flow_type, description, source_path, steps, decision_points, error_handling, preconditions, postconditions).await
+        })
+    }));
+
+    register_builtin_handler("@axagent/knowledge", "create_knowledge_interface", make_handler(|args: Value| {
+        Box::pin(async move {
+            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+            let interface_type = args.get("interface_type").and_then(|v| v.as_str()).unwrap_or("api");
+            let description = args.get("description").and_then(|v| v.as_str());
+            let source_path = args.get("source_path").and_then(|v| v.as_str()).unwrap_or_default();
+            let input_schema = args.get("input_schema").cloned().unwrap_or(serde_json::Value::Null);
+            let output_schema = args.get("output_schema").cloned().unwrap_or(serde_json::Value::Null);
+            let error_codes = args.get("error_codes").cloned();
+            let communication_pattern = args.get("communication_pattern").and_then(|v| v.as_str());
+            create_knowledge_interface_tool(kb_id, name, interface_type, description, source_path, input_schema, output_schema, error_codes, communication_pattern).await
+        })
+    }));
+
+    register_builtin_handler("@axagent/knowledge", "add_knowledge_document", make_handler(|args: Value| {
+        Box::pin(async move {
+            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or_default();
+            let content = args.get("content").and_then(|v| v.as_str()).unwrap_or_default();
+            add_knowledge_document_tool(kb_id, title, content).await
+        })
+    }));
+
     register_builtin_handler("@axagent/storage", "get_storage_info", make_handler(|_args: Value| {
         Box::pin(async move { get_storage_info() })
     }));
@@ -1745,6 +1800,346 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                 content: format!("Error opening database: {}", e),
                 is_error: true,
             }),
+        }
+    }
+}
+
+fn generate_uuid() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
+fn current_timestamp() -> i64 {
+    chrono::Utc::now().timestamp()
+}
+
+async fn create_knowledge_entity_tool(
+    kb_id: &str,
+    name: &str,
+    entity_type: &str,
+    description: Option<&str>,
+    source_path: &str,
+    source_language: Option<&str>,
+    properties: serde_json::Value,
+    lifecycle: Option<serde_json::Value>,
+    behaviors: Option<serde_json::Value>,
+) -> Result<McpToolResult> {
+    if kb_id.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: knowledge_base_id is required".to_string(),
+            is_error: true,
+        });
+    }
+    if name.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: name is required".to_string(),
+            is_error: true,
+        });
+    }
+
+    let db_path = match get_global_db_path() {
+        Some(p) => p,
+        None => {
+            return Ok(McpToolResult {
+                content: "Error: database not initialized".to_string(),
+                is_error: true,
+            });
+        }
+    };
+
+    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+    let id = generate_uuid();
+    let now = current_timestamp();
+    let properties_json = serde_json::to_string(&properties).unwrap_or_else(|_| "{}".to_string());
+    let lifecycle_json = lifecycle.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let behaviors_json = behaviors.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+
+    match rusqlite::Connection::open(db_file) {
+        Ok(conn) => {
+            let result = conn.execute(
+                "INSERT INTO knowledge_entities (id, knowledge_base_id, name, entity_type, description, source_path, source_language, properties, lifecycle, behaviors, metadata, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, ?11, ?12)",
+                rusqlite::params![
+                    id,
+                    kb_id,
+                    name,
+                    entity_type,
+                    description,
+                    source_path,
+                    source_language,
+                    properties_json,
+                    lifecycle_json,
+                    behaviors_json,
+                    now,
+                    now
+                ],
+            );
+
+            match result {
+                Ok(_) => Ok(McpToolResult {
+                    content: format!("Created knowledge entity '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+                    is_error: false,
+                }),
+                Err(e) => Ok(McpToolResult {
+                    content: format!("Error creating knowledge entity: {}", e),
+                    is_error: true,
+                }),
+            }
+        }
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error opening database: {}", e),
+            is_error: true,
+        }),
+    }
+}
+
+async fn create_knowledge_flow_tool(
+    kb_id: &str,
+    name: &str,
+    flow_type: &str,
+    description: Option<&str>,
+    source_path: &str,
+    steps: serde_json::Value,
+    decision_points: Option<serde_json::Value>,
+    error_handling: Option<serde_json::Value>,
+    preconditions: Option<serde_json::Value>,
+    postconditions: Option<serde_json::Value>,
+) -> Result<McpToolResult> {
+    if kb_id.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: knowledge_base_id is required".to_string(),
+            is_error: true,
+        });
+    }
+    if name.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: name is required".to_string(),
+            is_error: true,
+        });
+    }
+
+    let db_path = match get_global_db_path() {
+        Some(p) => p,
+        None => {
+            return Ok(McpToolResult {
+                content: "Error: database not initialized".to_string(),
+                is_error: true,
+            });
+        }
+    };
+
+    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+    let id = generate_uuid();
+    let now = current_timestamp();
+    let steps_json = serde_json::to_string(&steps).unwrap_or_else(|_| "[]".to_string());
+    let decision_points_json = decision_points.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let error_handling_json = error_handling.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let preconditions_json = preconditions.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let postconditions_json = postconditions.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+
+    match rusqlite::Connection::open(db_file) {
+        Ok(conn) => {
+            let result = conn.execute(
+                "INSERT INTO knowledge_flows (id, knowledge_base_id, name, flow_type, description, source_path, steps, decision_points, error_handling, preconditions, postconditions, metadata, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, ?12, ?13)",
+                rusqlite::params![
+                    id,
+                    kb_id,
+                    name,
+                    flow_type,
+                    description,
+                    source_path,
+                    steps_json,
+                    decision_points_json,
+                    error_handling_json,
+                    preconditions_json,
+                    postconditions_json,
+                    now,
+                    now
+                ],
+            );
+
+            match result {
+                Ok(_) => Ok(McpToolResult {
+                    content: format!("Created knowledge flow '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+                    is_error: false,
+                }),
+                Err(e) => Ok(McpToolResult {
+                    content: format!("Error creating knowledge flow: {}", e),
+                    is_error: true,
+                }),
+            }
+        }
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error opening database: {}", e),
+            is_error: true,
+        }),
+    }
+}
+
+async fn create_knowledge_interface_tool(
+    kb_id: &str,
+    name: &str,
+    interface_type: &str,
+    description: Option<&str>,
+    source_path: &str,
+    input_schema: serde_json::Value,
+    output_schema: serde_json::Value,
+    error_codes: Option<serde_json::Value>,
+    communication_pattern: Option<&str>,
+) -> Result<McpToolResult> {
+    if kb_id.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: knowledge_base_id is required".to_string(),
+            is_error: true,
+        });
+    }
+    if name.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: name is required".to_string(),
+            is_error: true,
+        });
+    }
+
+    let db_path = match get_global_db_path() {
+        Some(p) => p,
+        None => {
+            return Ok(McpToolResult {
+                content: "Error: database not initialized".to_string(),
+                is_error: true,
+            });
+        }
+    };
+
+    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+    let id = generate_uuid();
+    let now = current_timestamp();
+    let input_schema_json = serde_json::to_string(&input_schema).unwrap_or_else(|_| "{}".to_string());
+    let output_schema_json = serde_json::to_string(&output_schema).unwrap_or_else(|_| "{}".to_string());
+    let error_codes_json = error_codes.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+
+    match rusqlite::Connection::open(db_file) {
+        Ok(conn) => {
+            let result = conn.execute(
+                "INSERT INTO knowledge_interfaces (id, knowledge_base_id, name, interface_type, description, source_path, input_schema, output_schema, error_codes, communication_pattern, version, metadata, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12)",
+                rusqlite::params![
+                    id,
+                    kb_id,
+                    name,
+                    interface_type,
+                    description,
+                    source_path,
+                    input_schema_json,
+                    output_schema_json,
+                    error_codes_json,
+                    communication_pattern,
+                    now,
+                    now
+                ],
+            );
+
+            match result {
+                Ok(_) => Ok(McpToolResult {
+                    content: format!("Created knowledge interface '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+                    is_error: false,
+                }),
+                Err(e) => Ok(McpToolResult {
+                    content: format!("Error creating knowledge interface: {}", e),
+                    is_error: true,
+                }),
+            }
+        }
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error opening database: {}", e),
+            is_error: true,
+        }),
+    }
+}
+
+async fn add_knowledge_document_tool(
+    kb_id: &str,
+    title: &str,
+    content: &str,
+) -> Result<McpToolResult> {
+    if kb_id.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: knowledge_base_id is required".to_string(),
+            is_error: true,
+        });
+    }
+    if title.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: title is required".to_string(),
+            is_error: true,
+        });
+    }
+    if content.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: content is required".to_string(),
+            is_error: true,
+        });
+    }
+
+    let db_path = match get_global_db_path() {
+        Some(p) => p,
+        None => {
+            return Ok(McpToolResult {
+                content: "Error: database not initialized".to_string(),
+                is_error: true,
+            });
+        }
+    };
+
+    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+
+    let temp_dir = std::env::temp_dir();
+    let doc_id = generate_uuid();
+    let file_path = temp_dir.join(format!("kb_doc_{}.md", doc_id));
+
+    if let Err(e) = std::fs::write(&file_path, content) {
+        return Ok(McpToolResult {
+            content: format!("Error writing temporary file: {}", e),
+            is_error: true,
+        });
+    }
+
+    let id = generate_uuid();
+    let now = current_timestamp();
+    let file_path_str = file_path.to_string_lossy().to_string();
+    let content_size = content.len() as i64;
+
+    match rusqlite::Connection::open(db_file) {
+        Ok(conn) => {
+            let result = conn.execute(
+                "INSERT INTO knowledge_documents (id, knowledge_base_id, title, source_path, mime_type, size_bytes, indexing_status, doc_type, index_error, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', 'extracted', NULL, ?7, ?8)",
+                rusqlite::params![
+                    id,
+                    kb_id,
+                    title,
+                    file_path_str,
+                    "text/markdown",
+                    content_size,
+                    now,
+                    now
+                ],
+            );
+
+            let _ = std::fs::remove_file(&file_path);
+
+            match result {
+                Ok(_) => Ok(McpToolResult {
+                    content: format!("Added knowledge document '{}' (id: {}) to knowledge base '{}'", title, id, kb_id),
+                    is_error: false,
+                }),
+                Err(e) => Ok(McpToolResult {
+                    content: format!("Error creating knowledge document: {}", e),
+                    is_error: true,
+                }),
+            }
+        }
+        Err(e) => {
+            let _ = std::fs::remove_file(&file_path);
+            Ok(McpToolResult {
+                content: format!("Error opening database: {}", e),
+                is_error: true,
+            })
         }
     }
 }

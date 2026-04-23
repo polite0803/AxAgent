@@ -129,6 +129,8 @@ pub struct PluginManifest {
     pub tools: Vec<PluginToolManifest>,
     #[serde(default)]
     pub commands: Vec<PluginCommandManifest>,
+    #[serde(default)]
+    pub scenarios: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -238,6 +240,8 @@ struct RawPluginManifest {
     pub tools: Vec<RawPluginToolManifest>,
     #[serde(default)]
     pub commands: Vec<PluginCommandManifest>,
+    #[serde(default)]
+    pub scenarios: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1319,8 +1323,8 @@ impl PluginManager {
         let mut discovery = PluginDiscovery::default();
 
         for directory in &self.config.external_dirs {
+            let source = Self::derive_source_from_external_dir(directory);
             for root in discover_plugin_dirs(directory)? {
-                let source = root.display().to_string();
                 match load_plugin_definition(
                     &root,
                     PluginKind::External,
@@ -1340,7 +1344,7 @@ impl PluginManager {
                         discovery.push_failure(PluginLoadFailure::new(
                             root,
                             PluginKind::External,
-                            source,
+                            source.clone(),
                             error,
                         ));
                     }
@@ -1349,6 +1353,19 @@ impl PluginManager {
         }
 
         Ok(discovery)
+    }
+
+    fn derive_source_from_external_dir(directory: &Path) -> String {
+        let dir_str = directory.to_string_lossy().to_lowercase();
+        if dir_str.contains(".axagent") {
+            "axagent".to_string()
+        } else if dir_str.contains(".claude") {
+            "claude".to_string()
+        } else if dir_str.contains(".agents") {
+            "agents".to_string()
+        } else {
+            directory.display().to_string()
+        }
     }
 
     pub fn installed_plugin_registry_report(&self) -> Result<PluginRegistryReport, PluginError> {
@@ -1734,6 +1751,7 @@ fn build_plugin_manifest(
         lifecycle: raw.lifecycle,
         tools,
         commands,
+        scenarios: raw.scenarios,
     })
 }
 

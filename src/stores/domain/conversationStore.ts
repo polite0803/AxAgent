@@ -73,7 +73,7 @@ interface ConversationState {
     title: string,
     model_id: string,
     providerId: string,
-    options?: { categoryId?: string | null },
+    options?: { categoryId?: string | null; scenario?: string | null },
   ) => Promise<Conversation>;
   updateConversation: (id: string, input: UpdateConversationInput) => Promise<void>;
   renameConversation: (id: string, title: string) => Promise<void>;
@@ -410,6 +410,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           input: {
             ...categoryTemplateUpdateFromCategory(category),
             ...conversationPreferenceUpdateFromState(usePreferenceStore.getState()),
+            scenario: options?.scenario,
           },
         });
       } catch (preferenceError) {

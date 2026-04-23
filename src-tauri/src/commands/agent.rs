@@ -1,6 +1,6 @@
 use crate::AppState;
 use axagent_agent::{AxAgentApiClient, ToolRegistry, McpServerConfig};
-use axagent_core::repo::{message, provider};
+use axagent_core::repo::{conversation, message, provider};
 use axagent_core::types::{ChatTool, ChatToolFunction, MessageRole, ProviderProxyConfig, AttachmentInput, Attachment};
 use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext};
 use base64::Engine;
@@ -385,6 +385,12 @@ pub async fn agent_query(
     let conversation_id = request.conversation_id.clone();
     info!("[agent_query] Starting for conversation: {}", conversation_id);
 
+    let conversation = conversation::get_conversation(&app_state.sea_db, &conversation_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    let conversation_scenario = conversation.scenario.clone();
+    let enabled_skill_ids = conversation.enabled_skill_ids.clone();
+
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point
     // we emit an "agent-message-id" event so the frontend can remap the
@@ -598,7 +604,11 @@ pub async fn agent_query(
     tool_registry = tool_registry.with_local_tools(local_tools);
 
     // Load enabled skills content for system prompt injection
-    let skill_contents = load_enabled_skill_contents(&app_state).await;
+    let skill_contents = load_enabled_skill_contents(
+        &app_state,
+        conversation_scenario.as_deref(),
+        &enabled_skill_ids,
+    ).await;
 
     info!("[agent] chat_tools registered: {}, tool_registry MCP tools: {:?}",
           chat_tools.len(), tool_registry.list_tools());
@@ -1329,42 +1339,72 @@ pub async fn agent_query(
     }
 }
 
-/// Load the content of all enabled skills from the file system.
-/// Returns a list of (skill_name, content_string) pairs.
-async fn load_enabled_skill_contents(app_state: &State<'_, AppState>) -> Vec<(String, String)> {
-    // Get disabled skill names from DB — everything else is enabled
+/// Load the content of enabled skills from the file system based on conversation scenario.
+/// Returns a list of (skill_name, content_string) pairs filtered by scenario and enabled_skill_ids.
+async fn load_enabled_skill_contents(
+    app_state: &State<'_, AppState>,
+    scenario: Option<&str>,
+    enabled_skill_ids: &[String],
+) -> Vec<(String, String)> {
     let disabled = match axagent_core::repo::skill::get_disabled_skills(&app_state.sea_db).await {
         Ok(d) => d,
         Err(_) => return Vec::new(),
     };
 
-    // Use PluginManager to discover installed skills
     let home = match dirs::home_dir() {
         Some(h) => h,
         None => return Vec::new(),
     };
     let config_home = home.join(".claw");
-    let plugin_manager = axagent_plugins::PluginManager::new(
-        axagent_plugins::PluginManagerConfig::new(config_home),
-    );
+    let mut config = axagent_plugins::PluginManagerConfig::new(config_home);
+    config.external_dirs = vec![
+        home.join(".axagent").join("skills"),
+        home.join(".claude").join("skills"),
+        home.join(".agents").join("skills"),
+    ];
+    let plugin_manager = axagent_plugins::PluginManager::new(config);
     let plugins = match plugin_manager.list_plugins() {
         Ok(p) => p,
         Err(_) => return Vec::new(),
     };
 
+    let trajectory_storage = &app_state.trajectory_storage;
+    let all_skills = match trajectory_storage.get_skills() {
+        Ok(skills) => skills,
+        Err(_) => return Vec::new(),
+    };
+    let skill_scenarios: std::collections::HashMap<String, Vec<String>> = all_skills
+        .into_iter()
+        .map(|s| (s.name.clone(), s.scenarios))
+        .collect();
+
     let mut results = Vec::new();
 
     for plugin in plugins {
-        // Skip disabled skills
         if disabled.contains(&plugin.metadata.name) {
             continue;
+        }
+
+        let skill_name = &plugin.metadata.name;
+
+        if !enabled_skill_ids.is_empty() {
+            if !enabled_skill_ids.contains(skill_name) {
+                continue;
+            }
+        } else if let Some(scenario) = scenario {
+            let skill_scene_list = skill_scenarios.get(skill_name);
+            let matches = skill_scene_list
+                .map(|scenes| scenes.is_empty() || scenes.contains(&scenario.to_string()))
+                .unwrap_or(false);
+            if !matches {
+                continue;
+            }
         }
 
         let Some(root) = &plugin.metadata.root else {
             continue;
         };
 
-        // Read all .md files in the skill directory (recursively)
         let mut contents = String::new();
         if let Ok(entries) = super::skills::collect_markdown_files(root) {
             for md_path in entries {

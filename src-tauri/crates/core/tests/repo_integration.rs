@@ -434,6 +434,8 @@ async fn test_conversation_update_input() {
         category_id: None,
         parent_conversation_id: None,
         mode: None,
+        scenario: None,
+        enabled_skill_ids: None,
     };
     let updated = conversation::update_conversation(db, &conv.id, input)
         .await

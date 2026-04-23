@@ -130,6 +130,8 @@ export interface Conversation {
   message_count: number;
   created_at: number;
   updated_at: number;
+  scenario?: string | null;
+  enabled_skill_ids: string[];
 }
 
 export interface ToolCall {
@@ -244,6 +246,8 @@ export interface UpdateConversationInput {
   context_compression?: boolean;
   category_id?: string | null;
   mode?: 'chat' | 'agent' | 'gateway';
+  scenario?: string | null;
+  enabled_skill_ids?: string[];
 }
 
 // === Gateway System ===
