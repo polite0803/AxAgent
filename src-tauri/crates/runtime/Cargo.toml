@@ -17,6 +17,10 @@ axagent-telemetry = { path = "../telemetry" }
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "process", "rt", "rt-multi-thread", "sync", "time"] }
 uuid = { version = "1.6.1", features = ["v4"] }
 walkdir = "2"
+reqwest = { version = "0.12", features = ["json"] }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+async-trait = "0.1"
+futures = "0.3"
 
 [lints]
 # workspace = true

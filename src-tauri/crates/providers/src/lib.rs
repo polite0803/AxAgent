@@ -7,6 +7,7 @@ pub mod openai;
 pub mod openai_responses;
 pub mod openclaw;
 pub mod registry;
+pub mod realtime_client;
 
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;

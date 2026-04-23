@@ -29,6 +29,8 @@ pub mod mcp_lifecycle_hardened;
 pub mod mcp_server;
 mod mcp_stdio;
 pub mod mcp_tool_bridge;
+pub mod message_gateway;
+pub mod transport_handlers;
 mod oauth;
 pub mod permission_enforcer;
 mod permissions;

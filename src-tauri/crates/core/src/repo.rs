@@ -9,6 +9,7 @@ pub mod gateway;
 pub mod gateway_diagnostic;
 pub mod gateway_key;
 pub mod gateway_link;
+pub mod gateway_link_manager;
 pub mod gateway_request_log;
 pub mod knowledge;
 pub mod knowledge_graph;

@@ -743,3 +743,134 @@ async fn add_activity(
         .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLinkActivity {}", id)))?;
     Ok(activity_from_entity(row))
 }
+
+pub struct GatewayLinkTimeouts {
+    pub health_check: std::time::Duration,
+    pub connect: std::time::Duration,
+    pub sync: std::time::Duration,
+    pub default: std::time::Duration,
+}
+
+impl Default for GatewayLinkTimeouts {
+    fn default() -> Self {
+        Self {
+            health_check: std::time::Duration::from_secs(3),
+            connect: std::time::Duration::from_secs(5),
+            sync: std::time::Duration::from_secs(30),
+            default: std::time::Duration::from_secs(10),
+        }
+    }
+}
+
+fn build_health_check_client(timeouts: &GatewayLinkTimeouts, endpoint: &str, api_key: Option<&str>) -> reqwest::Client {
+    let mut builder = reqwest::Client::builder();
+    builder = builder
+        .timeout(timeouts.health_check)
+        .connect_timeout(timeouts.health_check);
+    let _ = (endpoint, api_key);
+    builder.build().unwrap_or_default()
+}
+
+pub async fn check_gateway_health(
+    db: &DatabaseConnection,
+    link_id: &str,
+    api_key: Option<&str>,
+) -> Result<u64> {
+    let link = gateway_links::Entity::find_by_id(link_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
+
+    let timeouts = GatewayLinkTimeouts::default();
+    let client = build_health_check_client(&timeouts, &link.endpoint, api_key);
+    let url = format!("{}/health", link.endpoint.trim_end_matches('/'));
+
+    let start = std::time::Instant::now();
+    let mut req = client.get(&url);
+    if let Some(key) = api_key {
+        req = req.header("Authorization", format!("Bearer {}", key));
+    }
+
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("Health check to {} failed: {}", url, e)))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(AxAgentError::Gateway(format!(
+            "Health check error {} from {}: {}",
+            status, url, text
+        )));
+    }
+
+    let latency_ms = start.elapsed().as_millis() as u64;
+    Ok(latency_ms)
+}
+
+pub async fn connect_gateway_link_with_retry(
+    db: &DatabaseConnection,
+    link_id: &str,
+    api_key: Option<&str>,
+    max_retries: u32,
+) -> Result<GatewayLink> {
+    let mut backoff = ExponentialBackoff::new(1000, 60000);
+    let mut last_error = None;
+
+    for attempt in 0..max_retries {
+        match connect_gateway_link(db, link_id, api_key).await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                last_error = Some(e);
+                if attempt < max_retries - 1 {
+                    let delay = backoff.next_delay();
+                    tracing::warn!(
+                        "Gateway link {} connection attempt {}/{} failed, retrying in {:?}: {}",
+                        link_id,
+                        attempt + 1,
+                        max_retries,
+                        delay,
+                        last_error.as_ref().unwrap()
+                    );
+                    tokio::time::sleep(delay).await;
+                }
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| AxAgentError::Gateway(format!(
+        "Gateway link {} failed after {} attempts",
+        link_id, max_retries
+    ))))
+}
+
+#[derive(Debug, Clone)]
+pub struct ExponentialBackoff {
+    base_delay_ms: u64,
+    max_delay_ms: u64,
+    current_attempt: u32,
+}
+
+impl ExponentialBackoff {
+    pub fn new(base_delay_ms: u64, max_delay_ms: u64) -> Self {
+        Self {
+            base_delay_ms,
+            max_delay_ms,
+            current_attempt: 0,
+        }
+    }
+
+    pub fn next_delay(&mut self) -> std::time::Duration {
+        let delay = std::cmp::min(
+            self.base_delay_ms * 2u64.pow(self.current_attempt.min(10)),
+            self.max_delay_ms,
+        );
+        self.current_attempt += 1;
+        std::time::Duration::from_millis(delay)
+    }
+
+    pub fn reset(&mut self) {
+        self.current_attempt = 0;
+    }
+}

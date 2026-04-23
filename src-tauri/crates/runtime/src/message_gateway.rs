@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 fn now_ms() -> u128 {
@@ -152,17 +153,19 @@ pub struct GatewayState {
     pub routing_table: HashMap<String, String>,
 }
 
+#[derive(Clone)]
 pub struct MessageGateway {
     state: Arc<RwLock<GatewayState>>,
-    transport_handlers: HashMap<TransportType, Box<dyn TransportHandler>>,
+    transport_handlers: HashMap<TransportType, Arc<dyn TransportHandler>>,
 }
 
+#[async_trait]
 pub trait TransportHandler: Send + Sync {
     fn transport_type(&self) -> TransportType;
-    fn connect(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError>;
-    fn disconnect(&self, endpoint_id: &str) -> Result<(), GatewayError>;
-    fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError>;
-    fn broadcast(&self, agent_ids: &[String], message: &AgentMessage) -> Result<(), GatewayError>;
+    async fn connect(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError>;
+    async fn disconnect(&self, endpoint_id: &str) -> Result<(), GatewayError>;
+    async fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError>;
+    async fn broadcast(&self, agent_ids: &[String], message: &AgentMessage) -> Result<(), GatewayError>;
     fn get_state(&self, endpoint_id: &str) -> ConnectionState;
 }
 
@@ -201,10 +204,10 @@ impl MessageGateway {
 
     pub fn register_transport<H: TransportHandler + 'static>(&mut self, handler: H) {
         self.transport_handlers
-            .insert(handler.transport_type(), Box::new(handler));
+            .insert(handler.transport_type(), Arc::new(handler));
     }
 
-    pub fn register_endpoint(&self, endpoint: AgentEndpoint) -> Result<(), GatewayError> {
+    pub async fn register_endpoint(&self, endpoint: AgentEndpoint) -> Result<(), GatewayError> {
         let mut state = self
             .state
             .write()
@@ -213,7 +216,7 @@ impl MessageGateway {
             })?;
 
         if let Some(handler) = self.transport_handlers.get(&endpoint.transport) {
-            handler.connect(&endpoint)?;
+            handler.connect(&endpoint).await?;
         }
 
         let agent_id = endpoint.agent_id.clone();
@@ -224,7 +227,7 @@ impl MessageGateway {
         Ok(())
     }
 
-    pub fn unregister_endpoint(&self, agent_id: &str) -> Result<AgentEndpoint, GatewayError> {
+    pub async fn unregister_endpoint(&self, agent_id: &str) -> Result<AgentEndpoint, GatewayError> {
         let mut state = self
             .state
             .write()
@@ -240,7 +243,7 @@ impl MessageGateway {
             })?;
 
         if let Some(handler) = self.transport_handlers.get(&endpoint.transport) {
-            handler.disconnect(agent_id)?;
+            handler.disconnect(agent_id).await?;
         }
 
         state.routing_table.remove(agent_id);
@@ -248,7 +251,7 @@ impl MessageGateway {
         Ok(endpoint)
     }
 
-    pub fn send_message(&self, message: &AgentMessage) -> Result<(), GatewayError> {
+    pub async fn send_message(&self, message: &AgentMessage) -> Result<(), GatewayError> {
         let state = self
             .state
             .read()
@@ -270,10 +273,10 @@ impl MessageGateway {
                 reason: format!("No handler for transport {:?}", endpoint.transport),
             })?;
 
-        handler.send(&message.to, message)
+        handler.send(&message.to, message).await
     }
 
-    pub fn broadcast(
+    pub async fn broadcast(
         &self,
         agent_ids: &[String],
         message: &AgentMessage,
@@ -288,7 +291,7 @@ impl MessageGateway {
         for agent_id in agent_ids {
             if let Some(endpoint) = state.endpoints.get(agent_id) {
                 if let Some(handler) = self.transport_handlers.get(&endpoint.transport) {
-                    handler.send(agent_id, message)?;
+                    handler.send(agent_id, message).await?;
                 }
             }
         }
@@ -433,283 +436,6 @@ fn rand_u16() -> u16 {
     })
 }
 
-#[allow(dead_code)]
-pub struct WebSocketTransport {
-    connections:
-        std::sync::Arc<std::sync::RwLock<std::collections::HashMap<String, WebSocketConnection>>>,
-    reconnect_timeout_secs: u64,
-}
-
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub(crate) struct WebSocketConnection {
-    endpoint: AgentEndpoint,
-    state: ConnectionState,
-    connected_at: u128,
-    last_message_at: u128,
-    pending_messages: Vec<AgentMessage>,
-}
-
-#[allow(dead_code)]
-impl WebSocketTransport {
-    pub fn new() -> Self {
-        Self {
-            connections: std::sync::Arc::new(std::sync::RwLock::new(
-                std::collections::HashMap::new(),
-            )),
-            reconnect_timeout_secs: 30,
-        }
-    }
-
-    pub fn with_reconnect_timeout(mut self, timeout_secs: u64) -> Self {
-        self.reconnect_timeout_secs = timeout_secs;
-        self
-    }
-
-    fn update_connection_state(&self, endpoint_id: &str, state: ConnectionState) {
-        if let Ok(mut connections) = self.connections.write() {
-            if let Some(conn) = connections.get_mut(endpoint_id) {
-                conn.state = state.clone();
-                conn.last_message_at = now_ms();
-            }
-        }
-    }
-
-    pub fn get_connection_state(&self, endpoint_id: &str) -> Option<ConnectionState> {
-        self.connections
-            .read()
-            .ok()
-            .and_then(|c| c.get(endpoint_id).map(|conn| conn.state.clone()))
-    }
-
-    pub fn queue_message_for_offline(&self, endpoint_id: &str, message: &AgentMessage) {
-        if let Ok(mut connections) = self.connections.write() {
-            if let Some(conn) = connections.get_mut(endpoint_id) {
-                if conn.state != ConnectionState::Connected {
-                    conn.pending_messages.push(message.clone());
-                }
-            }
-        }
-    }
-
-    pub fn flush_pending_messages(&self, endpoint_id: &str) -> Vec<AgentMessage> {
-        if let Ok(mut connections) = self.connections.write() {
-            if let Some(conn) = connections.get_mut(endpoint_id) {
-                let pending = conn.pending_messages.clone();
-                conn.pending_messages.clear();
-                return pending;
-            }
-        }
-        Vec::new()
-    }
-
-    pub fn get_connection_info(&self, endpoint_id: &str) -> Option<WebSocketConnection> {
-        self.connections
-            .read()
-            .ok()
-            .and_then(|c| c.get(endpoint_id).cloned())
-    }
-
-    pub fn list_connections(&self) -> Vec<(String, ConnectionState)> {
-        self.connections
-            .read()
-            .ok()
-            .map(|c| {
-                c.iter()
-                    .map(|(id, conn)| (id.clone(), conn.state.clone()))
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    pub fn reconnect_if_needed(&self, endpoint_id: &str) -> bool {
-        if let Ok(connections) = self.connections.read() {
-            if let Some(conn) = connections.get(endpoint_id) {
-                if conn.state == ConnectionState::Disconnected
-                    || conn.state == ConnectionState::Failed
-                {
-                    drop(connections);
-                    return self.reconnect(endpoint_id).is_ok();
-                }
-            }
-        }
-        false
-    }
-
-    fn reconnect(&self, endpoint_id: &str) -> Result<(), GatewayError> {
-        let endpoint = {
-            let connections =
-                self.connections
-                    .read()
-                    .map_err(|_| GatewayError::TransportError {
-                        reason: "Failed to acquire lock".to_string(),
-                    })?;
-            connections.get(endpoint_id).map(|c| c.endpoint.clone())
-        };
-
-        if let Some(endpoint) = endpoint {
-            self.update_connection_state(endpoint_id, ConnectionState::Reconnecting);
-            self.connect(&endpoint)?;
-            self.update_connection_state(endpoint_id, ConnectionState::Connected);
-            return Ok(());
-        }
-
-        Err(GatewayError::NotFound {
-            entity: format!("endpoint {} not found", endpoint_id),
-        })
-    }
-}
-
-impl Default for WebSocketTransport {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl TransportHandler for WebSocketTransport {
-    fn transport_type(&self) -> TransportType {
-        TransportType::WebSocket
-    }
-
-    fn connect(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError> {
-        let mut connections =
-            self.connections
-                .write()
-                .map_err(|_| GatewayError::TransportError {
-                    reason: "Failed to acquire lock".to_string(),
-                })?;
-
-        let conn = WebSocketConnection {
-            endpoint: endpoint.clone(),
-            state: ConnectionState::Connected,
-            connected_at: now_ms(),
-            last_message_at: now_ms(),
-            pending_messages: Vec::new(),
-        };
-
-        connections.insert(endpoint.agent_id.clone(), conn);
-
-        eprintln!(
-            "WebSocket connected to {} at {}",
-            endpoint.agent_id, endpoint.url
-        );
-        Ok(())
-    }
-
-    fn disconnect(&self, endpoint_id: &str) -> Result<(), GatewayError> {
-        let mut connections =
-            self.connections
-                .write()
-                .map_err(|_| GatewayError::TransportError {
-                    reason: "Failed to acquire lock".to_string(),
-                })?;
-
-        if let Some(conn) = connections.get_mut(endpoint_id) {
-            conn.state = ConnectionState::Disconnected;
-            eprintln!("WebSocket disconnected {}", endpoint_id);
-            Ok(())
-        } else {
-            Err(GatewayError::NotFound {
-                entity: format!("endpoint {}", endpoint_id),
-            })
-        }
-    }
-
-    fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError> {
-        let connections = self
-            .connections
-            .read()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
-        if let Some(conn) = connections.get(endpoint_id) {
-            match conn.state {
-                ConnectionState::Connected => {
-                    drop(connections);
-                    self.update_connection_state(endpoint_id, ConnectionState::Connected);
-                    eprintln!("WebSocket sent message {} to {}", message.id, endpoint_id);
-                    Ok(())
-                }
-                ConnectionState::Reconnecting => {
-                    drop(connections);
-                    self.queue_message_for_offline(endpoint_id, message);
-                    Err(GatewayError::ConnectionFailed {
-                        endpoint: endpoint_id.to_string(),
-                        reason: "Connection is reconnecting".to_string(),
-                    })
-                }
-                _ => {
-                    drop(connections);
-                    self.queue_message_for_offline(endpoint_id, message);
-                    Err(GatewayError::ConnectionFailed {
-                        endpoint: endpoint_id.to_string(),
-                        reason: "Connection is not connected".to_string(),
-                    })
-                }
-            }
-        } else {
-            Err(GatewayError::NotFound {
-                entity: format!("endpoint {}", endpoint_id),
-            })
-        }
-    }
-
-    fn broadcast(&self, agent_ids: &[String], message: &AgentMessage) -> Result<(), GatewayError> {
-        let mut failed_count = 0;
-        for agent_id in agent_ids {
-            if let Err(e) = self.send(agent_id, message) {
-                failed_count += 1;
-                eprintln!("Broadcast to {} failed: {}", agent_id, e);
-            }
-        }
-        if failed_count > 0 && failed_count == agent_ids.len() {
-            return Err(GatewayError::TransportError {
-                reason: format!("All {} broadcast attempts failed", failed_count),
-            });
-        }
-        Ok(())
-    }
-
-    fn get_state(&self, endpoint_id: &str) -> ConnectionState {
-        self.get_connection_state(endpoint_id)
-            .unwrap_or(ConnectionState::Disconnected)
-    }
-}
-
-#[allow(dead_code)]
-pub struct SSETransport;
-
-impl TransportHandler for SSETransport {
-    fn transport_type(&self) -> TransportType {
-        TransportType::SSE
-    }
-
-    fn connect(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError> {
-        eprintln!("SSE connecting to {}", endpoint.url);
-        Ok(())
-    }
-
-    fn disconnect(&self, endpoint_id: &str) -> Result<(), GatewayError> {
-        eprintln!("SSE disconnecting {}", endpoint_id);
-        Ok(())
-    }
-
-    fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError> {
-        eprintln!("SSE sending to {}: {:?}", endpoint_id, message.id);
-        Ok(())
-    }
-
-    fn broadcast(&self, agent_ids: &[String], _message: &AgentMessage) -> Result<(), GatewayError> {
-        eprintln!("SSE broadcasting to {} agents", agent_ids.len());
-        Ok(())
-    }
-
-    fn get_state(&self, _endpoint_id: &str) -> ConnectionState {
-        ConnectionState::Connected
-    }
-}
-
 impl Default for MessageGateway {
     fn default() -> Self {
         Self::new()
@@ -735,8 +461,8 @@ mod tests {
         assert!(msg.correlation_id.is_none());
     }
 
-    #[test]
-    fn test_endpoint_registration() {
+    #[tokio::test]
+    async fn test_endpoint_registration() {
         let gateway = MessageGateway::new();
         let endpoint = AgentEndpoint {
             agent_id: "test_agent".to_string(),
@@ -748,7 +474,7 @@ mod tests {
             last_seen: now_ms(),
         };
 
-        gateway.register_endpoint(endpoint).unwrap();
+        gateway.register_endpoint(endpoint).await.unwrap();
         let retrieved = gateway.get_endpoint("test_agent").unwrap();
         assert_eq!(retrieved.agent_id, "test_agent");
     }
