@@ -15,6 +15,14 @@ impl MigrationTrait for Migration {
                             .string()
                             .null(),
                     )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Conversations::Table)
                     .add_column(
                         ColumnDef::new(Conversations::EnabledSkillIds)
                             .string()
@@ -33,8 +41,16 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Conversations::Table)
-                    .drop_column(Conversations::Scenario)
                     .drop_column(Conversations::EnabledSkillIds)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Conversations::Table)
+                    .drop_column(Conversations::Scenario)
                     .to_owned(),
             )
             .await?;
