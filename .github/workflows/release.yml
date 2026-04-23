@@ -158,14 +158,27 @@ jobs:
           args: --target ${{ matrix.target }}
           includeUpdaterJson: true
 
-      - name: Package Windows portable (zip)
+      - name: Package Windows artifacts
         if: contains(matrix.target, 'windows')
         shell: pwsh
         run: |
+          # 打包便携版
           $exe = "src-tauri/target/${{ matrix.target }}/release/AxAgent.exe"
           $arch = if ("${{ matrix.target }}" -match "aarch64") { "arm64" } else { "x64" }
           $zipName = "AxAgent_${{ github.ref_name }}_windows-${arch}-portable.zip"
           Compress-Archive -Path $exe -DestinationPath $zipName
+          
+          # 重命名MSI安装包
+          $msiPath = "src-tauri/target/${{ matrix.target }}/release/bundle/msi"
+          if (Test-Path $msiPath) {
+            cd $msiPath
+            $msiFiles = Get-ChildItem -Filter "*.msi"
+            foreach ($msi in $msiFiles) {
+              $newMsiName = "AxAgent_${{ github.ref_name }}_windows-${arch}.msi"
+              Rename-Item -Path $msi.Name -NewName $newMsiName
+              Move-Item -Path $newMsiName -Destination "../../../$newMsiName"
+            }
+          }
 
       - name: Package Linux x86_64 artifacts
         if: matrix.target == 'x86_64-unknown-linux-gnu'
@@ -183,14 +196,16 @@ jobs:
             mv "$new_name" "../../../$new_name"
           done
 
-      - name: Upload Windows portable to release
+      - name: Upload Windows artifacts to release
         if: contains(matrix.target, 'windows')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: AxAgent_${{ github.ref_name }}_windows-*-portable.zip
+          files: |
+            AxAgent_${{ github.ref_name }}_windows-*-portable.zip
+            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ github.ref_name }}_windows-*.msi
 
       - name: Package macOS artifacts
         if: contains(matrix.target, 'apple-darwin')
