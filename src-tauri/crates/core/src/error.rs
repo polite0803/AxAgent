@@ -18,6 +18,33 @@ pub enum AxAgentError {
     Io(#[from] std::io::Error),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum HealthCheckError {
+    #[error("Transient error: {0}")]
+    Transient(String),
+    #[error("Permanent error: {0}")]
+    Permanent(String),
+    #[error("Network error: {0}")]
+    Network(String),
+}
+
+impl HealthCheckError {
+    pub fn is_transient(&self) -> bool {
+        matches!(self, HealthCheckError::Transient(_) | HealthCheckError::Network(_))
+    }
+
+    pub fn from_status(status: u16, body: &str) -> Self {
+        match status {
+            401 | 403 => HealthCheckError::Permanent(format!("Authentication failed: {}", body)),
+            404 => HealthCheckError::Permanent(format!("Endpoint not found: {}", body)),
+            429 => HealthCheckError::Transient(format!("Rate limited: {}", body)),
+            500..=599 => HealthCheckError::Transient(format!("Server error {}: {}", status, body)),
+            _ if status >= 400 && status < 500 => HealthCheckError::Permanent(format!("Client error {}: {}", status, body)),
+            _ => HealthCheckError::Transient(format!("HTTP error {}: {}", status, body)),
+        }
+    }
+}
+
 impl serde::Serialize for AxAgentError {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where

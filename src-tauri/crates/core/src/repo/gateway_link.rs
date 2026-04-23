@@ -3,7 +3,7 @@ use sea_orm::*;
 use crate::entity::gateway_link_activities;
 use crate::entity::gateway_link_policies;
 use crate::entity::gateway_links;
-use crate::error::{AxAgentError, Result};
+use crate::error::{AxAgentError, HealthCheckError, Result};
 use crate::types::{
     CreateGatewayLinkInput, GatewayLink, GatewayLinkActivity, GatewayLinkModelSync,
     GatewayLinkPolicy, GatewayLinkSkillSync, SaveGatewayLinkPolicyInput,

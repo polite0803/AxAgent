@@ -154,7 +154,7 @@ jobs:
           releaseBody: ${{ needs.draft-release-notes.outputs.body }}
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-rc') }}
-          tauriScript: pnpm tauri
+          tauriScript: npm run tauri
           args: --target ${{ matrix.target }}
           includeUpdaterJson: true
 
@@ -243,7 +243,7 @@ jobs:
           export PKG_CONFIG_ALLOW_CROSS=1
           export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
           export PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu/
-          pnpm tauri build --target aarch64-unknown-linux-gnu --bundles deb,rpm
+          npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb,rpm
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
