@@ -1,0 +1,22 @@
+# Clippy configuration for AxAgent workspace
+# See: https://doc.rust-lang.org/clippy/
+
+# Disallowed methods and functions
+disallowed-methods = [
+    { path = "core::Option::unwrap", reason = "Use expect() with a descriptive message or handle the Option properly" },
+    { path = "core::Result::unwrap", reason = "Use expect() with a descriptive message or handle the Result properly" },
+    { path = "std::Option::unwrap", reason = "Use expect() with a descriptive message or handle the Option properly" },
+    { path = "std::Result::unwrap", reason = "Use expect() with a descriptive message or handle the Result properly" },
+]
+
+# Disallowed types
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "Use IndexMap instead to preserve insertion order" },
+    { path = "std::collections::HashSet", reason = "Use IndexSet instead to preserve insertion order" },
+]
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Maximum function arguments
+too-many-arguments-threshold = 8

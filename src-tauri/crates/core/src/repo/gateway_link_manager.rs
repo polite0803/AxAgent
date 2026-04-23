@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, RwLock};
 use tokio::time::interval;
 
-use crate::error::{AxAgentError, HealthCheckError, Result};
+use crate::error::Result;
 use crate::repo::gateway_link as link_repo;
 use crate::repo::gateway_link::ExponentialBackoff;
 
@@ -14,6 +14,7 @@ const DEFAULT_RECONNECT_INTERVAL: Duration = Duration::from_secs(5);
 const DEFAULT_MAX_RECONNECT_ATTEMPTS: u32 = 5;
 const DEFAULT_INITIAL_BACKOFF_MS: u64 = 1000;
 const DEFAULT_MAX_BACKOFF_MS: u64 = 60000;
+const DEFAULT_REQUIRED_HEALTH_SUCCESSES: u32 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LinkConnectionState {
@@ -37,6 +38,8 @@ pub struct GatewayLinkHandle {
     pub last_health_check: Option<Instant>,
     pub last_error: Option<String>,
     pub reconnect_attempts: u32,
+    pub consecutive_health_successes: u32,
+    pub required_health_successes: u32,
 }
 
 pub struct GatewayLinkManager {
@@ -88,6 +91,8 @@ impl GatewayLinkManager {
                 last_health_check: None,
                 last_error: None,
                 reconnect_attempts: 0,
+                consecutive_health_successes: 0,
+                required_health_successes: DEFAULT_REQUIRED_HEALTH_SUCCESSES,
             },
         );
     }
@@ -120,7 +125,10 @@ impl GatewayLinkManager {
         let mut links = self.links.write().await;
         if let Some(handle) = links.get_mut(link_id) {
             handle.last_health_check = Some(Instant::now());
-            if !success {
+            if success {
+                handle.consecutive_health_successes += 1;
+            } else {
+                handle.consecutive_health_successes = 0;
                 handle.state = LinkConnectionState::Reconnecting;
             }
         }
@@ -235,6 +243,11 @@ impl GatewayLinkConnectionHandle {
                             match link_repo::check_gateway_health(&db, &link_id, api_key.as_deref()).await {
                                 Ok(latency_ms) => {
                                     manager.record_health_check(&link_id, true).await;
+                                    let links = manager.links.read().await;
+                                    let consecutive = links.get(&link_id).map(|h| h.consecutive_health_successes).unwrap_or(0);
+                                    let required = links.get(&link_id).map(|h| h.required_health_successes).unwrap_or(DEFAULT_REQUIRED_HEALTH_SUCCESSES);
+                                    drop(links);
+
                                     let _ = link_repo::update_gateway_link_status(
                                         &db,
                                         &link_id,
@@ -243,8 +256,14 @@ impl GatewayLinkConnectionHandle {
                                         Some(latency_ms as i64),
                                         None,
                                     ).await;
-                                    manager.update_link_state(&link_id, LinkConnectionState::Connected, None).await;
-                                    reconnect_attempts = 0;
+
+                                    if consecutive >= required {
+                                        manager.update_link_state(&link_id, LinkConnectionState::Connected, None).await;
+                                        reconnect_attempts = 0;
+                                        tracing::info!("Gateway link {} is now fully connected after {} consecutive health checks", link_id, consecutive);
+                                    } else {
+                                        tracing::debug!("Gateway link {} health check passed ({}/{} consecutive)", link_id, consecutive, required);
+                                    }
                                 }
                                 Err(e) => {
                                     tracing::warn!("Gateway link {} health check failed: {}", link_id, e);
@@ -363,7 +382,7 @@ where
                         attempt + 1,
                         max_attempts,
                         delay,
-                        last_error.as_ref().unwrap()
+                        last_error.as_ref().expect("last_error was just set")
                     );
                     tokio::time::sleep(delay).await;
                 }
@@ -371,5 +390,5 @@ where
         }
     }
 
-    Err(last_error.unwrap_or_else(|| AxAgentError::Gateway(format!("{} failed after {} attempts", operation, max_attempts))))
+    Err(last_error.expect("last_error must be set if loop completed without returning"))
 }

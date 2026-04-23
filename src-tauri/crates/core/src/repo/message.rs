@@ -212,6 +212,69 @@ pub async fn update_message_usage(
     Ok(())
 }
 
+/// Efficiently update only the content field of a message for streaming.
+///
+/// This is optimized for streaming scenarios where we need to update content
+/// frequently without the overhead of full entity fetching and conversion.
+///
+/// # Arguments
+///
+/// * `db` - Database connection
+/// * `id` - Message ID to update
+/// * `content` - New content value
+///
+/// # Returns
+///
+/// Returns `Ok(())` on success, or error if message not found.
+pub async fn update_message_content_fast(
+    db: &DatabaseConnection,
+    id: &str,
+    content: &str,
+) -> Result<()> {
+    let update = messages::Entity::update_many()
+        .col_expr(messages::Column::Content, Expr::value(content.to_string()))
+        .filter(messages::Column::Id.eq(id));
+
+    let result = update.exec(db).await?;
+
+    if result.rows_affected == 0 {
+        return Err(AxAgentError::NotFound(format!("Message {}", id)));
+    }
+    Ok(())
+}
+
+/// Append content to a message's existing content field.
+///
+/// This is useful for streaming scenarios where chunks arrive and need to be
+/// appended without overwriting existing content.
+///
+/// # Arguments
+///
+/// * `db` - Database connection
+/// * `id` - Message ID to update
+/// * `append_content` - Content to append
+///
+/// # Returns
+///
+/// Returns `Ok(())` on success, or error if message not found.
+#[allow(clippy::unnecessary_to_owned)]
+pub async fn append_message_content(
+    db: &DatabaseConnection,
+    id: &str,
+    append_content: &str,
+) -> Result<()> {
+    let query = r#"UPDATE messages SET content = content || $1 WHERE id = $2"#;
+
+    db.execute(Statement::from_sql_and_values(
+        sea_orm::DatabaseBackend::Sqlite,
+        query.to_owned(),
+        vec![append_content.into(), id.into()],
+    ))
+    .await?;
+
+    Ok(())
+}
+
 fn compare_version_priority(left: &messages::Model, right: &messages::Model) -> std::cmp::Ordering {
     right
         .version_index

@@ -144,56 +144,47 @@ impl SessionManager {
     }
 
     /// Get an existing session for the given conversation, or create a new one.
-    pub async fn get_or_create_session(&self, provider_id: String, conversation_id: String) -> AgentSession {
-        // Evict stale sessions before accessing
+    pub async fn get_or_create_session(&self, provider_id: String, conversation_id: String) -> Result<AgentSession, String> {
         self.evict_stale_sessions().await;
 
-        // Check if we already have a session for this conversation
         {
             let conv_index = self.conversation_index.lock().await;
             if let Some(session_id) = conv_index.get(&conversation_id) {
                 let sessions = self.sessions.lock().await;
                 if let Some(existing) = sessions.get(session_id) {
-                    // Update last access time
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap_or_default()
                         .as_millis() as u64;
                     self.session_last_access.lock().await.insert(session_id.clone(), now);
-                    return existing.clone();
+                    return Ok(existing.clone());
                 }
             }
         }
 
-        // No existing session — create a new one
         self.create_session(provider_id, conversation_id).await
     }
 
-    pub async fn create_session(&self, provider_id: String, conversation_id: String) -> AgentSession {
-        // Create new agent session
+    pub async fn create_session(&self, provider_id: String, conversation_id: String) -> Result<AgentSession, String> {
         let mut session = AgentSession::new(provider_id, conversation_id.clone());
         let session_id = session.session().session_id.clone();
-        
-        // Sync with AxAgent's agent_sessions table
+
         let axagent_session = agent_session::upsert_agent_session(
             &self.db,
             &conversation_id,
             session.session().workspace_root.as_ref().map(|p| p.to_str().unwrap_or("")),
             Some("default"),
-        ).await.unwrap();
-        
-        // Set the AxAgent session ID
+        ).await.map_err(|e| e.to_string())?;
+
         session = session.with_axagent_session_id(axagent_session.id);
-        
-        // Store in memory
+
         let mut sessions = self.sessions.lock().await;
         sessions.insert(session_id.clone(), session.clone());
-        
-        // Update conversation index
+
         let mut conv_index = self.conversation_index.lock().await;
         conv_index.insert(conversation_id, session_id);
-        
-        session
+
+        Ok(session)
     }
 
     /// Update the session in memory after a turn completes, preserving conversation history.

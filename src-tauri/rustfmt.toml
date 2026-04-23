@@ -1,0 +1,13 @@
+[package]
+edition = "2021"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+
+[profile.dev]
+debug = true
+
+[profile.dev.package."*"]
+opt-level = 0

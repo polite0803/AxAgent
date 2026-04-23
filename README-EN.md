@@ -1,6 +1,6 @@
 [简体中文](./README.md) | [繁體中文](./README-ZH-TW.md) | **English** | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
 
-[![AxAgent](https://socialify.git.ci/AxAgent/AxAgent/image?description=1&font=JetBrains+Mono&forks=1&issues=1&logo=https%3A%2F%2Fgithub.com%2FAxAgent%2FAxAgent%2Fblob%2Fmain%2Fsrc%2Fassets%2Fimage%2Flogo.png%3Fraw%3Dtrue&name=1&owner=1&pattern=Floating+Cogs&pulls=1&stargazers=1&theme=Auto)](https://github.com/polite0803/AxAgent)
+[![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
 
 <p align="center">
     <a href="https://www.producthunt.com/products/axagent?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
@@ -77,6 +77,8 @@
 - **Diagram Rendering** — Built-in Mermaid flowchart and D2 architecture diagram rendering
 - **Artifact Panel** — Code snippets, HTML drafts, Markdown notes, and reports viewable in a dedicated panel
 - **Session Inspector** — Real-time display of session structure as a tree view for quick navigation to any message
+- **Code Block Header Actions** — Code blocks support preview, copy, and other operations
+- **Mermaid Chart Controls** — Support for zoom, mode switching, and other operations
 
 ### Search & Knowledge
 
@@ -127,6 +129,60 @@
 - **Proxy Support** — HTTP and SOCKS5 proxy configuration
 - **Auto Update** — Automatically checks for new versions on startup and prompts for update
 - **Command Palette** — `Cmd/Ctrl+K` for quick access to all commands and settings
+
+## Core Functionality Modules
+
+### Conversation System
+- **Message Management**: Support for multiple versions, branching, and compression
+- **Model Selection**: Multi-provider support with customizable parameters
+- **Rendering System**: Markdown, code, and diagram rendering
+- **Context Management**: Flexible mounting of various context sources
+
+### Agent System
+- **Single Agent**: Tool calling, file operations, command execution
+- **Multi-Agent**: Collaboration, parallel execution, adversarial debate
+- **Workflow**: Conditional branching, loops, and parallel execution
+
+### Knowledge System
+- **Knowledge Base**: Document upload, parsing, indexing, and retrieval
+- **Knowledge Graph**: Entity relationship visualization
+- **Memory**: Multi-namespace memory management
+- **Search**: Web search and local full-text search
+
+### API Gateway
+- **Local Server**: OpenAI-compatible interface
+- **External Links**: Integration with third-party tools
+- **Key Management**: Generation, revocation, and permission control
+- **Usage Statistics**: Detailed usage analysis
+
+### Skill System
+- **Skill Marketplace**: Browse and install skills
+- **Skill Creation**: Auto-creation from proposals
+- **Skill Evolution**: AI-powered skill improvement
+- **Skill Matching**: Intelligent recommendation of applicable skills
+
+## Technical Features
+
+1. **Cross-Platform**: Based on Tauri framework, supporting Windows, macOS, and Linux
+2. **High Performance**: Rust backend provides excellent performance and security
+3. **Secure and Reliable**: Local storage, AES-256 encryption, sandbox isolation
+4. **Extensible**: MCP protocol support, plugin system, skill system
+5. **User-Friendly**: Modern UI, multi-language support, global shortcuts
+6. **Feature-Rich**: From basic conversation to advanced Agent collaboration
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Tauri 2 + React 19 + TypeScript |
+| UI | Ant Design 6 + TailwindCSS 4 |
+| State Management | Zustand 5 |
+| Internationalization | i18next + react-i18next |
+| Backend | Rust + SeaORM + SQLite |
+| Vector Database | sqlite-vec |
+| Build | Vite + npm |
+| Charts | Mermaid + D2 |
+| Code Editor | Monaco Editor |
 
 ## Platform Support
 
@@ -182,6 +238,65 @@ npm run test:e2e
 
 # Type checking
 npm run typecheck
+```
+
+## Project Structure
+
+```
+AxAgent/
+├── src/                    # Frontend source code
+│   ├── components/         # React components
+│   │   ├── chat/          # Chat-related components
+│   │   ├── common/        # Common components
+│   │   ├── files/         # File management components
+│   │   ├── gateway/       # API gateway components
+│   │   ├── layout/        # Layout components
+│   │   ├── link/          # Gateway link components
+│   │   ├── settings/      # Settings components
+│   │   └── shared/        # Shared components
+│   ├── pages/             # Page components
+│   ├── stores/            # Zustand state management
+│   │   ├── domain/        # Core business state
+│   │   ├── feature/       # Feature module state
+│   │   └── shared/        # Shared state
+│   ├── hooks/             # React Hooks
+│   ├── lib/               # Utility functions
+│   ├── types/             # TypeScript type definitions
+│   └── i18n/              # Internationalization resources
+│
+├── src-tauri/             # Rust backend source code
+│   ├── crates/            # Rust workspace crates
+│   │   ├── agent/         # Agent module
+│   │   ├── core/          # Core module
+│   │   ├── gateway/       # API gateway
+│   │   ├── migration/     # Database migration
+│   │   ├── plugins/       # Plugin system
+│   │   ├── providers/     # Model providers
+│   │   ├── runtime/       # Runtime
+│   │   ├── telemetry/     # Telemetry and statistics
+│   │   └── trajectory/    # Trajectory management
+│   └── src/               # Tauri main entry
+│
+├── scripts/               # Build scripts
+├── e2e/                   # E2E tests
+└── website/               # Documentation website
+```
+
+## Configuration & Data
+
+### Directory Structure
+
+```
+~/.axagent/                    # Configuration directory
+├── axagent.db                 # SQLite database
+├── master.key                 # AES-256 master key
+├── vector_db/                 # Vector database
+└── ssl/                       # SSL certificates
+
+~/Documents/axagent/           # Documents directory
+├── images/                    # Image attachments
+├── files/                     # File attachments
+└── backups/                   # Backup files
 ```
 
 ## FAQ

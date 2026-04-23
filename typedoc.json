@@ -1,0 +1,28 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__tests__/**",
+    "src/**/*.d.ts",
+    "src/**/__mocks__/**"
+  ],
+  "out": "docs",
+  "name": "AxAgent",
+  "includeVersion": true,
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "treatWarningsAsErrors": false,
+  "validation": {
+    "invalidLink": true,
+    "notDocumented": true
+  },
+  "plugin": [
+    "typedoc-plugin-zod"
+  ],
+  "tsconfig": "tsconfig.json"
+}

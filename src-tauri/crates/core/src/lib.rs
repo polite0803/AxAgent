@@ -1,5 +1,6 @@
 pub mod builtin_tools;
 pub mod builtin_tools_registry;
+pub mod cache;
 pub mod crypto;
 pub mod db;
 pub mod document_parser;

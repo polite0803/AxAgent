@@ -1582,6 +1582,98 @@ impl TrajectoryStorage {
     }
 }
 
+use tokio::sync::{mpsc, mpsc::Sender};
+use std::collections::VecDeque;
+
+pub struct TrajectoryQueue {
+    storage: Arc<TrajectoryStorage>,
+    sender: Sender<Trajectory>,
+    handle: tokio::task::JoinHandle<()>,
+}
+
+impl TrajectoryQueue {
+    pub fn new(storage: Arc<TrajectoryStorage>, buffer_size: usize) -> Self {
+        let (tx, mut rx) = mpsc::channel::<Trajectory>(buffer_size);
+        let storage_clone = storage.clone();
+
+        let handle = tokio::spawn(async move {
+            let mut batch: VecDeque<Trajectory> = VecDeque::with_capacity(32);
+            let mut flush_interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+
+            loop {
+                tokio::select! {
+                    Some(trajectory) = rx.recv() => {
+                        batch.push_back(trajectory);
+                        if batch.len() >= 32 {
+                            Self::flush_batch(&storage_clone, &mut batch).await;
+                        }
+                    }
+                    _ = flush_interval.tick() => {
+                        if !batch.is_empty() {
+                            Self::flush_batch(&storage_clone, &mut batch).await;
+                        }
+                    }
+                }
+            }
+        });
+
+        Self {
+            storage,
+            sender: tx,
+            handle,
+        }
+    }
+
+    async fn flush_batch(storage: &Arc<TrajectoryStorage>, batch: &mut VecDeque<Trajectory>) {
+        while let Some(trajectory) = batch.pop_front() {
+            if let Err(e) = storage.save_trajectory(&trajectory) {
+                tracing::warn!("[TrajectoryQueue] Failed to save trajectory: {}", e);
+            }
+        }
+    }
+
+    pub fn try_enqueue(&self, trajectory: Trajectory) -> bool {
+        self.sender.try_send(trajectory).is_ok()
+    }
+
+    pub async fn enqueue(&self, trajectory: Trajectory) -> Result<(), mpsc::error::TrySendError<Trajectory>> {
+        self.sender.send(trajectory.clone()).await.map_err(|_| mpsc::error::TrySendError::Closed(trajectory))
+    }
+
+    pub fn storage(&self) -> &Arc<TrajectoryStorage> {
+        &self.storage
+    }
+
+    pub fn shutdown(self) {
+        self.handle.abort();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_trajectory_queue_enqueue() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let db_path = temp_dir.path().join("test_trajectory.db");
+        let storage = Arc::new(TrajectoryStorage::new_with_path(&db_path).unwrap());
+        let queue = TrajectoryQueue::new(storage.clone(), 10);
+
+        let trajectory = Trajectory::new(
+            "test-session".to_string(),
+            "test-user".to_string(),
+            "Test topic".to_string(),
+            "Test summary".to_string(),
+            TrajectoryOutcome::Success,
+            1000,
+            vec![],
+        );
+
+        assert!(queue.try_enqueue(trajectory));
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Session {
     pub id: String,

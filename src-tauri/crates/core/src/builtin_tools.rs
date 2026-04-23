@@ -721,7 +721,7 @@ fn html_to_markdown(html: &str) -> String {
     remove_blocks(&mut text, "script");
     remove_blocks(&mut text, "style");
 
-    let re_heading = Regex::new(r"(?i)<h([1-6])[^>]*>(.*?)</h\1>").unwrap();
+    let re_heading = Regex::new(r"(?i)<h([1-6])[^>]*>(.*?)</h[1-6]>").unwrap();
     text = re_heading.replace_all(&text, |caps: &regex::Captures| {
         let level = caps[1].parse::<usize>().unwrap_or(1);
         let content = &caps[2];
@@ -738,10 +738,10 @@ fn html_to_markdown(html: &str) -> String {
     let re_inline_code = Regex::new(r"(?i)<code[^>]*>(.*?)</code>").unwrap();
     text = re_inline_code.replace_all(&text, "`$1`").to_string();
 
-    let re_strong = Regex::new(r"(?i)<(strong|b)[^>]*>(.*?)</\1>").unwrap();
+    let re_strong = Regex::new(r"(?i)<(strong|b)[^>]*>(.*?)</(strong|b)>").unwrap();
     text = re_strong.replace_all(&text, "**$2**").to_string();
 
-    let re_em = Regex::new(r"(?i)<(em|i)[^>]*>(.*?)</\1>").unwrap();
+    let re_em = Regex::new(r"(?i)<(em|i)[^>]*>(.*?)</(em|i)>").unwrap();
     text = re_em.replace_all(&text, "*$2*").to_string();
 
     let re_link = Regex::new(r#"(?i)<a[^>]*href=['"]([^'"]+)['"][^>]*>(.*?)</a>"#).unwrap();

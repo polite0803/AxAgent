@@ -91,3 +91,25 @@ strip = true
 lto = true
 codegen-units = 1
 opt-level = "s"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.dev.package."*"]
+opt-level = 0
+
+[workspace.metadata]
+rustfmt.config.edition = "2021"
+clippy.config.edition = "2021"
+
+[workspace.metadata.format]
+rust = "dprint"
+typescript = "dprint"
+
+# Scripts for CI/CD
+[workspace.metadata.scripts]
+rust-fmt = "cargo fmt --all -- --check"
+rust-clippy = "cargo clippy --all-targets -- -D warnings"
+rust-test = "cargo test --all"
+rust-all = "cargo fmt --all && cargo clippy --all-targets -- -D warnings && cargo test --all"

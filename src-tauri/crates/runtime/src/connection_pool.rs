@@ -158,7 +158,8 @@ impl<C: Send + 'static> ConnectionPool<C> {
         if !conn.is_valid {
             let mut count = self.total_count.write().await;
             *count = count.saturating_sub(1);
-            let permit = self.semaphore.clone().acquire_owned().await.unwrap();
+            let permit = self.semaphore.clone().acquire_owned().await
+                .map_err(|_| PoolError::SemaphoreClosed)?;
             drop(permit);
             return;
         }
@@ -175,7 +176,8 @@ impl<C: Send + 'static> ConnectionPool<C> {
             *count = count.saturating_sub(1);
         }
 
-        let permit = self.semaphore.clone().acquire_owned().await.unwrap();
+        let permit = self.semaphore.clone().acquire_owned().await
+            .map_err(|_| PoolError::SemaphoreClosed)?;
         drop(permit);
     }
 
@@ -267,6 +269,9 @@ pub enum PoolError {
 
     #[error("Connection invalid")]
     InvalidConnection,
+
+    #[error("Semaphore closed during release")]
+    SemaphoreClosed,
 }
 
 pub struct SessionPool<C: Sessionlike> {

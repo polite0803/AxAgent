@@ -1,6 +1,6 @@
 [简体中文](./README.md) | [繁體中文](./README-ZH-TW.md) | [English](./README-EN.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | **Français** | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
 
-[![AxAgent](https://socialify.git.ci/polite0803/AxAgent/image?description=1&font=JetBrains+Mono&forks=1&issues=1&logo=https%3A%2F%2Fgithub.com%2FAxAgent-Desktop%2FAxAgent%2Fblob%2Fmain%2Fsrc%2Fassets%2Fimage%2Flogo.png%3Fraw%3Dtrue&name=1&owner=1&pattern=Floating+Cogs&pulls=1&stargazers=1&theme=Auto)](https://github.com/polite0803/AxAgent)
+[![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
 
 <p align="center">
     <a href="https://www.producthunt.com/products/axagent?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
@@ -42,15 +42,7 @@
 - **Compression de conversation** — Compresse automatiquement les longues conversations en préservant les informations clés pour économiser l'espace de contexte
 - **Réponse simultanée multi-modèles** — Posez la même question à plusieurs modèles simultanément avec comparaison côte à côte des réponses
 
-### Multi-fournisseurs et agents
-
-- **Mode Agent** — Passez en mode Agent pour l'exécution autonome de tâches multi-étapes : lecture/écriture de fichiers, exécution de commandes, analyse de code, et plus
-- **Trois niveaux de permissions** — Par défaut (écritures nécessitent approbation), Accepter les modifications (approbation automatique des modifications de fichiers), Accès complet (sans invite) — sûr et contrôlable
-- **Sandbox de répertoire de travail** — Les opérations de l'Agent sont strictement confinées au répertoire de travail spécifié, empêchant tout accès non autorisé
-- **Panneau d'approbation des outils** — Affichage en temps réel des demandes d'appel d'outils avec examen individuel, « toujours autoriser » en un clic, ou refuser
-- **Suivi des coûts** — Statistiques d'utilisation des tokens et des coûts en temps réel par session
-
-### Multi-fournisseurs et agents
+### AI Agent
 
 - **Support multi-fournisseurs** — Compatible avec OpenAI, Anthropic Claude, Google Gemini et toutes les API compatibles OpenAI, avec support d'Ollama pour les modèles locaux et des passerelles distantes comme OpenClaw/Hermes
 - **Mode Agent** — Passez en mode Agent pour l'exécution autonome de tâches multi-étapes : lecture/écriture de fichiers, exécution de commandes, analyse de code, et plus

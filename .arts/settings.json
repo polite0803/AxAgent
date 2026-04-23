@@ -1,0 +1,18 @@
+{
+    "i18n-ally.localesPaths": [
+        "src/i18n",
+        "src/i18n/locales"
+    ],
+    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "i18n-mage.i18nFeatures.framework": "react-i18next",
+    "i18n-mage.i18nFeatures.interpolationBrackets": "double",
+    "i18n-mage.i18nFeatures.namespaceSeparator": ".",
+    "i18n-mage.i18nFeatures.defaultNamespace": "",
+    "i18n-mage.workspace.languagePath": "src/i18n/locales",
+    "i18n-mage.writeRules.keyStyle": "camelCase",
+    "i18n-mage.writeRules.indentType": "space",
+    "i18n-mage.writeRules.indentSize": 2,
+    "i18n-mage.writeRules.quoteStyleForKey": "double",
+    "i18n-mage.writeRules.quoteStyleForValue": "double",
+    "i18n-mage.writeRules.languageStructure": "nested"
+}

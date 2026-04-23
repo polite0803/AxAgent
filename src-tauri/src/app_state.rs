@@ -24,6 +24,7 @@ pub struct AppState {
     pub agent_session_manager: axagent_agent::SessionManager,
     pub agent_cancel_tokens: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
+    pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     pub workflow_engine: Arc<axagent_runtime::workflow_engine::WorkflowEngine>,
     pub shared_memory: Arc<std::sync::RwLock<axagent_runtime::shared_memory::SharedMemory>>,
     pub sub_agent_registry: Arc<std::sync::RwLock<axagent_trajectory::SubAgentRegistry>>,

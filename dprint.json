@@ -1,0 +1,43 @@
+{
+  "$schema": "https://dprint.dev/schemas/v0.json",
+  "projectType": "openSource",
+  "includes": [
+    "src/**/*.{ts,tsx,js,jsx}",
+    "scripts/**/*.{ts,tsx,js,jsx}"
+  ],
+  "excludes": [
+    "node_modules/**/*",
+    "dist/**/*",
+    "target/**/*"
+  ],
+  "typescript": {
+    "quoteStyle": "preferDouble",
+    "useBraces": "always",
+    "bracePosition": "sameLine",
+    "singleBodyPosition": "sameLine",
+    "useSemicolons": true,
+    "trailingCommas": "es5",
+    "ifStatement.bracePosition": "sameLine",
+    "forStatement.bracePosition": "sameLine",
+    "whileStatement.bracePosition": "sameLine",
+    "doStatement.bracePosition": "sameLine",
+    "switchStatement.bracePosition": "sameLine",
+    "tryStatement.bracePosition": "sameLine",
+    "catchBracePosition": "sameLine",
+    "finallyBracePosition": "sameLine",
+    "memberExpression.parenthesized": "whenRequired",
+    "newLineKind": "auto",
+    "useTabs": false,
+    "indentWidth": 4,
+    "useTrailingCommas": true,
+    "operatorPosition": "sameLine",
+    "reservedWords": "preserve"
+  },
+  "json": {
+    "quoteStyle": "preferDouble"
+  },
+  "markdown": {
+    "textWrap": "preserve",
+    "proseWrap": "preserve"
+  }
+}

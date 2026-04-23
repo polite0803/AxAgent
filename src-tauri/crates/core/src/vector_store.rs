@@ -41,6 +41,36 @@ pub struct VectorSearchResult {
     pub has_embedding: bool,
 }
 
+/// Configuration for HNSW (Hierarchical Navigable Small World) index.
+/// HNSW provides faster approximate nearest neighbor search for large collections.
+///
+/// Default values are suitable for most use cases:
+/// - Small collections (< 10k vectors): Use default k-NN (exact search)
+/// - Medium collections (10k-100k): ef_search=50, m=12, ef_construction=100
+/// - Large collections (> 100k): ef_search=100, m=16, ef_construction=200
+#[derive(Debug, Clone)]
+pub struct HnswConfig {
+    /// Construction time search width (higher = slower build, better graph quality)
+    /// Default: 100
+    pub ef_construction: usize,
+    /// Max connections per node (higher = better recall, more memory)
+    /// Default: 16
+    pub m: usize,
+    /// Search width (higher = slower search, better recall)
+    /// Default: 50
+    pub ef_search: usize,
+}
+
+impl Default for HnswConfig {
+    fn default() -> Self {
+        Self {
+            ef_construction: 100,
+            m: 16,
+            ef_search: 50,
+        }
+    }
+}
+
 /// sqlite-vec–backed vector store for knowledge base embeddings.
 ///
 /// Each knowledge base gets two tables in the shared SQLite database:
@@ -56,14 +86,32 @@ impl VectorStore {
         Self { db }
     }
 
-    /// Sanitised table-name prefix for a collection.
-    fn collection_name(collection_id: &str) -> String {
-        format!("vec_{}", collection_id.replace('-', "_"))
+    fn is_valid_collection_id(collection_id: &str) -> bool {
+        !collection_id.is_empty()
+            && collection_id
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    }
+
+    fn sanitize_collection_id(collection_id: &str) -> String {
+        collection_id
+            .chars()
+            .map(|c| if c == '-' { '_' } else { c })
+            .collect()
+    }
+
+    fn validated_collection_name(collection_id: &str) -> Result<String> {
+        if !Self::is_valid_collection_id(collection_id) {
+            return Err(AxAgentError::Validation(format!(
+                "Invalid collection_id: must contain only alphanumeric characters, hyphens, and underscores"
+            )));
+        }
+        Ok(format!("vec_{}", Self::sanitize_collection_id(collection_id)))
     }
 
     /// Ensure both the metadata and vec0 tables exist for a collection.
     pub async fn ensure_collection(&self, collection_id: &str, dimensions: usize) -> Result<()> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
 
         self.exec(&format!(
             "CREATE TABLE IF NOT EXISTS {name}_meta (
@@ -85,6 +133,62 @@ impl VectorStore {
             "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
         ))
         .await?;
+
+        Ok(())
+    }
+
+    /// Ensure a collection exists with HNSW indexing for faster approximate nearest neighbor search.
+    ///
+    /// HNSW is recommended for collections with > 10,000 vectors where search latency is critical.
+    /// For smaller collections, the default exact k-NN search is usually sufficient.
+    ///
+    /// Note: sqlite-vec HNSW support depends on the specific build version.
+    /// This method attempts to create an HNSW-indexed table but may fall back to
+    /// exact search if HNSW parameters are not supported.
+    pub async fn ensure_collection_hnsw(
+        &self,
+        collection_id: &str,
+        dimensions: usize,
+        hnsw_config: HnswConfig,
+    ) -> Result<()> {
+        let name = Self::validated_collection_name(collection_id)?;
+
+        self.exec(&format!(
+            "CREATE TABLE IF NOT EXISTS {name}_meta (
+                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT NOT NULL UNIQUE,
+                document_id TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                content TEXT NOT NULL
+            )"
+        ))
+        .await?;
+
+        self.exec(&format!(
+            "CREATE INDEX IF NOT EXISTS idx_{name}_doc ON {name}_meta(document_id)"
+        ))
+        .await?;
+
+        let hnsw_sql = format!(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}], hnsw(ef_construction={}, m={}, ef_search={}))",
+            dimensions,
+            hnsw_config.ef_construction,
+            hnsw_config.m,
+            hnsw_config.ef_search
+        );
+
+        if let Err(e) = self.exec(&hnsw_sql).await {
+            tracing::warn!(
+                "HNSW table creation failed for {}, falling back to exact search: {}",
+                name,
+                e
+            );
+            self.exec(&format!(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}])",
+                dimensions
+            ))
+            .await?;
+        }
 
         Ok(())
     }
@@ -118,7 +222,7 @@ impl VectorStore {
 
         self.ensure_collection(collection_id, dimensions).await?;
 
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
         let doc_id = &records[0].document_id;
 
         // Begin transaction for atomic delete+insert
@@ -199,7 +303,7 @@ impl VectorStore {
         // Commit or rollback
         match result {
             Ok(()) => {
-                let _ = self.exec("COMMIT").await;
+                self.exec("COMMIT").await?;
                 Ok(())
             }
             Err(e) => {
@@ -218,7 +322,7 @@ impl VectorStore {
         content: &str,
         embedding: &[f32],
     ) -> Result<String> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
         if !self.table_exists(&meta_table).await? {
@@ -310,7 +414,7 @@ impl VectorStore {
         query_embedding: Vec<f32>,
         top_k: usize,
     ) -> Result<Vec<VectorSearchResult>> {
-        let name = Self::collection_name(knowledge_base_id);
+        let name = Self::validated_collection_name(knowledge_base_id)?;
 
         if !self.table_exists(&format!("{name}_meta")).await? {
             tracing::warn!("Vector store: table {name}_meta does not exist, returning empty");
@@ -367,7 +471,7 @@ impl VectorStore {
         knowledge_base_id: &str,
         document_id: &str,
     ) -> Result<()> {
-        let name = Self::collection_name(knowledge_base_id);
+        let name = Self::validated_collection_name(knowledge_base_id)?;
 
         if !self.table_exists(&format!("{name}_meta")).await? {
             return Ok(());
@@ -380,7 +484,7 @@ impl VectorStore {
     ///
     /// Silently succeeds if the tables do not exist.
     pub async fn delete_collection(&self, knowledge_base_id: &str) -> Result<()> {
-        let name = Self::collection_name(knowledge_base_id);
+        let name = Self::validated_collection_name(knowledge_base_id)?;
         let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
         let _ = self
             .exec(&format!("DROP TABLE IF EXISTS {name}_meta"))
@@ -391,7 +495,7 @@ impl VectorStore {
     /// Clear only the embedding vectors (vec0), keeping chunk metadata (_meta) intact.
     /// This allows re-embedding without losing user edits or manually added chunks.
     pub async fn clear_embeddings(&self, collection_id: &str) -> Result<()> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
 
         // Drop and recreate vec0 to clear all embeddings
         // We need the dimensions to recreate, so read from an existing row first
@@ -445,7 +549,7 @@ impl VectorStore {
         collection_id: &str,
         document_id: Option<&str>,
     ) -> Result<Vec<(i64, String, String)>> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
         if !self.table_exists(&meta_table).await? {
@@ -504,7 +608,7 @@ impl VectorStore {
         }
 
         let dimensions = entries[0].1.len();
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
 
         // Ensure the vec0 table exists with correct dimensions
         self.db
@@ -542,7 +646,7 @@ impl VectorStore {
 
     /// Delete a single chunk by its id from both vec0 and metadata tables.
     pub async fn delete_chunk(&self, collection_id: &str, chunk_id: &str) -> Result<()> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
         if !self.table_exists(&meta_table).await? {
@@ -592,7 +696,7 @@ impl VectorStore {
         chunk_id: &str,
         new_content: &str,
     ) -> Result<()> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
         if !self.table_exists(&meta_table).await? {
@@ -618,7 +722,7 @@ impl VectorStore {
         chunk_id: &str,
         embedding: &[f32],
     ) -> Result<()> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
         if !self.table_exists(&meta_table).await? {
@@ -662,27 +766,16 @@ impl VectorStore {
 
     /// Internal implementation of delete_rows_by_document (usable inside a transaction).
     async fn delete_rows_by_document_inner(&self, table_name: &str, document_id: &str) -> Result<()> {
-        let rows = self
-            .db
-            .query_all(Statement::from_sql_and_values(
+        self.db
+            .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("SELECT rowid FROM {table_name}_meta WHERE document_id = $1"),
+                &format!(
+                    "DELETE FROM {table_name} WHERE rowid IN (SELECT rowid FROM {table_name}_meta WHERE document_id = $1)"
+                ),
                 vec![document_id.to_string().into()],
             ))
             .await
             .map_err(Self::wrap)?;
-
-        for row in &rows {
-            let rid: i64 = row.try_get("", "rowid").map_err(Self::wrap)?;
-            self.db
-                .execute(Statement::from_sql_and_values(
-                    DbBackend::Sqlite,
-                    &format!("DELETE FROM {table_name} WHERE rowid = $1"),
-                    vec![rid.into()],
-                ))
-                .await
-                .map_err(Self::wrap)?;
-        }
 
         self.db
             .execute(Statement::from_sql_and_values(
@@ -728,7 +821,7 @@ impl VectorStore {
         collection_id: &str,
         document_id: &str,
     ) -> Result<Vec<VectorSearchResult>> {
-        let name = Self::collection_name(collection_id);
+        let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
         if !self.table_exists(&meta_table).await? {

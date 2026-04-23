@@ -2,7 +2,7 @@
 
 跨平台 AI 桌面客户端 | Multi-Platform AI Desktop Client
 
-[![AxAgent](https://socialify.git.ci/AxAgent/AxAgent/image?description=1&font=JetBrains+Mono&forks=1&issues=1&logo=https%3A%2F%2Fgithub.com%2FAxAgent%2FAxAgent%2Fblob%2Fmain%2Fsrc%2Fassets%2Fimage%2Flogo.png%3Fraw%3Dtrue&name=1&owner=1&pattern=Floating+Cogs&pulls=1&stargazers=1&theme=Auto)](https://github.com/polite0803/AxAgent)
+[![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
 
 ---
 
@@ -46,6 +46,8 @@
 - **图表渲染** — 内置 Mermaid 流程图与 D2 架构图渲染
 - **Artifact 面板** — 代码片段、HTML 草稿、Markdown 笔记、报告可在独立面板中预览
 - **对话导图** — 可视化展示对话结构和分支关系
+- **代码块头部操作** — 代码块支持预览、复制等操作
+- **Mermaid 图表控制** — 支持缩放、模式切换等操作
 
 ### 搜索与知识
 
@@ -82,6 +84,7 @@
 - **技能创建** — 从提案自动创建技能，支持 Markdown 编辑器
 - **技能进化** — AI 自动分析改进现有技能以获得更好执行效果
 - **技能匹配** — 智能推荐，自动将相关技能应用到合适的对话场景
+- **技能提案** — AI 基于对话内容自动生成技能提案
 
 ### 数据与安全
 
@@ -119,14 +122,20 @@
 │  │   ├── chat/       - 对话界面、输入、渲染                   │
 │  │   ├── gateway/    - API网关管理                           │
 │  │   ├── settings/   - 设置面板                              │
-│  │   └── common/     - 通用组件                              │
+│  │   ├── common/     - 通用组件                              │
+│  │   ├── files/      - 文件管理组件                          │
+│  │   ├── layout/     - 布局组件                              │
+│  │   ├── link/       - 网关链接组件                          │
+│  │   └── shared/     - 共享组件                              │
 │  └── 页面                                                     │
 │      ├── ChatPage      - 对话主页                            │
+│      ├── FilesPage     - 文件管理                            │
 │      ├── GatewayPage   - API网关                            │
 │      ├── KnowledgePage - 知识库管理                          │
+│      ├── LinkPage      - 网关链接管理                        │
 │      ├── MemoryPage    - 记忆管理                            │
-│      ├── SkillsPage    - 技能管理                            │
-│      └── SettingsPage  - 设置中心                            │
+│      ├── SettingsPage  - 设置中心                            │
+│      └── SkillsPage    - 技能管理                            │
 ├─────────────────────────────────────────────────────────────┤
 │  后端 (Rust + Tauri)                                         │
 │  ├── core/         - 核心模块(数据库、Crypto、RAG、存储)     │
@@ -139,7 +148,7 @@
 │  ├── trajectory/   - 会话轨迹记录                           │
 │  ├── telemetry/    - 遥测和统计                              │
 │  ├── plugins/      - 插件系统                                │
-│  └── runtime/      - 运行时环境                              │
+│  └── trajectory/   - 轨迹管理（记忆、技能、洞察）            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -154,6 +163,8 @@
 | 后端 | Rust + SeaORM + SQLite |
 | 向量库 | sqlite-vec |
 | 构建 | Vite + npm |
+| 图表 | Mermaid + D2 |
+| 代码编辑器 | Monaco Editor |
 
 ## 平台支持
 
@@ -193,9 +204,13 @@ AxAgent/
 ├── src/                    # 前端源码
 │   ├── components/         # React 组件
 │   │   ├── chat/          # 对话相关组件
+│   │   ├── common/        # 通用组件
+│   │   ├── files/         # 文件管理组件
 │   │   ├── gateway/       # API网关组件
+│   │   ├── layout/        # 布局组件
+│   │   ├── link/          # 网关链接组件
 │   │   ├── settings/      # 设置组件
-│   │   └── common/        # 通用组件
+│   │   └── shared/        # 共享组件
 │   ├── pages/             # 页面组件
 │   ├── stores/            # Zustand 状态管理
 │   │   ├── domain/        # 核心业务状态
@@ -208,12 +223,15 @@ AxAgent/
 │
 ├── src-tauri/             # Rust 后端源码
 │   ├── crates/            # Rust workspace crates
-│   │   ├── core/          # 核心模块
 │   │   ├── agent/         # Agent 模块
-│   │   ├── runtime/       # 运行时
-│   │   ├── providers/     # 模型供应商
+│   │   ├── core/          # 核心模块
 │   │   ├── gateway/       # API网关
-│   │   └── ...
+│   │   ├── migration/     # 数据库迁移
+│   │   ├── plugins/       # 插件系统
+│   │   ├── providers/     # 模型供应商
+│   │   ├── runtime/       # 运行时
+│   │   ├── telemetry/     # 遥测和统计
+│   │   └── trajectory/    # 轨迹管理
 │   └── src/               # Tauri 主入口
 │
 ├── scripts/               # 构建脚本
@@ -237,6 +255,46 @@ AxAgent/
 ├── files/                     # 文件附件
 └── backups/                   # 备份文件
 ```
+
+## 核心功能模块
+
+### 对话系统
+- **消息管理**：支持多版本、分支、压缩
+- **模型选择**：多供应商支持，自定义参数
+- **渲染系统**：Markdown、代码、图表渲染
+- **上下文管理**：灵活挂载各种上下文源
+
+### Agent 系统
+- **单 Agent**：工具调用、文件操作、命令执行
+- **多 Agent**：协作、并行执行、对抗辩论
+- **工作流**：条件分支、循环、并行执行
+
+### 知识系统
+- **知识库**：文档上传、解析、索引、检索
+- **知识图谱**：实体关系可视化
+- **记忆**：多命名空间记忆管理
+- **搜索**：联网搜索与本地全文搜索
+
+### API 网关
+- **本地服务器**：OpenAI 兼容接口
+- **外部链接**：集成第三方工具
+- **密钥管理**：生成、撤销、权限控制
+- **用量统计**：详细的使用分析
+
+### 技能系统
+- **技能市场**：浏览和安装技能
+- **技能创建**：从提案自动创建
+- **技能进化**：AI 自动改进技能
+- **技能匹配**：智能推荐适用技能
+
+## 技术特点
+
+1. **跨平台**：基于 Tauri 框架，支持 Windows、macOS、Linux
+2. **高性能**：Rust 后端提供卓越性能和安全性
+3. **安全可靠**：本地存储、AES-256 加密、沙箱隔离
+4. **可扩展**：MCP 协议支持、插件系统、技能系统
+5. **用户友好**：现代化 UI、多语言支持、全局快捷键
+6. **功能丰富**：从基础对话到高级 Agent 协作，应有尽有
 
 ## 常见问题
 

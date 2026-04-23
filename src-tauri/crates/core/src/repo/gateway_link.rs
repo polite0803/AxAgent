@@ -781,11 +781,10 @@ pub async fn check_gateway_health(
         .await
         .map_err(|e| HealthCheckError::Permanent(format!("Database error: {}", e)))?;
 
-    if link.is_none() {
-        return Err(HealthCheckError::Permanent(format!("GatewayLink {} not found", link_id)));
-    }
-
-    let link = link.unwrap();
+    let link = match link {
+        Some(l) => l,
+        None => return Err(HealthCheckError::Permanent(format!("GatewayLink {} not found", link_id))),
+    };
     let timeouts = GatewayLinkTimeouts::default();
     let client = build_health_check_client(&timeouts, &link.endpoint, api_key);
     let url = format!("{}/health", link.endpoint.trim_end_matches('/'));
@@ -836,7 +835,7 @@ pub async fn connect_gateway_link_with_retry(
                         attempt + 1,
                         max_retries,
                         delay,
-                        last_error.as_ref().unwrap()
+                        last_error.as_ref().expect("last_error was just set")
                     );
                     tokio::time::sleep(delay).await;
                 }
@@ -844,10 +843,7 @@ pub async fn connect_gateway_link_with_retry(
         }
     }
 
-    Err(last_error.unwrap_or_else(|| AxAgentError::Gateway(format!(
-        "Gateway link {} failed after {} attempts",
-        link_id, max_retries
-    ))))
+    Err(last_error.expect("last_error must be set if loop completed without returning"))
 }
 
 #[derive(Debug, Clone)]

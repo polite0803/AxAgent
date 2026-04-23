@@ -3603,6 +3603,7 @@ mod tests {
             agent_session_manager: axagent_agent::SessionManager::new(db.clone()),
             agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
+            running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
             shared_memory: Arc::new(std::sync::RwLock::new(axagent_runtime::shared_memory::SharedMemory::new())),
             sub_agent_registry: Arc::new(std::sync::RwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default())),

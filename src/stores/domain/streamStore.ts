@@ -35,6 +35,31 @@ export const _pendingConversationRefresh = new Set<string>();
 // ─── UI flush batching ───
 
 export const STREAM_UI_FLUSH_INTERVAL_MS = 16;
+export const STREAM_MAX_CHUNK_SIZE = 100;
+
+let _rafId: number | null = null;
+let _needsFlush = false;
+
+function scheduleFlush(set: GenericSet<unknown>, get: GenericGet<unknown>) {
+  _needsFlush = true;
+  if (_rafId === null) {
+    _rafId = requestAnimationFrame(() => {
+      _rafId = null;
+      if (_needsFlush) {
+        _needsFlush = false;
+        flushPendingStreamChunk(set as GenericSet<ConversationStoreLike>, get as GenericGet<ConversationStoreLike>);
+      }
+    });
+  }
+}
+
+export function cancelScheduledFlush() {
+  _needsFlush = false;
+  if (_rafId !== null) {
+    cancelAnimationFrame(_rafId);
+    _rafId = null;
+  }
+}
 
 export interface PendingUiChunk {
   messageId: string;
@@ -158,9 +183,13 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
 
   _pendingUiChunk.content += content ?? '';
 
-  if (_streamUiFlushTimer === null) {
+  const contentLength = _pendingUiChunk.content.length;
+  if (contentLength >= STREAM_MAX_CHUNK_SIZE) {
+    flushPendingStreamChunk(set, get);
+  } else if (_streamUiFlushTimer === null) {
     _streamUiFlushTimer = setTimeout(() => {
-      flushPendingStreamChunk(set, get);
+      _streamUiFlushTimer = null;
+      scheduleFlush(set as GenericSet<unknown>, get as GenericGet<unknown>);
     }, STREAM_UI_FLUSH_INTERVAL_MS);
   }
 }
@@ -173,6 +202,7 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
     clearTimeout(_streamUiFlushTimer);
     _streamUiFlushTimer = null;
   }
+  cancelScheduledFlush();
 
   const pending = _pendingUiChunk;
   _pendingUiChunk = null;

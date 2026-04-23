@@ -96,23 +96,24 @@ fn heuristic_pricing(model_id: &str) -> Option<(f64, f64)> {
     // Default: mid tier for completely unknown models
     Some((2.50, 10.00))
 }
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
-/// In-memory set of conversation IDs with an actively running agent task.
-/// Used as the source of truth for concurrency checks (more reliable than DB status).
-static RUNNING_AGENTS: LazyLock<Mutex<HashSet<String>>> = 
-    LazyLock::new(|| Mutex::new(HashSet::new()));
-
-/// RAII guard that removes a conversation ID from RUNNING_AGENTS on drop.
+/// Async RAII guard that removes a conversation ID from AppState::running_agents on drop.
 /// Ensures cleanup even if the spawned task panics.
-struct RunningAgentGuard(String);
+struct AsyncRunningAgentGuard {
+    conversation_id: String,
+    running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
+}
 
-impl Drop for RunningAgentGuard {
+impl Drop for AsyncRunningAgentGuard {
     fn drop(&mut self) {
-        if let Ok(mut running) = RUNNING_AGENTS.lock() {
-            running.remove(&self.0);
-        }
+        let running_agents = self.running_agents.clone();
+        let conversation_id = self.conversation_id.clone();
+        tokio::spawn(async move {
+            let mut agents = running_agents.write().await;
+            agents.remove(&conversation_id);
+        });
     }
 }
 
@@ -392,16 +393,19 @@ pub async fn agent_query(
     let streaming_message_id = format!("stream_{}", uuid::Uuid::new_v4());
 
     // Check if agent is already running for this conversation.
-    // Insert into RUNNING_AGENTS and create the RAII guard atomically
+    // Insert into running_agents and create the RAII guard atomically
     // (within the same lock scope) to prevent a race where another
     // agent_query could slip in between the insert and guard creation.
     let _guard = {
-        let mut running = RUNNING_AGENTS.lock().map_err(|e| e.to_string())?;
+        let mut running = app_state.running_agents.write().await;
         if running.contains(&conversation_id) {
             return Err("Agent already running for this conversation".to_string());
         }
         running.insert(conversation_id.clone());
-        RunningAgentGuard(conversation_id.clone())
+        AsyncRunningAgentGuard {
+            conversation_id: conversation_id.clone(),
+            running_agents: app_state.running_agents.clone(),
+        }
     };
     info!("[agent_query] Got provider: {}", request.provider_id);
 
@@ -737,7 +741,8 @@ pub async fn agent_query(
     // Get or create session (reuse existing session to preserve conversation history)
     let session = session_manager
         .get_or_create_session(prov.id.clone(), conversation_id.clone())
-        .await;
+        .await
+        .map_err(|e| e.to_string())?;
 
     // Apply agent role if specified — sets role on session and filters tools
     let resolved_role = request.role.as_deref()
@@ -1601,12 +1606,12 @@ pub async fn agent_cancel(
         }
     }
 
-    // Note: We intentionally do NOT remove from RUNNING_AGENTS here.
-    // The RunningAgentGuard (RAII) in agent_query is the sole owner of
+    // Note: We intentionally do NOT remove from running_agents here.
+    // The AsyncRunningAgentGuard (RAII) in agent_query is the sole owner of
     // that entry and will remove it on Drop. Removing it here would
     // create a double-remove race and break the RAII invariant.
     // The cancel token (set above) is what actually stops the agent loop;
-    // RUNNING_AGENTS is only a concurrency guard for agent_query entry.
+    // running_agents is only a concurrency guard for agent_query entry.
 
     // Clean up the permission prompter for this conversation.
     // Call clear_pending() first to unblock any waiting rx.recv() calls,
@@ -1632,10 +1637,10 @@ pub async fn agent_cancel(
 /// Used by the frontend after page refresh to detect orphaned agent runs.
 #[tauri::command]
 pub async fn agent_is_running(
-    _app_state: State<'_, AppState>,
+    app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<bool, String> {
-    let running = RUNNING_AGENTS.lock().map_err(|e| e.to_string())?;
+    let running = app_state.running_agents.read().await;
     Ok(running.contains(&conversation_id))
 }
 
@@ -1649,7 +1654,7 @@ pub async fn agent_pause(
 ) -> Result<(), String> {
     // Verify the agent is actually running
     {
-        let running = RUNNING_AGENTS.lock().map_err(|e| e.to_string())?;
+        let running = app_state.running_agents.read().await;
         if !running.contains(&conversation_id) {
             return Err(format!("No running agent for conversation {}", conversation_id));
         }
@@ -1732,7 +1737,7 @@ pub async fn agent_runtime_stats(
     conversation_id: String,
 ) -> Result<AgentRuntimeStats, String> {
     let running = {
-        let r = RUNNING_AGENTS.lock().map_err(|e| e.to_string())?;
+        let r = app_state.running_agents.read().await;
         r.contains(&conversation_id)
     };
     let paused = {

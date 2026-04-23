@@ -16,7 +16,13 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "bump": "node scripts/bump-version.mjs"
+    "bump": "node scripts/bump-version.mjs",
+    "format": "dprint fmt",
+    "format:check": "dprint check",
+    "lint": "dprint fmt --verify && tsc --noEmit",
+    "lint:fix": "dprint fmt",
+    "docs": "typedoc --out docs src",
+    "docs:watch": "typedoc --out docs --watch src"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
@@ -70,9 +76,11 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "6.0.1",
     "autoprefixer": "^10.5.0",
+    "dprint": "^0.45.0",
     "esbuild": "^0.28.0",
     "jsdom": "^29.0.2",
     "tailwindcss": "^4.2.2",
+    "typedoc": "^0.27.0",
     "typescript": "~6.0.3",
     "vite": "^8.0.8",
     "vite-plugin-monaco-editor": "^1.1.0",
