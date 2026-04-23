@@ -775,12 +775,17 @@ pub async fn check_gateway_health(
     db: &DatabaseConnection,
     link_id: &str,
     api_key: Option<&str>,
-) -> Result<u64> {
+) -> std::result::Result<u64, HealthCheckError> {
     let link = gateway_links::Entity::find_by_id(link_id)
         .one(db)
-        .await?
-        .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
+        .await
+        .map_err(|e| HealthCheckError::Permanent(format!("Database error: {}", e)))?;
 
+    if link.is_none() {
+        return Err(HealthCheckError::Permanent(format!("GatewayLink {} not found", link_id)));
+    }
+
+    let link = link.unwrap();
     let timeouts = GatewayLinkTimeouts::default();
     let client = build_health_check_client(&timeouts, &link.endpoint, api_key);
     let url = format!("{}/health", link.endpoint.trim_end_matches('/'));
@@ -791,18 +796,18 @@ pub async fn check_gateway_health(
         req = req.header("Authorization", format!("Bearer {}", key));
     }
 
-    let resp = req
-        .send()
-        .await
-        .map_err(|e| AxAgentError::Gateway(format!("Health check to {} failed: {}", url, e)))?;
+    let resp = req.send().await.map_err(|e| {
+        if e.is_timeout() || e.is_connect() {
+            HealthCheckError::Network(format!("Connection failed: {}", e))
+        } else {
+            HealthCheckError::Network(format!("Health check to {} failed: {}", url, e))
+        }
+    })?;
 
     if !resp.status().is_success() {
-        let status = resp.status();
+        let status = resp.status().as_u16();
         let text = resp.text().await.unwrap_or_default();
-        return Err(AxAgentError::Gateway(format!(
-            "Health check error {} from {}: {}",
-            status, url, text
-        )));
+        return Err(HealthCheckError::from_status(status, &text));
     }
 
     let latency_ms = start.elapsed().as_millis() as u64;

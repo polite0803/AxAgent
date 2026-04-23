@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, RwLock};
 use tokio::time::interval;
 
-use crate::error::{AxAgentError, Result};
+use crate::error::{AxAgentError, HealthCheckError, Result};
 use crate::repo::gateway_link as link_repo;
 use crate::repo::gateway_link::ExponentialBackoff;
 
@@ -259,22 +259,30 @@ impl GatewayLinkConnectionHandle {
                                         None,
                                     ).await;
 
-                                    let new_attempts = manager.increment_reconnect_attempts(&link_id).await;
-                                    if new_attempts <= manager.max_reconnect_attempts {
-                                        let delay = manager.calculate_backoff_delay(new_attempts);
-                                        tracing::info!(
-                                            "Gateway link {} scheduling reconnect in {:?} (attempt {}/{})",
-                                            link_id, delay, new_attempts, manager.max_reconnect_attempts
-                                        );
+                                    if e.is_transient() {
+                                        let new_attempts = manager.increment_reconnect_attempts(&link_id).await;
+                                        if new_attempts <= manager.max_reconnect_attempts {
+                                            let delay = manager.calculate_backoff_delay(new_attempts);
+                                            tracing::info!(
+                                                "Gateway link {} scheduling reconnect in {:?} (attempt {}/{})",
+                                                link_id, delay, new_attempts, manager.max_reconnect_attempts
+                                            );
 
-                                        tokio::time::sleep(delay).await;
+                                            tokio::time::sleep(delay).await;
 
-                                        if let Err(e) = link_repo::connect_gateway_link(&db, &link_id, api_key.as_deref()).await {
-                                            tracing::error!("Gateway link {} reconnect failed: {}", link_id, e);
+                                            if let Err(e) = link_repo::connect_gateway_link(&db, &link_id, api_key.as_deref()).await {
+                                                tracing::error!("Gateway link {} reconnect failed: {}", link_id, e);
+                                            }
+                                        } else {
+                                            tracing::error!("Gateway link {} exceeded max reconnect attempts", link_id);
+                                            manager.update_link_state(&link_id, LinkConnectionState::Failed, Some("Max reconnect attempts exceeded".to_string())).await;
                                         }
                                     } else {
-                                        tracing::error!("Gateway link {} exceeded max reconnect attempts", link_id);
-                                        manager.update_link_state(&link_id, LinkConnectionState::Failed, Some("Max reconnect attempts exceeded".to_string())).await;
+                                        tracing::error!(
+                                            "Gateway link {} health check returned permanent error, not retrying: {}",
+                                            link_id, e
+                                        );
+                                        manager.update_link_state(&link_id, LinkConnectionState::Failed, Some(e.to_string())).await;
                                     }
                                 }
                             }
