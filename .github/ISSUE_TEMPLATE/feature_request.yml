@@ -1,0 +1,27 @@
+name: 💡 提交建议
+description: 提出你的功能建议或改进想法
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 建议描述
+      placeholder: 请清楚地描述你希望添加或改进的功能
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 使用场景
+      placeholder: 描述在什么情况下你需要这个功能
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明
+      placeholder: 可选：附加截图、参考链接或其他说明
+    validations:
+      required: false

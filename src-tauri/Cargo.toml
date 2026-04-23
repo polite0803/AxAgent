@@ -1,0 +1,93 @@
+[workspace]
+members = [".", "crates/core", "crates/providers", "crates/gateway", "crates/migration", "crates/agent", "crates/runtime", "crates/trajectory", "crates/telemetry", "crates/plugins"]
+resolver = "2"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sea-orm = { version = "1", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "macros"] }
+tokio = { version = "1", features = ["full"] }
+thiserror = "2"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1"
+sqlite-vec = "0.1.8-alpha.1"
+libsqlite3-sys = "0.30"
+sysinfo = "0.32"
+
+[package]
+name = "axagent"
+version = "1.0.0"
+description = "AxAgent - AI Chat Desktop App"
+authors = ["you"]
+license = "AGPL-3.0-only"
+edition = "2021"
+default-run = "AxAgent"
+
+[lib]
+name = "axagent_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "AxAgent"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png", "devtools"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2.7"
+tauri-plugin-fs = "2.5"
+tauri-plugin-autostart = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+axagent-core = { path = "crates/core" }
+axagent-providers = { path = "crates/providers" }
+axagent-agent = { path = "crates/agent" }
+axagent-gateway = { path = "crates/gateway" }
+axagent-runtime = { path = "crates/runtime" }
+axagent-trajectory = { path = "crates/trajectory" }
+axagent-telemetry = { path = "crates/telemetry" }
+axagent-plugins = { path = "crates/plugins" }
+tokio = { workspace = true }
+uuid = { workspace = true }
+sea-orm = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = "0.1"
+futures = "0.3"
+base64 = "0.22"
+rcgen = "0.13"
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
+tauri-plugin-mcp-bridge = "0.2"
+font-kit = "0.14"
+tauri-plugin-clipboard-manager = "2"
+reqwest = { version = "0.12", features = ["json"] }
+zip = "2"
+tempfile = "3"
+open = "5"
+urlencoding = "2"
+dirs = "5"
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2 = { version = "0.6", features = ["relax-sign-encoding"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Foundation",
+] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "s"

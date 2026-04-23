@@ -1,0 +1,36 @@
+[package]
+name = "axagent-core"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+aes-gcm = "0.10"
+async-trait = "0.1"
+sha2 = "0.10"
+base64 = "0.22"
+reqwest = { version = "0.13", features = ["json", "stream"] }
+futures = "0.3"
+rmcp = { version = "1.2", features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
+regex = "1"
+hex = "0.4"
+toml_edit = "0.22"
+sqlite-vec = { workspace = true }
+libsqlite3-sys = { workspace = true }
+pdf-extract = "0.7"
+zip = "2"
+dirs = "5"
+rusqlite = { version = "0.32", features = ["bundled"] }
+sysinfo = "0.32"
+axagent-migration = { path = "../migration" }
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,424 @@
+@import "tailwindcss";
+@import 'markstream-react/index.css';
+@import 'overlayscrollbars/overlayscrollbars.css';
+
+/* Global theme tokens — synced with Ant Design ConfigProvider via JS */
+:root {
+  --border-color: #f0f0f0;
+  --color-bg-container: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-text: rgba(0, 0, 0, 0.88);
+  --color-text-secondary: rgba(0, 0, 0, 0.45);
+  --color-primary: #1677ff;
+  --color-fill-alter: rgba(0, 0, 0, 0.02);
+  --font-size-base: 14px;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  font-weight: var(--font-weight, 400);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Remove antd focus outline (green border) globally */
+*:focus-visible {
+  outline: none !important;
+}
+
+/* Re-enable text selection for content areas */
+.ant-bubble-content,
+.markstream-react,
+textarea,
+input,
+[contenteditable="true"],
+pre,
+code,
+.code-block-node,
+.code-block-container,
+.inline-code {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.code-block-header {
+  padding: 6px 10px !important;
+}
+
+.mermaid-block-header {
+  padding: 6px 10px !important;
+  background-color: var(--mermaid-header-bg, var(--color-fill-alter)) !important;
+  border-bottom-color: var(--mermaid-border, var(--border-color)) !important;
+}
+
+.d2-block-header {
+  padding: 6px 10px !important;
+}
+
+.mermaid-block,
+.d2-block {
+  border-radius: 8px !important;
+}
+
+/* Mermaid block — use antd theme tokens instead of Tailwind defaults */
+.mermaid-block,
+.mermaid-block.is-dark {
+  --mermaid-header-bg: var(--color-fill-alter);
+  --mermaid-body-bg: var(--color-bg-container);
+  --mermaid-text: var(--color-text);
+  --mermaid-text-secondary: var(--color-text-secondary);
+  --mermaid-border: var(--border-color);
+  background: var(--color-bg-container) !important;
+  color: var(--color-text) !important;
+  border-color: var(--border-color) !important;
+}
+
+.mermaid-block-body {
+  background-color: var(--color-bg-container) !important;
+}
+
+.mermaid-block-source {
+  background-color: var(--color-bg-container) !important;
+  color: var(--color-text) !important;
+}
+
+.mermaid-block-title {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Mermaid fullscreen modal — use antd theme tokens */
+.mermaid-modal-panel,
+.mermaid-modal-panel.is-dark {
+  --mermaid-modal-bg: var(--color-bg-elevated);
+  --mermaid-modal-text: var(--color-text);
+  --mermaid-modal-border: var(--border-color);
+}
+
+/* Infographic block — use antd theme tokens instead of Tailwind defaults */
+.infographic-block,
+.infographic-block.is-dark {
+  --infographic-header-bg: var(--color-fill-alter);
+  --infographic-body-bg: var(--color-bg-container);
+  --infographic-text: var(--color-text);
+  --infographic-text-secondary: var(--color-text-secondary);
+  --infographic-border: var(--border-color);
+  background: var(--color-bg-container) !important;
+  color: var(--color-text) !important;
+  border-color: var(--border-color) !important;
+  border-radius: 8px !important;
+}
+
+.infographic-block-header {
+  padding: 6px 10px !important;
+  background-color: var(--infographic-header-bg, var(--color-fill-alter)) !important;
+  border-bottom-color: var(--infographic-border, var(--border-color)) !important;
+}
+
+.infographic-block-body {
+  background-color: var(--color-bg-container) !important;
+}
+
+.infographic-block-source {
+  background-color: var(--color-bg-container) !important;
+  color: var(--color-text) !important;
+}
+
+.infographic-block-title {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Infographic fullscreen modal — use antd theme tokens */
+.infographic-modal-panel,
+.infographic-modal-panel.is-dark {
+  --infographic-modal-bg: var(--color-bg-elevated);
+  --infographic-modal-text: var(--color-text);
+  --infographic-modal-border: var(--border-color);
+}
+
+.code-block-container {
+  border-radius: 8px !important;
+}
+
+.code-editor-container {
+  min-height: 21px !important;
+}
+
+.code-block-body,
+.code-block-monaco,
+.code-height-placeholder,
+.code-loading-placeholder {
+  min-height: 21px !important;
+}
+
+/* Fix code block height: make code blocks size to actual content instead of fixed height.
+   The markstream-react library sets inline minHeight via JS based on getBoundingClientRect(),
+   which can be larger than the actual code content when Monaco editor initializes.
+   We override the CSS min-height and use contain:size to prevent layout overflow. */
+.code-block-content {
+  min-height: 0 !important;
+}
+
+.code-block-body--collapsed {
+  min-height: 0 !important;
+  height: 0 !important;
+}
+
+/* Override antd CSS-in-JS font-weight for all components */
+[class*="ant-"] {
+  font-weight: var(--font-weight, 400) !important;
+}
+
+/* Fix icon alignment in dropdown menus (lucide SVGs) */
+.ant-dropdown-menu .ant-dropdown-menu-item-icon,
+.ant-dropdown-menu .ant-dropdown-menu-submenu-title > .ant-dropdown-menu-item-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+b, strong, th,
+[class*="ant-"] b,
+[class*="ant-"] strong,
+.ant-typography strong,
+.ant-menu-item-selected,
+.ant-tabs-tab-active {
+  font-weight: calc(var(--font-weight, 400) + 200) !important;
+}
+
+/* Scrollbar styling — native scrollbars are hidden; OverlayScrollbars provides
+ * a consistent, thin, semi-transparent custom scrollbar across all builds.
+ * This avoids the WKWebView SDK-linked-on-or-after rendering bug where
+ * scrollbar-color is parsed but ignored by the native renderer. */
+
+* {
+  scrollbar-width: none !important;
+}
+
+.axagent-input-textarea {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.axagent-input-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.axagent-input-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.axagent-input-textarea::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+}
+
+.axagent-input-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="dark"] .axagent-input-textarea {
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+}
+
+html[data-theme="dark"] .axagent-input-textarea::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+html[data-theme="dark"] .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+/* ── OverlayScrollbars custom theme ──────────────────────────────── */
+.os-theme-axagent {
+  --os-size: 5px;
+  --os-padding-perpendicular: 0;
+  --os-padding-axis: 2px;
+  --os-track-border-radius: 3px;
+  --os-track-bg: transparent;
+  --os-track-bg-hover: transparent;
+  --os-track-bg-active: transparent;
+  --os-handle-border-radius: 3px;
+  --os-handle-bg: rgba(0, 0, 0, 0.08);
+  --os-handle-bg-hover: rgba(0, 0, 0, 0.18);
+  --os-handle-bg-active: rgba(0, 0, 0, 0.28);
+  --os-handle-perpendicular-size: 100%;
+  --os-handle-perpendicular-size-hover: 100%;
+  --os-handle-perpendicular-size-active: 100%;
+}
+html[data-theme="dark"] .os-theme-axagent {
+  --os-handle-bg: rgba(255, 255, 255, 0.08);
+  --os-handle-bg-hover: rgba(255, 255, 255, 0.18);
+  --os-handle-bg-active: rgba(255, 255, 255, 0.28);
+}
+
+/* ── Chat scroll indicator (Bubble.List uses column-reverse, incompatible
+ *    with OverlayScrollbars — uses a lightweight visual-only indicator) ── */
+.chat-scroll-indicator {
+  background: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="dark"] .chat-scroll-indicator {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Custom action item hover style (for actionRender items in @ant-design/x Actions) */
+.axagent-action-item {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+}
+.axagent-action-item:hover {
+  background: var(--ant-color-bg-text-hover, rgba(0, 0, 0, 0.06));
+}
+
+/* Ant Design style overrides */
+.ant-layout {
+  height: 100%;
+}
+
+/* Make lucide-react SVGs behave like antd icons inside antd components */
+svg.lucide {
+  display: inline-block;
+  vertical-align: -0.125em;
+}
+
+/* Title bar drag region */
+.title-bar-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.title-bar-drag button,
+.title-bar-drag .ant-dropdown-trigger {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.title-bar-nodrag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* Unify all Ant Design component borders via CSS variable */
+.ant-conversations .ant-conversations-list {
+  border-color: var(--border-color) !important;
+}
+
+.ant-menu {
+  border-inline-end: none !important;
+}
+
+.gateway-quick-connect-card.ant-card {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.gateway-quick-connect-card.ant-card:hover {
+  border-color: var(--color-primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ModelSelector: compact modal content padding */
+.model-selector-modal .ant-modal-container {
+  padding: 6px !important;
+}
+
+/* Multi-model streaming animation */
+@keyframes model-tag-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.model-tag-streaming {
+  position: relative;
+}
+.model-tag-streaming::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--color-primary, #1677ff);
+  animation: model-tag-spin 1s linear infinite;
+  pointer-events: none;
+}
+
+.model-tag-pending {
+  animation: model-tag-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes model-tag-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+/* ── markstream-react dark mode border overrides ──────────────────────── */
+html[data-theme="dark"] .markstream-react .thematic-break {
+  border-top-color: var(--hr-border-color, var(--border-color));
+}
+
+/* Chat markdown runs inside a Tauri WebView where `content-visibility:auto`
+ * can leave freshly completed assistant content unpainted until the next
+ * scroll/repaint. Keep chat message renderers painted in this shell only. */
+.axagent-chat-markdown > .markdown-renderer,
+.axagent-chat-markdown .code-block-container {
+  content-visibility: visible;
+  contain-intrinsic-size: auto;
+}
+
+/* Let AxAgent own chat bottom-lock behavior instead of browser scroll anchoring.
+ * Async math / diagram rendering can otherwise move the viewport without any
+ * user input and trick the chat into thinking the user scrolled away. */
+[data-message-area] .ant-bubble-list-scroll-box {
+  overflow-anchor: none;
+}
+
+html[data-theme="dark"] .markstream-react .footnote-node {
+  border-left-color: var(--border-color);
+  color: var(--color-text-secondary);
+}
+
+html[data-theme="dark"] .markstream-react .admonition-node {
+  border-left-color: var(--border-color);
+  background: color-mix(in srgb, var(--color-bg-elevated) 90%, transparent);
+}
+
+html[data-theme="dark"] .markstream-react .border-\[\#eaecef\] {
+  border-color: var(--border-color) !important;
+}
+
+html[data-theme="dark"] .markstream-react .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+html[data-theme="dark"] .markstream-react .table-node th,
+html[data-theme="dark"] .markstream-react .table-node td,
+html[data-theme="dark"] .markstream-react .table-node tr,
+html[data-theme="dark"] .markstream-react .table-node thead {
+  border-color: var(--table-border, var(--border-color));
+}
+
+/* Multi-model side-by-side: constrain bubble ancestors so overflow works */
+.ant-bubble:has(.axagent-multi-model-scroll) {
+  overflow: hidden;
+  min-width: 0;
+}
+.ant-bubble:has(.axagent-multi-model-scroll) .ant-bubble-body {
+  overflow: hidden;
+  min-width: 0;
+}
+.ant-bubble:has(.axagent-multi-model-scroll) .ant-bubble-content {
+  overflow: hidden;
+  min-width: 0;
+}

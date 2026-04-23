@@ -1,0 +1,103 @@
+name: Test Build
+
+on:
+  push:
+    tags:
+      - 'test-v*.*.*'
+
+permissions: write-all
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: short
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  test-build:
+    name: Test Build (aarch64-apple-darwin)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v1'
+          key: 'macos-latest-aarch64-apple-darwin'
+          workspaces: src-tauri -> target
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Get linked dependency versions
+        id: dep-versions
+        run: |
+          SM_SHA=$(git ls-remote https://github.com/polite0803/stream-monaco.git refs/heads/main | cut -f1)
+          MS_SHA=$(git ls-remote https://github.com/polite0803/markstream-vue.git refs/heads/axagent-custom | cut -f1)
+          echo "cache-key=linked-deps-${SM_SHA:0:12}-${MS_SHA:0:12}" >> $GITHUB_OUTPUT
+
+      - name: Cache linked dependencies
+        id: cache-linked-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ../stream-monaco
+            ../markstream-vue
+          key: ${{ steps.dep-versions.outputs.cache-key }}
+
+      - name: Build linked dependencies
+        if: steps.cache-linked-deps.outputs.cache-hit != 'true'
+        run: |
+          cd ..
+
+          git clone --depth 1 https://github.com/polite0803/stream-monaco.git stream-monaco
+          cd stream-monaco && pnpm install --frozen-lockfile && pnpm build
+          rm -rf .git
+          cd ..
+
+          git clone --depth 1 -b axagent-custom https://github.com/polite0803/markstream-vue.git markstream-vue
+          cd markstream-vue && pnpm install --frozen-lockfile
+          pnpm run build:parser
+          cd packages/markstream-react && pnpm build && cd ../..
+          rm -rf .git playground*/node_modules
+          cd ..
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: '-'
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'AxAgent ${{ github.ref_name }} (Test)'
+          releaseBody: 'Internal test build for scrollbar fix verification.'
+          releaseDraft: true
+          prerelease: true
+          tauriScript: pnpm tauri
+          args: --target aarch64-apple-darwin

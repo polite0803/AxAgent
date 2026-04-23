@@ -1,0 +1,257 @@
+# AxAgent
+
+跨平台 AI 桌面客户端 | Multi-Platform AI Desktop Client
+
+[![AxAgent](https://socialify.git.ci/AxAgent/AxAgent/image?description=1&font=JetBrains+Mono&forks=1&issues=1&logo=https%3A%2F%2Fgithub.com%2FAxAgent%2FAxAgent%2Fblob%2Fmain%2Fsrc%2Fassets%2Fimage%2Flogo.png%3Fraw%3Dtrue&name=1&owner=1&pattern=Floating+Cogs&pulls=1&stargazers=1&theme=Auto)](https://github.com/polite0803/AxAgent)
+
+---
+
+## 功能特性
+
+### 对话与模型
+
+- **多供应商支持** — 兼容 OpenAI、Anthropic Claude、Google Gemini、Ollama、OpenClaw 等所有 OpenAI 兼容 API
+- **模型管理** — 支持远程拉取模型列表、自定义参数（温度、最大 Token、Top-P 等）
+- **多密钥轮询** — 每个供应商可配置多个 API Key，自动轮换以分散限流压力
+- **流式输出** — 实时逐 Token 渲染，thinking 块可折叠展开
+- **消息版本** — 每条回复支持多版本切换，方便对比不同模型或参数的效果
+- **对话分支** — 从任意消息节点派生新分支，支持分支间对比
+- **对话管理** — 支持置顶、归档、按时间分组、批量操作
+- **分类系统** — 自定义对话分类，按主题组织管理
+- **对话压缩** — 自动压缩冗长对话，保留关键信息以节省上下文空间
+- **多模型同答案** — 同一问题同时向多个模型提问，支持答案间对比分析
+
+### AI Agent
+
+- **Agent 模式** — 切换至 Agent 模式，AI 可自主执行多步骤任务：读写文件、运行命令、分析代码等
+- **三级权限** — 默认模式（写入需审批）、接受编辑（自动批准修改）、完全访问（无提示），安全可控
+- **工作目录沙箱** — Agent 操作严格限制在指定工作目录内，防止越权访问
+- **工具审批面板** — 实时展示工具调用请求，支持逐条审核、一键始终允许或拒绝
+- **成本追踪** — 每次会话实时统计 Token 用量与费用
+- **暂停/恢复** — 支持暂停 Agent 执行并在稍后恢复
+- **Bash 命令执行** — 在沙箱环境中执行 shell 命令，自动进行风险验证
+
+### 多 Agent 系统
+
+- **子 Agent 协作** — 创建多个子 Agent，采用主从协调架构
+- **并行执行** — 多个 Agent 并行处理，提高复杂任务效率
+- **对抗辩论** — 多个 Agent 持不同观点辩论，通过思想碰撞产生更优方案
+- **工作流引擎** — 强大的工作流编排，支持条件分支、循环和并行执行
+- **团队角色** — 为不同 Agent 分配特定角色（代码审查、测试、文档等）协作完成任务
+
+### 内容渲染
+
+- **Markdown 渲染** — 完整支持代码高亮、LaTeX 数学公式、表格、任务列表
+- **Monaco 代码编辑器** — 代码块内嵌 Monaco Editor，支持语法高亮、复制、diff 预览
+- **图表渲染** — 内置 Mermaid 流程图与 D2 架构图渲染
+- **Artifact 面板** — 代码片段、HTML 草稿、Markdown 笔记、报告可在独立面板中预览
+- **对话导图** — 可视化展示对话结构和分支关系
+
+### 搜索与知识
+
+- **联网搜索** — 集成 Tavily、智谱 WebSearch、Bocha 等，搜索结果附带引用来源标注
+- **本地知识库（RAG）** — 支持多知识库，上传文档后自动解析分段并且构建索引，对话时语义检索相关段落
+- **知识图谱** — 知识实体关系图，可视化展示知识点之间的关联
+- **记忆系统** — 支持对话多命名空间记忆，可手动添加或由 AI 自动提取
+- **全文搜索** — FTS5 引擎快速检索对话、文件和记忆
+- **上下文管理** — 灵活挂载文件附件、搜索结果、知识库片段、记忆条目、工具输出
+
+### 工具与扩展
+
+- **MCP 协议** — 完整实现 Model Context Protocol，支持 stdio 和 HTTP/WebSocket 两种传输方式
+- **OAuth 认证** — 支持 MCP 服务器的 OAuth 认证流程
+- **内置工具** — 提供文件操作、代码执行、搜索等开箱即用的内置工具
+- **工具执行面板** — 可视化展示工具调用请求与返回结果
+- **LSP 客户端** — 内置 LSP 协议支持，提供智能代码补全和诊断
+
+### API 网关
+
+- **本地 API 网关** — 内置 OpenAI 兼容、Claude、Gemini 等原生接口的本地 API 服务器，可作为任意兼容客户端的后端
+- **外部链接** — 一键集成 Claude CLI、OpenCode 等外部工具，自动同步 API 密钥
+- **API 密钥管理** — 生成、撤销、启停访问密钥，支持描述备注
+- **用量统计** — 按密钥、供应商、日期维度的请求量与 Token 用量分析
+- **诊断工具** — 网关健康检查、连接测试、请求调试
+- **SSL/TLS 支持** — 内置自签名证书生成，也支持挂载自定义证书
+- **请求日志** — 完整记录所有经过网关的 API 请求与响应
+- **配置模板** — 预置 Claude、Codex、OpenCode、Gemini 等常见 CLI 工具的接入配置模板
+- **实时通讯** — WebSocket 实时事件推送，兼容 OpenAI Realtime API
+
+### 技能系统
+
+- **技能市场** — 内置技能市场，可浏览和安装社区贡献的技能
+- **技能创建** — 从提案自动创建技能，支持 Markdown 编辑器
+- **技能进化** — AI 自动分析改进现有技能以获得更好执行效果
+- **技能匹配** — 智能推荐，自动将相关技能应用到合适的对话场景
+
+### 数据与安全
+
+- **AES-256 加密** — API Key 等敏感数据使用 AES-256-GCM 加密存储于本地，主密钥权限 0600
+- **数据目录隔离** — 应用状态存储于 `~/.axagent/`，用户文件存储于 `~/Documents/axagent/`
+- **自动备份** — 支持定时自动备份到本地目录、WebDAV 的存储
+- **备份恢复** — 一键从历史备份恢复完整数据
+- **对话导出** — 支持将对话导出为 PNG 截图、Markdown、纯文本或 JSON 格式
+- **存储空间管理** — 可视化展示磁盘使用情况，清理不必要文件
+
+### 桌面体验
+
+- **主题切换** — 深色/浅色主题，可跟随系统或手动指定
+- **界面语言** — 完整支持简体中文、繁体中文、英文、日文、韩文、法文、德文、西班牙文、俄文、印地文与阿拉伯文
+- **系统托盘** — 关闭窗口时最小化到系统托盘，不中断后台服务
+- **窗口置顶** — 可将主窗口常驻最顶层
+- **全局快捷键** — 自定义全局快捷键，随时唤起主窗口
+- **开机自启** — 可选择随系统自动启动
+- **代理支持** — 支持 HTTP 和 SOCKS5 代理配置
+- **自动更新** — 启动时自动检测新版本并提示更新
+- **命令面板** — `Cmd/Ctrl+K` 快速访问所有命令和设置
+
+## 技术架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      AxAgent 整体架构                         │
+├─────────────────────────────────────────────────────────────┤
+│  前端 (React + TypeScript)                                   │
+│  ├── 状态管理 (Zustand)                                      │
+│  │   ├── domain/     - 对话、消息、流、压缩                   │
+│  │   ├── feature/    - Agent、网关、知识库、记忆、MCP、技能   │
+│  │   └── shared/     - UI、工件、标签页                       │
+│  ├── 组件 (React)                                            │
+│  │   ├── chat/       - 对话界面、输入、渲染                   │
+│  │   ├── gateway/    - API网关管理                           │
+│  │   ├── settings/   - 设置面板                              │
+│  │   └── common/     - 通用组件                              │
+│  └── 页面                                                     │
+│      ├── ChatPage      - 对话主页                            │
+│      ├── GatewayPage   - API网关                            │
+│      ├── KnowledgePage - 知识库管理                          │
+│      ├── MemoryPage    - 记忆管理                            │
+│      ├── SkillsPage    - 技能管理                            │
+│      └── SettingsPage  - 设置中心                            │
+├─────────────────────────────────────────────────────────────┤
+│  后端 (Rust + Tauri)                                         │
+│  ├── core/         - 核心模块(数据库、Crypto、RAG、存储)     │
+│  ├── agent/        - Agent会话、工具注册、权限管理            │
+│  ├── runtime/      - 运行时(会话、权限、MCP、工具执行)       │
+│  ├── providers/    - 模型供应商适配器                        │
+│  │                  (OpenAI/Anthropic/Gemini/Ollama等)      │
+│  ├── gateway/      - 本地API网关服务器                       │
+│  ├── migration/    - 数据库迁移                              │
+│  ├── trajectory/   - 会话轨迹记录                           │
+│  ├── telemetry/    - 遥测和统计                              │
+│  ├── plugins/      - 插件系统                                │
+│  └── runtime/      - 运行时环境                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 框架 | Tauri 2 + React 19 + TypeScript |
+| UI | Ant Design 6 + TailwindCSS 4 |
+| 状态 | Zustand 5 |
+| 国际化 | i18next + react-i18next |
+| 后端 | Rust + SeaORM + SQLite |
+| 向量库 | sqlite-vec |
+| 构建 | Vite + pnpm |
+
+## 平台支持
+
+| 平台 | 架构 |
+|------|------|
+| macOS | Apple Silicon (arm64), Intel (x86_64) |
+| Windows | x86_64, ARM64 |
+| Linux | x86_64, ARM64 (AppImage/deb/rpm) |
+
+## 快速开始
+
+### 从源码构建
+
+```bash
+# 克隆仓库
+git clone https://github.com/polite0803/AxAgent.git
+cd AxAgent
+
+# 安装依赖
+pnpm install
+
+# 开发模式
+pnpm dev
+
+# 构建应用
+pnpm tauri build
+```
+
+### 下载预编译版本
+
+前往 [Releases](https://github.com/polite0803/AxAgent/releases) 页面下载适合你平台的安装包。
+
+## 项目结构
+
+```
+AxAgent/
+├── src/                    # 前端源码
+│   ├── components/         # React 组件
+│   │   ├── chat/          # 对话相关组件
+│   │   ├── gateway/       # API网关组件
+│   │   ├── settings/      # 设置组件
+│   │   └── common/        # 通用组件
+│   ├── pages/             # 页面组件
+│   ├── stores/            # Zustand 状态管理
+│   │   ├── domain/        # 核心业务状态
+│   │   ├── feature/       # 功能模块状态
+│   │   └── shared/        # 共享状态
+│   ├── hooks/             # React Hooks
+│   ├── lib/               # 工具函数
+│   ├── types/             # TypeScript 类型定义
+│   └── i18n/              # 国际化资源
+│
+├── src-tauri/             # Rust 后端源码
+│   ├── crates/            # Rust workspace crates
+│   │   ├── core/          # 核心模块
+│   │   ├── agent/         # Agent 模块
+│   │   ├── runtime/       # 运行时
+│   │   ├── providers/     # 模型供应商
+│   │   ├── gateway/       # API网关
+│   │   └── ...
+│   └── src/               # Tauri 主入口
+│
+├── scripts/               # 构建脚本
+├── e2e/                   # E2E 测试
+└── website/               # 文档网站
+```
+
+## 配置与数据
+
+### 目录结构
+
+```
+~/.axagent/                    # 配置目录
+├── axagent.db                 # SQLite 数据库
+├── master.key                 # AES-256 主密钥
+├── vector_db/                 # 向量数据库
+└── ssl/                       # SSL 证书
+
+~/Documents/axagent/           # 文档目录
+├── images/                    # 图片附件
+├── files/                     # 文件附件
+└── backups/                   # 备份文件
+```
+
+## 常见问题
+
+### macOS 提示"已损坏"或"无法验证开发者"
+
+由于应用未经 Apple 签名，macOS 可能会弹出安全提示。执行以下命令解决：
+
+```bash
+# 允许任何来源应用
+sudo spctl --master-disable
+
+# 移除安全隔离属性
+sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
+```
+
+## 许可证
+
+本项目采用 [AGPL-3.0](LICENSE) 许可证。

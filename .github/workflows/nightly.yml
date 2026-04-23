@@ -1,0 +1,296 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      skip_signing:
+        description: 'Skip code signing (for testing)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions: write-all
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: short
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  # ── Build for macOS / Windows / Linux x86_64 ───────────
+  release:
+    name: Build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: develop
+
+      - name: Set build timestamp
+        id: timestamp
+        run: echo "BUILD_TIME=$(date -u '+%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v1'
+          key: '${{ matrix.os }}-${{ matrix.target }}-nightly'
+          workspaces: src-tauri -> target
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Get linked dependency versions
+        id: dep-versions
+        shell: bash
+        run: |
+          SM_SHA=$(git ls-remote https://github.com/polite0803/stream-monaco.git refs/heads/main | cut -f1)
+          MS_SHA=$(git ls-remote https://github.com/polite0803/markstream-vue.git refs/heads/axagent-custom | cut -f1)
+          echo "cache-key=linked-deps-${SM_SHA:0:12}-${MS_SHA:0:12}" >> $GITHUB_OUTPUT
+
+      - name: Cache linked dependencies
+        id: cache-linked-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ../stream-monaco
+            ../markstream-vue
+          key: ${{ steps.dep-versions.outputs.cache-key }}
+
+      - name: Build linked dependencies
+        if: steps.cache-linked-deps.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd ..
+
+          git clone --depth 1 https://github.com/polite0803/stream-monaco.git stream-monaco
+          cd stream-monaco && pnpm install --frozen-lockfile && pnpm build
+          rm -rf .git
+          cd ..
+
+          git clone --depth 1 -b axagent-custom https://github.com/polite0803/markstream-vue.git markstream-vue
+          cd markstream-vue && pnpm install --frozen-lockfile
+          pnpm run build:parser
+          cd packages/markstream-react && pnpm build && cd ../..
+          rm -rf .git playground*/node_modules
+          cd ..
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ matrix.os == 'macos-latest' && '-' || '' }}
+        with:
+          tagName: nightly-${{ steps.timestamp.outputs.BUILD_TIME }}
+          releaseName: 'AxAgent Nightly ${{ steps.timestamp.outputs.BUILD_TIME }}'
+          releaseBody: |
+            ## Nightly Build
+
+            **Build Time:** ${{ steps.timestamp.outputs.BUILD_TIME }}
+            **Commit:** ${{ github.sha }}
+
+            > This is an automated nightly build from the `develop` branch.
+            > **Use at your own risk!** This build may be unstable and is not recommended for production use.
+          releaseDraft: false
+          prerelease: true
+          tauriScript: pnpm tauri
+          args: --target ${{ matrix.target }}
+
+      - name: Package Windows portable (zip)
+        if: contains(matrix.target, 'windows')
+        shell: pwsh
+        run: |
+          $exe = "src-tauri/target/${{ matrix.target }}/release/AxAgent.exe"
+          $arch = if ("${{ matrix.target }}" -match "aarch64") { "arm64" } else { "x64" }
+          $zipName = "AxAgent_nightly_${{ steps.timestamp.outputs.BUILD_TIME }}_windows-${arch}-portable.zip"
+          Compress-Archive -Path $exe -DestinationPath $zipName
+
+      - name: Upload Windows portable to release
+        if: contains(matrix.target, 'windows')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly-${{ steps.timestamp.outputs.BUILD_TIME }}
+          draft: false
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: AxAgent_nightly_${{ steps.timestamp.outputs.BUILD_TIME }}_windows-*-portable.zip
+
+  # ── Build for Linux ARM64 (cross-compile) ──────────────
+  release-linux-arm:
+    name: Build (aarch64-unknown-linux-gnu)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: develop
+
+      - name: Set build timestamp
+        id: timestamp
+        run: echo "BUILD_TIME=$(date -u '+%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v1'
+          key: 'ubuntu-22.04-aarch64-unknown-linux-gnu-nightly'
+          workspaces: src-tauri -> target
+
+      - name: Setup cross-compilation sources
+        run: |
+          cat > /tmp/sources.list << 'EOF'
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy main multiverse universe restricted
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy-security main multiverse universe restricted
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy-updates main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main multiverse universe restricted
+          EOF
+          sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak
+          sudo mv /tmp/sources.list /etc/apt/sources.list
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+
+      - name: Install ARM64 dependencies
+        run: |
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu \
+            libwebkit2gtk-4.1-dev:arm64 \
+            libayatana-appindicator3-dev:arm64 \
+            librsvg2-dev:arm64 \
+            libssl-dev:arm64 \
+            patchelf:arm64
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Get linked dependency versions
+        id: dep-versions
+        run: |
+          SM_SHA=$(git ls-remote https://github.com/polite0803/stream-monaco.git refs/heads/main | cut -f1)
+          MS_SHA=$(git ls-remote https://github.com/polite0803/markstream-vue.git refs/heads/axagent-custom | cut -f1)
+          echo "cache-key=linked-deps-${SM_SHA:0:12}-${MS_SHA:0:12}" >> $GITHUB_OUTPUT
+
+      - name: Cache linked dependencies
+        id: cache-linked-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ../stream-monaco
+            ../markstream-vue
+          key: ${{ steps.dep-versions.outputs.cache-key }}
+
+      - name: Build linked dependencies
+        if: steps.cache-linked-deps.outputs.cache-hit != 'true'
+        run: |
+          cd ..
+
+          git clone --depth 1 https://github.com/polite0803/stream-monaco.git stream-monaco
+          cd stream-monaco && pnpm install --frozen-lockfile && pnpm build
+          rm -rf .git
+          cd ..
+
+          git clone --depth 1 -b axagent-custom https://github.com/polite0803/markstream-vue.git markstream-vue
+          cd markstream-vue && pnpm install --frozen-lockfile
+          pnpm run build:parser
+          cd packages/markstream-react && pnpm build && cd ../..
+          rm -rf .git playground*/node_modules
+          cd ..
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build for Linux ARM64
+        run: |
+          export PKG_CONFIG_ALLOW_CROSS=1
+          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
+          export PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu/
+          pnpm tauri build --target aarch64-unknown-linux-gnu --bundles deb,rpm
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload Linux ARM64 artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly-${{ steps.timestamp.outputs.BUILD_TIME }}
+          name: 'AxAgent Nightly ${{ steps.timestamp.outputs.BUILD_TIME }}'
+          draft: false
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb
+            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/*.rpm

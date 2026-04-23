@@ -1,0 +1,57 @@
+# NPM cache
+.npm-cache/
+_npx/
+
+# Windows specific
+nul
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.superpowers
+.vscode
+.agents
+.mcp.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build outputs
+dist/
+target/
+
+# Secrets
+*.key
+
+# Planning files
+task_plan.md
+findings.md
+progress.md
+
+# Local git worktrees
+.worktrees/
+
+# Website (VitePress)
+website/node_modules/
+website/docs/.vitepress/cache/
+website/docs/.vitepress/dist/
+fix/
+autoresearch-*.json
+research-*.tsv
+
+debug/*

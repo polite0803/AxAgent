@@ -1,0 +1,239 @@
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(GatewayLinks::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(GatewayLinks::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinks::Name)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinks::LinkType)
+                            .string()
+                            .not_null()
+                            .default("custom"),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinks::Endpoint)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(GatewayLinks::ApiKeyId).string().null())
+                    .col(
+                        ColumnDef::new(GatewayLinks::Enabled)
+                            .integer()
+                            .not_null()
+                            .default(1),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinks::Status)
+                            .string()
+                            .not_null()
+                            .default("disconnected"),
+                    )
+                    .col(ColumnDef::new(GatewayLinks::ErrorMessage).string().null())
+                    .col(
+                        ColumnDef::new(GatewayLinks::AutoSyncModels)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinks::AutoSyncSkills)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(ColumnDef::new(GatewayLinks::LastSyncAt).integer().null())
+                    .col(ColumnDef::new(GatewayLinks::LatencyMs).integer().null())
+                    .col(ColumnDef::new(GatewayLinks::Version).string().null())
+                    .col(
+                        ColumnDef::new(GatewayLinks::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinks::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(GatewayLinkPolicies::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::LinkId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::RouteStrategy)
+                            .string()
+                            .not_null()
+                            .default("round_robin"),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::ModelFallbackEnabled)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(ColumnDef::new(GatewayLinkPolicies::GlobalRpm).integer().null())
+                    .col(ColumnDef::new(GatewayLinkPolicies::PerModelRpm).integer().null())
+                    .col(ColumnDef::new(GatewayLinkPolicies::TokenLimitPerMinute).integer().null())
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::KeyRotationStrategy)
+                            .string()
+                            .not_null()
+                            .default("sequential"),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::KeyFailoverEnabled)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(GatewayLinkPolicies::Table, GatewayLinkPolicies::LinkId)
+                            .to(GatewayLinks::Table, GatewayLinks::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(GatewayLinkActivities::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(GatewayLinkActivities::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkActivities::LinkId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkActivities::ActivityType)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(GatewayLinkActivities::Description).string().null())
+                    .col(
+                        ColumnDef::new(GatewayLinkActivities::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(GatewayLinkActivities::Table, GatewayLinkActivities::LinkId)
+                            .to(GatewayLinks::Table, GatewayLinks::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_gateway_link_activities_link")
+                    .table(GatewayLinkActivities::Table)
+                    .col(GatewayLinkActivities::LinkId)
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(GatewayLinkActivities::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(GatewayLinkPolicies::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(GatewayLinks::Table).to_owned())
+            .await?;
+        Ok(())
+    }
+}
+
+#[derive(DeriveIden)]
+enum GatewayLinks {
+    Table,
+    Id,
+    Name,
+    LinkType,
+    Endpoint,
+    ApiKeyId,
+    Enabled,
+    Status,
+    ErrorMessage,
+    AutoSyncModels,
+    AutoSyncSkills,
+    LastSyncAt,
+    LatencyMs,
+    Version,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum GatewayLinkPolicies {
+    Table,
+    Id,
+    LinkId,
+    RouteStrategy,
+    ModelFallbackEnabled,
+    GlobalRpm,
+    PerModelRpm,
+    TokenLimitPerMinute,
+    KeyRotationStrategy,
+    KeyFailoverEnabled,
+}
+
+#[derive(DeriveIden)]
+enum GatewayLinkActivities {
+    Table,
+    Id,
+    LinkId,
+    ActivityType,
+    Description,
+    CreatedAt,
+}
