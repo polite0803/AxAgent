@@ -14,9 +14,9 @@ const autoPush = flags.has('--push');
 
 const version = positional[0];
 if (!version) {
-  console.error('用法: pnpm bump [--push] <version>');
-  console.error('示例: pnpm bump 0.0.11');
-  console.error('      pnpm bump --push 0.0.11  (自动 push commit 和 tag)');
+  console.error('用法: npm run bump [--push] <version>');
+  console.error('示例: npm run bump 0.0.11');
+  console.error('      npm run bump --push 0.0.11  (自动 push commit 和 tag)');
   process.exit(1);
 }
 

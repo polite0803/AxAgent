@@ -153,7 +153,7 @@
 | 国际化 | i18next + react-i18next |
 | 后端 | Rust + SeaORM + SQLite |
 | 向量库 | sqlite-vec |
-| 构建 | Vite + pnpm |
+| 构建 | Vite + npm |
 
 ## 平台支持
 
@@ -173,13 +173,13 @@ git clone https://github.com/polite0803/AxAgent.git
 cd AxAgent
 
 # 安装依赖
-pnpm install
+npm install
 
 # 开发模式
-pnpm dev
+npm run dev
 
 # 构建应用
-pnpm tauri build
+npm run tauri build
 ```
 
 ### 下载预编译版本

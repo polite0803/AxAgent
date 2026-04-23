@@ -146,7 +146,7 @@ Head to the [Releases](https://github.com/polite0803/AxAgent/releases) page and 
 
 - [Node.js](https://nodejs.org/) 20+
 - [Rust](https://www.rust-lang.org/) 1.75+
-- [pnpm](https://pnpm.io/) 10+
+- [npm](https://www.npmjs.com/) 10+
 - Windows requires [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and [Rust MSVC targets](https://doc.rust-lang.org/cargo/reference/config.html#cfgtarget)
 
 ### Build Steps
@@ -157,16 +157,16 @@ git clone https://github.com/polite0803/AxAgent.git
 cd AxAgent
 
 # Install dependencies
-pnpm install
+npm install
 
 # Run in development mode
-pnpm tauri dev
+npm run tauri dev
 
 # Build frontend only
-pnpm build
+npm run build
 
 # Build desktop application
-pnpm tauri build
+npm run tauri build
 ```
 
 Build artifacts are located in `src-tauri/target/release/`.
@@ -175,13 +175,13 @@ Build artifacts are located in `src-tauri/target/release/`.
 
 ```bash
 # Run unit tests
-pnpm test
+npm run test
 
 # Run end-to-end tests
-pnpm test:e2e
+npm run test:e2e
 
 # Type checking
-pnpm typecheck
+npm run typecheck
 ```
 
 ## FAQ
