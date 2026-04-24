@@ -31,6 +31,8 @@ mod m20250801_000001_add_performance_indexes;
 mod m20260422_000001_add_gateway_links;
 mod m20260423_000001_add_knowledge_graph_tables;
 mod m20260424_000001_add_conversation_scenario_and_skill_filter;
+mod m20260424_000002_add_scheduled_tasks;
+mod m20260426_000001_add_workflow_templates;
 
 pub struct Migrator;
 
@@ -69,6 +71,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260422_000001_add_gateway_links::Migration),
             Box::new(m20260423_000001_add_knowledge_graph_tables::Migration),
             Box::new(m20260424_000001_add_conversation_scenario_and_skill_filter::Migration),
+            Box::new(m20260424_000002_add_scheduled_tasks::Migration),
+            Box::new(m20260426_000001_add_workflow_templates::Migration),
         ]
     }
 }
