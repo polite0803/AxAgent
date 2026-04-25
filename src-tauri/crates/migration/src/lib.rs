@@ -33,6 +33,11 @@ mod m20260423_000001_add_knowledge_graph_tables;
 mod m20260424_000001_add_conversation_scenario_and_skill_filter;
 mod m20260424_000002_add_scheduled_tasks;
 mod m20260426_000001_add_workflow_templates;
+mod m20260427_000001_add_atomic_skills;
+mod m20260427_000002_add_generated_tools;
+mod m20260427_000003_add_workflow_executions;
+mod m20260427_000004_add_composite_source;
+mod m20260428_000001_add_workspace_locked_to_agent_sessions;
 
 pub struct Migrator;
 
@@ -73,6 +78,11 @@ impl MigratorTrait for Migrator {
             Box::new(m20260424_000001_add_conversation_scenario_and_skill_filter::Migration),
             Box::new(m20260424_000002_add_scheduled_tasks::Migration),
             Box::new(m20260426_000001_add_workflow_templates::Migration),
+            Box::new(m20260427_000001_add_atomic_skills::Migration),
+            Box::new(m20260427_000002_add_generated_tools::Migration),
+            Box::new(m20260427_000003_add_workflow_executions::Migration),
+            Box::new(m20260427_000004_add_composite_source::Migration),
+            Box::new(m20260428_000001_add_workspace_locked_to_agent_sessions::Migration),
         ]
     }
 }
