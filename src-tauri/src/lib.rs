@@ -417,6 +417,8 @@ pub fn run() {
             commands::skill_decomposition::preview_decomposition,
             commands::skill_decomposition::confirm_decomposition,
             commands::skill_decomposition::generate_missing_tool,
+            commands::skill_decomposition::check_tool_semantic_matches,
+            commands::skill_decomposition::upgrade_tool_with_llm,
             // Work Engine commands
             commands::work_engine::start_workflow_execution,
             commands::work_engine::pause_workflow_execution,
@@ -449,7 +451,7 @@ pub fn run() {
                     tracing::error!("Database initialization failed: {}", e);
                     #[cfg(target_os = "windows")]
                     {
-                        windows_utils::show_error_dialog("AxAgent", &format!("数据库初始化失败: {}", e));
+                        windows_utils::show_error_dialog("AxAgent", &format!("æ•°æ®åº“åˆå§‹åŒ–å¤±è´¥: {}", e));
                     }
                     std::process::exit(1);
                 }
@@ -612,14 +614,14 @@ pub fn run() {
                 let lower = error_msg.to_lowercase();
                 if lower.contains("webview2") || lower.contains("webview") || lower.contains("edge") {
                     let user_ok = windows_utils::show_warning_ok_cancel("AxAgent",
-                        "未检测到 Microsoft Edge WebView2 Runtime，AxAgent 无法启动。\n\n点击「确定」打开下载页面进行安装，安装完成后重新启动 AxAgent。");
+                        "æœªæ£€æµ‹åˆ° Microsoft Edge WebView2 Runtimeï¼ŒAxAgent æ— æ³•å¯åŠ¨ã€‚\n\nç‚¹å‡»ã€Œç¡®å®šã€æ‰“å¼€ä¸‹è½½é¡µé¢è¿›è¡Œå®‰è£…ï¼Œå®‰è£…å®ŒæˆåŽé‡æ–°å¯åŠ¨ AxAgentã€‚");
                     if user_ok {
                         let _ = std::process::Command::new("cmd")
                             .args(["/c", "start", "https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH#download"])
                             .spawn();
                     }
                 } else {
-                    windows_utils::show_error_dialog("AxAgent", &format!("应用启动失败：{}", error_msg));
+                    windows_utils::show_error_dialog("AxAgent", &format!("åº”ç”¨å¯åŠ¨å¤±è´¥ï¼š{}", error_msg));
                 }
             }
             std::process::exit(1);

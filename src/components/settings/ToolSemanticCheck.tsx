@@ -133,6 +133,7 @@ export default function ToolSemanticCheck() {
         }
         className="mb-6"
       >
+        <p className="text-sm text-gray-500 mb-4">{t('settings.toolSemanticCheck.description')}</p>
         <div className="flex gap-2">
           <AntSearch
             placeholder={t('settings.toolSemanticCheck.searchPlaceholder')}
