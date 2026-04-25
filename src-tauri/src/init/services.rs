@@ -1,5 +1,6 @@
 use chrono;
 use crate::AppState;
+use axagent_trajectory::TaskType;
 
 pub fn start_background_services(app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf, tray_language: String) {
     start_auto_backup(app, state, app_dir.clone());
@@ -13,6 +14,7 @@ pub fn start_background_services(app: &tauri::AppHandle, state: &AppState, app_d
     start_batch_processing(state);
     start_user_profile_persistence(state);
     start_skill_evolution(state);
+    start_scheduled_task_executor(state);
 }
 
 fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
@@ -38,7 +40,7 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                                 .signed_duration_since(last_time)
                                 .num_seconds()
                                 .max(0) as u64;
-                            if elapsed >= interval_secs { 0 } else { interval_secs - elapsed }
+                            interval_secs.saturating_sub(elapsed)
                         } else { interval_secs }
                     }
                     _ => interval_secs,
@@ -67,6 +69,67 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
     });
 }
 
+fn start_scheduled_task_executor(state: &AppState) {
+    let scheduled_task_service = state.scheduled_task_service.clone();
+    let workflow_engine = state.workflow_engine.clone();
+    tauri::async_runtime::spawn(async move {
+        let check_interval = std::time::Duration::from_secs(60);
+        loop {
+            tokio::time::sleep(check_interval).await;
+            let due_tasks = {
+                let service = scheduled_task_service.read().await;
+                service.list_due_tasks().await
+            };
+
+            for task in due_tasks {
+                tracing::info!("[scheduled_task_executor] Found due task: {} (id: {})", task.name, task.id);
+                let task_id = task.id.clone();
+                let task_type = task.task_type;
+                let workflow_id = task.workflow_id.clone();
+
+                if task_type == TaskType::Workflow {
+                    if let Some(wf_id) = workflow_id {
+                        tracing::info!("[scheduled_task_executor] Executing workflow task '{}' with workflow_id: {}", task.name, wf_id);
+                        let service = scheduled_task_service.read().await;
+                        match workflow_engine.run_workflow(&wf_id).await {
+                            Ok(workflow) => {
+                                tracing::info!("[scheduled_task_executor] Workflow '{}' completed with status: {:?}", task.name, workflow.status);
+                                let result = axagent_trajectory::TaskRunResult::success(
+                                    format!("Workflow '{}' executed successfully. Status: {:?}", task.name, workflow.status),
+                                    0,
+                                );
+                                service.record_execution(&task_id, result).await;
+                            }
+                            Err(e) => {
+                                tracing::warn!("[scheduled_task_executor] Workflow '{}' failed: {:?}", task.name, e);
+                                let result = axagent_trajectory::TaskRunResult::failure(
+                                    format!("Workflow execution failed: {:?}", e),
+                                    0,
+                                );
+                                service.record_execution(&task_id, result).await;
+                            }
+                        }
+                    }
+                } else {
+                    let service = scheduled_task_service.read().await;
+                    match service.execute_task(&task_id).await {
+                        Some(result) => {
+                            if result.success {
+                                tracing::info!("[scheduled_task_executor] Task '{}' executed successfully", task.name);
+                            } else {
+                                tracing::warn!("[scheduled_task_executor] Task '{}' failed: {:?}", task.name, result.error);
+                            }
+                        }
+                        None => {
+                            tracing::warn!("[scheduled_task_executor] Failed to execute task: {}", task_id);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
     let db = state.sea_db.clone();
     let master_key = state.master_key;
@@ -86,13 +149,13 @@ fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                                 .signed_duration_since(last_time)
                                 .num_seconds()
                                 .max(0) as u64;
-                            if elapsed >= interval_secs { 0 } else { interval_secs - elapsed }
+                            interval_secs.saturating_sub(elapsed)
                         } else { interval_secs }
                     }
                     _ => interval_secs,
                 };
 
-                let task = crate::commands::webdav::spawn_webdav_sync_task(db2, master_key, app_data_dir, interval as u32, initial_delay_secs);
+                let task = crate::commands::webdav::spawn_webdav_sync_task(db2, master_key, app_data_dir, interval, initial_delay_secs);
                 *handle.lock().await = Some(task);
             }
         }
@@ -420,7 +483,7 @@ fn start_skill_evolution(state: &AppState) {
                 let mut engine: tokio::sync::MutexGuard<'_, axagent_trajectory::SkillEvolutionEngine> = skill_evolution_engine.lock().await;
                 let result = engine.run(skill, &test_refs);
                 if let Some(modification) = result {
-                    if modification.validation_result.as_ref().map_or(false, |v| v.success) {
+                    if modification.validation_result.as_ref().is_some_and(|v| v.success) {
                         tracing::info!("[evolution] Skill '{}' evolved: {} (confidence={:.3})",
                             skill.name, modification.reason, modification.confidence);
                         let mut updated_skill = skill.clone();

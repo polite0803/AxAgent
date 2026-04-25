@@ -1,12 +1,12 @@
 import { Menu, theme } from 'antd';
-import { Cloud, Settings, Palette, Globe, Zap, Database, Info, Search, Plug, CloudUpload, Bot, HardDrive, MessageSquare, ArrowLeft, Clock, Wrench } from 'lucide-react';
+import { Cloud, Settings, Palette, Globe, Zap, Database, Info, Search, CloudUpload, Bot, HardDrive, MessageSquare, ArrowLeft, Clock, Wrench, GitBranch } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import type { SettingsSection } from '@/types';
 import { SETTINGS_ICON_COLORS } from '@/lib/iconColors';
 
-const MENU_ICONS: Record<SettingsSection, React.ReactNode> = {
+const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   providers: <Cloud size={16} color={SETTINGS_ICON_COLORS.Cloud} />,
   conversationSettings: <MessageSquare size={16} color={SETTINGS_ICON_COLORS.MessageSquare} />,
   defaultModel: <Bot size={16} color={SETTINGS_ICON_COLORS.Bot} />,
@@ -18,10 +18,10 @@ const MENU_ICONS: Record<SettingsSection, React.ReactNode> = {
   storage: <HardDrive size={16} color={SETTINGS_ICON_COLORS.HardDrive} />,
   about: <Info size={16} color={SETTINGS_ICON_COLORS.Info} />,
   searchProviders: <Search size={16} color={SETTINGS_ICON_COLORS.Search} />,
-  localTools: <Wrench size={16} color={SETTINGS_ICON_COLORS.Wrench} />,
-  mcpServers: <Plug size={16} color={SETTINGS_ICON_COLORS.Plug} />,
+  tools: <Wrench size={16} color={SETTINGS_ICON_COLORS.Wrench} />,
   scheduler: <Clock size={16} color={SETTINGS_ICON_COLORS.Clock} />,
   backup: <CloudUpload size={16} color={SETTINGS_ICON_COLORS.CloudUpload} />,
+  workflow: <GitBranch size={16} color={SETTINGS_ICON_COLORS.Workflow} />,
 };
 
 const SECTION_KEYS: SettingsSection[] = [
@@ -31,14 +31,14 @@ const SECTION_KEYS: SettingsSection[] = [
   'conversationSettings',
   'defaultModel',
   'searchProviders',
-  'localTools',
-  'mcpServers',
+  'tools',
   'proxy',
   'shortcuts',
   'data',
   'storage',
   'scheduler',
   'backup',
+  'workflow',
   'about',
 ];
 

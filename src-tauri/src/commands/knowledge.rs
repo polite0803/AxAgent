@@ -655,7 +655,7 @@ pub async fn reindex_knowledge_chunk(
             .sea_db
             .query_one(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("SELECT content FROM {name}_meta WHERE id = $1"),
+                format!("SELECT content FROM {name}_meta WHERE id = $1"),
                 vec![chunk_id.clone().into()],
             ))
             .await

@@ -35,6 +35,12 @@ pub struct OllamaAdapter {
     inner: OpenAIAdapter,
 }
 
+impl Default for OllamaAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OllamaAdapter {
     pub fn new() -> Self {
         Self {

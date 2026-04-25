@@ -6,6 +6,7 @@ export interface AgentSession {
   id: string;
   conversation_id: string;
   cwd?: string;
+  workspace_locked?: boolean;
   permission_mode: AgentPermissionMode;
   runtime_status: AgentRuntimeStatus;
   total_tokens: number;

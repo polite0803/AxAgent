@@ -1,3 +1,8 @@
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::missing_transmute_annotations)]
+#![allow(clippy::result_large_err)]
+#![allow(clippy::unwrap_used)]
+
 pub mod builtin_tools;
 pub mod builtin_tools_registry;
 pub mod cache;
@@ -21,3 +26,5 @@ pub mod types;
 pub mod utils;
 pub mod vector_store;
 pub mod webdav;
+pub mod workflow_types;
+pub mod preset_templates;

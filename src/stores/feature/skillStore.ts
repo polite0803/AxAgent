@@ -9,6 +9,11 @@ interface SkillState {
   loading: boolean;
   marketplaceLoading: boolean;
   selectedSkill: SkillDetail | null;
+  marketplacePage: number;
+  marketplaceHasMore: boolean;
+  marketplaceQuery: string;
+  marketplaceSource: string;
+  marketplaceSort: string;
 
   loadSkills: () => Promise<void>;
   getSkill: (name: string) => Promise<void>;
@@ -18,7 +23,8 @@ interface SkillState {
   uninstallSkillGroup: (group: string) => Promise<void>;
   openSkillsDir: () => Promise<void>;
   openSkillDir: (path: string) => Promise<void>;
-  searchMarketplace: (query: string, source?: string, sort?: string) => Promise<void>;
+  searchMarketplace: (query: string, source?: string, sort?: string, page?: number) => Promise<void>;
+  loadMoreMarketplace: () => Promise<void>;
   checkUpdates: () => Promise<SkillUpdateInfo[]>;
   clearSelectedSkill: () => void;
   // P1: Self-evolution skill management
@@ -36,6 +42,11 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   loading: false,
   marketplaceLoading: false,
   selectedSkill: null,
+  marketplacePage: 1,
+  marketplaceHasMore: true,
+  marketplaceQuery: '',
+  marketplaceSource: 'skillhub',
+  marketplaceSort: 'popular',
 
   loadSkills: async () => {
     set({ loading: true });
@@ -104,15 +115,40 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     await invoke('open_skill_dir', { path });
   },
 
-  searchMarketplace: async (query: string, source?: string, sort?: string) => {
-    set({ marketplaceLoading: true, marketplaceSkills: [] });
+  searchMarketplace: async (query: string, source?: string, sort?: string, page: number = 1) => {
+    const currentSource = source ?? 'skillhub';
+    const currentSort = sort ?? 'popular';
+
+    if (page === 1) {
+      set({ marketplaceLoading: true, marketplaceSkills: [], marketplacePage: 1, marketplaceHasMore: true, marketplaceQuery: query, marketplaceSource: currentSource, marketplaceSort: currentSort });
+    } else {
+      set({ marketplaceLoading: true });
+    }
+
     try {
-      const results = await invoke<MarketplaceSkill[]>('search_marketplace', { query, source: source ?? null, sort: sort ?? null });
-      set({ marketplaceSkills: results, marketplaceLoading: false });
+      const results = await invoke<MarketplaceSkill[]>('search_marketplace', {
+        query,
+        source: currentSource,
+        sort: currentSort,
+        page,
+        per_page: 20,
+      });
+      set((state) => ({
+        marketplaceSkills: page === 1 ? results : [...state.marketplaceSkills, ...results],
+        marketplaceLoading: false,
+        marketplacePage: page,
+        marketplaceHasMore: results.length >= 20,
+      }));
     } catch (e) {
       console.error('Failed to search marketplace:', e);
       set({ marketplaceLoading: false });
     }
+  },
+
+  loadMoreMarketplace: async () => {
+    const { marketplacePage, marketplaceHasMore, marketplaceLoading } = get();
+    if (marketplaceLoading || !marketplaceHasMore) return;
+    await get().searchMarketplace(get().marketplaceQuery, get().marketplaceSource, get().marketplaceSort, marketplacePage + 1);
   },
 
   checkUpdates: async () => {

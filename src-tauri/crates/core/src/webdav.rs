@@ -556,7 +556,7 @@ fn parse_propfind_response(xml: &str) -> Result<Vec<WebDavFileInfo>> {
             continue;
         }
 
-        let file_name = url_decode(href.split('/').last().unwrap_or(""));
+        let file_name = url_decode(href.split('/').next_back().unwrap_or(""));
         if file_name.is_empty() || !file_name.ends_with(".zip") {
             continue;
         }

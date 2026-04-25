@@ -19,7 +19,8 @@ const AgentStatsPanel: React.FC = () => {
   const [stats, setStats] = useState<RuntimeStats | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
-  const streaming = useStreamStore((s) => s.streaming);
+  const activeStreams = useStreamStore((s) => s.activeStreams);
+  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
   const queryStats = useAgentStore((s) => s.queryStats);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
   const pauseAgent = useAgentStore((s) => s.pauseAgent);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@/lib/invoke';
 
@@ -36,9 +37,7 @@ export default function EvolutionPanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a8.25 8.25 0 01-2.36-4.536L4.312 8.25l2.515-1.118a8.25 8.25 0 014.536-2.36L15.75 4.5l2.846.813a8.25 8.25 0 014.536 2.36l1.118 2.515-1.118 2.515a8.25 8.25 0 01-2.36 4.536L18.75 15l-2.846.813a8.25 8.25 0 01-4.536 2.36zM15 9a.75.75 0 11-1.5 0 .75.75 1.0.0.5 0zm-3 0a.75.75 0 11-1.5 0 .75.75 1.0.0.5 0z" />
-          </svg>
+          <Sparkles size={14} />
           {t('chat.evolution')}
         </button>
       </div>
@@ -93,7 +92,7 @@ export default function EvolutionPanel() {
               return (
                 <div
                   key={i}
-                  className="flex-1 bg-blue-500/50 rounded-t-sm min-h-[2px]"
+                  className="flex-1 bg-blue-500/50 rounded-t-sm min-h-0.5"
                   style={{ height: `${Math.max(height, 5)}%` }}
                   title={`Gen ${i}: ${f.toFixed(3)}`}
                 />

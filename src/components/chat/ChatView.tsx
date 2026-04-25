@@ -271,10 +271,14 @@ function normalizeCodeTheme(raw?: string) {
 function getChatCodeThemes(selectedDarkTheme?: string, selectedLightTheme?: string) {
   const darkTheme = normalizeCodeTheme(selectedDarkTheme) || DEFAULT_DARK_CODE_BLOCK_THEME;
   const lightTheme = normalizeCodeTheme(selectedLightTheme) || DEFAULT_LIGHT_CODE_BLOCK_THEME;
+  const themes = [lightTheme, darkTheme];
+  if (lightTheme !== darkTheme) {
+    themes.push(darkTheme);
+  }
   return {
     darkTheme,
     lightTheme,
-    themes: Array.from(new Set([lightTheme, darkTheme])),
+    themes,
   };
 }
 
@@ -548,6 +552,10 @@ function ThinkNode(props: NodeComponentProps<{
     () => codeFontFamily ? { fontFamily: codeFontFamily } : undefined,
     [codeFontFamily],
   );
+  const customHtmlTags = useMemo(
+    () => CHAT_CUSTOM_HTML_TAGS.filter((t) => t !== 'think'),
+    [],
+  );
   const rendererKey = `${ctx?.customId ?? 'default'}:${ctx?.isDark ? 'dark' : 'light'}:${darkTheme}:${lightTheme}`;
 
   return (
@@ -562,7 +570,7 @@ function ThinkNode(props: NodeComponentProps<{
       onExpand={setExpanded}
     >
       <NodeRenderer
-        key={rendererKey}
+        key={`think:${rendererKey}:${isStreaming ? 's' : 'f'}`}
         nodes={thinkingNodes}
         customId={ctx?.customId}
         isDark={ctx?.isDark}
@@ -573,7 +581,7 @@ function ThinkNode(props: NodeComponentProps<{
         codeBlockDarkTheme={darkTheme}
         codeBlockProps={codeBlockProps}
         codeBlockMonacoOptions={codeBlockMonacoOptions}
-        customHtmlTags={CHAT_CUSTOM_HTML_TAGS.filter((t) => t !== 'think')}
+        customHtmlTags={customHtmlTags}
         mermaidProps={CHAT_MERMAID_PROPS}
         infographicProps={CHAT_INFOGRAPHIC_PROPS}
         {...CHAT_RENDER_BATCH_PROPS}
@@ -1084,6 +1092,7 @@ const AssistantMarkdown = React.memo(function AssistantMarkdown({
   );
   const [readyToRenderHeavyNodes, setReadyToRenderHeavyNodes] = useState(!hasDeferredHeavyNodes);
   const rendererKey = `${isDarkMode ? 'dark' : 'light'}:${codeBlockDarkTheme}:${codeBlockLightTheme}`;
+  const nodeRendererReseedKey = `${rendererKey}:${isStreaming ? 's' : 'f'}`;
 
   useEffect(() => {
     if (!hasDeferredHeavyNodes) {
@@ -1130,79 +1139,75 @@ const AssistantMarkdown = React.memo(function AssistantMarkdown({
     };
   }, [content, hasDeferredHeavyNodes]);
 
-  if (singleD2Node) {
-    return (
-      <ChatD2BlockNode
-        key={`d2:${rendererKey}`}
-        node={singleD2Node}
-        isDark={isDarkMode}
-      />
-    );
-  }
-
-  if (hasDeferredHeavyNodes && !readyToRenderHeavyNodes) {
-    return (
-      <div className="axagent-chat-markdown">
-        <div
-          ref={containerRef}
-          className="my-4 rounded-lg border"
-          style={{
-            borderColor: token.colorBorderSecondary,
-            background: isDarkMode ? token.colorBgContainer : token.colorBgElevated,
-          }}
-        >
+  return (
+    <>
+      {singleD2Node ? (
+        <ChatD2BlockNode
+          key={`d2:${rendererKey}`}
+          node={singleD2Node}
+          isDark={isDarkMode}
+        />
+      ) : hasDeferredHeavyNodes && !readyToRenderHeavyNodes ? (
+        <div className="axagent-chat-markdown" key={`loading:${rendererKey}`}>
           <div
-            className="flex items-center justify-center px-4 py-10"
-            style={{ color: token.colorTextSecondary, gap: 8 }}
+            ref={containerRef}
+            className="my-4 rounded-lg border"
+            style={{
+              borderColor: token.colorBorderSecondary,
+              background: isDarkMode ? token.colorBgContainer : token.colorBgElevated,
+            }}
           >
-            <SyncOutlined spin />
-            <span className="text-sm">{t('chat.loadingRenderContent')}</span>
+            <div
+              className="flex items-center justify-center px-4 py-10"
+              style={{ color: token.colorTextSecondary, gap: 8 }}
+            >
+              <SyncOutlined spin />
+              <span className="text-sm">{t('chat.loadingRenderContent')}</span>
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="axagent-chat-markdown">
-      {nodes ? (
-        <NodeRenderer
-          key={rendererKey}
-          nodes={nodes}
-          isDark={isDarkMode}
-          customId="chat"
-          customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
-          final={!isStreaming}
-          typewriter={isStreaming}
-          themes={codeBlockThemes}
-          codeBlockLightTheme={codeBlockLightTheme}
-          codeBlockDarkTheme={codeBlockDarkTheme}
-          codeBlockProps={codeBlockProps}
-          codeBlockMonacoOptions={codeBlockMonacoOptions}
-          mermaidProps={CHAT_MERMAID_PROPS}
-          infographicProps={CHAT_INFOGRAPHIC_PROPS}
-          {...CHAT_RENDER_BATCH_PROPS}
-        />
       ) : (
-        <NodeRenderer
-          key={rendererKey}
-          content={content}
-          isDark={isDarkMode}
-          customId="chat"
-          customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
-          final={!isStreaming}
-          typewriter={isStreaming}
-          themes={codeBlockThemes}
-          codeBlockLightTheme={codeBlockLightTheme}
-          codeBlockDarkTheme={codeBlockDarkTheme}
-          codeBlockProps={codeBlockProps}
-          codeBlockMonacoOptions={codeBlockMonacoOptions}
-          mermaidProps={CHAT_MERMAID_PROPS}
-          infographicProps={CHAT_INFOGRAPHIC_PROPS}
-          {...CHAT_RENDER_BATCH_PROPS}
-        />
+        <div className="axagent-chat-markdown" key={`render:${nodeRendererReseedKey}`}>
+          {nodes ? (
+            <NodeRenderer
+              key={nodeRendererReseedKey}
+              nodes={nodes}
+              isDark={isDarkMode}
+              customId="chat"
+              customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
+              final={!isStreaming}
+              typewriter={isStreaming}
+              themes={codeBlockThemes}
+              codeBlockLightTheme={codeBlockLightTheme}
+              codeBlockDarkTheme={codeBlockDarkTheme}
+              codeBlockProps={codeBlockProps}
+              codeBlockMonacoOptions={codeBlockMonacoOptions}
+              mermaidProps={CHAT_MERMAID_PROPS}
+              infographicProps={CHAT_INFOGRAPHIC_PROPS}
+              {...CHAT_RENDER_BATCH_PROPS}
+            />
+          ) : (
+            <NodeRenderer
+              key={nodeRendererReseedKey}
+              content={content}
+              isDark={isDarkMode}
+              customId="chat"
+              customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
+              final={!isStreaming}
+              typewriter={isStreaming}
+              themes={codeBlockThemes}
+              codeBlockLightTheme={codeBlockLightTheme}
+              codeBlockDarkTheme={codeBlockDarkTheme}
+              codeBlockProps={codeBlockProps}
+              codeBlockMonacoOptions={codeBlockMonacoOptions}
+              mermaidProps={CHAT_MERMAID_PROPS}
+              infographicProps={CHAT_INFOGRAPHIC_PROPS}
+              {...CHAT_RENDER_BATCH_PROPS}
+            />
+          )}
+        </div>
       )}
-    </div>
+    </>
   );
 }, (prev, next) => (
   prev.content === next.content
@@ -1904,7 +1909,8 @@ function ChatViewInner() {
   const loading = useConversationStore((s) => s.loading);
   const loadingOlder = useConversationStore((s) => s.loadingOlder);
   const hasOlderMessages = useConversationStore((s) => s.hasOlderMessages);
-  const streaming = useStreamStore((s) => s.streaming);
+  const activeStreams = useStreamStore((s) => s.activeStreams);
+  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
   const compressing = useCompressStore((s) => s.compressing);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
   const multiModelParentId = useConversationStore((s) => s.multiModelParentId);

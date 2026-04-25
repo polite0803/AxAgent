@@ -84,7 +84,7 @@ pub async fn open_devtools(webview_window: tauri::WebviewWindow) -> Result<(), S
 
 #[tauri::command]
 pub async fn test_proxy(
-    proxy_type: String,
+    _proxy_type: String,
     proxy_address: String,
     proxy_port: u16,
 ) -> Result<serde_json::Value, String> {
@@ -98,12 +98,7 @@ pub async fn test_proxy(
     match timeout(Duration::from_secs(5), TcpStream::connect(&addr)).await {
         Ok(Ok(_stream)) => {
             let latency = start.elapsed().as_millis();
-            // If it's an HTTP proxy, try a minimal HTTP CONNECT to verify
-            if proxy_type == "http" {
-                Ok(serde_json::json!({ "ok": true, "latency_ms": latency }))
-            } else {
-                Ok(serde_json::json!({ "ok": true, "latency_ms": latency }))
-            }
+            Ok(serde_json::json!({ "ok": true, "latency_ms": latency }))
         }
         Ok(Err(e)) => Ok(serde_json::json!({ "ok": false, "error": e.to_string() })),
         Err(_) => Ok(serde_json::json!({ "ok": false, "error": "Connection timed out (5s)" })),
@@ -115,7 +110,7 @@ pub async fn list_system_fonts() -> Result<Vec<String>, String> {
     tokio::task::spawn_blocking(|| {
         let source = font_kit::source::SystemSource::new();
         let mut families = source.all_families().map_err(|e| e.to_string())?;
-        families.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+        families.sort_by_key(|a| a.to_lowercase());
         Ok(families)
     })
     .await

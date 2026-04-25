@@ -16,7 +16,7 @@ pub enum Urgency {
 }
 
 impl Urgency {
-    fn to_number(&self) -> u32 {
+    fn to_number(self) -> u32 {
         match self {
             Urgency::Low => 0,
             Urgency::Medium => 1,
@@ -149,6 +149,12 @@ pub struct NudgeService {
     config: NudgeConfig,
     session: Option<NudgeSession>,
     history: Vec<Nudge>,
+}
+
+impl Default for NudgeService {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NudgeService {

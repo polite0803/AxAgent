@@ -1259,6 +1259,246 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case 'restart_webdav_sync':
       return undefined as T;
 
+    // ── Workflow Templates ────────────────────────────────────────────
+    case 'seed_preset_templates': {
+      const existingTemplates = getStore<any[]>('workflow_templates', []);
+      if (existingTemplates.length > 0) {
+        return existingTemplates.length as T;
+      }
+      const presetTemplates = [
+        {
+          id: 'docs',
+          name: 'Documentation',
+          description: 'Generate comprehensive documentation',
+          icon: 'BookOpen',
+          tags: ['docs', 'api', 'readme'],
+          version: 1,
+          is_preset: true,
+          is_editable: false,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'test-gen',
+          name: 'Test Generation',
+          description: 'Generate comprehensive test suites',
+          icon: 'TestTube',
+          tags: ['testing', 'tdd', 'coverage'],
+          version: 1,
+          is_preset: true,
+          is_editable: false,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'refactor',
+          name: 'Code Refactor',
+          description: 'Systematic code refactoring with behavior preservation',
+          icon: 'GitBranch',
+          tags: ['refactor', 'clean-code', 'patterns'],
+          version: 1,
+          is_preset: true,
+          is_editable: false,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'perf-opt',
+          name: 'Performance Optimization',
+          description: 'Identify and optimize performance bottlenecks',
+          icon: 'Zap',
+          tags: ['performance', 'optimization', 'profiling'],
+          version: 1,
+          is_preset: true,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'migration',
+          name: 'Migration',
+          description: 'Framework and language migration workflows',
+          icon: 'Ship',
+          tags: ['migration', 'upgrade', 'compatibility'],
+          version: 1,
+          is_preset: true,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'api-design',
+          name: 'API Design',
+          description: 'Design and document RESTful APIs',
+          icon: 'Cloud',
+          tags: ['api', 'rest', 'design'],
+          version: 1,
+          is_preset: true,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'env-debug',
+          name: 'Environment Debug',
+          description: 'Debug and diagnose environment issues',
+          icon: 'Bug',
+          tags: ['debug', 'troubleshoot', 'environment'],
+          version: 1,
+          is_preset: true,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'feature-impl',
+          name: 'Feature Implementation',
+          description: 'Implement new features with AI assistance',
+          icon: 'Sparkles',
+          tags: ['feature', 'ai', 'implementation'],
+          version: 1,
+          is_preset: true,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'knowledge-extract',
+          name: 'Knowledge Extraction',
+          description: 'Extract structured knowledge from documents',
+          icon: 'Brain',
+          tags: ['knowledge', 'extraction', 'nlp'],
+          version: 1,
+          is_preset: true,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'knowledge-to-code',
+          name: 'Knowledge to Code',
+          description: 'Convert knowledge into executable code',
+          icon: 'Code',
+          tags: ['knowledge', 'code', 'generation'],
+          version: 1,
+          is_preset: true,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        },
+        {
+          id: 'custom-1',
+          name: 'My Custom Workflow',
+          description: 'A custom workflow created by user',
+          icon: 'Star',
+          tags: ['custom', 'user'],
+          version: 1,
+          is_preset: false,
+          is_editable: true,
+          is_public: false,
+          trigger_config: { trigger_type: 'manual', config: {} },
+          nodes: [],
+          edges: [],
+          input_schema: null,
+          output_schema: null,
+          variables: [],
+          error_config: null,
+          created_at: nowTs(),
+          updated_at: nowTs()
+        }
+      ];
+      setStore('workflow_templates', presetTemplates);
+      return presetTemplates.length as T;
+    }
+    case 'list_workflow_templates': {
+      const is_preset = (args as any)?.is_preset;
+      let templates = getStore('workflow_templates', []);
+      if (is_preset !== undefined) {
+        templates = templates.filter((t: any) => t.is_preset === is_preset);
+      }
+      return templates as T;
+    }
+
     default:
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       return undefined as T;

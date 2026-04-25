@@ -91,7 +91,9 @@ impl Default for RealtimeClientConfig {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[derive(Default)]
 pub enum RealtimeConnectionState {
+    #[default]
     Disconnected,
     Connecting,
     Connected,
@@ -99,11 +101,6 @@ pub enum RealtimeConnectionState {
     Failed(String),
 }
 
-impl Default for RealtimeConnectionState {
-    fn default() -> Self {
-        Self::Disconnected
-    }
-}
 
 pub struct RealtimeClient {
     config: RealtimeClientConfig,
@@ -173,9 +170,7 @@ impl RealtimeClient {
             .map_err(|e| RealtimeClientError::SendError(e.to_string()))?;
 
         let (session_id, read_result) = Self::wait_for_session_created(&mut read).await?;
-        if let Err(e) = read_result {
-            return Err(e);
-        }
+        read_result?;
 
         {
             let mut sid = self.session_id.write().await;

@@ -102,9 +102,7 @@ impl VectorStore {
 
     fn validated_collection_name(collection_id: &str) -> Result<String> {
         if !Self::is_valid_collection_id(collection_id) {
-            return Err(AxAgentError::Validation(format!(
-                "Invalid collection_id: must contain only alphanumeric characters, hyphens, and underscores"
-            )));
+            return Err(AxAgentError::Validation("Invalid collection_id: must contain only alphanumeric characters, hyphens, and underscores".to_string()));
         }
         Ok(format!("vec_{}", Self::sanitize_collection_id(collection_id)))
     }
@@ -270,7 +268,7 @@ impl VectorStore {
                 self.db
                     .execute(Statement::from_sql_and_values(
                         DbBackend::Sqlite,
-                        &format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
+                        format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                         vec![rid.into(), vec_json.into()],
                     ))
                     .await
@@ -280,7 +278,7 @@ impl VectorStore {
                 self.db
                     .execute(Statement::from_sql_and_values(
                         DbBackend::Sqlite,
-                        &format!(
+                        format!(
                             "INSERT INTO {name}_meta (rowid, id, document_id, chunk_index, content) \
                              VALUES ($1, $2, $3, $4, $5)"
                         ),
@@ -334,7 +332,7 @@ impl VectorStore {
             .db
             .query_one(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("SELECT COALESCE(MAX(chunk_index), -1) AS max_idx FROM {meta_table} WHERE document_id = $1"),
+                format!("SELECT COALESCE(MAX(chunk_index), -1) AS max_idx FROM {meta_table} WHERE document_id = $1"),
                 vec![document_id.to_string().into()],
             ))
             .await
@@ -376,7 +374,7 @@ impl VectorStore {
         self.db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
+                format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                 vec![rid.into(), vec_json.into()],
             ))
             .await
@@ -386,7 +384,7 @@ impl VectorStore {
         self.db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!(
+                format!(
                     "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
                      VALUES ($1, $2, $3, $4, $5)"
                 ),
@@ -560,7 +558,7 @@ impl VectorStore {
             self.db
                 .query_all(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
-                    &format!("SELECT rowid, id, content FROM \"{meta_table}\" WHERE document_id = $1 ORDER BY rowid"),
+                    format!("SELECT rowid, id, content FROM \"{meta_table}\" WHERE document_id = $1 ORDER BY rowid"),
                     vec![doc_id.to_string().into()],
                 ))
                 .await
@@ -625,7 +623,7 @@ impl VectorStore {
                 .db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
-                    &format!("DELETE FROM {name} WHERE rowid = $1"),
+                    format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![(*rid).into()],
                 ))
                 .await;
@@ -634,7 +632,7 @@ impl VectorStore {
             self.db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
-                    &format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
+                    format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                     vec![(*rid).into(), vec_json.into()],
                 ))
                 .await
@@ -658,7 +656,7 @@ impl VectorStore {
             .db
             .query_one(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
+                format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
                 vec![chunk_id.to_string().into()],
             ))
             .await
@@ -671,7 +669,7 @@ impl VectorStore {
                 .db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
-                    &format!("DELETE FROM {name} WHERE rowid = $1"),
+                    format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![rid.into()],
                 ))
                 .await;
@@ -679,7 +677,7 @@ impl VectorStore {
             self.db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
-                    &format!("DELETE FROM {meta_table} WHERE id = $1"),
+                    format!("DELETE FROM {meta_table} WHERE id = $1"),
                     vec![chunk_id.to_string().into()],
                 ))
                 .await
@@ -706,7 +704,7 @@ impl VectorStore {
         self.db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("UPDATE {meta_table} SET content = $1 WHERE id = $2"),
+                format!("UPDATE {meta_table} SET content = $1 WHERE id = $2"),
                 vec![new_content.to_string().into(), chunk_id.to_string().into()],
             ))
             .await
@@ -734,7 +732,7 @@ impl VectorStore {
             .db
             .query_one(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
+                format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
                 vec![chunk_id.to_string().into()],
             ))
             .await
@@ -748,7 +746,7 @@ impl VectorStore {
         self.db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("UPDATE {name} SET embedding = $1 WHERE rowid = $2"),
+                format!("UPDATE {name} SET embedding = $1 WHERE rowid = $2"),
                 vec![vec_json.into(), rid.into()],
             ))
             .await
@@ -769,7 +767,7 @@ impl VectorStore {
         self.db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!(
+                format!(
                     "DELETE FROM {table_name} WHERE rowid IN (SELECT rowid FROM {table_name}_meta WHERE document_id = $1)"
                 ),
                 vec![document_id.to_string().into()],
@@ -780,7 +778,7 @@ impl VectorStore {
         self.db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
-                &format!("DELETE FROM {table_name}_meta WHERE document_id = $1"),
+                format!("DELETE FROM {table_name}_meta WHERE document_id = $1"),
                 vec![document_id.to_string().into()],
             ))
             .await

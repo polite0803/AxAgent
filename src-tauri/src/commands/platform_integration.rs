@@ -46,6 +46,7 @@ pub async fn process_telegram_message(
     Ok(service.process_message(platform_message).await)
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn process_discord_message(
     state: State<'_, AppState>,

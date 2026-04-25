@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { theme } from 'antd';
 import { useConversationStore, useProviderStore, useTabStore } from '@/stores';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
@@ -22,6 +22,7 @@ export function ChatPage() {
   const activeTabId = useTabStore((s) => s.activeTabId);
   const openTab = useTabStore((s) => s.openTab);
   const updateTabTitle = useTabStore((s) => s.updateTabTitle);
+  const tabsInitializedRef = useRef(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -43,11 +44,15 @@ export function ChatPage() {
     }
   }, [conversations, tabs, updateTabTitle]);
 
+  useEffect(() => {
+    tabsInitializedRef.current = true;
+  }, []);
+
   // When activeTabId changes, sync the activeConversationId
   useEffect(() => {
     if (!activeTabId) {
-      // All tabs closed — clear active conversation
-      if (activeConversationId) {
+      if (tabsInitializedRef.current && activeConversationId) {
+        // All tabs closed after initial load — clear active conversation.
         void setActiveConversation(null);
       }
       return;
@@ -56,7 +61,7 @@ export function ChatPage() {
     if (activeTab && activeTab.conversationId !== activeConversationId) {
       void setActiveConversation(activeTab.conversationId);
     }
-  }, [activeTabId, tabs, activeConversationId, setActiveConversation]);
+  }, [activeTabId]);
 
   // When activeConversationId changes from outside (e.g. sidebar click, auto-select),
   // ensure a tab is open for it
@@ -72,7 +77,7 @@ export function ChatPage() {
       // The conversation is already in a tab but not the active one — activate it
       useTabStore.getState().setActiveTab(existingTab.id);
     }
-  }, [activeConversationId, tabs, activeTabId, conversations, openTab]);
+  }, [activeConversationId]);
 
   // Handle new conversation from TabBar
   const handleNewConversation = useCallback(async () => {
@@ -88,8 +93,7 @@ export function ChatPage() {
     );
     // Open a tab for the new conversation
     openTab(conv.id, conv.title);
-    void setActiveConversation(conv.id);
-  }, [providers, createConversation, openTab, setActiveConversation]);
+  }, [providers, createConversation, openTab]);
 
   return (
     <div className="flex h-full" style={{ overflow: 'hidden' }}>

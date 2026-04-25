@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { invoke, listen, type UnlistenFn } from '@/lib/invoke';
 import { useConversationStore, useStreamStore } from '@/stores';
+import { getStreamingMessageId, deriveLegacyStreamFields } from '@/stores/domain/streamStore';
 import type {
   AgentSession,
   ToolCallState,
@@ -309,45 +310,41 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       get().expirePendingPermissions(event.conversationId);
     }
     // Fallback: update message content if per-invocation listener missed it.
-    // This handles two cases:
-    // 1. assistantMessageId is set — match by streamingMessageId
-    // 2. assistantMessageId is null (e.g. agent_query itself failed) — match by
-    //    streamingConversationId so the placeholder message gets the error
-    const { streaming, streamingMessageId, streamingConversationId } = useStreamStore.getState();
-    if (streaming) {
-      const shouldFallback = event.assistantMessageId
-        ? streamingMessageId === event.assistantMessageId
-        : streamingConversationId === event.conversationId;
-      if (shouldFallback) {
-        const targetId = streamingMessageId;
-        // Detect stream interruption errors that may have partial content
-        const isStreamInterrupt = event.message?.toLowerCase().includes('stream') &&
-          (event.message?.toLowerCase().includes('interrupt') ||
-           event.message?.toLowerCase().includes('timeout') ||
-           event.message?.toLowerCase().includes('connection') ||
-           event.message?.toLowerCase().includes('network'));
-        const errorPrefix = isStreamInterrupt
-          ? '⚠️ Stream interrupted — partial response may be lost. '
-          : '';
-        useStreamStore.setState({
-          streaming: false,
-          streamingMessageId: null,
-          streamingConversationId: null,
+    const { activeStreams } = useStreamStore.getState();
+    const streamMsgId = getStreamingMessageId(activeStreams, event.conversationId);
+    if (streamMsgId) {
+      const targetId = streamMsgId;
+      // Detect stream interruption errors that may have partial content
+      const isStreamInterrupt = event.message?.toLowerCase().includes('stream') &&
+        (event.message?.toLowerCase().includes('interrupt') ||
+         event.message?.toLowerCase().includes('timeout') ||
+         event.message?.toLowerCase().includes('connection') ||
+         event.message?.toLowerCase().includes('network'));
+      const errorPrefix = isStreamInterrupt
+        ? '⚠️ Stream interrupted — partial response may be lost. '
+        : '';
+      useStreamStore.setState((s) => {
+        const { [event.conversationId]: _removed, ...restStreams } = s.activeStreams;
+        const restCount = Object.keys(restStreams).length;
+        return {
+          activeStreams: restStreams,
+          ...(restCount > 0 ? deriveLegacyStreamFields(restStreams) : { streaming: false, streamingMessageId: null, streamingConversationId: null }),
+          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[event.conversationId]; return t; })(),
           thinkingActiveMessageIds: (() => {
-            const current = useStreamStore.getState().thinkingActiveMessageIds;
+            const current = s.thinkingActiveMessageIds;
             const next = new Set(current);
             if (targetId) next.delete(targetId);
             return next;
           })(),
-        });
-        useConversationStore.setState((s) => ({
-          messages: s.messages.map((m) =>
-            m.id === targetId
-              ? { ...m, content: errorPrefix + event.message, status: 'error' as const }
-              : m
-          ),
-        }));
-      }
+        };
+      });
+      useConversationStore.setState((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === targetId
+            ? { ...m, content: errorPrefix + event.message, status: 'error' as const }
+            : m
+        ),
+      }));
     }
   },
 

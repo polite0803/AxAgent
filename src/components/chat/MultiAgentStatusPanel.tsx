@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { invoke } from '@/lib/invoke';
-import { useStreamStore } from '@/stores';
+import { useStreamStore, useConversationStore } from '@/stores';
 import { useTranslation } from 'react-i18next';
 import { Bot, MessageSquare, Database, ChevronDown, ChevronRight, CheckCircle, XCircle, Clock, Loader2, SkipForward, Layers } from 'lucide-react';
 
@@ -137,7 +137,9 @@ function AgentTreeNode({ agent, allAgents, depth, selectedId, onSelect }: {
 
 const MultiAgentStatusPanel: React.FC = () => {
   const { t } = useTranslation();
-  const streaming = useStreamStore((s) => s.streaming);
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeStreams = useStreamStore((s) => s.activeStreams);
+  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
 
   const [agents, setAgents] = useState<SubAgentData[]>([]);
   const [messages, setMessages] = useState<AgentMessageData[]>([]);

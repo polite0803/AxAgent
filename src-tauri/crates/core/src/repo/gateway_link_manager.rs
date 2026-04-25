@@ -17,7 +17,9 @@ const DEFAULT_MAX_BACKOFF_MS: u64 = 60000;
 const DEFAULT_REQUIRED_HEALTH_SUCCESSES: u32 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum LinkConnectionState {
+    #[default]
     Disconnected,
     Connecting,
     Connected,
@@ -25,11 +27,6 @@ pub enum LinkConnectionState {
     Failed,
 }
 
-impl Default for LinkConnectionState {
-    fn default() -> Self {
-        Self::Disconnected
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct GatewayLinkHandle {
@@ -157,7 +154,7 @@ impl GatewayLinkManager {
             .iter()
             .filter(|(_, handle)| {
                 handle.state == LinkConnectionState::Connected
-                    && handle.last_health_check.map_or(true, |t| now.duration_since(t) > threshold)
+                    && handle.last_health_check.is_none_or(|t| now.duration_since(t) > threshold)
             })
             .map(|(id, _)| id.clone())
             .collect()

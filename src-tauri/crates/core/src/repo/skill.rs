@@ -33,7 +33,7 @@ pub async fn set_skill_enabled(
     let now = now_ts();
     let existing = skill_states::Entity::find_by_id(name).one(db).await?;
 
-    if let Some(_) = existing {
+    if existing.is_some() {
         skill_states::Entity::update_many()
             .col_expr(
                 skill_states::Column::Enabled,

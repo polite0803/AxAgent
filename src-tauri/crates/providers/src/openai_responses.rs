@@ -14,6 +14,12 @@ pub struct OpenAIResponsesAdapter {
     client: reqwest::Client,
 }
 
+impl Default for OpenAIResponsesAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OpenAIResponsesAdapter {
     pub fn new() -> Self {
         Self {

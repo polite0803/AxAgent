@@ -135,17 +135,14 @@ pub struct Model {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default)]
 pub enum ModelType {
+    #[default]
     Chat,
     Voice,
     Embedding,
 }
 
-impl Default for ModelType {
-    fn default() -> Self {
-        ModelType::Chat
-    }
-}
 
 impl ModelType {
     /// Auto-detect model type from model_id string
@@ -738,6 +735,8 @@ pub struct AppSettings {
     pub multi_model_display_mode: String,
     /// Render user messages as Markdown (like AI messages). Default: false.
     pub render_user_markdown: bool,
+    /// Default workspace directory for new sessions when not manually set.
+    pub default_workspace_dir: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -837,6 +836,7 @@ impl Default for AppSettings {
             chat_minimap_style: "faq".to_string(),
             multi_model_display_mode: "tabs".to_string(),
             render_user_markdown: false,
+            default_workspace_dir: None,
         }
     }
 }
@@ -1173,6 +1173,7 @@ pub struct AgentSession {
     pub id: String,
     pub conversation_id: String,
     pub cwd: Option<String>,
+    pub workspace_locked: bool,
     pub permission_mode: String,
     pub runtime_status: String,
     pub sdk_context_json: Option<String>,

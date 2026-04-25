@@ -18,6 +18,12 @@ pub struct AnthropicAdapter {
     client: reqwest::Client,
 }
 
+impl Default for AnthropicAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AnthropicAdapter {
     pub fn new() -> Self {
         Self {

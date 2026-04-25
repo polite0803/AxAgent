@@ -63,26 +63,63 @@ export default defineConfig(async () => ({
   },
   build: {
     modulePreload: { polyfill: false },
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 10000,
     rolldownOptions: {
       output: {
         codeSplitting: {
           minSize: 20000,
           groups: [
-            {
-              name: 'vendor',
-              test: /node_modules/,
-              priority: 10,
-            },
+            // ── High-priority named groups (split BEFORE the generic vendor group) ──
             {
               name: 'monaco-editor',
               test: /monaco-editor/,
-              priority: 20,
+              priority: 30,
             },
             {
               name: 'markstream',
               test: /markstream/,
-              priority: 15,
+              priority: 25,
+            },
+            {
+              name: 'antd-vendor',
+              test: /node_modules\/(?:antd|@ant-design|antd-style|@lobehub|@rc-component|rc-[^/]+)/,
+              priority: 20,
+            },
+            {
+              name: 'react-vendor',
+              test: /node_modules\/(?:react[^/]*|scheduler|react-dom|react-router|@remix-run)/,
+              priority: 20,
+            },
+            {
+              name: 'tauri-vendor',
+              test: /node_modules\/@tauri-apps/,
+              priority: 20,
+            },
+            {
+              name: 'markdown-vendor',
+              test: /node_modules\/(?:stream-markdown|stream-monaco|katex)/,
+              priority: 20,
+            },
+            {
+              name: 'i18n-vendor',
+              test: /node_modules\/(?:i18next|react-i18next)/,
+              priority: 20,
+            },
+            {
+              name: 'ui-vendor',
+              test: /node_modules\/(?:lucide-react|overlayscrollbars|clsx|emoji-picker-element|html2canvas|@tanstack|reactflow|@atlaskit)/,
+              priority: 20,
+            },
+            {
+              name: 'd2-vendor',
+              test: /node_modules\/@terrastruct\/d2/,
+              priority: 20,
+            },
+            // ── Fallback: everything else in node_modules ──
+            {
+              name: 'vendor',
+              test: /node_modules/,
+              priority: 10,
             },
           ],
         },

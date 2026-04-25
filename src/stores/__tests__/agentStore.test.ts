@@ -1,6 +1,7 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAgentStore, setupAgentEventListeners } from '@/stores';
-import { invoke, listen } from '@/lib/invoke';
+import { listen } from '@/lib/invoke';
 
 // Mock the invoke and listen functions
 vi.mock('@/lib/invoke', () => ({
@@ -21,7 +22,7 @@ describe('agentStore event handling', () => {
     });
   });
 
-  test('should handle tool use event', () => {
+  it('should handle tool use event', () => {
     const { result } = renderHook(() => useAgentStore());
 
     const toolUseEvent = {
@@ -56,7 +57,7 @@ describe('agentStore event handling', () => {
     expect(result.current.sdkIdToExecId['tool1']).toBe('exec1');
   });
 
-  test('should handle tool start event', () => {
+  it('should handle tool start event', () => {
     const { result } = renderHook(() => useAgentStore());
 
     // First, add a tool call
@@ -88,7 +89,7 @@ describe('agentStore event handling', () => {
     expect(result.current.toolCalls['tool1'].executionStatus).toBe('running');
   });
 
-  test('should handle tool result event', () => {
+  it('should handle tool result event', () => {
     const { result } = renderHook(() => useAgentStore());
 
     // First, add a tool call
@@ -123,7 +124,7 @@ describe('agentStore event handling', () => {
     expect(result.current.toolCalls['tool1'].isError).toBe(false);
   });
 
-  test('should handle permission request event', () => {
+  it('should handle permission request event', () => {
     const { result } = renderHook(() => useAgentStore());
 
     const permissionEvent = {
@@ -144,7 +145,7 @@ describe('agentStore event handling', () => {
     expect(result.current.pendingPermissions['perm_1']).toEqual(permissionEvent);
   });
 
-  test('should handle permission resolved', () => {
+  it('should handle permission resolved', () => {
     const { result } = renderHook(() => useAgentStore());
 
     // First, add a permission request (using toolUseId as key since no requestId)
@@ -158,7 +159,7 @@ describe('agentStore event handling', () => {
     };
 
     act(() => {
-      result.current.handlePermissionRequest(permissionEvent);
+      result.current.handlePermissionRequest({ ...permissionEvent, requestId: 'req1' });
     });
 
     // Then add the tool call
@@ -183,7 +184,7 @@ describe('agentStore event handling', () => {
     expect(result.current.toolCalls['tool1'].approvalStatus).toBe('approved');
   });
 
-  test('should handle done event and record queryStats', () => {
+  it('should handle done event and record queryStats', () => {
     const { result } = renderHook(() => useAgentStore());
 
     const doneEvent = {
@@ -205,7 +206,7 @@ describe('agentStore event handling', () => {
     });
   });
 
-  test('should handle done event with cost', () => {
+  it('should handle done event with cost', () => {
     const { result } = renderHook(() => useAgentStore());
 
     const doneEvent = {
@@ -229,7 +230,7 @@ describe('agentStore event handling', () => {
     });
   });
 
-  test('should handle cancelled event', () => {
+  it('should handle cancelled event', () => {
     const { result } = renderHook(() => useAgentStore());
 
     // Set a status first
@@ -251,7 +252,7 @@ describe('agentStore event handling', () => {
     expect(result.current.agentStatus['conv1']).toBeUndefined();
   });
 
-  test('should handle rate limit event', () => {
+  it('should handle rate limit event', () => {
     const { result } = renderHook(() => useAgentStore());
 
     const rateLimitEvent = {
@@ -267,7 +268,7 @@ describe('agentStore event handling', () => {
     expect(result.current.rateLimitInfo['conv1']).toEqual(rateLimitEvent);
   });
 
-  test('should clear conversation state', () => {
+  it('should clear conversation state', () => {
     const { result } = renderHook(() => useAgentStore());
 
     // Set up some state
@@ -279,6 +280,7 @@ describe('agentStore event handling', () => {
         toolUseId: 'tool1',
         toolName: 'write',
         input: { path: 'test.txt' },
+        requestId: 'req2',
         riskLevel: 'write' as const,
       });
     });
@@ -295,9 +297,9 @@ describe('agentStore event handling', () => {
     expect(Object.keys(result.current.pendingPermissions).length).toBe(0);
   });
 
-  test('should setup event listeners', () => {
+  it('should setup event listeners', () => {
     const unlistenFn = vi.fn();
-    (listen as Vi.Mock).mockReturnValue(Promise.resolve(unlistenFn));
+    (listen as unknown as ReturnType<typeof vi.fn>).mockReturnValue(Promise.resolve(unlistenFn));
 
     const cleanup = setupAgentEventListeners();
 

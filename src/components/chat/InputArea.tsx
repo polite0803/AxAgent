@@ -124,10 +124,11 @@ export function InputArea() {
   const sendMultiModelMessage = useConversationStore((s) => s.sendMultiModelMessage);
 
   const { message: messageApi, modal } = App.useApp();
-  const streaming = useStreamStore((s) => s.streaming);
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeStreams = useStreamStore((s) => s.activeStreams);
+  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
   const compressing = useCompressStore((s) => s.compressing);
   const cancelCurrentStream = useStreamStore((s) => s.cancelCurrentStream);
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
   const sendMessage = useConversationStore((s) => s.sendMessage);
   const sendAgentMessage = useConversationStore((s) => s.sendAgentMessage);
   const createConversation = useConversationStore((s) => s.createConversation);
@@ -279,25 +280,15 @@ export function InputArea() {
     } catch { setCompanionModels([]); }
   }, [companionStorageKey]);
 
-  // Pick up pending prompt text from welcome cards and send through the proper pipeline
+  // Pick up pending prompt text from welcome cards and populate the input field
   const pendingPromptText = useConversationStore((s) => s.pendingPromptText);
   useEffect(() => {
     if (!pendingPromptText) return;
-    useConversationStore.getState().setPendingPromptText(null);
     const text = pendingPromptText;
-    (async () => {
-      try {
-        if (companionModels.length > 0) {
-          await sendMultiModelMessage(text, companionModels, undefined, searchEnabled ? searchProviderId : null);
-        } else {
-          await sendMessage(text, undefined, searchEnabled ? searchProviderId : null);
-        }
-      } catch (e) {
-        console.error('[InputArea] pendingPromptText send error:', e);
-        messageApi.error(String(e));
-      }
-    })();
-  }, [pendingPromptText]); // eslint-disable-line react-hooks/exhaustive-deps
+    useConversationStore.getState().setPendingPromptText(null);
+    setValue(text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Search dropdown menu items
   const searchMenuItems = useMemo(() => {
@@ -776,10 +767,10 @@ export function InputArea() {
       return;
     }
 
-    // Prevent switching while agent is streaming
-    const { streaming } = useStreamStore.getState();
-    if (streaming) {
-      console.log('[ModeSwitch] Agent is streaming, cannot switch mode');
+    // Prevent switching while the current conversation is streaming
+    const { activeStreams } = useStreamStore.getState();
+    if (activeConversation.id in activeStreams) {
+      console.log('[ModeSwitch] Conversation is streaming, cannot switch mode');
       return;
     }
 
@@ -931,8 +922,8 @@ export function InputArea() {
   }, [messages, streaming]);
 
   const handleCancel = useCallback(() => {
-    cancelCurrentStream();
-  }, [cancelCurrentStream]);
+    cancelCurrentStream(activeConversationId ?? undefined);
+  }, [cancelCurrentStream, activeConversationId]);
 
   const handleFileSelect = useCallback(() => {
     fileInputRef.current?.click();
@@ -1016,7 +1007,7 @@ export function InputArea() {
 
   useEffect(() => {
     if (!hasVision) return;
-    if (!isTauri) return; // Skip drag-drop in browser mode
+    if (!isTauri()) return; // Skip drag-drop in browser mode
 
     let unlisten: (() => void) | undefined;
 

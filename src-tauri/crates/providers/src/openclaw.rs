@@ -57,13 +57,13 @@ impl OpenClawAdapter {
 
         ctx.api_path
             .as_deref()
-            .and_then(|p| {
+            .map(|p| {
                 if p.contains("anthropic") || p.contains("/messages") {
-                    Some(OpenClawApiMode::AnthropicMessages)
+                    OpenClawApiMode::AnthropicMessages
                 } else if p.contains("responses") {
-                    Some(OpenClawApiMode::CodexResponses)
+                    OpenClawApiMode::CodexResponses
                 } else {
-                    Some(OpenClawApiMode::ChatCompletions)
+                    OpenClawApiMode::ChatCompletions
                 }
             })
             .unwrap_or_else(|| {

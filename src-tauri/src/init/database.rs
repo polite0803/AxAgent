@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -37,7 +37,7 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
     })
 }
 
-fn load_or_create_master_key(key_path: &PathBuf, app_dir: &PathBuf) -> Result<[u8; 32], String> {
+fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32], String> {
     if key_path.exists() {
         let mut bytes = std::fs::read(key_path).map_err(|e| format!("failed to read master key: {}", e))?;
         if bytes.len() != 32 {
@@ -48,7 +48,10 @@ fn load_or_create_master_key(key_path: &PathBuf, app_dir: &PathBuf) -> Result<[u
         }
         let mut key = [0u8; 32];
         key.copy_from_slice(&bytes);
-        bytes.iter_mut().for_each(|b| *b = 0);
+        // Security: securely zero the temporary buffer before dropping.
+        // Using a helper that inhibits compiler optimization of the clear.
+        secure_zero(&mut bytes);
+        // key is returned (copy), bytes is zeroed and dropped
         Ok(key)
     } else {
         let db_file = app_dir.join("axagent_new.db");
@@ -66,7 +69,7 @@ fn load_or_create_master_key(key_path: &PathBuf, app_dir: &PathBuf) -> Result<[u
             ));
         }
         let key = axagent_core::crypto::generate_master_key();
-        std::fs::write(key_path, &key).map_err(|e| format!("failed to write master key: {}", e))?;
+        std::fs::write(key_path, key).map_err(|e| format!("failed to write master key: {}", e))?;
         #[cfg(unix)]
         {
             let perms = std::fs::Permissions::from_mode(0o600);
@@ -74,5 +77,16 @@ fn load_or_create_master_key(key_path: &PathBuf, app_dir: &PathBuf) -> Result<[u
                 .map_err(|e| format!("failed to set master.key permissions: {}", e))?;
         }
         Ok(key)
+    }
+}
+
+/// Securely zero a byte buffer, inhibiting compiler optimization of the clear.
+/// Uses volatile writes to ensure the memory is actually overwritten before drop.
+#[inline(never)]
+fn secure_zero(buf: &mut [u8]) {
+    for byte in buf.iter_mut() {
+        unsafe {
+            std::ptr::write_volatile(byte, 0);
+        }
     }
 }

@@ -134,6 +134,16 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         scheduled_task_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ScheduledTaskService::new(100))),
         platform_integration_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PlatformIntegrationService::new())),
         user_profile: Arc::new(std::sync::RwLock::new(axagent_trajectory::UserProfile::new())),
-        local_tool_registry: Arc::new(tokio::sync::Mutex::new(axagent_agent::LocalToolRegistry::init_from_registry())),
+        local_tool_registry: {
+            let mut registry = axagent_agent::LocalToolRegistry::init_from_registry();
+            // Load enabled state synchronously in the runtime block
+            let db = sea_db.clone();
+            rt.block_on(async {
+                registry.load_enabled_state(&db).await;
+            });
+            Arc::new(tokio::sync::Mutex::new(registry))
+        },
+        work_engine: Arc::new(tokio::sync::RwLock::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(sea_db.clone())))),
+        skill_decomposer: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new())),
     }
 }

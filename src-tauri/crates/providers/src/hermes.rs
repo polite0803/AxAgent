@@ -58,13 +58,13 @@ impl HermesAdapter {
 
         ctx.api_path
             .as_deref()
-            .and_then(|p| {
+            .map(|p| {
                 if p.contains("anthropic") || p.contains("/messages") {
-                    Some(ApiMode::AnthropicMessages)
+                    ApiMode::AnthropicMessages
                 } else if p.contains("responses") {
-                    Some(ApiMode::CodexResponses)
+                    ApiMode::CodexResponses
                 } else {
-                    Some(ApiMode::ChatCompletions)
+                    ApiMode::ChatCompletions
                 }
             })
             .unwrap_or_else(|| {

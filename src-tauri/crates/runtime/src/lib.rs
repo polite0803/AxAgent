@@ -4,6 +4,10 @@
 //! MCP plumbing, tool-facing file operations, and the core conversation loop
 //! that drives interactive and one-shot turns.
 
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::await_holding_lock)]
+#![allow(clippy::wrong_self_convention)]
+
 mod bash;
 pub mod bash_validation;
 mod bootstrap;
@@ -16,6 +20,8 @@ pub mod adversarial_debate;
 pub mod agent_roles;
 pub mod shared_memory;
 pub mod workflow_engine;
+pub mod tool_generator;
+pub mod work_engine;
 mod file_ops;
 mod git_context;
 pub mod green_contract;

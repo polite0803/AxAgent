@@ -18,7 +18,7 @@ const IS_WINDOWS = navigator.userAgent.includes('Windows');
 const RestoreIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
     <rect x="3" y="5" width="8" height="7" rx="0.5" />
-    <path d="M5 5V3.5a.5.5 1.0.0 .5-.5H12a.5.5 1.0.0 .5.5V10a.5.5 1.0.0-.5.5h-1.5" />
+    <path d="M5 5 V3.5 A0.5 0.5 0 0 1 5.5 3 H12 A0.5 0.5 0 0 1 12.5 3.5 V10 A0.5 0.5 0 0 1 12 10.5 H10.5" />
   </svg>
 );
 

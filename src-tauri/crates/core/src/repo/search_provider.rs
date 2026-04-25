@@ -11,7 +11,7 @@ fn model_to_search_provider(m: search_providers::Model) -> SearchProvider {
         name: m.name,
         provider_type: m.provider_type,
         endpoint: m.endpoint,
-        has_api_key: m.api_key_ref.as_ref().map_or(false, |k| !k.is_empty()),
+        has_api_key: m.api_key_ref.as_ref().is_some_and(|k| !k.is_empty()),
         enabled: m.enabled != 0,
         region: m.region,
         language: m.language,

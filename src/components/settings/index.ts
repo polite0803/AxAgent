@@ -12,9 +12,11 @@ export { AboutPage } from './AboutPage';
 export { default as SearchProviderSettings } from './SearchProviderSettings';
 export { default as LocalToolSettings } from './LocalToolSettings';
 export { default as McpServerSettings } from './McpServerSettings';
+export { default as ToolManager } from './ToolManager';
 export { default as KnowledgeSettings } from './KnowledgeSettings';
 export { default as MemorySettings } from './MemorySettings';
 
 export { default as BackupCenter } from './BackupCenter';
 export { StorageSpaceManager } from './StorageSpaceManager';
 export { SchedulerSettings } from './SchedulerSettings';
+export { WorkflowSettings } from './WorkflowSettings';

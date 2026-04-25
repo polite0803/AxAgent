@@ -63,6 +63,17 @@ pub async fn persist_attachments(
 
     let mut persisted = Vec::with_capacity(attachments.len());
     for attachment in attachments {
+        // Safety limit: reject base64 payloads larger than 100MB to prevent OOM
+        const MAX_ATTACHMENT_BASE64_SIZE: usize = 100 * 1024 * 1024; // 100 MB
+        if attachment.data.len() > MAX_ATTACHMENT_BASE64_SIZE {
+            return Err(axagent_core::error::AxAgentError::Validation(format!(
+                "Attachment '{}' base64 data is too large ({} bytes, max {} bytes)",
+                attachment.file_name,
+                attachment.data.len(),
+                MAX_ATTACHMENT_BASE64_SIZE,
+            )));
+        }
+
         let data = base64::engine::general_purpose::STANDARD
             .decode(&attachment.data)
             .map_err(|e| {
@@ -71,6 +82,17 @@ pub async fn persist_attachments(
                     attachment.file_name, e
                 ))
             })?;
+
+        // Safety limit: reject decoded data larger than 50MB
+        const MAX_ATTACHMENT_DECODED_SIZE: usize = 50 * 1024 * 1024; // 50 MB
+        if data.len() > MAX_ATTACHMENT_DECODED_SIZE {
+            return Err(axagent_core::error::AxAgentError::Validation(format!(
+                "Attachment '{}' decoded content is too large ({} bytes, max {} bytes)",
+                attachment.file_name,
+                data.len(),
+                MAX_ATTACHMENT_DECODED_SIZE,
+            )));
+        }
         let saved = file_store.save_file(&data, &attachment.file_name, &attachment.file_type)?;
         let stored_file_id = axagent_core::utils::gen_id();
         axagent_core::repo::stored_file::create_stored_file(
@@ -493,6 +515,7 @@ pub async fn list_archived_conversations(
         .map_err(|e| e.to_string())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
@@ -529,7 +552,7 @@ async fn consume_stream(
 
     while let Some(result) = stream.next().await {
         // Check for cancellation
-        if cancel_flag.load(std::sync::atomic::Ordering::Relaxed) {
+        if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
             tracing::info!("[consume_stream] Cancelled by user");
             break;
         }
@@ -903,6 +926,7 @@ const DEFAULT_TITLE_PROMPT: &str = "You are a title generator. Based on the conv
 
 /// Generate an AI-powered conversation title using the configured title summary model.
 /// Returns Err with the actual error message if generation fails.
+#[allow(clippy::too_many_arguments)]
 pub async fn generate_ai_title(
     db: &sea_orm::DatabaseConnection,
     user_content: &str,
@@ -1275,7 +1299,7 @@ pub async fn cancel_stream(
 ) -> Result<(), String> {
     let flags = state.stream_cancel_flags.lock().await;
     if let Some(flag) = flags.get(&conversation_id) {
-        flag.store(true, std::sync::atomic::Ordering::Relaxed);
+        flag.store(true, std::sync::atomic::Ordering::SeqCst);
         tracing::info!(
             "[cancel_stream] Cancel requested for conversation {}",
             conversation_id
@@ -1306,6 +1330,7 @@ fn build_memory_retrieval_tag(sources: &[RagSourceResult]) -> String {
 
 /// Spawn the streaming background task shared by send_message and regenerate_message.
 /// Returns the assistant message_id that will be populated as chunks arrive.
+#[allow(clippy::too_many_arguments)]
 fn spawn_stream_task(
     app: tauri::AppHandle,
     db: sea_orm::DatabaseConnection,
@@ -1409,7 +1434,7 @@ fn spawn_stream_task(
             }
 
             // Check cancellation before starting a new iteration
-            if cancel_flag.load(std::sync::atomic::Ordering::Relaxed) {
+            if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
                 tracing::info!(
                     "[spawn_stream_task] Cancelled by user before iteration {}",
                     iteration
@@ -1642,7 +1667,7 @@ fn spawn_stream_task(
         }
 
         // After loop: update the placeholder message with final content and status
-        let was_cancelled = cancel_flag.load(std::sync::atomic::Ordering::Relaxed);
+        let was_cancelled = cancel_flag.load(std::sync::atomic::Ordering::SeqCst);
         let final_status = if had_stream_error {
             "error"
         } else if was_cancelled {
@@ -1805,6 +1830,7 @@ fn spawn_stream_task(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn send_message(
     app: tauri::AppHandle,
@@ -2241,6 +2267,7 @@ pub async fn send_message(
     Ok(user_message)
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn regenerate_message(
     app: tauri::AppHandle,
@@ -2585,6 +2612,7 @@ pub async fn regenerate_message(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn regenerate_with_model(
     app: tauri::AppHandle,
@@ -3001,6 +3029,7 @@ pub async fn delete_message_group(
 }
 
 /// Internal helper: call LLM to compress messages into a summary and persist it.
+#[allow(clippy::too_many_arguments)]
 async fn do_compress(
     db: &sea_orm::DatabaseConnection,
     conversation_id: &str,
@@ -3651,6 +3680,8 @@ mod tests {
             platform_integration_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PlatformIntegrationService::new())),
             user_profile: Arc::new(std::sync::RwLock::new(axagent_trajectory::UserProfile::new())),
             local_tool_registry: Arc::new(tokio::sync::Mutex::new(axagent_agent::LocalToolRegistry::init_from_registry())),
+            work_engine: Arc::new(tokio::sync::RwLock::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(db.clone())))),
+            skill_decomposer: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new())),
         };
 
         let attachments = vec![AttachmentInput {

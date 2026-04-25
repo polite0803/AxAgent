@@ -180,7 +180,9 @@ async fn embed_with_retry(
             Err(e) => {
                 last_err_msg = e.to_string();
                 if attempt + 1 < EMBED_MAX_RETRIES {
-                    let delay = EMBED_RETRY_BASE_DELAY_MS * 2u64.pow(attempt);
+                    let delay = EMBED_RETRY_BASE_DELAY_MS
+                        .saturating_mul(2u64.checked_pow(attempt).unwrap_or(u64::MAX / 2))
+                        .min(60_000); // Cap at 60 seconds to prevent excessive wait
                     tracing::warn!(
                         "Embedding attempt {}/{} failed, retrying in {}ms: {}",
                         attempt + 1,
@@ -211,6 +213,7 @@ async fn embed_with_retry(
 /// Index a single knowledge base document: parse → chunk → embed → store.
 ///
 /// Updates document status to "indexing" then "ready" or "failed".
+#[allow(clippy::too_many_arguments)]
 pub async fn index_knowledge_document(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
@@ -262,6 +265,7 @@ pub async fn index_knowledge_document(
 }
 
 /// Index a single memory item: embed content → store in vector DB.
+#[allow(clippy::too_many_arguments)]
 pub async fn index_memory_item(
     db: &DatabaseConnection,
     master_key: &[u8; 32],

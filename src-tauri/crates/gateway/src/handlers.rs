@@ -2387,6 +2387,7 @@ pub async fn chat_completions(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_non_stream(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
@@ -2452,6 +2453,7 @@ async fn handle_non_stream(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_stream(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
@@ -2766,6 +2768,7 @@ pub(crate) fn parse_model_field(model: &str, known_public_ids: &HashSet<String>)
 /// - No hint: scan all enabled providers for an enabled model with that ID;
 ///   succeed only when exactly one provider has it — otherwise error with a
 ///   helpful message asking the caller to use the `provider/model` form.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn resolve_provider_for_model(
     providers: &[ProviderConfig],
     public_id_map: &HashMap<String, String>,
@@ -2777,7 +2780,7 @@ pub(crate) fn resolve_provider_for_model(
         Some(hint) => {
             let provider_opt = enabled
                 .iter()
-                .find(|p| public_id_map.get(&p.id).map_or(false, |id| id == hint));
+                .find(|p| public_id_map.get(&p.id) == Some(hint));
 
             let provider = provider_opt.ok_or_else(|| {
                 error_response(

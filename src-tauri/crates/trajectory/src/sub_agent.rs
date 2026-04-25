@@ -655,10 +655,7 @@ impl SubAgentRegistry {
             AgentMessageKind::TaskAssign,
             task.clone(),
         );
-        if let Err(e) = self.message_bus.send(msg) {
-            // Mailbox full — do NOT update child state to avoid inconsistency
-            return Err(e);
-        }
+        self.message_bus.send(msg)?;
 
         // Only update child agent state after successful message delivery
         if let Some(child) = self.agents.iter_mut().find(|a| a.id == child_id) {
@@ -736,12 +733,11 @@ impl SubAgentRegistry {
         let parent_id = self.agents
             .iter_mut()
             .find(|a| a.id == child_id)
-            .map(|child| {
+            .and_then(|child| {
                 child.update_progress(progress);
                 self.dirty = true;
                 child.parent_id.clone()
-            })
-            .flatten();
+            });
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(
@@ -769,12 +765,11 @@ impl SubAgentRegistry {
         let parent_id = self.agents
             .iter_mut()
             .find(|a| a.id == child_id)
-            .map(|child| {
+            .and_then(|child| {
                 child.complete(result.clone());
                 self.dirty = true;
                 child.parent_id.clone()
-            })
-            .flatten();
+            });
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(
@@ -799,12 +794,11 @@ impl SubAgentRegistry {
         let parent_id = self.agents
             .iter_mut()
             .find(|a| a.id == child_id)
-            .map(|child| {
+            .and_then(|child| {
                 child.fail(error.clone());
                 self.dirty = true;
                 child.parent_id.clone()
-            })
-            .flatten();
+            });
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(

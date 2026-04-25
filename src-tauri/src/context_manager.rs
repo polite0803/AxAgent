@@ -75,8 +75,9 @@ pub fn should_auto_compress(
     let total: usize = system_messages
         .iter()
         .chain(history_messages.iter())
-        .map(|m| message_tokens(m))
-        .sum();
+        .map(message_tokens)
+        .try_fold(0usize, |acc, tokens| acc.checked_add(tokens))
+        .unwrap_or(usize::MAX);
 
     total > threshold
 }
@@ -127,14 +128,14 @@ pub fn build_context(
                 + token_budget::NUDGES;
             let history_budget = ((ctx_window as usize).saturating_sub(fixed_overhead) as f64
                 * token_budget::HISTORY_RATIO) as usize;
-            let system_tokens: usize = out.iter().map(|m| message_tokens(m)).sum();
+            let system_tokens: usize = out.iter().map(message_tokens).try_fold(0usize, |acc, t| acc.checked_add(t)).unwrap_or(usize::MAX);
             let available = history_budget.saturating_sub(system_tokens);
             let trimmed = sliding_window(history_messages, available);
             let trimmed_len = trimmed.len();
             out.extend(trimmed);
 
             // Log budget utilization for diagnostics
-            let total_used: usize = out.iter().map(|m| message_tokens(m)).sum();
+            let total_used: usize = out.iter().map(message_tokens).try_fold(0usize, |acc, t| acc.checked_add(t)).unwrap_or(usize::MAX);
             tracing::debug!(
                 "Context built: {} system + {} history = {} total tokens (budget: {})",
                 system_tokens,

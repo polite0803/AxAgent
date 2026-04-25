@@ -39,7 +39,7 @@ impl HealthCheckError {
             404 => HealthCheckError::Permanent(format!("Endpoint not found: {}", body)),
             429 => HealthCheckError::Transient(format!("Rate limited: {}", body)),
             500..=599 => HealthCheckError::Transient(format!("Server error {}: {}", status, body)),
-            _ if status >= 400 && status < 500 => HealthCheckError::Permanent(format!("Client error {}: {}", status, body)),
+            _ if (400..500).contains(&status) => HealthCheckError::Permanent(format!("Client error {}: {}", status, body)),
             _ => HealthCheckError::Transient(format!("HTTP error {}: {}", status, body)),
         }
     }

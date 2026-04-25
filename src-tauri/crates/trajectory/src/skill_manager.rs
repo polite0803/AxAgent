@@ -47,7 +47,7 @@ pub struct SkillFilter {
 
 pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
     let category = params.category.unwrap_or_else(|| "general".to_string());
-    let tags = params.tags.unwrap_or_else(Vec::new);
+    let tags = params.tags.unwrap_or_default();
     let platforms = params.platforms.unwrap_or_else(|| vec![detect_os()]);
 
     let mut skill = Skill::new(
@@ -61,8 +61,8 @@ pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
     skill.platforms = platforms.clone();
     skill.metadata = SkillMetadata {
         hermes: HermesMetadata {
-            tags: tags,
-            category: category,
+            tags,
+            category,
             fallback_for_toolsets: Vec::new(),
             requires_toolsets: Vec::new(),
             config: Vec::new(),

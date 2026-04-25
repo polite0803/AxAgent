@@ -222,15 +222,19 @@ fn parse_skill_content(content: &str) -> Vec<ProcedureStep> {
     let mut steps = Vec::new();
     let mut order = 0;
 
+    let tool_regex = match regex::Regex::new(r"^\d+\.\s*(?:Use\s+)?(\w+)") {
+        Ok(re) => re,
+        Err(_) => return steps,
+    };
+
     for line in content.lines() {
         let trimmed = line.trim();
         if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("##") {
             continue;
         }
 
-        let tool_match: Option<String> = regex::Regex::new(r"^\d+\.\s*(?:Use\s+)?(\w+)")
-            .ok()
-            .and_then(|re| re.captures(trimmed))
+        let tool_match: Option<String> = tool_regex
+            .captures(trimmed)
             .and_then(|c| c.get(1).map(|m| m.as_str().to_string()));
 
         if let Some(tool) = tool_match {

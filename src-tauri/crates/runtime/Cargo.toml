@@ -22,6 +22,9 @@ tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
 async-trait = "0.1"
 futures = "0.3"
 quick_cache = "0.4"
+chrono = { workspace = true }
+sea-orm = { workspace = true }
+axagent-core = { path = "../core" }
 
 [lints]
 # workspace = true

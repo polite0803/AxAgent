@@ -48,7 +48,7 @@ pub enum TrajectoryOutcome {
 }
 
 impl TrajectoryOutcome {
-    pub fn from_str(s: &str) -> Self {
+    pub fn try_from_str(s: &str) -> Self {
         match s {
             "success" => TrajectoryOutcome::Success,
             "failure" => TrajectoryOutcome::Failure,
@@ -213,7 +213,7 @@ impl Trajectory {
         }
 
         let step_count = steps.len();
-        if step_count >= 3 && step_count <= 30 {
+        if (3..=30).contains(&step_count) {
             score += 0.05;
         }
 
@@ -242,7 +242,7 @@ pub enum RewardType {
 }
 
 impl RewardType {
-    pub fn from_str(s: &str) -> Self {
+    pub fn try_from_str(s: &str) -> Self {
         match s {
             "task_completion" => RewardType::TaskCompletion,
             "tool_efficiency" => RewardType::ToolEfficiency,

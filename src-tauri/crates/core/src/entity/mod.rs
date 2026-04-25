@@ -44,6 +44,16 @@ pub mod retrieval_hits;
 
 pub mod stored_files;
 
+pub mod scheduled_tasks;
+
+pub mod workflow_template;
+
 pub mod agent_sessions;
+
+// Wave 3: Atomic Skill & Work Engine entities
+pub mod atomic_skills;
+pub mod skill_references;
+pub mod generated_tools;
+pub mod workflow_executions;
 
 pub use sea_orm;

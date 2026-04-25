@@ -400,9 +400,9 @@ impl SharedMemory {
 
         let notified = pool.notify_subscribers(key, namespace);
         if !notified.is_empty() {
-            let event = if old_value.is_some() {
+            let event = if let Some(old) = old_value {
                 MemoryEvent::Updated {
-                    old_value: old_value.unwrap(),
+                    old_value: old,
                 }
             } else {
                 MemoryEvent::Created

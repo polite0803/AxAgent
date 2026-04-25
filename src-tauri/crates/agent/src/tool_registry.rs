@@ -528,7 +528,7 @@ impl ToolExecutor for ToolRegistry {
             tokio::task::block_in_place(|| {
                 handle.block_on(self.local_tools.execute(&tool_name_owned, arguments))
             })
-            .map_err(|e| RuntimeToolError::new(e))
+            .map_err(RuntimeToolError::new)
         } else {
             let is_mcp_tool = self.mcp_tools.values()
                 .any(|tc| tc.tool_name == tool_name);
@@ -596,7 +596,7 @@ impl ToolRegistry {
         let exec_id = exec_id.to_string();
         let content = content.to_string();
         let handle = tokio::runtime::Handle::current();
-        let _ = tokio::task::block_in_place(|| {
+        tokio::task::block_in_place(|| {
             handle.block_on(async {
                 if is_success {
                     let _ = recorder.record_success(&exec_id, &content, Some(duration_ms)).await;

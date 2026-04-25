@@ -222,7 +222,7 @@ impl LearningInsightSystem {
         for insight in insights {
             categorized
                 .entry(insight.category)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(insight.clone());
         }
         categorized

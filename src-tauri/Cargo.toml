@@ -16,6 +16,8 @@ anyhow = "1"
 sqlite-vec = "0.1.8-alpha.1"
 libsqlite3-sys = "0.30"
 sysinfo = "0.32"
+lazy_static = "1"
+sha2 = "0.10"
 
 [package]
 name = "axagent"
@@ -76,6 +78,8 @@ tempfile = "3"
 open = "5"
 urlencoding = "2"
 dirs = "5"
+lazy_static = { workspace = true }
+sha2 = { workspace = true }
 
 [target.'cfg(target_vendor = "apple")'.dependencies]
 objc2 = { version = "0.6", features = ["relax-sign-encoding"] }

@@ -74,6 +74,12 @@ pub struct DebateManager {
     strength_threshold: f64,
 }
 
+impl Default for DebateManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DebateManager {
     pub fn new() -> Self {
         Self {

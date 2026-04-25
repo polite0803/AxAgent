@@ -43,5 +43,5 @@ pub async fn insight_report(
         message_count.unwrap_or(0),
         vec![],
     );
-    Ok(serde_json::to_value(report).map_err(|e| e.to_string())?)
+    serde_json::to_value(report).map_err(|e| e.to_string())
 }

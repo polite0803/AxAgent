@@ -30,19 +30,16 @@ pub type StepExecutor = Arc<
 /// Failure policy for a workflow step when it fails after all retries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum OnStepFailure {
     /// Abort the entire workflow (default).
+    #[default]
     Abort,
     /// Skip this step and continue; downstream steps that depend on it
     /// will see an empty result for this step.
     Skip,
 }
 
-impl Default for OnStepFailure {
-    fn default() -> Self {
-        OnStepFailure::Abort
-    }
-}
 
 // ---------------------------------------------------------------------------
 // P4-1: Retry policy with exponential backoff
@@ -249,8 +246,15 @@ pub enum WorkflowStatus {
     Cancelled,
 }
 
+#[derive(Clone)]
 pub struct WorkflowEngine {
     workflows: Arc<RwLock<HashMap<String, Workflow>>>,
+}
+
+impl Default for WorkflowEngine {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl WorkflowEngine {
@@ -511,7 +515,7 @@ impl WorkflowEngine {
             for dep in &step.needs {
                 adj_list
                     .entry(dep.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(step.id.clone());
                 *in_degree.entry(step.id.clone()).or_insert(0) += 1;
             }
@@ -566,7 +570,19 @@ impl WorkflowEngine {
 
         Ok(workflow.clone())
     }
-}
+
+    pub async fn run_workflow(&self, workflow_id: &str) -> Result<Workflow, WorkflowError> {
+         let executor: StepExecutor = Arc::new(|step: WorkflowStep, _deps: HashMap<String, String>| {
+             Box::pin(async move {
+                 tracing::info!("[workflow] Executing step: {} ({})", step.goal, step.id);
+                 Ok(format!("Step {} completed", step.id))
+             })
+         });
+
+         let runner = WorkflowRunner::new(Arc::new(self.clone()), executor);
+         runner.run(workflow_id).await
+     }
+ }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WorkflowError {
@@ -811,7 +827,7 @@ impl WorkflowRunner {
                         }
 
                         // Step failed — check if we can retry
-                        if current_attempts + 1 <= max_retries {
+                        if current_attempts < max_retries {
                             // P4-1: Exponential backoff delay before retry
                             let backoff = retry_policy.backoff_delay(current_attempts + 1);
                             if !backoff.is_zero() {

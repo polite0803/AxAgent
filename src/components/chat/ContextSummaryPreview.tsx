@@ -18,7 +18,9 @@ const ContextSummaryPreview: React.FC<ContextSummaryPreviewProps> = ({
     const conv = s.conversations.find((c) => c.id === conversationId);
     return conv?.mode || null;
   });
-  const streaming = useStreamStore((s) => s.streaming);
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeStreams = useStreamStore((s) => s.activeStreams);
+  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
 
   const summary = useMemo(() => {
     if (!messages || messages.length === 0) return null;

@@ -25,6 +25,31 @@ export interface StreamBuffer {
 }
 
 export let _streamBuffer: StreamBuffer | null = null;
+/**
+ * Preserved buffers from conversations the user navigated away from while streaming.
+ * When switching back, these are used instead of the live buffer (which may have
+ * been hijacked by a new send in a different conversation).
+ * Keyed by conversationId.
+ */
+const _orphanedBuffers = new Map<string, StreamBuffer>();
+
+export function preserveOrphanedBuffer() {
+  if (_streamBuffer && _streamBuffer.content) {
+    _orphanedBuffers.set(_streamBuffer.conversationId, { ..._streamBuffer });
+  }
+}
+
+export function takeOrphanedBuffer(conversationId: string): StreamBuffer | undefined {
+  const buf = _orphanedBuffers.get(conversationId);
+  if (buf) {
+    _orphanedBuffers.delete(conversationId);
+  }
+  return buf;
+}
+
+export function clearOrphanedBuffer(conversationId: string) {
+  _orphanedBuffers.delete(conversationId);
+}
 /** Prefix injected before streaming content (e.g., search result tags) */
 export let _streamPrefix = '';
 /** Conversations whose stream completed while the user was viewing a different
@@ -151,6 +176,10 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
   // (parallel multi-model streams would corrupt the shared buffer)
   if (!_isMultiModelActive) {
     if (!_streamBuffer || _streamBuffer.conversationId !== conversationId) {
+      // Preserve the previous conversation's buffer before overwriting
+      if (_streamBuffer && _streamBuffer.conversationId !== conversationId && _streamBuffer.content) {
+        preserveOrphanedBuffer();
+      }
       _streamBuffer = { messageId, conversationId, content: _streamPrefix, resolvedId: null, thinking: null };
       _streamPrefix = ''; // consumed
     }
@@ -298,21 +327,97 @@ export function registerConversationStoreRef(ref: typeof _conversationStoreRef) 
   _conversationStoreRef = ref;
 }
 
+// ─── Multi-conversation stream tracking ───
+
+/**
+ * Derive legacy fields from activeStreams and return a partial state update.
+ * When no conversations are streaming: { streaming: false, streamingMessageId: null, streamingConversationId: null }
+ * When one is streaming: copies that conversation's values.
+ * When multiple are streaming: streamingMessageId is from the FIRST active stream.
+ */
+export function deriveLegacyStreamFields(activeStreams: Record<string, string>) {
+  const convIds = Object.keys(activeStreams);
+  const streaming = convIds.length > 0;
+  if (streaming) {
+    const firstConvId = convIds[0];
+    return {
+      streaming: true,
+      streamingMessageId: activeStreams[firstConvId],
+      streamingConversationId: firstConvId,
+    };
+  }
+  return {
+    streaming: false,
+    streamingMessageId: null,
+    streamingConversationId: null,
+  };
+}
+
+/** Start streaming for a conversation. Returns a partial state update. */
+export function startConversationStream(
+  activeStreams: Record<string, string>,
+  conversationId: string,
+  messageId: string,
+) {
+  const updated = { ...activeStreams, [conversationId]: messageId };
+  return {
+    activeStreams: updated,
+    ...deriveLegacyStreamFields(updated),
+  };
+}
+
+/** Stop streaming for a conversation (if it was active). Returns a partial state update. */
+export function stopConversationStream(
+  activeStreams: Record<string, string>,
+  conversationId: string,
+) {
+  if (!(conversationId in activeStreams)) return { activeStreams };
+  const { [conversationId]: _removed, ...rest } = activeStreams;
+  return {
+    activeStreams: rest,
+    ...deriveLegacyStreamFields(rest),
+  };
+}
+
+export function getStreamingMessageId(
+  activeStreams: Record<string, string>,
+  conversationId: string,
+): string | null {
+  return activeStreams[conversationId] ?? null;
+}
+
+export function isConversationStreaming(
+  activeStreams: Record<string, string>,
+  conversationId: string,
+): boolean {
+  return conversationId in activeStreams;
+}
+
 // ─── Stream Store ───
 
 interface StreamState {
+  /** Per-conversation streaming state: conversationId → messageId */
+  activeStreams: Record<string, string>;
+  /** Legacy: true iff any conversation is streaming */
   streaming: boolean;
+  /** Legacy: messageId of the first active stream */
   streamingMessageId: string | null;
+  /** Legacy: conversationId of the first active stream */
   streamingConversationId: string | null;
+  /** Per-conversation start timestamps for stuck recovery */
+  streamingStartTimestamps: Record<string, number>;
   thinkingActiveMessageIds: Set<string>;
   stopStreamListening: () => void;
-  cancelCurrentStream: () => void;
+  cancelCurrentStream: (conversationId?: string) => void;
+  isConversationStreaming: (conversationId: string) => boolean;
 }
 
 export const useStreamStore = create<StreamState>((set, get) => ({
+  activeStreams: {},
   streaming: false,
   streamingMessageId: null,
   streamingConversationId: null,
+  streamingStartTimestamps: {},
   thinkingActiveMessageIds: new Set<string>(),
 
   stopStreamListening: () => {
@@ -323,8 +428,13 @@ export const useStreamStore = create<StreamState>((set, get) => ({
     }
   },
 
-  cancelCurrentStream: () => {
+  cancelCurrentStream: (conversationId?: string) => {
     const convRef = _conversationStoreRef;
+    const state = get();
+    const activeConvId = conversationId ?? state.streamingConversationId ?? convRef?.getState().activeConversationId;
+
+    // If no specific conversation, cancel ALL active streams
+    if (!activeConvId) return;
 
     // Flush pending UI chunk through conversationStore if available
     if (convRef) {
@@ -352,22 +462,24 @@ export const useStreamStore = create<StreamState>((set, get) => ({
     }
 
     // Tell the backend to cancel the stream — fire and forget
-    const conversationId = get().streamingConversationId ?? convRef?.getState().activeConversationId;
-    if (conversationId && isTauri()) {
-      invoke('cancel_stream', { conversationId }).catch(() => {});
+    if (isTauri()) {
+      invoke('cancel_stream', { conversationId: activeConvId }).catch(() => {});
       // Also cancel the agent if in agent mode
-      const conv = convRef?.getState().conversations?.find((c: any) => c.id === conversationId);
+      const conv = convRef?.getState().conversations?.find((c: any) => c.id === activeConvId);
       if (conv?.mode === 'agent') {
-        invoke('agent_cancel', { request: { conversationId } }).catch(() => {});
+        invoke('agent_cancel', { request: { conversationId: activeConvId } }).catch(() => {});
       }
     }
 
-    // Mark the current streaming message as partial
-    const streamMsgId = get().streamingMessageId;
+    // Mark the message as partial
+    const streamMsgId = getStreamingMessageId(state.activeStreams, activeConvId);
+    const { activeStreams, streamingStartTimestamps } = get();
+    const { [activeConvId]: _msgId, ...restStreams } = activeStreams;
+    const { [activeConvId]: _ts, ...restTimestamps } = streamingStartTimestamps;
     set({
-      streaming: false,
-      streamingMessageId: null,
-      streamingConversationId: null,
+      activeStreams: restStreams,
+      ...deriveLegacyStreamFields(restStreams),
+      streamingStartTimestamps: restTimestamps,
       thinkingActiveMessageIds: new Set<string>(),
     });
 
@@ -378,5 +490,9 @@ export const useStreamStore = create<StreamState>((set, get) => ({
         ),
       }));
     }
+  },
+
+  isConversationStreaming: (conversationId: string) => {
+    return conversationId in get().activeStreams;
   },
 }));

@@ -94,10 +94,7 @@ describe('conversationStore pagination', () => {
       loadingOlder: false,
       hasOlderMessages: false,
       oldestLoadedMessageId: null,
-      streaming: false,
       streamingMessageId: null,
-      streamingConversationId: null,
-      thinkingActiveMessageIds: new Set<string>(),
       error: null,
       searchEnabled: false,
       searchProviderId: null,
@@ -156,6 +153,35 @@ describe('conversationStore pagination', () => {
 
     expect(useConversationStore.getState().loading).toBe(false);
     expect(useConversationStore.getState().messages.map((message) => message.id)).toEqual(['msg-2']);
+  });
+
+  it('clears active conversation when the backend reports the conversation is missing', async () => {
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === 'list_messages_page') {
+        if (args?.conversationId === 'conv-missing') {
+          return Promise.reject(new Error('Not found: Conversation conv-missing'));
+        }
+        if (args?.conversationId === 'conv-2') {
+          return Promise.resolve(makePage([], false));
+        }
+      }
+      if (cmd === 'list_conversations') {
+        return Promise.resolve([makeConversation('conv-2')] as never[]);
+      }
+      throw new Error(`unexpected command: ${cmd}`);
+    });
+    const { useConversationStore } = await import('../domain/conversationStore');
+    useConversationStore.setState({
+      conversations: [makeConversation('conv-missing')] as never[],
+    });
+
+    useConversationStore.getState().setActiveConversation('conv-missing');
+    await flushPromises();
+    await flushPromises();
+
+    expect(invokeMock).toHaveBeenCalledWith('list_conversations');
+    expect(useConversationStore.getState().activeConversationId).toBe('conv-2');
+    expect(useConversationStore.getState().messages).toEqual([]);
   });
 
   it('prepends older pages without replacing already loaded messages', async () => {
@@ -369,9 +395,9 @@ describe('conversationStore pagination', () => {
       if (cmd === 'create_conversation') {
         expect(args).toEqual({
           title: 'template-conversation',
-          model_id: 'template-model',
-          provider_id: 'template-provider',
-          system_prompt: 'Category prompt',
+          modelId: 'template-model',
+          providerId: 'template-provider',
+          systemPrompt: 'Category prompt',
         });
         return Promise.resolve(makeConversation('conv-template', {
           provider_id: 'template-provider',

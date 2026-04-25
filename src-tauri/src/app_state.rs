@@ -46,4 +46,6 @@ pub struct AppState {
     pub platform_integration_service: Arc<tokio::sync::RwLock<axagent_trajectory::PlatformIntegrationService>>,
     pub user_profile: Arc<std::sync::RwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_agent::LocalToolRegistry>>,
+    pub work_engine: Arc<tokio::sync::RwLock<axagent_runtime::work_engine::WorkEngine>>,
+    pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
 }

@@ -432,6 +432,11 @@ impl McpConnectionPool {
     pub async fn len(&self) -> usize {
         self.connections.lock().await.len()
     }
+
+    /// Return true if there are no cached connections.
+    pub async fn is_empty(&self) -> bool {
+        self.connections.lock().await.is_empty()
+    }
 }
 
 /// Spawn a new stdio MCP client (child process + handshake).

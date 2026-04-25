@@ -124,12 +124,10 @@ impl LocalToolRegistry {
         // Merge env_json into arguments (env_json takes precedence)
         let mut merged_args = input;
         if let Some(env_str) = &def.env_json {
-            if let Ok(env_val) = serde_json::from_str::<Value>(env_str) {
-                if let Value::Object(env_map) = env_val {
-                    if let Value::Object(args_map) = &mut merged_args {
-                        for (k, v) in env_map {
-                            args_map.insert(k, v);
-                        }
+            if let Ok(Value::Object(env_map)) = serde_json::from_str::<Value>(env_str) {
+                if let Value::Object(args_map) = &mut merged_args {
+                    for (k, v) in env_map {
+                        args_map.insert(k, v);
                     }
                 }
             }
@@ -243,5 +241,24 @@ impl LocalToolRegistry {
         if let Some(def) = self.tool_defs.get_mut(tool_name) {
             def.timeout_secs = Some(timeout_secs);
         }
+    }
+
+    /// Get all registered tool names (regardless of enabled state).
+    pub fn all_tool_names(&self) -> Vec<String> {
+        self.tool_defs.keys().cloned().collect()
+    }
+
+    /// Get enabled tool names only.
+    pub fn enabled_tool_names(&self) -> Vec<String> {
+        self.tool_defs
+            .keys()
+            .filter(|name| self.is_enabled(name))
+            .cloned()
+            .collect()
+    }
+
+    /// Get all registered tool definitions (regardless of enabled state).
+    pub fn all_tool_defs(&self) -> &HashMap<String, LocalToolDef> {
+        &self.tool_defs
     }
 }

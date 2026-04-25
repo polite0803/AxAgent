@@ -132,7 +132,7 @@ pub async fn update_backup_settings(
 async fn restart_auto_backup(
     handle: &Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     db: &DatabaseConnection,
-    app_data_dir: &PathBuf,
+    #[allow(clippy::ptr_arg)] app_data_dir: &PathBuf,
     settings: &AutoBackupSettings,
 ) {
     let mut guard = handle.lock().await;
@@ -162,7 +162,7 @@ async fn restart_auto_backup(
                     .signed_duration_since(last_time)
                     .num_seconds()
                     .max(0) as u64;
-                if elapsed >= interval_secs { 0 } else { interval_secs - elapsed }
+                interval_secs.saturating_sub(elapsed)
             } else {
                 interval_secs
             }

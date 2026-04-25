@@ -33,19 +33,12 @@ pub struct MemoryEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct WorkingMemory {
     pub memory: HashMap<String, MemoryEntry>,
     pub user: HashMap<String, MemoryEntry>,
 }
 
-impl Default for WorkingMemory {
-    fn default() -> Self {
-        Self {
-            memory: HashMap::new(),
-            user: HashMap::new(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryUsage {

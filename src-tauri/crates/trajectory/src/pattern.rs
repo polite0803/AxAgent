@@ -58,7 +58,7 @@ impl PatternType {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn try_from_str(s: &str) -> Self {
         match s {
             "tool_sequence" => PatternType::ToolSequence,
             "reasoning_chain" => PatternType::ReasoningChain,
@@ -154,7 +154,7 @@ impl DetectedPattern {
                     if step.role == first_step.role {
                         matching_count += 1;
                         has_tool |= step.tool_calls.is_some();
-                        if let Some(ref tc) = step.tool_calls.as_ref().and_then(|c| c.first()) {
+                        if let Some(tc) = step.tool_calls.as_ref().and_then(|c| c.first()) {
                             if tool_name.as_ref() != Some(&tc.name) {
                                 tool_name = None;
                             }

@@ -1,74 +1,31 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { ChatPage } from '@/pages/ChatPage';
-import { KnowledgePage } from '@/pages/KnowledgePage';
-import { MemoryPage } from '@/pages/MemoryPage';
-import { LinkPage } from '@/pages/LinkPage';
-import { GatewayPage } from '@/pages/GatewayPage';
-import { FilesPage } from '@/pages/FilesPage';
-import { SettingsPage } from '@/pages/SettingsPage';
-import { SkillsPage } from '@/pages/SkillsPage';
 import { PageErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { Spin } from 'antd';
 
-function SafeChatPage() {
+const LazyChatPage = lazy(() => import('@/pages/ChatPage').then((m) => ({ default: m.ChatPage })));
+const LazyKnowledgePage = lazy(() => import('@/pages/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
+const LazyMemoryPage = lazy(() => import('@/pages/MemoryPage').then((m) => ({ default: m.MemoryPage })));
+const LazyLinkPage = lazy(() => import('@/pages/LinkPage').then((m) => ({ default: m.LinkPage })));
+const LazyGatewayPage = lazy(() => import('@/pages/GatewayPage').then((m) => ({ default: m.GatewayPage })));
+const LazyFilesPage = lazy(() => import('@/pages/FilesPage').then((m) => ({ default: m.FilesPage })));
+const LazySettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const LazySkillsPage = lazy(() => import('@/pages/SkillsPage').then((m) => ({ default: m.SkillsPage })));
+
+function PageLoader() {
   return (
-    <PageErrorBoundary title="Chat Error">
-      <ChatPage />
-    </PageErrorBoundary>
+    <div className="flex items-center justify-center h-full w-full" style={{ minHeight: 200 }}>
+      <Spin size="large" />
+    </div>
   );
 }
 
-function SafeKnowledgePage() {
+function SafeLazyPage({ Page }: { Page: React.LazyExoticComponent<any> }) {
   return (
-    <PageErrorBoundary title="Knowledge Error">
-      <KnowledgePage />
-    </PageErrorBoundary>
-  );
-}
-
-function SafeMemoryPage() {
-  return (
-    <PageErrorBoundary title="Memory Error">
-      <MemoryPage />
-    </PageErrorBoundary>
-  );
-}
-
-function SafeLinkPage() {
-  return (
-    <PageErrorBoundary title="Link Error">
-      <LinkPage />
-    </PageErrorBoundary>
-  );
-}
-
-function SafeGatewayPage() {
-  return (
-    <PageErrorBoundary title="Gateway Error">
-      <GatewayPage />
-    </PageErrorBoundary>
-  );
-}
-
-function SafeFilesPage() {
-  return (
-    <PageErrorBoundary title="Files Error">
-      <FilesPage />
-    </PageErrorBoundary>
-  );
-}
-
-function SafeSettingsPage() {
-  return (
-    <PageErrorBoundary title="Settings Error">
-      <SettingsPage />
-    </PageErrorBoundary>
-  );
-}
-
-function SafeSkillsPage() {
-  return (
-    <PageErrorBoundary title="Skills Error">
-      <SkillsPage />
+    <PageErrorBoundary title="Page Error">
+      <Suspense fallback={<PageLoader />}>
+        <Page />
+      </Suspense>
     </PageErrorBoundary>
   );
 }
@@ -76,14 +33,14 @@ function SafeSkillsPage() {
 export function ContentArea() {
   return (
     <Routes>
-      <Route path="/" element={<SafeChatPage />} />
-      <Route path="/knowledge" element={<SafeKnowledgePage />} />
-      <Route path="/memory" element={<SafeMemoryPage />} />
-      <Route path="/link" element={<SafeLinkPage />} />
-      <Route path="/gateway" element={<SafeGatewayPage />} />
-      <Route path="/files" element={<SafeFilesPage />} />
-      <Route path="/settings/*" element={<SafeSettingsPage />} />
-      <Route path="/skills" element={<SafeSkillsPage />} />
+      <Route path="/" element={<SafeLazyPage Page={LazyChatPage} />} />
+      <Route path="/knowledge" element={<SafeLazyPage Page={LazyKnowledgePage} />} />
+      <Route path="/memory" element={<SafeLazyPage Page={LazyMemoryPage} />} />
+      <Route path="/link" element={<SafeLazyPage Page={LazyLinkPage} />} />
+      <Route path="/gateway" element={<SafeLazyPage Page={LazyGatewayPage} />} />
+      <Route path="/files" element={<SafeLazyPage Page={LazyFilesPage} />} />
+      <Route path="/settings/*" element={<SafeLazyPage Page={LazySettingsPage} />} />
+      <Route path="/skills" element={<SafeLazyPage Page={LazySkillsPage} />} />
     </Routes>
   );
 }

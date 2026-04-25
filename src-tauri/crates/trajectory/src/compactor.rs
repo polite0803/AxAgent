@@ -65,7 +65,7 @@ impl Ord for ImportanceOrd {
 
 #[allow(dead_code)]
 fn estimate_token_count(text: &str) -> usize {
-    (text.len() + 3) / 4
+    text.len().div_ceil(4)
 }
 
 #[allow(dead_code)]
@@ -296,7 +296,7 @@ impl SessionCompactor {
             for term in terms.into_iter().take(3) {
                 topic_messages
                     .entry(term)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(message.content.chars().take(50).collect());
             }
         }

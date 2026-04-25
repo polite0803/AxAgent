@@ -293,7 +293,7 @@ impl BatchProcessor {
                 } else if has_errors {
                     let error_recovery_step = trajectory.steps.get(i + 1..).and_then(|s| {
                         s.iter().position(|next| {
-                            next.tool_results.as_ref().map_or(false, |r| !r.is_empty())
+                            next.tool_results.as_ref().is_some_and(|r| !r.is_empty())
                         })
                     });
 
@@ -404,7 +404,7 @@ impl BatchProcessor {
 
         let outcome_counts: HashMap<TrajectoryOutcome, usize> = trajectories
             .iter()
-            .into_group_map_by(|t| t.outcome.clone())
+            .into_group_map_by(|t| t.outcome)
             .into_iter()
             .map(|(outcome, group)| (outcome, group.len()))
             .collect();

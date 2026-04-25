@@ -294,14 +294,13 @@ export function ChatSidebar() {
 
     const activeConv = conversations.find((c) => c.id === activeConversationId)
     const templateCategoryId = categoryId ?? activeConv?.category_id ?? null
-    const conv = await createConversation(
+    await createConversation(
       t('chat.newConversation'),
       model.model_id,
       provider.id,
       { categoryId: templateCategoryId },
     )
-    setActiveConversation(conv.id)
-  }, [providers, settings, conversations, activeConversationId, createConversation, setActiveConversation, messageApi, t])
+  }, [providers, settings, conversations, activeConversationId, createConversation, messageApi, t])
 
   useEffect(() => {
     const onShortcutNewConversation = () => {

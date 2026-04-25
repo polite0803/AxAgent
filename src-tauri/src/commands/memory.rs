@@ -120,11 +120,11 @@ pub async fn add_memory_item(
         });
 
         // Return item with "indexing" status
-        return Ok(MemoryItem { index_status: "indexing".to_string(), ..item });
+        Ok(MemoryItem { index_status: "indexing".to_string(), ..item })
     } else {
         // No embedding provider — mark as skipped
         let _ = axagent_core::repo::memory::update_item_index_status(&state.sea_db, &item.id, "skipped", None).await;
-        return Ok(MemoryItem { index_status: "skipped".to_string(), ..item });
+        Ok(MemoryItem { index_status: "skipped".to_string(), ..item })
     }
 }
 

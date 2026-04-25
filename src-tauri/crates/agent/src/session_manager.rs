@@ -111,6 +111,7 @@ pub struct SessionManager {
     session_last_access: Mutex<std::collections::HashMap<String, u64>>,
     db: Arc<DatabaseConnection>,
     app_handle: std::sync::Mutex<Option<AppHandle>>,
+    default_workspace_dir: std::sync::Mutex<Option<String>>,
 }
 
 /// Maximum number of sessions to keep in memory (LRU eviction).
@@ -126,7 +127,13 @@ impl SessionManager {
             session_last_access: Mutex::new(std::collections::HashMap::new()),
             db: Arc::new(db),
             app_handle: std::sync::Mutex::new(None),
+            default_workspace_dir: std::sync::Mutex::new(None),
         }
+    }
+
+    pub fn set_default_workspace_dir(&self, dir: Option<String>) {
+        let mut default_workspace_dir = self.default_workspace_dir.lock().unwrap();
+        *default_workspace_dir = dir;
     }
 
     pub fn set_app_handle(&self, app_handle: AppHandle) {
@@ -169,10 +176,21 @@ impl SessionManager {
         let mut session = AgentSession::new(provider_id, conversation_id.clone());
         let session_id = session.session().session_id.clone();
 
+        let default_workspace_dir = {
+            let guard = self.default_workspace_dir.lock().unwrap();
+            guard.clone()
+        };
+
+        let cwd_to_use = if session.session().workspace_root.is_none() {
+            default_workspace_dir.as_deref()
+        } else {
+            session.session().workspace_root.as_ref().map(|p| p.to_str().unwrap_or(""))
+        };
+
         let axagent_session = agent_session::upsert_agent_session(
             &self.db,
             &conversation_id,
-            session.session().workspace_root.as_ref().map(|p| p.to_str().unwrap_or("")),
+            cwd_to_use,
             Some("default"),
         ).await.map_err(|e| e.to_string())?;
 
@@ -239,7 +257,7 @@ impl SessionManager {
             .as_secs();
 
         let ttl_cutoff = now.saturating_sub(SESSION_TTL_SECS);
-        let ttl_cutoff_ms = ttl_cutoff as u64 * 1000;
+        let ttl_cutoff_ms = ttl_cutoff * 1000;
 
         // Find session_ids to evict: TTL expired (only need session_last_access)
         let mut to_evict = Vec::new();
@@ -766,7 +784,7 @@ impl HookProgressReporter for TauriHookProgressReporter {
             HookProgressEvent::Started { event: HookEvent::PreToolUse, tool_name, command: _, tool_use_id } => {
                 let _ = self.app_handle.emit("agent-tool-start", serde_json::json!({
                     "conversationId": conversation_id,
-                    "toolUseId": tool_use_id.as_deref().unwrap_or_else(|| ""),
+                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
                     "toolName": tool_name,
                     "input": serde_json::Value::Null,
                     "assistantMessageId": "",
@@ -775,7 +793,7 @@ impl HookProgressReporter for TauriHookProgressReporter {
             HookProgressEvent::Completed { event: HookEvent::PostToolUse, tool_name, command: _, tool_use_id } => {
                 let _ = self.app_handle.emit("agent-tool-result", serde_json::json!({
                     "conversationId": conversation_id,
-                    "toolUseId": tool_use_id.as_deref().unwrap_or_else(|| ""),
+                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
                     "toolName": tool_name,
                     "input": serde_json::Value::Null,
                     "content": "",
@@ -787,7 +805,7 @@ impl HookProgressReporter for TauriHookProgressReporter {
             HookProgressEvent::Completed { event: HookEvent::PostToolUseFailure, tool_name, command: _, tool_use_id } => {
                 let _ = self.app_handle.emit("agent-tool-result", serde_json::json!({
                     "conversationId": conversation_id,
-                    "toolUseId": tool_use_id.as_deref().unwrap_or_else(|| ""),
+                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
                     "toolName": tool_name,
                     "input": serde_json::Value::Null,
                     "content": "",

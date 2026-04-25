@@ -7,12 +7,12 @@
 //! - Closed-loop learning: nudges and proactive suggestions
 
 mod entity;
-mod memory;
+mod service;
 mod closed_loop;
 
 pub use entity::{Entity, EntityType, Relationship, RelationshipType, GraphQuery, NudgeCandidate};
-pub use memory::{MemoryService, MemoryConfig, MemoryEntry, WorkingMemory, MemoryUsage, SearchResult, MemoryActionResult};
-pub use closed_loop::{ClosedLoopService, ClosedLoopConfig, PeriodicNudge, MemoryConsolidationTask, SkillCreationProposal};
+pub use service::{MemoryService, MemoryConfig, MemoryEntry, WorkingMemory, MemoryUsage, SearchResult, MemoryActionResult};
+pub use closed_loop::{AutoAction, ClosedLoopService, ClosedLoopConfig, PeriodicNudge, MemoryConsolidationTask, SkillCreationProposal, SkillUpgradeProposal};
 
 use crate::TrajectoryStorage;
 use std::sync::Arc;

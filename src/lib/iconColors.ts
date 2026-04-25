@@ -32,6 +32,7 @@ export const SETTINGS_ICON_COLORS: Record<string, string> = {
   Plug: '#a855f7',          // purple-500 — MCP Servers
   Clock: '#14b8a6',         // teal-500  — Scheduler
   CloudUpload: '#3b82f6',   // blue-500  — Backup
+  Workflow: '#8b5cf6',      // violet-500 — Workflow
 };
 
 // ── Title bar icons ─────────────────────────────────────────────────

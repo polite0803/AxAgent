@@ -6,6 +6,8 @@
 //! - Temporal difference learning
 //! - Policy gradient estimation
 
+#![allow(clippy::unwrap_used)]
+
 use crate::trajectory::{
     MessageRole, RewardSignal, RewardType, Trajectory, TrajectoryOutcome, TrajectoryStep,
 };
@@ -338,7 +340,7 @@ impl RLEngine {
         let steps = trajectory.steps.len();
         let mut values = vec![0.0; steps];
 
-        for i in 0..steps {
+        for (i, _) in trajectory.steps.iter().enumerate() {
             let future_rewards: f64 = trajectory
                 .rewards
                 .iter()

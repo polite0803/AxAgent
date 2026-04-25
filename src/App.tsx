@@ -168,6 +168,14 @@ function AppRoot() {
         console.warn('Failed to fetch settings:', e);
       }
 
+      // Seed preset workflow templates
+      try {
+        await invoke('seed_preset_templates');
+        console.log('Seeded preset workflow templates');
+      } catch (e) {
+        console.warn('Failed to seed preset templates:', e);
+      }
+
       if (!isTauri()) return;
       const settings = useSettingsStore.getState().settings;
 

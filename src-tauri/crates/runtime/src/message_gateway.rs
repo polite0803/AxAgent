@@ -91,21 +91,20 @@ pub enum MessagePayload {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum Protocol {
+    #[default]
     Mcp,
     A2A,
     Custom { name: String },
 }
 
-impl Default for Protocol {
-    fn default() -> Self {
-        Protocol::Mcp
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum TransportType {
+    #[default]
     WebSocket,
     SSE,
     HTTP,
@@ -113,15 +112,12 @@ pub enum TransportType {
     IPC,
 }
 
-impl Default for TransportType {
-    fn default() -> Self {
-        TransportType::WebSocket
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ConnectionState {
+    #[default]
     Disconnected,
     Connecting,
     Connected,
@@ -129,11 +125,6 @@ pub enum ConnectionState {
     Failed,
 }
 
-impl Default for ConnectionState {
-    fn default() -> Self {
-        ConnectionState::Disconnected
-    }
-}
 
 #[derive(Debug, Clone, Default)]
 pub struct AgentEndpoint {

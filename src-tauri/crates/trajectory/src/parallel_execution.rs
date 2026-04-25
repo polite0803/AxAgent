@@ -226,17 +226,14 @@ pub enum ExecutionStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ExecutionStrategy {
     Sequential,
+    #[default]
     Parallel,
     PriorityBased,
 }
 
-impl Default for ExecutionStrategy {
-    fn default() -> Self {
-        ExecutionStrategy::Parallel
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionResult {

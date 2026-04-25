@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Bug, FileCode, BookOpen, GitBranch, TestTube,
   Search, ArrowRight, Zap, Shield, Globe, Database, Wrench, Rocket, Network,
+  Layers,
 } from 'lucide-react';
 
 interface WorkflowStepDef {
@@ -48,6 +49,7 @@ const getWorkflowTemplates = (t: (key: string) => string): WorkflowTemplate[] =>
 Format findings by severity: 🔴 Critical → 🟠 High → 🟡 Medium → 🟢 Low`,
     initialMessage: 'Please review the code in the current workspace. Start by listing the files, then review the most important ones.',
     permissionMode: 'default',
+    scenarios: ['coding'],
     steps: [
       { id: 'explore', goal: 'Explore codebase structure and identify key files', role: 'researcher', needs: [] },
       { id: 'review', goal: 'Review code for bugs, security issues, and best practices', role: 'reviewer', needs: ['explore'] },
@@ -70,6 +72,7 @@ Format findings by severity: 🔴 Critical → 🟠 High → 🟡 Medium → �
 Always explain your reasoning at each step. Prefer minimal, targeted fixes over large refactors.`,
     initialMessage: 'I have a bug to fix. Let me describe the issue and you can help me diagnose and fix it systematically.',
     permissionMode: 'accept_edits',
+    scenarios: ['coding'],
     steps: [
       { id: 'reproduce', goal: 'Understand and reproduce the bug', role: 'researcher', needs: [] },
       { id: 'diagnose', goal: 'Identify root cause through analysis', role: 'planner', needs: ['reproduce'] },
@@ -92,6 +95,7 @@ Always explain your reasoning at each step. Prefer minimal, targeted fixes over 
 Use markdown formatting. Include code blocks with proper language tags.`,
     initialMessage: 'Generate documentation for this project. Start by exploring the project structure and key files.',
     permissionMode: 'default',
+    scenarios: ['coding', 'writing'],
     steps: [
       { id: 'explore', goal: 'Explore project structure and identify documentation targets', role: 'researcher', needs: [] },
       { id: 'generate', goal: 'Generate documentation content', role: 'developer', needs: ['explore'] },
@@ -114,6 +118,7 @@ Use markdown formatting. Include code blocks with proper language tags.`,
 Use the project's existing test framework. Follow existing test patterns and naming conventions.`,
     initialMessage: 'Generate tests for this project. Start by identifying the test framework and existing test patterns.',
     permissionMode: 'accept_edits',
+    scenarios: ['coding'],
     steps: [
       { id: 'analyze', goal: 'Analyze existing code and test patterns', role: 'researcher', needs: [] },
       { id: 'generate', goal: 'Generate comprehensive test suites', role: 'developer', needs: ['analyze'] },
@@ -135,6 +140,7 @@ Use the project's existing test framework. Follow existing test patterns and nam
 Follow the "Strangler Fig" pattern for large refactors. Never change behavior and structure simultaneously.`,
     initialMessage: 'Analyze the codebase for refactoring opportunities. Start by identifying code smells and proposing a refactoring plan.',
     permissionMode: 'accept_edits',
+    scenarios: ['coding'],
     steps: [
       { id: 'analyze', goal: 'Identify code smells and refactoring opportunities', role: 'researcher', needs: [] },
       { id: 'plan', goal: 'Create refactoring plan with safe transformation steps', role: 'planner', needs: ['analyze'] },
@@ -158,6 +164,7 @@ Follow the "Strangler Fig" pattern for large refactors. Never change behavior an
 Use diagrams (mermaid) when helpful. Explain in terms a new team member would understand.`,
     initialMessage: 'Help me understand this codebase. Start by exploring the project structure and identifying the architecture.',
     permissionMode: 'default',
+    scenarios: ['coding', 'research'],
     steps: [
       { id: 'explore', goal: 'Explore project structure and entry points', role: 'researcher', needs: [] },
       { id: 'analyze', goal: 'Analyze architecture and data flow', role: 'planner', needs: ['explore'] },
@@ -181,6 +188,7 @@ Use diagrams (mermaid) when helpful. Explain in terms a new team member would un
 Focus on high-impact, measurable improvements. Avoid premature optimization.`,
     initialMessage: 'Analyze the codebase for performance issues. Start by identifying potential bottlenecks and hot paths.',
     permissionMode: 'accept_edits',
+    scenarios: ['coding'],
     steps: [
       { id: 'profile', goal: 'Identify performance bottlenecks and hot paths', role: 'researcher', needs: [] },
       { id: 'analyze', goal: 'Analyze root causes of performance issues', role: 'planner', needs: ['profile'] },
@@ -205,6 +213,7 @@ Focus on high-impact, measurable improvements. Avoid premature optimization.`,
 Provide severity ratings and remediation steps for each finding.`,
     initialMessage: 'Perform a security audit of this codebase. Start by identifying entry points and user input handling.',
     permissionMode: 'default',
+    scenarios: ['coding', 'analysis'],
     steps: [
       { id: 'scan', goal: 'Scan for security vulnerabilities and entry points', role: 'researcher', needs: [] },
       { id: 'analyze', goal: 'Analyze security risks and OWASP compliance', role: 'reviewer', needs: ['scan'] },
@@ -227,6 +236,7 @@ Provide severity ratings and remediation steps for each finding.`,
 Prioritize backward compatibility and provide fallback options.`,
     initialMessage: 'Help me migrate this codebase. What are we migrating from and to? I will analyze the current state and create a migration plan.',
     permissionMode: 'accept_edits',
+    scenarios: ['coding', 'analysis'],
     steps: [
       { id: 'assess', goal: 'Assess current state and migration requirements', role: 'researcher', needs: [] },
       { id: 'plan', goal: 'Create detailed migration plan with steps', role: 'planner', needs: ['assess'] },
@@ -250,6 +260,7 @@ Prioritize backward compatibility and provide fallback options.`,
 Ensure consistency, backward compatibility, and good developer experience.`,
     initialMessage: 'Help me design an API. Describe the use cases and data requirements, and I will create a comprehensive API design.',
     permissionMode: 'accept_edits',
+    scenarios: ['coding', 'analysis'],
     steps: [
       { id: 'analyze', goal: 'Analyze requirements and use cases', role: 'researcher', needs: [] },
       { id: 'design', goal: 'Design API endpoints and schemas', role: 'planner', needs: ['analyze'] },
@@ -273,6 +284,7 @@ Ensure consistency, backward compatibility, and good developer experience.`,
 Focus on reproducibility and cross-platform compatibility.`,
     initialMessage: 'Help me debug an environment or configuration issue. Describe the error and your environment setup.',
     permissionMode: 'default',
+    scenarios: ['coding'],
     steps: [
       { id: 'diagnose', goal: 'Diagnose environment issue from error messages', role: 'researcher', needs: [] },
       { id: 'investigate', goal: 'Investigate root cause in config and environment', role: 'planner', needs: ['diagnose'] },
@@ -296,6 +308,7 @@ Focus on reproducibility and cross-platform compatibility.`,
 Follow TDD when appropriate. Ensure backward compatibility.`,
     initialMessage: 'Help me implement a new feature. Describe the feature requirements and I will guide you through the implementation.',
     permissionMode: 'accept_edits',
+    scenarios: ['coding'],
     steps: [
       { id: 'understand', goal: 'Understand and clarify feature requirements', role: 'researcher', needs: [] },
       { id: 'design', goal: 'Create technical design and architecture', role: 'planner', needs: ['understand'] },
@@ -516,6 +529,7 @@ PASS / NEEDS_REEXTRACTION
 4. Agent4 consolidates and produces final validation report`,
     initialMessage: 'Start the 4-agent business knowledge extraction workflow. Agent1: parse the codebase structure and AST. Agent2: extract business knowledge (entities, rules, flows, data口径, boundaries). Agent3: validate extraction accuracy. Agent4: consolidate and produce validation report. Save all knowledge to the knowledge base.',
     permissionMode: 'default',
+    scenarios: ['analysis', 'research'],
     steps: [
       { id: 'parse', goal: 'Agent1: Parse codebase AST, structure, call relationships, branch logic - output pure logical intermediate text', role: 'researcher', needs: [] },
       { id: 'extract-entities', goal: 'Agent2: Extract domain concepts, entities, business rules - save using create_knowledge_entity', role: 'planner', needs: ['parse'] },
@@ -523,6 +537,161 @@ PASS / NEEDS_REEXTRACTION
       { id: 'extract-interfaces', goal: 'Agent2: Extract interfaces, data口径, API contracts - save using create_knowledge_interface', role: 'planner', needs: ['parse'] },
       { id: 'validate', goal: 'Agent3: Validate extraction completeness, accuracy, consistency against code - flag issues', role: 'reviewer', needs: ['extract-entities', 'extract-flows', 'extract-interfaces'] },
       { id: 'consolidate', goal: 'Agent4: Consolidate knowledge, unify terminology, generate validation report with quantified metrics - save report using add_knowledge_document', role: 'synthesizer', needs: ['validate'] },
+    ],
+  },
+  {
+    id: 'knowledge-to-code',
+    name: t('chat.workflow.knowledgeToCode.name'),
+    description: t('chat.workflow.knowledgeToCode.description'),
+    icon: <Layers size={20} />,
+    tags: ['knowledge', 'code', 'generation', 'migration', 'cross-language'],
+    systemPrompt: `You are a cross-language code generation specialist. Your task is to generate production-quality code from business knowledge stored in the knowledge base.
+
+## 4-Agent Architecture
+
+### Agent1: Knowledge Architect (planner)
+- Retrieve and analyze business knowledge from knowledge base
+- Map knowledge base entities/flows/interfaces to target language constructs
+- Design overall architecture for the target codebase
+- Create detailed specification for each component
+
+### Agent2: Code Generator (developer)
+- Generate data models/entities from business entities
+- Implement business logic from business flows
+- Create API layer from interface definitions
+- Follow target language best practices and patterns
+- Use write_file tool to output code files
+
+### Agent3: Code Reviewer (reviewer)
+- Verify generated code matches original business knowledge
+- Check for semantic equivalence and completeness
+- Validate naming conventions and code style
+- Ensure all business rules are properly implemented
+- Use read_file tool to read generated code for verification
+
+### Agent4: Integration Lead (synthesizer)
+- Integrate all generated components
+- Resolve dependencies and conflicts
+- Ensure consistency across the codebase
+- Generate final validation report
+
+## Required User Inputs (MUST request before proceeding)
+Before starting code generation, you MUST collect the following information from the user:
+1. **Target Knowledge Base ID** - from list_knowledge_bases result
+2. **Target Programming Language** - e.g., Rust, TypeScript, Python, Go, Java, C#
+3. **Target Framework** (optional) - e.g., React, Spring Boot, Django, Express, Axum
+4. **Output Directory** - where to generate code files
+5. **Project Type** (optional) - API, CLI, WebApp, Library
+
+## Knowledge Base Tools
+Use these tools to retrieve business knowledge:
+1. **list_knowledge_bases**: View available knowledge bases
+2. **query_knowledge**: Semantic search for relevant knowledge
+3. **get_knowledge_entity**: Retrieve specific entity definitions
+4. **get_knowledge_flow**: Retrieve business flow definitions
+5. **get_knowledge_interface**: Retrieve interface/API definitions
+
+## Code Generation Tools
+Use these tools to generate and verify code:
+1. **write_file**: Write generated code to specified output directory
+2. **read_file**: Read generated files for verification
+3. **list_directory**: Check output directory structure
+
+## Entity Mapping Rules
+| Knowledge Type | Target Code |
+|----------------|-------------|
+| Domain Entity | Data Model/Class/Struct |
+| Business Rule | Validation Logic/Conditions |
+| Business Flow | Function/Method Implementation |
+| Data Interface | API Endpoint/Controller |
+| State Transition | State Machine/Enum Logic |
+
+## Language-Specific Conventions
+When generating code, follow these conventions based on target language:
+- **Rust**: Use struct, impl, fn, pub, Result<T, E>, ? operator
+- **TypeScript**: Use class, interface, async/await, Promises
+- **Python**: Use class, def, dataclasses, type hints
+- **Go**: Use struct, func, error, goroutines if needed
+- **Java**: Use class, public/private, checked exceptions
+- **C#**: Use class, public/private, async/await, Task<T>
+
+## Verification Report Format
+Agent3 MUST output verification reports in this format:
+\`\`\`markdown
+# Verification Report: [Component Name]
+
+## Coverage Metrics
+- Business Rules Implemented: X/Y (Z%)
+- Entity Properties Covered: X/Y (Z%)
+- API Endpoints Matched: X/Y (Z%)
+
+## Quality Scores (1-5)
+- Completeness: X/5
+- Accuracy: X/5
+- Naming Convention: X/5
+
+## Issues Found
+| Issue | Severity | Description |
+|-------|----------|-------------|
+| 1 | HIGH/MEDIUM/LOW | Description |
+
+## Final Verdict
+PASS / FAIL (requires rework)
+\`\`\`
+
+## Verification Failure Handling
+If verification fails (coverage < 95% or accuracy < 98%):
+1. Flag specific issues with line numbers
+2. Request Agent2 to fix specific issues
+3. Re-verify after fixes
+4. If still failing after 2 iterations, escalate to user
+
+## Quality Metrics
+| Metric | Target | Threshold |
+|--------|--------|------------|
+| Business Rule Coverage | ≥95% | 90% |
+| Semantic Equivalence | ≥98% | 95% |
+| Code Completeness | 100% | 100% |
+| Verification Pass Rate | ≥90% | 85% |
+
+## Collaboration Protocol
+1. Request ALL required user inputs before proceeding
+2. Agent1 retrieves knowledge and creates architecture spec
+3. Present architecture to user for confirmation
+4. Agent2 generates models, logic, and API in parallel after user confirmation
+5. Agent3 verifies each component against knowledge
+6. If all verifications pass, Agent4 integrates
+7. If any verification fails, follow Verification Failure Handling
+
+## User Interaction Format
+When requesting inputs, use this format:
+\`\`\`
+## Information Required
+
+Please provide the following information to start:
+
+1. **Target Knowledge Base**: Run 'list_knowledge_bases' to see available options
+2. **Programming Language**: [Rust/TypeScript/Python/Go/Java/C#/Other]
+3. **Framework** (optional): [React/Spring/Django/None]
+4. **Output Directory**: [path for generated code]
+5. **Project Type** (optional): [API/CLI/WebApp/Library]
+\`\`\``,
+    initialMessage: 'Start the knowledge-to-code migration workflow. First, you MUST request the required information from the user: (1) target knowledge base ID, (2) target programming language, (3) target framework (optional), (4) output directory, (5) project type (optional). Do NOT proceed until all required information is provided. Then retrieve business knowledge, present architecture for confirmation, generate code, verify against knowledge, and integrate.',
+    permissionMode: 'accept_edits',
+    scenarios: ['coding'],
+    steps: [
+      { id: 'collect-inputs', goal: 'Request required information from user: target language, framework, knowledge base ID, output directory, project type. Do NOT proceed until all required inputs are provided.', role: 'researcher', needs: [] },
+      { id: 'retrieve', goal: 'Retrieve all relevant business knowledge from specified knowledge base: entities, flows, interfaces. Present retrieved content to user for confirmation.', role: 'researcher', needs: ['collect-inputs'] },
+      { id: 'design', goal: 'Agent1: Analyze knowledge and design target architecture with component mapping. Present architecture specification to user for confirmation before proceeding.', role: 'planner', needs: ['retrieve'] },
+      { id: 'generate-entities', goal: 'Agent2: Generate data models/classes from business entities using target language conventions - use write_file tool to output code', role: 'developer', needs: ['design'] },
+      { id: 'generate-logic', goal: 'Agent2: Implement business logic from business flows using target language - use write_file tool to output code', role: 'developer', needs: ['design'] },
+      { id: 'generate-api', goal: 'Agent2: Create API layer from interface definitions using target language/framework - use write_file tool to output code', role: 'developer', needs: ['design'] },
+      { id: 'verify-entities', goal: 'Agent3: Verify entity code matches knowledge entity definitions - read generated files, output verification report in specified format', role: 'reviewer', needs: ['generate-entities'] },
+      { id: 'verify-logic', goal: 'Agent3: Verify logic code implements all business rules from knowledge flows - read generated files, output verification report', role: 'reviewer', needs: ['generate-logic'] },
+      { id: 'verify-api', goal: 'Agent3: Verify API code matches interface definitions - read generated files, output verification report', role: 'reviewer', needs: ['generate-api'] },
+      { id: 'handle-failures', goal: 'If any verification failed (coverage <95% or accuracy <98%), request Agent2 fixes for specific issues. Re-verify after fixes. Escalate to user if still failing after 2 iterations.', role: 'reviewer', needs: ['verify-entities', 'verify-logic', 'verify-api'] },
+      { id: 'integrate', goal: 'Agent4: Integrate all components, resolve dependencies, ensure consistency - produce final integrated codebase in output directory', role: 'synthesizer', needs: ['handle-failures'] },
+      { id: 'report', goal: 'Agent4: Generate final validation report with quality metrics, verification results, and generated file list - save using add_knowledge_document', role: 'synthesizer', needs: ['integrate'] },
     ],
   },
 ];

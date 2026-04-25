@@ -103,7 +103,7 @@ fn generate_session_id() -> String {
     let timestamp = chrono::Utc::now().timestamp_millis();
     let random: String = (0..11)
         .map(|_| {
-            let idx = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0).abs() as usize) % 36;
+            let idx = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0).unsigned_abs() as usize) % 36;
             let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
             chars[idx] as char
         })
@@ -115,7 +115,7 @@ fn generate_message_id() -> String {
     let timestamp = chrono::Utc::now().timestamp_millis();
     let random: String = (0..11)
         .map(|_| {
-            let idx = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0).abs() as usize) % 36;
+            let idx = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0).unsigned_abs() as usize) % 36;
             let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
             chars[idx] as char
         })

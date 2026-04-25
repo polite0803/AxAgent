@@ -470,6 +470,7 @@ dependencies = [
  "dirs 5.0.1",
  "font-kit",
  "futures",
+ "lazy_static",
  "objc2 0.6.4",
  "open",
  "rcgen",
@@ -478,6 +479,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
@@ -614,13 +616,16 @@ name = "axagent-runtime"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "axagent-core",
  "axagent-plugins",
  "axagent-telemetry",
+ "chrono",
  "futures",
  "glob",
  "quick_cache",
  "regex",
  "reqwest 0.12.28",
+ "sea-orm",
  "serde",
  "serde_json",
  "sha2",
@@ -645,6 +650,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axagent-core",
  "axum",
  "chrono",
  "directories",
@@ -656,6 +662,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sha2",
  "tempfile",
  "thiserror 1.0.69",
@@ -6269,6 +6276,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap 2.14.0",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "serialize-to-javascript"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8091,6 +8111,12 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"

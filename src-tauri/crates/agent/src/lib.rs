@@ -1,5 +1,8 @@
 //! AxAgent Agent - ClawCode Runtime Integration
 
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::collapsible_if)]
+
 pub mod provider_adapter;
 pub mod session_manager;
 pub mod tool_registry;

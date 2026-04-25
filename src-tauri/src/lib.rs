@@ -1,3 +1,7 @@
+#![allow(clippy::result_large_err)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::collapsible_if)]
+
 mod commands;
 mod context_manager;
 mod indexing;
@@ -137,6 +141,8 @@ pub fn run() {
 
             commands::local_tool::list_local_tools,
             commands::local_tool::toggle_local_tool,
+            commands::generated_tool::list_generated_tools,
+            commands::generated_tool::delete_generated_tool,
             commands::memory::list_memory_namespaces,
             commands::memory::create_memory_namespace,
             commands::memory::delete_memory_namespace,
@@ -163,6 +169,8 @@ pub fn run() {
             commands::skills::skill_create,
             commands::skills::skill_patch,
             commands::skills::skill_edit,
+            commands::skills::skill_check_similar,
+            commands::skills::skill_upgrade_or_create,
             commands::skills::get_skill_proposals,
             commands::skills::create_skill_from_proposal,
             commands::settings::get_settings,
@@ -249,6 +257,9 @@ pub fn run() {
             commands::agent_nudge::nudge_stats,
             commands::agent_nudge::nudge_closed_loop_list,
             commands::agent_nudge::nudge_closed_loop_acknowledge,
+            commands::agent_nudge::skill_find_similar,
+            commands::agent_nudge::skill_upgrade_propose,
+            commands::agent_nudge::skill_upgrade_execute,
             commands::agent_insight::insight_list,
             commands::agent_insight::insight_get_by_category,
             commands::agent_insight::insight_report,
@@ -351,6 +362,7 @@ pub fn run() {
             commands::scheduled_task::create_cleanup_task,
             commands::scheduled_task::get_scheduled_task,
             commands::scheduled_task::list_scheduled_tasks,
+            commands::scheduled_task::get_scheduled_task_templates,
             commands::scheduled_task::list_due_tasks,
             commands::scheduled_task::update_scheduled_task,
             commands::scheduled_task::delete_scheduled_task,
@@ -360,6 +372,25 @@ pub fn run() {
             commands::scheduled_task::get_task_execution_history,
             commands::scheduled_task::get_next_scheduled_time,
             commands::scheduled_task::register_task_definition,
+            commands::scheduled_task::execute_scheduled_task,
+            commands::scheduled_task::load_scheduled_tasks_from_db,
+            // Workflow template commands
+            commands::workflow_template::list_workflow_templates,
+            commands::workflow_template::get_workflow_template,
+            commands::workflow_template::create_workflow_template,
+            commands::workflow_template::update_workflow_template,
+            commands::workflow_template::delete_workflow_template,
+            commands::workflow_template::duplicate_workflow_template,
+            commands::workflow_template::validate_workflow_template,
+            commands::workflow_template::export_workflow_template,
+            commands::workflow_template::import_workflow_template,
+            commands::workflow_template::seed_preset_templates,
+            commands::workflow_template::get_template_versions,
+            commands::workflow_template::get_template_by_version,
+            // Workflow AI commands
+            commands::workflow_ai::generate_workflow_from_prompt,
+            commands::workflow_ai::optimize_agent_prompt,
+            commands::workflow_ai::recommend_nodes,
             // Platform integration commands
             commands::platform_integration::get_platform_config,
             commands::platform_integration::update_platform_config,
@@ -370,6 +401,31 @@ pub fn run() {
             commands::platform_integration::deactivate_platform_session,
             commands::platform_integration::send_telegram_message,
             commands::platform_integration::send_discord_message,
+            // Atomic Skill commands
+            commands::atomic_skills::list_atomic_skills,
+            commands::atomic_skills::get_atomic_skill,
+            commands::atomic_skills::create_atomic_skill,
+            commands::atomic_skills::update_atomic_skill,
+            commands::atomic_skills::delete_atomic_skill,
+            commands::atomic_skills::toggle_atomic_skill,
+            commands::atomic_skills::check_semantic_uniqueness,
+            commands::atomic_skills::get_skill_references,
+            commands::atomic_skills::execute_atomic_skill,
+            commands::atomic_skills::check_skill_semantic_matches,
+            commands::atomic_skills::upgrade_skill_with_llm,
+            // Skill Decomposition commands
+            commands::skill_decomposition::preview_decomposition,
+            commands::skill_decomposition::confirm_decomposition,
+            commands::skill_decomposition::generate_missing_tool,
+            // Work Engine commands
+            commands::work_engine::start_workflow_execution,
+            commands::work_engine::pause_workflow_execution,
+            commands::work_engine::resume_workflow_execution,
+            commands::work_engine::cancel_workflow_execution,
+            commands::work_engine::get_workflow_execution_status,
+            commands::work_engine::list_workflow_executions,
+            commands::work_engine::migrate_workflow_nodes,
+            commands::work_engine::migrate_all_workflows,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -407,6 +463,7 @@ pub fn run() {
             let sea_db = state.sea_db.clone();
             let rt = tokio::runtime::Runtime::new().unwrap();
             let _ = rt.block_on(axagent_core::repo::agent_session::reset_running_sessions(&sea_db));
+            let _ = rt.block_on(commands::scheduled_task::load_tasks_from_db_internal(&sea_db, &state.scheduled_task_service));
 
             if let Some(home) = dirs::home_dir() {
                 let user_md_path = home.join(".axagent").join("USER.md");
@@ -458,7 +515,6 @@ pub fn run() {
             }
 
             let app_dir = state.app_data_dir.clone();
-            drop(state);
 
             if let Some(main_window) = app.get_webview_window("main") {
                 #[cfg(target_os = "windows")]

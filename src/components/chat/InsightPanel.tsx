@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Lightbulb } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNudgeStore } from '@/stores';
 import type { InsightCategory } from '@/types/nudge';
@@ -46,9 +47,7 @@ export default function InsightPanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 1.0.0.5-.15m-1.5.15a6.01 6.01 0 01-1.5-.15m3.75 1.5a6 6 0 00-7.5 0m7.5 0a6 6 0 010 7.5m-7.5 0a6 6 0 010-7.5" />
-          </svg>
+          <Lightbulb size={14} />
           {t('chat.insightsMemory')} ({insights.length})
         </button>
       </div>

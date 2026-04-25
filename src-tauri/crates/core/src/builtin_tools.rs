@@ -1287,8 +1287,8 @@ fn delete_storage_file(path: String) -> Result<McpToolResult> {
 
 fn base64_decode(input: &str) -> Result<Vec<u8>> {
     use base64::Engine;
-    Ok(Engine::decode(&base64::engine::general_purpose::STANDARD, input)
-        .map_err(|e| AxAgentError::Gateway(format!("Base64 decode error: {}", e)))?)
+    Engine::decode(&base64::engine::general_purpose::STANDARD, input)
+        .map_err(|e| AxAgentError::Gateway(format!("Base64 decode error: {}", e)))
 }
 
 // ---------------------------------------------------------------------------
@@ -1304,7 +1304,6 @@ fn resolve_skills_dir(skills_dir: &str) -> std::path::PathBuf {
     }
 }
 
-#[allow(dead_code)]
 #[allow(dead_code)]
 fn find_frontmatter_end(content: &str) -> Option<usize> {
     content.find("\n---")
@@ -1620,6 +1619,7 @@ async fn list_processes(limit: usize) -> Result<McpToolResult> {
 /// Global callback for knowledge base search, set at startup.
 /// This allows the builtin tool handler to call into the full RAG pipeline
 /// (embedding + vector store) which requires runtime dependencies.
+#[allow(clippy::type_complexity)]
 static KNOWLEDGE_SEARCH_CALLBACK: std::sync::OnceLock<
     std::sync::Arc<dyn Fn(&str, &str, usize) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<KnowledgeSearchHit>>> + Send + 'static>> + Send + Sync>,
 > = std::sync::OnceLock::new();
@@ -1633,6 +1633,7 @@ pub struct KnowledgeSearchHit {
 }
 
 /// Set the global knowledge search callback. Call once at startup.
+#[allow(clippy::type_complexity)]
 pub fn set_knowledge_search_callback(
     cb: std::sync::Arc<
         dyn Fn(&str, &str, usize) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<KnowledgeSearchHit>>> + Send + 'static>> + Send + Sync,
@@ -1812,6 +1813,7 @@ fn current_timestamp() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn create_knowledge_entity_tool(
     kb_id: &str,
     name: &str,
@@ -1891,6 +1893,7 @@ async fn create_knowledge_entity_tool(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn create_knowledge_flow_tool(
     kb_id: &str,
     name: &str,
@@ -1974,6 +1977,7 @@ async fn create_knowledge_flow_tool(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn create_knowledge_interface_tool(
     kb_id: &str,
     name: &str,

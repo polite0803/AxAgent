@@ -47,7 +47,7 @@ pub async fn nudge_stats(
 ) -> Result<serde_json::Value, String> {
     let ns = app_state.nudge_service.lock().await;
     let stats = ns.get_nudge_stats();
-    Ok(serde_json::to_value(stats).map_err(|e| e.to_string())?)
+    serde_json::to_value(stats).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -67,4 +67,67 @@ pub async fn nudge_closed_loop_acknowledge(
 ) -> Result<(), String> {
     app_state.closed_loop_service.acknowledge_nudge(&nudge_id);
     Ok(())
+}
+
+#[tauri::command]
+pub async fn skill_find_similar(
+    app_state: State<'_, AppState>,
+    topic: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    let closed_loop = app_state.closed_loop_service.clone();
+    let similar = closed_loop.find_similar_skills(&topic)
+        .map_err(|e| e.to_string())?;
+    Ok(similar.iter()
+        .filter_map(|s| serde_json::to_value(s).ok())
+        .collect())
+}
+
+#[tauri::command]
+pub async fn skill_upgrade_propose(
+    app_state: State<'_, AppState>,
+    skill_id: String,
+    _task_description: String,
+) -> Result<Option<serde_json::Value>, String> {
+    let closed_loop = app_state.closed_loop_service.clone();
+
+    if let Ok(Some(skill)) = closed_loop.get_skill_by_id(&skill_id) {
+        let skill_factor = skill.success_rate;
+        let confidence = 0.5 + 0.3 * skill_factor;
+
+        let upgrade_proposal = axagent_trajectory::SkillUpgradeProposal {
+            target_skill_id: skill_id,
+            suggested_improvements: format!("Based on recent usage, consider enhancing the skill '{}' with additional capabilities or error handling", skill.name),
+            additional_scenarios: vec![],
+            confidence,
+            trigger_event: "manual_proposal".to_string(),
+        };
+
+        return Ok(Some(serde_json::to_value(upgrade_proposal).map_err(|e| e.to_string())?));
+    }
+    Ok(None)
+}
+
+#[tauri::command]
+pub async fn skill_upgrade_execute(
+    app_state: State<'_, AppState>,
+    skill_id: String,
+    improvements: String,
+    additional_scenarios: Vec<String>,
+) -> Result<bool, String> {
+    let closed_loop = app_state.closed_loop_service.clone();
+    let upgrade_proposal = axagent_trajectory::SkillUpgradeProposal {
+        target_skill_id: skill_id,
+        suggested_improvements: improvements,
+        additional_scenarios,
+        confidence: 1.0,
+        trigger_event: "manual_upgrade".to_string(),
+    };
+
+    let auto_action = axagent_trajectory::AutoAction {
+        action_type: "upgrade_skill".to_string(),
+        target: serde_json::to_string(&upgrade_proposal).map_err(|e| e.to_string())?,
+    };
+
+    closed_loop.execute_upgrade_action(&auto_action).await;
+    Ok(true)
 }

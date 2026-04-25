@@ -74,7 +74,7 @@ pub struct ContextMetadata {
 }
 
 fn estimate_token_count(text: &str) -> u32 {
-    ((text.len() + 3) / 4) as u32
+    text.len().div_ceil(4) as u32
 }
 
 pub struct ContextAssembler {

@@ -185,8 +185,8 @@ impl GatewayServer {
         // ── Build router(s) ─────────────────────────────────────────────
         // HTTP router: redirect (force_ssl) or full gateway.
         // HTTPS router: always the full gateway when SSL is configured.
-        let http_router: Router = if config.force_ssl && https_actual_addr.is_some() {
-            create_redirect_router(https_actual_addr.unwrap().port())
+        let http_router: Router = if let Some(addr) = config.force_ssl.then_some(https_actual_addr).flatten() {
+            create_redirect_router(addr.port())
         } else {
             crate::routes::create_router(app_state.clone())
         };

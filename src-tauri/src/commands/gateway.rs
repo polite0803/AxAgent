@@ -378,7 +378,7 @@ pub async fn connect_cli_tool(
     key_id: String,
     protocol: String,
 ) -> Result<(), String> {
-    let cli_tool = CliTool::from_str(&tool).map_err(|e| e.to_string())?;
+    let cli_tool = CliTool::try_from_str(&tool).map_err(|e| e.to_string())?;
     let protocol = QuickConnectProtocol::parse(&protocol)?;
 
     // Get plain key via decryption
@@ -399,7 +399,7 @@ pub async fn disconnect_cli_tool(
     tool: String,
     restore_backup: bool,
 ) -> Result<(), String> {
-    let cli_tool = CliTool::from_str(&tool).map_err(|e| e.to_string())?;
+    let cli_tool = CliTool::try_from_str(&tool).map_err(|e| e.to_string())?;
     let gateway_urls = resolve_gateway_urls(&state, cli_tool).await?;
     let connection_state = detect_cli_tool_connection_state(cli_tool, &gateway_urls);
     let gateway_url = disconnect_gateway_url_for_cli_tool(&gateway_urls, &connection_state)?;
@@ -465,7 +465,7 @@ pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMe
 pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
     {
         let gw = state.gateway.lock().await;
-        if gw.as_ref().map_or(false, |s| s.is_running()) {
+        if gw.as_ref().is_some_and(|s| s.is_running()) {
             return Err("Gateway is already running".to_string());
         }
     }
@@ -474,7 +474,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
     validate_ssl_settings(&settings)?;
 
     let mut gw = state.gateway.lock().await;
-    if gw.as_ref().map_or(false, |s| s.is_running()) {
+    if gw.as_ref().is_some_and(|s| s.is_running()) {
         return Err("Gateway is already running".to_string());
     }
     // Drop any stale stopped server before storing the new one.

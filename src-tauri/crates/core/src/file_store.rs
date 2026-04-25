@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use sha2::{Digest, Sha256};
 
 use crate::error::Result;
+use crate::storage_paths::validate_relative_path;
 
 pub struct FileStore {
     base_dir: PathBuf,
@@ -26,6 +27,21 @@ impl FileStore {
     /// Creates a FileStore with an explicit root directory (useful for testing).
     pub fn with_root(root: PathBuf) -> Self {
         Self { base_dir: root }
+    }
+}
+
+impl Default for FileStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FileStore {
+    /// Validate a storage path for path traversal attempts before using it.
+    fn validate_path(&self, storage_path: &str) -> Result<()> {
+        validate_relative_path(storage_path).map_err(|msg| {
+            crate::error::AxAgentError::Validation(format!("Invalid storage path: {}", msg))
+        })
     }
 
     /// Save file bytes to disk. Returns hash and relative storage path.
@@ -60,6 +76,7 @@ impl FileStore {
 
     /// Read file bytes from a relative storage path.
     pub fn read_file(&self, storage_path: &str) -> Result<Vec<u8>> {
+        self.validate_path(storage_path)?;
         let path = self.resolve_path(storage_path);
         if !path.exists() {
             return Err(crate::error::AxAgentError::NotFound(format!(
@@ -72,6 +89,7 @@ impl FileStore {
 
     /// Delete a file from storage.
     pub fn delete_file(&self, storage_path: &str) -> Result<()> {
+        self.validate_path(storage_path)?;
         let path = self.resolve_path(storage_path);
         if path.exists() {
             std::fs::remove_file(&path)?;
@@ -80,7 +98,10 @@ impl FileStore {
     }
 
     fn resolve_path(&self, storage_path: &str) -> PathBuf {
-        self.base_dir.join(storage_path)
+        let resolved = self.base_dir.join(storage_path);
+        // Normalize the path to remove any `.` or `..` components
+        let normalized = resolved.components().collect::<PathBuf>();
+        normalized
     }
 
     fn compute_hash(data: &[u8]) -> String {

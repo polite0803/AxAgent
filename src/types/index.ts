@@ -444,6 +444,8 @@ export interface AppSettings {
   multi_model_display_mode?: 'tabs' | 'side-by-side' | 'stacked';
   /** Render user messages as Markdown (like AI messages). Default: false */
   render_user_markdown?: boolean;
+  /** Default workspace directory for new sessions when not manually set */
+  default_workspace_dir?: string | null;
 }
 
 // === Streaming ===
@@ -560,7 +562,16 @@ export interface GatewayLinkActivity {
 
 // === UI State ===
 export type PageKey = 'chat' | 'knowledge' | 'memory' | 'link' | 'gateway' | 'files' | 'settings' | 'skills';
-export type SettingsSection = 'providers' | 'defaultModel' | 'conversationSettings' | 'general' | 'display' | 'proxy' | 'shortcuts' | 'data' | 'storage' | 'scheduler' | 'backup' | 'about' | 'searchProviders' | 'localTools' | 'mcpServers';
+export type SettingsSection = 'providers' | 'defaultModel' | 'conversationSettings' | 'general' | 'display' | 'proxy' | 'shortcuts' | 'data' | 'storage' | 'scheduler' | 'backup' | 'about' | 'searchProviders' | 'localTools' | 'mcpServers' | 'workflow' | 'tools';
+
+// === Generated Tool ===
+export interface GeneratedToolInfo {
+  id: string;
+  toolName: string;
+  originalName: string;
+  originalDescription: string;
+  createdAt: number;
+}
 
 // === Files Module ===
 export type FileCategory = 'images' | 'files';
@@ -665,3 +676,123 @@ export * from './backup';
 export * from './workspace';
 export * from './agent';
 export * from './nudge';
+
+// ── Atomic Skills ─────────────────────────────────────────────────────
+export interface AtomicSkill {
+  id: string;
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown> | null;
+  output_schema: Record<string, unknown> | null;
+  entry_type: 'builtin' | 'mcp' | 'local' | 'plugin';
+  entry_ref: string;
+  category: string;
+  tags: string[];
+  version: string;
+  enabled: boolean;
+  source: 'atomic' | 'auto-generated';
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AtomicSkillExecutionResult {
+  skill_id: string;
+  success: boolean;
+  output: unknown;
+  execution_time_ms: number;
+  error?: { error_type: string; message: string };
+}
+
+export interface AtomicSkillFilter {
+  category?: string;
+  source?: string;
+  enabled?: boolean;
+}
+
+export interface CreateAtomicSkillParams {
+  name: string;
+  description: string;
+  input_schema?: Record<string, unknown>;
+  output_schema?: Record<string, unknown>;
+  entry_type: 'builtin' | 'mcp' | 'local' | 'plugin';
+  entry_ref: string;
+  category?: string;
+  tags?: string[];
+  version?: string;
+  enabled?: boolean;
+  source?: string;
+}
+
+export interface UpdateAtomicSkillParams {
+  name?: string;
+  description?: string;
+  input_schema?: Record<string, unknown>;
+  output_schema?: Record<string, unknown>;
+  entry_type?: 'builtin' | 'mcp' | 'local' | 'plugin';
+  entry_ref?: string;
+  category?: string;
+  tags?: string[];
+  version?: string;
+  enabled?: boolean;
+  source?: string;
+}
+
+export interface SkillReference {
+  id: string;
+  skill_id: string;
+  workflow_id: string;
+  node_id: string;
+  created_at: number;
+}
+
+// ── Tool Dependencies ─────────────────────────────────────────────────
+export type ToolDependencyStatus = 'satisfied' | 'auto_installable' | 'manual_installable' | 'needs_generation';
+
+export interface ToolDependency {
+  name: string;
+  tool_type: string;
+  status: ToolDependencyStatus;
+  source_info?: string;
+  install_instructions?: string;
+  config_requirements?: string;
+}
+
+// ── Decomposition ─────────────────────────────────────────────────────
+export interface DecompositionPreview {
+  atomic_skills: Array<{
+    id: string;
+    name: string;
+    description: string;
+    entry_type: string;
+    entry_ref: string;
+  }>;
+  tool_dependencies: ToolDependency[];
+  workflow_nodes: unknown;
+  workflow_edges: unknown;
+  original_source: {
+    market: string;
+    repo?: string;
+    version?: string;
+  };
+  cache_id: string;
+}
+
+// ── Work Engine ───────────────────────────────────────────────────────
+export type ExecutionStatus = 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+
+export interface ExecutionStatusResponse {
+  execution_id: string;
+  workflow_id: string;
+  status: ExecutionStatus;
+  current_node_id: string | null;
+  total_time_ms: number;
+  node_count: number;
+}
+
+export interface ExecutionSummary {
+  id: string;
+  workflow_id: string;
+  status: string;
+  total_time_ms: number | null;
+  created_at: number;
+}

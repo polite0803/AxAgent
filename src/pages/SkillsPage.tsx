@@ -1,25 +1,33 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { SkillCreateModal } from '@/components/chat/SkillCreateEditModal';
 import { SkillProposalPanel } from '@/components/chat/SkillProposalPanel';
+import { AtomicSkillList } from '@/components/atomicSkill/AtomicSkillList';
+import { AtomicSkillEditor } from '@/components/atomicSkill/AtomicSkillEditor';
+import { DecompositionPreview } from '@/components/decomposition/DecompositionPreview';
 import {
   Button, Switch, Tag, Input, Modal, Tabs, Space, Spin, Empty,
   Typography, message, Card, Popconfirm, theme, Dropdown, Collapse, Select,
 } from 'antd';
 import {
   FolderOpen, RefreshCw, Download, Trash2, Sparkles, Store, Star, GitFork,
-  ChevronRight, Layers, Radio, Lightbulb,
+  ChevronRight, Layers, Radio, Lightbulb, Workflow,
 } from 'lucide-react';
 import { Claude } from '@lobehub/icons';
 import appLogo from '@/assets/image/logo.png';
 import { useTranslation } from 'react-i18next';
-import { useSkillStore } from '@/stores';
+import { useSkillStore, useUIStore, useWorkflowEditorStore } from '@/stores';
+import { useDecompositionStore } from '@/stores/feature/decompositionStore';
 import type { Skill, MarketplaceSkill } from '@/types';
+import type { WorkflowNode, WorkflowEdge } from '@/components/workflow/types';
 import { CopyButton } from '@/components/common/CopyButton';
 import { CHAT_ICON_COLORS } from '@/lib/iconColors';
 
 const INSTALL_TARGETS = [
   { key: 'axagent', label: '~/.axagent/skills/', desc: 'AxAgent', icon: <Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} /> },
   { key: 'claude', label: '~/.claude/skills/', desc: 'Claude', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
+  { key: 'trae', label: '~/.trae/skills/', desc: 'Trae', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
+  { key: 'codebuddy', label: '~/.codebuddy/skills/', desc: 'CodeBuddy', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
+  { key: 'workbuddy', label: '~/.workbuddy/skills/', desc: 'WorkBuddy', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
   { key: 'agents', label: '~/.agents/skills/', desc: 'Agents', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
 ] as const;
 
@@ -129,6 +137,8 @@ function MarketplaceCard({
   skill,
   onInstall,
   onDetail,
+  onExtract,
+  onConvert,
   installing,
   t,
   source,
@@ -136,6 +146,8 @@ function MarketplaceCard({
   skill: MarketplaceSkill;
   onInstall: (repo: string, target: string) => void;
   onDetail: (repo: string) => void;
+  onExtract: (repo: string) => void;
+  onConvert: (repo: string) => void;
   installing: string | null;
   t: (key: string) => string;
   source: string;
@@ -203,27 +215,23 @@ function MarketplaceCard({
               </Button>
             )
           ) : (
-            <Dropdown
-              menu={{
-                items: INSTALL_TARGETS.map((target) => ({
-                  key: target.key,
-                  icon: target.icon,
-                  label: `${target.desc} (${target.label})`,
-                })),
-                onClick: ({ key }) => onInstall(skill.repo, key),
-              }}
-              trigger={['click']}
-              disabled={installing === skill.repo}
-            >
+            <Space size={4}>
+              <Button
+                size="small"
+                icon={<Layers size={14} />}
+                onClick={() => onExtract(skill.repo)}
+              >
+                {t('skills.extractAtomicSkills')}
+              </Button>
               <Button
                 size="small"
                 type="primary"
-                loading={installing === skill.repo}
-                icon={<Download size={14} color={CHAT_ICON_COLORS.Download} />}
+                icon={<Workflow size={14} />}
+                onClick={() => onConvert(skill.repo)}
               >
-                {t('skills.install')}
+                {t('skills.marketplace.convertToWorkflow')}
               </Button>
-            </Dropdown>
+            </Space>
           )}
         </div>
       </div>
@@ -236,10 +244,10 @@ export function SkillsPage() {
   const { token } = theme.useToken();
   const [messageApi, contextHolder] = message.useMessage();
   const {
-    skills, marketplaceSkills, loading, marketplaceLoading, selectedSkill,
+    skills, marketplaceSkills, loading, marketplaceLoading, marketplaceHasMore, selectedSkill,
     loadSkills, getSkill, toggleSkill, installSkill, uninstallSkill,
     uninstallSkillGroup,
-    openSkillDir, searchMarketplace, clearSelectedSkill,
+    openSkillDir, searchMarketplace, loadMoreMarketplace, clearSelectedSkill,
   } = useSkillStore();
 
   const [installUrl, setInstallUrl] = useState('');
@@ -253,8 +261,23 @@ export function SkillsPage() {
   const [marketplaceDetailLoading, setMarketplaceDetailLoading] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'axagent' | 'claude' | 'agents'>('all');
   const [sortOrder, setSortOrder] = useState<'popular' | 'latest' | 'stars'>('popular');
+  const [decomposePreviewOpen, setDecomposePreviewOpen] = useState(false);
+  const [decomposeRequest, setDecomposeRequest] = useState<{
+    name: string;
+    description: string;
+    content: string;
+    source: string;
+    version?: string;
+    repo?: string;
+  } | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
+  const [atomicSkillEditVisible, setAtomicSkillEditVisible] = useState(false);
+  const [editingAtomicSkill, setEditingAtomicSkill] = useState<import('@/types').AtomicSkill | null>(null);
+
+  const { previewDecomposition } = useDecompositionStore();
+  const { setImportedWorkflowData } = useWorkflowEditorStore();
+  const { openWorkflowEditor } = useUIStore();
 
   useEffect(() => {
     loadSkills();
@@ -323,15 +346,220 @@ export function SkillsPage() {
     setMarketplaceDetailLoading(true);
     setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: '' });
     try {
-      const res = await fetch(`https://raw.githubusercontent.com/${repo}/main/SKILL.md`);
-      const content = res.ok ? await res.text() : '(SKILL.md not found)';
+      const branches = ['main', 'master'];
+      let content = '';
+      for (const branch of branches) {
+        const res = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/SKILL.md`);
+        if (res.ok) {
+          content = await res.text();
+          if (content.trim()) break;
+        }
+      }
+      if (!content.trim()) {
+        content = `(${t('skills.marketplace.skillsMdNotFound') || 'SKILL.md not found in main or master branch'})`;
+      }
       setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content });
     } catch {
-      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: '(Failed to fetch SKILL.md)' });
+      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: `(${t('skills.marketplace.skillsMdFetchFailed') || 'Failed to fetch SKILL.md'})` });
     } finally {
       setMarketplaceDetailLoading(false);
     }
-  }, [marketplaceSkills]);
+  }, [marketplaceSkills, t]);
+
+  const handleMarketplaceExtract = useCallback(async (repo: string) => {
+    const skill = marketplaceSkills.find(s => s.repo === repo);
+    if (!skill) return;
+    setMarketplaceDetailOpen(true);
+    setMarketplaceDetailLoading(true);
+    setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: '' });
+    try {
+      const branches = ['main', 'master'];
+      let content = '';
+      for (const branch of branches) {
+        const res = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/SKILL.md`);
+        if (res.ok) {
+          content = await res.text();
+          if (content.trim()) break;
+        }
+      }
+      if (!content.trim()) {
+        content = `(${t('skills.marketplace.skillsMdNotFound') || 'SKILL.md not found in main or master branch'})`;
+      }
+      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content });
+      if (!content.startsWith('(')) {
+        setDecomposeRequest({
+          name: skill.name,
+          description: skill.description,
+          content: content,
+          source: marketplaceSource,
+          repo: repo,
+          version: skill.currentVersion || skill.latestVersion,
+        });
+        setDecomposePreviewOpen(true);
+        setMarketplaceDetailOpen(false);
+      }
+    } catch {
+      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: `(${t('skills.marketplace.skillsMdFetchFailed') || 'Failed to fetch SKILL.md'})` });
+    } finally {
+      setMarketplaceDetailLoading(false);
+    }
+  }, [marketplaceSkills, marketplaceSource, t]);
+
+  const handleMarketplaceConvert = useCallback(async (repo: string) => {
+    const skill = marketplaceSkills.find(s => s.repo === repo);
+    if (!skill) return;
+    setMarketplaceDetailOpen(true);
+    setMarketplaceDetailLoading(true);
+    setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: '' });
+    try {
+      const branches = ['main', 'master'];
+      let content = '';
+      for (const branch of branches) {
+        const res = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/SKILL.md`);
+        if (res.ok) {
+          content = await res.text();
+          if (content.trim()) break;
+        }
+      }
+      if (!content.trim()) {
+        content = `(${t('skills.marketplace.skillsMdNotFound') || 'SKILL.md not found in main or master branch'})`;
+      }
+      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content });
+      if (!content.startsWith('(')) {
+        await previewDecomposition({
+          name: skill.name,
+          description: skill.description,
+          content: content,
+          source: marketplaceSource,
+          repo,
+        });
+        const { preview } = useDecompositionStore.getState();
+        if (preview?.workflow_nodes && preview?.workflow_edges) {
+          setImportedWorkflowData({
+            nodes: preview.workflow_nodes as WorkflowNode[],
+            edges: preview.workflow_edges as WorkflowEdge[],
+            name: skill.name,
+            description: skill.description,
+            isDecompositionWorkflow: true,
+            decompositionSource: {
+              market: marketplaceSource,
+              repo: repo,
+              version: skill.currentVersion || skill.latestVersion,
+              content: content,
+            },
+          });
+          openWorkflowEditor();
+          setMarketplaceDetailOpen(false);
+        }
+      }
+    } catch {
+      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: `(${t('skills.marketplace.skillsMdFetchFailed') || 'Failed to fetch SKILL.md'})` });
+    } finally {
+      setMarketplaceDetailLoading(false);
+    }
+  }, [marketplaceSkills, marketplaceSource, previewDecomposition, setImportedWorkflowData, openWorkflowEditor, t]);
+
+  const handleConvertToWorkflow = useCallback(async (repo: string) => {
+    const skill = marketplaceSkills.find(s => s.repo === repo);
+    if (!skill || !marketplaceDetailContent?.content) return;
+    try {
+      await previewDecomposition({
+        name: skill.name,
+        description: skill.description,
+        content: marketplaceDetailContent.content,
+        source: marketplaceSource,
+        repo,
+      });
+      const { preview } = useDecompositionStore.getState();
+      if (preview?.workflow_nodes && preview?.workflow_edges) {
+        setImportedWorkflowData({
+          nodes: preview.workflow_nodes as WorkflowNode[],
+          edges: preview.workflow_edges as WorkflowEdge[],
+          name: skill.name,
+          description: skill.description,
+          isDecompositionWorkflow: true,
+          decompositionSource: {
+            market: marketplaceSource,
+            repo: repo,
+            version: skill.currentVersion || skill.latestVersion,
+            content: marketplaceDetailContent.content,
+          },
+        });
+        openWorkflowEditor();
+      }
+    } catch (e) {
+      console.error('Failed to convert skill to workflow:', e);
+    }
+  }, [marketplaceSkills, marketplaceDetailContent, marketplaceSource, previewDecomposition, setImportedWorkflowData, openWorkflowEditor]);
+
+  const handleMarketplaceExtractAtomicSkills = useCallback(async () => {
+    const skill = marketplaceSkills.find(s => s.repo === marketplaceDetailContent?.repo);
+    if (!skill || !marketplaceDetailContent?.content) return;
+    setDecomposeRequest({
+      name: skill.name,
+      description: skill.description,
+      content: marketplaceDetailContent.content,
+      source: marketplaceSource,
+      repo: marketplaceDetailContent.repo,
+      version: skill.currentVersion || skill.latestVersion,
+    });
+    setDecomposePreviewOpen(true);
+    setMarketplaceDetailOpen(false);
+  }, [marketplaceSkills, marketplaceDetailContent, marketplaceSource, setMarketplaceDetailOpen]);
+
+  const handleConvertMySkillToWorkflow = useCallback(async () => {
+    if (!selectedSkill?.content) return;
+    try {
+      await previewDecomposition({
+        name: selectedSkill.info.name,
+        description: selectedSkill.info.description,
+        content: selectedSkill.content,
+        source: selectedSkill.info.source,
+        repo: selectedSkill.info.name,
+      });
+      const { preview } = useDecompositionStore.getState();
+      if (preview?.workflow_nodes && preview?.workflow_edges) {
+        setImportedWorkflowData({
+          nodes: preview.workflow_nodes as WorkflowNode[],
+          edges: preview.workflow_edges as WorkflowEdge[],
+          name: selectedSkill.info.name,
+          description: selectedSkill.info.description,
+          isDecompositionWorkflow: true,
+          decompositionSource: {
+            market: selectedSkill.info.source,
+            repo: selectedSkill.info.name,
+            version: selectedSkill.info.version,
+            content: selectedSkill.content,
+          },
+        });
+        openWorkflowEditor();
+        setDetailOpen(false);
+      }
+    } catch (e) {
+      console.error('Failed to convert my skill to workflow:', e);
+    }
+  }, [selectedSkill, previewDecomposition, setImportedWorkflowData, openWorkflowEditor]);
+
+  const handleExtractAtomicSkills = useCallback(async () => {
+    if (!selectedSkill?.content) return;
+    setDecomposeRequest({
+      name: selectedSkill.info.name,
+      description: selectedSkill.info.description,
+      content: selectedSkill.content,
+      source: selectedSkill.info.source,
+      repo: selectedSkill.info.name,
+      version: selectedSkill.info.version,
+    });
+    setDecomposePreviewOpen(true);
+    setDetailOpen(false);
+  }, [selectedSkill, setDetailOpen]);
+
+  const handleDecomposeComplete = useCallback(() => {
+    setDecomposePreviewOpen(false);
+    setDecomposeRequest(null);
+    loadSkills();
+    messageApi.success(t('skills.decomposeSuccess', 'Atomic skills extracted successfully'));
+  }, [loadSkills, messageApi, t]);
 
   const handleUninstall = useCallback(async (name: string) => {
     try {
@@ -645,17 +873,28 @@ export function SkillsPage() {
             description={t('skills.noResults')}
           />
         ) : (
-          marketplaceSkills.map((skill) => (
-            <MarketplaceCard
-              key={skill.repo}
-              skill={skill}
-              onInstall={handleInstallFromMarketplace}
-              onDetail={handleMarketplaceDetail}
-              installing={installing}
-              t={t}
-              source={marketplaceSource}
-            />
-          ))
+          <>
+            {marketplaceSkills.map((skill) => (
+              <MarketplaceCard
+                key={skill.repo}
+                skill={skill}
+                onInstall={handleInstallFromMarketplace}
+                onDetail={handleMarketplaceDetail}
+                onExtract={handleMarketplaceExtract}
+                onConvert={handleMarketplaceConvert}
+                installing={installing}
+                t={t}
+                source={marketplaceSource}
+              />
+            ))}
+            {marketplaceHasMore && (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <Button onClick={loadMoreMarketplace} loading={marketplaceLoading}>
+                  {t('skills.loadMore')}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -678,8 +917,20 @@ export function SkillsPage() {
               children: mySkillsContent,
             },
             {
+              key: 'atomic',
+              label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>⚛️{t('skills.atomicSkills', '原子Skill')}</span>,
+              children: (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <AtomicSkillList
+                    onEdit={(skill) => { setEditingAtomicSkill(skill); setAtomicSkillEditVisible(true); }}
+                    onCreate={() => { setEditingAtomicSkill(null); setAtomicSkillEditVisible(true); }}
+                  />
+                </div>
+              ),
+            },
+            {
               key: 'marketplace',
-              label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Store size={14} color={CHAT_ICON_COLORS.Cloud} />{t('skills.marketplace')}</span>,
+              label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Store size={14} color={CHAT_ICON_COLORS.Cloud} />{t('skills.marketplace.title')}</span>,
               children: marketplaceContent,
             },
           ]}
@@ -719,7 +970,24 @@ export function SkillsPage() {
         title={t('skills.detail')}
         open={detailOpen}
         onCancel={() => { setDetailOpen(false); clearSelectedSkill(); }}
-        footer={null}
+        footer={
+          selectedSkill && selectedSkill.content && !selectedSkill.content.startsWith('(') ? (
+            <Space>
+              <Button
+                icon={<Layers size={14} />}
+                onClick={handleExtractAtomicSkills}
+              >
+                {t('skills.extractAtomicSkills', 'Extract Atomic Skills')}
+              </Button>
+              <Button
+                icon={<Workflow size={14} />}
+                onClick={handleConvertMySkillToWorkflow}
+              >
+                {t('skills.marketplace.convertToWorkflow')}
+              </Button>
+            </Space>
+          ) : null
+        }
         width={640}
       >
         {selectedSkill && (
@@ -784,7 +1052,24 @@ export function SkillsPage() {
         title={t('skills.detail')}
         open={marketplaceDetailOpen}
         onCancel={() => { setMarketplaceDetailOpen(false); setMarketplaceDetailContent(null); }}
-        footer={null}
+        footer={
+          marketplaceDetailContent && !marketplaceDetailContent.content.startsWith('(') ? (
+            <Space>
+              <Button
+                icon={<Layers size={14} />}
+                onClick={handleMarketplaceExtractAtomicSkills}
+              >
+                {t('skills.extractAtomicSkills', 'Extract Atomic Skills')}
+              </Button>
+              <Button
+                icon={<Workflow size={14} />}
+                onClick={() => handleConvertToWorkflow(marketplaceDetailContent.repo)}
+              >
+                {t('skills.marketplace.convertToWorkflow')}
+              </Button>
+            </Space>
+          ) : null
+        }
         width={640}
       >
         {marketplaceDetailContent && (
@@ -833,6 +1118,21 @@ export function SkillsPage() {
         open={proposalPanelOpen}
         onClose={() => setProposalPanelOpen(false)}
       />
+
+      <AtomicSkillEditor
+        visible={atomicSkillEditVisible}
+        skill={editingAtomicSkill}
+        onClose={() => { setAtomicSkillEditVisible(false); setEditingAtomicSkill(null); }}
+      />
+
+      {decomposeRequest && (
+        <DecompositionPreview
+          visible={decomposePreviewOpen}
+          request={decomposeRequest}
+          onClose={() => { setDecomposePreviewOpen(false); setDecomposeRequest(null); }}
+          onComplete={handleDecomposeComplete}
+        />
+      )}
     </>
   );
 }

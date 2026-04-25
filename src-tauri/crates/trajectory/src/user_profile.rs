@@ -246,8 +246,7 @@ impl UserProfile {
                 continue; // Skip title
             } else if trimmed.starts_with("## ") {
                 current_section = trimmed[3..].to_string();
-            } else if trimmed.starts_with("- ") {
-                let value = &trimmed[2..];
+            } else if let Some(value) = trimmed.strip_prefix("- ") {
                 match current_section.as_str() {
                     "Preferences" => {
                         if let Some((k, v)) = value.split_once(':') {

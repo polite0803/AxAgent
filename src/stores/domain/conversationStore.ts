@@ -9,6 +9,10 @@ import {
   useStreamStore,
   appendStreamChunk,
   flushPendingStreamChunk,
+  startConversationStream,
+  stopConversationStream,
+  getStreamingMessageId,
+  isConversationStreaming as isConvStreaming,
   // Module-level variable accessors
   _unlisten, _listenerGen, _streamBuffer, _streamPrefix,
   _pendingConversationRefresh, STREAM_UI_FLUSH_INTERVAL_MS,
@@ -272,8 +276,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   setActiveConversation: (id) => {
+    if (id === get().activeConversationId && (!id || !_pendingConversationRefresh.has(id))) {
+      return;
+    }
     incrementActiveMessageLoadSeq();
     if (!id) {
+      if (get().activeConversationId === null) return;
       set({
         activeConversationId: null,
         messages: [],
@@ -320,7 +328,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
       // If there's an active stream for this conversation, inject buffered content
-      if (_streamBuffer && _streamBuffer.conversationId === id && useStreamStore.getState().streaming) {
+      if (_streamBuffer && _streamBuffer.conversationId === id && isConvStreaming(useStreamStore.getState().activeStreams, id)) {
         const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
         set((s) => {
           const exists = s.messages.some((m) => m.id === realId);
@@ -648,12 +656,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set((s) => ({
       messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
     }));
-    useStreamStore.setState({
-      streaming: true,
-      streamingConversationId: conversationId,
-      streamingMessageId: tempAssistantId,
+    useStreamStore.setState((s) => ({
+      ...startConversationStream(s.activeStreams, conversationId, tempAssistantId),
+      streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
       thinkingActiveMessageIds: new Set<string>(),
-    });
+    }));
     setPendingUiChunk(null);
     if (_streamUiFlushTimer !== null) {
       clearTimeout(_streamUiFlushTimer);
@@ -716,19 +723,22 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // In browser mode, simulate brief loading then fetch the mock AI response
       if (!isTauri()) {
         await new Promise((r) => setTimeout(r, 600));
-        useStreamStore.setState({ streaming: false, streamingMessageId: null, streamingConversationId: null, thinkingActiveMessageIds: new Set<string>() });
+        useStreamStore.setState((s) => ({
+          ...stopConversationStream(s.activeStreams, conversationId),
+          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+          thinkingActiveMessageIds: new Set<string>(),
+        }));
         get().fetchMessages(conversationId);
       }
     } catch (e) {
       console.error('[sendMessage] error:', e);
       const errMsg = String(e);
-      const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
-      useStreamStore.setState({
-        streaming: false,
-        streamingMessageId: null,
-        streamingConversationId: null,
+      const currentStreamingMessageId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
+      useStreamStore.setState((s) => ({
+        ...stopConversationStream(s.activeStreams, conversationId),
+        streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
         thinkingActiveMessageIds: new Set<string>(),
-      });
+      }));
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
@@ -824,13 +834,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set((s) => ({
       messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
     }));
-    useStreamStore.setState({
-      streaming: true,
-      streamingConversationId: conversationId,
-      streamingMessageId: currentMsgId,
-    });
+    useStreamStore.setState((s) => ({
+      ...startConversationStream(s.activeStreams, conversationId, currentMsgId),
+      streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+    }));
 
-    // Set up event listeners BEFORE invoking to avoid race conditions
     let unlistenDone: UnlistenFn | null = null;
     let unlistenError: UnlistenFn | null = null;
     let unlistenStreamText: UnlistenFn | null = null;
@@ -935,7 +943,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           const realId = event.payload.assistantMessageId;
           const oldId = currentMsgId;
           currentMsgId = realId;
-          useStreamStore.setState({ streamingMessageId: realId });
+          useStreamStore.setState((s) => ({
+            ...startConversationStream(s.activeStreams, conversationId, realId),
+            streamingMessageId: realId,
+          }));
           set((s) => ({
             messages: s.messages.map((m) =>
               m.id === oldId ? { ...m, id: realId } : m
@@ -963,7 +974,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           // Clear pending buffer (done event overwrites with final content)
           clearAgentStreamBuffer();
           // Skip if streaming was already cancelled (avoid stale fetchMessages re-render)
-          const isStillStreaming = useStreamStore.getState().streaming && useStreamStore.getState().streamingMessageId === currentMsgId;
+          const isStillStreaming = isConvStreaming(useStreamStore.getState().activeStreams, conversationId);
           if (!isStillStreaming) {
             cleanup();
             resolve();
@@ -971,9 +982,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           }
 
           useStreamStore.setState((s) => ({
-            streaming: false,
-            streamingMessageId: null,
-            streamingConversationId: null,
+            ...stopConversationStream(s.activeStreams, conversationId),
+            streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
             thinkingActiveMessageIds: (() => {
               const next = new Set(s.thinkingActiveMessageIds);
               next.delete(currentMsgId);
@@ -1008,7 +1018,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           // Clear pending buffer (error event overwrites content)
           clearAgentStreamBuffer();
           // Skip if streaming was already cancelled
-          const isStillStreaming = useStreamStore.getState().streaming && useStreamStore.getState().streamingMessageId === currentMsgId;
+          const isStillStreaming = isConvStreaming(useStreamStore.getState().activeStreams, conversationId);
           if (!isStillStreaming) {
             cleanup();
             resolve();
@@ -1016,9 +1026,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           }
 
           useStreamStore.setState((s) => ({
-            streaming: false,
-            streamingMessageId: null,
-            streamingConversationId: null,
+            ...stopConversationStream(s.activeStreams, conversationId),
+            streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
             thinkingActiveMessageIds: (() => {
               const next = new Set(s.thinkingActiveMessageIds);
               next.delete(currentMsgId);
@@ -1059,17 +1068,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Wait for agent-done or agent-error event
       await eventPromise;
     } catch (e) {
-      cleanup();
+      // Safeguard: ensure listeners are always cleaned up, even if cleanup() itself throws
+      try { cleanup(); } catch (_) { /* ignore cleanup errors */ }
       const errMsg = String(e);
       console.error('[sendAgentMessage] error:', errMsg);
 
       // If streaming is still true, the error came from invoke itself (not an event)
-      if (useStreamStore.getState().streaming && (useStreamStore.getState().streamingMessageId === currentMsgId)) {
-        useStreamStore.setState({
-          streaming: false,
-          streamingMessageId: null,
-          streamingConversationId: null,
-        });
+      if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+        useStreamStore.setState((s) => ({
+          ...stopConversationStream(s.activeStreams, conversationId),
+          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+        }));
         set((s) => ({
           messages: s.messages.map((m) =>
             m.id === currentMsgId
@@ -1159,12 +1168,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         messages: updated,
       };
     });
-    useStreamStore.setState({
-      streaming: true,
-      streamingMessageId: tempAssistantId,
-      streamingConversationId: conversationId,
+    useStreamStore.setState((s) => ({
+      ...startConversationStream(s.activeStreams, conversationId, tempAssistantId),
+      streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
       thinkingActiveMessageIds: new Set<string>(),
-    });
+    }));
     setPendingUiChunk(null);
     if (_streamUiFlushTimer !== null) {
       clearTimeout(_streamUiFlushTimer);
@@ -1188,19 +1196,22 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // In browser mode, simulate brief loading then fetch the mock AI response
       if (!isTauri()) {
         await new Promise((r) => setTimeout(r, 600));
-        useStreamStore.setState({ streaming: false, streamingMessageId: null, streamingConversationId: null, thinkingActiveMessageIds: new Set<string>() });
+        useStreamStore.setState((s) => ({
+          ...stopConversationStream(s.activeStreams, conversationId),
+          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+          thinkingActiveMessageIds: new Set<string>(),
+        }));
         get().fetchMessages(conversationId);
       }
     } catch (e) {
       console.error('[regenerateMessage] error:', e);
       const errMsg = String(e);
-      const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
-      useStreamStore.setState({
-        streaming: false,
-        streamingMessageId: null,
-        streamingConversationId: null,
+      const currentStreamingMessageId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
+      useStreamStore.setState((s) => ({
+        ...stopConversationStream(s.activeStreams, conversationId),
+        streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
         thinkingActiveMessageIds: new Set<string>(),
-      });
+      }));
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
@@ -1270,12 +1281,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         messages: updated,
       };
     });
-    useStreamStore.setState({
-      streaming: true,
-      streamingMessageId: tempAssistantId,
-      streamingConversationId: conversationId,
+    useStreamStore.setState((s) => ({
+      ...startConversationStream(s.activeStreams, conversationId, tempAssistantId),
+      streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
       thinkingActiveMessageIds: new Set<string>(),
-    });
+    }));
     setPendingUiChunk(null);
     if (_streamUiFlushTimer !== null) {
       clearTimeout(_streamUiFlushTimer);
@@ -1300,19 +1310,22 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       if (!isTauri()) {
         await new Promise((r) => setTimeout(r, 600));
-        useStreamStore.setState({ streaming: false, streamingMessageId: null, streamingConversationId: null, thinkingActiveMessageIds: new Set<string>() });
+        useStreamStore.setState((s) => ({
+          ...stopConversationStream(s.activeStreams, conversationId),
+          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+          thinkingActiveMessageIds: new Set<string>(),
+        }));
         get().fetchMessages(conversationId);
       }
     } catch (e) {
       console.error('[regenerateWithModel] error:', e);
       const errMsg = String(e);
-      const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
-      useStreamStore.setState({
-        streaming: false,
-        streamingMessageId: null,
-        streamingConversationId: null,
+      const currentStreamingMessageId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
+      useStreamStore.setState((s) => ({
+        ...stopConversationStream(s.activeStreams, conversationId),
+        streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
         thinkingActiveMessageIds: new Set<string>(),
-      });
+      }));
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
@@ -1635,7 +1648,28 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== conversationId) {
         return;
       }
-      set({ error: String(e), loading: false, loadingOlder: false });
+      const errorMessage = String(e);
+      if (errorMessage.includes('Not found: Conversation')) {
+        console.warn('Conversation no longer exists on backend, clearing active selection:', conversationId);
+        await get().fetchConversations().catch(() => {});
+        const nextConversation = get().conversations[0] ?? get().archivedConversations[0] ?? null;
+        if (nextConversation) {
+          get().setActiveConversation(nextConversation.id);
+          return;
+        }
+        set({
+          activeConversationId: null,
+          messages: [],
+          loading: false,
+          loadingOlder: false,
+          hasOlderMessages: false,
+          totalActiveCount: 0,
+          oldestLoadedMessageId: null,
+          error: errorMessage,
+        });
+        return;
+      }
+      set({ error: errorMessage, loading: false, loadingOlder: false });
     }
   },
 
@@ -1999,7 +2033,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       setStreamUiFlushTimer(null);
     }
     // Tell the backend to cancel the stream — fire and forget
-    const conversationId = useStreamStore.getState().streamingConversationId ?? get().activeConversationId;
+    const streamState = useStreamStore.getState();
+    const conversationId = streamState.streamingConversationId ?? get().activeConversationId;
     if (conversationId && isTauri()) {
       invoke('cancel_stream', { conversationId }).catch(() => {});
       // Also cancel the agent if in agent mode
@@ -2008,14 +2043,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         invoke('agent_cancel', { request: { conversationId } }).catch(() => {});
       }
     }
+    if (!conversationId) return;
     // Mark the current streaming message as partial
-    const streamMsgId = useStreamStore.getState().streamingMessageId;
-    useStreamStore.setState({
-      streaming: false,
-      streamingMessageId: null,
-      streamingConversationId: null,
+    const streamMsgId = getStreamingMessageId(streamState.activeStreams, conversationId);
+    useStreamStore.setState((s) => ({
+      ...stopConversationStream(s.activeStreams, conversationId),
+      streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
       thinkingActiveMessageIds: new Set<string>(),
-    });
+    }));
     if (streamMsgId) {
       set((s) => ({
         messages: s.messages.map(m => m.id === streamMsgId ? { ...m, status: 'partial' as const } : m),

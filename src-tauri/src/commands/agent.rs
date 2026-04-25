@@ -560,20 +560,22 @@ pub async fn agent_query(
     }
 
     // Set web_search env_json on local tool registry if a search provider is configured
+    #[allow(clippy::collapsible_if)]
     if let Some(ref sp_id) = request.search_provider_id {
+        #[allow(clippy::collapsible_if)]
+        #[allow(clippy::collapsible_match)]
         if let Ok(provider_model) = axagent_core::entity::search_providers::Entity::find_by_id(sp_id)
             .one(&app_state.sea_db)
             .await
         {
+            #[allow(clippy::collapsible_if)]
             if let Some(pm) = provider_model {
+                #[allow(clippy::collapsible_if)]
                 if pm.enabled != 0 {
                     // Decrypt API key
                     let api_key = match &pm.api_key_ref {
                         Some(encrypted) if !encrypted.is_empty() => {
-                            match axagent_core::crypto::decrypt_key(encrypted, &app_state.master_key) {
-                                Ok(k) => k,
-                                Err(_) => String::new(),
-                            }
+                            axagent_core::crypto::decrypt_key(encrypted, &app_state.master_key).unwrap_or_default()
                         }
                         _ => String::new(),
                     };
@@ -746,6 +748,7 @@ pub async fn agent_query(
     let session_manager = &app_state.agent_session_manager;
     // Ensure app_handle is set (idempotent if already set)
     session_manager.set_app_handle(app.clone());
+    session_manager.set_default_workspace_dir(settings.default_workspace_dir.clone());
     info!("[agent_query] Using AppState SessionManager, has_app_handle: {}", session_manager.has_app_handle());
 
     // Get or create session (reuse existing session to preserve conversation history)
@@ -756,7 +759,7 @@ pub async fn agent_query(
 
     // Apply agent role if specified — sets role on session and filters tools
     let resolved_role = request.role.as_deref()
-        .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(r));
+        .and_then(axagent_runtime::agent_roles::AgentRole::from_str_opt);
     if let Some(role) = resolved_role {
         info!("[agent_query] Applying role: {}", role);
         // The role is stored on the session for tracking; tool filtering
@@ -984,7 +987,7 @@ pub async fn agent_query(
         &app_state.sea_db,
         &conversation_id,
     ).await.ok().flatten();
-    let permission_mode_str = db_session.as_ref().and_then(|s| Some(s.permission_mode.clone())).unwrap_or_else(|| "default".to_string());
+    let permission_mode_str = db_session.as_ref().map(|s| s.permission_mode.clone()).unwrap_or_else(|| "default".to_string());
     let runtime_permission_mode = match permission_mode_str.as_str() {
         "full_access" => axagent_runtime::PermissionMode::Allow,
         "accept_edits" => axagent_runtime::PermissionMode::WorkspaceWrite,
@@ -1194,7 +1197,7 @@ pub async fn agent_query(
 
                 // Determine outcome based on tool results
                 let has_errors = steps.iter().any(|s| {
-                    s.tool_results.as_ref().map_or(false, |results| results.iter().any(|r| r.is_error))
+                    s.tool_results.as_ref().is_some_and(|results| results.iter().any(|r| r.is_error))
                 });
                 let outcome = if has_errors {
                     axagent_trajectory::TrajectoryOutcome::Partial
@@ -1208,7 +1211,7 @@ pub async fn agent_query(
                     "default_user".to_string(),
                     trajectory_input[..trajectory_input.len().min(100)].to_string(),
                     trajectory_input[..trajectory_input.len().min(200)].to_string(),
-                    outcome.clone(),
+                    outcome,
                     (now.timestamp_millis() - start_time.timestamp_millis()).max(0) as u64,
                     steps,
                 );
@@ -2129,7 +2132,7 @@ pub async fn workflow_cancel(
         .cancel_workflow(&workflow_id)
         .map_err(|e| e.to_string())?;
 
-    Ok(serde_json::to_value(workflow).map_err(|e| e.to_string())?)
+    serde_json::to_value(workflow).map_err(|e| e.to_string())
 }
 
 /// List all workflows
@@ -2180,7 +2183,7 @@ pub async fn sub_agent_get(
     let registry = app_state.sub_agent_registry.read().unwrap();
     let agent = registry.get(&agent_id)
         .ok_or_else(|| "Agent not found".to_string())?;
-    Ok(serde_json::to_value(agent).map_err(|e| e.to_string())?)
+    serde_json::to_value(agent).map_err(|e| e.to_string())
 }
 
 /// Get children of a parent agent
@@ -2231,7 +2234,7 @@ pub async fn shared_memory_get(
 ) -> Result<Value, String> {
     let mem = app_state.shared_memory.read().unwrap();
     let entry = mem.get(&key, &namespace).map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(entry).map_err(|e| e.to_string())?)
+    serde_json::to_value(entry).map_err(|e| e.to_string())
 }
 
 /// Get shared memory stats
@@ -2241,7 +2244,7 @@ pub async fn shared_memory_stats(
 ) -> Result<Value, String> {
     let mem = app_state.shared_memory.read().unwrap();
     let stats = mem.stats();
-    Ok(serde_json::to_value(stats).map_err(|e| e.to_string())?)
+    serde_json::to_value(stats).map_err(|e| e.to_string())
 }
 
 /// Get workflow step details (for DAG visualization)
@@ -2285,7 +2288,7 @@ pub async fn memory_flush(
     // Use MemoryService to persist the memory
     let ms = app_state.memory_service.read().unwrap();
     let result = ms.add_memory(valid_target, &content);
-    Ok(serde_json::to_value(result).map_err(|e| e.to_string())?)
+    serde_json::to_value(result).map_err(|e| e.to_string())
 }
 
 /// Record feedback signal for RealTimeLearning
@@ -2409,7 +2412,7 @@ pub async fn skill_evolution_start(
 
     match result {
         Some(modification) => {
-            let improved = modification.validation_result.as_ref().map_or(false, |v| v.success);
+            let improved = modification.validation_result.as_ref().is_some_and(|v| v.success);
 
             // If improved, patch the skill
             if improved {

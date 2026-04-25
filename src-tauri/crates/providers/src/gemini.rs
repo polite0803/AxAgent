@@ -14,6 +14,12 @@ pub struct GeminiAdapter {
     client: reqwest::Client,
 }
 
+impl Default for GeminiAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GeminiAdapter {
     pub fn new() -> Self {
         Self {

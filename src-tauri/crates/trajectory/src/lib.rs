@@ -7,6 +7,12 @@
 //! - Skill optimization closed-loop
 //! - Cross-session pattern learning
 
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::result_large_err)]
+#![allow(clippy::large_enum_variant)]
+#![allow(clippy::non_canonical_partial_ord_impl)]
+#![allow(clippy::manual_strip)]
+
 mod auto_memory;
 mod batch;
 mod fts5;
@@ -35,6 +41,8 @@ mod hooks;
 mod storage;
 mod sub_agent;
 mod trajectory;
+mod atomic_skill;
+mod skill_decomposition;
 
 pub use auto_memory::*;
 pub use batch::*;
@@ -55,6 +63,8 @@ pub use user_profile::*;
 pub use hooks::*;
 pub use sub_agent::*;
 pub use trajectory::*;
+pub use atomic_skill::*;
+pub use skill_decomposition::*;
 pub use compactor::{MessageRecord, IntegrityCheckResult, IntegrityCheck, SessionCompactor, verify_compression_integrity};
 pub use nudge::{NudgeService, NudgeConfig, Nudge, NudgeSession, NudgeCandidate, NudgeContext, NudgeEntity, Urgency, NudgeAction, NudgeType, NudgeMessage};
 pub use parallel_execution::*;
@@ -71,9 +81,10 @@ pub mod prelude {
     };
     pub use crate::fts5::{FTS5Config, FTS5Query, FTS5Result, FTS5Search};
     pub use crate::memory::{
-        ClosedLoopConfig, ClosedLoopService, Entity, EntityType, GraphQuery, MemoryActionResult,
-        MemoryConfig, MemoryEntry, MemoryRegistry, MemoryService, MemoryUsage, NudgeCandidate,
-        PeriodicNudge, Relationship, RelationshipType, SearchResult, WorkingMemory,
+        AutoAction, ClosedLoopConfig, ClosedLoopService, Entity, EntityType, GraphQuery,
+        MemoryActionResult, MemoryConfig, MemoryEntry, MemoryRegistry, MemoryService, MemoryUsage,
+        NudgeCandidate, PeriodicNudge, Relationship, RelationshipType, SearchResult,
+        SkillUpgradeProposal, WorkingMemory,
     };
     pub use crate::pattern::{
         CrossSessionInsight, CrossSessionLearner, DetectedPattern, PatternConfig, PatternLearner,

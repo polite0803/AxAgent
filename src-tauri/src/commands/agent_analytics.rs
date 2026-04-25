@@ -7,7 +7,7 @@ pub async fn trajectory_stats(
 ) -> Result<serde_json::Value, String> {
     let stats = app_state.trajectory_storage.get_statistics()
         .map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(stats).map_err(|e| e.to_string())?)
+    serde_json::to_value(stats).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -28,7 +28,7 @@ pub async fn pattern_stats(
 ) -> Result<serde_json::Value, String> {
     let pl = app_state.pattern_learner.read().unwrap();
     let stats = pl.get_statistics();
-    Ok(serde_json::to_value(stats).map_err(|e| e.to_string())?)
+    serde_json::to_value(stats).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -7,12 +7,15 @@ interface UIState {
   sidebarCollapsed: boolean;
   settingsSection: SettingsSection;
   selectedProviderId: string | null;
+  workflowEditorOpen: boolean;
   setActivePage: (page: PageKey) => void;
   enterSettings: () => void;
   exitSettings: () => void;
   toggleSidebar: () => void;
   setSettingsSection: (section: SettingsSection) => void;
   setSelectedProviderId: (id: string | null) => void;
+  openWorkflowEditor: () => void;
+  closeWorkflowEditor: () => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -21,6 +24,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   sidebarCollapsed: false,
   settingsSection: 'general',
   selectedProviderId: null,
+  workflowEditorOpen: false,
   setActivePage: (page) => set({ activePage: page }),
   enterSettings: () => {
     const current = get().activePage;
@@ -35,4 +39,12 @@ export const useUIStore = create<UIState>((set, get) => ({
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSettingsSection: (section) => set({ settingsSection: section }),
   setSelectedProviderId: (id) => set({ selectedProviderId: id }),
+  openWorkflowEditor: () => {
+    set({ settingsSection: 'workflow', workflowEditorOpen: true });
+    const current = get().activePage;
+    if (current !== 'settings') {
+      set({ previousPage: current, activePage: 'settings' });
+    }
+  },
+  closeWorkflowEditor: () => set({ workflowEditorOpen: false }),
 }));

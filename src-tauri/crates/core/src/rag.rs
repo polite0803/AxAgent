@@ -290,7 +290,7 @@ pub async fn collect_rag_context(
     mem_ids: &[String],
     query: &str,
     top_k: usize,
-    embed_fn: impl AsyncEmbedFn + Clone,
+    embed_fn: impl AsyncEmbedFn,
 ) -> RagContextResult {
     let mut sources: Vec<RAGSourceRef> = Vec::new();
 

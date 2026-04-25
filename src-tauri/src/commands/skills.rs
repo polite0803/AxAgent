@@ -19,6 +19,9 @@ fn all_skills_dirs() -> Vec<PathBuf> {
     vec![
         axagent_home().join("skills"),
         home.join(".claude").join("skills"),
+        home.join(".trae").join("skills"),
+        home.join(".codebuddy").join("skills"),
+        home.join(".workbuddy").join("skills"),
         home.join(".agents").join("skills"),
     ]
 }
@@ -359,7 +362,7 @@ async fn install_from_github(
         .map(String::from)
         .ok_or("Empty archive")?;
 
-    let commit = top_dir.split('-').last().unwrap_or("unknown").to_string();
+    let commit = top_dir.split('-').next_back().unwrap_or("unknown").to_string();
 
     archive
         .extract(temp_dir.path())
@@ -627,9 +630,13 @@ pub async fn search_marketplace(
     query: String,
     source: Option<String>,
     sort: Option<String>,
+    page: Option<u32>,
+    per_page: Option<u32>,
 ) -> Result<Vec<MarketplaceSkill>, String> {
     let installed_refs = installed_source_refs();
     let sort_order = sort.as_deref().unwrap_or("popular");
+    let page_num = page.unwrap_or(1).max(1);
+    let per_page_num = per_page.unwrap_or(20).min(100);
 
     match source.as_deref().unwrap_or("skillhub") {
         "github" => {
@@ -639,9 +646,11 @@ pub async fn search_marketplace(
                 _ => "stars",
             };
             let url = format!(
-                "https://api.github.com/search/repositories?q={}+topic:agent-skill&sort={}&per_page=20",
+                "https://api.github.com/search/repositories?q={}+topic:agent-skill&sort={}&per_page={}&page={}",
                 urlencoding::encode(&query),
-                gh_sort
+                gh_sort,
+                per_page_num,
+                page_num
             );
 
             let client = reqwest::Client::new();
@@ -703,17 +712,19 @@ pub async fn search_marketplace(
             Ok(results)
         }
         _ => {
-            let (sort_param, limit) = match sort_order {
+            let (sort_param, _) = match sort_order {
                 "latest" => ("recent", 20),
                 "stars" => ("stars", 20),
                 _ => ("downloads", 20),
             };
             let search_query = if query.is_empty() { "claude".to_string() } else { query };
+            let offset = (page_num - 1) * per_page_num;
             let url = format!(
-                "https://skillshub.wtf/api/v1/skills/search?q={}&sort={}&limit={}",
+                "https://skillshub.wtf/api/v1/skills/search?q={}&sort={}&limit={}&offset={}",
                 urlencoding::encode(&search_query),
                 sort_param,
-                limit
+                per_page_num,
+                offset
             );
 
             let client = reqwest::Client::new();
@@ -868,30 +879,6 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
 // P1: Self-evolution skill create/patch/edit commands
 // ---------------------------------------------------------------------------
 
-/// Create a new skill with SKILL.md (YAML frontmatter + Markdown body)
-#[tauri::command]
-pub async fn skill_create(
-    name: String,
-    description: String,
-    content: String,
-) -> Result<String, String> {
-    let dir = skills_dir().join(&name);
-    if dir.exists() {
-        return Err(format!("Skill '{}' already exists at {}", name, dir.display()));
-    }
-
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-
-    let desc = if description.is_empty() { name.clone() } else { description };
-    let skill_md = format!(
-        "---\nname: {}\ndescription: {}\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
-        name, desc, content
-    );
-
-    std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| e.to_string())?;
-    Ok(format!("Skill '{}' created at {}", name, dir.display()))
-}
-
 /// Patch an existing skill by appending a note
 #[tauri::command]
 pub async fn skill_patch(
@@ -969,8 +956,171 @@ pub async fn create_skill_from_proposal(
     description: String,
     content: String,
 ) -> Result<String, String> {
-    let result = skill_create(name.clone(), description, content).await?;
-    let mut service = state.skill_proposal_service.write().map_err(|e| e.to_string())?;
-    service.clear_proposal(&name);
-    Ok(result)
+    let result = skill_create(state.clone(), name.clone(), description.clone(), content, Some(false)).await?;
+    if result.can_create {
+        let mut service = state.skill_proposal_service.write().map_err(|e| e.to_string())?;
+        service.clear_proposal(&name);
+        Ok(result.message)
+    } else {
+        Err(result.message)
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SimilarSkillInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub version: String,
+    pub scenarios: Vec<String>,
+    pub success_rate: f64,
+    pub similarity_score: f64,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SkillCreateCheckResult {
+    pub has_similar: bool,
+    pub similar_skills: Vec<SimilarSkillInfo>,
+    pub can_create: bool,
+    pub message: String,
+}
+
+#[tauri::command]
+pub async fn skill_check_similar(
+    state: State<'_, AppState>,
+    name: String,
+    description: Option<String>,
+) -> Result<SkillCreateCheckResult, String> {
+    let closed_loop = state.closed_loop_service.clone();
+
+    let check_topic = if let Some(ref desc) = description {
+        if !desc.is_empty() { desc.clone() } else { name.clone() }
+    } else {
+        name.clone()
+    };
+
+    let similar = closed_loop.find_similar_skills(&check_topic)
+        .map_err(|e| e.to_string())?;
+
+    if similar.is_empty() {
+        return Ok(SkillCreateCheckResult {
+            has_similar: false,
+            similar_skills: vec![],
+            can_create: true,
+            message: format!("No similar skills found. You can create '{}'.", name),
+        });
+    }
+
+    let similar_infos: Vec<SimilarSkillInfo> = similar.into_iter().map(|s| {
+        SimilarSkillInfo {
+            id: s.id,
+            name: s.name,
+            description: s.description,
+            version: s.version,
+            scenarios: s.scenarios,
+            success_rate: s.success_rate,
+            similarity_score: 0.7,
+        }
+    }).collect();
+
+    Ok(SkillCreateCheckResult {
+        has_similar: true,
+        similar_skills: similar_infos.clone(),
+        can_create: false,
+        message: format!(
+            "Found {} similar skill(s). Consider upgrading an existing skill instead of creating a new one.",
+            similar_infos.len()
+        ),
+    })
+}
+
+#[tauri::command]
+pub async fn skill_create(
+    state: State<'_, AppState>,
+    name: String,
+    description: String,
+    content: String,
+    check_similar: Option<bool>,
+) -> Result<SkillCreateCheckResult, String> {
+    let check = check_similar.unwrap_or(true);
+
+    if check {
+        let check_result = skill_check_similar(state.clone(), name.clone(), Some(description.clone())).await?;
+        if check_result.has_similar {
+            return Ok(check_result);
+        }
+    }
+
+    let dir = skills_dir().join(&name);
+    if dir.exists() {
+        return Ok(SkillCreateCheckResult {
+            has_similar: false,
+            similar_skills: vec![],
+            can_create: false,
+            message: format!("Skill '{}' already exists at {}", name, dir.display()),
+        });
+    }
+
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let desc = if description.is_empty() { name.clone() } else { description };
+    let skill_md = format!(
+        "---\nname: {}\ndescription: {}\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
+        name, desc, content
+    );
+
+    std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| e.to_string())?;
+
+    Ok(SkillCreateCheckResult {
+        has_similar: false,
+        similar_skills: vec![],
+        can_create: true,
+        message: format!("Skill '{}' created at {}", name, dir.display()),
+    })
+}
+
+#[tauri::command]
+pub async fn skill_upgrade_or_create(
+    state: State<'_, AppState>,
+    name: String,
+    description: String,
+    content: String,
+    target_skill_id: Option<String>,
+    improvements: Option<String>,
+    additional_scenarios: Option<Vec<String>>,
+) -> Result<String, String> {
+    if let Some(skill_id) = target_skill_id {
+        let closed_loop = state.closed_loop_service.clone();
+        let upgrade_proposal = axagent_trajectory::SkillUpgradeProposal {
+            target_skill_id: skill_id,
+            suggested_improvements: improvements.unwrap_or(content),
+            additional_scenarios: additional_scenarios.unwrap_or_default(),
+            confidence: 1.0,
+            trigger_event: "manual_upgrade_or_create".to_string(),
+        };
+
+        let auto_action = axagent_trajectory::AutoAction {
+            action_type: "upgrade_skill".to_string(),
+            target: serde_json::to_string(&upgrade_proposal).map_err(|e| e.to_string())?,
+        };
+
+        closed_loop.execute_upgrade_action(&auto_action).await;
+        return Ok(format!("Skill '{}' upgraded successfully", name));
+    }
+
+    let dir = skills_dir().join(&name);
+    if dir.exists() {
+        return Err(format!("Skill '{}' already exists", name));
+    }
+
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let desc = if description.is_empty() { name.clone() } else { description };
+    let skill_md = format!(
+        "---\nname: {}\ndescription: {}\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
+        name, desc, content
+    );
+
+    std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| e.to_string())?;
+    Ok(format!("Skill '{}' created at {}", name, dir.display()))
 }

@@ -35,6 +35,7 @@ impl TrajectoryStorage {
         }
 
         let conn = Connection::open(path).context("Failed to open SQLite database")?;
+        #[allow(clippy::arc_with_non_send_sync)]
         let conn_arc = Arc::new(RwLock::new(conn));
         let fts_searcher = FTS5Search::new(conn_arc.clone(), FTS5Config::default());
 
@@ -373,8 +374,8 @@ impl TrajectoryStorage {
                     format!("{:?}", step.role).to_lowercase(),
                     step.content,
                     step.reasoning,
-                    step.tool_calls.as_ref().map(|c| serde_json::to_string(c).ok()).flatten(),
-                    step.tool_results.as_ref().map(|r| serde_json::to_string(r).ok()).flatten(),
+                    step.tool_calls.as_ref().and_then(|c| serde_json::to_string(c).ok()),
+                    step.tool_results.as_ref().and_then(|r| serde_json::to_string(r).ok()),
                 ],
             )?;
         }
@@ -630,14 +631,12 @@ impl TrajectoryStorage {
             })?;
 
             let mut trajectories = Vec::new();
-            for row_result in rows {
-                if let Ok(mut traj) = row_result {
-                    let steps = self.get_trajectory_steps(&traj.id)?;
-                    let rewards = self.get_trajectory_rewards(&traj.id)?;
-                    traj.steps = steps;
-                    traj.rewards = rewards;
-                    trajectories.push(traj);
-                }
+            for mut traj in rows.flatten() {
+                let steps = self.get_trajectory_steps(&traj.id)?;
+                let rewards = self.get_trajectory_rewards(&traj.id)?;
+                traj.steps = steps;
+                traj.rewards = rewards;
+                trajectories.push(traj);
             }
             trajectories
         };

@@ -564,7 +564,7 @@ impl SkillCreator {
         let has_error = trajectory.steps.iter().any(|s| {
             s.tool_results
                 .as_ref()
-                .map_or(false, |r| r.iter().any(|tr| tr.is_error))
+                .is_some_and(|r| r.iter().any(|tr| tr.is_error))
         });
 
         let has_reasoning = trajectory.steps.iter().any(|s| s.reasoning.is_some());

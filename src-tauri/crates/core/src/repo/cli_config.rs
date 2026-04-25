@@ -14,7 +14,7 @@ pub enum CliTool {
 }
 
 impl CliTool {
-    pub fn from_str(s: &str) -> Result<Self> {
+    pub fn try_from_str(s: &str) -> Result<Self> {
         match s {
             "claude_code" => Ok(Self::ClaudeCode),
             "codex" => Ok(Self::Codex),

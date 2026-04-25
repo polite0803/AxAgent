@@ -1,10 +1,14 @@
-import { Divider, Switch } from 'antd';
+import { Divider, Switch, Button, Typography } from 'antd';
+import { FolderOpen, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores';
 import { isTauri, invoke } from '@/lib/invoke';
+import { open } from '@tauri-apps/plugin-dialog';
 import { LANG_OPTIONS } from '@/lib/constants';
 import { SettingsGroup } from './SettingsGroup';
 import { SettingsSelect } from './SettingsSelect';
+
+const { Text } = Typography;
 
 export function GeneralSettings() {
   const { t, i18n } = useTranslation();
@@ -106,6 +110,46 @@ export function GeneralSettings() {
               }
             }}
           />
+        </div>
+      </SettingsGroup>
+
+      {/* Workspace */}
+      <SettingsGroup title={t('settings.groupWorkspace')}>
+        <div style={rowStyle} className="flex items-center justify-between">
+          <span>{t('settings.defaultWorkspaceDir')}</span>
+          <div className="flex items-center gap-2">
+            {settings.default_workspace_dir ? (
+              <>
+                <Text type="secondary" ellipsis style={{ maxWidth: 200 }}>
+                  {settings.default_workspace_dir}
+                </Text>
+                <Button
+                  size="small"
+                  icon={<X size={14} />}
+                  onClick={() => saveSettings({ default_workspace_dir: null })}
+                  disabled={!inTauri}
+                />
+              </>
+            ) : (
+              <Button
+                size="small"
+                icon={<FolderOpen size={14} />}
+                onClick={async () => {
+                  if (!inTauri) return;
+                  try {
+                    const selected = await open({ directory: true, multiple: false });
+                    if (selected) {
+                      saveSettings({ default_workspace_dir: selected as string });
+                    }
+                  } catch {
+                    // User cancelled or not available
+                  }
+                }}
+              >
+                {t('common.selectDirectory')}
+              </Button>
+            )}
+          </div>
         </div>
       </SettingsGroup>
     </div>
