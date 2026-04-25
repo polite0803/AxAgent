@@ -1,7 +1,7 @@
 {
   "name": "axagent",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -19,8 +19,9 @@
     "bump": "node scripts/bump-version.mjs",
     "format": "dprint fmt",
     "format:check": "dprint check",
-    "lint": "dprint fmt --verify && tsc --noEmit",
+    "lint": "tsc --noEmit",
     "lint:fix": "dprint fmt",
+    "check:types": "node scripts/type-consistency.mjs",
     "docs": "typedoc --out docs src",
     "docs:watch": "typedoc --out docs --watch src"
   },
