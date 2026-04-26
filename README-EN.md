@@ -69,6 +69,18 @@
 - **Skill Matching** — Intelligent recommendations to automatically apply relevant skills to appropriate conversation scenarios
 - **Local Skill Registry** — Register custom local tools as skills for reuse
 - **Plugin Hooks** — Support pre/post hooks to inject custom logic before and after skill execution
+- **Atomic Skills** — Fine-grained skill components that support complex workflow construction
+- **Skill Decomposition** — Automatically break down complex tasks into executable atomic skills
+- **Generated Tools** — AI automatically generates and registers new tools to expand Agent capabilities
+
+### Workflow System
+
+- **Workflow Editor** — Visual drag-and-drop workflow designer with node connection and configuration
+- **Workflow Templates** — Built-in presets for quick startup of common tasks
+- **Version Management** — Workflow templates support version control with rollback to historical versions
+- **Workflow Engine** — Powerful workflow execution engine supporting parallel, conditional, and loop execution
+- **Execution History** — Detailed recording of workflow execution history with status tracking and debugging
+- **AI Assistance** — AI-assisted workflow design with automatic generation and optimization
 
 ### Content Rendering
 
@@ -160,6 +172,16 @@
 - **Skill Creation**: Auto-creation from proposals
 - **Skill Evolution**: AI-powered skill improvement
 - **Skill Matching**: Intelligent recommendation of applicable skills
+- **Atomic Skills**: Fine-grained skill components
+- **Skill Decomposition**: Automatic task breakdown
+- **Generated Tools**: AI-generated tool creation
+
+### Workflow System
+- **Workflow Editor**: Visual drag-and-drop designer
+- **Templates**: Built-in workflow presets
+- **Version Control**: Workflow template versioning
+- **Execution Engine**: Powerful workflow execution
+- **History Tracking**: Detailed execution history
 
 ## Technical Features
 

@@ -61,12 +61,24 @@
 
 ### Sistema de habilidades
 
-- **Mercado de habilidades** — Mercado de habilidades integrado para explorar e instalar habilidades contributions de la comunidad
+- **Mercado de habilidades** — Mercado de habilidades integrado para explorar e instalar habilidades contribuidas por la comunidad
 - **Creación de habilidades** — Crea habilidades a partir de propuestas con editor Markdown
 - **Evolución de habilidades** — La IA analiza y mejora automáticamente las habilidades existentes para un mejor rendimiento
 - **Coincidencia de habilidades** — Recomendación inteligente de habilidades relevantes, aplicadas automáticamente a escenarios de conversación apropiados
 - **Registro de habilidades locales** — Soporte para herramientas personalizadas locales registradas como habilidades
 - **Hooks de plugin** — Soporte para hooks pre/post para inyectar lógica personalizada antes/después de la ejecución de habilidades
+- **Habilidades atómicas** — Componentes de habilidades granulados que admiten la construcción de flujos de trabajo complejos
+- **Descomposición de habilidades** — Descompone automáticamente tareas complejas en habilidades atómicas ejecutables
+- **Herramientas generadas** — La IA genera y registra automáticamente nuevas herramientas para expandir las capacidades del agente
+
+### Sistema de flujo de trabajo
+
+- **Editor de flujo de trabajo** — Diseñador visual de flujos de trabajo por arrastrar y soltar con conexión y configuración de nodos
+- **Plantillas de flujo de trabajo** — Preajustes integrados para iniciar rápidamente tareas comunes
+- **Gestión de versiones** — Las plantillas de flujo de trabajo admiten la gestión de versiones con retroceso a versiones históricas
+- **Motor de flujo de trabajo** — Potente motor de ejecución de flujos de trabajo que admite ejecución paralela, condicional y en bucle
+- **Historial de ejecución** — Registro detallado del historial de ejecución del flujo de trabajo con seguimiento de estado y depuración
+- **Asistencia IA** — Asistencia IA para el diseño de flujos de trabajo, generación y optimización automática
 
 ### Renderizado de contenido
 

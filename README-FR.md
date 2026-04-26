@@ -61,12 +61,24 @@
 
 ### Système de compétences
 
-- **Marché des compétences** — Marché des compétences intégré pour parcourir et installer des compétences贡献ées par la communauté
+- **Marché des compétences** — Marché des compétences intégré pour parcourir et installer des compétences contribuées par la communauté
 - **Création de compétences** — Créez des compétences à partir de propositions avec éditeur Markdown
 - **Évolution des compétences** — L'IA analyse et améliore automatiquement les compétences existantes pour de meilleures performances
 - **Correspondance des compétences** — Recommandation intelligente de compétences pertinentes, appliquées automatiquement aux scénarios de conversation appropriés
 - **Enregistrement des compétences locales** — Support des outils personnalisés locaux enregistrés comme compétences
 - **Hooks de plugin** — Support des hooks pre/post pour injecter une logique personnalisée avant/après l'exécution des compétences
+- **Compétences atomiques** — Composants de compétences granulaires prenant en charge la construction de flux de travail complexes
+- **Décomposition des compétences** — Décompose automatiquement les tâches complexes en compétences atomiques exécutables
+- **Outils générés** — L'IA génère et enregistre automatiquement de nouveaux outils pour étendre les capacités de l'agent
+
+### Système de flux de travail
+
+- **Éditeur de flux de travail** — Concepteur visuel de flux de travail par glisser-déposer avec connexion et configuration de nœuds
+- **Modèles de flux de travail** — Préréglages intégrés pour démarrer rapidement des tâches courantes
+- **Gestion des versions** — Les modèles de flux de travail prennent en charge la gestion des versions avec possibilité de revenir à des versions historiques
+- **Moteur de flux de travail** — Moteur d'exécution de flux de travail puissant prenant en charge l'exécution parallèle, conditionnelle et en boucle
+- **Historique d'exécution** — Enregistrement détaillé de l'historique d'exécution des flux de travail avec suivi d'état et débogage
+- **Assistance IA** — Assistance IA pour la conception de flux de travail, génération et optimisation automatiques
 
 ### Rendu de contenu
 

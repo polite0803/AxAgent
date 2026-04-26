@@ -69,6 +69,18 @@
 - **Skill-Matching** — Intelligente Empfehlungen zur automatischen Anwendung relevanter Skills auf passende Gesprächsszenarien
 - **Lokaler Skill-Registrierung** — Benutzerdefinierte lokale Tools als wiederverwendbare Skills registrieren
 - **Plugin-Hooks** — Pre/post Hooks unterstützt um benutzerdefinierte Logik vor und nach der Skill-Ausführung einzufügen
+- **Atomare Skills** — Feingranulare Skill-Komponenten, die die Erstellung komplexer Workflows unterstützen
+- **Skill-Zerlegung** — Automatisches Zerlegen komplexer Aufgaben in ausführbare atomare Skills
+- **Generierte Tools** — KI generiert und registriert automatisch neue Tools zur Erweiterung der Agent-Fähigkeiten
+
+### Workflow-System
+
+- **Workflow-Editor** — Visueller Drag-and-Drop-Workflow-Designer mit Knotenverbindung und -konfiguration
+- **Workflow-Vorlagen** — Integrierte Voreinstellungen für den schnellen Start gängiger Aufgaben
+- **Versionsverwaltung** — Workflow-Vorlagen unterstützen die Versionsverwaltung mit Rollback zu historischen Versionen
+- **Workflow-Engine** — Leistungsstarke Workflow-Ausführungs-Engine mit Unterstützung für parallele, bedingte und Schleifenausführung
+- **Ausführungsverlauf** — Detaillierte Aufzeichnung des Workflow-Ausführungsverlaufs mit Statusverfolgung und Debugging
+- **KI-Unterstützung** — KI-gestützte Workflow-Design mit automatischer Generierung und Optimierung
 
 ### Inhaltsrendering
 
