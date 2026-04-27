@@ -1,6 +1,7 @@
 use crate::builtin_tools_registry::{
     get_global_db_path, get_handler, register_builtin_handler, BoxedToolHandler,
 };
+use crate::command_validator::CommandValidator;
 use crate::error::{AxAgentError, Result};
 use crate::mcp_client::McpToolResult;
 use regex::Regex;
@@ -2909,6 +2910,23 @@ async fn run_command(command: &str, timeout_secs: u64) -> Result<McpToolResult> 
     if command.is_empty() {
         return Ok(McpToolResult {
             content: "Error: command parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    let validator = CommandValidator::new();
+    let validation = validator.validate(command);
+
+    if !validation.is_safe {
+        tracing::warn!(
+            "Blocked potentially dangerous command: patterns={:?}",
+            validation.dangerous_patterns
+        );
+        return Ok(McpToolResult {
+            content: format!(
+                "Error: Command contains dangerous patterns: {:?}",
+                validation.dangerous_patterns
+            ),
             is_error: true,
         });
     }

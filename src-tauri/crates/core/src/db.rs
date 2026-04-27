@@ -20,8 +20,9 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     };
 
     let mut opt = ConnectOptions::new(&url);
-    opt.max_connections(5)
-        .min_connections(1)
+    opt.max_connections(20)
+        .min_connections(5)
+        .acquire_timeout(std::time::Duration::from_secs(30))
         .sqlx_logging(false);
 
     let conn = Database::connect(opt).await?;

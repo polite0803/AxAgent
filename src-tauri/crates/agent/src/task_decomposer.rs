@@ -1,5 +1,7 @@
 use crate::task::{TaskGraph, TaskNode, TaskType};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecompositionError {
@@ -20,17 +22,31 @@ pub struct DecompositionResult {
     pub reasoning: String,
 }
 
+#[async_trait]
+pub trait LlmClient: Send + Sync {
+    async fn complete(&self, prompt: &str) -> Result<String, DecompositionError>;
+}
+
 pub struct TaskDecomposer {
     max_depth: usize,
+    llm_client: Option<Arc<dyn LlmClient>>,
 }
 
 impl TaskDecomposer {
     pub fn new() -> Self {
-        Self { max_depth: 10 }
+        Self {
+            max_depth: 10,
+            llm_client: None,
+        }
     }
 
     pub fn with_max_depth(mut self, depth: usize) -> Self {
         self.max_depth = depth;
+        self
+    }
+
+    pub fn with_llm_client(mut self, client: Arc<dyn LlmClient>) -> Self {
+        self.llm_client = Some(client);
         self
     }
 
@@ -75,10 +91,15 @@ impl TaskDecomposer {
     }
 
     fn execute_llm(&self, prompt: &str) -> Result<String, DecompositionError> {
-        Ok(format!(
-            "Task decomposition for: {}",
-            truncate_string(prompt, 100)
-        ))
+        if let Some(ref client) = self.llm_client {
+            let rt = tokio::runtime::Handle::current();
+            rt.block_on(async { client.complete(prompt).await })
+        } else {
+            Ok(format!(
+                "Task decomposition for: {}",
+                truncate_string(prompt, 100)
+            ))
+        }
     }
 
     fn parse_response(&self, response: &str) -> Result<DecompositionResult, DecompositionError> {

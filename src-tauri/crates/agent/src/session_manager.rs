@@ -10,15 +10,80 @@ use axagent_runtime::{
     PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
 };
 use sea_orm::DatabaseConnection;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
 use tracing::info;
 
-/// Auto-compaction threshold (in estimated tokens). When the session exceeds
-/// this many tokens, compaction is triggered before the next turn.
 const AUTO_COMPACTION_TOKEN_THRESHOLD: usize = 100_000;
+
+const TOKEN_ESTIMATION_CHARS_PER_TOKEN: usize = 4;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenUsageBreakdown {
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+    pub total_tokens: u32,
+    pub estimated_from_chars: bool,
+}
+
+impl TokenUsageBreakdown {
+    pub fn from_turn_summary(
+        usage: &axagent_runtime::TokenUsage,
+        estimated_chars: usize,
+    ) -> Self {
+        let total = usage.total_tokens();
+        let estimated_from_chars = total == 0 && estimated_chars > 0;
+        Self {
+            input_tokens: usage.input_tokens,
+            output_tokens: usage.output_tokens,
+            total_tokens: if total > 0 {
+                total
+            } else {
+                (estimated_chars / TOKEN_ESTIMATION_CHARS_PER_TOKEN) as u32
+            },
+            estimated_from_chars,
+        }
+    }
+
+    pub fn tokens_delta(&self) -> i32 {
+        self.total_tokens as i32
+    }
+}
+
+pub fn estimate_tokens_from_text(text: &str) -> usize {
+    text.len() / TOKEN_ESTIMATION_CHARS_PER_TOKEN
+}
+
+pub fn estimate_tokens_from_messages(messages: &[axagent_runtime::ConversationMessage]) -> usize {
+    messages.iter().map(|m| estimate_tokens_from_content_blocks(&m.blocks)).sum()
+}
+
+fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime::ContentBlock]) -> usize {
+    blocks
+        .iter()
+        .map(|block| match block {
+            axagent_runtime::ContentBlock::Text { text } => {
+                estimate_tokens_from_text(text)
+            }
+            axagent_runtime::ContentBlock::ToolUse { id, name, input } => {
+                estimate_tokens_from_text(id) + estimate_tokens_from_text(name) + estimate_tokens_from_text(input)
+            }
+            axagent_runtime::ContentBlock::ToolResult {
+                tool_use_id,
+                tool_name,
+                output,
+                ..
+            } => {
+                estimate_tokens_from_text(tool_use_id)
+                    + estimate_tokens_from_text(tool_name)
+                    + estimate_tokens_from_text(output)
+            }
+        })
+        .sum()
+}
 
 // ---------------------------------------------------------------------------
 // P4-4: Dynamic max_iterations based on task complexity
@@ -363,7 +428,6 @@ impl SessionManager {
             tokio::sync::Mutex<std::collections::HashMap<String, ChannelPermissionPrompter>>,
         >,
         cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-        agent_paused: Option<Arc<tokio::sync::Mutex<std::collections::HashSet<String>>>>,
     ) -> Result<(axagent_runtime::TurnSummary, axagent_runtime::Session), RuntimeError> {
         let session = self
             .get_session(session_id)
@@ -510,20 +574,6 @@ impl SessionManager {
         // Attach cancel token if provided
         if let Some(token) = cancel_token {
             runtime = runtime.with_cancel_token(token);
-        }
-
-        // Attach pause-check function that polls the agent_paused set
-        if let Some(paused_set) = agent_paused {
-            let conv_id_for_pause = conversation_id.clone();
-            let pause_check = std::sync::Arc::new(move || -> bool {
-                // Try to check without blocking — if we can't acquire the lock,
-                // assume not paused (don't block the agent loop)
-                match paused_set.try_lock() {
-                    Ok(set) => set.contains(&conv_id_for_pause),
-                    Err(_) => false,
-                }
-            });
-            runtime = runtime.with_pause_check(pause_check);
         }
 
         // Add Tauri event reporter for tool progress

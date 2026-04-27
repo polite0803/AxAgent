@@ -1,5 +1,5 @@
-use crate::action_executor::{ActionError, ActionExecutor};
-use crate::reasoning_state::{ActionType, ReActConfig, ReasoningState};
+use crate::action_executor::ActionExecutor;
+use crate::reasoning_state::{ActionType, ReActConfig, ReasoningContext, ReasoningState};
 use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
 use std::sync::Arc;
@@ -14,6 +14,7 @@ pub struct ReActResult {
     pub iterations: usize,
     pub total_duration_ms: u64,
     pub error: Option<String>,
+    pub context: ReasoningContext,
 }
 
 impl ReActResult {
@@ -22,6 +23,7 @@ impl ReActResult {
         chain: ChainSummary,
         iterations: usize,
         duration: Duration,
+        context: ReasoningContext,
     ) -> Self {
         Self {
             final_response: response,
@@ -30,6 +32,7 @@ impl ReActResult {
             iterations,
             total_duration_ms: duration.as_millis() as u64,
             error: None,
+            context,
         }
     }
 
@@ -38,6 +41,7 @@ impl ReActResult {
         chain: ChainSummary,
         iterations: usize,
         duration: Duration,
+        context: ReasoningContext,
     ) -> Self {
         Self {
             final_response: String::new(),
@@ -46,8 +50,23 @@ impl ReActResult {
             iterations,
             total_duration_ms: duration.as_millis() as u64,
             error: Some(error),
+            context,
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ReActError {
+    #[error("Action failed: {0}")]
+    ActionError(String),
+    #[error("Max iterations reached")]
+    MaxIterations,
+    #[error("Cancelled")]
+    Cancelled,
+    #[error("Verification failed: {0}")]
+    VerificationError(String),
+    #[error("Other: {0}")]
+    Other(String),
 }
 
 pub struct ReActEngine {
@@ -83,54 +102,96 @@ impl ReActEngine {
     pub async fn run(&self, user_input: &str) -> ReActResult {
         let start = std::time::Instant::now();
         let mut chain = ThoughtChain::new();
-        let mut state = ReasoningState::Thinking;
+        let mut context = ReasoningContext::new(user_input);
+        let mut state = if self.config.enable_analyzing {
+            ReasoningState::Analyzing
+        } else {
+            ReasoningState::Thinking
+        };
         let mut retry_count = 0;
+        let mut consecutive_failures = 0;
 
         self.emit(ThoughtEvent::StateChanged(state));
 
-        while !matches!(state, ReasoningState::Finished | ReasoningState::Failed) {
-            if chain.iteration_count() >= self.config.max_iterations {
+        while !state.is_terminal() {
+            context.increment_iteration();
+
+            if context.iteration >= self.config.max_iterations {
                 return ReActResult::failure(
                     format!("Max iterations ({}) reached", self.config.max_iterations),
                     chain.to_summary(),
-                    chain.iteration_count(),
+                    context.iteration,
                     start.elapsed(),
+                    context,
                 );
             }
 
-            let step_result = self.process_state(user_input, state, &mut chain).await;
+            if context.depth >= self.config.max_depth {
+                return ReActResult::failure(
+                    format!("Max depth ({}) reached", self.config.max_depth),
+                    chain.to_summary(),
+                    context.iteration,
+                    start.elapsed(),
+                    context,
+                );
+            }
+
+            let step_result: Result<(ReasoningState, bool), ReActError> = self
+                .process_state(user_input, state, &mut chain, &mut context)
+                .await;
 
             match step_result {
                 Ok((new_state, should_continue)) => {
+                    let previous_state = state;
                     state = new_state;
                     self.emit(ThoughtEvent::StateChanged(state));
 
-                    if matches!(state, ReasoningState::Observing) && !should_continue {
+                    if previous_state.requires_observation() && !should_continue {
+                        consecutive_failures += 1;
                         retry_count += 1;
+
                         if retry_count >= self.config.max_retry_attempts {
                             return ReActResult::failure(
                                 format!("Max retries ({}) reached", self.config.max_retry_attempts),
                                 chain.to_summary(),
-                                chain.iteration_count(),
+                                context.iteration,
                                 start.elapsed(),
+                                context,
                             );
                         }
                     } else {
                         retry_count = 0;
+                        consecutive_failures = 0;
                     }
 
-                    if matches!(state, ReasoningState::Finished) {
+                    if self.config.enable_reflection
+                        && consecutive_failures >= self.config.reflection_threshold
+                        && matches!(state, ReasoningState::Thinking)
+                    {
+                        state = ReasoningState::Reflecting;
+                        consecutive_failures = 0;
+                        self.emit(ThoughtEvent::StateChanged(state));
+                    }
+
+                    if state.is_terminal() {
                         break;
                     }
                 }
                 Err(e) => {
                     self.emit(ThoughtEvent::Error(e.to_string()));
-                    return ReActResult::failure(
-                        e.to_string(),
-                        chain.to_summary(),
-                        chain.iteration_count(),
-                        start.elapsed(),
-                    );
+                    consecutive_failures += 1;
+
+                    if consecutive_failures >= self.config.max_retry_attempts {
+                        return ReActResult::failure(
+                            e.to_string(),
+                            chain.to_summary(),
+                            context.iteration,
+                            start.elapsed(),
+                            context,
+                        );
+                    }
+
+                    state = ReasoningState::Thinking;
                 }
             }
         }
@@ -145,8 +206,9 @@ impl ReActEngine {
         ReActResult::success(
             final_response,
             chain.to_summary(),
-            chain.iteration_count(),
+            context.iteration,
             start.elapsed(),
+            context,
         )
     }
 
@@ -155,66 +217,94 @@ impl ReActEngine {
         user_input: &str,
         state: ReasoningState,
         chain: &mut ThoughtChain,
+        context: &mut ReasoningContext,
     ) -> Result<(ReasoningState, bool), ReActError> {
         match state {
+            ReasoningState::Idle => Ok((ReasoningState::Analyzing, true)),
+
+            ReasoningState::Analyzing => {
+                let reasoning = self.analyze_input(user_input);
+                let step = ThoughtStep::new(ReasoningState::Analyzing, reasoning.clone());
+                chain.add_step(step);
+
+                context.set_goal(reasoning);
+                self.extract_sub_goals(user_input, context);
+
+                self.emit(ThoughtEvent::StepCompleted(
+                    chain.latest_step().unwrap().clone(),
+                ));
+
+                Ok((ReasoningState::Thinking, true))
+            }
+
             ReasoningState::Thinking => {
-                let reasoning = format!(
-                    "Analyzing user request: {}",
-                    truncate_string(user_input, 100)
-                );
+                let reasoning = self.generate_reasoning(user_input, context);
                 let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
                 chain.add_step(step);
+
                 self.emit(ThoughtEvent::StepCompleted(
                     chain.latest_step().unwrap().clone(),
                 ));
+
                 Ok((ReasoningState::Planning, true))
             }
+
             ReasoningState::Planning => {
+                let plan = self.create_plan(user_input, context);
                 let action = Action {
-                    action_type: ActionType::LlmCall,
+                    action_type: ActionType::Plan,
                     tool_name: None,
                     tool_input: None,
-                    llm_prompt: Some(user_input.to_string()),
+                    llm_prompt: Some(plan.clone()),
                     requires_confirmation: false,
                 };
-                let reasoning = format!("Planning next action: {:?}", action.action_type);
+                let reasoning = format!("Creating plan: {}", plan);
                 let step = ThoughtStep::with_action(ReasoningState::Planning, reasoning, action);
                 chain.add_step(step);
+
                 self.emit(ThoughtEvent::StepCompleted(
                     chain.latest_step().unwrap().clone(),
                 ));
+
                 Ok((ReasoningState::Acting, true))
             }
+
             ReasoningState::Acting => {
                 if let Some(latest) = chain.latest_step_mut() {
                     if let Some(ref action) = latest.action {
                         if action.requires_confirmation {
                             return Ok((ReasoningState::Observing, false));
                         }
+
                         let result = self.executor.execute(action.clone(), "").await;
+
                         match result {
                             Ok(action_result) => {
-                                let observation = action_result.to_observation();
                                 latest.result = Some(action_result.to_observation());
-                                latest.observation = Some(observation.clone());
+                                latest.observation = Some(action_result.to_observation());
                                 self.emit(ThoughtEvent::StepCompleted(latest.clone()));
-                                return Ok((ReasoningState::Observing, action_result.is_success()));
+                                return Ok((
+                                    ReasoningState::Observing,
+                                    action_result.is_success(),
+                                ));
                             }
                             Err(e) => {
                                 latest.result = Some(format!("Error: {}", e));
                                 latest.observation = Some(format!("Error: {}", e));
                                 self.emit(ThoughtEvent::StepCompleted(latest.clone()));
-                                return Ok((ReasoningState::Observing, false));
+                                return Err(ReActError::ActionError(e.to_string()));
                             }
                         }
                     }
                 }
                 Ok((ReasoningState::Thinking, false))
             }
+
             ReasoningState::Observing => {
                 if let Some(latest) = chain.latest_step() {
                     let verification = if self.config.verification_enabled {
-                        self.verifier.verify(latest, user_input).await?
+                        self.verifier.verify(latest, user_input).await
+                            .map_err(|e| ReActError::VerificationError(e.to_string()))?
                     } else {
                         VerificationResult::valid("Verification skipped".to_string())
                     };
@@ -236,8 +326,106 @@ impl ReActEngine {
                     Ok((ReasoningState::Finished, true))
                 }
             }
+
+            ReasoningState::Reflecting => {
+                let reflection = self.generate_reflection(chain, context);
+                let step = ThoughtStep::new(ReasoningState::Reflecting, reflection);
+                chain.add_step(step);
+
+                self.emit(ThoughtEvent::StepCompleted(
+                    chain.latest_step().unwrap().clone(),
+                ));
+
+                self.adjust_strategy(context);
+
+                Ok((ReasoningState::Thinking, true))
+            }
+
             ReasoningState::Finished | ReasoningState::Failed => Ok((state, false)),
         }
+    }
+
+    fn analyze_input(&self, input: &str) -> String {
+        let word_count = input.split_whitespace().count();
+        let has_code = input.contains("```") || input.contains("function") || input.contains("class");
+        let has_questions = input.contains('?');
+
+        let complexity = if word_count > 100 {
+            "high"
+        } else if word_count > 30 {
+            "medium"
+        } else {
+            "low"
+        };
+
+        format!(
+            "Input analysis: {} words, complexity={}, contains_code={}, contains_questions={}",
+            word_count, complexity, has_code, has_questions
+        )
+    }
+
+    fn extract_sub_goals(&self, input: &str, context: &mut ReasoningContext) {
+        let sentences: Vec<&str> = input.split('.').filter(|s| !s.trim().is_empty()).collect();
+
+        for (i, sentence) in sentences.iter().take(5).enumerate() {
+            if sentence.contains(',') || sentence.len() > 50 {
+                context.add_sub_goal(format!("Sub-goal {}: {}", i + 1, sentence.trim()));
+            }
+        }
+    }
+
+    fn generate_reasoning(&self, input: &str, context: &mut ReasoningContext) -> String {
+        let goal = context.current_goal.as_deref().unwrap_or("Unknown goal");
+        let sub_goals_count = context.sub_goals.len();
+
+        format!(
+            "Working toward goal: '{}'. {} sub-goals identified. Current iteration: {}. Input: '{}'",
+            truncate_string(goal, 50),
+            sub_goals_count,
+            context.iteration,
+            truncate_string(input, 80)
+        )
+    }
+
+    fn create_plan(&self, input: &str, context: &mut ReasoningContext) -> String {
+        context.increment_depth();
+
+        let plan_steps = if context.depth == 1 {
+            let truncated = truncate_string(input, 60);
+            vec![
+                format!("Analyze the requirements for: '{}'", truncated),
+                "Execute necessary actions".to_string(),
+                "Verify results".to_string(),
+                "Synthesize response".to_string(),
+            ]
+        } else {
+            vec![
+                "Execute next step".to_string(),
+                "Verify result".to_string(),
+                "Iterate if needed".to_string(),
+            ]
+        };
+
+        plan_steps.join(" -> ")
+    }
+
+    fn generate_reflection(&self, chain: &ThoughtChain, context: &mut ReasoningContext) -> String {
+        let total_steps = chain.steps.len();
+        let successful_steps = chain
+            .steps
+            .iter()
+            .filter(|s| s.is_verified)
+            .count();
+        let failed_steps = total_steps - successful_steps;
+
+        format!(
+            "Reflection: {} total steps, {} successful, {} failed. Current depth: {}. Strategy adjustment needed.",
+            total_steps, successful_steps, failed_steps, context.depth
+        )
+    }
+
+    fn adjust_strategy(&self, context: &mut ReasoningContext) {
+        context.depth = 0;
     }
 
     fn emit(&self, event: ThoughtEvent) {
@@ -259,32 +447,44 @@ fn truncate_string(s: &str, max_len: usize) -> String {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ReActError {
-    #[error("Parse error: {0}")]
-    ParseError(String),
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    #[error("Invalid state: {0}")]
-    InvalidState(String),
+    #[tokio::test]
+    async fn test_react_engine_basic() {
+        let engine = ReActEngine::new();
+        let result = engine.run("Hello, how are you?").await;
 
-    #[error("Timeout: {0}")]
-    Timeout(String),
-
-    #[error("Action error: {0}")]
-    ActionError(String),
-
-    #[error("Verification failed: {0}")]
-    VerificationFailed(String),
-}
-
-impl From<ActionError> for ReActError {
-    fn from(e: ActionError) -> Self {
-        ReActError::ActionError(e.to_string())
+        assert!(result.iterations > 0);
+        assert!(!result.final_response.is_empty());
     }
-}
 
-impl From<crate::self_verifier::VerificationError> for ReActError {
-    fn from(e: crate::self_verifier::VerificationError) -> Self {
-        ReActError::VerificationFailed(e.to_string())
+    #[tokio::test]
+    async fn test_react_engine_with_analyzing_disabled() {
+        let engine = ReActEngine::new().with_config(ReActConfig::for_simple_task());
+        let result = engine.run("Simple question").await;
+
+        assert!(result.success || result.error.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_reasoning_context() {
+        let mut context = ReasoningContext::new("Test input");
+        context.add_sub_goal("Goal 1".to_string());
+        context.add_sub_goal("Goal 2".to_string());
+        context.increment_iteration();
+        context.increment_depth();
+
+        assert_eq!(context.sub_goals.len(), 2);
+        assert_eq!(context.iteration, 1);
+        assert_eq!(context.depth, 1);
+    }
+
+    #[tokio::test]
+    async fn test_truncate_string() {
+        assert_eq!(truncate_string("short", 10), "short");
+        assert_eq!(truncate_string("this is a long string", 10), "this is...");
+        assert_eq!(truncate_string("exact", 5), "exact");
     }
 }

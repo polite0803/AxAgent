@@ -25,6 +25,7 @@ quick_cache = "0.4"
 chrono = { workspace = true }
 sea-orm = { workspace = true }
 axagent-core = { path = "../core" }
+axagent-trajectory = { path = "../trajectory" }
 itertools = "0.14"
 
 [lints]

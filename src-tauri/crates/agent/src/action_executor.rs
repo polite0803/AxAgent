@@ -50,6 +50,18 @@ impl ActionExecutor {
                 let description = action.llm_prompt.clone().unwrap_or_default();
                 Ok(ActionResult::Validation(description))
             }
+            ActionType::Analyze => {
+                Ok(ActionResult::Analysis(action.llm_prompt.clone().unwrap_or_default()))
+            }
+            ActionType::Plan => {
+                Ok(ActionResult::Planning(action.llm_prompt.clone().unwrap_or_default()))
+            }
+            ActionType::Reflect => {
+                Ok(ActionResult::Reflection(action.llm_prompt.clone().unwrap_or_default()))
+            }
+            ActionType::Synthesize => {
+                Ok(ActionResult::Synthesis(action.llm_prompt.clone().unwrap_or_default()))
+            }
         }
         .map(|result| result.with_duration(start.elapsed()))
     }
@@ -93,6 +105,10 @@ pub enum ActionResult {
     LlmResponse(String),
     UserConfirmationRequired(String),
     Validation(String),
+    Analysis(String),
+    Planning(String),
+    Reflection(String),
+    Synthesis(String),
 }
 
 impl ActionResult {
@@ -103,7 +119,12 @@ impl ActionResult {
     pub fn is_success(&self) -> bool {
         matches!(
             self,
-            ActionResult::ToolSuccess(_, _) | ActionResult::LlmResponse(_)
+            ActionResult::ToolSuccess(_, _)
+                | ActionResult::LlmResponse(_)
+                | ActionResult::Analysis(_)
+                | ActionResult::Planning(_)
+                | ActionResult::Reflection(_)
+                | ActionResult::Synthesis(_)
         )
     }
 
@@ -120,6 +141,18 @@ impl ActionResult {
             }
             ActionResult::Validation(desc) => {
                 format!("Validation: {}", desc)
+            }
+            ActionResult::Analysis(desc) => {
+                format!("Analysis: {}", desc)
+            }
+            ActionResult::Planning(desc) => {
+                format!("Planning: {}", desc)
+            }
+            ActionResult::Reflection(desc) => {
+                format!("Reflection: {}", desc)
+            }
+            ActionResult::Synthesis(desc) => {
+                format!("Synthesis: {}", desc)
             }
         }
     }

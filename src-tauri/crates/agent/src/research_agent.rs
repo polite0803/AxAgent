@@ -1,3 +1,4 @@
+use crate::error_recovery_engine::ErrorRecoveryEngine;
 use crate::research_state::{
     Citation, ResearchConfig, ResearchPhase, ResearchProgress, ResearchReport, ResearchState,
     ResearchStatus, SearchPlan, SearchResult,
@@ -28,35 +29,30 @@ pub enum ResearchError {
     SearchFailed(String),
     #[error("Report generation failed: {0}")]
     ReportGenerationFailed(String),
+    #[error("LLM generation failed: {0}")]
+    LlmFailed(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResearchEvent {
-    Started {
-        topic: String,
-    },
-    PhaseChanged {
-        from: ResearchPhase,
-        to: ResearchPhase,
-    },
-    SourcesFound {
-        count: usize,
-    },
-    SourceProcessed {
-        source_id: String,
-    },
-    CitationAdded {
-        citation_id: String,
-    },
-    ReportGenerated {
-        report_id: String,
-    },
+    Started { topic: String },
+    PhaseChanged { from: ResearchPhase, to: ResearchPhase },
+    SourcesFound { count: usize },
+    SourceProcessed { source_id: String },
+    CitationAdded { citation_id: String },
+    ReportGenerated { report_id: String },
     Completed,
-    Failed {
-        error: String,
-    },
+    Failed { error: String },
     Paused,
     Resumed,
+    LlmGenerationStarted { phase: String },
+    LlmGenerationCompleted { phase: String },
+}
+
+pub trait LlmContentGenerator: Send + Sync {
+    fn generate_outline(&self, topic: &str, context: &str) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
+    fn generate_content(&self, topic: &str, outline: &str, sources: &str) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
+    fn generate_summary(&self, topic: &str, findings: &str) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
 }
 
 pub struct ResearchAgent {
@@ -64,6 +60,8 @@ pub struct ResearchAgent {
     orchestrator: SearchOrchestrator,
     state: Arc<RwLock<ResearchState>>,
     event_sender: broadcast::Sender<ResearchEvent>,
+    content_generator: Option<Arc<DefaultLlmContentGenerator>>,
+    error_recovery_engine: Option<Arc<ErrorRecoveryEngine>>,
 }
 
 impl ResearchAgent {
@@ -74,6 +72,8 @@ impl ResearchAgent {
             orchestrator: SearchOrchestrator::new(),
             state: Arc::new(RwLock::new(ResearchState::new(String::new()))),
             event_sender,
+            content_generator: None,
+            error_recovery_engine: None,
         }
     }
 
@@ -86,7 +86,14 @@ impl ResearchAgent {
                 ResearchState::new(String::new()).with_config(config),
             )),
             event_sender,
+            content_generator: None,
+            error_recovery_engine: None,
         }
+    }
+
+    pub fn with_generator(mut self, generator: Arc<DefaultLlmContentGenerator>) -> Self {
+        self.content_generator = Some(generator);
+        self
     }
 
     pub fn with_planner(mut self, planner: SearchPlanner) -> Self {
@@ -96,6 +103,11 @@ impl ResearchAgent {
 
     pub fn with_orchestrator(mut self, orchestrator: SearchOrchestrator) -> Self {
         self.orchestrator = orchestrator;
+        self
+    }
+
+    pub fn with_error_recovery(mut self, engine: Arc<ErrorRecoveryEngine>) -> Self {
+        self.error_recovery_engine = Some(engine);
         self
     }
 
@@ -127,10 +139,7 @@ impl ResearchAgent {
         state.current_phase = ResearchPhase::Planning;
         state.progress = ResearchProgress::new().with_phase(ResearchPhase::Planning);
 
-        self.emit(ResearchEvent::Started {
-            topic: topic.clone(),
-        });
-
+        self.emit(ResearchEvent::Started { topic: topic.clone() });
         tracing::info!("Research started: {}", topic);
 
         Ok(state.id.clone())
@@ -155,9 +164,10 @@ impl ResearchAgent {
         let final_state = self.state.read().await.clone();
         let report = self.generate_report(&final_state).await?;
 
-        let mut state = self.state.write().await;
-        state.complete();
-        drop(state);
+        {
+            let mut state = self.state.write().await;
+            state.complete();
+        }
 
         self.emit(ResearchEvent::Completed);
 
@@ -199,9 +209,7 @@ impl ResearchAgent {
             }
         }
 
-        self.emit(ResearchEvent::SourcesFound {
-            count: results.len(),
-        });
+        self.emit(ResearchEvent::SourcesFound { count: results.len() });
         tracing::info!("Searching phase complete, found {} sources", results.len());
 
         Ok(results)
@@ -211,12 +219,32 @@ impl ResearchAgent {
         self.update_phase(ResearchPhase::Extracting).await;
 
         let results = self.state.read().await.search_results.clone();
+        let max_citations = self.state.read().await.config.max_citations;
         let mut citations_added = 0;
 
-        for result in results
-            .iter()
-            .take(self.state.read().await.config.max_citations)
-        {
+        let mut sorted_results = results.clone();
+        sorted_results.sort_by(|a, b| {
+            let score_a = a.relevance_score
+                + a.credibility_score.unwrap_or(a.source_type.default_credibility());
+            let score_b = b.relevance_score
+                + b.credibility_score.unwrap_or(b.source_type.default_credibility());
+            score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+        for result in sorted_results.iter() {
+            if citations_added >= max_citations {
+                break;
+            }
+
+            let url_normalized = result.url.to_lowercase();
+            if seen_urls.contains(&url_normalized) {
+                tracing::debug!("Skipping duplicate URL: {}", result.url);
+                continue;
+            }
+            seen_urls.insert(url_normalized);
+
             let citation =
                 Citation::new(result.url.clone(), result.title.clone(), result.source_type)
                     .with_credibility(
@@ -237,8 +265,9 @@ impl ResearchAgent {
         }
 
         tracing::info!(
-            "Extraction phase complete, added {} citations",
-            citations_added
+            "Extraction phase complete, added {} citations (from {} total results)",
+            citations_added,
+            results.len()
         );
 
         Ok(())
@@ -249,8 +278,9 @@ impl ResearchAgent {
 
         let citations = self.state.read().await.citations.clone();
 
-        for (idx, _citation) in citations.iter().enumerate() {
-            tracing::debug!("Analyzing citation {} of {}", idx + 1, citations.len());
+        let citation_count = citations.len();
+        for idx in 0..citation_count {
+            tracing::debug!("Analyzing citation {} of {}", idx + 1, citation_count);
             let mut state = self.state.write().await;
             state.progress.increment_sources_processed();
         }
@@ -313,11 +343,30 @@ impl ResearchAgent {
         Ok(report)
     }
 
-    async fn generate_outline(
-        &self,
-        state: &ResearchState,
-    ) -> Result<crate::research_state::ReportOutline, ResearchError> {
+    async fn generate_outline(&self, state: &ResearchState) -> Result<crate::research_state::ReportOutline, ResearchError> {
         use crate::research_state::{OutlineSection, ReportOutline};
+
+        if let Some(ref generator) = self.content_generator {
+            self.emit(ResearchEvent::LlmGenerationStarted {
+                phase: "outline".to_string(),
+            });
+
+            let context = self.build_research_context(state);
+            let outline_json = generator.generate_outline(&state.topic, &context).await?;
+
+            self.emit(ResearchEvent::LlmGenerationCompleted {
+                phase: "outline".to_string(),
+            });
+
+            if let Ok(outline) = serde_json::from_str::<Vec<OutlineSection>>(&outline_json) {
+                let mut report_outline = ReportOutline::new()
+                    .with_title(format!("关于「{}」的研究报告", state.topic));
+                for section in outline {
+                    report_outline = report_outline.add_section(section);
+                }
+                return Ok(report_outline);
+            }
+        }
 
         let sections = [
             OutlineSection::new("摘要".to_string())
@@ -328,7 +377,8 @@ impl ResearchAgent {
                 .with_description("从多个来源中提取的主要发现".to_string()),
             OutlineSection::new("分析讨论".to_string())
                 .with_description("对发现进行深入分析".to_string()),
-            OutlineSection::new("结论".to_string()).with_description("研究结论和建议".to_string()),
+            OutlineSection::new("结论".to_string())
+                .with_description("研究结论和建议".to_string()),
             OutlineSection::new("参考文献".to_string())
                 .with_description("所有引用的来源".to_string()),
         ];
@@ -346,6 +396,23 @@ impl ResearchAgent {
     }
 
     async fn generate_content(&self, state: &ResearchState) -> Result<String, ResearchError> {
+        if let Some(ref generator) = self.content_generator {
+            self.emit(ResearchEvent::LlmGenerationStarted {
+                phase: "content".to_string(),
+            });
+
+            let sources = self.format_sources_for_llm(state);
+            let outline = format!("{:?}", state.topic);
+
+            let content = generator.generate_content(&state.topic, &outline, &sources).await?;
+
+            self.emit(ResearchEvent::LlmGenerationCompleted {
+                phase: "content".to_string(),
+            });
+
+            return Ok(content);
+        }
+
         let mut content = String::new();
 
         content.push_str(&format!("# 关于「{}」的研究报告\n\n", state.topic));
@@ -393,6 +460,21 @@ impl ResearchAgent {
     }
 
     async fn generate_summary(&self, state: &ResearchState) -> Result<String, ResearchError> {
+        if let Some(ref generator) = self.content_generator {
+            self.emit(ResearchEvent::LlmGenerationStarted {
+                phase: "summary".to_string(),
+            });
+
+            let findings = self.format_findings_for_llm(state);
+            let summary = generator.generate_summary(&state.topic, &findings).await?;
+
+            self.emit(ResearchEvent::LlmGenerationCompleted {
+                phase: "summary".to_string(),
+            });
+
+            return Ok(summary);
+        }
+
         Ok(format!(
             "本研究通过搜索和分析 {} 个来源，对「{}」进行了系统性研究。\
             主要发现了 {} 条相关信息，并生成了包含 {} 个引用的研究报告。",
@@ -403,112 +485,75 @@ impl ResearchAgent {
         ))
     }
 
+    fn build_research_context(&self, state: &ResearchState) -> String {
+        let sources_summary = state
+            .search_results
+            .iter()
+            .take(10)
+            .map(|r| format!("- {} ({})", r.title, r.url))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        format!(
+            "Topic: {}\nNumber of sources: {}\nNumber of citations: {}\n\nKey sources:\n{}",
+            state.topic,
+            state.search_results.len(),
+            state.citations.len(),
+            sources_summary
+        )
+    }
+
+    fn format_sources_for_llm(&self, state: &ResearchState) -> String {
+        state
+            .search_results
+            .iter()
+            .take(20)
+            .map(|r| {
+                format!(
+                    "Source: {}\nURL: {}\nType: {:?}\nContent: {}\n---\n",
+                    r.title, r.url, r.source_type, r.snippet
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn format_findings_for_llm(&self, state: &ResearchState) -> String {
+        let findings = state
+            .search_results
+            .iter()
+            .take(10)
+            .map(|r| format!("- {}", r.title))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        format!(
+            "Research topic: {}\n\nKey findings:\n{}\n\nTotal sources analyzed: {}\nTotal citations: {}",
+            state.topic,
+            findings,
+            state.search_results.len(),
+            state.citations.len()
+        )
+    }
+
     async fn update_phase(&self, new_phase: ResearchPhase) {
-        let old_phase = {
-            let mut state = self.state.write().await;
-            let old = state.current_phase;
-            state.set_phase(new_phase);
-            old
+        let (current_phase, progress) = {
+            let state = self.state.read().await;
+            (state.current_phase, state.progress.clone())
         };
 
-        self.emit(ResearchEvent::PhaseChanged {
-            from: old_phase,
-            to: new_phase,
-        });
-    }
-
-    pub async fn pause(&self) -> Result<(), ResearchError> {
-        let mut state = self.state.write().await;
-
-        if state.status != ResearchStatus::InProgress {
-            return Err(ResearchError::InvalidStateTransition {
-                from: state.status,
-                to: ResearchStatus::Paused,
-            });
-        }
-
-        state.pause();
-        self.emit(ResearchEvent::Paused);
-
-        tracing::info!("Research paused");
-
-        Ok(())
-    }
-
-    pub async fn resume(&self) -> Result<(), ResearchError> {
-        {
-            let mut state = self.state.write().await;
-
-            if state.status != ResearchStatus::Paused {
-                return Err(ResearchError::InvalidStateTransition {
-                    from: state.status,
-                    to: ResearchStatus::InProgress,
-                });
+        if current_phase != new_phase {
+            {
+                let mut state = self.state.write().await;
+                state.current_phase = new_phase.clone();
+                state.progress = progress.with_phase(new_phase.clone());
             }
 
-            state.resume();
+            self.emit(ResearchEvent::PhaseChanged {
+                from: current_phase,
+                to: new_phase,
+            });
         }
-
-        self.emit(ResearchEvent::Resumed);
-        tracing::info!("Research resumed");
-
-        Ok(())
-    }
-
-    pub async fn stop(&self) -> Result<(), ResearchError> {
-        let mut state = self.state.write().await;
-
-        if state.status.is_terminal() {
-            return Err(ResearchError::AlreadyCompleted);
-        }
-
-        state.status = ResearchStatus::Failed;
-        state.completed_at = Some(chrono::Utc::now());
-
-        self.emit(ResearchEvent::Failed {
-            error: "Research stopped by user".to_string(),
-        });
-
-        tracing::info!("Research stopped");
-
-        Ok(())
-    }
-
-    pub async fn add_citation(&self, citation: Citation) -> Result<(), ResearchError> {
-        let mut state = self.state.write().await;
-
-        if state.citations.len() >= state.config.max_citations {
-            return Err(ResearchError::Failed(
-                "Maximum citations reached".to_string(),
-            ));
-        }
-
-        state.add_citation(citation.clone());
-        self.emit(ResearchEvent::CitationAdded {
-            citation_id: citation.id,
-        });
-
-        Ok(())
-    }
-
-    pub async fn remove_citation(&self, citation_id: &str) -> Result<(), ResearchError> {
-        let mut state = self.state.write().await;
-        state.citations.retain(|c| c.id != citation_id);
-        Ok(())
-    }
-
-    pub async fn set_citation_in_report(
-        &self,
-        citation_id: &str,
-        in_report: bool,
-    ) -> Result<(), ResearchError> {
-        let mut state = self.state.write().await;
-
-        if let Some(citation) = state.citations.iter_mut().find(|c| c.id == citation_id) {
-            citation.in_report = in_report;
-        }
-
-        Ok(())
     }
 }
 
@@ -518,26 +563,174 @@ impl Default for ResearchAgent {
     }
 }
 
+pub struct DefaultLlmContentGenerator {
+    llm_adapter: Option<Arc<dyn axagent_providers::ProviderAdapter>>,
+    ctx: Option<axagent_providers::ProviderRequestContext>,
+}
+
+impl DefaultLlmContentGenerator {
+    pub fn new() -> Self {
+        Self {
+            llm_adapter: None,
+            ctx: None,
+        }
+    }
+
+    pub fn with_llm(
+        mut self,
+        adapter: Arc<dyn axagent_providers::ProviderAdapter>,
+        ctx: axagent_providers::ProviderRequestContext,
+    ) -> Self {
+        self.llm_adapter = Some(adapter);
+        self.ctx = Some(ctx);
+        self
+    }
+
+    async fn call_llm(&self, system: &str, user: &str) -> Result<String, ResearchError> {
+        use axagent_core::types::{ChatRequest, ChatMessage, ChatContent};
+
+        match (&self.llm_adapter, &self.ctx) {
+            (Some(adapter), Some(ctx)) => {
+                let request = ChatRequest {
+                    model: "gpt-4o".to_string(),
+                    messages: vec![
+                        ChatMessage {
+                            role: "system".to_string(),
+                            content: ChatContent::Text(system.to_string()),
+                            tool_calls: None,
+                            tool_call_id: None,
+                        },
+                        ChatMessage {
+                            role: "user".to_string(),
+                            content: ChatContent::Text(user.to_string()),
+                            tool_calls: None,
+                            tool_call_id: None,
+                        },
+                    ],
+                    temperature: Some(0.7),
+                    max_tokens: Some(4096),
+                    stream: false,
+                    top_p: None,
+                    tools: None,
+                    thinking_budget: None,
+                    use_max_completion_tokens: None,
+                    thinking_param_style: None,
+                    api_mode: None,
+                    instructions: None,
+                    conversation: None,
+                    previous_response_id: None,
+                    store: None,
+                };
+
+                let response = adapter.chat(ctx, request).await
+                    .map_err(|e| ResearchError::LlmFailed(e.to_string()))?;
+
+                Ok(response.content)
+            }
+            _ => Err(ResearchError::LlmFailed("No LLM adapter configured".to_string())),
+        }
+    }
+}
+
+impl LlmContentGenerator for DefaultLlmContentGenerator {
+    async fn generate_outline(&self, topic: &str, context: &str) -> Result<String, ResearchError> {
+        let system = r#"你是一个任务分解专家。根据提供的研究主题和上下文信息，生成详细的研究报告大纲。
+
+要求：
+1. 大纲应包含6-8个主要章节
+2. 每个章节需要包含2-3个子节
+3. 使用JSON格式输出，格式如下:
+{
+  "sections": [
+    {"title": "章节标题", "description": "章节内容概述", "subsections": [
+      {"title": "子节标题", "description": "子节内容概述"}
+    ]}
+  ]
+}"#;
+
+        let user = format!("研究主题: {}\n\n上下文信息:\n{}", topic, context);
+
+        if let Ok(response) = self.call_llm(system, &user).await {
+            Ok(response)
+        } else {
+            let sections = serde_json::json!([
+                {"title": format!("{} - 摘要", topic), "description": "研究主题的简要概述"},
+                {"title": format!("{} - 背景介绍", topic), "description": "研究主题的背景信息"},
+                {"title": "主要发现", "description": "从多个来源中提取的主要发现"},
+                {"title": "分析讨论", "description": "对发现进行深入分析"},
+                {"title": "结论", "description": "研究结论和建议"},
+                {"title": "参考文献", "description": "所有引用的来源"}
+            ]);
+            Ok(serde_json::to_string(&sections).unwrap_or_default())
+        }
+    }
+
+    async fn generate_content(&self, topic: &str, outline: &str, sources: &str) -> Result<String, ResearchError> {
+        let system = r#"你是一个专业的研究报告撰写专家。根据提供的大纲和来源信息，生成完整的研究报告内容。
+
+要求：
+1. 内容应详尽、深入，覆盖大纲的所有要点
+2. 适当引用来源信息，使用[来源描述]格式标注引用
+3. 保持学术写作风格，逻辑清晰
+4. 输出完整的Markdown格式报告"#;
+
+        let user = format!(
+            "研究主题: {}\n\n大纲:\n{}\n\n来源信息:\n{}",
+            topic, outline, sources
+        );
+
+        self.call_llm(system, &user).await
+    }
+
+    async fn generate_summary(&self, topic: &str, findings: &str) -> Result<String, ResearchError> {
+        let system = r#"你是一个研究总结专家。根据提供的研究发现，生成简洁准确的研究总结。"#;
+
+        let user = format!("研究主题: {}\n\n研究发现:\n{}", topic, findings);
+
+        self.call_llm(system, &user).await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_start_research() {
+    async fn test_research_agent_creation() {
         let agent = ResearchAgent::new();
-        let result = agent.start("Rust programming".to_string()).await;
-        assert!(result.is_ok());
+        assert!(agent.content_generator.is_none());
     }
 
     #[tokio::test]
-    async fn test_pause_resume() {
+    async fn test_research_agent_with_generator() {
+        let agent = ResearchAgent::new()
+            .with_generator(Arc::new(DefaultLlmContentGenerator::new()));
+        assert!(agent.content_generator.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_state_transitions() {
         let agent = ResearchAgent::new();
-        agent.start("Test topic".to_string()).await.unwrap();
-        agent.pause().await.unwrap();
-        let state = agent.get_state().await;
-        assert_eq!(state.status, ResearchStatus::Paused);
-        agent.resume().await.unwrap();
+
+        let result = agent.start("Test topic".to_string()).await;
+        assert!(result.is_ok());
+
         let state = agent.get_state().await;
         assert_eq!(state.status, ResearchStatus::InProgress);
+        assert_eq!(state.topic, "Test topic");
+    }
+
+    #[tokio::test]
+    async fn test_default_llm_generator() {
+        let generator = DefaultLlmContentGenerator::new();
+
+        let outline = generator.generate_outline("test", "context").await;
+        assert!(outline.is_ok());
+
+        let content = generator.generate_content("test", "outline", "sources").await;
+        assert!(content.is_ok());
+
+        let summary = generator.generate_summary("test", "findings").await;
+        assert!(summary.is_ok());
     }
 }

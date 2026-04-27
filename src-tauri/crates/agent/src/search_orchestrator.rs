@@ -1,5 +1,7 @@
 use crate::research_state::{SearchPlan, SearchQuery, SearchResult, SourceType};
+use crate::search_provider::SearchProvider;
 use std::collections::HashMap;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -21,6 +23,7 @@ pub struct SearchOrchestrator {
     max_concurrent: usize,
     timeout_secs: u64,
     use_deduplication: bool,
+    providers: HashMap<SourceType, Arc<dyn SearchProvider>>,
 }
 
 impl Default for SearchOrchestrator {
@@ -29,6 +32,7 @@ impl Default for SearchOrchestrator {
             max_concurrent: 5,
             timeout_secs: 30,
             use_deduplication: true,
+            providers: HashMap::new(),
         }
     }
 }
@@ -36,6 +40,26 @@ impl Default for SearchOrchestrator {
 impl SearchOrchestrator {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_provider(mut self, provider: Arc<dyn SearchProvider>) -> Self {
+        self.providers.insert(provider.source_type(), provider);
+        self
+    }
+
+    pub fn with_web_search_provider(mut self, provider: Arc<dyn SearchProvider>) -> Self {
+        self.providers.insert(SourceType::Web, provider);
+        self
+    }
+
+    pub fn with_academic_search_provider(mut self, provider: Arc<dyn SearchProvider>) -> Self {
+        self.providers.insert(SourceType::Academic, provider);
+        self
+    }
+
+    pub fn add_provider(&mut self, provider: Arc<dyn SearchProvider>) -> &mut Self {
+        self.providers.insert(provider.source_type(), provider);
+        self
     }
 
     pub fn with_max_concurrent(mut self, max: usize) -> Self {
@@ -88,16 +112,18 @@ impl SearchOrchestrator {
     ) -> Result<HashMap<String, Vec<SearchResult>>, OrchestratorError> {
         let mut handles = Vec::new();
         let timeout = self.timeout_secs;
+        let providers = self.providers.clone();
 
         for query_id in query_ids {
             if let Some(query) = plan.queries.iter().find(|q| &q.id == query_id) {
                 let query_clone = query.clone();
                 let query_id_clone = query_id.clone();
+                let providers_clone = providers.clone();
 
                 let handle = tokio::spawn(async move {
                     let result = tokio::time::timeout(
                         std::time::Duration::from_secs(timeout),
-                        Self::execute_single_query_static(&query_clone),
+                        Self::execute_single_query_static(&query_clone, &providers_clone),
                     )
                     .await;
 
@@ -133,11 +159,12 @@ impl SearchOrchestrator {
 
     async fn execute_single_query_static(
         query: &SearchQuery,
+        providers: &HashMap<SourceType, Arc<dyn SearchProvider>>,
     ) -> Result<Vec<SearchResult>, OrchestratorError> {
         let mut results: Vec<SearchResult> = Vec::new();
 
         for source_type in &query.source_types {
-            let source_results = Self::search_source_static(query, *source_type).await?;
+            let source_results = Self::search_source_static(query, *source_type, providers).await?;
             results.extend(source_results);
         }
 
@@ -148,102 +175,16 @@ impl SearchOrchestrator {
     async fn search_source_static(
         query: &SearchQuery,
         source_type: SourceType,
+        providers: &HashMap<SourceType, Arc<dyn SearchProvider>>,
     ) -> Result<Vec<SearchResult>, OrchestratorError> {
-        match source_type {
-            SourceType::Web => Ok(Self::mock_web_search(query)),
-            SourceType::Wikipedia => Ok(Self::mock_wikipedia_search(query)),
-            SourceType::Academic => Ok(Self::mock_academic_search(query)),
-            SourceType::GitHub => Ok(Self::mock_github_search(query)),
-            SourceType::Documentation => Ok(Self::mock_doc_search(query)),
-            SourceType::News => Ok(Self::mock_news_search(query)),
-            SourceType::Blog => Ok(Vec::new()),
-            SourceType::Forum => Ok(Vec::new()),
-            SourceType::Unknown => Ok(Vec::new()),
-        }
-    }
+        let provider = providers.get(&source_type).ok_or_else(|| {
+            OrchestratorError::NoProviderForSource(source_type)
+        })?;
 
-    fn mock_web_search(query: &SearchQuery) -> Vec<SearchResult> {
-        vec![SearchResult::new(
-            SourceType::Web,
-            format!(
-                "https://example.com/search?q={}",
-                urlencoding::encode(&query.query)
-            ),
-            format!("Result for: {}", query.query),
-            format!(
-                "This is a mock search result snippet for the query: {}",
-                query.query
-            ),
-        )
-        .with_credibility(SourceType::Web.default_credibility())
-        .with_relevance(0.8)]
-    }
-
-    fn mock_wikipedia_search(query: &SearchQuery) -> Vec<SearchResult> {
-        vec![SearchResult::new(
-            SourceType::Wikipedia,
-            format!(
-                "https://en.wikipedia.org/wiki/{}",
-                urlencoding::encode(&query.query.replace(" ", "_"))
-            ),
-            query.query.clone(),
-            format!("Wikipedia article about: {}", query.query),
-        )
-        .with_credibility(SourceType::Wikipedia.default_credibility())
-        .with_relevance(0.95)]
-    }
-
-    fn mock_academic_search(query: &SearchQuery) -> Vec<SearchResult> {
-        vec![SearchResult::new(
-            SourceType::Academic,
-            "https://scholar.google.com/search".to_string(),
-            format!("Academic paper: {}", query.query),
-            format!("Scholarly article discussing: {}", query.query),
-        )
-        .with_credibility(SourceType::Academic.default_credibility())
-        .with_relevance(0.9)]
-    }
-
-    fn mock_github_search(query: &SearchQuery) -> Vec<SearchResult> {
-        vec![SearchResult::new(
-            SourceType::GitHub,
-            format!(
-                "https://github.com/search?q={}",
-                urlencoding::encode(&query.query)
-            ),
-            format!("GitHub repositories: {}", query.query),
-            format!("Open source projects related to: {}", query.query),
-        )
-        .with_credibility(SourceType::GitHub.default_credibility())
-        .with_relevance(0.75)]
-    }
-
-    fn mock_doc_search(query: &SearchQuery) -> Vec<SearchResult> {
-        vec![SearchResult::new(
-            SourceType::Documentation,
-            format!(
-                "https://docs.example.com/search?q={}",
-                urlencoding::encode(&query.query)
-            ),
-            format!("Documentation: {}", query.query),
-            format!("Official documentation for: {}", query.query),
-        )
-        .with_credibility(SourceType::Documentation.default_credibility())
-        .with_relevance(0.85)]
-    }
-
-    fn mock_news_search(query: &SearchQuery) -> Vec<SearchResult> {
-        vec![SearchResult::new(
-            SourceType::News,
-            format!(
-                "https://news.example.com/search?q={}",
-                urlencoding::encode(&query.query)
-            ),
-            format!("News: {}", query.query),
-            format!("Recent news about: {}", query.query),
-        )
-        .with_credibility(SourceType::News.default_credibility())
-        .with_relevance(0.7)]
+        provider
+            .search(query)
+            .await
+            .map_err(|e| OrchestratorError::ProviderError(e.to_string()))
     }
 
     fn deduplicate_results(&self, results: Vec<SearchResult>) -> Vec<SearchResult> {
@@ -306,6 +247,11 @@ impl SearchOrchestratorBuilder {
 
     pub fn deduplication(mut self, enabled: bool) -> Self {
         self.orchestrator.use_deduplication = enabled;
+        self
+    }
+
+    pub fn add_provider(mut self, provider: Arc<dyn SearchProvider>) -> Self {
+        self.orchestrator.providers.insert(provider.source_type(), provider);
         self
     }
 

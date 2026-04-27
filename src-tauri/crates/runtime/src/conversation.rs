@@ -1,5 +1,9 @@
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Condvar, Mutex};
+use std::time::Duration;
 
 use axagent_telemetry::SessionTracer;
 use serde_json::{Map, Value};
@@ -17,6 +21,69 @@ use crate::usage::{TokenUsage, UsageTracker};
 
 const DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD: u32 = 100_000;
 const AUTO_COMPACTION_THRESHOLD_ENV_VAR: &str = "CLAUDE_CODE_AUTO_COMPACT_INPUT_TOKENS";
+
+pub struct PauseState {
+    is_paused: Mutex<bool>,
+    condvar: Condvar,
+}
+
+impl PauseState {
+    pub fn new() -> Self {
+        Self {
+            is_paused: Mutex::new(false),
+            condvar: Condvar::new(),
+        }
+    }
+
+    pub fn pause(&self) {
+        let mut paused = self.is_paused.lock().unwrap();
+        *paused = true;
+        self.condvar.notify_all();
+    }
+
+    pub fn resume(&self) {
+        let mut paused = self.is_paused.lock().unwrap();
+        *paused = false;
+        self.condvar.notify_all();
+    }
+
+    pub fn wait_while_paused(&self, cancel_token: Option<&AtomicBool>) {
+        let mut paused = self.is_paused.lock().unwrap();
+        while *paused {
+            if let Some(token) = cancel_token {
+                if token.load(Ordering::Relaxed) {
+                    return;
+                }
+            }
+            let result = self.condvar.wait_timeout(paused, Duration::from_secs(1));
+            match result {
+                Ok((guard, wait_result)) => {
+                    paused = guard;
+                    if wait_result.timed_out() {
+                        if let Some(token) = cancel_token {
+                            if token.load(Ordering::Relaxed) {
+                                return;
+                            }
+                        }
+                    }
+                }
+                Err(_) => {
+                    return;
+                }
+            }
+        }
+    }
+
+    pub fn is_paused(&self) -> bool {
+        *self.is_paused.lock().unwrap()
+    }
+}
+
+impl Default for PauseState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Fully assembled request payload sent to the upstream model client.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -128,7 +195,7 @@ pub struct AutoCompactionEvent {
 pub struct ConversationRuntime<C, T> {
     session: Session,
     api_client: C,
-    tool_executor: T,
+    tool_executor: Arc<Mutex<T>>,
     permission_policy: PermissionPolicy,
     system_prompt: Vec<String>,
     max_iterations: usize,
@@ -139,9 +206,7 @@ pub struct ConversationRuntime<C, T> {
     hook_progress_reporter: Option<Box<dyn HookProgressReporter>>,
     session_tracer: Option<SessionTracer>,
     cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-    /// Optional pause-check function. Returns true when the agent should pause.
-    /// The run_turn loop polls this and sleeps while it returns true.
-    pause_check_fn: Option<std::sync::Arc<dyn Fn() -> bool + Send + Sync>>,
+    pause_state: Option<Arc<PauseState>>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -181,7 +246,7 @@ where
         Self {
             session,
             api_client,
-            tool_executor,
+            tool_executor: Arc::new(Mutex::new(tool_executor)),
             permission_policy,
             system_prompt,
             max_iterations: 50,
@@ -192,7 +257,7 @@ where
             hook_progress_reporter: None,
             session_tracer: None,
             cancel_token: None,
-            pause_check_fn: None,
+            pause_state: None,
         }
     }
 
@@ -214,11 +279,8 @@ where
     }
 
     #[must_use]
-    pub fn with_pause_check(
-        mut self,
-        check_fn: std::sync::Arc<dyn Fn() -> bool + Send + Sync>,
-    ) -> Self {
-        self.pause_check_fn = Some(check_fn);
+    pub fn with_pause_state(mut self, pause_state: Arc<PauseState>) -> Self {
+        self.pause_state = Some(pause_state);
         self
     }
 
@@ -336,16 +398,13 @@ where
     /// Run a session health probe to verify the runtime is functional after compaction.
     /// Returns Ok(()) if healthy, Err if the session appears broken.
     fn run_session_health_probe(&mut self) -> Result<(), String> {
-        // Check if we have basic session integrity
         if self.session.messages.is_empty() && self.session.compaction.is_some() {
-            // Freshly compacted with no messages - this is normal
             return Ok(());
         }
 
-        // Verify tool executor is responsive with a non-destructive probe
-        // Using glob_search with a pattern that won't match anything
         let probe_input = r#"{"pattern": "*.health-check-probe-"}"#;
-        match self.tool_executor.execute("glob_search", probe_input) {
+        let mut executor = self.tool_executor.lock().map_err(|e| format!("Lock error: {}", e))?;
+        match executor.execute("glob_search", probe_input) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Tool executor probe failed: {e}")),
         }
@@ -400,21 +459,17 @@ where
                 }
             }
 
-            // Check pause token — sleep in a loop until resumed or cancelled.
-            // The PAUSED_AGENTS set is managed by agent_pause/agent_resume commands.
-            // We use a simple polling approach with 500ms sleep intervals.
-            if let Some(ref pause_check) = self.pause_check_fn {
-                while pause_check() {
-                    // Re-check cancel while paused
-                    if let Some(ref token) = self.cancel_token {
-                        if token.load(std::sync::atomic::Ordering::Relaxed) {
-                            let error =
-                                RuntimeError::new("Agent cancelled while paused".to_string());
-                            self.record_turn_failed(iterations, &error);
-                            return Err(error);
-                        }
+            if let Some(ref pause_state) = self.pause_state {
+                pause_state.wait_while_paused(
+                    self.cancel_token.as_ref().map(|t| t.as_ref())
+                );
+                if let Some(ref token) = self.cancel_token {
+                    if token.load(Ordering::Relaxed) {
+                        let error =
+                            RuntimeError::new("Agent cancelled while paused".to_string());
+                        self.record_turn_failed(iterations, &error);
+                        return Err(error);
                     }
-                    std::thread::sleep(std::time::Duration::from_millis(500));
                 }
             }
 
@@ -626,25 +681,23 @@ where
                         let tool_timeout = Self::tool_timeout_for(&tool_name);
 
                         let (mut output, mut is_error) = {
-                            // Execute tool with true timeout enforcement using std::thread::scope.
-                            // The tool runs in a scoped thread that can borrow &mut tool_executor.
-                            // The main thread waits on a channel with recv_timeout.
-                            // If the tool exceeds its category timeout, we return a
-                            // timeout error immediately (the scoped thread is joined
-                            // automatically when the scope exits, so no resource leak).
-                            let (result_tx, result_rx) =
-                                std::sync::mpsc::channel::<Result<String, ToolError>>();
-                            let tool_name_ref = &tool_name;
-                            let effective_input_ref = &effective_input;
+                            let tool_name_owned = tool_name.clone();
+                            let effective_input_owned = effective_input.clone();
+                            let tool_executor = self.tool_executor.clone();
 
-                            let scope_result = std::thread::scope(|s| {
-                                s.spawn(|| {
-                                    let result = self
-                                        .tool_executor
-                                        .execute(tool_name_ref, effective_input_ref);
-                                    let _ = result_tx.send(result);
-                                });
-                                result_rx.recv_timeout(tool_timeout)
+                            let scope_result: Result<Result<String, ToolError>, std::sync::mpsc::RecvTimeoutError> = tokio::task::block_in_place(|| {
+                                let mut tool_executor = match tool_executor.lock() {
+                                    Ok(executor) => executor,
+                                    Err(e) => {
+                                        let (tx, rx) = std::sync::mpsc::channel();
+                                        let _ = tx.send(Err(ToolError::new(format!("Lock error: {}", e))));
+                                        return rx.recv_timeout(tool_timeout);
+                                    }
+                                };
+                                let result = tool_executor.execute(&tool_name_owned, &effective_input_owned);
+                                let (tx, rx) = std::sync::mpsc::channel();
+                                let _ = tx.send(result);
+                                rx.recv_timeout(tool_timeout)
                             });
 
                             let first_result: Result<String, RuntimeError> = match scope_result {
@@ -702,20 +755,22 @@ where
                                                 TOOL_RETRY_DELAY_MS * retry_count as u64,
                                             ));
                                             // Retry with same timeout enforcement
-                                            let (retry_tx, retry_rx) = std::sync::mpsc::channel::<
-                                                Result<String, ToolError>,
-                                            >(
-                                            );
-                                            let retry_tool_name = &tool_name;
-                                            let retry_input = &effective_input;
-                                            let retry_scope_result = std::thread::scope(|s| {
-                                                s.spawn(|| {
-                                                    let result = self
-                                                        .tool_executor
-                                                        .execute(retry_tool_name, retry_input);
-                                                    let _ = retry_tx.send(result);
-                                                });
-                                                retry_rx.recv_timeout(tool_timeout)
+                                            let retry_tool_name = tool_name.clone();
+                                            let retry_input = effective_input.clone();
+                                            let retry_tool_executor = self.tool_executor.clone();
+                                            let retry_scope_result: Result<Result<String, ToolError>, std::sync::mpsc::RecvTimeoutError> = tokio::task::block_in_place(|| {
+                                                let mut executor = match retry_tool_executor.lock() {
+                                                    Ok(ex) => ex,
+                                                    Err(e) => {
+                                                        let (tx, rx) = std::sync::mpsc::channel();
+                                                        let _ = tx.send(Err(ToolError::new(format!("Lock error: {}", e))));
+                                                        return rx.recv_timeout(tool_timeout);
+                                                    }
+                                                };
+                                                let result = executor.execute(&retry_tool_name, &retry_input);
+                                                let (tx, rx) = std::sync::mpsc::channel();
+                                                let _ = tx.send(result);
+                                                rx.recv_timeout(tool_timeout)
                                             });
                                             let retry_result: Result<String, RuntimeError> = match retry_scope_result {
                                                 Ok(Ok(output)) => Ok(output),

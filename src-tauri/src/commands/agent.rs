@@ -633,6 +633,9 @@ pub async fn agent_query(
                         env_json: server.env_json.clone(),
                         endpoint: server.endpoint.clone(),
                         execute_timeout_secs: server.execute_timeout_secs,
+                        connection_pool_size: None,
+                        retry_attempts: None,
+                        retry_delay_ms: None,
                     },
                 );
             }
@@ -1341,7 +1344,6 @@ pub async fn agent_query(
             runtime_permission_mode,
             app_state.agent_prompters.clone(),
             Some(cancel_token),
-            Some(app_state.agent_paused.clone()),
         )
         .await;
     info!("[agent_query] run_turn_with_tools completed");

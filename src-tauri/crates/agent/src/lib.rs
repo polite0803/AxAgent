@@ -5,21 +5,30 @@
 
 pub mod academic_search;
 pub mod action_executor;
+pub mod agent_adapter;
 pub mod agent_config;
+pub mod agent_runtime;
 pub mod citation_tracker;
 pub mod content_synthesizer;
+pub mod coordinator;
 pub mod credibility_evaluator;
 pub mod error_classifier;
 pub mod error_recovery_engine;
 pub mod evaluator;
+pub mod event_bus;
 pub mod event_emitter;
 pub mod fact_checker;
 pub mod fine_tune;
+pub mod frontend_adapter;
+pub mod health_checker;
 pub mod insight_generator;
 pub mod local_tool_registry;
+pub mod loop_detector;
+pub mod metrics;
 pub mod outline_builder;
 pub mod provider_adapter;
 pub mod react_engine;
+pub mod traits;
 pub mod reasoning_state;
 pub mod recovery_strategies;
 pub mod reference_builder;
@@ -42,6 +51,7 @@ pub mod task_executor;
 pub mod thought_chain;
 pub mod tool_recommender;
 pub mod tool_registry;
+pub mod trajectory_recorder;
 pub mod web_search;
 
 pub use academic_search::{
@@ -49,9 +59,17 @@ pub use academic_search::{
 };
 pub use action_executor::{ActionError, ActionExecutor, ActionResult};
 pub use agent_config::{AgentConfig, ConfigManager, ConfigSnapshot, DebugMode};
+pub use agent_adapter::{
+    AgentImplAdapter, AgentRuntimeAdapter, AgentRuntimeManager,
+};
+pub use agent_runtime::{AgentEvent, AgentRuntime, AgentRuntimeConfig, AgentRuntimeError, AgentOutput};
 pub use citation_tracker::{
     CitationContext, CitationQuerier, CitationStats, CitationTracker, CitationUsage,
     CitationUsageCount,
+};
+pub use coordinator::{
+    AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput,
+    UnifiedAgentCoordinator, TypedAgentCoordinator,
 };
 pub use content_synthesizer::{ContentFormatter, ContentSynthesizer};
 pub use credibility_evaluator::{
@@ -61,6 +79,9 @@ pub use credibility_evaluator::{
 pub use error_classifier::{ClassifiedError, ErrorClassifier, ErrorType};
 pub use error_recovery_engine::{
     ErrorRecoveryEngine, RecoveryConfig, RecoveryContext, RecoveryEvent,
+};
+pub use event_bus::{
+    AgentEventBus, AgentEventBusBuilder, AgentEventType, EventSubscription, UnifiedAgentEvent,
 };
 pub use evaluator::{
     Benchmark, BenchmarkCategory, BenchmarkMetadata, BenchmarkReport, BenchmarkResult,
@@ -73,7 +94,21 @@ pub use fact_checker::{
     Claim, ClaimExtractor, EvidenceType, FactCheckResult, FactCheckStatus, FactChecker,
     SourceEvidence,
 };
+pub use frontend_adapter::{
+    FrontendEventAdapter, FrontendEventFilter, FrontendEventPayload, FrontendEventType,
+    TauriEventAdapter, TauriEventEnvelope,
+};
+pub use health_checker::{
+    HealthCheckResult, HealthCheckRunner, HealthChecker, HealthMetric, HealthStatus, HealthThresholds,
+};
 pub use insight_generator::{Insight, InsightCategory, InsightGenerator, InsightStats};
+pub use loop_detector::{
+    LoopDetector, LoopDetectorConfig, LoopWarning, LoopWarningLevel, ToolCallStats,
+};
+pub use metrics::{
+    log_with_fields, record_timing_async, MetricType, MetricValue, MetricsCollector,
+    StructuredLogEntry, TimedGuard, TimingStats,
+};
 pub use local_tool_registry::{LocalToolDef, LocalToolGroup, LocalToolRegistry};
 pub use outline_builder::{OutlineBuilder, OutlineStyle, OutlineValidationError};
 pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
@@ -98,7 +133,7 @@ pub use search_provider::{
     SearchProvider, SearchProviderRegistry, SearchProviderType, SearchQueryBuilder,
     SearchResultProcessor,
 };
-pub use self_verifier::{SelfVerifier, VerificationError, VerificationResult};
+pub use self_verifier::{SemanticValidator, SelfVerifier, VerificationError, VerificationResult};
 pub use session_manager::{
     AgentSession, ChannelPermissionPrompter, SessionManager, TauriHookProgressReporter,
 };
@@ -110,7 +145,7 @@ pub use source_validator::{
     ValidatorConfig,
 };
 pub use task::{TaskGraph, TaskNode, TaskStatus, TaskType};
-pub use task_decomposer::{DecompositionError, DecompositionResult, TaskDecomposer};
+pub use task_decomposer::{DecompositionError, DecompositionResult, LlmClient, TaskDecomposer};
 pub use task_executor::{ExecutionError, ExecutionEvent, ExecutionProgress, TaskExecutor};
 pub use thought_chain::{
     Action, ChainSummary, ThoughtChain, ThoughtChainEmitter, ThoughtEvent, ThoughtStep,
@@ -119,4 +154,5 @@ pub use tool_registry::{
     McpRegistry, McpServerConfig, McpToolConfig, ToolContext, ToolError, ToolExecutionRecorder,
     ToolRegistry, ToolResult,
 };
+pub use trajectory_recorder::TrajectoryRecorder;
 pub use web_search::{WebSearchConfig, WebSearchProvider, WebSearchProviderBuilder};

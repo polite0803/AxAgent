@@ -339,75 +339,78 @@ impl ApiClient for AxAgentApiClient {
         let mut events = Vec::new();
         let on_event = self.on_event.clone();
 
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async move {
-                while let Some(result) = stream.next().await {
-                    match result {
-                        Ok(chunk) => {
-                            if let Some(ref text) = chunk.content {
-                                if !text.is_empty() {
-                                    let event = AssistantEvent::TextDelta(text.clone());
-                                    if let Some(ref cb) = on_event {
-                                        cb(&event);
-                                    }
-                                    events.push(event);
-                                }
-                            }
-
-                            if let Some(ref thinking) = chunk.thinking {
-                                if !thinking.is_empty() {
-                                    // Emit thinking as a distinct ThinkingDelta event so the
-                                    // caller (agent.rs on_event callback) can route it to
-                                    // "agent-stream-thinking" separately from text content.
-                                    let event = AssistantEvent::ThinkingDelta(thinking.clone());
-                                    if let Some(ref cb) = on_event {
-                                        cb(&event);
-                                    }
-                                    events.push(event);
-                                }
-                            }
-
-                            if let Some(ref tool_calls) = chunk.tool_calls {
-                                for tool_call in tool_calls {
-                                    let tool_use = Self::convert_tool_call(tool_call);
-                                    if let ContentBlock::ToolUse { id, name, input } = tool_use {
-                                        let event = AssistantEvent::ToolUse { id, name, input };
-                                        if let Some(ref cb) = on_event {
-                                            cb(&event);
-                                        }
-                                        events.push(event);
-                                    }
-                                }
-                            }
-
-                            if let Some(ref usage) = chunk.usage {
-                                let runtime_usage = Self::convert_usage(usage);
-                                let event = AssistantEvent::Usage(runtime_usage);
+        let process_stream = async move {
+            while let Some(result) = stream.next().await {
+                match result {
+                    Ok(chunk) => {
+                        if let Some(ref text) = chunk.content {
+                            if !text.is_empty() {
+                                let event = AssistantEvent::TextDelta(text.clone());
                                 if let Some(ref cb) = on_event {
                                     cb(&event);
                                 }
                                 events.push(event);
-                            }
-
-                            if chunk.done {
-                                let event = AssistantEvent::MessageStop;
-                                if let Some(ref cb) = on_event {
-                                    cb(&event);
-                                }
-                                events.push(event);
-                                break;
                             }
                         }
-                        Err(e) => {
-                            return Err(RuntimeError::new(e.to_string()));
+
+                        if let Some(ref thinking) = chunk.thinking {
+                            if !thinking.is_empty() {
+                                let event = AssistantEvent::ThinkingDelta(thinking.clone());
+                                if let Some(ref cb) = on_event {
+                                    cb(&event);
+                                }
+                                events.push(event);
+                            }
+                        }
+
+                        if let Some(ref tool_calls) = chunk.tool_calls {
+                            for tool_call in tool_calls {
+                                let tool_use = Self::convert_tool_call(tool_call);
+                                if let ContentBlock::ToolUse { id, name, input } = tool_use {
+                                    let event = AssistantEvent::ToolUse { id, name, input };
+                                    if let Some(ref cb) = on_event {
+                                        cb(&event);
+                                    }
+                                    events.push(event);
+                                }
+                            }
+                        }
+
+                        if let Some(ref usage) = chunk.usage {
+                            let runtime_usage = Self::convert_usage(usage);
+                            let event = AssistantEvent::Usage(runtime_usage);
+                            if let Some(ref cb) = on_event {
+                                cb(&event);
+                            }
+                            events.push(event);
+                        }
+
+                        if chunk.done {
+                            let event = AssistantEvent::MessageStop;
+                            if let Some(ref cb) = on_event {
+                                cb(&event);
+                            }
+                            events.push(event);
+                            break;
                         }
                     }
+                    Err(e) => {
+                        return Err(RuntimeError::new(e.to_string()));
+                    }
                 }
+            }
 
-                Ok(events)
-            })
+            Ok(events)
+        };
+
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.block_on(process_stream)
+        } else {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(process_stream)
+        }
     }
 }

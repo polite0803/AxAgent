@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskType {
@@ -175,6 +176,127 @@ impl TaskGraph {
         let completed = self.tasks.iter().filter(|t| t.is_complete()).count() as f32;
         (completed / self.tasks.len() as f32) * 100.0
     }
+
+    pub fn topological_sort(&self) -> Result<Vec<Vec<String>>, TopologicalSortError> {
+        let mut result = Vec::new();
+        let mut in_degree: HashMap<String, usize> = HashMap::new();
+        let mut visited: HashSet<String> = HashSet::new();
+
+        for task in &self.tasks {
+            in_degree.insert(task.id.clone(), task.dependencies.len());
+        }
+
+        while visited.len() < self.tasks.len() {
+            let batch: Vec<String> = in_degree
+                .iter()
+                .filter(|(id, &degree)| degree == 0 && !visited.contains(*id))
+                .map(|(id, _)| id.clone())
+                .collect();
+
+            if batch.is_empty() && visited.len() < self.tasks.len() {
+                let remaining: Vec<String> = self
+                    .tasks
+                    .iter()
+                    .filter(|t| !visited.contains(&t.id))
+                    .map(|t| t.id.clone())
+                    .collect();
+                return Err(TopologicalSortError::CircularDependency(remaining));
+            }
+
+            if !batch.is_empty() {
+                result.push(batch.clone());
+            }
+
+            for task_id in &batch {
+                visited.insert(task_id.clone());
+                for task in &self.tasks {
+                    if task.dependencies.contains(task_id) {
+                        if let Some(degree) = in_degree.get_mut(&task.id) {
+                            *degree -= 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    pub fn dependencies_ready(&self, task_id: &str) -> bool {
+        if let Some(task) = self.get_task(task_id) {
+            task.dependencies.iter().all(|dep| self.is_completed(dep))
+        } else {
+            false
+        }
+    }
+
+    pub fn is_completed(&self, task_id: &str) -> bool {
+        self.get_task(task_id)
+            .map(|t| t.is_complete())
+            .unwrap_or(false)
+    }
+
+    pub fn get_failed_task_ids(&self) -> Vec<String> {
+        self.tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Failed)
+            .map(|t| t.id.clone())
+            .collect()
+    }
+
+    pub fn get_status_summary(&self) -> TaskStatusSummary {
+        let total = self.tasks.len();
+        let pending = self
+            .tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Pending)
+            .count();
+        let running = self
+            .tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Running)
+            .count();
+        let completed = self
+            .tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Completed)
+            .count();
+        let failed = self
+            .tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Failed)
+            .count();
+        let skipped = self
+            .tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Skipped)
+            .count();
+
+        TaskStatusSummary {
+            total,
+            pending,
+            running,
+            completed,
+            failed,
+            skipped,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TaskStatusSummary {
+    pub total: usize,
+    pub pending: usize,
+    pub running: usize,
+    pub completed: usize,
+    pub failed: usize,
+    pub skipped: usize,
+}
+
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum TopologicalSortError {
+    #[error("Circular dependency detected involving tasks: {0:?}")]
+    CircularDependency(Vec<String>),
 }
 
 impl Default for TaskGraph {
