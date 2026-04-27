@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import { invoke } from '@/lib/invoke';
 import type { Conversation, UpdateConversationInput } from '@/types';
-import { usePreferenceStore } from './preferenceStore';
 
 interface ConversationListState {
   conversations: Conversation[];
   activeConversationId: string | null;
   totalActiveCount: number;
   archivedConversations: Conversation[];
+  loading: boolean;
+  error: string | null;
   fetchConversations: () => Promise<void>;
   setActiveConversation: (id: string | null) => void;
   createConversation: (
@@ -38,6 +39,8 @@ export const useConversationListStore = create<ConversationListState>((set, get)
   activeConversationId: null,
   totalActiveCount: 0,
   archivedConversations: [],
+  loading: false,
+  error: null,
 
   fetchConversations: async () => {
     set({ loading: true, error: null });
@@ -200,7 +203,7 @@ interface ConversationState {
   batchArchive: (ids: string[]) => Promise<void>;
 }
 
-export const useConversationStore = create<ConversationState>((set, get) => ({
+export const useConversationStore = create<ConversationState>((set) => ({
   conversations: [],
   activeConversationId: null,
   totalActiveCount: 0,
