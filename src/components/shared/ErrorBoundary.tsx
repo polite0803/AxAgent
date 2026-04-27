@@ -1,5 +1,5 @@
-import React from 'react';
-import { Button, Result } from 'antd';
+import { Button, Result } from "antd";
+import React from "react";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -23,7 +23,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
   }
 
   handleReset = () => {
@@ -40,7 +40,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         <Result
           status="error"
           title="Something went wrong"
-          subTitle={this.state.error?.message || 'An unexpected error occurred'}
+          subTitle={this.state.error?.message || "An unexpected error occurred"}
           extra={
             <Button type="primary" onClick={this.handleReset}>
               Try Again
@@ -59,7 +59,7 @@ interface PageErrorBoundaryProps {
   title?: string;
 }
 
-export function PageErrorBoundary({ children, title = 'Page Error' }: PageErrorBoundaryProps) {
+export function PageErrorBoundary({ children, title = "Page Error" }: PageErrorBoundaryProps) {
   return (
     <ErrorBoundary
       fallback={

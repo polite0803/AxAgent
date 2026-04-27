@@ -1,5 +1,5 @@
 // === Provider System ===
-export type ProviderType = 'openai' | 'openai_responses' | 'anthropic' | 'gemini' | 'openclaw' | 'hermes' | 'ollama';
+export type ProviderType = "openai" | "openai_responses" | "anthropic" | "gemini" | "openclaw" | "hermes" | "ollama";
 
 export interface ProviderConfig {
   id: string;
@@ -58,8 +58,8 @@ export interface UpdateProviderInput {
 }
 
 // === Model System ===
-export type ModelCapability = 'TextChat' | 'Vision' | 'FunctionCalling' | 'Reasoning' | 'RealtimeVoice';
-export type ModelType = 'Chat' | 'Voice' | 'Embedding';
+export type ModelCapability = "TextChat" | "Vision" | "FunctionCalling" | "Reasoning" | "RealtimeVoice";
+export type ModelType = "Chat" | "Voice" | "Embedding";
 
 export interface Model {
   provider_id: string;
@@ -85,7 +85,7 @@ export interface ModelParamOverrides {
 }
 
 // === Conversation & Message ===
-export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
+export type MessageRole = "system" | "user" | "assistant" | "tool";
 
 export interface ConversationCategory {
   id: string;
@@ -126,7 +126,7 @@ export interface Conversation {
   context_compression: boolean;
   category_id: string | null;
   parent_conversation_id: string | null;
-  mode?: 'chat' | 'agent' | 'gateway';
+  mode?: "chat" | "agent" | "gateway";
   message_count: number;
   created_at: number;
   updated_at: number;
@@ -161,7 +161,7 @@ export interface Message {
   parent_message_id: string | null;
   version_index: number;
   is_active: boolean;
-  status: 'complete' | 'partial' | 'error' | 'cancelled';
+  status: "complete" | "partial" | "error" | "cancelled";
   tokens_per_second?: number | null;
   first_token_latency_ms?: number | null;
 }
@@ -245,7 +245,7 @@ export interface UpdateConversationInput {
   enabled_memory_namespace_ids?: string[];
   context_compression?: boolean;
   category_id?: string | null;
-  mode?: 'chat' | 'agent' | 'gateway';
+  mode?: "chat" | "agent" | "gateway";
   scenario?: string | null;
   enabled_skill_ids?: string[];
 }
@@ -339,7 +339,7 @@ export interface GatewayStats {
 export interface GatewaySettings {
   listen_address: string;
   port: number;
-  load_balance_strategy: 'round_robin';
+  load_balance_strategy: "round_robin";
 }
 
 // === Settings ===
@@ -439,13 +439,25 @@ export interface AppSettings {
   default_system_prompt?: string | null;
   /** Chat minimap / navigation overlay */
   chat_minimap_enabled?: boolean;
-  chat_minimap_style?: 'faq' | 'sticky';
+  chat_minimap_style?: "faq" | "sticky";
   /** Multi-model response display mode */
-  multi_model_display_mode?: 'tabs' | 'side-by-side' | 'stacked';
+  multi_model_display_mode?: "tabs" | "side-by-side" | "stacked";
   /** Render user messages as Markdown (like AI messages). Default: false */
   render_user_markdown?: boolean;
   /** Default workspace directory for new sessions when not manually set */
   default_workspace_dir?: string | null;
+  /** Enable screen perception and vision-based UI control */
+  screen_perception_enabled?: boolean;
+  /** Enable RL optimizer for tool selection and task strategies */
+  rl_optimizer_enabled?: boolean;
+  /** Enable LoRA fine-tuning for custom model adaptation */
+  lora_finetune_enabled?: boolean;
+  /** Enable proactive nudge suggestions based on context */
+  proactive_nudge_enabled?: boolean;
+  /** Enable thought chain visualization for reasoning */
+  thought_chain_enabled?: boolean;
+  /** Enable automatic error recovery suggestions */
+  error_recovery_enabled?: boolean;
 }
 
 // === Streaming ===
@@ -479,9 +491,9 @@ export interface TokenUsage {
 }
 
 // === Voice ===
-export type VoiceSessionState = 'Idle' | 'Connecting' | 'Connected' | 'Speaking' | 'Listening' | 'Disconnecting';
+export type VoiceSessionState = "Idle" | "Connecting" | "Connected" | "Speaking" | "Listening" | "Disconnecting";
 
-export type AudioEncoding = 'Pcm16' | 'Opus';
+export type AudioEncoding = "Pcm16" | "Opus";
 
 export interface AudioFormat {
   sample_rate: number;
@@ -496,8 +508,8 @@ export interface RealtimeConfig {
 }
 
 // === Gateway Link (Client-side Gateway Connection) ===
-export type GatewayLinkType = 'openclaw' | 'hermes' | 'custom';
-export type GatewayLinkStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
+export type GatewayLinkType = "openclaw" | "hermes" | "custom";
+export type GatewayLinkStatus = "connected" | "disconnected" | "connecting" | "error";
 
 export interface GatewayLink {
   id: string;
@@ -520,26 +532,26 @@ export interface GatewayLink {
 export interface GatewayLinkModelSync {
   model_id: string;
   provider_name: string;
-  sync_status: 'synced' | 'pending' | 'failed' | 'not_selected';
+  sync_status: "synced" | "pending" | "failed" | "not_selected";
   last_sync_at: number | null;
 }
 
 export interface GatewayLinkSkillSync {
   skill_name: string;
   skill_version: string | null;
-  sync_status: 'synced' | 'pending' | 'failed' | 'not_selected';
+  sync_status: "synced" | "pending" | "failed" | "not_selected";
   last_sync_at: number | null;
 }
 
 export interface GatewayLinkPolicy {
   id: string;
   link_id: string;
-  route_strategy: 'round_robin' | 'least_latency' | 'weighted';
+  route_strategy: "round_robin" | "least_latency" | "weighted";
   model_fallback_enabled: boolean;
   global_rpm: number | null;
   per_model_rpm: number | null;
   token_limit_per_minute: number | null;
-  key_rotation_strategy: 'sequential' | 'random';
+  key_rotation_strategy: "sequential" | "random";
   key_failover_enabled: boolean;
 }
 
@@ -561,8 +573,26 @@ export interface GatewayLinkActivity {
 }
 
 // === UI State ===
-export type PageKey = 'chat' | 'knowledge' | 'memory' | 'link' | 'gateway' | 'files' | 'settings' | 'skills';
-export type SettingsSection = 'providers' | 'defaultModel' | 'conversationSettings' | 'general' | 'display' | 'proxy' | 'shortcuts' | 'data' | 'storage' | 'scheduler' | 'backup' | 'about' | 'searchProviders' | 'localTools' | 'mcpServers' | 'workflow' | 'tools';
+export type PageKey = "chat" | "knowledge" | "memory" | "link" | "gateway" | "files" | "settings" | "skills" | "marketplace" | "prompts";
+export type SettingsSection =
+  | "providers"
+  | "defaultModel"
+  | "conversationSettings"
+  | "general"
+  | "display"
+  | "proxy"
+  | "shortcuts"
+  | "data"
+  | "storage"
+  | "scheduler"
+  | "backup"
+  | "about"
+  | "searchProviders"
+  | "localTools"
+  | "mcpServers"
+  | "workflow"
+  | "tools"
+  | "userProfile";
 
 // === Generated Tool ===
 export interface GeneratedToolInfo {
@@ -574,9 +604,9 @@ export interface GeneratedToolInfo {
 }
 
 // === Files Module ===
-export type FileCategory = 'images' | 'files';
+export type FileCategory = "images" | "files";
 
-export type FileSortKey = 'createdAt' | 'size' | 'name';
+export type FileSortKey = "createdAt" | "size" | "name";
 
 export interface FileRow {
   id: string;
@@ -610,7 +640,7 @@ export interface Skill {
   description: string;
   author?: string;
   version?: string;
-  source: 'builtin' | 'axagent' | 'claude' | 'agents' | 'project';
+  source: "builtin" | "axagent" | "claude" | "agents" | "project";
   sourcePath: string;
   enabled: boolean;
   hasUpdate: boolean;
@@ -667,15 +697,15 @@ export interface SkillProposal {
 }
 
 // Phase-2 type modules
-export * from './search';
-export * from './mcp';
-export * from './knowledge';
-export * from './memory';
-export * from './artifact';
-export * from './backup';
-export * from './workspace';
-export * from './agent';
-export * from './nudge';
+export * from "./agent";
+export * from "./artifact";
+export * from "./backup";
+export * from "./knowledge";
+export * from "./mcp";
+export * from "./memory";
+export * from "./nudge";
+export * from "./search";
+export * from "./workspace";
 
 // ── Atomic Skills ─────────────────────────────────────────────────────
 export interface AtomicSkill {
@@ -684,13 +714,13 @@ export interface AtomicSkill {
   description: string;
   input_schema: Record<string, unknown> | null;
   output_schema: Record<string, unknown> | null;
-  entry_type: 'builtin' | 'mcp' | 'local' | 'plugin';
+  entry_type: "builtin" | "mcp" | "local" | "plugin";
   entry_ref: string;
   category: string;
   tags: string[];
   version: string;
   enabled: boolean;
-  source: 'atomic' | 'auto-generated';
+  source: "atomic" | "auto-generated";
   created_at: number;
   updated_at: number;
 }
@@ -714,7 +744,7 @@ export interface CreateAtomicSkillParams {
   description: string;
   input_schema?: Record<string, unknown>;
   output_schema?: Record<string, unknown>;
-  entry_type: 'builtin' | 'mcp' | 'local' | 'plugin';
+  entry_type: "builtin" | "mcp" | "local" | "plugin";
   entry_ref: string;
   category?: string;
   tags?: string[];
@@ -728,7 +758,7 @@ export interface UpdateAtomicSkillParams {
   description?: string;
   input_schema?: Record<string, unknown>;
   output_schema?: Record<string, unknown>;
-  entry_type?: 'builtin' | 'mcp' | 'local' | 'plugin';
+  entry_type?: "builtin" | "mcp" | "local" | "plugin";
   entry_ref?: string;
   category?: string;
   tags?: string[];
@@ -746,7 +776,7 @@ export interface SkillReference {
 }
 
 // ── Tool Dependencies ─────────────────────────────────────────────────
-export type ToolDependencyStatus = 'satisfied' | 'auto_installable' | 'manual_installable' | 'needs_generation';
+export type ToolDependencyStatus = "satisfied" | "auto_installable" | "manual_installable" | "needs_generation";
 
 export interface ToolDependency {
   name: string;
@@ -778,7 +808,7 @@ export interface DecompositionPreview {
 }
 
 // ── Work Engine ───────────────────────────────────────────────────────
-export type ExecutionStatus = 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+export type ExecutionStatus = "running" | "paused" | "completed" | "failed" | "cancelled";
 
 export interface ExecutionStatusResponse {
   execution_id: string;

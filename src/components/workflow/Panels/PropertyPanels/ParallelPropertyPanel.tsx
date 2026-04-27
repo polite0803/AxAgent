@@ -1,9 +1,9 @@
-import React from 'react';
-import { Input, Switch, Button, Divider, Select, Tag } from 'antd';
-import { Plus, Trash2, GripVertical, X } from 'lucide-react';
-import type { WorkflowNode, ParallelNode, Branch } from '../../types';
-import { BasePropertyPanel } from './BasePropertyPanel';
-import { useWorkflowEditorStore } from '@/stores';
+import { useWorkflowEditorStore } from "@/stores";
+import { Button, Divider, Input, Select, Switch, Tag } from "antd";
+import { GripVertical, Plus, Trash2, X } from "lucide-react";
+import React from "react";
+import type { Branch, ParallelNode, WorkflowNode } from "../../types";
+import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface ParallelPropertyPanelProps {
   node: WorkflowNode;
@@ -77,9 +77,9 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <label style={{ color: '#999', fontSize: 11 }}>等待全部分支完成</label>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <label style={{ color: "#999", fontSize: 11 }}>等待全部分支完成</label>
         <Switch
           size="small"
           checked={config.wait_for_all}
@@ -89,40 +89,35 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                 ...config,
                 wait_for_all: checked,
               },
-            })
-          }
+            })}
         />
       </div>
-      <div style={{ color: '#666', fontSize: 10 }}>
+      <div style={{ color: "#666", fontSize: 10 }}>
         {config.wait_for_all
-          ? '将等待所有分支完成后继续'
-          : '任一分支完成即继续执行'}
-
+          ? "将等待所有分支完成后继续"
+          : "任一分支完成即继续执行"}
       </div>
 
-      {config.timeout !== undefined && (
-        <div>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>超时时间 (秒)</label>
-          <Input
-            type="number"
-            value={config.timeout}
-            onChange={(e) =>
-              onUpdate({
-                config: {
-                  ...config,
-                  timeout: parseInt(e.target.value) || undefined,
-                },
-              })
-            }
-            size="small"
-            placeholder="不设置"
-          />
-        </div>
-      )}
+      <div>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>超时时间 (秒)</label>
+        <Input
+          type="number"
+          value={config.timeout ?? ""}
+          onChange={(e) =>
+            onUpdate({
+              config: {
+                ...config,
+                timeout: e.target.value ? parseInt(e.target.value) : undefined,
+              },
+            })}
+          size="small"
+          placeholder="不设置"
+        />
+      </div>
 
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <label style={{ color: '#999', fontSize: 11 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <label style={{ color: "#999", fontSize: 11 }}>
             分支 ({config.branches.length})
           </label>
           <Button
@@ -135,7 +130,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
           </Button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {config.branches.map((branch, index) => {
             const availableNodes = getAvailableNodes(branch.steps);
             return (
@@ -143,12 +138,12 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                 key={branch.id || index}
                 style={{
                   padding: 8,
-                  background: '#1e1e1e',
+                  background: "#1e1e1e",
                   borderRadius: 6,
-                  border: '1px solid #333',
+                  border: "1px solid #333",
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
                   <GripVertical size={12} color="#666" />
                   <Input
                     value={branch.title}
@@ -166,29 +161,27 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                   />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 20 }}>
-                  <label style={{ fontSize: 10, color: '#888' }}>步骤:</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 20 }}>
+                  <label style={{ fontSize: 10, color: "#888" }}>步骤:</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {branch.steps.map((stepId) => (
                       <Tag
                         key={stepId}
                         closable
                         onClose={() => handleRemoveStepFromBranch(index, stepId)}
-                        style={{ background: '#2a2a2a', border: '1px solid #444', color: '#ddd' }}
+                        style={{ background: "#2a2a2a", border: "1px solid #444", color: "#ddd" }}
                         closeIcon={<X size={10} />}
                       >
                         {getNodeLabel(stepId)}
                       </Tag>
                     ))}
-                    {branch.steps.length === 0 && (
-                      <span style={{ fontSize: 10, color: '#666' }}>暂无步骤</span>
-                    )}
+                    {branch.steps.length === 0 && <span style={{ fontSize: 10, color: "#666" }}>暂无步骤</span>}
                   </div>
                   {availableNodes.length > 0 && (
                     <Select
                       placeholder="添加步骤"
                       size="small"
-                      style={{ width: '100%', marginTop: 4 }}
+                      style={{ width: "100%", marginTop: 4 }}
                       onChange={(nodeId) => handleAddStepToBranch(index, nodeId)}
                       options={availableNodes.map(n => ({
                         value: n.id,
@@ -202,16 +195,16 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
           })}
 
           {config.branches.length === 0 && (
-            <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 16 }}>
+            <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 16 }}>
               点击"添加分支"创建第一个并行分支
             </div>
           )}
         </div>
       </div>
 
-      <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: '1px solid #333', paddingTop: 12, marginTop: 4 }}>
+      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
         <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
       </div>
     </div>

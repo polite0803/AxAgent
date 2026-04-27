@@ -4,9 +4,8 @@ use crate::fts5::{FTS5Config, FTS5Query, FTS5Result, FTS5Search};
 use crate::memory::{Entity, Relationship};
 use crate::skill::{Skill, SkillAnalytics};
 use crate::trajectory::{
-    MessageRole, RLTrainingEntry, RewardSignal, Trajectory,
-    TrajectoryExportOptions, TrajectoryOutcome, TrajectoryPattern, TrajectoryQuery,
-    TrajectoryStep,
+    MessageRole, RLTrainingEntry, RewardSignal, Trajectory, TrajectoryExportOptions,
+    TrajectoryOutcome, TrajectoryPattern, TrajectoryQuery, TrajectoryStep,
 };
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -115,6 +114,8 @@ impl TrajectoryStorage {
                 success INTEGER NOT NULL,
                 execution_time_ms INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
+                input_args TEXT,
+                output_result TEXT,
                 FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE,
                 FOREIGN KEY (trajectory_id) REFERENCES trajectories(id) ON DELETE SET NULL
             );
@@ -261,9 +262,11 @@ impl TrajectoryStorage {
         )
         .context("Failed to create database tables")?;
 
-        conn_arc.read().unwrap().execute_batch(
-            "ALTER TABLE skills ADD COLUMN scenarios TEXT NOT NULL DEFAULT '[]';",
-        ).ok();
+        conn_arc
+            .read()
+            .unwrap()
+            .execute_batch("ALTER TABLE skills ADD COLUMN scenarios TEXT NOT NULL DEFAULT '[]';")
+            .ok();
 
         info!("Trajectory storage initialized with FTS5 tables");
 
@@ -892,12 +895,16 @@ impl TrajectoryStorage {
         trajectory_id: Option<&str>,
         success: bool,
         execution_time_ms: u64,
+        input_args: Option<&serde_json::Value>,
+        output_result: Option<&serde_json::Value>,
     ) -> Result<()> {
         let conn = self.conn.write().unwrap();
         let id = Uuid::new_v4().to_string();
+        let input_args_str = input_args.map(|v| serde_json::to_string(v).unwrap_or_default());
+        let output_result_str = output_result.map(|v| serde_json::to_string(v).unwrap_or_default());
         conn.execute(
-            "INSERT INTO skill_executions (id, skill_id, trajectory_id, success, execution_time_ms, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO skill_executions (id, skill_id, trajectory_id, success, execution_time_ms, created_at, input_args, output_result)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 id,
                 skill_id,
@@ -905,6 +912,8 @@ impl TrajectoryStorage {
                 success as i32,
                 execution_time_ms as i64,
                 Utc::now().to_rfc3339(),
+                input_args_str,
+                output_result_str,
             ],
         )?;
         Ok(())
@@ -941,11 +950,10 @@ impl TrajectoryStorage {
             let mut stmt = conn.prepare(
                 "SELECT success FROM skill_executions WHERE skill_id = ?1 ORDER BY created_at DESC LIMIT 100",
             )?;
-            let result: Vec<bool> = stmt.query_map(params![skill_id], |row| {
-                Ok(row.get::<_, i32>(0)? != 0)
-            })?
-            .filter_map(|r| r.ok())
-            .collect();
+            let result: Vec<bool> = stmt
+                .query_map(params![skill_id], |row| Ok(row.get::<_, i32>(0)? != 0))?
+                .filter_map(|r| r.ok())
+                .collect();
             result
         };
 
@@ -1185,9 +1193,8 @@ impl TrajectoryStorage {
 
     pub fn search_entities(&self, query: &str, limit: usize) -> Result<Vec<Entity>> {
         let conn = self.conn.read().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT * FROM entities WHERE name LIKE ?1 OR aliases LIKE ?1 LIMIT ?2"
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT * FROM entities WHERE name LIKE ?1 OR aliases LIKE ?1 LIMIT ?2")?;
         let pattern = format!("%{}%", query);
         let mut rows = stmt.query(params![pattern, limit])?;
         let mut entities = Vec::new();
@@ -1223,9 +1230,8 @@ impl TrajectoryStorage {
 
     pub fn get_relationships_by_entity(&self, entity_id: &str) -> Result<Vec<Relationship>> {
         let conn = self.conn.read().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT * FROM relationships WHERE source_id = ?1 OR target_id = ?1"
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT * FROM relationships WHERE source_id = ?1 OR target_id = ?1")?;
         let mut rows = stmt.query(params![entity_id])?;
         let mut relationships = Vec::new();
         while let Some(row) = rows.next()? {
@@ -1364,13 +1370,22 @@ impl TrajectoryStorage {
     pub fn update_session(&self, id: &str, updates: &SessionUpdate) -> Result<()> {
         let conn = self.conn.write().unwrap();
         if let Some(title) = &updates.title {
-            conn.execute("UPDATE sessions SET title = ?1, updated_at = ?2 WHERE id = ?3", params![title, Utc::now().to_rfc3339(), id])?;
+            conn.execute(
+                "UPDATE sessions SET title = ?1, updated_at = ?2 WHERE id = ?3",
+                params![title, Utc::now().to_rfc3339(), id],
+            )?;
         }
         if let Some(token_input) = updates.token_input {
-            conn.execute("UPDATE sessions SET token_input = ?1, updated_at = ?2 WHERE id = ?3", params![token_input, Utc::now().to_rfc3339(), id])?;
+            conn.execute(
+                "UPDATE sessions SET token_input = ?1, updated_at = ?2 WHERE id = ?3",
+                params![token_input, Utc::now().to_rfc3339(), id],
+            )?;
         }
         if let Some(token_output) = updates.token_output {
-            conn.execute("UPDATE sessions SET token_output = ?1, updated_at = ?2 WHERE id = ?3", params![token_output, Utc::now().to_rfc3339(), id])?;
+            conn.execute(
+                "UPDATE sessions SET token_output = ?1, updated_at = ?2 WHERE id = ?3",
+                params![token_output, Utc::now().to_rfc3339(), id],
+            )?;
         }
         Ok(())
     }
@@ -1506,7 +1521,12 @@ impl TrajectoryStorage {
         }
     }
 
-    pub fn update_pattern_stats(&self, id: &str, success_delta: i32, failure_delta: i32) -> Result<()> {
+    pub fn update_pattern_stats(
+        &self,
+        id: &str,
+        success_delta: i32,
+        failure_delta: i32,
+    ) -> Result<()> {
         let conn = self.conn.write().unwrap();
         conn.execute(
             "UPDATE patterns SET success = success + ?1, failure = failure + ?2, last_used = ?3 WHERE id = ?4",
@@ -1533,7 +1553,8 @@ impl TrajectoryStorage {
 
     pub fn get_preferences_list(&self) -> Result<Vec<Preference>> {
         let conn = self.conn.read().unwrap();
-        let mut stmt = conn.prepare("SELECT id, key, value, confidence, updated_at FROM preferences")?;
+        let mut stmt =
+            conn.prepare("SELECT id, key, value, confidence, updated_at FROM preferences")?;
         let rows = stmt.query_map([], |row| Ok(self.row_to_preference(row)))?;
         let prefs: Vec<Preference> = rows.filter_map(|r| r.ok()).collect();
         Ok(prefs)
@@ -1557,7 +1578,12 @@ impl TrajectoryStorage {
         let conn = self.conn.write().unwrap();
         conn.execute(
             "UPDATE preferences SET value = ?1, confidence = ?2, updated_at = ?3 WHERE key = ?4",
-            params![updates.value, updates.confidence, Utc::now().to_rfc3339(), key],
+            params![
+                updates.value,
+                updates.confidence,
+                Utc::now().to_rfc3339(),
+                key
+            ],
         )?;
         Ok(())
     }
@@ -1565,7 +1591,8 @@ impl TrajectoryStorage {
     pub fn get_statistics(&self) -> Result<TrajectoryStatistics> {
         let trajectories = self.get_trajectories(Some(100))?;
         let patterns = self.get_patterns()?;
-        let sessions: std::collections::HashSet<String> = trajectories.iter().map(|t| t.session_id.clone()).collect();
+        let sessions: std::collections::HashSet<String> =
+            trajectories.iter().map(|t| t.session_id.clone()).collect();
 
         let total = trajectories.len();
         let avg_quality = if total > 0 {
@@ -1591,8 +1618,8 @@ impl TrajectoryStorage {
     }
 }
 
-use tokio::sync::{mpsc, mpsc::Sender};
 use std::collections::VecDeque;
+use tokio::sync::{mpsc, mpsc::Sender};
 
 pub struct TrajectoryQueue {
     storage: Arc<TrajectoryStorage>,
@@ -1645,8 +1672,14 @@ impl TrajectoryQueue {
         self.sender.try_send(trajectory).is_ok()
     }
 
-    pub async fn enqueue(&self, trajectory: Trajectory) -> Result<(), mpsc::error::TrySendError<Trajectory>> {
-        self.sender.send(trajectory.clone()).await.map_err(|_| mpsc::error::TrySendError::Closed(trajectory))
+    pub async fn enqueue(
+        &self,
+        trajectory: Trajectory,
+    ) -> Result<(), mpsc::error::TrySendError<Trajectory>> {
+        self.sender
+            .send(trajectory.clone())
+            .await
+            .map_err(|_| mpsc::error::TrySendError::Closed(trajectory))
     }
 
     pub fn storage(&self) -> &Arc<TrajectoryStorage> {

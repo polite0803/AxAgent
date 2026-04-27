@@ -1,29 +1,30 @@
-import { useState } from 'react';
-import { theme } from 'antd';
-import { ReactFlowProvider } from 'reactflow';
-import { useUIStore } from '@/stores';
 import {
-  SettingsSidebar,
-  ProviderSettings,
-  GeneralSettings,
-  DisplaySettings,
-  ProxySettings,
-  ShortcutSettings,
-  DataManager,
   AboutPage,
-  SearchProviderSettings,
+  BackupCenter,
+  DataManager,
+  DisplaySettings,
+  GeneralSettings,
   LocalToolSettings,
   McpServerSettings,
-  ToolManager,
-  BackupCenter,
-  StorageSpaceManager,
+  ProviderSettings,
+  ProxySettings,
   SchedulerSettings,
+  SearchProviderSettings,
+  SettingsSidebar,
+  ShortcutSettings,
+  StorageSpaceManager,
+  ToolManager,
+  UserProfileSettings,
   WorkflowSettings,
-} from '@/components/settings';
-import { WorkflowEditor } from '@/components/workflow';
-import { DefaultModelSettings } from '@/components/settings/DefaultModelSettings';
-import { ConversationSettings } from '@/components/settings/ConversationSettings';
-import type { SettingsSection } from '@/types';
+} from "@/components/settings";
+import { ConversationSettings } from "@/components/settings/ConversationSettings";
+import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
+import { WorkflowEditor } from "@/components/workflow";
+import { useUIStore } from "@/stores";
+import type { SettingsSection } from "@/types";
+import { theme } from "antd";
+import { useState } from "react";
+import { ReactFlowProvider } from "reactflow";
 
 const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   providers: ProviderSettings,
@@ -43,6 +44,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   tools: ToolManager,
   backup: BackupCenter,
   workflow: WorkflowSettings,
+  userProfile: UserProfileSettings,
 };
 
 export function SettingsPage() {
@@ -90,16 +92,16 @@ export function SettingsPage() {
     <div className="flex h-full">
       <div
         className="w-56 shrink-0 h-full"
-        style={{ borderRight: '1px solid var(--border-color)', backgroundColor: token.colorBgContainer }}
+        style={{ borderRight: "1px solid var(--border-color)", backgroundColor: token.colorBgContainer }}
       >
         <SettingsSidebar />
       </div>
       <div className="min-w-0 flex-1 overflow-y-auto" style={{ backgroundColor: token.colorBgElevated }}>
-        {settingsSection === 'workflow' ? (
-          renderWorkflowContent()
-        ) : (
-          <ContentComponent />
-        )}
+        {settingsSection === "workflow"
+          ? (
+            renderWorkflowContent()
+          )
+          : <ContentComponent />}
       </div>
     </div>
   );

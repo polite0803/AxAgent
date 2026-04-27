@@ -1,9 +1,5 @@
-import React from 'react';
-import {
-  EdgeLabelRenderer,
-  getBezierPath,
-  type EdgeProps,
-} from 'reactflow';
+import React from "react";
+import { EdgeLabelRenderer, type EdgeProps, getBezierPath } from "reactflow";
 
 interface BaseEdgeData {
   edgeType: string;
@@ -30,8 +26,8 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
     targetPosition,
   });
 
-  const edgeColor = selected ? '#1890ff' : '#555';
-  const isAnimated = data?.edgeType === 'loopBack';
+  const edgeColor = selected ? "#1890ff" : "#555";
+  const isAnimated = data?.edgeType === "loopBack";
 
   return (
     <>
@@ -43,9 +39,9 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
         strokeWidth={selected ? 2 : 1.5}
         fill="none"
         style={{
-          strokeDasharray: data?.edgeType === 'error' ? '5,5' : undefined,
+          strokeDasharray: data?.edgeType === "error" ? "5,5" : undefined,
         }}
-        markerEnd={`url(#arrow-${data?.edgeType || 'default'})`}
+        markerEnd={`url(#arrow-${data?.edgeType || "default"})`}
       />
       {isAnimated && (
         <path
@@ -55,7 +51,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           fill="none"
           strokeDasharray="5,5"
           style={{
-            animation: 'dash 0.5s linear infinite',
+            animation: "dash 0.5s linear infinite",
           }}
         >
           <animate attributeName="stroke-dashoffset" from="0" to="10" dur="0.5s" repeatCount="indefinite" />
@@ -65,15 +61,15 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
         <EdgeLabelRenderer>
           <div
             style={{
-              position: 'absolute',
+              position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               fontSize: 10,
-              color: '#999',
-              background: '#1a1a1a',
-              padding: '2px 6px',
+              color: "#999",
+              background: "#1a1a1a",
+              padding: "2px 6px",
               borderRadius: 4,
-              border: '1px solid #333',
-              pointerEvents: 'all',
+              border: "1px solid #333",
+              pointerEvents: "all",
             }}
           >
             {label}
@@ -81,6 +77,17 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
         </EdgeLabelRenderer>
       )}
       <defs>
+        <marker
+          id="arrow-default"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={edgeColor} />
+        </marker>
         <marker
           id="arrow-direct"
           viewBox="0 0 10 10"
@@ -135,6 +142,28 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           orient="auto-start-reverse"
         >
           <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff4d4f" />
+        </marker>
+        <marker
+          id="arrow-parallelBranch"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#722ed1" />
+        </marker>
+        <marker
+          id="arrow-merge"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#1890ff" />
         </marker>
       </defs>
     </>

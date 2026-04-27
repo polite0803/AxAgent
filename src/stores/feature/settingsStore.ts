@@ -1,23 +1,23 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { AppSettings } from '@/types';
-import { DEFAULT_SHORTCUT_BINDINGS } from '@/lib/shortcuts';
+import { invoke } from "@/lib/invoke";
+import { DEFAULT_SHORTCUT_BINDINGS } from "@/lib/shortcuts";
+import type { AppSettings } from "@/types";
+import { create } from "zustand";
 
 const DEFAULT_SETTINGS: AppSettings = {
-  language: 'zh-CN',
-  theme_mode: 'system',
-  primary_color: '#17A93D',
+  language: "zh-CN",
+  theme_mode: "system",
+  primary_color: "#17A93D",
   border_radius: 8,
   auto_start: false,
   show_on_start: true,
   minimize_to_tray: true,
   font_size: 14,
   font_weight: 400,
-  font_family: '',
-  code_font_family: '',
-  bubble_style: 'minimal',
-  code_theme: 'poimandres',
-  code_theme_light: 'github-light',
+  font_family: "",
+  code_font_family: "",
+  bubble_style: "minimal",
+  code_theme: "poimandres",
+  code_theme_light: "github-light",
   default_provider_id: null,
   default_model_id: null,
   default_temperature: null,
@@ -56,10 +56,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   shortcut_toggle_gateway: DEFAULT_SHORTCUT_BINDINGS.toggleGateway,
   shortcut_toggle_mode: DEFAULT_SHORTCUT_BINDINGS.toggleMode,
   gateway_auto_start: false,
-  gateway_listen_address: '127.1.0.0',
+  gateway_listen_address: "127.1.0.0",
   gateway_port: 8080,
   gateway_ssl_enabled: false,
-  gateway_ssl_mode: 'upload',
+  gateway_ssl_mode: "upload",
   gateway_ssl_cert_path: null,
   gateway_ssl_key_path: null,
   gateway_ssl_port: 8443,
@@ -81,8 +81,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   update_check_interval: 60,
   default_system_prompt: null,
   chat_minimap_enabled: false,
-  chat_minimap_style: 'faq',
-  multi_model_display_mode: 'tabs',
+  chat_minimap_style: "faq",
+  multi_model_display_mode: "tabs",
   render_user_markdown: false,
   default_workspace_dir: null,
   // WebDAV sync settings — must be present so stale saves never omit them
@@ -97,12 +97,18 @@ const DEFAULT_SETTINGS: AppSettings = {
   // Closed-loop nudge scheduler settings
   closed_loop_enabled: true,
   closed_loop_interval_minutes: 5,
+  screen_perception_enabled: false,
+  rl_optimizer_enabled: false,
+  lora_finetune_enabled: false,
+  proactive_nudge_enabled: true,
+  thought_chain_enabled: true,
+  error_recovery_enabled: true,
 };
 
 export interface GlobalShortcutDiagnostic {
   timestamp: string;
-  phase: 'env' | 'register' | 'cleanup';
-  level: 'info' | 'warn' | 'error';
+  phase: "env" | "register" | "cleanup";
+  level: "info" | "warn" | "error";
   message: string;
   action?: string;
   shortcut?: string;
@@ -143,7 +149,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   fetchSettings: async () => {
     set({ loading: true });
     try {
-      const fetched = await invoke<Partial<AppSettings>>('get_settings');
+      const fetched = await invoke<Partial<AppSettings>>("get_settings");
       set({ settings: { ...DEFAULT_SETTINGS, ...fetched }, loading: false, _loaded: true, error: null });
     } catch (e) {
       set({ error: String(e), loading: false, _loaded: true });
@@ -152,13 +158,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   saveSettings: async (partial) => {
     if (!get()._loaded) {
-      console.warn('[settingsStore] saveSettings skipped: settings not loaded yet');
+      console.warn("[settingsStore] saveSettings skipped: settings not loaded yet");
       return;
     }
     const merged = { ...get().settings, ...partial };
     set({ settings: merged, error: null });
     try {
-      await invoke('save_settings', { settings: merged });
+      await invoke("save_settings", { settings: merged });
     } catch (e) {
       set({ error: String(e) });
     }

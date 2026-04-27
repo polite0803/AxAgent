@@ -3,19 +3,32 @@
 #![allow(clippy::result_large_err)]
 #![allow(clippy::unwrap_used)]
 
+pub mod browser_automation;
 pub mod builtin_tools;
 pub mod builtin_tools_registry;
 pub mod cache;
+pub mod computer_control;
 pub mod crypto;
 pub mod db;
 pub mod document_parser;
 pub mod entity;
 pub mod error;
+pub mod file_authorizer;
 pub mod file_store;
+pub mod hybrid_search;
+pub mod marketplace;
+pub mod marketplace_service;
 pub mod mcp_client;
+pub mod operation_audit;
 pub mod path_vars;
+pub mod preset_templates;
+pub mod prompt_template;
 pub mod rag;
 pub mod repo;
+pub mod reranker;
+pub mod sandbox_runner;
+pub mod screen_capture;
+pub mod screen_vision;
 pub mod search;
 pub mod storage_inventory;
 pub mod storage_migration;
@@ -23,8 +36,9 @@ pub mod storage_paths;
 pub mod text_chunker;
 pub mod token_counter;
 pub mod types;
+pub mod ui_automation;
 pub mod utils;
 pub mod vector_store;
 pub mod webdav;
 pub mod workflow_types;
-pub mod preset_templates;
+pub mod workflow_version;

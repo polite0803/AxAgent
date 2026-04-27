@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use axagent_core::builtin_tools_registry::{
-    get_all_builtin_tools_flat, get_handler,
-    FlatBuiltinTool,
+    get_all_builtin_tools_flat, get_handler, FlatBuiltinTool,
 };
 use axagent_core::repo::local_tool;
 use axagent_core::types::{ChatTool, ChatToolFunction};
@@ -63,7 +62,9 @@ impl LocalToolRegistry {
 
         for ft in flat_tools {
             let tool_name = ft.tool_name.clone();
-            group_names.entry(ft.server_id.clone()).or_insert_with(|| ft.server_name.clone());
+            group_names
+                .entry(ft.server_id.clone())
+                .or_insert_with(|| ft.server_name.clone());
             group_tools
                 .entry(ft.server_id.clone())
                 .or_default()
@@ -84,10 +85,8 @@ impl LocalToolRegistry {
         }
 
         // Default: all groups enabled
-        let enabled_map: HashMap<String, bool> = group_tools
-            .keys()
-            .map(|gid| (gid.clone(), true))
-            .collect();
+        let enabled_map: HashMap<String, bool> =
+            group_tools.keys().map(|gid| (gid.clone(), true)).collect();
 
         Self {
             enabled_map,
@@ -193,11 +192,7 @@ impl LocalToolRegistry {
     pub fn get_tool_groups(&self) -> Vec<LocalToolGroup> {
         let mut groups = Vec::new();
         for (group_id, tool_names) in &self.group_tools {
-            let group_name = self
-                .group_names
-                .get(group_id)
-                .cloned()
-                .unwrap_or_default();
+            let group_name = self.group_names.get(group_id).cloned().unwrap_or_default();
             let enabled = self.enabled_map.get(group_id).copied().unwrap_or(true);
             let tools: Vec<LocalToolDef> = tool_names
                 .iter()

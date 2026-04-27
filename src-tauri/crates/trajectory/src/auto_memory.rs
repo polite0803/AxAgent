@@ -82,7 +82,10 @@ impl AutoMemoryExtractor {
         }
     }
 
-    pub fn analyze_trajectory(&mut self, trajectory: &Trajectory) -> Option<MemoryExtractionResult> {
+    pub fn analyze_trajectory(
+        &mut self,
+        trajectory: &Trajectory,
+    ) -> Option<MemoryExtractionResult> {
         if trajectory.steps.len() < MEMORY_EXTRACTION_MIN_STEPS {
             return None;
         }
@@ -105,7 +108,8 @@ impl AutoMemoryExtractor {
             self.recent_extractions.drain(0..50);
         }
 
-        self.extraction_cache.insert(trajectory.id.clone(), memories.clone());
+        self.extraction_cache
+            .insert(trajectory.id.clone(), memories.clone());
 
         Some(MemoryExtractionResult {
             extracted_memories: memories,
@@ -132,10 +136,16 @@ impl AutoMemoryExtractor {
 
         if let Some(first_user) = user_messages.first() {
             let content_lower = first_user.content.to_lowercase();
-            if !content_lower.contains("hello") && !content_lower.contains("hi ") && !content_lower.contains("hey") {
+            if !content_lower.contains("hello")
+                && !content_lower.contains("hi ")
+                && !content_lower.contains("hey")
+            {
                 memories.push(ExtractedMemory {
                     memory_type: MemoryType::Context,
-                    content: format!("User is working on: {}", first_user.content.chars().take(200).collect::<String>()),
+                    content: format!(
+                        "User is working on: {}",
+                        first_user.content.chars().take(200).collect::<String>()
+                    ),
                     confidence: 0.7,
                     source_trajectory: trajectory.id.clone(),
                     extraction_reason: "First user message indicates task context".to_string(),
@@ -147,8 +157,15 @@ impl AutoMemoryExtractor {
         for (i, step) in assistant_messages.iter().enumerate() {
             if let Some(ref tool_calls) = step.tool_calls {
                 if !tool_calls.is_empty() {
-                    let tool_names: Vec<String> = tool_calls.iter().map(|tc| tc.name.clone()).collect();
-                    let unique_tools: Vec<String> = tool_names.iter().cloned().collect::<std::collections::HashSet<_>>().iter().cloned().collect();
+                    let tool_names: Vec<String> =
+                        tool_calls.iter().map(|tc| tc.name.clone()).collect();
+                    let unique_tools: Vec<String> = tool_names
+                        .iter()
+                        .cloned()
+                        .collect::<std::collections::HashSet<_>>()
+                        .iter()
+                        .cloned()
+                        .collect();
 
                     if unique_tools.len() >= 2 {
                         let pattern_key = unique_tools.join(",");
@@ -158,7 +175,10 @@ impl AutoMemoryExtractor {
                         if *count >= 2 {
                             memories.push(ExtractedMemory {
                                 memory_type: MemoryType::Pattern,
-                                content: format!("User frequently uses tools together: {}", unique_tools.join(" -> ")),
+                                content: format!(
+                                    "User frequently uses tools together: {}",
+                                    unique_tools.join(" -> ")
+                                ),
                                 confidence: 0.8,
                                 source_trajectory: trajectory.id.clone(),
                                 extraction_reason: "Repeated tool combination detected".to_string(),
@@ -203,7 +223,9 @@ impl AutoMemoryExtractor {
                     .iter()
                     .filter_map(|s| {
                         s.tool_results.as_ref().and_then(|r| {
-                            r.iter().find(|tr| tr.is_error || tr.output.contains("error")).map(|_| &s.tool_calls)
+                            r.iter()
+                                .find(|tr| tr.is_error || tr.output.contains("error"))
+                                .map(|_| &s.tool_calls)
                         })
                     })
                     .count();
@@ -211,7 +233,10 @@ impl AutoMemoryExtractor {
                 if error_tools > 0 {
                     memories.push(ExtractedMemory {
                         memory_type: MemoryType::Context,
-                        content: format!("Task '{}' failed - may need troubleshooting approach", trajectory.topic),
+                        content: format!(
+                            "Task '{}' failed - may need troubleshooting approach",
+                            trajectory.topic
+                        ),
                         confidence: 0.6,
                         source_trajectory: trajectory.id.clone(),
                         extraction_reason: "Failed task with error indicators".to_string(),
@@ -221,7 +246,10 @@ impl AutoMemoryExtractor {
             TrajectoryOutcome::Partial => {
                 memories.push(ExtractedMemory {
                     memory_type: MemoryType::Context,
-                    content: format!("Task '{}' partially completed - follow-up may be needed", trajectory.topic),
+                    content: format!(
+                        "Task '{}' partially completed - follow-up may be needed",
+                        trajectory.topic
+                    ),
                     confidence: 0.65,
                     source_trajectory: trajectory.id.clone(),
                     extraction_reason: "Partial task completion".to_string(),
@@ -242,7 +270,11 @@ impl AutoMemoryExtractor {
         deduplicated
     }
 
-    fn generate_insights(&self, memories: &[ExtractedMemory], trajectory: &Trajectory) -> Vec<LearningInsight> {
+    fn generate_insights(
+        &self,
+        memories: &[ExtractedMemory],
+        trajectory: &Trajectory,
+    ) -> Vec<LearningInsight> {
         let mut insights = Vec::new();
 
         for memory in memories {
@@ -250,11 +282,16 @@ impl AutoMemoryExtractor {
                 insights.push(LearningInsight {
                     id: format!("insight_{}_{}", trajectory.id, memory.memory_type.as_str()),
                     category: InsightCategory::Pattern,
-                    title: format!("Detected: {}", memory.content.chars().take(40).collect::<String>()),
+                    title: format!(
+                        "Detected: {}",
+                        memory.content.chars().take(40).collect::<String>()
+                    ),
                     description: memory.extraction_reason.clone(),
                     confidence: memory.confidence,
                     evidence: vec![memory.source_trajectory.clone()],
-                    suggested_action: Some("Consider adding this pattern to user profile".to_string()),
+                    suggested_action: Some(
+                        "Consider adding this pattern to user profile".to_string(),
+                    ),
                     created_at: chrono::Utc::now().timestamp_millis(),
                 });
             }
@@ -272,7 +309,10 @@ impl AutoMemoryExtractor {
     }
 
     pub fn apply_memories_to_service(&self, memories: &[ExtractedMemory]) -> anyhow::Result<usize> {
-        let memory_service = self.memory_service.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let memory_service = self
+            .memory_service
+            .write()
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
         let mut applied = 0;
 
         for memory in memories {
@@ -293,7 +333,10 @@ impl Trajectory {
         let mut candidates = Vec::new();
 
         for step in &self.steps {
-            if matches!(step.role, crate::trajectory::MessageRole::User) && step.content.len() > 20 && step.content.len() < 500 {
+            if matches!(step.role, crate::trajectory::MessageRole::User)
+                && step.content.len() > 20
+                && step.content.len() < 500
+            {
                 candidates.push(step.content.clone());
             }
         }
@@ -303,7 +346,11 @@ impl Trajectory {
                 if let Some(ref tool_calls) = last.tool_calls {
                     for tc in tool_calls {
                         if !tc.name.contains("read") && !tc.name.contains("write") {
-                            candidates.push(format!("Tool used: {} with args: {}", tc.name, tc.arguments.chars().take(100).collect::<String>()));
+                            candidates.push(format!(
+                                "Tool used: {} with args: {}",
+                                tc.name,
+                                tc.arguments.chars().take(100).collect::<String>()
+                            ));
                         }
                     }
                 }

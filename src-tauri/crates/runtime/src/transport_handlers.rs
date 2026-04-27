@@ -8,7 +8,9 @@ use tokio::sync::{mpsc, RwLock};
 use tokio::time::interval;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-use crate::message_gateway::{AgentEndpoint, AgentMessage, ConnectionState, GatewayError, TransportHandler, TransportType};
+use crate::message_gateway::{
+    AgentEndpoint, AgentMessage, ConnectionState, GatewayError, TransportHandler, TransportType,
+};
 
 const DEFAULT_HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 const DEFAULT_WS_PING_INTERVAL: Duration = Duration::from_secs(25);
@@ -53,29 +55,23 @@ impl WebSocketTransportHandler {
         self
     }
 
-    pub async fn connect_internal(
-        &self,
-        endpoint: &AgentEndpoint,
-    ) -> Result<(), GatewayError> {
+    pub async fn connect_internal(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError> {
         let url = if endpoint.url.starts_with("ws://") || endpoint.url.starts_with("wss://") {
             endpoint.url.clone()
         } else {
             format!("wss://{}", endpoint.url)
         };
 
-        let (ws_stream, _) = tokio::time::timeout(
-            self.config.connect_timeout,
-            connect_async(&url),
-        )
-        .await
-        .map_err(|_| GatewayError::ConnectionFailed {
-            endpoint: endpoint.agent_id.clone(),
-            reason: "Connection timeout".to_string(),
-        })?
-        .map_err(|e| GatewayError::ConnectionFailed {
-            endpoint: endpoint.agent_id.clone(),
-            reason: e.to_string(),
-        })?;
+        let (ws_stream, _) = tokio::time::timeout(self.config.connect_timeout, connect_async(&url))
+            .await
+            .map_err(|_| GatewayError::ConnectionFailed {
+                endpoint: endpoint.agent_id.clone(),
+                reason: "Connection timeout".to_string(),
+            })?
+            .map_err(|e| GatewayError::ConnectionFailed {
+                endpoint: endpoint.agent_id.clone(),
+                reason: e.to_string(),
+            })?;
 
         let (mut write, mut read) = ws_stream.split();
         let agent_id = endpoint.agent_id.clone();
@@ -162,9 +158,13 @@ impl WebSocketTransportHandler {
                 if let Some(state) = states.get(&agent_id) {
                     if *state == ConnectionState::Connected {
                         if let Some(tx) = connections.read().await.get(&agent_id) {
-                            let ping_msg = AgentMessage::new("heartbeat", &agent_id, crate::message_gateway::MessagePayload::Text {
-                                content: "ping".to_string(),
-                            });
+                            let ping_msg = AgentMessage::new(
+                                "heartbeat",
+                                &agent_id,
+                                crate::message_gateway::MessagePayload::Text {
+                                    content: "ping".to_string(),
+                                },
+                            );
                             let _ = tx.try_send(ping_msg);
                         }
                     }
@@ -194,9 +194,11 @@ impl TransportHandler for WebSocketTransportHandler {
 
     async fn disconnect(&self, endpoint_id: &str) -> Result<(), GatewayError> {
         let mut connections = self.connections.write().await;
-        let tx = connections.remove(endpoint_id).ok_or_else(|| GatewayError::NotFound {
-            entity: format!("connection {}", endpoint_id),
-        })?;
+        let tx = connections
+            .remove(endpoint_id)
+            .ok_or_else(|| GatewayError::NotFound {
+                entity: format!("connection {}", endpoint_id),
+            })?;
         drop(tx);
         let mut states = self.connection_states.write().await;
         states.remove(endpoint_id);
@@ -205,14 +207,18 @@ impl TransportHandler for WebSocketTransportHandler {
 
     async fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError> {
         let connections = self.connections.read().await;
-        let tx = connections.get(endpoint_id).ok_or_else(|| GatewayError::NotFound {
-            entity: format!("connection {}", endpoint_id),
-        })?;
+        let tx = connections
+            .get(endpoint_id)
+            .ok_or_else(|| GatewayError::NotFound {
+                entity: format!("connection {}", endpoint_id),
+            })?;
 
         let states = self.connection_states.read().await;
-        let state = states.get(endpoint_id).ok_or_else(|| GatewayError::NotFound {
-            entity: format!("connection state {}", endpoint_id),
-        })?;
+        let state = states
+            .get(endpoint_id)
+            .ok_or_else(|| GatewayError::NotFound {
+                entity: format!("connection state {}", endpoint_id),
+            })?;
 
         if *state != ConnectionState::Connected {
             return Err(GatewayError::ConnectionFailed {
@@ -221,9 +227,11 @@ impl TransportHandler for WebSocketTransportHandler {
             });
         }
 
-        tx.send(message.clone()).await.map_err(|e| GatewayError::TransportError {
-            reason: format!("Failed to send message: {}", e),
-        })
+        tx.send(message.clone())
+            .await
+            .map_err(|e| GatewayError::TransportError {
+                reason: format!("Failed to send message: {}", e),
+            })
     }
 
     async fn broadcast(
@@ -293,8 +301,10 @@ impl HTTPTransportHandler {
             format!("https://{}", endpoint.url)
         };
 
-        let body = serde_json::to_string(message)
-            .map_err(|e| GatewayError::SerializationError { reason: e.to_string() })?;
+        let body =
+            serde_json::to_string(message).map_err(|e| GatewayError::SerializationError {
+                reason: e.to_string(),
+            })?;
 
         let mut last_error = None;
         for attempt in 0..self.config.max_retries {
@@ -369,9 +379,11 @@ impl TransportHandler for HTTPTransportHandler {
 
     async fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError> {
         let connections = self.connections.read().await;
-        let endpoint = connections.get(endpoint_id).ok_or_else(|| GatewayError::NotFound {
-            entity: format!("connection {}", endpoint_id),
-        })?;
+        let endpoint = connections
+            .get(endpoint_id)
+            .ok_or_else(|| GatewayError::NotFound {
+                entity: format!("connection {}", endpoint_id),
+            })?;
 
         self.send_http_request(endpoint, message).await
     }
@@ -434,7 +446,10 @@ impl SSETransportHandler {
         self
     }
 
-    async fn establish_sse_connection(&self, _endpoint: &AgentEndpoint) -> Result<(), GatewayError> {
+    async fn establish_sse_connection(
+        &self,
+        _endpoint: &AgentEndpoint,
+    ) -> Result<(), GatewayError> {
         Ok(())
     }
 
@@ -449,9 +464,7 @@ impl SSETransportHandler {
             stream_guard.insert(agent_id.clone(), tx);
         }
 
-        tokio::spawn(async move {
-            while let Some(_message) = rx.recv().await {}
-        });
+        tokio::spawn(async move { while let Some(_message) = rx.recv().await {} });
 
         Ok(())
     }
@@ -493,9 +506,11 @@ impl TransportHandler for SSETransportHandler {
 
     async fn send(&self, endpoint_id: &str, _message: &AgentMessage) -> Result<(), GatewayError> {
         let connections = self.connections.read().await;
-        let _endpoint = connections.get(endpoint_id).ok_or_else(|| GatewayError::NotFound {
-            entity: format!("connection {}", endpoint_id),
-        })?;
+        let _endpoint = connections
+            .get(endpoint_id)
+            .ok_or_else(|| GatewayError::NotFound {
+                entity: format!("connection {}", endpoint_id),
+            })?;
 
         Ok(())
     }
@@ -575,12 +590,16 @@ impl TransportHandler for StdioTransportHandler {
 
     async fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError> {
         let connections = self.connections.read().await;
-        let _endpoint = connections.get(endpoint_id).ok_or_else(|| GatewayError::NotFound {
-            entity: format!("connection {}", endpoint_id),
-        })?;
+        let _endpoint = connections
+            .get(endpoint_id)
+            .ok_or_else(|| GatewayError::NotFound {
+                entity: format!("connection {}", endpoint_id),
+            })?;
 
-        let json = serde_json::to_string(message)
-            .map_err(|e| GatewayError::SerializationError { reason: e.to_string() })?;
+        let json =
+            serde_json::to_string(message).map_err(|e| GatewayError::SerializationError {
+                reason: e.to_string(),
+            })?;
 
         println!("{}", json);
 
@@ -608,8 +627,7 @@ impl TransportHandler for StdioTransportHandler {
     }
 }
 
-pub fn create_default_transport_handlers(
-) -> Vec<Arc<dyn TransportHandler>> {
+pub fn create_default_transport_handlers() -> Vec<Arc<dyn TransportHandler>> {
     vec![
         Arc::new(WebSocketTransportHandler::new()) as Arc<dyn TransportHandler>,
         Arc::new(HTTPTransportHandler::new()) as Arc<dyn TransportHandler>,

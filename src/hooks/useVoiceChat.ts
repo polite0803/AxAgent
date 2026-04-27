@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { App } from 'antd';
-import { useTranslation } from 'react-i18next';
-import type { VoiceSessionState, RealtimeConfig } from '@/types';
+import type { RealtimeConfig, VoiceSessionState } from "@/types";
+import { App } from "antd";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const VAD_THRESHOLD = 0.015;
 const VAD_SILENCE_MS = 1500;
@@ -20,11 +20,11 @@ interface UseVoiceChatReturn {
   toggleMute: () => void;
 }
 
-export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoiceChatOptions): UseVoiceChatReturn {
+export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoiceChatOptions): UseVoiceChatReturn {
   const { t } = useTranslation();
   const { message } = App.useApp();
 
-  const [state, setState] = useState<VoiceSessionState>('Idle');
+  const [state, setState] = useState<VoiceSessionState>("Idle");
   const [isMuted, setIsMuted] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -56,7 +56,7 @@ export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoi
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
-    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
       audioCtxRef.current.close().catch(() => {});
       audioCtxRef.current = null;
     }
@@ -68,7 +68,7 @@ export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoi
 
   const runVAD = useCallback(() => {
     const analyser = analyserRef.current;
-    if (!analyser) return;
+    if (!analyser) { return; }
 
     const data = new Float32Array(analyser.fftSize);
 
@@ -81,20 +81,20 @@ export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoi
       const rms = Math.sqrt(sum / data.length);
 
       setState((prev) => {
-        if (prev !== 'Speaking' && prev !== 'Listening') return prev;
+        if (prev !== "Speaking" && prev !== "Listening") { return prev; }
 
         if (rms > VAD_THRESHOLD) {
           if (vadTimerRef.current !== null) {
             clearTimeout(vadTimerRef.current);
             vadTimerRef.current = null;
           }
-          return 'Speaking';
+          return "Speaking";
         }
 
-        if (prev === 'Speaking' && vadTimerRef.current === null) {
+        if (prev === "Speaking" && vadTimerRef.current === null) {
           vadTimerRef.current = setTimeout(() => {
             vadTimerRef.current = null;
-            setState('Listening');
+            setState("Listening");
           }, VAD_SILENCE_MS);
         }
         return prev;
@@ -107,8 +107,8 @@ export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoi
   }, []);
 
   const start = useCallback(async () => {
-    if (state !== 'Idle') return;
-    setState('Connecting');
+    if (state !== "Idle") { return; }
+    setState("Connecting");
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -119,7 +119,7 @@ export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoi
       const audioCtx = new AudioContext({ sampleRate: config.audio_format.sample_rate });
       audioCtxRef.current = audioCtx;
 
-      await audioCtx.audioWorklet.addModule('/audio-processor.js');
+      await audioCtx.audioWorklet.addModule("/audio-processor.js");
 
       const source = audioCtx.createMediaStreamSource(stream);
       sourceRef.current = source;
@@ -129,19 +129,19 @@ export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoi
       analyserRef.current = analyser;
       source.connect(analyser);
 
-      const worklet = new AudioWorkletNode(audioCtx, 'audio-pcm16-processor');
+      const worklet = new AudioWorkletNode(audioCtx, "audio-pcm16-processor");
       workletRef.current = worklet;
       source.connect(worklet);
 
       const ws = new WebSocket(`ws://${host}:${port}/v1/realtime`);
       wsRef.current = ws;
 
-      ws.binaryType = 'arraybuffer';
+      ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'session.config', config }));
-        setState('Connected');
-        setTimeout(() => setState('Speaking'), 300);
+        ws.send(JSON.stringify({ type: "session.config", config }));
+        setState("Connected");
+        setTimeout(() => setState("Speaking"), 300);
         runVAD();
       };
 
@@ -156,30 +156,30 @@ export function useVoiceChat({ port = 8080, host = '127.1.0.0', config }: UseVoi
       };
 
       ws.onerror = () => {
-        message.error(t('voice.connectionError'));
+        message.error(t("voice.connectionError"));
         cleanup();
-        setState('Idle');
+        setState("Idle");
       };
 
       ws.onclose = () => {
         cleanup();
-        setState('Idle');
+        setState("Idle");
       };
     } catch (err) {
-      const errMsg = err instanceof DOMException && err.name === 'NotAllowedError'
-        ? t('voice.micPermissionDenied')
-        : t('voice.micError');
+      const errMsg = err instanceof DOMException && err.name === "NotAllowedError"
+        ? t("voice.micPermissionDenied")
+        : t("voice.micError");
       message.error(errMsg);
       cleanup();
-      setState('Idle');
+      setState("Idle");
     }
   }, [state, port, host, config, isMuted, cleanup, runVAD, message, t]);
 
   const stop = useCallback(() => {
-    if (state === 'Idle' || state === 'Disconnecting') return;
-    setState('Disconnecting');
+    if (state === "Idle" || state === "Disconnecting") { return; }
+    setState("Disconnecting");
     cleanup();
-    setState('Idle');
+    setState("Idle");
   }, [state, cleanup]);
 
   const toggleMute = useCallback(() => {

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmParseRequest {
@@ -58,7 +58,8 @@ pub struct LlmParsedBranch {
     pub raw_content: Option<String>,
 }
 
-pub type LlmParseFuture<'a> = Pin<Box<dyn Future<Output = Result<LlmParseResponse, String>> + Send + 'a>>;
+pub type LlmParseFuture<'a> =
+    Pin<Box<dyn Future<Output = Result<LlmParseResponse, String>> + Send + 'a>>;
 
 pub trait LlmAssistedParser: Send + Sync {
     fn parse_with_llm(&self, request: &LlmParseRequest) -> LlmParseFuture<'_>;
@@ -113,9 +114,7 @@ Return your analysis as a JSON object with this structure:
 Content to parse:
 {}
 "#,
-            context.composite_name,
-            tools_list,
-            request.content
+            context.composite_name, tools_list, request.content
         )
     }
 }

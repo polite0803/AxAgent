@@ -9,17 +9,26 @@ pub async fn list_scheduled_tasks(db: &DatabaseConnection) -> Result<Vec<schedul
     Ok(tasks)
 }
 
-pub async fn get_scheduled_task(db: &DatabaseConnection, id: &str) -> Result<Option<scheduled_tasks::Model>> {
+pub async fn get_scheduled_task(
+    db: &DatabaseConnection,
+    id: &str,
+) -> Result<Option<scheduled_tasks::Model>> {
     let task = scheduled_tasks::Entity::find_by_id(id).one(db).await?;
     Ok(task)
 }
 
-pub async fn insert_scheduled_task(db: &DatabaseConnection, task: &scheduled_tasks::ActiveModel) -> Result<()> {
+pub async fn insert_scheduled_task(
+    db: &DatabaseConnection,
+    task: &scheduled_tasks::ActiveModel,
+) -> Result<()> {
     task.clone().insert(db).await?;
     Ok(())
 }
 
-pub async fn upsert_scheduled_task(db: &DatabaseConnection, task: scheduled_tasks::ActiveModel) -> Result<()> {
+pub async fn upsert_scheduled_task(
+    db: &DatabaseConnection,
+    task: scheduled_tasks::ActiveModel,
+) -> Result<()> {
     scheduled_tasks::Entity::insert(task)
         .on_conflict(
             OnConflict::column(scheduled_tasks::Column::Id)

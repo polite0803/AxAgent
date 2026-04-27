@@ -1,15 +1,15 @@
+use async_trait::async_trait;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
-use async_trait::async_trait;
 use futures::Stream;
 use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::{build_http_client, ProviderAdapter, ProviderRequestContext};
 
+use crate::anthropic::AnthropicAdapter;
 use crate::openai::OpenAIAdapter;
 use crate::openai_responses::OpenAIResponsesAdapter;
-use crate::anthropic::AnthropicAdapter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ApiMode {
@@ -50,8 +50,12 @@ impl HermesAdapter {
         if let Some(mode) = ctx.api_mode.as_deref() {
             match mode.to_lowercase().as_str() {
                 "chat_completions" | "chatcompletions" => return ApiMode::ChatCompletions,
-                "codex_responses" | "responses" | "openai_responses" => return ApiMode::CodexResponses,
-                "anthropic_messages" | "anthropic" | "messages" => return ApiMode::AnthropicMessages,
+                "codex_responses" | "responses" | "openai_responses" => {
+                    return ApiMode::CodexResponses
+                }
+                "anthropic_messages" | "anthropic" | "messages" => {
+                    return ApiMode::AnthropicMessages
+                }
                 _ => {}
             }
         }
@@ -132,11 +136,9 @@ impl HermesAdapter {
         match mode {
             ApiMode::ChatCompletions => self.chat_completions.embed(ctx, request).await,
             ApiMode::CodexResponses => self.codex_responses.embed(ctx, request).await,
-            ApiMode::AnthropicMessages => {
-                Err(AxAgentError::Provider(
-                    "Embed endpoint is not supported in anthropic_messages mode".to_string(),
-                ))
-            }
+            ApiMode::AnthropicMessages => Err(AxAgentError::Provider(
+                "Embed endpoint is not supported in anthropic_messages mode".to_string(),
+            )),
         }
     }
 
@@ -162,7 +164,11 @@ impl HermesAdapter {
         let url = format!("{}{}", Self::base_url(ctx), path);
         let client = Self::get_client(ctx)?;
 
-        let mut req = client.request(reqwest::Method::from_bytes(method.as_bytes()).unwrap(), &url)
+        let mut req = client
+            .request(
+                reqwest::Method::from_bytes(method.as_bytes()).unwrap(),
+                &url,
+            )
             .header("Authorization", format!("Bearer {}", ctx.api_key))
             .header("Content-Type", "application/json");
 
@@ -170,7 +176,9 @@ impl HermesAdapter {
             req = req.body(body.to_string());
         }
 
-        let resp = req.send().await
+        let resp = req
+            .send()
+            .await
             .map_err(|e| AxAgentError::Provider(format!("Request failed: {e}")))?;
 
         if !resp.status().is_success() {
@@ -181,7 +189,9 @@ impl HermesAdapter {
             )));
         }
 
-        resp.text().await.map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
+        resp.text()
+            .await
+            .map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
     }
 }
 
@@ -230,7 +240,11 @@ impl ProviderAdapter for HermesAdapter {
         self.embed_with_mode(ctx, request, mode).await
     }
 
-    async fn get_response(&self, ctx: &ProviderRequestContext, response_id: &str) -> Result<String> {
+    async fn get_response(
+        &self,
+        ctx: &ProviderRequestContext,
+        response_id: &str,
+    ) -> Result<String> {
         self.codex_responses.get_response(ctx, response_id).await
     }
 
@@ -250,8 +264,19 @@ impl ProviderAdapter for HermesAdapter {
         Self::hermes_request(ctx, "GET", &format!("/api/jobs/{}", job_id), None).await
     }
 
-    async fn update_job(&self, ctx: &ProviderRequestContext, job_id: &str, job_data: &str) -> Result<String> {
-        Self::hermes_request(ctx, "PATCH", &format!("/api/jobs/{}", job_id), Some(job_data)).await
+    async fn update_job(
+        &self,
+        ctx: &ProviderRequestContext,
+        job_id: &str,
+        job_data: &str,
+    ) -> Result<String> {
+        Self::hermes_request(
+            ctx,
+            "PATCH",
+            &format!("/api/jobs/{}", job_id),
+            Some(job_data),
+        )
+        .await
     }
 
     async fn delete_job(&self, ctx: &ProviderRequestContext, job_id: &str) -> Result<()> {
@@ -278,33 +303,93 @@ impl ProviderAdapter for HermesAdapter {
         Self::hermes_request(ctx, "GET", &format!("/api/jobs/{}/runs", job_id), None).await
     }
 
-    async fn get_run(&self, ctx: &ProviderRequestContext, job_id: &str, run_id: &str) -> Result<String> {
-        Self::hermes_request(ctx, "GET", &format!("/api/jobs/{}/runs/{}", job_id, run_id), None).await
+    async fn get_run(
+        &self,
+        ctx: &ProviderRequestContext,
+        job_id: &str,
+        run_id: &str,
+    ) -> Result<String> {
+        Self::hermes_request(
+            ctx,
+            "GET",
+            &format!("/api/jobs/{}/runs/{}", job_id, run_id),
+            None,
+        )
+        .await
     }
 
-    async fn cancel_run(&self, ctx: &ProviderRequestContext, job_id: &str, run_id: &str) -> Result<()> {
-        Self::hermes_request(ctx, "POST", &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id), None).await?;
+    async fn cancel_run(
+        &self,
+        ctx: &ProviderRequestContext,
+        job_id: &str,
+        run_id: &str,
+    ) -> Result<()> {
+        Self::hermes_request(
+            ctx,
+            "POST",
+            &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id),
+            None,
+        )
+        .await?;
         Ok(())
     }
 
-    async fn get_run_logs(&self, ctx: &ProviderRequestContext, job_id: &str, run_id: &str) -> Result<String> {
-        Self::hermes_request(ctx, "GET", &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id), None).await
+    async fn get_run_logs(
+        &self,
+        ctx: &ProviderRequestContext,
+        job_id: &str,
+        run_id: &str,
+    ) -> Result<String> {
+        Self::hermes_request(
+            ctx,
+            "GET",
+            &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id),
+            None,
+        )
+        .await
     }
 
-    async fn trigger_run(&self, ctx: &ProviderRequestContext, job_id: &str, params: Option<&str>) -> Result<String> {
+    async fn trigger_run(
+        &self,
+        ctx: &ProviderRequestContext,
+        job_id: &str,
+        params: Option<&str>,
+    ) -> Result<String> {
         Self::hermes_request(ctx, "POST", &format!("/api/jobs/{}/runs", job_id), params).await
     }
 
-    async fn retry_run(&self, ctx: &ProviderRequestContext, job_id: &str, run_id: &str) -> Result<String> {
-        Self::hermes_request(ctx, "POST", &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id), None).await
+    async fn retry_run(
+        &self,
+        ctx: &ProviderRequestContext,
+        job_id: &str,
+        run_id: &str,
+    ) -> Result<String> {
+        Self::hermes_request(
+            ctx,
+            "POST",
+            &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id),
+            None,
+        )
+        .await
     }
 
     async fn get_job_schedule(&self, ctx: &ProviderRequestContext, job_id: &str) -> Result<String> {
         Self::hermes_request(ctx, "GET", &format!("/api/jobs/{}/schedule", job_id), None).await
     }
 
-    async fn update_job_schedule(&self, ctx: &ProviderRequestContext, job_id: &str, schedule: &str) -> Result<String> {
-        Self::hermes_request(ctx, "PUT", &format!("/api/jobs/{}/schedule", job_id), Some(schedule)).await
+    async fn update_job_schedule(
+        &self,
+        ctx: &ProviderRequestContext,
+        job_id: &str,
+        schedule: &str,
+    ) -> Result<String> {
+        Self::hermes_request(
+            ctx,
+            "PUT",
+            &format!("/api/jobs/{}/schedule", job_id),
+            Some(schedule),
+        )
+        .await
     }
 
     async fn enable_job(&self, ctx: &ProviderRequestContext, job_id: &str) -> Result<()> {

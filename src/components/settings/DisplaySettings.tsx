@@ -1,12 +1,12 @@
-import { ColorPicker, Divider, Segmented, Slider } from 'antd';
-import { Sun, Moon, Monitor } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useMemo } from 'react';
-import { useSettingsStore } from '@/stores';
-import { invoke, isTauri } from '@/lib/invoke';
-import { SHIKI_LIGHT_THEMES, SHIKI_DARK_THEMES, formatThemeName } from '@/constants/codeThemes';
-import { SettingsGroup } from './SettingsGroup';
-import { SettingsSelect } from './SettingsSelect';
+import { formatThemeName, SHIKI_DARK_THEMES, SHIKI_LIGHT_THEMES } from "@/constants/codeThemes";
+import { invoke, isTauri } from "@/lib/invoke";
+import { useSettingsStore } from "@/stores";
+import { ColorPicker, Divider, Segmented, Slider } from "antd";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { SettingsGroup } from "./SettingsGroup";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function DisplaySettings() {
   const { t } = useTranslation();
@@ -15,11 +15,11 @@ export function DisplaySettings() {
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!isTauri()) return;
-    invoke<string[]>('list_system_fonts').then(setSystemFonts).catch(() => {});
+    if (!isTauri()) { return; }
+    invoke<string[]>("list_system_fonts").then(setSystemFonts).catch(() => {});
   }, []);
 
-  const rowStyle = { padding: '4px 0' };
+  const rowStyle = { padding: "4px 0" };
 
   const lightThemeOptions = useMemo(
     () => SHIKI_LIGHT_THEMES.map((id) => ({ label: formatThemeName(id), value: id })),
@@ -32,27 +32,36 @@ export function DisplaySettings() {
 
   return (
     <div className="p-6 pb-12">
-      <SettingsGroup title={t('settings.groupTheme')}>
+      <SettingsGroup title={t("settings.groupTheme")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.theme')}</span>
+          <span>{t("settings.theme")}</span>
           <Segmented
             value={settings.theme_mode}
             onChange={(val) => saveSettings({ theme_mode: val as string })}
             options={[
-              { label: t('settings.themeSystem'), value: 'system', icon: <Monitor size={14} /> },
-              { label: t('settings.themeLight'), value: 'light', icon: <Sun size={14} /> },
-              { label: t('settings.themeDark'), value: 'dark', icon: <Moon size={14} /> },
+              { label: t("settings.themeSystem"), value: "system", icon: <Monitor size={14} /> },
+              { label: t("settings.themeLight"), value: "light", icon: <Sun size={14} /> },
+              { label: t("settings.themeDark"), value: "dark", icon: <Moon size={14} /> },
             ]}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.primaryColor')}</span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>{t("settings.primaryColor")}</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {[
-              '#17A93D', '#1677ff', '#1890ff', '#13c2c2', '#2f54eb',
-              '#722ed1', '#eb2f96', '#fa541c', '#faad14', '#fadb14',
-              '#a0d911', '#000000',
+              "#17A93D",
+              "#1677ff",
+              "#1890ff",
+              "#13c2c2",
+              "#2f54eb",
+              "#722ed1",
+              "#eb2f96",
+              "#fa541c",
+              "#faad14",
+              "#fadb14",
+              "#a0d911",
+              "#000000",
             ].map((color) => (
               <div
                 key={color}
@@ -60,107 +69,105 @@ export function DisplaySettings() {
                 style={{
                   width: 24,
                   height: 24,
-                  borderRadius: '50%',
+                  borderRadius: "50%",
                   backgroundColor: color,
-                  cursor: 'pointer',
+                  cursor: "pointer",
                   border: settings.primary_color === color
-                    ? '2px solid currentColor'
-                    : '2px solid transparent',
+                    ? "2px solid currentColor"
+                    : "2px solid transparent",
                   boxShadow: settings.primary_color === color
                     ? `0 0 0 1px ${color}`
-                    : 'none',
-                  transition: 'all 0.2s',
+                    : "none",
+                  transition: "all 0.2s",
                 }}
               />
             ))}
             <ColorPicker
               value={settings.primary_color}
-              onChangeComplete={(color) =>
-                saveSettings({ primary_color: color.toHexString() })
-              }
+              onChangeComplete={(color) => saveSettings({ primary_color: color.toHexString() })}
               size="small"
             />
           </div>
         </div>
       </SettingsGroup>
-      <SettingsGroup title={t('settings.groupFontRadius')}>
-        <div style={{ padding: '4px 0' }}>
-          <span>{t('settings.fontSize')}</span>
+      <SettingsGroup title={t("settings.groupFontRadius")}>
+        <div style={{ padding: "4px 0" }}>
+          <span>{t("settings.fontSize")}</span>
           <Slider
             min={12}
             max={20}
             value={settings.font_size}
             onChange={(val) => saveSettings({ font_size: val })}
-            marks={{ 12: '12', 14: '14', 16: '16', 18: '18', 20: '20' }}
+            marks={{ 12: "12", 14: "14", 16: "16", 18: "18", 20: "20" }}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
-        <div style={{ padding: '4px 0' }}>
-          <span>{t('settings.fontWeight')}</span>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={{ padding: "4px 0" }}>
+          <span>{t("settings.fontWeight")}</span>
           <Slider
             min={100}
             max={900}
             step={100}
             value={settings.font_weight}
             onChange={(val) => saveSettings({ font_weight: val })}
-            marks={{ 100: '100', 300: '300', 400: '400', 500: '500', 700: '700', 900: '900' }}
+            marks={{ 100: "100", 300: "300", 400: "400", 500: "500", 700: "700", 900: "900" }}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.fontFamily')}</span>
+          <span>{t("settings.fontFamily")}</span>
           <SettingsSelect
             searchable
-            value={settings.font_family || ''}
+            value={settings.font_family || ""}
             onChange={(val) => saveSettings({ font_family: val })}
             options={[
-              { label: t('settings.fontDefault'), value: '' },
+              { label: t("settings.fontDefault"), value: "" },
               ...systemFonts.map((f) => ({ label: f, value: f })),
             ]}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.codeFontFamily')}</span>
+          <span>{t("settings.codeFontFamily")}</span>
           <SettingsSelect
             searchable
-            value={settings.code_font_family || ''}
+            value={settings.code_font_family || ""}
             onChange={(val) => saveSettings({ code_font_family: val })}
             options={[
-              { label: t('settings.fontDefault'), value: '' },
+              { label: t("settings.fontDefault"), value: "" },
               ...systemFonts.map((f) => ({ label: f, value: f })),
             ]}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.codeThemeLight')}</span>
+          <span>{t("settings.codeThemeLight")}</span>
           <SettingsSelect
             searchable
-            value={settings.code_theme_light || 'github-light'}
+            value={settings.code_theme_light || "github-light"}
             onChange={(val) => saveSettings({ code_theme_light: val })}
             options={lightThemeOptions}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.codeThemeDark')}</span>
+          <span>{t("settings.codeThemeDark")}</span>
           <SettingsSelect
             searchable
-            value={settings.code_theme || 'poimandres'}
+            value={settings.code_theme || "poimandres"}
             onChange={(val) => saveSettings({ code_theme: val })}
             options={darkThemeOptions}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
-        <div style={{ padding: '4px 0' }}>
-          <span>{t('settings.borderRadius')}</span>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={{ padding: "4px 0" }}>
+          <span>{t("settings.borderRadius")}</span>
           <Slider
             min={0}
             max={20}
             value={settings.border_radius}
             onChange={(val) => saveSettings({ border_radius: val })}
-            marks={{ 0: '0', 4: '4', 8: '8', 12: '12', 16: '16', 20: '20' }}
+            marks={{ 0: "0", 4: "4", 8: "8", 12: "12", 16: "16", 20: "20" }}
           />
         </div>
       </SettingsGroup>

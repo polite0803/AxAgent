@@ -1,10 +1,10 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Modal, Input, List, Tag, Typography, theme } from 'antd';
-import { Search, MessageSquare, Settings, Network, Plus, PanelLeftClose, Sparkles } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useUIStore } from '@/stores';
-import { CHAT_ICON_COLORS } from '@/lib/iconColors';
+import { CHAT_ICON_COLORS } from "@/lib/iconColors";
+import { useUIStore } from "@/stores";
+import { Input, List, Modal, Tag, theme, Typography } from "antd";
+import { MessageSquare, Network, PanelLeftClose, Plus, Search, Settings, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 export interface CommandPaletteProps {
   open: boolean;
@@ -23,7 +23,7 @@ interface Command {
 export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -31,82 +31,109 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const commands = useMemo<Command[]>(() => {
-    const nav = t('commandPalette.navigation');
-    const actions = t('commandPalette.actions');
-    const settings = t('commandPalette.settings');
+    const nav = t("commandPalette.navigation");
+    const actions = t("commandPalette.actions");
+    const settings = t("commandPalette.settings");
 
     return [
       {
-        id: 'go-chat',
-        label: t('commandPalette.goToChat'),
+        id: "go-chat",
+        label: t("commandPalette.goToChat"),
         icon: <MessageSquare size={16} color={CHAT_ICON_COLORS.MessageSquare} />,
         category: nav,
-        action: () => { navigate('/'); onClose(); },
+        action: () => {
+          navigate("/");
+          onClose();
+        },
       },
       {
-        id: 'go-settings',
-        label: t('commandPalette.goToSettings'),
+        id: "go-settings",
+        label: t("commandPalette.goToSettings"),
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
-        shortcut: '⌘,',
+        shortcut: "⌘,",
         category: nav,
-        action: () => { navigate('/settings'); onClose(); },
+        action: () => {
+          navigate("/settings");
+          onClose();
+        },
       },
       {
-        id: 'go-gateway',
-        label: t('commandPalette.goToGateway'),
+        id: "go-gateway",
+        label: t("commandPalette.goToGateway"),
         icon: <Network size={16} color={CHAT_ICON_COLORS.Network} />,
         category: nav,
-        action: () => { navigate('/gateway'); onClose(); },
+        action: () => {
+          navigate("/gateway");
+          onClose();
+        },
       },
       {
-        id: 'go-skills',
-        label: t('commandPalette.goToSkills'),
+        id: "go-skills",
+        label: t("commandPalette.goToSkills"),
         icon: <Sparkles size={16} color={CHAT_ICON_COLORS.Sparkles} />,
         category: nav,
-        action: () => { navigate('/skills'); onClose(); },
+        action: () => {
+          navigate("/skills");
+          onClose();
+        },
       },
       {
-        id: 'new-conversation',
-        label: t('commandPalette.newConversation'),
+        id: "new-conversation",
+        label: t("commandPalette.newConversation"),
         icon: <Plus size={16} color={CHAT_ICON_COLORS.Plus} />,
-        shortcut: '⌘N',
+        shortcut: "⌘N",
         category: actions,
-        action: () => { navigate('/'); onClose(); },
+        action: () => {
+          navigate("/");
+          onClose();
+        },
       },
       {
-        id: 'toggle-sidebar',
-        label: t('commandPalette.toggleSidebar'),
+        id: "toggle-sidebar",
+        label: t("commandPalette.toggleSidebar"),
         icon: <PanelLeftClose size={16} color={CHAT_ICON_COLORS.PanelLeftClose} />,
         category: actions,
-        action: () => { toggleSidebar(); onClose(); },
+        action: () => {
+          toggleSidebar();
+          onClose();
+        },
       },
       {
-        id: 'search-conversations',
-        label: t('commandPalette.searchConversations'),
+        id: "search-conversations",
+        label: t("commandPalette.searchConversations"),
         icon: <Search size={16} color={CHAT_ICON_COLORS.Search} />,
-        shortcut: '⌘F',
+        shortcut: "⌘F",
         category: actions,
-        action: () => { navigate('/'); onClose(); },
+        action: () => {
+          navigate("/");
+          onClose();
+        },
       },
       {
-        id: 'settings-search',
-        label: `${t('commandPalette.goToSettings')} → ${t('settings.searchProviders.title')}`,
+        id: "settings-search",
+        label: `${t("commandPalette.goToSettings")} → ${t("settings.searchProviders.title")}`,
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         category: settings,
-        action: () => { navigate('/settings'); onClose(); },
+        action: () => {
+          navigate("/settings");
+          onClose();
+        },
       },
       {
-        id: 'settings-mcp',
-        label: `${t('commandPalette.goToSettings')} → ${t('settings.mcpServers.title')}`,
+        id: "settings-mcp",
+        label: `${t("commandPalette.goToSettings")} → ${t("settings.mcpServers.title")}`,
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         category: settings,
-        action: () => { navigate('/settings'); onClose(); },
+        action: () => {
+          navigate("/settings");
+          onClose();
+        },
       },
     ];
   }, [t, navigate, setSettingsSection, toggleSidebar, onClose]);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return commands;
+    if (!query.trim()) { return commands; }
     const q = query.toLowerCase();
     return commands.filter(
       (c) => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q),
@@ -119,20 +146,20 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   useEffect(() => {
     if (!open) {
-      setQuery('');
+      setQuery("");
       setActiveIndex(0);
     }
   }, [open]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'ArrowDown') {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIndex((prev) => (prev + 1) % filtered.length);
-      } else if (e.key === 'ArrowUp') {
+      } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setActiveIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
-      } else if (e.key === 'Enter' && filtered.length > 0) {
+      } else if (e.key === "Enter" && filtered.length > 0) {
         e.preventDefault();
         filtered[activeIndex]?.action();
       }
@@ -144,7 +171,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const grouped = useMemo(() => {
     const groups: Record<string, Command[]> = {};
     for (const cmd of filtered) {
-      if (!groups[cmd.category]) groups[cmd.category] = [];
+      if (!groups[cmd.category]) { groups[cmd.category] = []; }
       groups[cmd.category].push(cmd);
     }
     return groups;
@@ -166,21 +193,21 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       <div onKeyDown={handleKeyDown}>
         <Input
           prefix={<Search size={16} color={CHAT_ICON_COLORS.Search} />}
-          placeholder={t('commandPalette.placeholder')}
+          placeholder={t("commandPalette.placeholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           variant="borderless"
           size="large"
           autoFocus
-          style={{ padding: '12px 16px' }}
+          style={{ padding: "12px 16px" }}
         />
         <div
           ref={listRef}
           data-os-scrollbar
           style={{
             maxHeight: 400,
-            overflowY: 'auto',
-            borderTop: '1px solid var(--border-color)',
+            overflowY: "auto",
+            borderTop: "1px solid var(--border-color)",
           }}
         >
           {Object.entries(grouped).map(([category, cmds]) => (
@@ -188,8 +215,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
               <Typography.Text
                 type="secondary"
                 style={{
-                  display: 'block',
-                  padding: '8px 16px 4px',
+                  display: "block",
+                  padding: "8px 16px 4px",
                   fontSize: 12,
                   fontWeight: 500,
                 }}
@@ -206,24 +233,22 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                       key={cmd.id}
                       onClick={cmd.action}
                       style={{
-                        cursor: 'pointer',
-                        padding: '8px 16px',
+                        cursor: "pointer",
+                        padding: "8px 16px",
                         backgroundColor: isActive ? token.colorBgTextHover : undefined,
                       }}
                     >
                       <div
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          width: '100%',
+                          display: "flex",
+                          alignItems: "center",
+                          width: "100%",
                           gap: 8,
                         }}
                       >
                         <span style={{ fontSize: 16 }}>{cmd.icon}</span>
                         <span style={{ flex: 1 }}>{cmd.label}</span>
-                        {cmd.shortcut && (
-                          <Tag style={{ margin: 0 }}>{cmd.shortcut}</Tag>
-                        )}
+                        {cmd.shortcut && <Tag style={{ margin: 0 }}>{cmd.shortcut}</Tag>}
                       </div>
                     </List.Item>
                   );
@@ -232,8 +257,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
             </div>
           ))}
           {filtered.length === 0 && (
-            <div style={{ padding: 24, textAlign: 'center' }}>
-              <Typography.Text type="secondary">{t('common.noData')}</Typography.Text>
+            <div style={{ padding: 24, textAlign: "center" }}>
+              <Typography.Text type="secondary">{t("common.noData")}</Typography.Text>
             </div>
           )}
         </div>

@@ -12,9 +12,9 @@
 use crate::agent_roles::AgentRole;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::pin::Pin;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use std::pin::Pin;
 
 use uuid::Uuid;
 
@@ -26,6 +26,54 @@ pub type StepExecutor = Arc<
         + Send
         + Sync,
 >;
+
+/// Callback trait for workflow step execution events.
+/// Used for session binding to emit events to the frontend.
+pub trait SessionCallback: Send + Sync {
+    fn on_step_start(&self, step: &WorkflowStep);
+    fn on_step_result(&self, step: &WorkflowStep, result: Result<&str, &str>);
+    fn on_step_error(&self, step: &WorkflowStep, error: &str);
+    fn on_workflow_start(&self, workflow_id: &str);
+    fn on_workflow_complete(&self, workflow_id: &str, success: bool);
+}
+
+/// Wrap an executor with session callbacks.
+pub fn wrap_executor_with_callback(
+    executor: StepExecutor,
+    callback: Arc<dyn SessionCallback>,
+) -> StepExecutor {
+    Arc::new(
+        move |step: WorkflowStep, deps_results: HashMap<String, String>| {
+            let callback = Arc::clone(&callback);
+            let executor = Arc::clone(&executor);
+            let step_clone = step.clone();
+
+            Box::pin(async move {
+                callback.on_step_start(&step_clone);
+
+                let result = executor(step_clone.clone(), deps_results).await;
+
+                match &result {
+                    Ok(text) => callback.on_step_result(&step_clone, Ok(text.as_str())),
+                    Err(e) => callback.on_step_error(&step_clone, e),
+                }
+
+                result
+            })
+        },
+    )
+}
+
+/// No-op session callback for when no session binding is needed.
+pub struct NoopSessionCallback;
+
+impl SessionCallback for NoopSessionCallback {
+    fn on_step_start(&self, _step: &WorkflowStep) {}
+    fn on_step_result(&self, _step: &WorkflowStep, _result: Result<&str, &str>) {}
+    fn on_step_error(&self, _step: &WorkflowStep, _error: &str) {}
+    fn on_workflow_start(&self, _workflow_id: &str) {}
+    fn on_workflow_complete(&self, _workflow_id: &str, _success: bool) {}
+}
 
 /// Failure policy for a workflow step when it fails after all retries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,7 +87,6 @@ pub enum OnStepFailure {
     /// will see an empty result for this step.
     Skip,
 }
-
 
 // ---------------------------------------------------------------------------
 // P4-1: Retry policy with exponential backoff
@@ -59,8 +106,12 @@ pub struct RetryPolicy {
     pub max_delay_ms: u64,
 }
 
-fn default_base_delay_ms() -> u64 { 1000 }
-fn default_max_delay_ms() -> u64 { 30_000 }
+fn default_base_delay_ms() -> u64 {
+    1000
+}
+fn default_max_delay_ms() -> u64 {
+    30_000
+}
 
 impl Default for RetryPolicy {
     fn default() -> Self {
@@ -104,8 +155,12 @@ pub struct CircuitBreaker {
     pub opened_at: Option<u64>,
 }
 
-fn default_failure_threshold() -> u32 { 3 }
-fn default_reset_timeout_ms() -> u64 { 60_000 }
+fn default_failure_threshold() -> u32 {
+    3
+}
+fn default_reset_timeout_ms() -> u64 {
+    60_000
+}
 
 impl Default for CircuitBreaker {
     fn default() -> Self {
@@ -186,6 +241,12 @@ pub struct WorkflowStep {
     /// Circuit breaker state for this step (P4-1).
     #[serde(default)]
     pub circuit_breaker: CircuitBreaker,
+    /// Skill ID to execute directly without LLM. If set, this step is a skill call.
+    #[serde(default)]
+    pub skill_id: Option<String>,
+    /// Parameters to pass to the skill executor.
+    #[serde(default)]
+    pub skill_params: Option<serde_json::Value>,
 }
 
 fn default_max_retries() -> u32 {
@@ -208,6 +269,8 @@ impl Default for WorkflowStep {
             on_failure: OnStepFailure::Abort,
             retry_policy: RetryPolicy::default(),
             circuit_breaker: CircuitBreaker::default(),
+            skill_id: None,
+            skill_params: None,
         }
     }
 }
@@ -362,7 +425,9 @@ impl WorkflowEngine {
 
         let mut ready: Vec<String> = Vec::new();
         // A dependency is "done" if it completed or was skipped (partial completion)
-        let done: HashSet<&str> = workflow.steps.iter()
+        let done: HashSet<&str> = workflow
+            .steps
+            .iter()
             .filter(|s| s.status == StepStatus::Completed || s.status == StepStatus::Skipped)
             .map(|s| s.id.as_str())
             .collect();
@@ -372,10 +437,7 @@ impl WorkflowEngine {
                 continue;
             }
 
-            let deps_satisfied = step
-                .needs
-                .iter()
-                .all(|dep| done.contains(dep.as_str()));
+            let deps_satisfied = step.needs.iter().all(|dep| done.contains(dep.as_str()));
 
             if deps_satisfied {
                 ready.push(step.id.clone());
@@ -419,7 +481,9 @@ impl WorkflowEngine {
 
         // Auto-promote Pending → Ready for steps whose dependencies are now satisfied
         // First, collect the set of completed/skipped step IDs
-        let completed_ids: HashSet<String> = workflow.steps.iter()
+        let completed_ids: HashSet<String> = workflow
+            .steps
+            .iter()
             .filter(|s| matches!(s.status, StepStatus::Completed | StepStatus::Skipped))
             .map(|s| s.id.clone())
             .collect();
@@ -427,7 +491,10 @@ impl WorkflowEngine {
         for step in &mut workflow.steps {
             if step.status == StepStatus::Pending {
                 // Check if all dependencies (needs) are completed or skipped
-                let deps_satisfied = step.needs.iter().all(|dep_id| completed_ids.contains(dep_id));
+                let deps_satisfied = step
+                    .needs
+                    .iter()
+                    .all(|dep_id| completed_ids.contains(dep_id));
                 if deps_satisfied {
                     step.status = StepStatus::Ready;
                 }
@@ -435,13 +502,23 @@ impl WorkflowEngine {
         }
 
         // Determine workflow terminal status
-        let all_done = workflow.steps.iter()
-            .all(|s| matches!(s.status, StepStatus::Completed | StepStatus::Skipped | StepStatus::Failed));
-        let any_failed = workflow.steps.iter()
+        let all_done = workflow.steps.iter().all(|s| {
+            matches!(
+                s.status,
+                StepStatus::Completed | StepStatus::Skipped | StepStatus::Failed
+            )
+        });
+        let any_failed = workflow
+            .steps
+            .iter()
             .any(|s| s.status == StepStatus::Failed);
-        let any_skipped = workflow.steps.iter()
+        let any_skipped = workflow
+            .steps
+            .iter()
             .any(|s| s.status == StepStatus::Skipped);
-        let all_completed_or_skipped = workflow.steps.iter()
+        let all_completed_or_skipped = workflow
+            .steps
+            .iter()
             .all(|s| matches!(s.status, StepStatus::Completed | StepStatus::Skipped));
 
         if all_completed_or_skipped && any_skipped {
@@ -474,7 +551,9 @@ impl WorkflowEngine {
             .get(workflow_id)
             .ok_or(WorkflowError::WorkflowNotFound)?;
 
-        let step = workflow.steps.iter()
+        let step = workflow
+            .steps
+            .iter()
             .find(|s| s.id == step_id)
             .ok_or(WorkflowError::StepNotFound)?;
 
@@ -572,17 +651,18 @@ impl WorkflowEngine {
     }
 
     pub async fn run_workflow(&self, workflow_id: &str) -> Result<Workflow, WorkflowError> {
-         let executor: StepExecutor = Arc::new(|step: WorkflowStep, _deps: HashMap<String, String>| {
-             Box::pin(async move {
-                 tracing::info!("[workflow] Executing step: {} ({})", step.goal, step.id);
-                 Ok(format!("Step {} completed", step.id))
-             })
-         });
+        let executor: StepExecutor =
+            Arc::new(|step: WorkflowStep, _deps: HashMap<String, String>| {
+                Box::pin(async move {
+                    tracing::info!("[workflow] Executing step: {} ({})", step.goal, step.id);
+                    Ok(format!("Step {} completed", step.id))
+                })
+            });
 
-         let runner = WorkflowRunner::new(Arc::new(self.clone()), executor);
-         runner.run(workflow_id).await
-     }
- }
+        let runner = WorkflowRunner::new(Arc::new(self.clone()), executor);
+        runner.run(workflow_id).await
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WorkflowError {
@@ -658,7 +738,11 @@ impl WorkflowRunner {
     pub async fn run(&self, workflow_id: &str) -> Result<Workflow, WorkflowError> {
         // Set workflow status to Running
         {
-            let mut workflows = self.engine.workflows.write().map_err(|_| WorkflowError::LockError)?;
+            let mut workflows = self
+                .engine
+                .workflows
+                .write()
+                .map_err(|_| WorkflowError::LockError)?;
             if let Some(workflow) = workflows.get_mut(workflow_id) {
                 workflow.status = WorkflowStatus::Running;
             }
@@ -670,7 +754,8 @@ impl WorkflowRunner {
         loop {
             // 1. Collect ready steps (excluding already running ones)
             let ready_steps = self.engine.get_ready_steps(workflow_id)?;
-            let schedulable: Vec<String> = ready_steps.into_iter()
+            let schedulable: Vec<String> = ready_steps
+                .into_iter()
                 .filter(|id| !running.contains_key(id))
                 .take(self.max_concurrent.saturating_sub(running.len()))
                 .collect();
@@ -678,9 +763,9 @@ impl WorkflowRunner {
             // 2. Launch new steps up to max_concurrent
             for step_id in schedulable {
                 // Set step to Running
-                self.engine.update_step_status(
-                    workflow_id, &step_id, StepStatus::Running, None, None,
-                ).ok();
+                self.engine
+                    .update_step_status(workflow_id, &step_id, StepStatus::Running, None, None)
+                    .ok();
 
                 let engine_clone = Arc::clone(&self.engine);
                 let executor = Arc::clone(&self.executor);
@@ -693,9 +778,8 @@ impl WorkflowRunner {
                     let step = {
                         let workflows = engine_clone.workflows.read().ok();
                         workflows.and_then(|w| {
-                            w.get(&wid).and_then(|wf| {
-                                wf.steps.iter().find(|s| s.id == sid).cloned()
-                            })
+                            w.get(&wid)
+                                .and_then(|wf| wf.steps.iter().find(|s| s.id == sid).cloned())
                         })
                     };
 
@@ -707,14 +791,16 @@ impl WorkflowRunner {
                     };
 
                     // Get only the dependency results (P1-9: selective result passing)
-                    let deps_results = engine_clone.get_dependency_results(&wid, &sid)
+                    let deps_results = engine_clone
+                        .get_dependency_results(&wid, &sid)
                         .unwrap_or_default();
 
                     // Execute with timeout
                     let timeout_result = tokio::time::timeout(step_timeout, async {
                         let executor_fn = executor.as_ref();
                         executor_fn(step.clone(), deps_results).await
-                    }).await;
+                    })
+                    .await;
 
                     match timeout_result {
                         Ok(Ok(result)) => StepOutcome {
@@ -743,7 +829,8 @@ impl WorkflowRunner {
             // 4. Wait for ANY running step to complete (pipeline: don't wait for all)
             // Use tokio::select! to wait for the first completion
             let completed_outcome = {
-                let handles: Vec<(String, tokio::task::JoinHandle<StepOutcome>)> = running.drain().collect();
+                let handles: Vec<(String, tokio::task::JoinHandle<StepOutcome>)> =
+                    running.drain().collect();
                 if handles.is_empty() {
                     break;
                 }
@@ -771,27 +858,42 @@ impl WorkflowRunner {
                 // Read the step's max_retries, on_failure policy, retry_policy, and circuit_breaker
                 let (max_retries, on_failure, current_attempts, retry_policy, cb_open) = {
                     let workflows = self.engine.workflows.read().ok();
-                    workflows.and_then(|w| {
-                        w.get(workflow_id).and_then(|wf| {
-                            wf.steps.iter().find(|s| s.id == outcome.step_id).map(|s| {
-                                let is_open = s.circuit_breaker.is_open(current_epoch_ms());
-                                (s.max_retries, s.on_failure, s.attempts, s.retry_policy.clone(), is_open)
+                    workflows
+                        .and_then(|w| {
+                            w.get(workflow_id).and_then(|wf| {
+                                wf.steps.iter().find(|s| s.id == outcome.step_id).map(|s| {
+                                    let is_open = s.circuit_breaker.is_open(current_epoch_ms());
+                                    (
+                                        s.max_retries,
+                                        s.on_failure,
+                                        s.attempts,
+                                        s.retry_policy.clone(),
+                                        is_open,
+                                    )
+                                })
                             })
                         })
-                    }).unwrap_or((0, OnStepFailure::Abort, 0, RetryPolicy::default(), false))
+                        .unwrap_or((0, OnStepFailure::Abort, 0, RetryPolicy::default(), false))
                 };
 
                 // P4-1: Circuit breaker check — if open, skip this step
                 if cb_open {
-                    self.engine.update_step_status(
-                        workflow_id, &outcome.step_id,
-                        StepStatus::Failed, None, Some("Circuit breaker open".to_string()),
-                    ).ok();
+                    self.engine
+                        .update_step_status(
+                            workflow_id,
+                            &outcome.step_id,
+                            StepStatus::Failed,
+                            None,
+                            Some("Circuit breaker open".to_string()),
+                        )
+                        .ok();
                     // Also update circuit breaker state
                     {
                         let mut workflows = self.engine.workflows.write().ok();
                         if let Some(wf) = workflows.as_mut().and_then(|w| w.get_mut(workflow_id)) {
-                            if let Some(step) = wf.steps.iter_mut().find(|s| s.id == outcome.step_id) {
+                            if let Some(step) =
+                                wf.steps.iter_mut().find(|s| s.id == outcome.step_id)
+                            {
                                 step.circuit_breaker.record_failure(current_epoch_ms());
                             }
                         }
@@ -804,23 +906,36 @@ impl WorkflowRunner {
                         // Step succeeded — record success in circuit breaker
                         {
                             let mut workflows = self.engine.workflows.write().ok();
-                            if let Some(wf) = workflows.as_mut().and_then(|w| w.get_mut(workflow_id)) {
-                                if let Some(step) = wf.steps.iter_mut().find(|s| s.id == outcome.step_id) {
+                            if let Some(wf) =
+                                workflows.as_mut().and_then(|w| w.get_mut(workflow_id))
+                            {
+                                if let Some(step) =
+                                    wf.steps.iter_mut().find(|s| s.id == outcome.step_id)
+                                {
                                     step.circuit_breaker.record_success();
                                 }
                             }
                         }
-                        self.engine.update_step_status(
-                            workflow_id, &outcome.step_id,
-                            StepStatus::Completed, Some(result), None,
-                        ).ok();
+                        self.engine
+                            .update_step_status(
+                                workflow_id,
+                                &outcome.step_id,
+                                StepStatus::Completed,
+                                Some(result),
+                                None,
+                            )
+                            .ok();
                     }
                     Err(e) => {
                         // Record failure in circuit breaker
                         {
                             let mut workflows = self.engine.workflows.write().ok();
-                            if let Some(wf) = workflows.as_mut().and_then(|w| w.get_mut(workflow_id)) {
-                                if let Some(step) = wf.steps.iter_mut().find(|s| s.id == outcome.step_id) {
+                            if let Some(wf) =
+                                workflows.as_mut().and_then(|w| w.get_mut(workflow_id))
+                            {
+                                if let Some(step) =
+                                    wf.steps.iter_mut().find(|s| s.id == outcome.step_id)
+                                {
                                     step.circuit_breaker.record_failure(current_epoch_ms());
                                 }
                             }
@@ -834,24 +949,39 @@ impl WorkflowRunner {
                                 tokio::time::sleep(backoff).await;
                             }
                             // Retry: set status back to Ready so get_ready_steps picks it up
-                            self.engine.update_step_status(
-                                workflow_id, &outcome.step_id,
-                                StepStatus::Ready, None, Some(e),
-                            ).ok();
+                            self.engine
+                                .update_step_status(
+                                    workflow_id,
+                                    &outcome.step_id,
+                                    StepStatus::Ready,
+                                    None,
+                                    Some(e),
+                                )
+                                .ok();
                         } else {
                             // No more retries — apply failure policy
                             match on_failure {
                                 OnStepFailure::Skip => {
-                                    self.engine.update_step_status(
-                                        workflow_id, &outcome.step_id,
-                                        StepStatus::Skipped, None, Some(e),
-                                    ).ok();
+                                    self.engine
+                                        .update_step_status(
+                                            workflow_id,
+                                            &outcome.step_id,
+                                            StepStatus::Skipped,
+                                            None,
+                                            Some(e),
+                                        )
+                                        .ok();
                                 }
                                 OnStepFailure::Abort => {
-                                    self.engine.update_step_status(
-                                        workflow_id, &outcome.step_id,
-                                        StepStatus::Failed, None, Some(e),
-                                    ).ok();
+                                    self.engine
+                                        .update_step_status(
+                                            workflow_id,
+                                            &outcome.step_id,
+                                            StepStatus::Failed,
+                                            None,
+                                            Some(e),
+                                        )
+                                        .ok();
                                 }
                             }
                         }
@@ -970,6 +1100,8 @@ mod tests {
             on_failure: OnStepFailure::Abort,
             retry_policy: RetryPolicy::default(),
             circuit_breaker: CircuitBreaker::default(),
+            skill_id: None,
+            skill_params: None,
         }
     }
 
@@ -977,8 +1109,18 @@ mod tests {
     fn test_workflow_creation() {
         let engine = WorkflowEngine::new();
         let steps = vec![
-            make_step("research", "Research the API", AgentRole::Researcher, vec![]),
-            make_step("backend", "Implement backend", AgentRole::Developer, vec!["research"]),
+            make_step(
+                "research",
+                "Research the API",
+                AgentRole::Researcher,
+                vec![],
+            ),
+            make_step(
+                "backend",
+                "Implement backend",
+                AgentRole::Developer,
+                vec!["research"],
+            ),
         ];
 
         let workflow = engine.create_workflow("Test Workflow", steps).unwrap();
@@ -1026,8 +1168,24 @@ mod tests {
         let workflow = engine.create_workflow("Selective Results", steps).unwrap();
         let wf_id = &workflow.id;
 
-        engine.update_step_status(wf_id, "a", StepStatus::Completed, Some("result_a".to_string()), None).unwrap();
-        engine.update_step_status(wf_id, "b", StepStatus::Completed, Some("result_b".to_string()), None).unwrap();
+        engine
+            .update_step_status(
+                wf_id,
+                "a",
+                StepStatus::Completed,
+                Some("result_a".to_string()),
+                None,
+            )
+            .unwrap();
+        engine
+            .update_step_status(
+                wf_id,
+                "b",
+                StepStatus::Completed,
+                Some("result_b".to_string()),
+                None,
+            )
+            .unwrap();
 
         let deps = engine.get_dependency_results(wf_id, "c").unwrap();
         assert_eq!(deps.len(), 1);

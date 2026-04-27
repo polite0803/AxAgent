@@ -16,8 +16,7 @@ const DEFAULT_INITIAL_BACKOFF_MS: u64 = 1000;
 const DEFAULT_MAX_BACKOFF_MS: u64 = 60000;
 const DEFAULT_REQUIRED_HEALTH_SUCCESSES: u32 = 3;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LinkConnectionState {
     #[default]
     Disconnected,
@@ -26,7 +25,6 @@ pub enum LinkConnectionState {
     Reconnecting,
     Failed,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct GatewayLinkHandle {
@@ -104,7 +102,12 @@ impl GatewayLinkManager {
         links.get(link_id).map(|h| h.state)
     }
 
-    pub async fn update_link_state(&self, link_id: &str, state: LinkConnectionState, error: Option<String>) -> bool {
+    pub async fn update_link_state(
+        &self,
+        link_id: &str,
+        state: LinkConnectionState,
+        error: Option<String>,
+    ) -> bool {
         let mut links = self.links.write().await;
         if let Some(handle) = links.get_mut(link_id) {
             handle.state = state;
@@ -154,7 +157,9 @@ impl GatewayLinkManager {
             .iter()
             .filter(|(_, handle)| {
                 handle.state == LinkConnectionState::Connected
-                    && handle.last_health_check.is_none_or(|t| now.duration_since(t) > threshold)
+                    && handle
+                        .last_health_check
+                        .is_none_or(|t| now.duration_since(t) > threshold)
             })
             .map(|(id, _)| id.clone())
             .collect()
@@ -335,7 +340,9 @@ impl GatewayLinkConnectionHandle {
             }
         }
 
-        manager.update_link_state(&link_id, LinkConnectionState::Disconnected, None).await;
+        manager
+            .update_link_state(&link_id, LinkConnectionState::Disconnected, None)
+            .await;
     }
 }
 

@@ -1,3 +1,8 @@
+//! Workflow type definitions
+//!
+//! This module defines the core types used in workflow execution,
+//! including nodes, variables, triggers, and execution states.
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -639,28 +644,34 @@ impl From<WorkflowTemplateData> for WorkflowTemplateResponse {
 
 impl From<crate::entity::workflow_template::Model> for WorkflowTemplateResponse {
     fn from(model: crate::entity::workflow_template::Model) -> Self {
-        let tags: Vec<String> = model.tags
+        let tags: Vec<String> = model
+            .tags
             .as_ref()
             .and_then(|t| serde_json::from_str(t).ok())
             .unwrap_or_default();
 
-        let trigger_config: Option<TriggerConfig> = model.trigger_config
+        let trigger_config: Option<TriggerConfig> = model
+            .trigger_config
             .as_ref()
             .and_then(|t| serde_json::from_str(t).ok());
 
         let nodes: Vec<WorkflowNode> = serde_json::from_str(&model.nodes).unwrap_or_default();
         let edges: Vec<WorkflowEdge> = serde_json::from_str(&model.edges).unwrap_or_default();
-        let variables: Vec<Variable> = model.variables
+        let variables: Vec<Variable> = model
+            .variables
             .as_ref()
             .and_then(|v| serde_json::from_str(v).ok())
             .unwrap_or_default();
-        let input_schema: Option<JsonSchema> = model.input_schema
+        let input_schema: Option<JsonSchema> = model
+            .input_schema
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok());
-        let output_schema: Option<JsonSchema> = model.output_schema
+        let output_schema: Option<JsonSchema> = model
+            .output_schema
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok());
-        let error_config: Option<ErrorConfig> = model.error_config
+        let error_config: Option<ErrorConfig> = model
+            .error_config
             .as_ref()
             .and_then(|e| serde_json::from_str(e).ok());
 
@@ -741,9 +752,7 @@ impl WorkflowMigrator {
     /// Migrate a workflow's Tool and Code nodes to AtomicSkill nodes.
     /// Returns a MigrationResult with details of what was migrated.
     #[allow(clippy::ptr_arg)]
-    pub fn migrate(
-        nodes: &mut Vec<WorkflowNode>,
-    ) -> MigrationResult {
+    pub fn migrate(nodes: &mut Vec<WorkflowNode>) -> MigrationResult {
         let mut migrated_nodes = Vec::new();
         let mut has_changes = false;
 
@@ -810,6 +819,8 @@ impl WorkflowMigrator {
 
     /// Check if a workflow contains legacy Tool or Code nodes
     pub fn has_legacy_nodes(nodes: &[WorkflowNode]) -> bool {
-        nodes.iter().any(|n| matches!(n, WorkflowNode::Tool(_) | WorkflowNode::Code(_)))
+        nodes
+            .iter()
+            .any(|n| matches!(n, WorkflowNode::Tool(_) | WorkflowNode::Code(_)))
     }
 }

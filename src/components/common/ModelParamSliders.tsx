@@ -1,6 +1,6 @@
-import { Slider, InputNumber, Switch, Tooltip, Divider, theme } from 'antd';
-import { Info } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Divider, InputNumber, Slider, Switch, theme, Tooltip } from "antd";
+import { Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // ── Single parameter row with optional switch ──────────────
 
@@ -38,16 +38,16 @@ function ParamRow({
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
           {label}
           {tooltip && (
             <Tooltip title={tooltip}>
-              <Info size={12} style={{ color: token.colorTextSecondary, cursor: 'help' }} />
+              <Info size={12} style={{ color: token.colorTextSecondary, cursor: "help" }} />
             </Tooltip>
           )}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isOn && (
             <InputNumber
               style={{ width: inputWidth }}
@@ -111,23 +111,34 @@ export interface ModelParamSlidersProps {
   /** Show dividers between rows (default: true) */
   showDividers?: boolean;
   /** Which parameters to render (default: all four) */
-  visibleParams?: Array<'temperature' | 'topP' | 'maxTokens' | 'frequencyPenalty'>;
+  visibleParams?: Array<"temperature" | "topP" | "maxTokens" | "frequencyPenalty">;
 }
 
 const MAX_TOKENS_MARKS: Record<string | number, string> = {
-  256: '', 32768: '32K', 131072: '128K', 1048576: '1M',
+  256: "",
+  32768: "32K",
+  131072: "128K",
+  1048576: "1M",
 };
 
 const TEMPERATURE_MARKS: Record<string | number, string> = {
-  0: '0', 0.5: '', 1: '1', 1.5: '', 2: '2',
+  0: "0",
+  0.5: "",
+  1: "1",
+  1.5: "",
+  2: "2",
 };
 
 const TOP_P_MARKS: Record<string | number, string> = {
-  0: '0', 0.5: '', 1: '1',
+  0: "0",
+  0.5: "",
+  1: "1",
 };
 
 const FREQ_PENALTY_MARKS: Record<string | number, string> = {
-  '-2': '-2', 0: '0', 2: '2',
+  "-2": "-2",
+  0: "0",
+  2: "2",
 };
 
 const DEFAULT_DEFAULTS: Required<ModelParamDefaults> = {
@@ -137,7 +148,7 @@ const DEFAULT_DEFAULTS: Required<ModelParamDefaults> = {
   frequencyPenalty: 0,
 };
 
-const ALL_PARAMS = ['temperature', 'topP', 'maxTokens', 'frequencyPenalty'] as const;
+const ALL_PARAMS = ["temperature", "topP", "maxTokens", "frequencyPenalty"] as const;
 
 export function ModelParamSliders({
   values,
@@ -159,12 +170,12 @@ export function ModelParamSliders({
         const isLast = idx === visibleList.length - 1;
 
         switch (param) {
-          case 'temperature':
+          case "temperature":
             return (
               <ParamRow
                 key="temperature"
-                label={t('settings.temperature')}
-                tooltip={t('settings.temperatureTooltip')}
+                label={t("settings.temperature")}
+                tooltip={t("settings.temperatureTooltip")}
                 value={values.temperature}
                 defaultValue={d.temperature}
                 min={0}
@@ -176,12 +187,12 @@ export function ModelParamSliders({
                 showDivider={showDividers && !isLast}
               />
             );
-          case 'topP':
+          case "topP":
             return (
               <ParamRow
                 key="topP"
                 label="Top P"
-                tooltip={t('settings.topPTooltip')}
+                tooltip={t("settings.topPTooltip")}
                 value={values.topP}
                 defaultValue={d.topP}
                 min={0}
@@ -193,12 +204,12 @@ export function ModelParamSliders({
                 showDivider={showDividers && !isLast}
               />
             );
-          case 'maxTokens':
+          case "maxTokens":
             return (
               <ParamRow
                 key="maxTokens"
-                label={t('settings.maxTokens')}
-                tooltip={t('settings.maxTokensTooltip')}
+                label={t("settings.maxTokens")}
+                tooltip={t("settings.maxTokensTooltip")}
                 value={values.maxTokens}
                 defaultValue={d.maxTokens}
                 min={256}
@@ -211,12 +222,12 @@ export function ModelParamSliders({
                 showDivider={showDividers && !isLast}
               />
             );
-          case 'frequencyPenalty':
+          case "frequencyPenalty":
             return (
               <ParamRow
                 key="frequencyPenalty"
-                label={t('settings.frequencyPenalty')}
-                tooltip={t('settings.frequencyPenaltyTooltip')}
+                label={t("settings.frequencyPenalty")}
+                tooltip={t("settings.frequencyPenaltyTooltip")}
                 value={values.frequencyPenalty}
                 defaultValue={d.frequencyPenalty}
                 min={-2}

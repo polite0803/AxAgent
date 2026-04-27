@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { PageKey, SettingsSection } from '@/types';
+import type { PageKey, SettingsSection } from "@/types";
+import { create } from "zustand";
 
 interface UIState {
   activePage: PageKey;
@@ -19,17 +19,17 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
-  activePage: 'chat',
-  previousPage: 'chat',
+  activePage: "chat",
+  previousPage: "chat",
   sidebarCollapsed: false,
-  settingsSection: 'general',
+  settingsSection: "general",
   selectedProviderId: null,
   workflowEditorOpen: false,
   setActivePage: (page) => set({ activePage: page }),
   enterSettings: () => {
     const current = get().activePage;
-    if (current !== 'settings') {
-      set({ previousPage: current, activePage: 'settings' });
+    if (current !== "settings") {
+      set({ previousPage: current, activePage: "settings" });
     }
   },
   exitSettings: () => {
@@ -40,10 +40,10 @@ export const useUIStore = create<UIState>((set, get) => ({
   setSettingsSection: (section) => set({ settingsSection: section }),
   setSelectedProviderId: (id) => set({ selectedProviderId: id }),
   openWorkflowEditor: () => {
-    set({ settingsSection: 'workflow', workflowEditorOpen: true });
+    set({ settingsSection: "workflow", workflowEditorOpen: true });
     const current = get().activePage;
-    if (current !== 'settings') {
-      set({ previousPage: current, activePage: 'settings' });
+    if (current !== "settings") {
+      set({ previousPage: current, activePage: "settings" });
     }
   },
   closeWorkflowEditor: () => set({ workflowEditorOpen: false }),

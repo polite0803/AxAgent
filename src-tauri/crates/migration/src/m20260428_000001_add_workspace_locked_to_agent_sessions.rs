@@ -10,7 +10,12 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(AgentSessions::Table)
-                    .add_column(ColumnDef::new(AgentSessions::WorkspaceLocked).boolean().not_null().default(false))
+                    .add_column(
+                        ColumnDef::new(AgentSessions::WorkspaceLocked)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .to_owned(),
             )
             .await

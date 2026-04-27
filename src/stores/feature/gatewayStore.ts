@@ -1,21 +1,21 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
+import { invoke } from "@/lib/invoke";
 import type {
-  GatewayStatus,
+  CliToolInfo,
+  ConnectedProgram,
+  CreateGatewayKeyResult,
+  GatewayDiagnostic,
   GatewayKey,
   GatewayMetrics,
-  CreateGatewayKeyResult,
+  GatewayRequestLog,
+  GatewayStatus,
+  GatewayTemplate,
+  ProgramPolicy,
+  QuickConnectProtocol,
+  UsageByDay,
   UsageByKey,
   UsageByProvider,
-  UsageByDay,
-  ConnectedProgram,
-  GatewayDiagnostic,
-  ProgramPolicy,
-  GatewayTemplate,
-  GatewayRequestLog,
-  CliToolInfo,
-  QuickConnectProtocol,
-} from '@/types';
+} from "@/types";
+import { create } from "zustand";
 
 interface GatewayState {
   status: GatewayStatus;
@@ -70,7 +70,7 @@ interface GatewayState {
 export const useGatewayStore = create<GatewayState>((set) => ({
   status: {
     is_running: false,
-    listen_address: '127.1.0.0',
+    listen_address: "127.1.0.0",
     port: 8080,
     ssl_enabled: false,
     started_at: null,
@@ -96,7 +96,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
   fetchKeys: async () => {
     set({ loading: true });
     try {
-      const keys = await invoke<GatewayKey[]>('list_gateway_keys');
+      const keys = await invoke<GatewayKey[]>("list_gateway_keys");
       set({ keys, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -105,7 +105,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   createKey: async (name) => {
     try {
-      const result = await invoke<CreateGatewayKeyResult>('create_gateway_key', { name });
+      const result = await invoke<CreateGatewayKeyResult>("create_gateway_key", { name });
       set((s) => ({ keys: [...s.keys, result.gateway_key], error: null }));
       return result;
     } catch (e) {
@@ -116,7 +116,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   deleteKey: async (id) => {
     try {
-      await invoke('delete_gateway_key', { id });
+      await invoke("delete_gateway_key", { id });
       set((s) => ({ keys: s.keys.filter((k) => k.id !== id), error: null }));
     } catch (e) {
       set({ error: String(e) });
@@ -126,7 +126,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   toggleKey: async (id, enabled) => {
     try {
-      await invoke('toggle_gateway_key', { id, enabled });
+      await invoke("toggle_gateway_key", { id, enabled });
       set((s) => ({
         keys: s.keys.map((k) => (k.id === id ? { ...k, enabled } : k)),
         error: null,
@@ -139,7 +139,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   decryptKey: async (id) => {
     try {
-      const plainKey = await invoke<string>('decrypt_gateway_key', { id });
+      const plainKey = await invoke<string>("decrypt_gateway_key", { id });
       return plainKey;
     } catch (e) {
       set({ error: String(e) });
@@ -149,8 +149,8 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   startGateway: async () => {
     try {
-      await invoke('start_gateway');
-      const status = await invoke<GatewayStatus>('get_gateway_status');
+      await invoke("start_gateway");
+      const status = await invoke<GatewayStatus>("get_gateway_status");
       set({ status, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -160,8 +160,8 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   stopGateway: async () => {
     try {
-      await invoke('stop_gateway');
-      const status = await invoke<GatewayStatus>('get_gateway_status');
+      await invoke("stop_gateway");
+      const status = await invoke<GatewayStatus>("get_gateway_status");
       set({ status, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -171,7 +171,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchStatus: async () => {
     try {
-      const status = await invoke<GatewayStatus>('get_gateway_status');
+      const status = await invoke<GatewayStatus>("get_gateway_status");
       set({ status });
     } catch (e) {
       set({ error: String(e) });
@@ -180,7 +180,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchMetrics: async () => {
     try {
-      const metrics = await invoke<GatewayMetrics>('get_gateway_metrics');
+      const metrics = await invoke<GatewayMetrics>("get_gateway_metrics");
       set({ metrics });
     } catch (e) {
       set({ error: String(e) });
@@ -189,7 +189,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchUsageByKey: async () => {
     try {
-      const usageByKey = await invoke<UsageByKey[]>('get_gateway_usage_by_key');
+      const usageByKey = await invoke<UsageByKey[]>("get_gateway_usage_by_key");
       set({ usageByKey });
     } catch (e) {
       set({ error: String(e) });
@@ -198,7 +198,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchUsageByProvider: async () => {
     try {
-      const usageByProvider = await invoke<UsageByProvider[]>('get_gateway_usage_by_provider');
+      const usageByProvider = await invoke<UsageByProvider[]>("get_gateway_usage_by_provider");
       set({ usageByProvider });
     } catch (e) {
       set({ error: String(e) });
@@ -207,7 +207,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchUsageByDay: async (days = 30) => {
     try {
-      const usageByDay = await invoke<UsageByDay[]>('get_gateway_usage_by_day', { days });
+      const usageByDay = await invoke<UsageByDay[]>("get_gateway_usage_by_day", { days });
       set({ usageByDay });
     } catch (e) {
       set({ error: String(e) });
@@ -216,7 +216,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchConnectedPrograms: async () => {
     try {
-      const connectedPrograms = await invoke<ConnectedProgram[]>('get_connected_programs');
+      const connectedPrograms = await invoke<ConnectedProgram[]>("get_connected_programs");
       set({ connectedPrograms });
     } catch (e) {
       set({ error: String(e) });
@@ -225,7 +225,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   loadDiagnostics: async () => {
     try {
-      const diagnostics = await invoke<GatewayDiagnostic[]>('get_gateway_diagnostics');
+      const diagnostics = await invoke<GatewayDiagnostic[]>("get_gateway_diagnostics");
       set({ diagnostics });
     } catch (e) {
       set({ error: String(e) });
@@ -234,7 +234,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   loadProgramPolicies: async () => {
     try {
-      const programPolicies = await invoke<ProgramPolicy[]>('get_program_policies');
+      const programPolicies = await invoke<ProgramPolicy[]>("get_program_policies");
       set({ programPolicies });
     } catch (e) {
       set({ error: String(e) });
@@ -243,7 +243,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   saveProgramPolicy: async (input) => {
     try {
-      const policy = await invoke<ProgramPolicy>('save_program_policy', { input });
+      const policy = await invoke<ProgramPolicy>("save_program_policy", { input });
       set((s) => ({
         programPolicies: [...s.programPolicies.filter((p) => p.id !== policy.id), policy],
         error: null,
@@ -257,7 +257,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   loadGatewayTemplates: async () => {
     try {
-      const gatewayTemplates = await invoke<GatewayTemplate[]>('list_gateway_templates');
+      const gatewayTemplates = await invoke<GatewayTemplate[]>("list_gateway_templates");
       set({ gatewayTemplates });
     } catch (e) {
       set({ error: String(e) });
@@ -266,7 +266,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   copyGatewayTemplate: async (templateId: string) => {
     try {
-      const content = await invoke<string>('copy_gateway_template', { templateId: templateId });
+      const content = await invoke<string>("copy_gateway_template", { templateId: templateId });
       return content;
     } catch (e) {
       set({ error: String(e) });
@@ -277,7 +277,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
   fetchRequestLogs: async (limit = 100, offset = 0) => {
     set({ requestLogsLoading: true });
     try {
-      const requestLogs = await invoke<GatewayRequestLog[]>('list_gateway_request_logs', { limit, offset });
+      const requestLogs = await invoke<GatewayRequestLog[]>("list_gateway_request_logs", { limit, offset });
       set({ requestLogs, requestLogsLoading: false });
     } catch (e) {
       set({ error: String(e), requestLogsLoading: false });
@@ -286,7 +286,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   listRequestLogs: async (limit = 100, offset = 0) => {
     try {
-      const requestLogs = await invoke<GatewayRequestLog[]>('list_gateway_request_logs', { limit, offset });
+      const requestLogs = await invoke<GatewayRequestLog[]>("list_gateway_request_logs", { limit, offset });
       set({ error: null });
       return requestLogs;
     } catch (e) {
@@ -297,7 +297,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   clearRequestLogs: async () => {
     try {
-      await invoke('clear_gateway_request_logs');
+      await invoke("clear_gateway_request_logs");
       set({ requestLogs: [] });
     } catch (e) {
       set({ error: String(e) });
@@ -307,7 +307,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
   fetchCliToolStatuses: async () => {
     set({ cliToolsLoading: true });
     try {
-      const cliTools = await invoke<CliToolInfo[]>('get_all_cli_tool_statuses');
+      const cliTools = await invoke<CliToolInfo[]>("get_all_cli_tool_statuses");
       set({ cliTools, cliToolsLoading: false });
     } catch (e) {
       set({ error: String(e), cliToolsLoading: false });
@@ -316,9 +316,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   connectCliTool: async (tool, keyId, protocol) => {
     try {
-      await invoke('connect_cli_tool', { tool, keyId, protocol });
+      await invoke("connect_cli_tool", { tool, keyId, protocol });
       // Refresh statuses after connect
-      const cliTools = await invoke<CliToolInfo[]>('get_all_cli_tool_statuses');
+      const cliTools = await invoke<CliToolInfo[]>("get_all_cli_tool_statuses");
       set({ cliTools, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -328,9 +328,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   disconnectCliTool: async (tool, restoreBackup) => {
     try {
-      await invoke('disconnect_cli_tool', { tool, restoreBackup });
+      await invoke("disconnect_cli_tool", { tool, restoreBackup });
       // Refresh statuses after disconnect
-      const cliTools = await invoke<CliToolInfo[]>('get_all_cli_tool_statuses');
+      const cliTools = await invoke<CliToolInfo[]>("get_all_cli_tool_statuses");
       set({ cliTools, error: null });
     } catch (e) {
       set({ error: String(e) });

@@ -1,14 +1,14 @@
-import { useMemo, useCallback } from 'react';
-import { Select, theme } from 'antd';
-import { ModelIcon } from '@lobehub/icons';
-import { useProviderStore } from '@/stores';
-import { SmartProviderIcon } from '@/lib/providerIcons';
+import { SmartProviderIcon } from "@/lib/providerIcons";
+import { useProviderStore } from "@/stores";
+import { ModelIcon } from "@lobehub/icons";
+import { Select, theme } from "antd";
+import { useCallback, useMemo } from "react";
 
 /** Parse a combined `providerId::model_id` value. */
 export function parseModelValue(value: string | undefined) {
-  if (!value) return null;
-  const idx = value.indexOf('::');
-  if (idx < 0) return null;
+  if (!value) { return null; }
+  const idx = value.indexOf("::");
+  if (idx < 0) { return null; }
   return { providerId: value.slice(0, idx), model_id: value.slice(idx + 2) };
 }
 
@@ -20,7 +20,7 @@ export function useGroupedModelOptions() {
       .filter((p) => p.enabled && p.models.some((m) => m.enabled))
       .map((p) => ({
         label: (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <SmartProviderIcon provider={p} size={16} type="avatar" />
             {p.name}
           </span>
@@ -71,9 +71,9 @@ export function ModelSelect({
 
   const optionRender = useCallback(
     (oriOption: { label?: React.ReactNode; value?: string | number }, _info: { index: number }) => {
-      const model_id = String(oriOption.value ?? '').split('::')[1] ?? '';
+      const model_id = String(oriOption.value ?? "").split("::")[1] ?? "";
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <ModelIcon model={model_id} size={18} type="avatar" />
           {oriOption.label}
         </span>
@@ -84,11 +84,11 @@ export function ModelSelect({
 
   const labelRender = useCallback(
     (props: { label?: React.ReactNode; value?: string | number }) => {
-      const parsed = parseModelValue(String(props.value ?? ''));
-      if (!parsed) return <span>{props.label}</span>;
-      const providerName = providerNameMap.get(parsed.providerId) ?? '';
+      const parsed = parseModelValue(String(props.value ?? ""));
+      if (!parsed) { return <span>{props.label}</span>; }
+      const providerName = providerNameMap.get(parsed.providerId) ?? "";
       return (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <ModelIcon model={parsed.model_id} size={18} type="avatar" />
           {props.label}
           <span style={{ fontSize: 11, color: token.colorTextSecondary }}>

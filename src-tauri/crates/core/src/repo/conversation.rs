@@ -1,10 +1,11 @@
 use sea_orm::*;
 use serde_json;
 
-use crate::entity::{conversation_summaries, conversations, messages};
+use crate::entity::{conversation_summaries, conversations, knowledge_documents, messages};
 use crate::error::{AxAgentError, Result};
 use crate::types::{
-    Conversation, ConversationSearchResult, ConversationSummary, UpdateConversationInput,
+    Conversation, ConversationSearchResult, ConversationSummary, KnowledgeDocument,
+    UpdateConversationInput,
 };
 use crate::utils::{gen_id, now_ts};
 
@@ -239,6 +240,145 @@ pub async fn toggle_archive(db: &DatabaseConnection, id: &str) -> Result<Convers
     am.update(db).await?;
 
     get_conversation(db, id).await
+}
+
+/// Archive a conversation to a knowledge base.
+///
+/// This extracts all user/assistant messages from the conversation, formats them
+/// into a structured text document, creates a knowledge document record (with
+/// `doc_type = "conversation"`), and marks the conversation as archived.
+pub async fn archive_to_knowledge_base(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+    knowledge_base_id: &str,
+) -> Result<(Conversation, KnowledgeDocument)> {
+    // 1. Load conversation
+    let conv = conversations::Entity::find_by_id(conversation_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
+
+    let conv_title = conv.title.clone();
+
+    // 2. Load all active messages ordered by created_at
+    let all_msgs = messages::Entity::find()
+        .filter(messages::Column::ConversationId.eq(conversation_id))
+        .filter(messages::Column::IsActive.eq(1))
+        .order_by_asc(messages::Column::CreatedAt)
+        .all(db)
+        .await?;
+
+    // 3. Format messages into structured text
+    let mut text_parts: Vec<String> = Vec::new();
+    text_parts.push(format!("# {}\n", conv_title));
+
+    for msg in &all_msgs {
+        let role_label = match msg.role.as_str() {
+            "user" => "User",
+            "assistant" => "Assistant",
+            "system" => continue, // skip system messages
+            _ => continue,
+        };
+        // Truncate very long messages to keep document size manageable
+        let content = if msg.content.len() > 8000 {
+            format!("{}...(truncated)", &msg.content[..8000])
+        } else {
+            msg.content.clone()
+        };
+        text_parts.push(format!("## {}\n\n{}", role_label, content));
+    }
+
+    let document_content = text_parts.join("\n\n");
+    let content_bytes = document_content.len() as i64;
+
+    // 4. Create knowledge document record
+    let doc_id = gen_id();
+    let now = now_ts();
+
+    let doc_am = knowledge_documents::ActiveModel {
+        id: Set(doc_id.clone()),
+        knowledge_base_id: Set(knowledge_base_id.to_string()),
+        title: Set(format!("[Archive] {}", conv_title)),
+        source_path: Set(format!("conversation://{}", conversation_id)),
+        mime_type: Set("text/markdown".to_string()),
+        size_bytes: Set(content_bytes),
+        indexing_status: Set("pending".to_string()),
+        doc_type: Set("conversation".to_string()),
+        index_error: Set(None),
+        source_conversation_id: Set(Some(conversation_id.to_string())),
+    };
+    doc_am.insert(db).await?;
+
+    // 5. Mark conversation as archived
+    let new_archived = if conv.is_archived != 0 { 1 } else { 1 }; // ensure archived
+    let mut am: conversations::ActiveModel = conv.into();
+    am.is_archived = Set(new_archived);
+    am.updated_at = Set(now);
+    am.update(db).await?;
+
+    let updated_conv = get_conversation(db, conversation_id).await?;
+
+    // 6. Read back the document
+    let doc_model = knowledge_documents::Entity::find_by_id(&doc_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("KnowledgeDocument {}", doc_id)))?;
+
+    let doc = KnowledgeDocument {
+        id: doc_model.id,
+        knowledge_base_id: doc_model.knowledge_base_id,
+        title: doc_model.title,
+        source_path: doc_model.source_path,
+        mime_type: doc_model.mime_type,
+        size_bytes: doc_model.size_bytes,
+        indexing_status: doc_model.indexing_status,
+        doc_type: doc_model.doc_type,
+        index_error: doc_model.index_error,
+        source_conversation_id: doc_model.source_conversation_id,
+    };
+
+    Ok((updated_conv, doc))
+}
+
+/// Get the extracted text content for a conversation-archive document.
+/// Used by the indexing pipeline to obtain the text for embedding.
+pub async fn get_conversation_archive_text(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+) -> Result<String> {
+    let conv = conversations::Entity::find_by_id(conversation_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
+
+    let conv_title = conv.title.clone();
+
+    let all_msgs = messages::Entity::find()
+        .filter(messages::Column::ConversationId.eq(conversation_id))
+        .filter(messages::Column::IsActive.eq(1))
+        .order_by_asc(messages::Column::CreatedAt)
+        .all(db)
+        .await?;
+
+    let mut text_parts: Vec<String> = Vec::new();
+    text_parts.push(format!("# {}\n", conv_title));
+
+    for msg in &all_msgs {
+        let role_label = match msg.role.as_str() {
+            "user" => "User",
+            "assistant" => "Assistant",
+            "system" => continue,
+            _ => continue,
+        };
+        let content = if msg.content.len() > 8000 {
+            format!("{}...(truncated)", &msg.content[..8000])
+        } else {
+            msg.content.clone()
+        };
+        text_parts.push(format!("## {}\n\n{}", role_label, content));
+    }
+
+    Ok(text_parts.join("\n\n"))
 }
 
 pub async fn delete_conversation(db: &DatabaseConnection, id: &str) -> Result<()> {

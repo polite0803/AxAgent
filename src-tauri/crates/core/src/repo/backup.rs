@@ -16,7 +16,10 @@ fn model_to_manifest(m: backup_manifests::Model) -> BackupManifest {
         checksum: m.checksum,
         object_counts_json: m.object_counts_json,
         source_app_version: m.source_app_version,
-        file_path: m.file_path.as_ref().map(|p| crate::path_vars::decode_path(p)),
+        file_path: m
+            .file_path
+            .as_ref()
+            .map(|p| crate::path_vars::decode_path(p)),
         file_size: m.file_size,
     }
 }
@@ -78,7 +81,9 @@ pub async fn create_backup(
         checksum: Set(checksum),
         object_counts_json: Set(object_counts),
         source_app_version: Set(env!("CARGO_PKG_VERSION").to_string()),
-        file_path: Set(Some(crate::path_vars::encode_path(&file_path.to_string_lossy()))),
+        file_path: Set(Some(crate::path_vars::encode_path(
+            &file_path.to_string_lossy(),
+        ))),
         file_size: Set(file_size),
         ..Default::default()
     };

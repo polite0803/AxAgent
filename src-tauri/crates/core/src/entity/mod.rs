@@ -31,13 +31,13 @@ pub mod backup_targets;
 pub mod context_sources;
 pub mod conversation_branches;
 pub mod import_jobs;
+pub mod knowledge_attributes;
 pub mod knowledge_bases;
 pub mod knowledge_documents;
 pub mod knowledge_entities;
-pub mod knowledge_attributes;
-pub mod knowledge_relations;
 pub mod knowledge_flows;
 pub mod knowledge_interfaces;
+pub mod knowledge_relations;
 pub mod memory_items;
 pub mod memory_namespaces;
 pub mod retrieval_hits;
@@ -48,12 +48,19 @@ pub mod scheduled_tasks;
 
 pub mod workflow_template;
 
+pub mod workflow_template_version;
+
+pub mod prompt_template;
+pub mod prompt_template_version;
+
 pub mod agent_sessions;
 
 // Wave 3: Atomic Skill & Work Engine entities
 pub mod atomic_skills;
-pub mod skill_references;
 pub mod generated_tools;
+pub mod skill_references;
 pub mod workflow_executions;
+pub mod workflow_marketplace;
+pub mod workflow_marketplace_review;
 
 pub use sea_orm;

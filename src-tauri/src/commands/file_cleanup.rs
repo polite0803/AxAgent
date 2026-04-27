@@ -21,10 +21,12 @@ pub async fn delete_attachment_reference(
         .await
         .map_err(|e| e.to_string())?;
 
-    let remaining_refs =
-        axagent_core::repo::stored_file::count_stored_files_with_storage_path(db, &file.storage_path)
-            .await
-            .map_err(|e| e.to_string())?;
+    let remaining_refs = axagent_core::repo::stored_file::count_stored_files_with_storage_path(
+        db,
+        &file.storage_path,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
     if remaining_refs == 0 {
         file_store.delete_file(&file.storage_path).map_err(|e| {
             format!(

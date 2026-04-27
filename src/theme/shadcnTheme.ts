@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import { theme } from 'antd';
-import type { ThemeConfig } from 'antd';
+import { theme } from "antd";
+import type { ThemeConfig } from "antd";
+import { useMemo } from "react";
 
 /**
  * shadcn/ui-inspired Ant Design theme.
@@ -47,19 +47,17 @@ export function useShadcnTheme(
           marginLG: 24,
 
           // Shadows — subtle, layered
-          boxShadow:
-            '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-          boxShadowSecondary:
-            '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
+          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
+          boxShadowSecondary: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)",
         },
         components: {
           Button: {
-            primaryShadow: 'none',
-            defaultShadow: 'none',
-            dangerShadow: 'none',
+            primaryShadow: "none",
+            defaultShadow: "none",
+            dangerShadow: "none",
           },
           Input: {
-            activeShadow: 'none',
+            activeShadow: "none",
           },
           Select: {
             optionSelectedFontWeight: 500,

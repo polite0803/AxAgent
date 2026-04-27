@@ -130,9 +130,7 @@ pub async fn list_gateway_links(db: &DatabaseConnection) -> Result<Vec<GatewayLi
 }
 
 pub async fn get_gateway_link(db: &DatabaseConnection, id: &str) -> Result<Option<GatewayLink>> {
-    let row = gateway_links::Entity::find_by_id(id)
-        .one(db)
-        .await?;
+    let row = gateway_links::Entity::find_by_id(id).one(db).await?;
     Ok(row.map(link_from_entity))
 }
 
@@ -152,8 +150,16 @@ pub async fn create_gateway_link(
         enabled: Set(1),
         status: Set("disconnected".to_string()),
         error_message: Set(None),
-        auto_sync_models: Set(if input.auto_sync_models.unwrap_or(false) { 1 } else { 0 }),
-        auto_sync_skills: Set(if input.auto_sync_skills.unwrap_or(false) { 1 } else { 0 }),
+        auto_sync_models: Set(if input.auto_sync_models.unwrap_or(false) {
+            1
+        } else {
+            0
+        }),
+        auto_sync_skills: Set(if input.auto_sync_skills.unwrap_or(false) {
+            1
+        } else {
+            0
+        }),
         last_sync_at: Set(None),
         latency_ms: Set(None),
         version: Set(None),
@@ -179,11 +185,7 @@ pub async fn delete_gateway_link(db: &DatabaseConnection, id: &str) -> Result<()
     Ok(())
 }
 
-pub async fn toggle_gateway_link(
-    db: &DatabaseConnection,
-    id: &str,
-    enabled: bool,
-) -> Result<()> {
+pub async fn toggle_gateway_link(db: &DatabaseConnection, id: &str, enabled: bool) -> Result<()> {
     let row = gateway_links::Entity::find_by_id(id)
         .one(db)
         .await?
@@ -327,7 +329,10 @@ pub async fn connect_gateway_link(
 }
 
 /// Disconnect from a remote gateway link: update status to disconnected.
-pub async fn disconnect_gateway_link(db: &DatabaseConnection, link_id: &str) -> Result<GatewayLink> {
+pub async fn disconnect_gateway_link(
+    db: &DatabaseConnection,
+    link_id: &str,
+) -> Result<GatewayLink> {
     let link = gateway_links::Entity::find_by_id(link_id)
         .one(db)
         .await?
@@ -441,7 +446,10 @@ pub async fn push_gateway_link_models(
         db,
         link_id,
         "push_models",
-        Some(&format!("Pushed {} models to gateway", models_to_push.len())),
+        Some(&format!(
+            "Pushed {} models to gateway",
+            models_to_push.len()
+        )),
     )
     .await?;
     Ok(())
@@ -498,7 +506,10 @@ pub async fn sync_all_gateway_link_models(
         db,
         link_id,
         "sync_models",
-        Some(&format!("Synced all {} models to gateway", all_models.len())),
+        Some(&format!(
+            "Synced all {} models to gateway",
+            all_models.len()
+        )),
     )
     .await?;
     Ok(())
@@ -614,7 +625,13 @@ pub async fn sync_all_gateway_link_skills(
     am.updated_at = Set(now);
     am.update(db).await?;
 
-    add_activity(db, link_id, "sync_skills", Some("All skills synced to gateway")).await?;
+    add_activity(
+        db,
+        link_id,
+        "sync_skills",
+        Some("All skills synced to gateway"),
+    )
+    .await?;
     Ok(())
 }
 
@@ -762,7 +779,11 @@ impl Default for GatewayLinkTimeouts {
     }
 }
 
-fn build_health_check_client(timeouts: &GatewayLinkTimeouts, endpoint: &str, api_key: Option<&str>) -> reqwest::Client {
+fn build_health_check_client(
+    timeouts: &GatewayLinkTimeouts,
+    endpoint: &str,
+    api_key: Option<&str>,
+) -> reqwest::Client {
     let mut builder = reqwest::Client::builder();
     builder = builder
         .timeout(timeouts.health_check)
@@ -783,7 +804,12 @@ pub async fn check_gateway_health(
 
     let link = match link {
         Some(l) => l,
-        None => return Err(HealthCheckError::Permanent(format!("GatewayLink {} not found", link_id))),
+        None => {
+            return Err(HealthCheckError::Permanent(format!(
+                "GatewayLink {} not found",
+                link_id
+            )))
+        }
     };
     let timeouts = GatewayLinkTimeouts::default();
     let client = build_health_check_client(&timeouts, &link.endpoint, api_key);

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import { ChatPage } from '../ChatPage';
+import { render } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ChatPage } from "../ChatPage";
 
 const fetchConversations = vi.fn();
 const fetchProviders = vi.fn();
@@ -15,47 +15,47 @@ const providerState = {
   fetchProviders,
 };
 
-vi.mock('antd', () => ({
+vi.mock("antd", () => ({
   theme: {
     useToken: () => ({
       token: {
-        colorBgContainer: '#111',
-        colorBgElevated: '#222',
+        colorBgContainer: "#111",
+        colorBgElevated: "#222",
       },
     }),
   },
 }));
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useConversationStore: (selector: (state: typeof conversationState) => unknown) => selector(conversationState),
   useProviderStore: (selector: (state: typeof providerState) => unknown) => selector(providerState),
 }));
 
-vi.mock('@/components/chat/ChatSidebar', () => ({
+vi.mock("@/components/chat/ChatSidebar", () => ({
   ChatSidebar: () => <div>sidebar</div>,
 }));
 
-vi.mock('@/components/chat/ChatView', () => ({
+vi.mock("@/components/chat/ChatView", () => ({
   ChatView: () => <div>chat-view</div>,
 }));
 
-describe('ChatPage', () => {
+describe("ChatPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     conversationState.conversations = [];
     providerState.providers = [];
   });
 
-  it('fetches conversations and providers only when the stores are empty', () => {
+  it("fetches conversations and providers only when the stores are empty", () => {
     render(<ChatPage />);
 
     expect(fetchConversations).toHaveBeenCalledTimes(1);
     expect(fetchProviders).toHaveBeenCalledTimes(1);
   });
 
-  it('skips refetching when conversations and providers are already loaded', () => {
-    conversationState.conversations = [{ id: 'conv-1' }];
-    providerState.providers = [{ id: 'provider-1' }];
+  it("skips refetching when conversations and providers are already loaded", () => {
+    conversationState.conversations = [{ id: "conv-1" }];
+    providerState.providers = [{ id: "provider-1" }];
 
     render(<ChatPage />);
 

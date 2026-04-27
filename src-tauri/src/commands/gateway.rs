@@ -421,9 +421,13 @@ pub async fn create_gateway_key(
     state: State<'_, AppState>,
     name: String,
 ) -> Result<CreateGatewayKeyResult, String> {
-    axagent_core::repo::gateway_key::create_gateway_key(&state.sea_db, &name, Some(&state.master_key))
-        .await
-        .map_err(|e| e.to_string())
+    axagent_core::repo::gateway_key::create_gateway_key(
+        &state.sea_db,
+        &name,
+        Some(&state.master_key),
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -445,10 +449,7 @@ pub async fn toggle_gateway_key(
 }
 
 #[tauri::command]
-pub async fn decrypt_gateway_key(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<String, String> {
+pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Result<String, String> {
     axagent_core::repo::gateway_key::get_plain_key(&state.sea_db, &state.master_key, &id)
         .await
         .map_err(|e| e.to_string())

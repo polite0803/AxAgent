@@ -1,2 +1,2 @@
-export { TemplateList } from './TemplateList';
-export { ImportExportModal } from './ImportExportModal';
+export { ImportExportModal } from "./ImportExportModal";
+export { TemplateList } from "./TemplateList";

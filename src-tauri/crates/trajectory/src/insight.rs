@@ -198,7 +198,11 @@ impl LearningInsightSystem {
         let recommendations = self.generate_recommendations(&insights);
 
         let report = InsightReport {
-            id: format!("report_{}_{}", session_id, chrono::Utc::now().timestamp_millis()),
+            id: format!(
+                "report_{}_{}",
+                session_id,
+                chrono::Utc::now().timestamp_millis()
+            ),
             report_type: ReportType::Session,
             timestamp: chrono::Utc::now().timestamp_millis(),
             summary,
@@ -365,10 +369,7 @@ impl LearningInsightSystem {
                 id: format!("rec_{}", chrono::Utc::now().timestamp_millis()),
                 recommendation_type: RecommendationType::Strategy,
                 title: "解决警告问题".to_string(),
-                description: format!(
-                    "检测到{}个需要关注的问题，建议优先处理",
-                    warning_count
-                ),
+                description: format!("检测到{}个需要关注的问题，建议优先处理", warning_count),
                 priority: Priority::High,
                 expected_impact: "提高整体系统稳定性".to_string(),
                 effort: Effort::Medium,
@@ -443,7 +444,8 @@ impl LearningInsightSystem {
             .cloned()
             .collect();
 
-        let mut report = self.generate_session_report("weekly", recent_insights.len(), recent_insights);
+        let mut report =
+            self.generate_session_report("weekly", recent_insights.len(), recent_insights);
         report.report_type = ReportType::Weekly;
         report
     }

@@ -1,14 +1,9 @@
-import { useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useConversationStore, useSettingsStore, useTabStore } from '@/stores';
-import {
-  SHORTCUT_ACTIONS,
-  getShortcutBinding,
-  matchesShortcutEvent,
-  type ShortcutAction,
-} from '@/lib/shortcuts';
-import { executeShortcutAction } from '@/lib/shortcutActions';
+import { executeShortcutAction } from "@/lib/shortcutActions";
+import { getShortcutBinding, matchesShortcutEvent, SHORTCUT_ACTIONS, type ShortcutAction } from "@/lib/shortcuts";
+import { useConversationStore, useSettingsStore, useTabStore } from "@/stores";
+import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 export function useKeyboardShortcuts() {
   const { t: _t } = useTranslation();
@@ -19,12 +14,12 @@ export function useKeyboardShortcuts() {
     async (e: KeyboardEvent) => {
       // ── Tab navigation shortcuts (Ctrl+Tab / Ctrl+Shift+Tab) ──
       const isMod = e.metaKey || e.ctrlKey;
-      if (isMod && e.key === 'Tab') {
+      if (isMod && e.key === "Tab") {
         e.preventDefault();
         const { tabs, activeTabId, setActiveTab } = useTabStore.getState();
-        if (tabs.length <= 1) return;
+        if (tabs.length <= 1) { return; }
         const currentIdx = tabs.findIndex((t) => t.id === activeTabId);
-        if (currentIdx === -1) return;
+        if (currentIdx === -1) { return; }
         const direction = e.shiftKey ? -1 : 1;
         const nextIdx = (currentIdx + direction + tabs.length) % tabs.length;
         setActiveTab(tabs[nextIdx].id);
@@ -33,10 +28,10 @@ export function useKeyboardShortcuts() {
 
       for (const action of SHORTCUT_ACTIONS) {
         const binding = getShortcutBinding(settings, action);
-        if (!binding) continue;
-        if (!matchesShortcutEvent(e, binding)) continue;
+        if (!binding) { continue; }
+        if (!matchesShortcutEvent(e, binding)) { continue; }
 
-        console.info('[shortcut-local-hit]', {
+        console.info("[shortcut-local-hit]", {
           action,
           binding,
           key: e.key,
@@ -50,18 +45,18 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      if (!isMod) return;
+      if (!isMod) { return; }
 
       switch (e.key.toLowerCase()) {
-        case 'f':
+        case "f":
           e.preventDefault();
-          navigate('/');
+          navigate("/");
           setTimeout(() => {
-            const searchInput = document.querySelector<HTMLInputElement>('.chat-sidebar-search input');
+            const searchInput = document.querySelector<HTMLInputElement>(".chat-sidebar-search input");
             searchInput?.focus();
           }, 50);
           return;
-        case 'w':
+        case "w":
           e.preventDefault();
           // Close the active tab instead of just clearing the conversation
           {
@@ -75,27 +70,27 @@ export function useKeyboardShortcuts() {
           return;
         default:
           return;
-        }
+      }
     },
     [navigate, settings],
   );
 
   const handleKeyDownEsc = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      if (window.location.pathname === '/settings' || window.location.pathname.startsWith('/settings/')) {
-        navigate('/');
+    if (e.key === "Escape") {
+      if (window.location.pathname === "/settings" || window.location.pathname.startsWith("/settings/")) {
+        navigate("/");
         return;
       }
-      window.dispatchEvent(new CustomEvent('axagent:escape'));
+      window.dispatchEvent(new CustomEvent("axagent:escape"));
     }
   }, [navigate]);
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keydown', handleKeyDownEsc);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDownEsc);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keydown', handleKeyDownEsc);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDownEsc);
     };
   }, [handleKeyDown, handleKeyDownEsc]);
 }

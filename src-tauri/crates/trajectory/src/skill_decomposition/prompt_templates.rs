@@ -63,7 +63,7 @@ const TOOL_ENTRY_TYPES: &str = r#"工具入口类型 (entry_type):
 impl PromptTemplates {
     pub fn turn1_understand() -> LlmPromptTemplate {
         LlmPromptTemplate {
-            system: format!(r#"你是一个技能分解专家，负责将复合技能包拆分为原子技能和工作流。
+            system: r#"你是一个技能分解专家，负责将复合技能包拆分为原子技能和工作流。
 
 输入格式：
 用户将提供一个复合技能包，包含多个文件（Markdown、Python、JavaScript、TypeScript、Shell等）
@@ -76,7 +76,8 @@ impl PromptTemplates {
 重要规则：
 1. 不要自行生成内容，只分析和确认
 2. 如果文件结构不清晰，说明需要用户澄清
-3. 返回结构化的文件结构分析"#),
+3. 返回结构化的文件结构分析"#
+                .to_string(),
             user_template: r#"请分析以下文件列表，理解复合技能的结构：
 
 文件列表：
@@ -91,7 +92,8 @@ impl PromptTemplates {
 3. 文件间的依赖关系是什么？
 4. 技能的总体功能是什么？
 
-用中文回复。"#.to_string(),
+用中文回复。"#
+                .to_string(),
             expected_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -126,7 +128,7 @@ impl PromptTemplates {
 
     pub fn turn2_classify() -> LlmPromptTemplate {
         LlmPromptTemplate {
-            system: format!(r#"你是一个代码分析专家，负责分析复合技能中的代码内容。
+            system: r#"你是一个代码分析专家，负责分析复合技能中的代码内容。
 
 分类维度：
 - metadata: 元信息（名称、描述、版本）
@@ -141,7 +143,8 @@ impl PromptTemplates {
 2. 导入的模块/依赖
 3. 核心功能逻辑
 
-用中文回复。"#),
+用中文回复。"#
+                .to_string(),
             user_template: r#"分析以下文件的内容类型：
 
 已确认的文件结构：
@@ -155,7 +158,8 @@ impl PromptTemplates {
 2. 如果是代码文件，列出所有函数
 3. 说明每个函数的功能
 
-用中文回复。"#.to_string(),
+用中文回复。"#
+                .to_string(),
             expected_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -214,7 +218,7 @@ impl PromptTemplates {
 
     pub fn turn3_analyze() -> LlmPromptTemplate {
         LlmPromptTemplate {
-            system: format!(r#"你是一个功能分析专家，负责分析每个函数的功能边界和依赖关系。
+            system: r#"你是一个功能分析专家，负责分析每个函数的功能边界和依赖关系。
 
 功能类型分类：
 - validator: 数据/参数验证
@@ -232,7 +236,8 @@ impl PromptTemplates {
 3. 判断是否可以独立成原子技能
 4. 识别函数间的依赖关系
 
-用中文回复。"#),
+用中文回复。"#
+                .to_string(),
             user_template: r#"分析以下代码的功能：
 
 语言：{{language}}
@@ -252,7 +257,8 @@ impl PromptTemplates {
 5. 是否可独立成原子技能
 6. 如果可以，建议的技能名称
 
-用中文回复。"#.to_string(),
+用中文回复。"#
+                .to_string(),
             expected_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -317,7 +323,8 @@ impl PromptTemplates {
 
     pub fn turn4_design() -> LlmPromptTemplate {
         LlmPromptTemplate {
-            system: format!(r#"你是一个工作流设计专家，基于功能分析设计工作流。
+            system: format!(
+                r#"你是一个工作流设计专家，基于功能分析设计工作流。
 
 工作流设计原则：
 1. 工作流必须是有向无环图（DAG）
@@ -338,7 +345,8 @@ impl PromptTemplates {
 4. 识别需要条件判断的地方
 5. 定义节点间的数据映射
 
-用中文回复。"#),
+用中文回复。"#
+            ),
             user_template: r#"基于以下分析结果设计工作流：
 
 已分析的函数及其依赖关系：
@@ -356,7 +364,8 @@ impl PromptTemplates {
 3. 确定节点间的连接和数据映射
 4. 识别需要条件判断或并行处理的地方
 
-用中文回复。"#.to_string(),
+用中文回复。"#
+                .to_string(),
             expected_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -432,7 +441,8 @@ impl PromptTemplates {
 
     pub fn turn5_generate() -> LlmPromptTemplate {
         LlmPromptTemplate {
-            system: format!(r#"你是一个技能生成专家，生成最终的分解结果。
+            system: format!(
+                r#"你是一个技能生成专家，生成最终的分解结果。
 
 输出必须严格遵循以下格式：
 
@@ -460,7 +470,8 @@ impl PromptTemplates {
   "atomic_skills": [/* AtomicSkill数组 */],
   "tool_dependencies": [/* 工具依赖数组 */],
   "workflow": {{ /* 工作流定义 */ }}
-}}"#),
+}}"#
+            ),
             user_template: r#"基于以下分析结果，生成最终 JSON 输出：
 
 工作流设计：
@@ -477,7 +488,8 @@ impl PromptTemplates {
 注意：
 - 每个 atomic_skill 必须有唯一的 name
 - metadata 必须说明来源文件、函数名、行号
-- workflow.nodes 中的 atomicSkill 节点必须通过 skill_ref 或 config.skill_name 引用对应的原子技能"#.to_string(),
+- workflow.nodes 中的 atomicSkill 节点必须通过 skill_ref 或 config.skill_name 引用对应的原子技能"#
+                .to_string(),
             expected_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -676,7 +688,11 @@ impl PromptTemplates {
             .replace("{{code_content}}", code_content)
     }
 
-    pub fn format_turn4_user_content(function_analysis: &str, dependency_graph: &str, data_flows: &str) -> String {
+    pub fn format_turn4_user_content(
+        function_analysis: &str,
+        dependency_graph: &str,
+        data_flows: &str,
+    ) -> String {
         Self::turn4_design()
             .user_template
             .replace("{{function_analysis}}", function_analysis)

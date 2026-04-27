@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { GeneratedToolInfo } from '@/types';
+import { invoke } from "@/lib/invoke";
+import type { GeneratedToolInfo } from "@/types";
+import { create } from "zustand";
 
 interface GeneratedToolState {
   tools: GeneratedToolInfo[];
@@ -19,7 +19,7 @@ export const useGeneratedToolStore = create<GeneratedToolState>((set) => ({
   loadTools: async () => {
     set({ loading: true });
     try {
-      const tools = await invoke<GeneratedToolInfo[]>('list_generated_tools');
+      const tools = await invoke<GeneratedToolInfo[]>("list_generated_tools");
       set({ tools, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -28,7 +28,7 @@ export const useGeneratedToolStore = create<GeneratedToolState>((set) => ({
 
   deleteTool: async (id: string) => {
     try {
-      await invoke<boolean>('delete_generated_tool', { id });
+      await invoke<boolean>("delete_generated_tool", { id });
       set((s) => ({
         tools: s.tools.filter((t) => t.id !== id),
         error: null,

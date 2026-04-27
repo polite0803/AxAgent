@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
-import { Tag } from 'antd';
+import { Tag } from "antd";
+import React, { memo } from "react";
+import { Handle, type NodeProps, Position } from "reactflow";
 
 interface LoopNodeData {
   id: string;
@@ -10,7 +10,7 @@ interface LoopNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  loopType?: 'forEach' | 'while' | 'doWhile' | 'until';
+  loopType?: "forEach" | "while" | "doWhile" | "until";
   maxIterations?: number;
   continueOnError?: boolean;
   bodySteps?: string[];
@@ -18,27 +18,32 @@ interface LoopNodeData {
 }
 
 const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }) => {
-  const color = '#fa8c16';
-  const loopType = data.loopType || 'forEach';
+  const color = "#fa8c16";
+  const loopType = data.loopType || "forEach";
   const maxIterations = data.maxIterations || 100;
   const bodySteps = data.bodySteps || [];
 
   const getLoopTypeIcon = (type: string): string => {
     switch (type) {
-      case 'forEach': return '🔁';
-      case 'while': return '⏳';
-      case 'doWhile': return '↻';
-      case 'until': return '🔚';
-      default: return '🔁';
+      case "forEach":
+        return "🔁";
+      case "while":
+        return "⏳";
+      case "doWhile":
+        return "↻";
+      case "until":
+        return "🔚";
+      default:
+        return "🔁";
     }
   };
 
   const getLoopTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      forEach: '遍历',
-      while: '当...时',
-      doWhile: '执行...直到',
-      until: '直到...',
+      forEach: "遍历",
+      while: "当...时",
+      doWhile: "执行...直到",
+      until: "直到...",
     };
     return labels[type] || type;
   };
@@ -49,25 +54,25 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
         minWidth: 200,
         maxWidth: 240,
         opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? 'none' : 'grayscale(100%)',
+        filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: '#1e1e1e',
-          border: `2px solid ${selected ? '#1890ff' : color}`,
+          background: "#1e1e1e",
+          border: `2px solid ${selected ? "#1890ff" : color}`,
           borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: selected ? `0 0 0 2px ${color}40` : 'none',
-          transition: 'all 0.2s',
+          overflow: "hidden",
+          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
+          transition: "all 0.2s",
         }}
       >
         <div
           style={{
-            padding: '8px 12px',
+            padding: "8px 12px",
             borderBottom: `1px solid ${color}30`,
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 8,
             background: `${color}15`,
           }}
@@ -84,16 +89,16 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
           </span>
         </div>
 
-        <div style={{ padding: '10px 12px' }}>
+        <div style={{ padding: "10px 12px" }}>
           <div
             style={{
               fontSize: 13,
-              color: '#fff',
+              color: "#fff",
               fontWeight: 500,
               marginBottom: 6,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {data.title}
@@ -103,29 +108,29 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
             <div
               style={{
                 fontSize: 10,
-                color: '#888',
+                color: "#888",
                 marginBottom: 6,
-                padding: '4px 6px',
-                background: '#252525',
+                padding: "4px 6px",
+                background: "#252525",
                 borderRadius: 4,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
               📋 {data.itemsVar}
             </div>
           )}
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             <Tag
               style={{
                 margin: 0,
                 fontSize: 9,
-                padding: '0 4px',
-                background: '#252525',
-                border: '1px solid #444',
-                color: '#aaa',
+                padding: "0 4px",
+                background: "#252525",
+                border: "1px solid #444",
+                color: "#aaa",
               }}
             >
               最多 {maxIterations} 次
@@ -136,10 +141,10 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
                 style={{
                   margin: 0,
                   fontSize: 9,
-                  padding: '0 4px',
-                  background: '#fa8c1620',
-                  border: '1px solid #fa8c1650',
-                  color: '#fa8c16',
+                  padding: "0 4px",
+                  background: "#fa8c1620",
+                  border: "1px solid #fa8c1650",
+                  color: "#fa8c16",
                 }}
               >
                 容错
@@ -151,10 +156,10 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
                 style={{
                   margin: 0,
                   fontSize: 9,
-                  padding: '0 4px',
-                  background: '#1890ff20',
-                  border: '1px solid #1890ff50',
-                  color: '#1890ff',
+                  padding: "0 4px",
+                  background: "#1890ff20",
+                  border: "1px solid #1890ff50",
+                  color: "#1890ff",
                 }}
               >
                 📝 {bodySteps.length} 步
@@ -169,7 +174,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
         position={Position.Top}
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
@@ -181,7 +186,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
         id="loop-end"
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
@@ -192,24 +197,24 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
         position={Position.Right}
         id="loop-body"
         style={{
-          background: '#52c41a',
-          border: 'none',
+          background: "#52c41a",
+          border: "none",
           width: 6,
           height: 6,
-          top: '50%',
+          top: "50%",
         }}
       />
 
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           left: -10,
-          top: '50%',
-          transform: 'translateY(-50%)',
+          top: "50%",
+          transform: "translateY(-50%)",
           width: 0,
           height: 0,
-          borderTop: '6px solid transparent',
-          borderBottom: '6px solid transparent',
+          borderTop: "6px solid transparent",
+          borderBottom: "6px solid transparent",
           borderRight: `8px solid ${color}`,
         }}
       />

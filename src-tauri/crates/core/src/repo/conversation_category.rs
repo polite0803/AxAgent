@@ -1,5 +1,5 @@
-use sea_orm::*;
 use sea_orm::prelude::Expr;
+use sea_orm::*;
 
 use crate::entity::conversation_categories;
 use crate::error::{AxAgentError, Result};
@@ -155,10 +155,7 @@ pub async fn reorder_conversation_categories(
                 conversation_categories::Column::SortOrder,
                 Expr::value(i as i32),
             )
-            .col_expr(
-                conversation_categories::Column::UpdatedAt,
-                Expr::value(now),
-            )
+            .col_expr(conversation_categories::Column::UpdatedAt, Expr::value(now))
             .filter(conversation_categories::Column::Id.eq(id))
             .exec(db)
             .await?;

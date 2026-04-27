@@ -1,8 +1,8 @@
-import { create } from 'zustand';
-import { invoke } from '../../lib/invoke';
-import type { DecompositionPreview } from '../../types';
+import { create } from "zustand";
+import { invoke } from "../../lib/invoke";
+import type { DecompositionPreview } from "../../types";
 
-type ToolAction = 'auto_install' | 'manual_install' | 'generate' | 'skip';
+type ToolAction = "auto_install" | "manual_install" | "generate" | "skip";
 
 interface DecompositionRequest {
   name: string;
@@ -27,7 +27,10 @@ interface DecompositionState {
     inputSchema: Record<string, unknown>,
     outputSchema: Record<string, unknown>,
   ) => Promise<boolean>;
-  confirmDecomposition: (workflowName: string, workflowDescription?: string) => Promise<{ workflow_id: string; saved_skills: number }>;
+  confirmDecomposition: (
+    workflowName: string,
+    workflowDescription?: string,
+  ) => Promise<{ workflow_id: string; saved_skills: number }>;
   reset: () => void;
 }
 
@@ -40,7 +43,7 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
   previewDecomposition: async (request) => {
     set({ loading: true });
     try {
-      const preview = await invoke<DecompositionPreview & { cache_id: string }>('preview_decomposition', { request });
+      const preview = await invoke<DecompositionPreview & { cache_id: string }>("preview_decomposition", { request });
       set({ preview, originalRequest: request });
     } finally {
       set({ loading: false });
@@ -60,7 +63,7 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
     outputSchema: Record<string, unknown>,
   ) => {
     try {
-      const result = await invoke<{ tool_name: string; success: boolean }>('generate_missing_tool', {
+      const result = await invoke<{ tool_name: string; success: boolean }>("generate_missing_tool", {
         name,
         description,
         input_schema: inputSchema,
@@ -74,10 +77,10 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
 
   confirmDecomposition: async (workflowName: string, workflowDescription?: string) => {
     const { preview, originalRequest } = get();
-    if (!preview) throw new Error('No preview available');
-    if (!originalRequest) throw new Error('No original request available');
+    if (!preview) { throw new Error("No preview available"); }
+    if (!originalRequest) { throw new Error("No original request available"); }
 
-    const result = await invoke<{ workflow_id: string; saved_skills: number }>('confirm_decomposition', {
+    const result = await invoke<{ workflow_id: string; saved_skills: number }>("confirm_decomposition", {
       request: {
         preview: {
           name: originalRequest.name,

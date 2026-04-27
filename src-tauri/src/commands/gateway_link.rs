@@ -9,10 +9,13 @@ async fn resolve_link_api_key(
     link: &GatewayLink,
 ) -> Result<Option<String>, String> {
     if let Some(ref key_id) = link.api_key_id {
-        let plain_key =
-            axagent_core::repo::gateway_key::get_plain_key(&state.sea_db, &state.master_key, key_id)
-                .await
-                .map_err(|e| e.to_string())?;
+        let plain_key = axagent_core::repo::gateway_key::get_plain_key(
+            &state.sea_db,
+            &state.master_key,
+            key_id,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
         Ok(Some(plain_key))
     } else {
         Ok(None)
@@ -61,10 +64,7 @@ pub async fn create_gateway_link(
 }
 
 #[tauri::command]
-pub async fn delete_gateway_link(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn delete_gateway_link(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_core::repo::gateway_link::delete_gateway_link(&state.sea_db, &id)
         .await
         .map_err(|e| e.to_string())
@@ -93,13 +93,9 @@ pub async fn connect_gateway_link(
 
     let api_key = resolve_link_api_key(&state, &link).await?;
 
-    axagent_core::repo::gateway_link::connect_gateway_link(
-        &state.sea_db,
-        &id,
-        api_key.as_deref(),
-    )
-    .await
-    .map_err(|e| e.to_string())
+    axagent_core::repo::gateway_link::connect_gateway_link(&state.sea_db, &id, api_key.as_deref())
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

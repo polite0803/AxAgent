@@ -22,6 +22,11 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
             extract_xlsx(file_path)
         }
 
+        // PPTX — extract text from PowerPoint presentations
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation" => {
+            extract_pptx(file_path)
+        }
+
         _ => {
             // Try reading as plain text as fallback
             std::fs::read_to_string(file_path).map_err(|e| {
@@ -106,6 +111,7 @@ pub fn mime_from_extension(path: &Path) -> &'static str {
         "pdf" => "application/pdf",
         "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         _ => "text/plain",
     }
 }
@@ -125,9 +131,9 @@ fn extract_xlsx(file_path: &Path) -> Result<String> {
     let mut shared_strings: Vec<String> = Vec::new();
     if let Ok(mut entry) = archive.by_name("xl/sharedStrings.xml") {
         let mut xml = String::new();
-        entry
-            .read_to_string(&mut xml)
-            .map_err(|e| AxAgentError::Provider(format!("Failed to read sharedStrings.xml: {e}")))?;
+        entry.read_to_string(&mut xml).map_err(|e| {
+            AxAgentError::Provider(format!("Failed to read sharedStrings.xml: {e}"))
+        })?;
         // Extract each <t> tag content as a shared string entry
         for segment in xml.split("<t") {
             if let Some(text_start) = segment.find('>') {
@@ -147,9 +153,9 @@ fn extract_xlsx(file_path: &Path) -> Result<String> {
         let mut xml = String::new();
         match archive.by_name(&sheet_path) {
             Ok(mut entry) => {
-                entry
-                    .read_to_string(&mut xml)
-                    .map_err(|e| AxAgentError::Provider(format!("Failed to read {}: {e}", sheet_path)))?;
+                entry.read_to_string(&mut xml).map_err(|e| {
+                    AxAgentError::Provider(format!("Failed to read {}: {e}", sheet_path))
+                })?;
             }
             Err(_) => break, // No more sheets
         }
@@ -225,4 +231,85 @@ fn extract_xlsx(file_path: &Path) -> Result<String> {
     }
 
     Ok(result)
+}
+
+/// Extract text from PPTX (PowerPoint) by reading slide XML files.
+/// PPTX files are ZIP archives containing ppt/slides/slideN.xml for each slide.
+fn extract_pptx(file_path: &Path) -> Result<String> {
+    let file = std::fs::File::open(file_path)
+        .map_err(|e| AxAgentError::Provider(format!("Failed to open PPTX file: {e}")))?;
+
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| AxAgentError::Provider(format!("Failed to read PPTX as ZIP: {e}")))?;
+
+    let mut result = String::new();
+    let mut slide_index = 1;
+
+    loop {
+        let slide_path = format!("ppt/slides/slide{}.xml", slide_index);
+        let mut xml_content = String::new();
+
+        match archive.by_name(&slide_path) {
+            Ok(mut entry) => {
+                use std::io::Read;
+                entry.read_to_string(&mut xml_content).map_err(|e| {
+                    AxAgentError::Provider(format!("Failed to read {}: {e}", slide_path))
+                })?;
+
+                if !result.is_empty() {
+                    result.push_str("\n\n");
+                }
+                result.push_str(&format!("=== Slide {} ===\n", slide_index));
+
+                let slide_text = extract_text_from_pptx_xml(&xml_content);
+                if !slide_text.is_empty() {
+                    result.push_str(&slide_text);
+                }
+            }
+            Err(_) => break,
+        }
+
+        slide_index += 1;
+    }
+
+    if result.is_empty() {
+        return Err(AxAgentError::Provider(
+            "No slides found in PPTX file".into(),
+        ));
+    }
+
+    Ok(result)
+}
+
+fn extract_text_from_pptx_xml(xml: &str) -> String {
+    let mut result = String::new();
+    let mut current_shape_text = String::new();
+
+    for part in xml.split("<p:sp") {
+        if !current_shape_text.is_empty() && !result.is_empty() {
+            result.push('\n');
+        }
+        current_shape_text.clear();
+
+        for segment in part.split("<a:t") {
+            if let Some(text_start) = segment.find('>') {
+                let after_tag = &segment[text_start + 1..];
+                if let Some(end) = after_tag.find("</a:t>") {
+                    let text = &after_tag[..end];
+                    if !text.is_empty() {
+                        current_shape_text.push_str(text);
+                    }
+                }
+            }
+        }
+
+        if !current_shape_text.trim().is_empty() {
+            if !result.is_empty() && !result.ends_with('\n') {
+                result.push_str(" ");
+            }
+            result.push_str(&current_shape_text.trim());
+        }
+    }
+
+    result
 }

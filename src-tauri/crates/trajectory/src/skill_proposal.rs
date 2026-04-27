@@ -43,12 +43,17 @@ impl SkillProposalService {
 
         let topic_key = trajectory.topic.to_lowercase();
 
-        let count = self.topic_trajectory_count.entry(topic_key.clone()).or_insert(0);
+        let count = self
+            .topic_trajectory_count
+            .entry(topic_key.clone())
+            .or_insert(0);
         *count += 1;
 
         let should_propose = match trajectory.outcome {
             TrajectoryOutcome::Success => *count >= MIN_SUCCESSFUL_TRAJECTORIES,
-            TrajectoryOutcome::Failure | TrajectoryOutcome::Abandoned => *count >= 1 && step_count >= 5,
+            TrajectoryOutcome::Failure | TrajectoryOutcome::Abandoned => {
+                *count >= 1 && step_count >= 5
+            }
             TrajectoryOutcome::Partial => *count >= MIN_SUCCESSFUL_TRAJECTORIES,
         };
 
@@ -116,10 +121,7 @@ impl SkillProposalService {
         content += &format!("slug: {}\n\n", slugify(&trajectory.topic));
 
         content += "## Overview\n";
-        content += &format!(
-            "This skill handles: {}. ",
-            trajectory.topic
-        );
+        content += &format!("This skill handles: {}. ", trajectory.topic);
         content += &format!(
             "Outcome: {:?}, Duration: {}ms\n\n",
             trajectory.outcome, trajectory.duration_ms

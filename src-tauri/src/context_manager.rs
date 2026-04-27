@@ -128,14 +128,22 @@ pub fn build_context(
                 + token_budget::NUDGES;
             let history_budget = ((ctx_window as usize).saturating_sub(fixed_overhead) as f64
                 * token_budget::HISTORY_RATIO) as usize;
-            let system_tokens: usize = out.iter().map(message_tokens).try_fold(0usize, |acc, t| acc.checked_add(t)).unwrap_or(usize::MAX);
+            let system_tokens: usize = out
+                .iter()
+                .map(message_tokens)
+                .try_fold(0usize, |acc, t| acc.checked_add(t))
+                .unwrap_or(usize::MAX);
             let available = history_budget.saturating_sub(system_tokens);
             let trimmed = sliding_window(history_messages, available);
             let trimmed_len = trimmed.len();
             out.extend(trimmed);
 
             // Log budget utilization for diagnostics
-            let total_used: usize = out.iter().map(message_tokens).try_fold(0usize, |acc, t| acc.checked_add(t)).unwrap_or(usize::MAX);
+            let total_used: usize = out
+                .iter()
+                .map(message_tokens)
+                .try_fold(0usize, |acc, t| acc.checked_add(t))
+                .unwrap_or(usize::MAX);
             tracing::debug!(
                 "Context built: {} system + {} history = {} total tokens (budget: {})",
                 system_tokens,

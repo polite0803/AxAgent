@@ -6,13 +6,19 @@
 //! - Working memory: short-term context for prompts
 //! - Closed-loop learning: nudges and proactive suggestions
 
-mod entity;
-mod service;
 mod closed_loop;
+mod entity;
+pub mod service;
 
-pub use entity::{Entity, EntityType, Relationship, RelationshipType, GraphQuery, NudgeCandidate};
-pub use service::{MemoryService, MemoryConfig, MemoryEntry, WorkingMemory, MemoryUsage, SearchResult, MemoryActionResult};
-pub use closed_loop::{AutoAction, ClosedLoopService, ClosedLoopConfig, PeriodicNudge, MemoryConsolidationTask, SkillCreationProposal, SkillUpgradeProposal};
+pub use closed_loop::{
+    AutoAction, ClosedLoopConfig, ClosedLoopService, MemoryConsolidationTask, PeriodicNudge,
+    SkillCreationProposal, SkillUpgradeProposal,
+};
+pub use entity::{Entity, EntityType, GraphQuery, NudgeCandidate, Relationship, RelationshipType};
+pub use service::{
+    MemoryActionResult, MemoryConfig, MemoryEntry, MemoryService, MemoryUsage, SearchResult,
+    WorkingMemory,
+};
 
 use crate::TrajectoryStorage;
 use std::sync::Arc;

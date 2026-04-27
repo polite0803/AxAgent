@@ -1,48 +1,103 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { SkillCreateModal } from '@/components/chat/SkillCreateEditModal';
-import { SkillProposalPanel } from '@/components/chat/SkillProposalPanel';
-import { AtomicSkillList } from '@/components/atomicSkill/AtomicSkillList';
-import { AtomicSkillEditor } from '@/components/atomicSkill/AtomicSkillEditor';
-import { DecompositionPreview } from '@/components/decomposition/DecompositionPreview';
+import appLogo from "@/assets/image/logo.png";
+import { AtomicSkillEditor } from "@/components/atomicSkill/AtomicSkillEditor";
+import { AtomicSkillList } from "@/components/atomicSkill/AtomicSkillList";
+import { SkillCreateModal } from "@/components/chat/SkillCreateEditModal";
+import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";
+import { CopyButton } from "@/components/common/CopyButton";
+import { DecompositionPreview } from "@/components/decomposition/DecompositionPreview";
+import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types";
+import { CHAT_ICON_COLORS } from "@/lib/iconColors";
+import { invoke } from "@/lib/invoke";
+import { useSkillStore, useUIStore, useWorkflowEditorStore } from "@/stores";
+import { useDecompositionStore } from "@/stores/feature/decompositionStore";
+import type { MarketplaceSkill, Skill } from "@/types";
+import { Claude } from "@lobehub/icons";
 import {
-  Button, Switch, Tag, Input, Modal, Tabs, Space, Spin, Empty,
-  Typography, message, Card, Popconfirm, theme, Dropdown, Collapse, Select,
-} from 'antd';
+  Button,
+  Card,
+  Collapse,
+  Dropdown,
+  Empty,
+  Input,
+  message,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Spin,
+  Switch,
+  Tabs,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
 import {
-  FolderOpen, RefreshCw, Download, Trash2, Sparkles, Store, Star, GitFork,
-  ChevronRight, Layers, Radio, Lightbulb, Workflow,
-} from 'lucide-react';
-import { Claude } from '@lobehub/icons';
-import appLogo from '@/assets/image/logo.png';
-import { useTranslation } from 'react-i18next';
-import { useSkillStore, useUIStore, useWorkflowEditorStore } from '@/stores';
-import { useDecompositionStore } from '@/stores/feature/decompositionStore';
-import type { Skill, MarketplaceSkill } from '@/types';
-import type { WorkflowNode, WorkflowEdge } from '@/components/workflow/types';
-import { CopyButton } from '@/components/common/CopyButton';
-import { CHAT_ICON_COLORS } from '@/lib/iconColors';
+  ChevronRight,
+  Download,
+  FolderOpen,
+  GitFork,
+  Layers,
+  Lightbulb,
+  Radio,
+  RefreshCw,
+  Sparkles,
+  Star,
+  Store,
+  Trash2,
+  Workflow,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const INSTALL_TARGETS = [
-  { key: 'axagent', label: '~/.axagent/skills/', desc: 'AxAgent', icon: <Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} /> },
-  { key: 'claude', label: '~/.claude/skills/', desc: 'Claude', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
-  { key: 'trae', label: '~/.trae/skills/', desc: 'Trae', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
-  { key: 'codebuddy', label: '~/.codebuddy/skills/', desc: 'CodeBuddy', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
-  { key: 'workbuddy', label: '~/.workbuddy/skills/', desc: 'WorkBuddy', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
-  { key: 'agents', label: '~/.agents/skills/', desc: 'Agents', icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} /> },
+  {
+    key: "axagent",
+    label: "~/.axagent/skills/",
+    desc: "AxAgent",
+    icon: <Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} />,
+  },
+  {
+    key: "claude",
+    label: "~/.claude/skills/",
+    desc: "Claude",
+    icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />,
+  },
+  {
+    key: "trae",
+    label: "~/.trae/skills/",
+    desc: "Trae",
+    icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />,
+  },
+  {
+    key: "codebuddy",
+    label: "~/.codebuddy/skills/",
+    desc: "CodeBuddy",
+    icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />,
+  },
+  {
+    key: "workbuddy",
+    label: "~/.workbuddy/skills/",
+    desc: "WorkBuddy",
+    icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />,
+  },
+  {
+    key: "agents",
+    label: "~/.agents/skills/",
+    desc: "Agents",
+    icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />,
+  },
 ] as const;
 
 const openExternalUrl = (url: string) => {
-  import('@tauri-apps/plugin-opener')
+  import("@tauri-apps/plugin-opener")
     .then(({ openUrl }) => openUrl(url))
-    .catch(() => window.open(url, '_blank'));
+    .catch(() => window.open(url, "_blank"));
 };
 
 const { Text, Paragraph } = Typography;
 
-
-
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
-  axagent: <img src={appLogo} alt="" style={{ width: 14, height: 14, verticalAlign: 'middle' }} />,
+  axagent: <img src={appLogo} alt="" style={{ width: 14, height: 14, verticalAlign: "middle" }} />,
   claude: <Claude.Color size={14} />,
   agents: <Radio size={14} color={CHAT_ICON_COLORS.Route} />,
 };
@@ -69,38 +124,39 @@ function SkillCard({
       size="small"
       className="skill-card-hover"
       style={{ marginBottom: 8 }}
-      styles={{ body: { padding: '12px 16px' } }}
+      styles={{ body: { padding: "12px 16px" } }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Text strong className="skill-card-title" style={{ cursor: 'pointer' }} onClick={() => onDetail(skill.name)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Text
+              strong
+              className="skill-card-title"
+              style={{ cursor: "pointer" }}
+              onClick={() => onDetail(skill.name)}
+            >
               {skill.name}
             </Text>
             <CopyButton text={skill.name} size={12} />
             <Tag>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                 {SOURCE_ICONS[skill.source]}
                 {t(`skills.source.${skill.source}`)}
               </span>
             </Tag>
-            {skill.version && (
-              <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>
-            )}
+            {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
           </div>
           <Paragraph
             type="secondary"
             ellipsis={{ rows: 2 }}
-            style={{ marginBottom: 0, fontSize: 13, cursor: 'pointer' }}
+            style={{ marginBottom: 0, fontSize: 13, cursor: "pointer" }}
             onClick={() => onDetail(skill.name)}
           >
             {skill.description}
           </Paragraph>
-          {skill.author && (
-            <Text type="secondary" style={{ fontSize: 12 }}>{skill.author}</Text>
-          )}
+          {skill.author && <Text type="secondary" style={{ fontSize: 12 }}>{skill.author}</Text>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Switch
             size="small"
             checked={skill.enabled}
@@ -112,12 +168,12 @@ function SkillCard({
             icon={<FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />}
             onClick={() => onOpenDir(skill.sourcePath)}
           />
-          {skill.source !== 'builtin' && (
+          {skill.source !== "builtin" && (
             <Popconfirm
-              title={t('skills.uninstallConfirm', { name: skill.name })}
+              title={t("skills.uninstallConfirm", { name: skill.name })}
               onConfirm={() => onUninstall(skill.name)}
-              okText={t('skills.uninstall')}
-              cancelText={t('common.cancel')}
+              okText={t("skills.uninstall")}
+              cancelText={t("common.cancel")}
             >
               <Button
                 type="text"
@@ -159,37 +215,46 @@ function MarketplaceCard({
       size="small"
       className="skill-card-hover"
       style={{ marginBottom: 8 }}
-      styles={{ body: { padding: '12px 16px' } }}
+      styles={{ body: { padding: "12px 16px" } }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Text strong className="skill-card-title" style={{ cursor: 'pointer' }} onClick={() => onDetail(skill.repo)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Text
+              strong
+              className="skill-card-title"
+              style={{ cursor: "pointer" }}
+              onClick={() => onDetail(skill.repo)}
+            >
               {skill.name}
             </Text>
             <CopyButton text={skill.name} size={12} />
-            {source === 'github' ? (
-              <Text type="secondary" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                <Star size={12} style={{ color: '#faad14' }} /> {skill.stars.toLocaleString()}
-              </Text>
-            ) : (
-              <Text type="secondary" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                <Download size={12} /> {skill.installs.toLocaleString()}
-              </Text>
-            )}
+            {source === "github"
+              ? (
+                <Text type="secondary" style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                  <Star size={12} style={{ color: "#faad14" }} /> {skill.stars.toLocaleString()}
+                </Text>
+              )
+              : (
+                <Text type="secondary" style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                  <Download size={12} /> {skill.installs.toLocaleString()}
+                </Text>
+              )}
           </div>
-          {skill.description ? (
-            <Text
-              type="secondary"
-              style={{ fontSize: 12, display: 'block', marginBottom: 2, cursor: 'pointer' }}
-              onClick={() => onDetail(skill.repo)}
-            >
-              {skill.description}
-            </Text>
-          ) : null}
+          {skill.description
+            ? (
+              <Text
+                type="secondary"
+                style={{ fontSize: 12, display: "block", marginBottom: 2, cursor: "pointer" }}
+                onClick={() => onDetail(skill.repo)}
+              >
+                {skill.description}
+              </Text>
+            )
+            : null}
           <Text type="secondary" style={{ fontSize: 12 }}>{skill.repo}</Text>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <Button
             size="small"
             type="text"
@@ -198,41 +263,45 @@ function MarketplaceCard({
           >
             GitHub
           </Button>
-          {skill.installed ? (
-            skill.hasUpdate ? (
-              <Button
-                size="small"
-                type="primary"
-                loading={installing === skill.repo}
-                icon={<RefreshCw size={14} />}
-                onClick={() => onInstall(skill.repo, 'axagent')}
-              >
-                {t('skills.update')}
-              </Button>
-            ) : (
-              <Button size="small" disabled>
-                {t('skills.installed')}
-              </Button>
+          {skill.installed
+            ? (
+              skill.hasUpdate
+                ? (
+                  <Button
+                    size="small"
+                    type="primary"
+                    loading={installing === skill.repo}
+                    icon={<RefreshCw size={14} />}
+                    onClick={() => onInstall(skill.repo, "axagent")}
+                  >
+                    {t("skills.update")}
+                  </Button>
+                )
+                : (
+                  <Button size="small" disabled>
+                    {t("skills.installed")}
+                  </Button>
+                )
             )
-          ) : (
-            <Space size={4}>
-              <Button
-                size="small"
-                icon={<Layers size={14} />}
-                onClick={() => onExtract(skill.repo)}
-              >
-                {t('skills.extractAtomicSkills')}
-              </Button>
-              <Button
-                size="small"
-                type="primary"
-                icon={<Workflow size={14} />}
-                onClick={() => onConvert(skill.repo)}
-              >
-                {t('skills.marketplace.convertToWorkflow')}
-              </Button>
-            </Space>
-          )}
+            : (
+              <Space size={4}>
+                <Button
+                  size="small"
+                  icon={<Layers size={14} />}
+                  onClick={() => onExtract(skill.repo)}
+                >
+                  {t("skills.extractAtomicSkills")}
+                </Button>
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<Workflow size={14} />}
+                  onClick={() => onConvert(skill.repo)}
+                >
+                  {t("skills.marketplace.convertToWorkflow")}
+                </Button>
+              </Space>
+            )}
         </div>
       </div>
     </Card>
@@ -244,36 +313,52 @@ export function SkillsPage() {
   const { token } = theme.useToken();
   const [messageApi, contextHolder] = message.useMessage();
   const {
-    skills, marketplaceSkills, loading, marketplaceLoading, marketplaceHasMore, selectedSkill,
-    loadSkills, getSkill, toggleSkill, installSkill, uninstallSkill,
+    skills,
+    marketplaceSkills,
+    loading,
+    marketplaceLoading,
+    marketplaceHasMore,
+    selectedSkill,
+    loadSkills,
+    getSkill,
+    toggleSkill,
+    installSkill,
+    uninstallSkill,
     uninstallSkillGroup,
-    openSkillDir, searchMarketplace, loadMoreMarketplace, clearSelectedSkill,
+    openSkillDir,
+    searchMarketplace,
+    loadMoreMarketplace,
+    clearSelectedSkill,
   } = useSkillStore();
 
-  const [installUrl, setInstallUrl] = useState('');
+  const [installUrl, setInstallUrl] = useState("");
   const [installing, setInstalling] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [marketplaceSource, setMarketplaceSource] = useState<'skillhub' | 'github'>('skillhub');
-  const [marketplaceQuery, setMarketplaceQuery] = useState('');
+  const [marketplaceSource, setMarketplaceSource] = useState<"skillhub" | "github">("skillhub");
+  const [marketplaceQuery, setMarketplaceQuery] = useState("");
   const marketplaceLoaded = useRef(false);
   const [marketplaceDetailOpen, setMarketplaceDetailOpen] = useState(false);
-  const [marketplaceDetailContent, setMarketplaceDetailContent] = useState<{ name: string; repo: string; content: string } | null>(null);
+  const [marketplaceDetailContent, setMarketplaceDetailContent] = useState<
+    { name: string; repo: string; content: string } | null
+  >(null);
   const [marketplaceDetailLoading, setMarketplaceDetailLoading] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'axagent' | 'claude' | 'agents'>('all');
-  const [sortOrder, setSortOrder] = useState<'popular' | 'latest' | 'stars'>('popular');
+  const [sourceFilter, setSourceFilter] = useState<"all" | "axagent" | "claude" | "agents">("all");
+  const [sortOrder, setSortOrder] = useState<"popular" | "latest" | "stars">("popular");
   const [decomposePreviewOpen, setDecomposePreviewOpen] = useState(false);
-  const [decomposeRequest, setDecomposeRequest] = useState<{
-    name: string;
-    description: string;
-    content: string;
-    source: string;
-    version?: string;
-    repo?: string;
-  } | null>(null);
+  const [decomposeRequest, setDecomposeRequest] = useState<
+    {
+      name: string;
+      description: string;
+      content: string;
+      source: string;
+      version?: string;
+      repo?: string;
+    } | null
+  >(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [atomicSkillEditVisible, setAtomicSkillEditVisible] = useState(false);
-  const [editingAtomicSkill, setEditingAtomicSkill] = useState<import('@/types').AtomicSkill | null>(null);
+  const [editingAtomicSkill, setEditingAtomicSkill] = useState<import("@/types").AtomicSkill | null>(null);
 
   const { previewDecomposition } = useDecompositionStore();
   const { setImportedWorkflowData } = useWorkflowEditorStore();
@@ -298,19 +383,19 @@ export function SkillsPage() {
   }, [sortOrder]);
 
   const handleTabChange = useCallback((key: string) => {
-    if (key === 'marketplace' && !marketplaceLoaded.current) {
+    if (key === "marketplace" && !marketplaceLoaded.current) {
       marketplaceLoaded.current = true;
-      searchMarketplace('', marketplaceSource, sortOrder);
+      searchMarketplace("", marketplaceSource, sortOrder);
     }
   }, [searchMarketplace, marketplaceSource, sortOrder]);
 
   const handleInstallFromUrl = useCallback(async (target: string) => {
-    if (!installUrl.trim()) return;
+    if (!installUrl.trim()) { return; }
     setInstalling(installUrl);
     try {
       const name = await installSkill(installUrl.trim(), target);
-      messageApi.success(t('skills.installSuccess', { name }));
-      setInstallUrl('');
+      messageApi.success(t("skills.installSuccess", { name }));
+      setInstallUrl("");
     } catch (e) {
       messageApi.error(String(e));
     } finally {
@@ -322,7 +407,7 @@ export function SkillsPage() {
     setInstalling(repo);
     try {
       const name = await installSkill(repo, target);
-      messageApi.success(t('skills.installSuccess', { name }));
+      messageApi.success(t("skills.installSuccess", { name }));
     } catch (e) {
       messageApi.error(String(e));
     } finally {
@@ -341,26 +426,30 @@ export function SkillsPage() {
 
   const handleMarketplaceDetail = useCallback(async (repo: string) => {
     const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill) return;
+    if (!skill) { return; }
     setMarketplaceDetailOpen(true);
     setMarketplaceDetailLoading(true);
-    setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: '' });
+    setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: "" });
     try {
-      const branches = ['main', 'master'];
-      let content = '';
-      for (const branch of branches) {
-        const res = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/SKILL.md`);
-        if (res.ok) {
-          content = await res.text();
-          if (content.trim()) break;
-        }
+      const result = await invoke<{ content: string; file_name: string; found: boolean; error: string | null }>(
+        "get_marketplace_skill_content",
+        { repo },
+      );
+      if (result.found && result.content.trim()) {
+        setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: result.content });
+      } else {
+        setMarketplaceDetailContent({
+          name: skill.name,
+          repo: skill.repo,
+          content: `(${result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found"})`,
+        });
       }
-      if (!content.trim()) {
-        content = `(${t('skills.marketplace.skillsMdNotFound') || 'SKILL.md not found in main or master branch'})`;
-      }
-      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content });
     } catch {
-      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: `(${t('skills.marketplace.skillsMdFetchFailed') || 'Failed to fetch SKILL.md'})` });
+      setMarketplaceDetailContent({
+        name: skill.name,
+        repo: skill.repo,
+        content: `(${t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content"})`,
+      });
     } finally {
       setMarketplaceDetailLoading(false);
     }
@@ -368,100 +457,82 @@ export function SkillsPage() {
 
   const handleMarketplaceExtract = useCallback(async (repo: string) => {
     const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill) return;
-    setMarketplaceDetailOpen(true);
-    setMarketplaceDetailLoading(true);
-    setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: '' });
+    if (!skill) { return; }
     try {
-      const branches = ['main', 'master'];
-      let content = '';
-      for (const branch of branches) {
-        const res = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/SKILL.md`);
-        if (res.ok) {
-          content = await res.text();
-          if (content.trim()) break;
-        }
+      const result = await invoke<{ content: string; file_name: string; found: boolean; error: string | null }>(
+        "get_marketplace_skill_content",
+        { repo },
+      );
+      if (!result.found || !result.content.trim()) {
+        messageApi.error(result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found");
+        return;
       }
-      if (!content.trim()) {
-        content = `(${t('skills.marketplace.skillsMdNotFound') || 'SKILL.md not found in main or master branch'})`;
-      }
-      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content });
-      if (!content.startsWith('(')) {
-        setDecomposeRequest({
-          name: skill.name,
-          description: skill.description,
-          content: content,
-          source: marketplaceSource,
-          repo: repo,
-          version: skill.currentVersion || skill.latestVersion,
-        });
-        setDecomposePreviewOpen(true);
-        setMarketplaceDetailOpen(false);
-      }
+      setDecomposeRequest({
+        name: skill.name,
+        description: skill.description,
+        content: result.content,
+        source: marketplaceSource,
+        repo: repo,
+        version: skill.currentVersion || skill.latestVersion,
+      });
+      setDecomposePreviewOpen(true);
     } catch {
-      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: `(${t('skills.marketplace.skillsMdFetchFailed') || 'Failed to fetch SKILL.md'})` });
-    } finally {
-      setMarketplaceDetailLoading(false);
+      messageApi.error(t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content");
     }
-  }, [marketplaceSkills, marketplaceSource, t]);
+  }, [marketplaceSkills, marketplaceSource, messageApi, t]);
 
   const handleMarketplaceConvert = useCallback(async (repo: string) => {
     const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill) return;
-    setMarketplaceDetailOpen(true);
-    setMarketplaceDetailLoading(true);
-    setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: '' });
+    if (!skill) { return; }
     try {
-      const branches = ['main', 'master'];
-      let content = '';
-      for (const branch of branches) {
-        const res = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/SKILL.md`);
-        if (res.ok) {
-          content = await res.text();
-          if (content.trim()) break;
-        }
+      const result = await invoke<{ content: string; file_name: string; found: boolean; error: string | null }>(
+        "get_marketplace_skill_content",
+        { repo },
+      );
+      if (!result.found || !result.content.trim()) {
+        messageApi.error(result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found");
+        return;
       }
-      if (!content.trim()) {
-        content = `(${t('skills.marketplace.skillsMdNotFound') || 'SKILL.md not found in main or master branch'})`;
-      }
-      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content });
-      if (!content.startsWith('(')) {
-        await previewDecomposition({
+      await previewDecomposition({
+        name: skill.name,
+        description: skill.description,
+        content: result.content,
+        source: marketplaceSource,
+        repo,
+      });
+      const { preview } = useDecompositionStore.getState();
+      if (preview?.workflow_nodes && preview?.workflow_edges) {
+        setImportedWorkflowData({
+          nodes: preview.workflow_nodes as WorkflowNode[],
+          edges: preview.workflow_edges as WorkflowEdge[],
           name: skill.name,
           description: skill.description,
-          content: content,
-          source: marketplaceSource,
-          repo,
+          isDecompositionWorkflow: true,
+          decompositionSource: {
+            market: marketplaceSource,
+            repo: repo,
+            version: skill.currentVersion || skill.latestVersion,
+            content: result.content,
+          },
         });
-        const { preview } = useDecompositionStore.getState();
-        if (preview?.workflow_nodes && preview?.workflow_edges) {
-          setImportedWorkflowData({
-            nodes: preview.workflow_nodes as WorkflowNode[],
-            edges: preview.workflow_edges as WorkflowEdge[],
-            name: skill.name,
-            description: skill.description,
-            isDecompositionWorkflow: true,
-            decompositionSource: {
-              market: marketplaceSource,
-              repo: repo,
-              version: skill.currentVersion || skill.latestVersion,
-              content: content,
-            },
-          });
-          openWorkflowEditor();
-          setMarketplaceDetailOpen(false);
-        }
+        openWorkflowEditor();
       }
     } catch {
-      setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: `(${t('skills.marketplace.skillsMdFetchFailed') || 'Failed to fetch SKILL.md'})` });
-    } finally {
-      setMarketplaceDetailLoading(false);
+      messageApi.error(t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content");
     }
-  }, [marketplaceSkills, marketplaceSource, previewDecomposition, setImportedWorkflowData, openWorkflowEditor, t]);
+  }, [
+    marketplaceSkills,
+    marketplaceSource,
+    previewDecomposition,
+    setImportedWorkflowData,
+    openWorkflowEditor,
+    messageApi,
+    t,
+  ]);
 
   const handleConvertToWorkflow = useCallback(async (repo: string) => {
     const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill || !marketplaceDetailContent?.content) return;
+    if (!skill || !marketplaceDetailContent?.content) { return; }
     try {
       await previewDecomposition({
         name: skill.name,
@@ -488,13 +559,20 @@ export function SkillsPage() {
         openWorkflowEditor();
       }
     } catch (e) {
-      console.error('Failed to convert skill to workflow:', e);
+      console.error("Failed to convert skill to workflow:", e);
     }
-  }, [marketplaceSkills, marketplaceDetailContent, marketplaceSource, previewDecomposition, setImportedWorkflowData, openWorkflowEditor]);
+  }, [
+    marketplaceSkills,
+    marketplaceDetailContent,
+    marketplaceSource,
+    previewDecomposition,
+    setImportedWorkflowData,
+    openWorkflowEditor,
+  ]);
 
   const handleMarketplaceExtractAtomicSkills = useCallback(async () => {
     const skill = marketplaceSkills.find(s => s.repo === marketplaceDetailContent?.repo);
-    if (!skill || !marketplaceDetailContent?.content) return;
+    if (!skill || !marketplaceDetailContent?.content) { return; }
     setDecomposeRequest({
       name: skill.name,
       description: skill.description,
@@ -508,7 +586,7 @@ export function SkillsPage() {
   }, [marketplaceSkills, marketplaceDetailContent, marketplaceSource, setMarketplaceDetailOpen]);
 
   const handleConvertMySkillToWorkflow = useCallback(async () => {
-    if (!selectedSkill?.content) return;
+    if (!selectedSkill?.content) { return; }
     try {
       await previewDecomposition({
         name: selectedSkill.info.name,
@@ -536,12 +614,12 @@ export function SkillsPage() {
         setDetailOpen(false);
       }
     } catch (e) {
-      console.error('Failed to convert my skill to workflow:', e);
+      console.error("Failed to convert my skill to workflow:", e);
     }
   }, [selectedSkill, previewDecomposition, setImportedWorkflowData, openWorkflowEditor]);
 
   const handleExtractAtomicSkills = useCallback(async () => {
-    if (!selectedSkill?.content) return;
+    if (!selectedSkill?.content) { return; }
     setDecomposeRequest({
       name: selectedSkill.info.name,
       description: selectedSkill.info.description,
@@ -558,13 +636,13 @@ export function SkillsPage() {
     setDecomposePreviewOpen(false);
     setDecomposeRequest(null);
     loadSkills();
-    messageApi.success(t('skills.decomposeSuccess', 'Atomic skills extracted successfully'));
+    messageApi.success(t("skills.decomposeSuccess", "Atomic skills extracted successfully"));
   }, [loadSkills, messageApi, t]);
 
   const handleUninstall = useCallback(async (name: string) => {
     try {
       await uninstallSkill(name);
-      messageApi.success(t('skills.uninstallSuccess', { name }));
+      messageApi.success(t("skills.uninstallSuccess", { name }));
     } catch (e) {
       messageApi.error(String(e));
     }
@@ -587,14 +665,14 @@ export function SkillsPage() {
   const handleUninstallGroup = useCallback(async (group: string) => {
     try {
       await uninstallSkillGroup(group);
-      messageApi.success(t('skills.uninstallSuccess', { name: group }));
+      messageApi.success(t("skills.uninstallSuccess", { name: group }));
     } catch (e) {
       messageApi.error(String(e));
     }
   }, [uninstallSkillGroup, messageApi, t]);
 
   const filteredSkills = useMemo(() => {
-    if (sourceFilter === 'all') return skills;
+    if (sourceFilter === "all") { return skills; }
     return skills.filter(s => s.source === sourceFilter);
   }, [skills, sourceFilter]);
 
@@ -619,8 +697,8 @@ export function SkillsPage() {
     if (groupSkills && groupSkills.length > 0) {
       const firstSkillPath = groupSkills[0].sourcePath;
       // sourcePath points to SKILL.md; go up two levels to the group dir
-      const parts = firstSkillPath.split('/');
-      const groupDir = parts.slice(0, -2).join('/');
+      const parts = firstSkillPath.split("/");
+      const groupDir = parts.slice(0, -2).join("/");
       try {
         await openSkillDir(groupDir || firstSkillPath);
       } catch (e) {
@@ -630,14 +708,14 @@ export function SkillsPage() {
   }, [groupedSkills.groups, openSkillDir, messageApi]);
 
   const mySkillsContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '0 4px', flexShrink: 0 }}>
-        <Space.Compact style={{ width: '100%', marginBottom: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ padding: "0 4px", flexShrink: 0 }}>
+        <Space.Compact style={{ width: "100%", marginBottom: 8 }}>
           <Input
-            placeholder={t('skills.installUrlPlaceholder')}
+            placeholder={t("skills.installUrlPlaceholder")}
             value={installUrl}
             onChange={(e) => setInstallUrl(e.target.value)}
-            onPressEnter={() => handleInstallFromUrl('axagent')}
+            onPressEnter={() => handleInstallFromUrl("axagent")}
           />
           <Dropdown
             menu={{
@@ -648,7 +726,7 @@ export function SkillsPage() {
               })),
               onClick: ({ key }) => handleInstallFromUrl(key),
             }}
-            trigger={['click']}
+            trigger={["click"]}
             disabled={!installUrl.trim()}
           >
             <Button
@@ -656,7 +734,7 @@ export function SkillsPage() {
               loading={installing === installUrl && !!installUrl}
               disabled={!installUrl.trim()}
             >
-              {t('skills.installFromUrl')}
+              {t("skills.installFromUrl")}
             </Button>
           </Dropdown>
           <Button
@@ -666,30 +744,69 @@ export function SkillsPage() {
           <Button
             onClick={() => setCreateModalOpen(true)}
           >
-            {t('skill.create', 'Create Skill')}
+            {t("skill.create", "Create Skill")}
           </Button>
           <Button
             icon={<Lightbulb size={14} color={CHAT_ICON_COLORS.Lightbulb} />}
             onClick={() => setProposalPanelOpen(true)}
-            title={t('skill.proposal.title', 'Skill Proposals')}
+            title={t("skill.proposal.title", "Skill Proposals")}
           />
         </Space.Compact>
         <Tabs
           size="small"
           activeKey={sourceFilter}
-          onChange={(k) => setSourceFilter(k as 'all' | 'axagent' | 'claude' | 'agents')}
+          onChange={(k) => setSourceFilter(k as "all" | "axagent" | "claude" | "agents")}
           items={[
-            { key: 'all', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{ALL_SOURCE_ICON}{t('skills.sourceAll')}</span> },
-            { key: 'axagent', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{SOURCE_ICONS.axagent}AxAgent</span> },
-            { key: 'claude', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{SOURCE_ICONS.claude}Claude</span> },
-            { key: 'agents', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{SOURCE_ICONS.agents}Agents</span> },
+            {
+              key: "all",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  {ALL_SOURCE_ICON}
+                  {t("skills.sourceAll")}
+                </span>
+              ),
+            },
+            {
+              key: "axagent",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  {SOURCE_ICONS.axagent}AxAgent
+                </span>
+              ),
+            },
+            {
+              key: "claude",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  {SOURCE_ICONS.claude}Claude
+                </span>
+              ),
+            },
+            {
+              key: "agents",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  {SOURCE_ICONS.agents}Agents
+                </span>
+              ),
+            },
           ]}
           style={{ marginBottom: 8 }}
         />
       </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: '0 4px' }}>
-        {sourceFilter !== 'all' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', marginBottom: 8, backgroundColor: token.colorBgContainer, borderRadius: 6 }}>
+      <div style={{ flex: 1, overflow: "auto", padding: "0 4px" }}>
+        {sourceFilter !== "all" && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "4px 8px",
+              marginBottom: 8,
+              backgroundColor: token.colorBgContainer,
+              borderRadius: 6,
+            }}
+          >
             <FolderOpen size={14} style={{ color: token.colorTextSecondary, flexShrink: 0 }} />
             <Text type="secondary" style={{ fontSize: 12, flex: 1 }} ellipsis>
               {INSTALL_TARGETS.find(t => t.key === sourceFilter)?.label}
@@ -701,143 +818,152 @@ export function SkillsPage() {
               onClick={async () => {
                 try {
                   const target = INSTALL_TARGETS.find(t => t.key === sourceFilter);
-                  if (!target) return;
-                  const { homeDir } = await import('@tauri-apps/api/path');
+                  if (!target) { return; }
+                  const { homeDir } = await import("@tauri-apps/api/path");
                   const home = await homeDir();
-                  const fullPath = target.label.replace('~/', home.endsWith('/') ? home : home + '/');
-                  const { revealItemInDir } = await import('@tauri-apps/plugin-opener');
+                  const fullPath = target.label.replace("~/", home.endsWith("/") ? home : home + "/");
+                  const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
                   await revealItemInDir(fullPath);
                 } catch { /* ignore */ }
               }}
             >
-              {t('skills.openDir')}
+              {t("skills.openDir")}
             </Button>
           </div>
         )}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin />
-          </div>
-        ) : filteredSkills.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <div>
-                <div>{t('skills.empty')}</div>
-                <Text type="secondary" style={{ fontSize: 12 }}>{t('skills.emptyDesc')}</Text>
-              </div>
-            }
-          />
-        ) : (
-          <>
-            {groupedSkills.ungrouped.map((skill) => (
-              <SkillCard
-                key={skill.name}
-                skill={skill}
-                onToggle={handleToggle}
-                onDetail={handleDetail}
-                onUninstall={handleUninstall}
-                onOpenDir={handleOpenSkillDir}
-                t={t}
-              />
-            ))}
-            {Array.from(groupedSkills.groups.entries()).map(([group, groupSkills]) => {
-              const allEnabled = groupSkills.every((s) => s.enabled);
-              const someEnabled = groupSkills.some((s) => s.enabled);
-              return (
-                <Collapse
-                  key={group}
-                  defaultActiveKey={[]}
-                  style={{ marginTop: 8 }}
-                  expandIcon={({ isActive }) => (
-                    <ChevronRight
-                      size={14}
-                      style={{
-                        transform: isActive ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s',
-                      }}
-                    />
-                  )}
-                  items={[{
-                    key: group,
-                    label: (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, lineHeight: 1 }}>
-                        <Text strong style={{ lineHeight: '22px' }}>{group}</Text>
-                        <Tag style={{ margin: 0 }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            {SOURCE_ICONS[groupSkills[0]?.source]}
-                            {t(`skills.source.${groupSkills[0]?.source}`)}
-                          </span>
-                        </Tag>
-                        <Tag style={{ margin: 0 }}>{t('skills.groupSkillCount', { count: groupSkills.length })}</Tag>
-                      </div>
-                    ),
-                    extra: (
-                      <Space size={4} onClick={(e) => e.stopPropagation()}>
-                        <Switch
-                          size="small"
-                          checked={allEnabled}
-                          style={someEnabled && !allEnabled ? { backgroundColor: '#faad14' } : undefined}
-                          onChange={(checked) => { handleGroupToggle(groupSkills, checked); }}
-                        />
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<FolderOpen size={14} />}
-                          onClick={(e) => { e.stopPropagation(); handleOpenGroupDir(group); }}
-                        />
-                        <Popconfirm
-                          title={t('skills.uninstallGroupConfirm', { name: group })}
-                          onConfirm={() => handleUninstallGroup(group)}
-                          okText={t('skills.uninstall')}
-                          cancelText={t('common.cancel')}
-                        >
+        {loading
+          ? (
+            <div style={{ textAlign: "center", padding: 48 }}>
+              <Spin />
+            </div>
+          )
+          : filteredSkills.length === 0
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <div>
+                  <div>{t("skills.empty")}</div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{t("skills.emptyDesc")}</Text>
+                </div>
+              }
+            />
+          )
+          : (
+            <>
+              {groupedSkills.ungrouped.map((skill) => (
+                <SkillCard
+                  key={skill.name}
+                  skill={skill}
+                  onToggle={handleToggle}
+                  onDetail={handleDetail}
+                  onUninstall={handleUninstall}
+                  onOpenDir={handleOpenSkillDir}
+                  t={t}
+                />
+              ))}
+              {Array.from(groupedSkills.groups.entries()).map(([group, groupSkills]) => {
+                const allEnabled = groupSkills.every((s) => s.enabled);
+                const someEnabled = groupSkills.some((s) => s.enabled);
+                return (
+                  <Collapse
+                    key={group}
+                    defaultActiveKey={[]}
+                    style={{ marginTop: 8 }}
+                    expandIcon={({ isActive }) => (
+                      <ChevronRight
+                        size={14}
+                        style={{
+                          transform: isActive ? "rotate(90deg)" : "rotate(0deg)",
+                          transition: "transform 0.2s",
+                        }}
+                      />
+                    )}
+                    items={[{
+                      key: group,
+                      label: (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, lineHeight: 1 }}>
+                          <Text strong style={{ lineHeight: "22px" }}>{group}</Text>
+                          <Tag style={{ margin: 0 }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              {SOURCE_ICONS[groupSkills[0]?.source]}
+                              {t(`skills.source.${groupSkills[0]?.source}`)}
+                            </span>
+                          </Tag>
+                          <Tag style={{ margin: 0 }}>{t("skills.groupSkillCount", { count: groupSkills.length })}</Tag>
+                        </div>
+                      ),
+                      extra: (
+                        <Space size={4} onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            size="small"
+                            checked={allEnabled}
+                            style={someEnabled && !allEnabled ? { backgroundColor: "#faad14" } : undefined}
+                            onChange={(checked) => {
+                              handleGroupToggle(groupSkills, checked);
+                            }}
+                          />
                           <Button
                             type="text"
                             size="small"
-                            danger
-                            icon={<Trash2 size={14} />}
-                            onClick={(e) => e.stopPropagation()}
+                            icon={<FolderOpen size={14} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenGroupDir(group);
+                            }}
                           />
-                        </Popconfirm>
-                      </Space>
-                    ),
-                    children: (
-                      <div style={{ padding: '4px 0' }}>
-                        {groupSkills.map((skill) => (
-                          <SkillCard
-                            key={skill.name}
-                            skill={skill}
-                            onToggle={handleToggle}
-                            onDetail={handleDetail}
-                            onUninstall={handleUninstall}
-                            onOpenDir={handleOpenSkillDir}
-                            t={t}
-                          />
-                        ))}
-                      </div>
-                    ),
-                  }]}
-                />
-              );
-            })}
-        </>
-        )}
+                          <Popconfirm
+                            title={t("skills.uninstallGroupConfirm", { name: group })}
+                            onConfirm={() => handleUninstallGroup(group)}
+                            okText={t("skills.uninstall")}
+                            cancelText={t("common.cancel")}
+                          >
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<Trash2 size={14} />}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </Popconfirm>
+                        </Space>
+                      ),
+                      children: (
+                        <div style={{ padding: "4px 0" }}>
+                          {groupSkills.map((skill) => (
+                            <SkillCard
+                              key={skill.name}
+                              skill={skill}
+                              onToggle={handleToggle}
+                              onDetail={handleDetail}
+                              onUninstall={handleUninstall}
+                              onOpenDir={handleOpenSkillDir}
+                              t={t}
+                            />
+                          ))}
+                        </div>
+                      ),
+                    }]}
+                  />
+                );
+              })}
+            </>
+          )}
       </div>
     </div>
   );
 
   const marketplaceContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '0 4px', flexShrink: 0 }}>
-        <Space.Compact style={{ width: '100%', marginBottom: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ padding: "0 4px", flexShrink: 0 }}>
+        <Space.Compact style={{ width: "100%", marginBottom: 12 }}>
           <Select
             value={marketplaceSource}
             onChange={(v) => setMarketplaceSource(v)}
             style={{ width: 120, flexShrink: 0 }}
             options={[
-              { value: 'skillhub', label: 'skillhub' },
-              { value: 'github', label: 'GitHub' },
+              { value: "skillhub", label: "skillhub" },
+              { value: "github", label: "GitHub" },
             ]}
           />
           <Select
@@ -845,13 +971,13 @@ export function SkillsPage() {
             onChange={(v) => setSortOrder(v)}
             style={{ width: 100, flexShrink: 0 }}
             options={[
-              { value: 'popular', label: t('skills.sortPopular') || 'Popular' },
-              { value: 'latest', label: t('skills.sortLatest') || 'Latest' },
-              { value: 'stars', label: t('skills.sortStars') || 'Stars' },
+              { value: "popular", label: t("skills.sortPopular") || "Popular" },
+              { value: "latest", label: t("skills.sortLatest") || "Latest" },
+              { value: "stars", label: t("skills.sortStars") || "Stars" },
             ]}
           />
           <Input.Search
-            placeholder={t('skills.searchMarketplace')}
+            placeholder={t("skills.searchMarketplace")}
             loading={marketplaceLoading}
             onSearch={(q) => {
               setMarketplaceQuery(q);
@@ -862,40 +988,44 @@ export function SkillsPage() {
           />
         </Space.Compact>
       </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: '0 4px' }}>
-        {marketplaceLoading ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin />
-          </div>
-        ) : marketplaceSkills.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t('skills.noResults')}
-          />
-        ) : (
-          <>
-            {marketplaceSkills.map((skill) => (
-              <MarketplaceCard
-                key={skill.repo}
-                skill={skill}
-                onInstall={handleInstallFromMarketplace}
-                onDetail={handleMarketplaceDetail}
-                onExtract={handleMarketplaceExtract}
-                onConvert={handleMarketplaceConvert}
-                installing={installing}
-                t={t}
-                source={marketplaceSource}
-              />
-            ))}
-            {marketplaceHasMore && (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <Button onClick={loadMoreMarketplace} loading={marketplaceLoading}>
-                  {t('skills.loadMore')}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+      <div style={{ flex: 1, overflow: "auto", padding: "0 4px" }}>
+        {marketplaceLoading
+          ? (
+            <div style={{ textAlign: "center", padding: 48 }}>
+              <Spin />
+            </div>
+          )
+          : marketplaceSkills.length === 0
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("skills.noResults")}
+            />
+          )
+          : (
+            <>
+              {marketplaceSkills.map((skill) => (
+                <MarketplaceCard
+                  key={skill.repo}
+                  skill={skill}
+                  onInstall={handleInstallFromMarketplace}
+                  onDetail={handleMarketplaceDetail}
+                  onExtract={handleMarketplaceExtract}
+                  onConvert={handleMarketplaceConvert}
+                  installing={installing}
+                  t={t}
+                  source={marketplaceSource}
+                />
+              ))}
+              {marketplaceHasMore && (
+                <div style={{ textAlign: "center", padding: "16px 0" }}>
+                  <Button onClick={loadMoreMarketplace} loading={marketplaceLoading}>
+                    {t("skills.loadMore")}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
       </div>
     </div>
   );
@@ -903,40 +1033,61 @@ export function SkillsPage() {
   return (
     <>
       {contextHolder}
-      <div className="h-full flex flex-col" style={{ overflow: 'hidden', backgroundColor: token.colorBgElevated }}>
+      <div className="h-full flex flex-col" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>
         <Tabs
           className="skills-page-tabs"
           defaultActiveKey="my"
           onChange={handleTabChange}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
-          tabBarStyle={{ padding: '0 16px', flexShrink: 0 }}
+          style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+          tabBarStyle={{ padding: "0 16px", flexShrink: 0 }}
           items={[
             {
-              key: 'my',
-              label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} />{t('skills.mySkills')}</span>,
+              key: "my",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} />
+                  {t("skills.mySkills")}
+                </span>
+              ),
               children: mySkillsContent,
             },
             {
-              key: 'atomic',
-              label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>⚛️{t('skills.atomicSkills', '原子Skill')}</span>,
+              key: "atomic",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  ⚛️{t("skills.atomicSkills", "原子Skill")}
+                </span>
+              ),
               children: (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                   <AtomicSkillList
-                    onEdit={(skill) => { setEditingAtomicSkill(skill); setAtomicSkillEditVisible(true); }}
-                    onCreate={() => { setEditingAtomicSkill(null); setAtomicSkillEditVisible(true); }}
+                    onEdit={(skill) => {
+                      setEditingAtomicSkill(skill);
+                      setAtomicSkillEditVisible(true);
+                    }}
+                    onCreate={() => {
+                      setEditingAtomicSkill(null);
+                      setAtomicSkillEditVisible(true);
+                    }}
                   />
                 </div>
               ),
             },
             {
-              key: 'marketplace',
-              label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Store size={14} color={CHAT_ICON_COLORS.Cloud} />{t('skills.marketplace.title')}</span>,
+              key: "marketplace",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Store size={14} color={CHAT_ICON_COLORS.Cloud} />
+                  {t("skills.marketplace.title")}
+                </span>
+              ),
               children: marketplaceContent,
             },
           ]}
         />
 
-        <style>{`
+        <style>
+          {`
           .skills-page-tabs > .ant-tabs-content-holder {
             flex: 1;
             min-height: 0;
@@ -963,40 +1114,44 @@ export function SkillsPage() {
           .skill-card-hover:hover .skill-card-title {
             color: ${token.colorPrimary} !important;
           }
-        `}</style>
+        `}
+        </style>
       </div>
 
       <Modal
-        title={t('skills.detail')}
+        title={t("skills.detail")}
         open={detailOpen}
-        onCancel={() => { setDetailOpen(false); clearSelectedSkill(); }}
-        footer={
-          selectedSkill && selectedSkill.content && !selectedSkill.content.startsWith('(') ? (
+        onCancel={() => {
+          setDetailOpen(false);
+          clearSelectedSkill();
+        }}
+        footer={selectedSkill && selectedSkill.content && !selectedSkill.content.startsWith("(")
+          ? (
             <Space>
               <Button
                 icon={<Layers size={14} />}
                 onClick={handleExtractAtomicSkills}
               >
-                {t('skills.extractAtomicSkills', 'Extract Atomic Skills')}
+                {t("skills.extractAtomicSkills", "Extract Atomic Skills")}
               </Button>
               <Button
                 icon={<Workflow size={14} />}
                 onClick={handleConvertMySkillToWorkflow}
               >
-                {t('skills.marketplace.convertToWorkflow')}
+                {t("skills.marketplace.convertToWorkflow")}
               </Button>
             </Space>
-          ) : null
-        }
+          )
+          : null}
         width={640}
       >
         {selectedSkill && (
-          <div style={{ userSelect: 'text' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ userSelect: "text" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Typography.Title level={4} style={{ margin: 0 }}>{selectedSkill.info.name}</Typography.Title>
               <CopyButton text={selectedSkill.info.name} size={14} />
               <Tag>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                   {SOURCE_ICONS[selectedSkill.info.source]}
                   {t(`skills.source.${selectedSkill.info.source}`)}
                 </span>
@@ -1006,32 +1161,32 @@ export function SkillsPage() {
             {selectedSkill.manifest && (
               <div style={{ marginBottom: 12 }}>
                 {selectedSkill.manifest.sourceRef && (
-                  <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                  <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
                     Source: {selectedSkill.manifest.sourceRef}
                   </Text>
                 )}
-                <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
                   Installed: {selectedSkill.manifest.installedAt}
                 </Text>
               </div>
             )}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: "relative" }}>
               <CopyButton
                 text={selectedSkill.content}
                 size={14}
-                style={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}
+                style={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}
               />
               <div
                 style={{
                   background: token.colorBgContainer,
                   borderRadius: token.borderRadius,
                   padding: 16,
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'monospace',
+                  whiteSpace: "pre-wrap",
+                  fontFamily: "monospace",
                   fontSize: 13,
                   maxHeight: 400,
-                  overflow: 'auto',
-                  userSelect: 'text',
+                  overflow: "auto",
+                  userSelect: "text",
                 }}
               >
                 {selectedSkill.content}
@@ -1040,7 +1195,7 @@ export function SkillsPage() {
             {selectedSkill.files.length > 0 && (
               <div style={{ marginTop: 12 }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Files: {selectedSkill.files.join(', ')}
+                  Files: {selectedSkill.files.join(", ")}
                 </Text>
               </div>
             )}
@@ -1049,62 +1204,71 @@ export function SkillsPage() {
       </Modal>
 
       <Modal
-        title={t('skills.detail')}
+        title={t("skills.detail")}
         open={marketplaceDetailOpen}
-        onCancel={() => { setMarketplaceDetailOpen(false); setMarketplaceDetailContent(null); }}
-        footer={
-          marketplaceDetailContent && !marketplaceDetailContent.content.startsWith('(') ? (
+        onCancel={() => {
+          setMarketplaceDetailOpen(false);
+          setMarketplaceDetailContent(null);
+        }}
+        footer={marketplaceDetailContent && !marketplaceDetailContent.content.startsWith("(")
+          ? (
             <Space>
               <Button
                 icon={<Layers size={14} />}
                 onClick={handleMarketplaceExtractAtomicSkills}
               >
-                {t('skills.extractAtomicSkills', 'Extract Atomic Skills')}
+                {t("skills.extractAtomicSkills", "Extract Atomic Skills")}
               </Button>
               <Button
                 icon={<Workflow size={14} />}
                 onClick={() => handleConvertToWorkflow(marketplaceDetailContent.repo)}
               >
-                {t('skills.marketplace.convertToWorkflow')}
+                {t("skills.marketplace.convertToWorkflow")}
               </Button>
             </Space>
-          ) : null
-        }
+          )
+          : null}
         width={640}
       >
         {marketplaceDetailContent && (
-          <div style={{ userSelect: 'text' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ userSelect: "text" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Typography.Title level={4} style={{ margin: 0 }}>{marketplaceDetailContent.name}</Typography.Title>
               <CopyButton text={marketplaceDetailContent.name} size={14} />
             </div>
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 12 }}>{marketplaceDetailContent.repo}</Text>
-            {marketplaceDetailLoading ? (
-              <div style={{ textAlign: 'center', padding: 32 }}><Spin /></div>
-            ) : (
-              <div style={{ position: 'relative' }}>
-                <CopyButton
-                  text={marketplaceDetailContent.content}
-                  size={14}
-                  style={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}
-                />
-                <div
-                  style={{
-                    background: token.colorBgContainer,
-                    borderRadius: token.borderRadius,
-                    padding: 16,
-                    whiteSpace: 'pre-wrap',
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                    maxHeight: 400,
-                    overflow: 'auto',
-                    userSelect: 'text',
-                  }}
-                >
-                  {marketplaceDetailContent.content}
+            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 12 }}>
+              {marketplaceDetailContent.repo}
+            </Text>
+            {marketplaceDetailLoading
+              ? (
+                <div style={{ textAlign: "center", padding: 32 }}>
+                  <Spin />
                 </div>
-              </div>
-            )}
+              )
+              : (
+                <div style={{ position: "relative" }}>
+                  <CopyButton
+                    text={marketplaceDetailContent.content}
+                    size={14}
+                    style={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}
+                  />
+                  <div
+                    style={{
+                      background: token.colorBgContainer,
+                      borderRadius: token.borderRadius,
+                      padding: 16,
+                      whiteSpace: "pre-wrap",
+                      fontFamily: "monospace",
+                      fontSize: 13,
+                      maxHeight: 400,
+                      overflow: "auto",
+                      userSelect: "text",
+                    }}
+                  >
+                    {marketplaceDetailContent.content}
+                  </div>
+                </div>
+              )}
           </div>
         )}
       </Modal>
@@ -1122,14 +1286,20 @@ export function SkillsPage() {
       <AtomicSkillEditor
         visible={atomicSkillEditVisible}
         skill={editingAtomicSkill}
-        onClose={() => { setAtomicSkillEditVisible(false); setEditingAtomicSkill(null); }}
+        onClose={() => {
+          setAtomicSkillEditVisible(false);
+          setEditingAtomicSkill(null);
+        }}
       />
 
       {decomposeRequest && (
         <DecompositionPreview
           visible={decomposePreviewOpen}
           request={decomposeRequest}
-          onClose={() => { setDecomposePreviewOpen(false); setDecomposeRequest(null); }}
+          onClose={() => {
+            setDecomposePreviewOpen(false);
+            setDecomposeRequest(null);
+          }}
           onComplete={handleDecomposeComplete}
         />
       )}

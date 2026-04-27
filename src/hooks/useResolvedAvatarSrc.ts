@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { invoke, isTauri } from '@/lib/invoke';
-import type { AvatarType } from '@/stores';
+import { invoke, isTauri } from "@/lib/invoke";
+import type { AvatarType } from "@/stores";
+import { useEffect, useState } from "react";
 
 /**
  * Resolves a file-type avatar value to a renderable src string.
@@ -13,7 +13,7 @@ export function useResolvedAvatarSrc(
   const [resolved, setResolved] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    if (avatarType !== 'file' || !avatarValue) {
+    if (avatarType !== "file" || !avatarValue) {
       setResolved(undefined);
       return;
     }
@@ -23,12 +23,12 @@ export function useResolvedAvatarSrc(
       return;
     }
     let cancelled = false;
-    invoke<string>('read_attachment_preview', { filePath: avatarValue })
+    invoke<string>("read_attachment_preview", { filePath: avatarValue })
       .then((dataUrl) => {
-        if (!cancelled) setResolved(dataUrl);
+        if (!cancelled) { setResolved(dataUrl); }
       })
       .catch(() => {
-        if (!cancelled) setResolved(undefined);
+        if (!cancelled) { setResolved(undefined); }
       });
     return () => {
       cancelled = true;

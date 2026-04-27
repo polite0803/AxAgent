@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Switch, Tag, Input, Select, Space, Button, Typography, Empty } from 'antd';
-import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useAtomicSkillStore } from '../../stores/feature/atomicSkillStore';
-import type { AtomicSkill } from '../../types';
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button, Empty, Input, Select, Space, Switch, Table, Tag, Typography } from "antd";
+import React, { useEffect, useState } from "react";
+import { useAtomicSkillStore } from "../../stores/feature/atomicSkillStore";
+import type { AtomicSkill } from "../../types";
 
 const { Text } = Typography;
 
@@ -12,81 +12,79 @@ interface AtomicSkillListProps {
 }
 
 const ENTRY_TYPE_COLORS: Record<string, string> = {
-  builtin: 'blue',
-  mcp: 'purple',
-  local: 'green',
-  plugin: 'orange',
+  builtin: "blue",
+  mcp: "purple",
+  local: "green",
+  plugin: "orange",
 };
 
 const ENTRY_TYPE_LABELS: Record<string, string> = {
-  builtin: '内置',
-  mcp: 'MCP',
-  local: '本地',
-  plugin: '插件',
+  builtin: "内置",
+  mcp: "MCP",
+  local: "本地",
+  plugin: "插件",
 };
 
 export const AtomicSkillList: React.FC<AtomicSkillListProps> = ({ onEdit, onCreate }) => {
   const { skills, loading, loadSkills, toggleSkill, filter, setFilter } = useAtomicSkillStore();
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     loadSkills();
   }, [loadSkills]);
 
   const filteredSkills = skills.filter((s) =>
-    !searchText || s.name.toLowerCase().includes(searchText.toLowerCase()) ||
-    s.description.toLowerCase().includes(searchText.toLowerCase())
+    !searchText || s.name.toLowerCase().includes(searchText.toLowerCase())
+    || s.description.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const columns = [
     {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string, record: AtomicSkill) => (
-        <a onClick={() => onEdit?.(record)}>{name}</a>
-      ),
+      title: "名称",
+      dataIndex: "name",
+      key: "name",
+      render: (name: string, record: AtomicSkill) => <a onClick={() => onEdit?.(record)}>{name}</a>,
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
+      title: "描述",
+      dataIndex: "description",
+      key: "description",
       ellipsis: true,
       render: (desc: string) => <Text type="secondary">{desc}</Text>,
     },
     {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
+      title: "分类",
+      dataIndex: "category",
+      key: "category",
       width: 100,
       render: (category: string) => <Tag>{category}</Tag>,
     },
     {
-      title: '入口类型',
-      dataIndex: 'entry_type',
-      key: 'entry_type',
+      title: "入口类型",
+      dataIndex: "entry_type",
+      key: "entry_type",
       width: 90,
       render: (entryType: string) => (
-        <Tag color={ENTRY_TYPE_COLORS[entryType] || 'default'}>
+        <Tag color={ENTRY_TYPE_COLORS[entryType] || "default"}>
           {ENTRY_TYPE_LABELS[entryType] || entryType}
         </Tag>
       ),
     },
     {
-      title: '来源',
-      dataIndex: 'source',
-      key: 'source',
+      title: "来源",
+      dataIndex: "source",
+      key: "source",
       width: 100,
       render: (source: string) => (
-        <Tag color={source === 'auto-generated' ? 'volcano' : 'cyan'}>
-          {source === 'auto-generated' ? '自动生成' : '原子'}
+        <Tag color={source === "auto-generated" ? "volcano" : "cyan"}>
+          {source === "auto-generated" ? "自动生成" : "原子"}
         </Tag>
       ),
     },
     {
-      title: '启用',
-      dataIndex: 'enabled',
-      key: 'enabled',
+      title: "启用",
+      dataIndex: "enabled",
+      key: "enabled",
       width: 70,
       render: (enabled: boolean, record: AtomicSkill) => (
         <Switch
@@ -99,7 +97,7 @@ export const AtomicSkillList: React.FC<AtomicSkillListProps> = ({ onEdit, onCrea
   ];
 
   return (
-    <div style={{ padding: '0 16px' }}>
+    <div style={{ padding: "0 16px" }}>
       <Space style={{ marginBottom: 16 }} wrap>
         <Input
           placeholder="搜索原子Skill..."
@@ -114,11 +112,14 @@ export const AtomicSkillList: React.FC<AtomicSkillListProps> = ({ onEdit, onCrea
           allowClear
           style={{ width: 120 }}
           value={filter.category}
-          onChange={(v) => { setFilter({ ...filter, category: v }); loadSkills({ ...filter, category: v }); }}
+          onChange={(v) => {
+            setFilter({ ...filter, category: v });
+            loadSkills({ ...filter, category: v });
+          }}
           options={[
-            { label: '通用', value: 'general' },
-            { label: '分解', value: 'decomposed' },
-            { label: '未分解', value: 'undecomposed' },
+            { label: "通用", value: "general" },
+            { label: "分解", value: "decomposed" },
+            { label: "未分解", value: "undecomposed" },
           ]}
         />
         <Select
@@ -126,21 +127,20 @@ export const AtomicSkillList: React.FC<AtomicSkillListProps> = ({ onEdit, onCrea
           allowClear
           style={{ width: 120 }}
           value={filter.source}
-          onChange={(v) => { setFilter({ ...filter, source: v }); loadSkills({ ...filter, source: v }); }}
+          onChange={(v) => {
+            setFilter({ ...filter, source: v });
+            loadSkills({ ...filter, source: v });
+          }}
           options={[
-            { label: '原子', value: 'atomic' },
-            { label: '自动生成', value: 'auto-generated' },
+            { label: "原子", value: "atomic" },
+            { label: "自动生成", value: "auto-generated" },
           ]}
         />
         <Button icon={<ReloadOutlined />} onClick={() => loadSkills()}>刷新</Button>
-        {onCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>新建</Button>
-        )}
+        {onCreate && <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>新建</Button>}
       </Space>
 
-      {filteredSkills.length === 0 && !loading ? (
-        <Empty description="暂无原子Skill" />
-      ) : (
+      {filteredSkills.length === 0 && !loading ? <Empty description="暂无原子Skill" /> : (
         <Table
           dataSource={filteredSkills}
           columns={columns}

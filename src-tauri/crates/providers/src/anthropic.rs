@@ -1,6 +1,6 @@
+use async_trait::async_trait;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
-use async_trait::async_trait;
 use futures::Stream;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -27,7 +27,8 @@ impl Default for AnthropicAdapter {
 impl AnthropicAdapter {
     pub fn new() -> Self {
         Self {
-            client: crate::build_default_http_client().expect("Failed to build default HTTP client"),
+            client: crate::build_default_http_client()
+                .expect("Failed to build default HTTP client"),
         }
     }
 
@@ -489,8 +490,9 @@ impl ProviderAdapter for AnthropicAdapter {
                     return;
                 }
                 Err(e) => {
-                    let _ = tx
-                        .unbounded_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
+                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
+                        super::diagnose_reqwest_error(&e),
+                    )));
                     return;
                 }
             };
@@ -531,7 +533,10 @@ impl ProviderAdapter for AnthropicAdapter {
                             let json: serde_json::Value = match serde_json::from_str(data) {
                                 Ok(v) => v,
                                 Err(e) => {
-                                    tracing::warn!("Failed to parse SSE event JSON: {e}. Data: {}", &data[..data.len().min(200)]);
+                                    tracing::warn!(
+                                        "Failed to parse SSE event JSON: {e}. Data: {}",
+                                        &data[..data.len().min(200)]
+                                    );
                                     continue;
                                 }
                             };
@@ -655,10 +660,11 @@ impl ProviderAdapter for AnthropicAdapter {
                                                 .map(|tu| axagent_core::types::ToolCall {
                                                     id: tu.id.clone(),
                                                     call_type: "function".to_string(),
-                                                    function: axagent_core::types::ToolCallFunction {
-                                                        name: tu.name.clone(),
-                                                        arguments: tu.arguments.clone(),
-                                                    },
+                                                    function:
+                                                        axagent_core::types::ToolCallFunction {
+                                                            name: tu.name.clone(),
+                                                            arguments: tu.arguments.clone(),
+                                                        },
                                                 })
                                                 .collect(),
                                         )

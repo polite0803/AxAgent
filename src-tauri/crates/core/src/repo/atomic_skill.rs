@@ -153,11 +153,7 @@ pub async fn delete_atomic_skill(db: &DatabaseConnection, id: &str) -> Result<bo
     }
 }
 
-pub async fn toggle_atomic_skill(
-    db: &DatabaseConnection,
-    id: &str,
-    enabled: bool,
-) -> Result<bool> {
+pub async fn toggle_atomic_skill(db: &DatabaseConnection, id: &str, enabled: bool) -> Result<bool> {
     let skill = atomic_skills::Entity::find_by_id(id).one(db).await?;
     if let Some(s) = skill {
         let mut active_model: atomic_skills::ActiveModel = s.into();
@@ -227,7 +223,10 @@ fn compute_word_set(text: &str) -> std::collections::HashSet<String> {
         .collect()
 }
 
-fn jaccard_similarity(set1: &std::collections::HashSet<String>, set2: &std::collections::HashSet<String>) -> f32 {
+fn jaccard_similarity(
+    set1: &std::collections::HashSet<String>,
+    set2: &std::collections::HashSet<String>,
+) -> f32 {
     if set1.is_empty() && set2.is_empty() {
         return 1.0;
     }
@@ -293,7 +292,11 @@ pub async fn find_similar_skills(
             reasons.push("相同分类".to_string());
         }
 
-        let final_score = if weight_sum > 0.0 { score / weight_sum } else { 0.0 };
+        let final_score = if weight_sum > 0.0 {
+            score / weight_sum
+        } else {
+            0.0
+        };
 
         if final_score >= min_similarity && !reasons.is_empty() {
             matches.push(SkillMatch {

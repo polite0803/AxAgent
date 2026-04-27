@@ -243,6 +243,24 @@ pub async fn update_message_content_fast(
     Ok(())
 }
 
+/// Update thinking content on an existing message.
+pub async fn update_message_thinking(
+    db: &DatabaseConnection,
+    id: &str,
+    thinking: Option<&str>,
+) -> Result<()> {
+    let update = messages::Entity::update_many()
+        .col_expr(messages::Column::Thinking, Expr::value(thinking.map(|s| s.to_string())))
+        .filter(messages::Column::Id.eq(id));
+
+    let result = update.exec(db).await?;
+
+    if result.rows_affected == 0 {
+        return Err(AxAgentError::NotFound(format!("Message {}", id)));
+    }
+    Ok(())
+}
+
 /// Append content to a message's existing content field.
 ///
 /// This is useful for streaming scenarios where chunks arrive and need to be
@@ -306,7 +324,11 @@ fn select_next_active_version(
         Vec::new()
     };
 
-    let mut candidates = if same_model.is_empty() { remaining } else { same_model };
+    let mut candidates = if same_model.is_empty() {
+        remaining
+    } else {
+        same_model
+    };
     candidates.sort_by(compare_version_priority);
     candidates.into_iter().next()
 }

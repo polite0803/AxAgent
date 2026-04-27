@@ -1,9 +1,9 @@
-import { useEffect, useCallback, useRef } from 'react';
-import { theme } from 'antd';
-import { useConversationStore, useProviderStore, useTabStore } from '@/stores';
-import { ChatSidebar } from '@/components/chat/ChatSidebar';
-import { ChatView } from '@/components/chat/ChatView';
-import { TabBar } from '@/components/chat/TabBar';
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { ChatView } from "@/components/chat/ChatView";
+import { TabBar } from "@/components/chat/TabBar";
+import { useConversationStore, useProviderStore, useTabStore } from "@/stores";
+import { theme } from "antd";
+import { useCallback, useEffect, useRef } from "react";
 
 export function ChatPage() {
   const { token } = theme.useToken();
@@ -66,7 +66,7 @@ export function ChatPage() {
   // When activeConversationId changes from outside (e.g. sidebar click, auto-select),
   // ensure a tab is open for it
   useEffect(() => {
-    if (!activeConversationId) return;
+    if (!activeConversationId) { return; }
     const existingTab = tabs.find((t) => t.conversationId === activeConversationId);
     if (!existingTab) {
       const conv = conversations.find((c) => c.id === activeConversationId);
@@ -84,10 +84,10 @@ export function ChatPage() {
     // Find a default provider/model
     let provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
     let model = provider?.models.find((m) => m.enabled);
-    if (!provider || !model) return;
+    if (!provider || !model) { return; }
 
     const conv = await createConversation(
-      '', // empty title — AI will generate later
+      "", // empty title — AI will generate later
       model.model_id,
       provider.id,
     );
@@ -96,11 +96,11 @@ export function ChatPage() {
   }, [providers, createConversation, openTab]);
 
   return (
-    <div className="flex h-full" style={{ overflow: 'hidden' }}>
+    <div className="flex h-full" style={{ overflow: "hidden" }}>
       <div
         className="w-64 h-full"
         style={{
-          borderRight: '1px solid var(--border-color)',
+          borderRight: "1px solid var(--border-color)",
           backgroundColor: token.colorBgContainer,
         }}
       >
@@ -109,9 +109,9 @@ export function ChatPage() {
       <div
         style={{
           flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
           backgroundColor: token.colorBgElevated,
         }}
       >

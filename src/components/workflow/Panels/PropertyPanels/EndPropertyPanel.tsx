@@ -1,7 +1,7 @@
-import React from 'react';
-import { Input, Divider } from 'antd';
-import type { WorkflowNode, EndNode } from '../../types';
-import { BasePropertyPanel } from './BasePropertyPanel';
+import { Divider, Input } from "antd";
+import React from "react";
+import type { EndNode, WorkflowNode } from "../../types";
+import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface EndPropertyPanelProps {
   node: WorkflowNode;
@@ -18,23 +18,23 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({ node, onUpda
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>输出变量</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出变量</label>
         <Input
-          value={config.output_var || ''}
-          onChange={(e) => handleConfigChange('output_var', e.target.value)}
+          value={config.output_var || ""}
+          onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
           placeholder="workflow_output"
         />
-        <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
+        <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
           工作流的最终输出变量
         </div>
       </div>
 
-      <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: '1px solid #333', paddingTop: 12, marginTop: 4 }}>
+      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
         <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
       </div>
     </div>

@@ -6,9 +6,7 @@ use axagent_trajectory::{
 use tauri::State;
 
 #[tauri::command]
-pub async fn get_platform_config(
-    state: State<'_, AppState>,
-) -> Result<PlatformConfig, String> {
+pub async fn get_platform_config(state: State<'_, AppState>) -> Result<PlatformConfig, String> {
     let service = state.platform_integration_service.read().await;
     Ok(service.get_config().await)
 }
@@ -116,9 +114,14 @@ pub async fn send_telegram_message(
         return Err("Telegram integration is not enabled".to_string());
     }
 
-    let bot_token = cfg.telegram_bot_token.ok_or_else(|| "Telegram bot token not configured".to_string())?;
+    let bot_token = cfg
+        .telegram_bot_token
+        .ok_or_else(|| "Telegram bot token not configured".to_string())?;
     let handler = axagent_trajectory::TelegramHandler::new(bot_token);
-    handler.send_message(chat_id, &text).await.map_err(|e| e.to_string())
+    handler
+        .send_message(chat_id, &text)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -135,7 +138,9 @@ pub async fn send_discord_message(
         return Err("Discord integration is not enabled".to_string());
     }
 
-    let webhook_url = cfg.discord_webhook_url.ok_or_else(|| "Discord webhook URL not configured".to_string())?;
+    let webhook_url = cfg
+        .discord_webhook_url
+        .ok_or_else(|| "Discord webhook URL not configured".to_string())?;
 
     let client = reqwest::Client::new();
     let body = serde_json::json!({ "content": content });

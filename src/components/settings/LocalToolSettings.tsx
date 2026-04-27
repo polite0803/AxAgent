@@ -1,38 +1,49 @@
-import { useEffect } from 'react';
-import { Switch, Tag, Spin, Typography } from 'antd';
-import { Wrench, Globe, FileSearch, FileEdit, Terminal, Search, BookOpen, HardDrive, Brain, MessageSquare } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useLocalToolStore } from '@/stores';
-import type { LocalToolGroupInfo } from '@/types/localTool';
+import { useLocalToolStore } from "@/stores";
+import type { LocalToolGroupInfo } from "@/types/localTool";
+import { Spin, Switch, Tag, Typography } from "antd";
+import {
+  BookOpen,
+  Brain,
+  FileEdit,
+  FileSearch,
+  Globe,
+  HardDrive,
+  MessageSquare,
+  Search,
+  Terminal,
+  Wrench,
+} from "lucide-react";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
 
 /** Map group_id to a display icon */
 const GROUP_ICONS: Record<string, React.ReactNode> = {
-  'builtin-fetch': <Globe size={18} />,
-  'builtin-search-file': <FileSearch size={18} />,
-  'builtin-filesystem': <FileEdit size={18} />,
-  'builtin-system': <Terminal size={18} />,
-  'builtin-search': <Search size={18} />,
-  'builtin-knowledge': <BookOpen size={18} />,
-  'builtin-storage': <HardDrive size={18} />,
-  'builtin-skills': <Wrench size={18} />,
-  'builtin-session': <MessageSquare size={18} />,
-  'builtin-memory': <Brain size={18} />,
+  "builtin-fetch": <Globe size={18} />,
+  "builtin-search-file": <FileSearch size={18} />,
+  "builtin-filesystem": <FileEdit size={18} />,
+  "builtin-system": <Terminal size={18} />,
+  "builtin-search": <Search size={18} />,
+  "builtin-knowledge": <BookOpen size={18} />,
+  "builtin-storage": <HardDrive size={18} />,
+  "builtin-skills": <Wrench size={18} />,
+  "builtin-session": <MessageSquare size={18} />,
+  "builtin-memory": <Brain size={18} />,
 };
 
 /** i18n key for group display name */
 const GROUP_NAME_KEYS: Record<string, string> = {
-  'builtin-fetch': 'settings.localTools.groupFetch',
-  'builtin-search-file': 'settings.localTools.groupSearchFile',
-  'builtin-filesystem': 'settings.localTools.groupFilesystem',
-  'builtin-system': 'settings.localTools.groupSystem',
-  'builtin-search': 'settings.localTools.groupSearch',
-  'builtin-knowledge': 'settings.localTools.groupKnowledge',
-  'builtin-storage': 'settings.localTools.groupStorage',
-  'builtin-skills': 'settings.localTools.groupSkills',
-  'builtin-session': 'settings.localTools.groupSession',
-  'builtin-memory': 'settings.localTools.groupMemory',
+  "builtin-fetch": "settings.localTools.groupFetch",
+  "builtin-search-file": "settings.localTools.groupSearchFile",
+  "builtin-filesystem": "settings.localTools.groupFilesystem",
+  "builtin-system": "settings.localTools.groupSystem",
+  "builtin-search": "settings.localTools.groupSearch",
+  "builtin-knowledge": "settings.localTools.groupKnowledge",
+  "builtin-storage": "settings.localTools.groupStorage",
+  "builtin-skills": "settings.localTools.groupSkills",
+  "builtin-session": "settings.localTools.groupSession",
+  "builtin-memory": "settings.localTools.groupMemory",
 };
 
 function ToolGroupCard({ group, onToggle }: { group: LocalToolGroupInfo; onToggle: (groupId: string) => void }) {
@@ -84,10 +95,10 @@ function LocalToolSettings() {
   return (
     <div className="p-6 max-w-2xl">
       <Typography.Title level={4}>
-        {t('settings.localTools.title')}
+        {t("settings.localTools.title")}
       </Typography.Title>
       <Paragraph type="secondary" className="mb-4">
-        {t('settings.localTools.description')}
+        {t("settings.localTools.description")}
       </Paragraph>
 
       <div className="border border-border rounded-lg overflow-hidden">

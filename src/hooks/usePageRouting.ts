@@ -1,22 +1,24 @@
-import { useLocation, useNavigate } from 'react-router-dom';
-import type { PageKey } from '@/types';
+import type { PageKey } from "@/types";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const pageKeyToPath: Record<PageKey, string> = {
-  chat: '/',
-  skills: '/skills',
-  knowledge: '/knowledge',
-  memory: '/memory',
-  link: '/link',
-  gateway: '/gateway',
-  files: '/files',
-  settings: '/settings',
+  chat: "/",
+  skills: "/skills",
+  marketplace: "/marketplace",
+  prompts: "/prompts",
+  knowledge: "/knowledge",
+  memory: "/memory",
+  link: "/link",
+  gateway: "/gateway",
+  files: "/files",
+  settings: "/settings",
 };
 
 const pathToPageKey = (path: string): PageKey => {
-  if (path === '/' || path === '') return 'chat';
+  if (path === "/" || path === "") { return "chat"; }
   const key = path.slice(1) as PageKey;
-  if (key in pageKeyToPath) return key;
-  return 'chat';
+  if (key in pageKeyToPath) { return key; }
+  return "chat";
 };
 
 export function useActivePage(): PageKey {

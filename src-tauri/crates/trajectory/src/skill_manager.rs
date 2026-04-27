@@ -3,7 +3,7 @@
 //! Replaces TypeScript `SkillManager.ts` with Rust implementation.
 //! Provides skill CRUD operations, filtering, and lifecycle management.
 
-use crate::skill::{Skill, SkillMetadata, HermesMetadata};
+use crate::skill::{HermesMetadata, Skill, SkillMetadata};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -101,7 +101,11 @@ pub fn update_skill_from_params(skill: &mut Skill, params: SkillUpdateParams) {
     skill.updated_at = now;
 }
 
-pub fn patch_skill_content(skill: &mut Skill, old_string: &str, new_string: &str) -> Result<(), &'static str> {
+pub fn patch_skill_content(
+    skill: &mut Skill,
+    old_string: &str,
+    new_string: &str,
+) -> Result<(), &'static str> {
     if !skill.content.contains(old_string) {
         return Err("未找到匹配的文字");
     }
@@ -133,11 +137,13 @@ pub fn increment_skill_usage(skill: &mut Skill, success: bool) {
 #[allow(dead_code)]
 fn generate_skill_id() -> String {
     let timestamp = Utc::now().timestamp_millis();
-    let random: String = (0..8).map(|_| {
-        let idx = (timestamp % 36) as usize;
-        let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
-        chars[idx] as char
-    }).collect();
+    let random: String = (0..8)
+        .map(|_| {
+            let idx = (timestamp % 36) as usize;
+            let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
+            chars[idx] as char
+        })
+        .collect();
     format!("skill_{}_{}", timestamp, random)
 }
 
@@ -188,7 +194,12 @@ impl SkillManager {
         }
     }
 
-    pub fn patch_skill_content(&mut self, id: &str, old_string: &str, new_string: &str) -> Option<Result<Skill, &'static str>> {
+    pub fn patch_skill_content(
+        &mut self,
+        id: &str,
+        old_string: &str,
+        new_string: &str,
+    ) -> Option<Result<Skill, &'static str>> {
         if let Some(skill) = self.skills.get_mut(id) {
             match patch_skill_content(skill, old_string, new_string) {
                 Ok(()) => Some(Ok(skill.clone())),
@@ -254,12 +265,14 @@ impl SkillManager {
             0 => Some(SkillContentResult::List(self.list_skills(None))),
             1 => {
                 let skill = self.get_skill(id)?;
-                Some(SkillContentResult::Formatted(self.format_skill_content(skill)))
-            },
+                Some(SkillContentResult::Formatted(
+                    self.format_skill_content(skill),
+                ))
+            }
             2 => {
                 let skill = self.get_skill(id)?;
                 Some(SkillContentResult::Full(skill.clone()))
-            },
+            }
             _ => Some(SkillContentResult::List(self.list_skills(None))),
         }
     }
@@ -388,14 +401,17 @@ mod tests {
             platforms: None,
         });
 
-        manager.update_skill(&skill.id, SkillUpdateParams {
-            name: Some("Updated".to_string()),
-            description: Some("Updated desc".to_string()),
-            content: None,
-            category: None,
-            tags: None,
-            platforms: None,
-        });
+        manager.update_skill(
+            &skill.id,
+            SkillUpdateParams {
+                name: Some("Updated".to_string()),
+                description: Some("Updated desc".to_string()),
+                content: None,
+                category: None,
+                tags: None,
+                platforms: None,
+            },
+        );
 
         let updated = manager.get_skill(&skill.id).unwrap();
         assert_eq!(updated.name, "Updated");

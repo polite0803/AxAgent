@@ -58,7 +58,10 @@ pub async fn pause_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = state.work_engine.read().await;
-    engine.pause(&execution_id).await.map_err(|e| e.to_string())?;
+    engine
+        .pause(&execution_id)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -68,7 +71,10 @@ pub async fn resume_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = state.work_engine.read().await;
-    engine.resume(&execution_id).await.map_err(|e| e.to_string())?;
+    engine
+        .resume(&execution_id)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -78,7 +84,10 @@ pub async fn cancel_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = state.work_engine.read().await;
-    engine.cancel(&execution_id).await.map_err(|e| e.to_string())?;
+    engine
+        .cancel(&execution_id)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -88,7 +97,10 @@ pub async fn get_workflow_execution_status(
     execution_id: String,
 ) -> Result<ExecutionStatusResponse, String> {
     let engine = state.work_engine.read().await;
-    let status = engine.get_status(&execution_id).await.map_err(|e| e.to_string())?;
+    let status = engine
+        .get_status(&execution_id)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(ExecutionStatusResponse {
         execution_id: status.execution_id,
@@ -106,9 +118,15 @@ pub async fn list_workflow_executions(
     workflow_id: String,
 ) -> Result<Vec<ExecutionSummaryResponse>, String> {
     let engine = state.work_engine.read().await;
-    let executions = engine.list_executions(&workflow_id).await.map_err(|e| e.to_string())?;
+    let executions = engine
+        .list_executions(&workflow_id)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    Ok(executions.into_iter().map(ExecutionSummaryResponse::from).collect())
+    Ok(executions
+        .into_iter()
+        .map(ExecutionSummaryResponse::from)
+        .collect())
 }
 
 // ── Workflow Migration Commands ──
@@ -118,8 +136,8 @@ pub async fn migrate_workflow_nodes(
     state: State<'_, AppState>,
     workflow_id: String,
 ) -> Result<serde_json::Value, String> {
-    use axagent_core::workflow_types::WorkflowMigrator;
     use axagent_core::repo::workflow_template;
+    use axagent_core::workflow_types::WorkflowMigrator;
 
     let db = &state.sea_db;
     let workflow = workflow_template::get_workflow_template(db, &workflow_id)
@@ -133,8 +151,7 @@ pub async fn migrate_workflow_nodes(
     let result = WorkflowMigrator::migrate(&mut nodes);
 
     // Update only the nodes field via a direct query
-    let updated_nodes_str = serde_json::to_string(&nodes)
-        .map_err(|e| e.to_string())?;
+    let updated_nodes_str = serde_json::to_string(&nodes).map_err(|e| e.to_string())?;
 
     let active_model = axagent_core::entity::workflow_template::ActiveModel {
         id: sea_orm::ActiveValue::Unchanged(workflow.id.clone()),
@@ -150,8 +167,8 @@ pub async fn migrate_workflow_nodes(
 pub async fn migrate_all_workflows(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_core::workflow_types::WorkflowMigrator;
     use axagent_core::repo::workflow_template;
+    use axagent_core::workflow_types::WorkflowMigrator;
 
     let db = &state.sea_db;
     let workflows = workflow_template::list_workflow_templates(db, None)
@@ -165,8 +182,7 @@ pub async fn migrate_all_workflows(
 
         if WorkflowMigrator::has_legacy_nodes(&nodes) {
             let result = WorkflowMigrator::migrate(&mut nodes);
-            let updated_nodes_str = serde_json::to_string(&nodes)
-                .map_err(|e| e.to_string())?;
+            let updated_nodes_str = serde_json::to_string(&nodes).map_err(|e| e.to_string())?;
 
             let active_model = axagent_core::entity::workflow_template::ActiveModel {
                 id: sea_orm::ActiveValue::Unchanged(wf.id.clone()),

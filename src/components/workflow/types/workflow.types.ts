@@ -6,7 +6,7 @@ export interface Position {
 export interface RetryConfig {
   enabled: boolean;
   max_retries: number;
-  backoff_type: 'Linear' | 'Exponential' | 'Fixed';
+  backoff_type: "Linear" | "Exponential" | "Fixed";
   base_delay_ms: number;
   max_delay_ms: number;
 }
@@ -45,7 +45,7 @@ export interface WorkflowNodeBase {
   enabled: boolean;
 }
 
-export type TriggerType = 'manual' | 'schedule' | 'webhook' | 'event';
+export type TriggerType = "manual" | "schedule" | "webhook" | "event";
 
 export interface TriggerConfig {
   type: TriggerType;
@@ -71,9 +71,9 @@ export interface EventTriggerConfig {
   filter?: unknown;
 }
 
-export type AgentRole = 'researcher' | 'planner' | 'developer' | 'reviewer' | 'synthesizer' | 'executor';
+export type AgentRole = "researcher" | "planner" | "developer" | "reviewer" | "synthesizer" | "executor";
 
-export type OutputMode = 'json' | 'text' | 'artifact';
+export type OutputMode = "json" | "text" | "artifact";
 
 export interface AgentNodeConfig {
   role: AgentRole;
@@ -88,7 +88,7 @@ export interface AgentNodeConfig {
 }
 
 export interface AgentNode extends WorkflowNodeBase {
-  type: 'agent';
+  type: "agent";
   config: AgentNodeConfig;
 }
 
@@ -103,13 +103,26 @@ export interface LLMNodeConfig {
 }
 
 export interface LLMNode extends WorkflowNodeBase {
-  type: 'llm';
+  type: "llm";
   config: LLMNodeConfig;
 }
 
-export type CompareOperator = 'eq' | 'ne' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'regexMatch' | 'isEmpty' | 'isNotEmpty';
+export type CompareOperator =
+  | "eq"
+  | "ne"
+  | "gt"
+  | "lt"
+  | "gte"
+  | "lte"
+  | "contains"
+  | "notContains"
+  | "startsWith"
+  | "endsWith"
+  | "regexMatch"
+  | "isEmpty"
+  | "isNotEmpty";
 
-export type LogicalOperator = 'and' | 'or';
+export type LogicalOperator = "and" | "or";
 
 export interface Condition {
   var_path: string;
@@ -123,7 +136,7 @@ export interface ConditionNodeConfig {
 }
 
 export interface ConditionNode extends WorkflowNodeBase {
-  type: 'condition';
+  type: "condition";
   config: ConditionNodeConfig;
 }
 
@@ -140,11 +153,11 @@ export interface ParallelNodeConfig {
 }
 
 export interface ParallelNode extends WorkflowNodeBase {
-  type: 'parallel';
+  type: "parallel";
   config: ParallelNodeConfig;
 }
 
-export type LoopType = 'forEach' | 'while' | 'doWhile' | 'until';
+export type LoopType = "forEach" | "while" | "doWhile" | "until";
 
 export interface LoopNodeConfig {
   loop_type: LoopType;
@@ -157,7 +170,7 @@ export interface LoopNodeConfig {
 }
 
 export interface LoopNode extends WorkflowNodeBase {
-  type: 'loop';
+  type: "loop";
   config: LoopNodeConfig;
 }
 
@@ -167,7 +180,7 @@ export interface MergeNodeConfig {
 }
 
 export interface MergeNode extends WorkflowNodeBase {
-  type: 'merge';
+  type: "merge";
   config: MergeNodeConfig;
 }
 
@@ -178,7 +191,7 @@ export interface DelayNodeConfig {
 }
 
 export interface DelayNode extends WorkflowNodeBase {
-  type: 'delay';
+  type: "delay";
   config: DelayNodeConfig;
 }
 
@@ -189,7 +202,7 @@ export interface ToolNodeConfig {
 }
 
 export interface ToolNode extends WorkflowNodeBase {
-  type: 'tool';
+  type: "tool";
   config: ToolNodeConfig;
 }
 
@@ -200,7 +213,7 @@ export interface CodeNodeConfig {
 }
 
 export interface CodeNode extends WorkflowNodeBase {
-  type: 'code';
+  type: "code";
   config: CodeNodeConfig;
 }
 
@@ -212,7 +225,7 @@ export interface SubWorkflowNodeConfig {
 }
 
 export interface SubWorkflowNode extends WorkflowNodeBase {
-  type: 'subWorkflow';
+  type: "subWorkflow";
   config: SubWorkflowNodeConfig;
 }
 
@@ -223,7 +236,7 @@ export interface DocumentParserNodeConfig {
 }
 
 export interface DocumentParserNode extends WorkflowNodeBase {
-  type: 'documentParser';
+  type: "documentParser";
   config: DocumentParserNodeConfig;
 }
 
@@ -236,7 +249,7 @@ export interface VectorRetrieveNodeConfig {
 }
 
 export interface VectorRetrieveNode extends WorkflowNodeBase {
-  type: 'vectorRetrieve';
+  type: "vectorRetrieve";
   config: VectorRetrieveNodeConfig;
 }
 
@@ -253,17 +266,33 @@ export interface AtomicSkillNodeConfig {
 }
 
 export interface AtomicSkillNode extends WorkflowNodeBase {
-  type: 'atomicSkill';
+  type: "atomicSkill";
   config: AtomicSkillNodeConfig;
 }
 
 export interface EndNode extends WorkflowNodeBase {
-  type: 'end';
+  type: "end";
   config: EndNodeConfig;
 }
 
+export interface ValidationNodeConfig {
+  assertions: Array<{
+    type: "equals" | "contains" | "matches" | "exists" | "custom";
+    expected?: string;
+    actual?: string;
+    expression?: string;
+  }>;
+  on_fail: "stop" | "retry" | "continue";
+  max_retries: number;
+}
+
+export interface ValidationNode extends WorkflowNodeBase {
+  type: "validation";
+  config: ValidationNodeConfig;
+}
+
 export interface TriggerNode extends WorkflowNodeBase {
-  type: 'trigger';
+  type: "trigger";
   config: TriggerConfig;
 }
 
@@ -282,9 +311,17 @@ export type WorkflowNode =
   | DocumentParserNode
   | VectorRetrieveNode
   | AtomicSkillNode
+  | ValidationNode
   | EndNode;
 
-export type EdgeType = 'direct' | 'conditionTrue' | 'conditionFalse' | 'loopBack' | 'parallelBranch' | 'merge' | 'error';
+export type EdgeType =
+  | "direct"
+  | "conditionTrue"
+  | "conditionFalse"
+  | "loopBack"
+  | "parallelBranch"
+  | "merge"
+  | "error";
 
 export interface WorkflowEdge {
   id: string;
@@ -296,7 +333,7 @@ export interface WorkflowEdge {
   label?: string;
 }
 
-export type OnFailureAction = 'abort' | 'retryThenAbort' | 'runErrorBranch' | 'continueWithDefault';
+export type OnFailureAction = "abort" | "retryThenAbort" | "runErrorBranch" | "continueWithDefault";
 
 export interface RetryPolicy {
   max_retries: number;
@@ -378,31 +415,32 @@ export interface ValidationResult {
 }
 
 export const NODE_CATEGORIES = [
-  { id: 'trigger', label: '触发器', color: '#722ed1' },
-  { id: 'execution', label: '执行节点', color: '#52c41a' },
-  { id: 'agent', label: 'Agent', color: '#1890ff' },
-  { id: 'llm', label: 'LLM', color: '#13c2c2' },
-  { id: 'flow', label: '流程控制', color: '#fa8c16' },
-  { id: 'integration', label: '集成', color: '#eb2f96' },
+  { id: "trigger", label: "触发器", color: "#722ed1" },
+  { id: "execution", label: "执行节点", color: "#52c41a" },
+  { id: "agent", label: "Agent", color: "#1890ff" },
+  { id: "llm", label: "LLM", color: "#13c2c2" },
+  { id: "flow", label: "流程控制", color: "#fa8c16" },
+  { id: "integration", label: "集成", color: "#eb2f96" },
 ] as const;
 
 export const NODE_TYPE_MAP: Record<string, { label: string; category: string; color: string }> = {
-  trigger: { label: '触发器', category: 'trigger', color: '#722ed1' },
-  atomicSkill: { label: '原子Skill', category: 'execution', color: '#52c41a' },
-  agent: { label: 'Agent', category: 'agent', color: '#1890ff' },
-  llm: { label: 'LLM', category: 'llm', color: '#13c2c2' },
-  condition: { label: '条件分支', category: 'flow', color: '#fa8c16' },
-  parallel: { label: '并行分支', category: 'flow', color: '#fa8c16' },
-  loop: { label: '循环', category: 'flow', color: '#fa8c16' },
-  merge: { label: '合并', category: 'flow', color: '#fa8c16' },
-  delay: { label: '延迟', category: 'flow', color: '#fa8c16' },
-  subWorkflow: { label: '子工作流', category: 'integration', color: '#eb2f96' },
-  documentParser: { label: '文档解析', category: 'integration', color: '#eb2f96' },
-  vectorRetrieve: { label: '向量检索', category: 'integration', color: '#eb2f96' },
-  end: { label: '结束', category: 'flow', color: '#fa8c16' },
+  trigger: { label: "触发器", category: "trigger", color: "#722ed1" },
+  atomicSkill: { label: "原子Skill", category: "execution", color: "#52c41a" },
+  agent: { label: "Agent", category: "agent", color: "#1890ff" },
+  llm: { label: "LLM", category: "llm", color: "#13c2c2" },
+  condition: { label: "条件分支", category: "flow", color: "#fa8c16" },
+  parallel: { label: "并行分支", category: "flow", color: "#fa8c16" },
+  loop: { label: "循环", category: "flow", color: "#fa8c16" },
+  validation: { label: "验证", category: "flow", color: "#722ed1" },
+  merge: { label: "合并", category: "flow", color: "#fa8c16" },
+  delay: { label: "延迟", category: "flow", color: "#fa8c16" },
+  subWorkflow: { label: "子工作流", category: "integration", color: "#eb2f96" },
+  documentParser: { label: "文档解析", category: "integration", color: "#eb2f96" },
+  vectorRetrieve: { label: "向量检索", category: "integration", color: "#eb2f96" },
+  end: { label: "结束", category: "flow", color: "#fa8c16" },
   // Legacy types (kept for backward compatibility)
-  tool: { label: '工具(旧)', category: 'execution', color: '#52c41a' },
-  code: { label: '代码(旧)', category: 'execution', color: '#52c41a' },
+  tool: { label: "工具(旧)", category: "execution", color: "#52c41a" },
+  code: { label: "代码(旧)", category: "execution", color: "#52c41a" },
 };
 
 export interface AtomicSkillInfo {
@@ -431,7 +469,7 @@ export interface SemanticCheckResult {
   matches: NodeSkillMatch[];
 }
 
-export type SkillReplacementAction = 'replace' | 'keep' | 'upgrade_existing';
+export type SkillReplacementAction = "replace" | "keep" | "upgrade_existing";
 
 export interface SkillUpgradeSuggestion {
   name: string;
@@ -473,7 +511,7 @@ export interface ToolSemanticCheckResult {
   matches: NodeToolMatch[];
 }
 
-export type ToolReplacementAction = 'replace' | 'keep' | 'upgrade_existing';
+export type ToolReplacementAction = "replace" | "keep" | "upgrade_existing";
 
 export interface ToolUpgradeSuggestion {
   name: string;

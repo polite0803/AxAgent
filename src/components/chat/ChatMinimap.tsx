@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useRef, useEffect, createContext, useContext, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { Avatar, Typography, theme } from 'antd';
-import { ChevronDown, User } from 'lucide-react';
-import { ModelIcon } from '@lobehub/icons';
-import { useConversationStore, useProviderStore, useSettingsStore, useUserProfileStore } from '@/stores';
-import { useResolvedAvatarSrc } from '@/hooks/useResolvedAvatarSrc';
-import { stripAxAgentTags } from '@/lib/chatMarkdown';
-import type { Message } from '@/types';
+import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
+import { stripAxAgentTags } from "@/lib/chatMarkdown";
+import { useConversationStore, useProviderStore, useSettingsStore, useUserProfileStore } from "@/stores";
+import type { Message } from "@/types";
+import { ModelIcon } from "@lobehub/icons";
+import { Avatar, theme, Typography } from "antd";
+import { ChevronDown, User } from "lucide-react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // ── Scroll context — provided by ChatView ──
 
@@ -38,13 +38,22 @@ export function MinimapScrollProvider({
     forcedActiveRef.current = messageId;
     scrollTo(messageId);
   }, [scrollTo]);
-  const value = useMemo(() => ({ scrollTo: wrappedScrollTo, scrollBoxRef, scrollLockRef, forcedActiveRef }), [wrappedScrollTo, scrollBoxRef]);
+  const value = useMemo(() => ({ scrollTo: wrappedScrollTo, scrollBoxRef, scrollLockRef, forcedActiveRef }), [
+    wrappedScrollTo,
+    scrollBoxRef,
+  ]);
   return <MinimapScrollContext.Provider value={value}>{children}</MinimapScrollContext.Provider>;
 }
 
 function useMinimapContext(): MinimapContextValue {
   const ctx = useContext(MinimapScrollContext);
-  return ctx ?? { scrollTo: () => {}, scrollBoxRef: { current: null }, scrollLockRef: { current: 0 }, forcedActiveRef: { current: null } };
+  return ctx
+    ?? {
+      scrollTo: () => {},
+      scrollBoxRef: { current: null },
+      scrollLockRef: { current: 0 },
+      forcedActiveRef: { current: null },
+    };
 }
 
 // ── Types ──
@@ -52,7 +61,7 @@ function useMinimapContext(): MinimapContextValue {
 interface MinimapEntry {
   index: number;
   msg: Message;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   summary: string;
   model_id?: string | null;
   providerId?: string | null;
@@ -62,10 +71,10 @@ interface MinimapEntry {
 
 function summarize(content: string, maxLen: number): string {
   const stripped = stripAxAgentTags(content)
-    .replace(/```[\s\S]*?```/g, '[code]')
-    .replace(/\n+/g, ' ')
+    .replace(/```[\s\S]*?```/g, "[code]")
+    .replace(/\n+/g, " ")
     .trim();
-  return stripped.length > maxLen ? stripped.slice(0, maxLen) + '…' : stripped;
+  return stripped.length > maxLen ? stripped.slice(0, maxLen) + "…" : stripped;
 }
 
 function useEntries(): MinimapEntry[] {
@@ -89,20 +98,20 @@ function useEntries(): MinimapEntry[] {
     let idx = 0;
 
     for (const msg of active) {
-      if (msg.role === 'user') {
+      if (msg.role === "user") {
         entries.push({
           index: idx++,
           msg,
-          role: 'user',
+          role: "user",
           summary: summarize(msg.content, 30),
         });
-      } else if (msg.role === 'assistant') {
+      } else if (msg.role === "assistant") {
         const parentKey = msg.parent_message_id || msg.id;
         const existing = parentToIdx.get(parentKey);
         const entry: MinimapEntry = {
           index: existing !== undefined ? entries[existing].index : idx++,
           msg,
-          role: 'assistant',
+          role: "assistant",
           summary: summarize(msg.content, 30),
           model_id: msg.model_id,
           providerId: msg.provider_id,
@@ -125,8 +134,8 @@ function findBubbleEl(marker: Element, scrollBox: HTMLElement): Element {
   // Walk up until we find an element whose parent is the scroll box or its first child container
   for (;;) {
     const parent: Element | null = el.parentElement;
-    if (!parent || parent === scrollBox) return el;
-    if (parent.parentElement === scrollBox) return el;
+    if (!parent || parent === scrollBox) { return el; }
+    if (parent.parentElement === scrollBox) { return el; }
     el = parent;
   }
 }
@@ -144,7 +153,7 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
   }, [entries, activeId]);
 
   useEffect(() => {
-    if (entries.length === 0) return;
+    if (entries.length === 0) { return; }
 
     const updateActive = () => {
       // During programmatic scroll lock, use the forced active ID
@@ -157,7 +166,7 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
       // Clear forced active once lock expires
       forcedActiveRef.current = null;
       const scrollBox = scrollBoxRef.current;
-      if (!scrollBox) return;
+      if (!scrollBox) { return; }
       const boxRect = scrollBox.getBoundingClientRect();
 
       // Collect rects for first and last entries to detect scroll extremes
@@ -190,16 +199,16 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
 
       for (const entry of entries) {
         const marker = scrollBox.querySelector(`[data-axagent-msg="${entry.msg.id}"]`);
-        if (!marker) continue;
+        if (!marker) { continue; }
         const el = findBubbleEl(marker, scrollBox);
         const rect = el.getBoundingClientRect();
-        if (rect.bottom < boxRect.top || rect.top > boxRect.bottom) continue;
+        if (rect.bottom < boxRect.top || rect.top > boxRect.bottom) { continue; }
         const dist = Math.abs(rect.top - detectY);
         if (!best || dist < best.dist) {
           best = { id: entry.msg.id, dist };
         }
       }
-      if (best) setActiveId(best.id);
+      if (best) { setActiveId(best.id); }
     };
 
     // Wait for scroll box to be available, then attach listener
@@ -212,7 +221,7 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
         retryTimer = setTimeout(attach, 200);
         return;
       }
-      scrollBox.addEventListener('scroll', updateActive, { passive: true });
+      scrollBox.addEventListener("scroll", updateActive, { passive: true });
       updateActive();
     };
 
@@ -220,7 +229,7 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
 
     return () => {
       clearTimeout(retryTimer);
-      scrollBox?.removeEventListener('scroll', updateActive);
+      scrollBox?.removeEventListener("scroll", updateActive);
     };
   }, [scrollBoxRef, entries]);
 
@@ -230,13 +239,13 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
 function useModelName(model_id?: string | null, providerId?: string | null): string {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
-    if (!model_id) return '';
+    if (!model_id) { return ""; }
     for (const p of providers) {
-      if (providerId && p.id !== providerId) continue;
+      if (providerId && p.id !== providerId) { continue; }
       const model = p.models?.find((m) => m.model_id === model_id);
-      if (model) return model.name || model.model_id;
+      if (model) { return model.name || model.model_id; }
     }
-    const parts = model_id.split('/');
+    const parts = model_id.split("/");
     return parts[parts.length - 1];
   }, [model_id, providerId, providers]);
 }
@@ -252,17 +261,17 @@ function UserAvatarIcon({ size }: { size: number }) {
   const profile = useUserProfileStore((s) => s.profile);
   const resolvedSrc = useResolvedAvatarSrc(profile.avatarType, profile.avatarValue);
 
-  if (profile.avatarType === 'emoji' && profile.avatarValue) {
+  if (profile.avatarType === "emoji" && profile.avatarValue) {
     return (
       <div
         style={{
           width: size,
           height: size,
-          borderRadius: '50%',
+          borderRadius: "50%",
           backgroundColor: token.colorFillSecondary,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           fontSize: Math.round(size * 0.55),
           lineHeight: 1,
         }}
@@ -271,11 +280,13 @@ function UserAvatarIcon({ size }: { size: number }) {
       </div>
     );
   }
-  if ((profile.avatarType === 'url' || profile.avatarType === 'file') && profile.avatarValue) {
-    const src = profile.avatarType === 'file' ? resolvedSrc : profile.avatarValue;
+  if ((profile.avatarType === "url" || profile.avatarType === "file") && profile.avatarValue) {
+    const src = profile.avatarType === "file" ? resolvedSrc : profile.avatarValue;
     return <Avatar size={size} src={src} />;
   }
-  return <Avatar size={size} icon={<User size={Math.round(size * 0.5)} />} style={{ backgroundColor: token.colorPrimary }} />;
+  return (
+    <Avatar size={size} icon={<User size={Math.round(size * 0.5)} />} style={{ backgroundColor: token.colorPrimary }} />
+  );
 }
 
 // ── Plan C: FAQ Index ──
@@ -284,34 +295,34 @@ function FaqIndex({ entries }: { entries: MinimapEntry[] }) {
   const { token } = theme.useToken();
   const activeId = useActiveMessageId(entries);
 
-  if (entries.length === 0) return null;
+  if (entries.length === 0) { return null; }
 
   return (
     <div
       style={{
-        position: 'absolute',
+        position: "absolute",
         right: 4,
         top: 8,
         bottom: 8,
         width: 260,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
         zIndex: 10,
-        pointerEvents: 'none',
+        pointerEvents: "none",
       }}
     >
       {/* Scrollable dots column */}
       <div
         style={{
           width: 28,
-          maxHeight: '100%',
-          overflowY: 'auto',
-          scrollbarWidth: 'none',
-          display: 'flex',
-          flexDirection: 'column',
+          maxHeight: "100%",
+          overflowY: "auto",
+          scrollbarWidth: "none",
+          display: "flex",
+          flexDirection: "column",
           gap: 2,
-          pointerEvents: 'auto',
+          pointerEvents: "auto",
         }}
       >
         {entries.map((entry) => (
@@ -325,38 +336,38 @@ function FaqIndex({ entries }: { entries: MinimapEntry[] }) {
 function FaqItem({ entry, isActive, token }: {
   entry: MinimapEntry;
   isActive: boolean;
-  token: ReturnType<typeof theme.useToken>['token'];
+  token: ReturnType<typeof theme.useToken>["token"];
 }) {
   const [hovered, setHovered] = useState(false);
   const { scrollTo } = useMinimapContext();
   const dotRef = useRef<HTMLDivElement>(null);
-  const isUser = entry.role === 'user';
+  const isUser = entry.role === "user";
 
   // Calculate fixed position for hover card based on dot's position
   const getCardStyle = (): React.CSSProperties => {
-    if (!dotRef.current) return { display: 'none' };
+    if (!dotRef.current) { return { display: "none" }; }
     const rect = dotRef.current.getBoundingClientRect();
     return {
-      position: 'fixed',
+      position: "fixed",
       right: window.innerWidth - rect.left + 6,
       top: rect.top + rect.height / 2,
-      transform: 'translateY(-50%)',
+      transform: "translateY(-50%)",
       background: token.colorBgElevated,
       border: `1px solid ${token.colorBorderSecondary}`,
       borderRadius: token.borderRadius,
-      padding: '4px 8px',
+      padding: "4px 8px",
       minWidth: 140,
       maxWidth: 220,
       zIndex: 1000,
-      cursor: 'pointer',
+      cursor: "pointer",
       boxShadow: token.boxShadowSecondary,
-      pointerEvents: 'auto' as const,
+      pointerEvents: "auto" as const,
     };
   };
 
   return (
     <div
-      style={{ position: 'relative' }}
+      style={{ position: "relative" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -367,33 +378,35 @@ function FaqItem({ entry, isActive, token }: {
         style={{
           width: 16,
           height: 16,
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           fontSize: 8,
           fontWeight: 600,
-          cursor: 'pointer',
-          color: isActive ? '#fff' : token.colorTextSecondary,
+          cursor: "pointer",
+          color: isActive ? "#fff" : token.colorTextSecondary,
           backgroundColor: isActive ? token.colorPrimary : token.colorFillQuaternary,
           border: `1px solid ${isActive ? token.colorPrimary : token.colorBorderSecondary}`,
-          transition: 'all 0.2s',
-          margin: '0 auto',
-          overflow: 'hidden',
-          ...(hovered && !isActive ? {
-            backgroundColor: token.colorPrimaryBg,
-            borderColor: token.colorPrimary,
-            color: token.colorPrimary,
-          } : {}),
+          transition: "all 0.2s",
+          margin: "0 auto",
+          overflow: "hidden",
+          ...(hovered && !isActive
+            ? {
+              backgroundColor: token.colorPrimaryBg,
+              borderColor: token.colorPrimary,
+              color: token.colorPrimary,
+            }
+            : {}),
         }}
       >
-        {isUser ? (
-          <UserAvatarIcon size={14} />
-        ) : entry.model_id ? (
-          <ModelIcon model={entry.model_id} size={12} type="avatar" />
-        ) : (
-          entry.index + 1
-        )}
+        {isUser
+          ? <UserAvatarIcon size={14} />
+          : entry.model_id
+          ? <ModelIcon model={entry.model_id} size={12} type="avatar" />
+          : (
+            entry.index + 1
+          )}
       </div>
 
       {/* Hover card — fixed position to avoid clipping */}
@@ -405,15 +418,15 @@ function FaqItem({ entry, isActive, token }: {
           style={getCardStyle()}
         >
           <div style={{ fontSize: 10, color: isUser ? token.colorTextSecondary : token.colorPrimary }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
               {!isUser && entry.model_id && <ModelIcon model={entry.model_id} size={10} type="avatar" />}
-              {isUser ? 'Q' : <ModelName model_id={entry.model_id} providerId={entry.providerId} />}
+              {isUser ? "Q" : <ModelName model_id={entry.model_id} providerId={entry.providerId} />}
             </span>
           </div>
           <Typography.Text
             type="secondary"
             ellipsis
-            style={{ fontSize: 10, display: 'block', marginTop: 1 }}
+            style={{ fontSize: 10, display: "block", marginTop: 1 }}
           >
             {entry.summary}
           </Typography.Text>
@@ -432,7 +445,7 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
   const activeId = useActiveMessageId(entries);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  if (entries.length === 0) return null;
+  if (entries.length === 0) { return null; }
 
   const activeIdx = entries.findIndex((e) => e.msg.id === activeId);
   const current = entries[Math.max(0, activeIdx)];
@@ -443,38 +456,38 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
       style={{
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
         zIndex: 10,
-        backdropFilter: 'blur(12px)',
+        backdropFilter: "blur(12px)",
         background: `${token.colorBgContainer}e6`,
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
       }}
     >
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           gap: 10,
-          padding: '6px 16px',
+          padding: "6px 16px",
           fontSize: 13,
-          cursor: 'pointer',
+          cursor: "pointer",
         }}
         onClick={() => setExpanded(!expanded)}
       >
         <span style={{ color: token.colorPrimary, fontWeight: 600, flexShrink: 0 }}>
           {(activeIdx >= 0 ? activeIdx : 0) + 1} / {entries.length}
         </span>
-        {current.role === 'assistant' && current.model_id && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        {current.role === "assistant" && current.model_id && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
             <ModelIcon model={current.model_id} size={14} type="avatar" />
             <StickyModelName model_id={current.model_id} providerId={current.providerId} />
           </span>
         )}
-        {current.role === 'user' && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        {current.role === "user" && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
             <UserAvatarIcon size={14} />
           </span>
         )}
@@ -488,8 +501,8 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
           size={14}
           style={{
             color: token.colorTextSecondary,
-            transition: 'transform 0.2s',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: "transform 0.2s",
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
             flexShrink: 0,
           }}
         />
@@ -499,7 +512,7 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
         <div
           style={{
             maxHeight: 300,
-            overflowY: 'auto',
+            overflowY: "auto",
             borderTop: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
@@ -526,38 +539,40 @@ function StickyModelName({ model_id, providerId }: { model_id?: string | null; p
 function StickyDropdownItem({ entry, isActive, token }: {
   entry: MinimapEntry;
   isActive: boolean;
-  token: ReturnType<typeof theme.useToken>['token'];
+  token: ReturnType<typeof theme.useToken>["token"];
 }) {
   const { scrollTo } = useMinimapContext();
-  const isUser = entry.role === 'user';
+  const isUser = entry.role === "user";
   return (
     <div
       onClick={() => scrollTo(entry.msg.id)}
       style={{
-        display: 'flex',
-        alignItems: 'center',
+        display: "flex",
+        alignItems: "center",
         gap: 10,
-        padding: '6px 16px',
-        cursor: 'pointer',
+        padding: "6px 16px",
+        cursor: "pointer",
         fontSize: 13,
-        transition: 'background 0.15s',
-        backgroundColor: isActive ? token.colorPrimaryBg : 'transparent',
-        borderLeft: isActive ? `2px solid ${token.colorPrimary}` : '2px solid transparent',
+        transition: "background 0.15s",
+        backgroundColor: isActive ? token.colorPrimaryBg : "transparent",
+        borderLeft: isActive ? `2px solid ${token.colorPrimary}` : "2px solid transparent",
       }}
-      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }}
-      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = isActive ? token.colorPrimaryBg : 'transparent'; }}
+      onMouseEnter={(e) => {
+        if (!isActive) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) { e.currentTarget.style.backgroundColor = isActive ? token.colorPrimaryBg : "transparent"; }
+      }}
     >
-      <span style={{ width: 24, textAlign: 'right', fontSize: 11, color: token.colorTextQuaternary, flexShrink: 0 }}>
+      <span style={{ width: 24, textAlign: "right", fontSize: 11, color: token.colorTextQuaternary, flexShrink: 0 }}>
         #{entry.index + 1}
       </span>
       <span style={{ flexShrink: 0 }}>
-        {isUser ? (
-          <UserAvatarIcon size={16} />
-        ) : entry.model_id ? (
-          <ModelIcon model={entry.model_id} size={16} type="avatar" />
-        ) : (
-          <Avatar size={16} style={{ backgroundColor: token.colorPrimary, fontSize: 10 }}>AI</Avatar>
-        )}
+        {isUser
+          ? <UserAvatarIcon size={16} />
+          : entry.model_id
+          ? <ModelIcon model={entry.model_id} size={16} type="avatar" />
+          : <Avatar size={16} style={{ backgroundColor: token.colorPrimary, fontSize: 10 }}>AI</Avatar>}
       </span>
       <Typography.Text
         ellipsis
@@ -573,15 +588,15 @@ function StickyDropdownItem({ entry, isActive, token }: {
 
 export function ChatMinimap() {
   const enabled = useSettingsStore((s) => s.settings.chat_minimap_enabled);
-  const style = useSettingsStore((s) => s.settings.chat_minimap_style ?? 'faq');
+  const style = useSettingsStore((s) => s.settings.chat_minimap_style ?? "faq");
   const entries = useEntries();
 
-  if (!enabled || entries.length < 2) return null;
+  if (!enabled || entries.length < 2) { return null; }
 
   switch (style) {
-    case 'faq':
+    case "faq":
       return <FaqIndex entries={entries} />;
-    case 'sticky':
+    case "sticky":
       return <StickyHeader entries={entries} />;
     default:
       return null;

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Sparkles } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { invoke } from '@/lib/invoke';
+import { invoke } from "@/lib/invoke";
+import { Sparkles } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface EvolutionStats {
   generation: number;
@@ -18,13 +18,13 @@ export default function EvolutionPanel() {
 
   const fetchData = useCallback(async () => {
     try {
-      const s = await invoke<{ is_running: boolean; stats: EvolutionStats }>('skill_evolution_status', {});
+      const s = await invoke<{ is_running: boolean; stats: EvolutionStats }>("skill_evolution_status", {});
       setStatus(s);
     } catch (e) { /* ignore */ }
   }, []);
 
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded) { return; }
     fetchData();
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
@@ -38,7 +38,7 @@ export default function EvolutionPanel() {
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <Sparkles size={14} />
-          {t('chat.evolution')}
+          {t("chat.evolution")}
         </button>
       </div>
     );
@@ -50,7 +50,7 @@ export default function EvolutionPanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t('chat.skillEvolution')}</span>
+        <span className="text-xs font-medium text-foreground/80">{t("chat.skillEvolution")}</span>
         <button
           onClick={() => setExpanded(false)}
           className="text-muted-foreground hover:text-foreground transition-colors"
@@ -64,17 +64,17 @@ export default function EvolutionPanel() {
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-1.5">
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t('chat.generation')}</div>
+          <div className="text-[10px] text-muted-foreground">{t("chat.generation")}</div>
           <div className="text-xs font-medium">{stats?.generation ?? 0}</div>
         </div>
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t('chat.bestFitness')}</div>
+          <div className="text-[10px] text-muted-foreground">{t("chat.bestFitness")}</div>
           <div className="text-xs font-medium">{(stats?.best_fitness ?? 0).toFixed(3)}</div>
         </div>
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t('chat.status')}</div>
-          <div className={`text-xs font-medium ${stats?.converged ? 'text-green-500' : 'text-amber-500'}`}>
-            {stats?.converged ? t('chat.converged') : status?.is_running ? t('chat.running') : t('chat.idle')}
+          <div className="text-[10px] text-muted-foreground">{t("chat.status")}</div>
+          <div className={`text-xs font-medium ${stats?.converged ? "text-green-500" : "text-amber-500"}`}>
+            {stats?.converged ? t("chat.converged") : status?.is_running ? t("chat.running") : t("chat.idle")}
           </div>
         </div>
       </div>
@@ -82,7 +82,9 @@ export default function EvolutionPanel() {
       {/* Fitness history sparkline */}
       {fitnessHistory.length > 1 && (
         <div>
-          <div className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider mb-1">{t('chat.fitnessCurve')}</div>
+          <div className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider mb-1">
+            {t("chat.fitnessCurve")}
+          </div>
           <div className="h-12 flex items-end gap-px">
             {fitnessHistory.slice(-20).map((f, i) => {
               const max = Math.max(...fitnessHistory.slice(-20));

@@ -19,6 +19,8 @@ fn model_to_tool_execution(m: tool_executions::Model) -> ToolExecution {
         duration_ms: m.duration_ms,
         created_at: m.created_at,
         approval_status: m.approval_status,
+        skill_steps_json: m.skill_steps_json,
+        depends_on: m.depends_on,
     }
 }
 
@@ -60,6 +62,8 @@ pub async fn create_tool_execution(
         duration_ms: Set(None),
         created_at: Set(now),
         approval_status: Set(approval_status.map(|s| s.to_string())),
+        skill_steps_json: Set(None),
+        depends_on: Set(None),
     }
     .insert(db)
     .await?;
@@ -108,4 +112,38 @@ pub async fn update_tool_execution_approval_status(
     am.update(db).await?;
 
     Ok(())
+}
+
+pub async fn update_tool_execution_skill_details(
+    db: &DatabaseConnection,
+    id: &str,
+    skill_steps_json: Option<&str>,
+    depends_on: Option<&str>,
+) -> Result<()> {
+    let model = tool_executions::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("ToolExecution {}", id)))?;
+
+    let mut am: tool_executions::ActiveModel = model.into();
+    am.skill_steps_json = Set(skill_steps_json.map(|s| s.to_string()));
+    am.depends_on = Set(depends_on.map(|s| s.to_string()));
+    am.update(db).await?;
+
+    Ok(())
+}
+
+pub async fn find_latest_execution_by_tool(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+    tool_name: &str,
+) -> Result<Option<ToolExecution>> {
+    let model = tool_executions::Entity::find()
+        .filter(tool_executions::Column::ConversationId.eq(conversation_id))
+        .filter(tool_executions::Column::ToolName.eq(tool_name))
+        .order_by_desc(tool_executions::Column::CreatedAt)
+        .one(db)
+        .await?;
+
+    Ok(model.map(model_to_tool_execution))
 }

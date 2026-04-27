@@ -1,17 +1,17 @@
-import type { AppSettings } from '@/types';
+import type { AppSettings } from "@/types";
 
 export type ShortcutAction =
-  | 'toggleCurrentWindow'
-  | 'toggleAllWindows'
-  | 'closeWindow'
-  | 'newConversation'
-  | 'openSettings'
-  | 'toggleModelSelector'
-  | 'fillLastMessage'
-  | 'clearContext'
-  | 'clearConversationMessages'
-  | 'toggleGateway'
-  | 'toggleMode';
+  | "toggleCurrentWindow"
+  | "toggleAllWindows"
+  | "closeWindow"
+  | "newConversation"
+  | "openSettings"
+  | "toggleModelSelector"
+  | "fillLastMessage"
+  | "clearContext"
+  | "clearConversationMessages"
+  | "toggleGateway"
+  | "toggleMode";
 
 export interface ShortcutDescriptor {
   action: ShortcutAction;
@@ -20,51 +20,55 @@ export interface ShortcutDescriptor {
 }
 
 export const SHORTCUT_ACTIONS: ShortcutAction[] = [
-  'toggleCurrentWindow',
-  'toggleAllWindows',
-  'closeWindow',
-  'newConversation',
-  'openSettings',
-  'toggleModelSelector',
-  'fillLastMessage',
-  'clearContext',
-  'clearConversationMessages',
-  'toggleGateway',
-  'toggleMode',
+  "toggleCurrentWindow",
+  "toggleAllWindows",
+  "closeWindow",
+  "newConversation",
+  "openSettings",
+  "toggleModelSelector",
+  "fillLastMessage",
+  "clearContext",
+  "clearConversationMessages",
+  "toggleGateway",
+  "toggleMode",
 ];
 
 export const SHORTCUT_DESCRIPTORS: ShortcutDescriptor[] = [
-  { action: 'toggleCurrentWindow', labelKey: 'settings.shortcutAction.toggleCurrentWindow', supportsGlobal: true },
-  { action: 'toggleAllWindows', labelKey: 'settings.shortcutAction.toggleAllWindows', supportsGlobal: true },
-  { action: 'closeWindow', labelKey: 'settings.shortcutAction.closeWindow', supportsGlobal: true },
-  { action: 'newConversation', labelKey: 'settings.shortcutAction.newConversation', supportsGlobal: false },
-  { action: 'openSettings', labelKey: 'settings.shortcutAction.openSettings', supportsGlobal: false },
-  { action: 'toggleModelSelector', labelKey: 'settings.shortcutAction.toggleModelSelector', supportsGlobal: false },
-  { action: 'fillLastMessage', labelKey: 'settings.shortcutAction.fillLastMessage', supportsGlobal: false },
-  { action: 'clearContext', labelKey: 'settings.shortcutAction.clearContext', supportsGlobal: false },
-  { action: 'clearConversationMessages', labelKey: 'settings.shortcutAction.clearConversationMessages', supportsGlobal: false },
-  { action: 'toggleGateway', labelKey: 'settings.shortcutAction.toggleGateway', supportsGlobal: false },
-  { action: 'toggleMode', labelKey: 'settings.shortcutAction.toggleMode', supportsGlobal: false },
+  { action: "toggleCurrentWindow", labelKey: "settings.shortcutAction.toggleCurrentWindow", supportsGlobal: true },
+  { action: "toggleAllWindows", labelKey: "settings.shortcutAction.toggleAllWindows", supportsGlobal: true },
+  { action: "closeWindow", labelKey: "settings.shortcutAction.closeWindow", supportsGlobal: true },
+  { action: "newConversation", labelKey: "settings.shortcutAction.newConversation", supportsGlobal: false },
+  { action: "openSettings", labelKey: "settings.shortcutAction.openSettings", supportsGlobal: false },
+  { action: "toggleModelSelector", labelKey: "settings.shortcutAction.toggleModelSelector", supportsGlobal: false },
+  { action: "fillLastMessage", labelKey: "settings.shortcutAction.fillLastMessage", supportsGlobal: false },
+  { action: "clearContext", labelKey: "settings.shortcutAction.clearContext", supportsGlobal: false },
+  {
+    action: "clearConversationMessages",
+    labelKey: "settings.shortcutAction.clearConversationMessages",
+    supportsGlobal: false,
+  },
+  { action: "toggleGateway", labelKey: "settings.shortcutAction.toggleGateway", supportsGlobal: false },
+  { action: "toggleMode", labelKey: "settings.shortcutAction.toggleMode", supportsGlobal: false },
 ];
 
 export const SHORTCUT_ACTION_LABEL_KEYS: Record<ShortcutAction, string> = {
-  toggleCurrentWindow: 'settings.shortcutAction.toggleCurrentWindow',
-  toggleAllWindows: 'settings.shortcutAction.toggleAllWindows',
-  closeWindow: 'settings.shortcutAction.closeWindow',
-  newConversation: 'settings.shortcutAction.newConversation',
-  openSettings: 'settings.shortcutAction.openSettings',
-  toggleModelSelector: 'settings.shortcutAction.toggleModelSelector',
-  fillLastMessage: 'settings.shortcutAction.fillLastMessage',
-  clearContext: 'settings.shortcutAction.clearContext',
-  clearConversationMessages: 'settings.shortcutAction.clearConversationMessages',
-  toggleGateway: 'settings.shortcutAction.toggleGateway',
-  toggleMode: 'settings.shortcutAction.toggleMode',
+  toggleCurrentWindow: "settings.shortcutAction.toggleCurrentWindow",
+  toggleAllWindows: "settings.shortcutAction.toggleAllWindows",
+  closeWindow: "settings.shortcutAction.closeWindow",
+  newConversation: "settings.shortcutAction.newConversation",
+  openSettings: "settings.shortcutAction.openSettings",
+  toggleModelSelector: "settings.shortcutAction.toggleModelSelector",
+  fillLastMessage: "settings.shortcutAction.fillLastMessage",
+  clearContext: "settings.shortcutAction.clearContext",
+  clearConversationMessages: "settings.shortcutAction.clearConversationMessages",
+  toggleGateway: "settings.shortcutAction.toggleGateway",
+  toggleMode: "settings.shortcutAction.toggleMode",
 };
 
 export const GLOBAL_SHORTCUT_ACTIONS: ShortcutAction[] = [
-  'toggleCurrentWindow',
-  'toggleAllWindows',
-  'closeWindow',
+  "toggleCurrentWindow",
+  "toggleAllWindows",
+  "closeWindow",
 ];
 
 export function isGlobalShortcutAction(action: ShortcutAction): boolean {
@@ -74,60 +78,60 @@ export function isGlobalShortcutAction(action: ShortcutAction): boolean {
 export type ShortcutConflictMap = Partial<Record<ShortcutAction, ShortcutAction[]>>;
 
 export const SHORTCUT_SETTING_KEYS = {
-  toggleCurrentWindow: 'shortcut_toggle_current_window',
-  toggleAllWindows: 'shortcut_toggle_all_windows',
-  closeWindow: 'shortcut_close_window',
-  newConversation: 'shortcut_new_conversation',
-  openSettings: 'shortcut_open_settings',
-  toggleModelSelector: 'shortcut_toggle_model_selector',
-  fillLastMessage: 'shortcut_fill_last_message',
-  clearContext: 'shortcut_clear_context',
-  clearConversationMessages: 'shortcut_clear_conversation_messages',
-  toggleGateway: 'shortcut_toggle_gateway',
-  toggleMode: 'shortcut_toggle_mode',
+  toggleCurrentWindow: "shortcut_toggle_current_window",
+  toggleAllWindows: "shortcut_toggle_all_windows",
+  closeWindow: "shortcut_close_window",
+  newConversation: "shortcut_new_conversation",
+  openSettings: "shortcut_open_settings",
+  toggleModelSelector: "shortcut_toggle_model_selector",
+  fillLastMessage: "shortcut_fill_last_message",
+  clearContext: "shortcut_clear_context",
+  clearConversationMessages: "shortcut_clear_conversation_messages",
+  toggleGateway: "shortcut_toggle_gateway",
+  toggleMode: "shortcut_toggle_mode",
 } as const satisfies Record<ShortcutAction, keyof AppSettings>;
 
 export type ShortcutSettingKey = (typeof SHORTCUT_SETTING_KEYS)[ShortcutAction];
 
 export const DEFAULT_SHORTCUT_BINDINGS: Record<ShortcutAction, string> = {
-  toggleCurrentWindow: 'CmdOrCtrl+Shift+A',
-  toggleAllWindows: 'CmdOrCtrl+Shift+Alt+A',
-  closeWindow: 'CmdOrCtrl+Shift+W',
-  newConversation: 'CmdOrCtrl+N',
-  openSettings: 'CmdOrCtrl+,',
-  toggleModelSelector: 'CmdOrCtrl+Shift+M',
-  fillLastMessage: 'CmdOrCtrl+Shift+ArrowUp',
-  clearContext: 'CmdOrCtrl+Shift+K',
-  clearConversationMessages: 'CmdOrCtrl+Shift+Backspace',
-  toggleGateway: 'CmdOrCtrl+Shift+G',
-  toggleMode: 'Shift+Tab',
+  toggleCurrentWindow: "CmdOrCtrl+Shift+A",
+  toggleAllWindows: "CmdOrCtrl+Shift+Alt+A",
+  closeWindow: "CmdOrCtrl+Shift+W",
+  newConversation: "CmdOrCtrl+N",
+  openSettings: "CmdOrCtrl+,",
+  toggleModelSelector: "CmdOrCtrl+Shift+M",
+  fillLastMessage: "CmdOrCtrl+Shift+ArrowUp",
+  clearContext: "CmdOrCtrl+Shift+K",
+  clearConversationMessages: "CmdOrCtrl+Shift+Backspace",
+  toggleGateway: "CmdOrCtrl+Shift+G",
+  toggleMode: "Shift+Tab",
 };
 
 const DISPLAY_MAP: Record<string, string> = {
-  CmdOrCtrl: '⌘',
-  CommandOrControl: '⌘',
-  Shift: '⇧',
-  Alt: '⌥',
-  Control: '⌃',
-  Enter: '↩',
-  Backspace: '⌫',
-  Tab: '⇥',
-  Escape: 'Esc',
-  ArrowUp: '↑',
-  ArrowDown: '↓',
-  ArrowLeft: '←',
-  ArrowRight: '→',
-  Space: '␣',
+  CmdOrCtrl: "⌘",
+  CommandOrControl: "⌘",
+  Shift: "⇧",
+  Alt: "⌥",
+  Control: "⌃",
+  Enter: "↩",
+  Backspace: "⌫",
+  Tab: "⇥",
+  Escape: "Esc",
+  ArrowUp: "↑",
+  ArrowDown: "↓",
+  ArrowLeft: "←",
+  ArrowRight: "→",
+  Space: "␣",
 };
 
 function normalizeModifierToken(token: string): string {
   switch (token) {
-    case 'CommandOrControl':
-    case 'CmdOrCtrl':
-      return 'CmdOrCtrl';
-    case 'Control':
-    case 'Shift':
-    case 'Alt':
+    case "CommandOrControl":
+    case "CmdOrCtrl":
+      return "CmdOrCtrl";
+    case "Control":
+    case "Shift":
+    case "Alt":
       return token;
     default:
       return token;
@@ -138,18 +142,18 @@ function normalizeKeyToken(token: string): string {
   if (token.length === 1) {
     return token.toUpperCase();
   }
-  if (token === 'Comma') return ',';
-  if (token === 'Period') return '.';
-  if (token === 'Slash') return '/';
-  if (token === 'Semicolon') return ';';
-  if (token === ' ') return 'Space';
-  if (token === 'Esc') return 'Escape';
+  if (token === "Comma") { return ","; }
+  if (token === "Period") { return "."; }
+  if (token === "Slash") { return "/"; }
+  if (token === "Semicolon") { return ";"; }
+  if (token === " ") { return "Space"; }
+  if (token === "Esc") { return "Escape"; }
   return token;
 }
 
 function tokenize(binding: string): string[] {
   return binding
-    .split('+')
+    .split("+")
     .map((part) => part.trim())
     .filter(Boolean)
     .map((token) => normalizeKeyToken(normalizeModifierToken(token)));
@@ -157,8 +161,8 @@ function tokenize(binding: string): string[] {
 
 export function getShortcutBinding(settings: AppSettings, action: ShortcutAction): string {
   const key = SHORTCUT_SETTING_KEYS[action];
-  const raw = String(settings[key] ?? '').trim();
-  if (raw) return raw;
+  const raw = String(settings[key] ?? "").trim();
+  if (raw) { return raw; }
   return DEFAULT_SHORTCUT_BINDINGS[action];
 }
 
@@ -171,77 +175,77 @@ export function getShortcutBindingByKey(settings: AppSettings, key: ShortcutSett
 }
 
 export function formatShortcutForDisplay(binding: string): string {
-  return tokenize(binding).map((part) => DISPLAY_MAP[part] ?? part).join(' + ');
+  return tokenize(binding).map((part) => DISPLAY_MAP[part] ?? part).join(" + ");
 }
 
 function normalizeEventKey(key: string): string {
-  if (key.length === 1) return key.toUpperCase();
-  if (key === ' ') return 'Space';
-  if (key === 'Esc') return 'Escape';
+  if (key.length === 1) { return key.toUpperCase(); }
+  if (key === " ") { return "Space"; }
+  if (key === "Esc") { return "Escape"; }
   return key;
 }
 
 export function normalizeShortcutFromKeyboardEvent(
-  event: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'key'>,
+  event: Pick<KeyboardEvent, "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "key">,
 ): string | null {
   const parts: string[] = [];
-  if (event.metaKey || event.ctrlKey) parts.push('CmdOrCtrl');
-  if (event.shiftKey) parts.push('Shift');
-  if (event.altKey) parts.push('Alt');
+  if (event.metaKey || event.ctrlKey) { parts.push("CmdOrCtrl"); }
+  if (event.shiftKey) { parts.push("Shift"); }
+  if (event.altKey) { parts.push("Alt"); }
 
   const key = normalizeEventKey(event.key);
-  if (['Control', 'Shift', 'Alt', 'Meta', 'Command'].includes(key)) return null;
+  if (["Control", "Shift", "Alt", "Meta", "Command"].includes(key)) { return null; }
   parts.push(key);
-  return parts.join('+');
+  return parts.join("+");
 }
 
 export function toTauriAccelerator(binding: string): string {
   return tokenize(binding)
     .map((part) => {
-      if (part === 'CmdOrCtrl') return 'CommandOrControl';
-      if (part === ',') return 'Comma';
-      if (part === '.') return 'Period';
-      if (part === '/') return 'Slash';
-      if (part === ';') return 'Semicolon';
+      if (part === "CmdOrCtrl") { return "CommandOrControl"; }
+      if (part === ",") { return "Comma"; }
+      if (part === ".") { return "Period"; }
+      if (part === "/") { return "Slash"; }
+      if (part === ";") { return "Semicolon"; }
       return part;
     })
-    .join('+');
+    .join("+");
 }
 
 export function matchesShortcutEvent(event: KeyboardEvent, binding: string): boolean {
   const tokens = tokenize(binding);
-  if (tokens.length === 0) return false;
+  if (tokens.length === 0) { return false; }
 
-  const wantsCmdOrCtrl = tokens.includes('CmdOrCtrl');
-  const wantsShift = tokens.includes('Shift');
-  const wantsAlt = tokens.includes('Alt');
-  const wantsControl = tokens.includes('Control');
+  const wantsCmdOrCtrl = tokens.includes("CmdOrCtrl");
+  const wantsShift = tokens.includes("Shift");
+  const wantsAlt = tokens.includes("Alt");
+  const wantsControl = tokens.includes("Control");
 
   const hasCmdOrCtrl = event.metaKey || event.ctrlKey;
 
   if (wantsCmdOrCtrl) {
-    if (!hasCmdOrCtrl) return false;
+    if (!hasCmdOrCtrl) { return false; }
   } else if (wantsControl) {
-    if (!event.ctrlKey) return false;
+    if (!event.ctrlKey) { return false; }
   } else if (hasCmdOrCtrl) {
     return false;
   }
 
-  if (wantsShift !== event.shiftKey) return false;
-  if (wantsAlt !== event.altKey) return false;
+  if (wantsShift !== event.shiftKey) { return false; }
+  if (wantsAlt !== event.altKey) { return false; }
 
-  const keyToken = tokens.find((token) => !['CmdOrCtrl', 'Shift', 'Alt', 'Control'].includes(token));
-  if (!keyToken) return false;
+  const keyToken = tokens.find((token) => !["CmdOrCtrl", "Shift", "Alt", "Control"].includes(token));
+  if (!keyToken) { return false; }
   return normalizeEventKey(event.key) === normalizeKeyToken(keyToken);
 }
 
 export function detectShortcutConflicts(bindings: Partial<Record<ShortcutAction, string>>): ShortcutConflictMap {
   const grouped = new Map<string, ShortcutAction[]>();
   for (const action of SHORTCUT_ACTIONS) {
-    const raw = String(bindings[action] ?? '').trim();
-    if (!raw) continue;
+    const raw = String(bindings[action] ?? "").trim();
+    if (!raw) { continue; }
     const canonical = toTauriAccelerator(raw).toLowerCase();
-    if (!canonical) continue;
+    if (!canonical) { continue; }
     const actions = grouped.get(canonical) ?? [];
     actions.push(action);
     grouped.set(canonical, actions);
@@ -249,7 +253,7 @@ export function detectShortcutConflicts(bindings: Partial<Record<ShortcutAction,
 
   const conflicts: ShortcutConflictMap = {};
   for (const actions of grouped.values()) {
-    if (actions.length < 2) continue;
+    if (actions.length < 2) { continue; }
     for (const action of actions) {
       conflicts[action] = actions.filter((item) => item !== action);
     }
@@ -267,16 +271,16 @@ const KNOWN_EXTERNAL_CONFLICTS: Array<{
   apps: string;
 }> = [
   {
-    accelerators: ['commandorcontrol+shift+a', 'control+shift+a', 'command+shift+a'],
-    apps: '飞书/微信/企业微信/钉钉',
+    accelerators: ["commandorcontrol+shift+a", "control+shift+a", "command+shift+a"],
+    apps: "飞书/微信/企业微信/钉钉",
   },
   {
-    accelerators: ['control+alt+a', 'command+alt+a'],
-    apps: 'QQ/微信',
+    accelerators: ["control+alt+a", "command+alt+a"],
+    apps: "QQ/微信",
   },
   {
-    accelerators: ['alt+a'],
-    apps: '微信 (Windows)',
+    accelerators: ["alt+a"],
+    apps: "微信 (Windows)",
   },
 ];
 

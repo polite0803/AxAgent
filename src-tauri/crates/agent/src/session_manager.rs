@@ -1,10 +1,14 @@
 //! Session Manager for AxAgent Agent
 
-use axagent_runtime::{Session, ConversationRuntime, RuntimeError, PermissionPolicy, PermissionMode, PermissionPrompter, PermissionPromptDecision, PermissionRequest, CompactionConfig, compact_session, should_compact, HookProgressReporter, HookProgressEvent, HookEvent};
+use crate::event_emitter::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::tool_registry::ToolRegistry;
-use crate::event_emitter::AgentPermissionPayload;
 use axagent_core::repo::agent_session;
+use axagent_runtime::{
+    compact_session, should_compact, CompactionConfig, ConversationRuntime, HookEvent,
+    HookProgressEvent, HookProgressReporter, PermissionMode, PermissionPolicy,
+    PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
+};
 use sea_orm::DatabaseConnection;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -151,7 +155,11 @@ impl SessionManager {
     }
 
     /// Get an existing session for the given conversation, or create a new one.
-    pub async fn get_or_create_session(&self, provider_id: String, conversation_id: String) -> Result<AgentSession, String> {
+    pub async fn get_or_create_session(
+        &self,
+        provider_id: String,
+        conversation_id: String,
+    ) -> Result<AgentSession, String> {
         self.evict_stale_sessions().await;
 
         {
@@ -163,7 +171,10 @@ impl SessionManager {
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap_or_default()
                         .as_millis() as u64;
-                    self.session_last_access.lock().await.insert(session_id.clone(), now);
+                    self.session_last_access
+                        .lock()
+                        .await
+                        .insert(session_id.clone(), now);
                     return Ok(existing.clone());
                 }
             }
@@ -172,7 +183,11 @@ impl SessionManager {
         self.create_session(provider_id, conversation_id).await
     }
 
-    pub async fn create_session(&self, provider_id: String, conversation_id: String) -> Result<AgentSession, String> {
+    pub async fn create_session(
+        &self,
+        provider_id: String,
+        conversation_id: String,
+    ) -> Result<AgentSession, String> {
         let mut session = AgentSession::new(provider_id, conversation_id.clone());
         let session_id = session.session().session_id.clone();
 
@@ -184,7 +199,11 @@ impl SessionManager {
         let cwd_to_use = if session.session().workspace_root.is_none() {
             default_workspace_dir.as_deref()
         } else {
-            session.session().workspace_root.as_ref().map(|p| p.to_str().unwrap_or(""))
+            session
+                .session()
+                .workspace_root
+                .as_ref()
+                .map(|p| p.to_str().unwrap_or(""))
         };
 
         let axagent_session = agent_session::upsert_agent_session(
@@ -192,7 +211,9 @@ impl SessionManager {
             &conversation_id,
             cwd_to_use,
             Some("default"),
-        ).await.map_err(|e| e.to_string())?;
+        )
+        .await
+        .map_err(|e| e.to_string())?;
 
         session = session.with_axagent_session_id(axagent_session.id);
 
@@ -213,17 +234,17 @@ impl SessionManager {
             if let Some(session) = sessions.get_mut(session_id) {
                 session.session_mut().messages = updated_session.messages;
                 session.session_mut().updated_at_ms = updated_session.updated_at_ms;
-                
+
                 // Update AxAgent's agent_sessions table
                 if let Some(axagent_session_id) = session.axagent_session_id() {
                     let db = self.db.clone();
                     let axagent_sid = axagent_session_id.to_string();
                     // Use a rough token estimate from message count
                     let tokens_delta = 0; // Will be updated by caller
-                    
+
                     drop(sessions);
                     drop(conv_index);
-                    
+
                     let _ = agent_session::update_agent_session_after_query(
                         &db,
                         &axagent_sid,
@@ -231,7 +252,8 @@ impl SessionManager {
                         None,
                         tokens_delta,
                         0.0,
-                    ).await;
+                    )
+                    .await;
                 }
             }
         }
@@ -276,9 +298,8 @@ impl SessionManager {
             let sessions = self.sessions.lock().await;
             if sessions.len() > MAX_CACHED_SESSIONS {
                 // Collect all sessions with their access times, sort by oldest first
-                let mut all_entries: Vec<(String, u64)> = last_access.iter()
-                    .map(|(id, &t)| (id.clone(), t))
-                    .collect();
+                let mut all_entries: Vec<(String, u64)> =
+                    last_access.iter().map(|(id, &t)| (id.clone(), t)).collect();
                 all_entries.sort_by_key(|(_, t)| *t);
                 let excess = sessions.len() - MAX_CACHED_SESSIONS;
                 for (session_id, _) in all_entries.into_iter().take(excess) {
@@ -291,7 +312,10 @@ impl SessionManager {
 
         // Perform eviction with consistent lock order: conversation_index → sessions → session_last_access
         if !to_evict.is_empty() {
-            info!("[SessionManager] Evicting {} stale sessions", to_evict.len());
+            info!(
+                "[SessionManager] Evicting {} stale sessions",
+                to_evict.len()
+            );
             let mut conv_index = self.conversation_index.lock().await;
             let mut sessions = self.sessions.lock().await;
             let mut last_access = self.session_last_access.lock().await;
@@ -335,13 +359,16 @@ impl SessionManager {
         system_prompt: Vec<String>,
         conversation_id: String,
         permission_mode: PermissionMode,
-        prompters: Arc<tokio::sync::Mutex<std::collections::HashMap<String, ChannelPermissionPrompter>>>,
+        prompters: Arc<
+            tokio::sync::Mutex<std::collections::HashMap<String, ChannelPermissionPrompter>>,
+        >,
         cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
         agent_paused: Option<Arc<tokio::sync::Mutex<std::collections::HashSet<String>>>>,
     ) -> Result<(axagent_runtime::TurnSummary, axagent_runtime::Session), RuntimeError> {
-        let session = self.get_session(session_id).await.ok_or_else(
-            || RuntimeError::new(format!("Session not found: {}", session_id))
-        )?;
+        let session = self
+            .get_session(session_id)
+            .await
+            .ok_or_else(|| RuntimeError::new(format!("Session not found: {}", session_id)))?;
 
         // Auto-compact if the session exceeds the token threshold.
         // Use CompactionConfig::default() consistently for both the check
@@ -351,62 +378,105 @@ impl SessionManager {
             let result = compact_session(session.session(), compaction_config);
 
             // Build MessageRecords for integrity verification
-            let original_msgs: Vec<axagent_trajectory::MessageRecord> = session.session().messages.iter().enumerate().map(|(i, m)| {
-                let role_str = match m.role {
-                    axagent_runtime::MessageRole::System => "system",
-                    axagent_runtime::MessageRole::User => "user",
-                    axagent_runtime::MessageRole::Assistant => "assistant",
-                    axagent_runtime::MessageRole::Tool => "tool",
-                };
-                let content: String = m.blocks.iter().map(|b| match b {
-                    axagent_runtime::ContentBlock::Text { text } => text.clone(),
-                    axagent_runtime::ContentBlock::ToolUse { name, input, .. } => format!("[ToolUse: {} {}]", name, input),
-                    axagent_runtime::ContentBlock::ToolResult { tool_name, output, .. } => format!("[ToolResult: {} {}]", tool_name, output),
-                }).collect();
-                axagent_trajectory::MessageRecord {
-                    id: format!("orig-{}", i),
-                    role: role_str.to_string(),
-                    content,
-                    message_type: None,
-                    timestamp: i as i64,
-                    tool_calls: Some(m.blocks.iter().any(|b| matches!(b, axagent_runtime::ContentBlock::ToolUse { .. }))),
-                }
-            }).collect();
-            let compressed_msgs: Vec<axagent_trajectory::MessageRecord> = result.compacted_session.messages.iter().enumerate().map(|(i, m)| {
-                let role_str = match m.role {
-                    axagent_runtime::MessageRole::System => "system",
-                    axagent_runtime::MessageRole::User => "user",
-                    axagent_runtime::MessageRole::Assistant => "assistant",
-                    axagent_runtime::MessageRole::Tool => "tool",
-                };
-                let content: String = m.blocks.iter().map(|b| match b {
-                    axagent_runtime::ContentBlock::Text { text } => text.clone(),
-                    axagent_runtime::ContentBlock::ToolUse { name, input, .. } => format!("[ToolUse: {} {}]", name, input),
-                    axagent_runtime::ContentBlock::ToolResult { tool_name, output, .. } => format!("[ToolResult: {} {}]", tool_name, output),
-                }).collect();
-                axagent_trajectory::MessageRecord {
-                    id: format!("comp-{}", i),
-                    role: role_str.to_string(),
-                    content,
-                    message_type: None,
-                    timestamp: i as i64,
-                    tool_calls: Some(m.blocks.iter().any(|b| matches!(b, axagent_runtime::ContentBlock::ToolUse { .. }))),
-                }
-            }).collect();
+            let original_msgs: Vec<axagent_trajectory::MessageRecord> = session
+                .session()
+                .messages
+                .iter()
+                .enumerate()
+                .map(|(i, m)| {
+                    let role_str = match m.role {
+                        axagent_runtime::MessageRole::System => "system",
+                        axagent_runtime::MessageRole::User => "user",
+                        axagent_runtime::MessageRole::Assistant => "assistant",
+                        axagent_runtime::MessageRole::Tool => "tool",
+                    };
+                    let content: String = m
+                        .blocks
+                        .iter()
+                        .map(|b| match b {
+                            axagent_runtime::ContentBlock::Text { text } => text.clone(),
+                            axagent_runtime::ContentBlock::ToolUse { name, input, .. } => {
+                                format!("[ToolUse: {} {}]", name, input)
+                            }
+                            axagent_runtime::ContentBlock::ToolResult {
+                                tool_name, output, ..
+                            } => format!("[ToolResult: {} {}]", tool_name, output),
+                        })
+                        .collect();
+                    axagent_trajectory::MessageRecord {
+                        id: format!("orig-{}", i),
+                        role: role_str.to_string(),
+                        content,
+                        message_type: None,
+                        timestamp: i as i64,
+                        tool_calls: Some(
+                            m.blocks.iter().any(|b| {
+                                matches!(b, axagent_runtime::ContentBlock::ToolUse { .. })
+                            }),
+                        ),
+                    }
+                })
+                .collect();
+            let compressed_msgs: Vec<axagent_trajectory::MessageRecord> = result
+                .compacted_session
+                .messages
+                .iter()
+                .enumerate()
+                .map(|(i, m)| {
+                    let role_str = match m.role {
+                        axagent_runtime::MessageRole::System => "system",
+                        axagent_runtime::MessageRole::User => "user",
+                        axagent_runtime::MessageRole::Assistant => "assistant",
+                        axagent_runtime::MessageRole::Tool => "tool",
+                    };
+                    let content: String = m
+                        .blocks
+                        .iter()
+                        .map(|b| match b {
+                            axagent_runtime::ContentBlock::Text { text } => text.clone(),
+                            axagent_runtime::ContentBlock::ToolUse { name, input, .. } => {
+                                format!("[ToolUse: {} {}]", name, input)
+                            }
+                            axagent_runtime::ContentBlock::ToolResult {
+                                tool_name, output, ..
+                            } => format!("[ToolResult: {} {}]", tool_name, output),
+                        })
+                        .collect();
+                    axagent_trajectory::MessageRecord {
+                        id: format!("comp-{}", i),
+                        role: role_str.to_string(),
+                        content,
+                        message_type: None,
+                        timestamp: i as i64,
+                        tool_calls: Some(
+                            m.blocks.iter().any(|b| {
+                                matches!(b, axagent_runtime::ContentBlock::ToolUse { .. })
+                            }),
+                        ),
+                    }
+                })
+                .collect();
 
             // Use SessionCompactor to extract key entities for enhanced integrity verification
             let compactor = axagent_trajectory::SessionCompactor::new();
             let key_entities = compactor.extract_entities(&original_msgs);
 
             let integrity = axagent_trajectory::verify_compression_integrity(
-                &original_msgs, &compressed_msgs, &key_entities,
+                &original_msgs,
+                &compressed_msgs,
+                &key_entities,
             );
             if !integrity.is_valid {
-                let failed_checks: Vec<&str> = integrity.checks.iter()
+                let failed_checks: Vec<&str> = integrity
+                    .checks
+                    .iter()
                     .filter(|c| !c.passed)
                     .map(|c| c.name.as_str())
                     .collect();
-                info!("Compression integrity warning: failed checks: {:?}", failed_checks);
+                info!(
+                    "Compression integrity warning: failed checks: {:?}",
+                    failed_checks
+                );
             } else {
                 info!("Compression integrity verified: all {} checks passed ({} key entities tracked)", integrity.checks.len(), key_entities.len());
             }
@@ -432,7 +502,9 @@ impl SessionManager {
             permission_policy,
             system_prompt,
         )
-        .with_max_iterations(dynamic_max_iterations(&axagent_trajectory::estimate_complexity_public(&user_input)))
+        .with_max_iterations(dynamic_max_iterations(
+            &axagent_trajectory::estimate_complexity_public(&user_input),
+        ))
         .with_auto_compaction_input_tokens_threshold(AUTO_COMPACTION_TOKEN_THRESHOLD as u32);
 
         // Attach cancel token if provided
@@ -456,7 +528,10 @@ impl SessionManager {
 
         // Add Tauri event reporter for tool progress
         if let Some(handle) = app_handle {
-            let reporter = Box::new(TauriHookProgressReporter::new(handle, conversation_id.clone()));
+            let reporter = Box::new(TauriHookProgressReporter::new(
+                handle,
+                conversation_id.clone(),
+            ));
             runtime = runtime.with_hook_progress_reporter(reporter);
         }
 
@@ -490,7 +565,8 @@ impl SessionManager {
 
         // Persist updates
         if let Some(axagent_session_id) = session.axagent_session_id() {
-            let tokens_delta = summary.usage.input_tokens as i32 + summary.usage.output_tokens as i32;
+            let tokens_delta =
+                summary.usage.input_tokens as i32 + summary.usage.output_tokens as i32;
             // Cost is now calculated in agent_query command and emitted via agent-done event.
             // The DB field is kept for historical records; we store 0.0 here as the
             // authoritative cost comes from the event payload.
@@ -503,7 +579,8 @@ impl SessionManager {
                 None,
                 tokens_delta,
                 cost_delta,
-            ).await;
+            )
+            .await;
         }
 
         // Store updated session back
@@ -513,8 +590,6 @@ impl SessionManager {
         Ok((summary, updated_session))
     }
 }
-
-
 
 // ---------------------------------------------------------------------------
 // ChannelPermissionPrompter — bridges runtime permission prompts to the Tauri
@@ -538,7 +613,9 @@ pub struct ChannelPermissionPrompter {
 
 struct ChannelPermissionPrompterInner {
     /// Maps request_id → Sender that agent_approve will use to unblock.
-    pending_senders: std::sync::Mutex<std::collections::HashMap<String, std::sync::mpsc::Sender<PermissionPromptDecision>>>,
+    pending_senders: std::sync::Mutex<
+        std::collections::HashMap<String, std::sync::mpsc::Sender<PermissionPromptDecision>>,
+    >,
     /// Tools the user has marked "always allow" for this conversation.
     always_allowed: std::sync::Mutex<HashSet<String>>,
     /// Workspace root directory for file write boundary checks.
@@ -565,7 +642,11 @@ impl ChannelPermissionPrompter {
 
     /// Returns the number of pending permission requests.
     pub fn pending_count(&self) -> usize {
-        self.inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner()).len()
+        self.inner
+            .pending_senders
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .len()
     }
 
     /// Register a sender for a pending request. Called by `agent_approve` command
@@ -591,7 +672,11 @@ impl ChannelPermissionPrompter {
 
     /// Get the current "always allowed" set.
     pub fn get_always_allowed(&self) -> HashSet<String> {
-        self.inner.always_allowed.lock().map(|s| s.clone()).unwrap_or_default()
+        self.inner
+            .always_allowed
+            .lock()
+            .map(|s| s.clone())
+            .unwrap_or_default()
     }
 
     /// Clean up any stale pending senders (e.g. on conversation switch).
@@ -617,7 +702,10 @@ impl PermissionPrompter for ChannelPermissionPrompter {
         // Check "always allowed" first
         if let Ok(set) = self.inner.always_allowed.lock() {
             if set.contains(&request.tool_name) {
-                info!("[ChannelPermissionPrompter] Auto-allowing '{}' (always allowed)", request.tool_name);
+                info!(
+                    "[ChannelPermissionPrompter] Auto-allowing '{}' (always allowed)",
+                    request.tool_name
+                );
                 return PermissionPromptDecision::Allow;
             }
         }
@@ -625,27 +713,44 @@ impl PermissionPrompter for ChannelPermissionPrompter {
         // Fine-grained enforcement checks before prompting the user.
         // These catch operations that should be hard-denied regardless of user choice
         // (e.g., writing outside workspace, dangerous bash commands in read-only mode).
-        let enforcer = axagent_runtime::permission_enforcer::PermissionEnforcer::new(PermissionPolicy::new(request.current_mode));
+        let enforcer = axagent_runtime::permission_enforcer::PermissionEnforcer::new(
+            PermissionPolicy::new(request.current_mode),
+        );
         let tool_name_lower = request.tool_name.to_lowercase();
 
         // Check file write boundary for write/edit/create tools
-        if tool_name_lower.contains("write") || tool_name_lower.contains("edit")
-            || tool_name_lower.contains("create") || tool_name_lower.contains("patch")
+        if tool_name_lower.contains("write")
+            || tool_name_lower.contains("edit")
+            || tool_name_lower.contains("create")
+            || tool_name_lower.contains("patch")
         {
             // Try to extract a file path from the input JSON
             if let Ok(input_val) = serde_json::from_str::<serde_json::Value>(&request.input) {
-                let path = input_val.get("path").or_else(|| input_val.get("file_path"))
+                let path = input_val
+                    .get("path")
+                    .or_else(|| input_val.get("file_path"))
                     .or_else(|| input_val.get("filePath"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
                 if !path.is_empty() {
                     // Use the cwd as workspace root if available
-                    let workspace_root = self.inner.workspace_root.lock()
-                        .map(|s| s.clone()).unwrap_or_default();
+                    let workspace_root = self
+                        .inner
+                        .workspace_root
+                        .lock()
+                        .map(|s| s.clone())
+                        .unwrap_or_default();
                     if !workspace_root.is_empty() {
                         let result = enforcer.check_file_write(path, &workspace_root);
-                        if let axagent_runtime::permission_enforcer::EnforcementResult::Denied { reason, .. } = result {
-                            info!("[ChannelPermissionPrompter] File write denied by enforcer: {}", reason);
+                        if let axagent_runtime::permission_enforcer::EnforcementResult::Denied {
+                            reason,
+                            ..
+                        } = result
+                        {
+                            info!(
+                                "[ChannelPermissionPrompter] File write denied by enforcer: {}",
+                                reason
+                            );
                             return PermissionPromptDecision::Deny { reason };
                         }
                     }
@@ -654,15 +759,27 @@ impl PermissionPrompter for ChannelPermissionPrompter {
         }
 
         // Check bash command safety
-        if tool_name_lower.contains("bash") || tool_name_lower.contains("shell")
-            || tool_name_lower.contains("exec") || tool_name_lower.contains("run")
+        if tool_name_lower.contains("bash")
+            || tool_name_lower.contains("shell")
+            || tool_name_lower.contains("exec")
+            || tool_name_lower.contains("run")
         {
             if let Ok(input_val) = serde_json::from_str::<serde_json::Value>(&request.input) {
-                let command = input_val.get("command").and_then(|v| v.as_str()).unwrap_or("");
+                let command = input_val
+                    .get("command")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 if !command.is_empty() {
                     let result = enforcer.check_bash(command);
-                    if let axagent_runtime::permission_enforcer::EnforcementResult::Denied { reason, .. } = result {
-                        info!("[ChannelPermissionPrompter] Bash command denied by enforcer: {}", reason);
+                    if let axagent_runtime::permission_enforcer::EnforcementResult::Denied {
+                        reason,
+                        ..
+                    } = result
+                    {
+                        info!(
+                            "[ChannelPermissionPrompter] Bash command denied by enforcer: {}",
+                            reason
+                        );
                         return PermissionPromptDecision::Deny { reason };
                     }
                 }
@@ -685,8 +802,8 @@ impl PermissionPrompter for ChannelPermissionPrompter {
             _ => "write",
         };
 
-        let input_value: serde_json::Value = serde_json::from_str(&request.input)
-            .unwrap_or(serde_json::Value::Null);
+        let input_value: serde_json::Value =
+            serde_json::from_str(&request.input).unwrap_or(serde_json::Value::Null);
 
         let _ = self.app_handle.emit(
             "agent-permission-request",
@@ -748,7 +865,10 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                     }),
                 );
                 PermissionPromptDecision::Deny {
-                    reason: format!("Permission request timed out after {}s (no user response)", PERMISSION_TIMEOUT_SECS),
+                    reason: format!(
+                        "Permission request timed out after {}s (no user response)",
+                        PERMISSION_TIMEOUT_SECS
+                    ),
                 }
             }
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
@@ -773,7 +893,10 @@ pub struct TauriHookProgressReporter {
 
 impl TauriHookProgressReporter {
     pub fn new(app_handle: AppHandle, conversation_id: String) -> Self {
-        Self { app_handle, conversation_id }
+        Self {
+            app_handle,
+            conversation_id,
+        }
     }
 }
 
@@ -781,37 +904,66 @@ impl HookProgressReporter for TauriHookProgressReporter {
     fn on_event(&mut self, event: &HookProgressEvent) {
         let conversation_id = self.conversation_id.clone();
         match event {
-            HookProgressEvent::Started { event: HookEvent::PreToolUse, tool_name, command: _, tool_use_id } => {
-                let _ = self.app_handle.emit("agent-tool-start", serde_json::json!({
-                    "conversationId": conversation_id,
-                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
-                    "toolName": tool_name,
-                    "input": serde_json::Value::Null,
-                    "assistantMessageId": "",
-                }));
+            HookProgressEvent::Started {
+                event: HookEvent::PreToolUse,
+                tool_name,
+                command: _,
+                tool_use_id,
+            } => {
+                let _ = self.app_handle.emit(
+                    "agent-tool-start",
+                    serde_json::json!({
+                        "conversationId": conversation_id,
+                        "toolUseId": tool_use_id.as_deref().unwrap_or(""),
+                        "toolName": tool_name,
+                        "input": serde_json::Value::Null,
+                        "assistantMessageId": "",
+                    }),
+                );
             }
-            HookProgressEvent::Completed { event: HookEvent::PostToolUse, tool_name, command: _, tool_use_id } => {
-                let _ = self.app_handle.emit("agent-tool-result", serde_json::json!({
-                    "conversationId": conversation_id,
-                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
-                    "toolName": tool_name,
-                    "input": serde_json::Value::Null,
-                    "content": "",
-                    "isError": false,
-                    "assistantMessageId": "",
-                }));
+            HookProgressEvent::Completed {
+                event: HookEvent::PostToolUse,
+                tool_name,
+                command: _,
+                tool_use_id,
+            } => {
+                let _ = self.app_handle.emit(
+                    "agent-tool-result",
+                    serde_json::json!({
+                        "conversationId": conversation_id,
+                        "toolUseId": tool_use_id.as_deref().unwrap_or(""),
+                        "toolName": tool_name,
+                        "input": serde_json::Value::Null,
+                        "content": "",
+                        "isError": false,
+                        "assistantMessageId": "",
+                    }),
+                );
             }
-            HookProgressEvent::Cancelled { event: HookEvent::PostToolUse, tool_name, command: _, tool_use_id } |
-            HookProgressEvent::Completed { event: HookEvent::PostToolUseFailure, tool_name, command: _, tool_use_id } => {
-                let _ = self.app_handle.emit("agent-tool-result", serde_json::json!({
-                    "conversationId": conversation_id,
-                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
-                    "toolName": tool_name,
-                    "input": serde_json::Value::Null,
-                    "content": "",
-                    "isError": true,
-                    "assistantMessageId": "",
-                }));
+            HookProgressEvent::Cancelled {
+                event: HookEvent::PostToolUse,
+                tool_name,
+                command: _,
+                tool_use_id,
+            }
+            | HookProgressEvent::Completed {
+                event: HookEvent::PostToolUseFailure,
+                tool_name,
+                command: _,
+                tool_use_id,
+            } => {
+                let _ = self.app_handle.emit(
+                    "agent-tool-result",
+                    serde_json::json!({
+                        "conversationId": conversation_id,
+                        "toolUseId": tool_use_id.as_deref().unwrap_or(""),
+                        "toolName": tool_name,
+                        "input": serde_json::Value::Null,
+                        "content": "",
+                        "isError": true,
+                        "assistantMessageId": "",
+                    }),
+                );
             }
             _ => {}
         }

@@ -139,7 +139,10 @@ fn compute_word_set(text: &str) -> std::collections::HashSet<String> {
         .collect()
 }
 
-fn jaccard_similarity(set1: &std::collections::HashSet<String>, set2: &std::collections::HashSet<String>) -> f32 {
+fn jaccard_similarity(
+    set1: &std::collections::HashSet<String>,
+    set2: &std::collections::HashSet<String>,
+) -> f32 {
     if set1.is_empty() && set2.is_empty() {
         return 1.0;
     }
@@ -189,7 +192,11 @@ fn find_similar_local_tools(
             }
         }
 
-        let final_score = if weight_sum > 0.0 { score / weight_sum } else { 0.0 };
+        let final_score = if weight_sum > 0.0 {
+            score / weight_sum
+        } else {
+            0.0
+        };
 
         if final_score >= min_similarity {
             matches.push(ToolMatchResponse {
@@ -202,7 +209,11 @@ fn find_similar_local_tools(
         }
     }
 
-    matches.sort_by(|a, b| b.similarity_score.partial_cmp(&a.similarity_score).unwrap_or(std::cmp::Ordering::Equal));
+    matches.sort_by(|a, b| {
+        b.similarity_score
+            .partial_cmp(&a.similarity_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     matches
 }
 
@@ -270,7 +281,9 @@ async fn get_mcp_tool_names(db: &sea_orm::DatabaseConnection) -> Result<Vec<Stri
         .map_err(|e| e.to_string())?;
     let mut tool_names = Vec::new();
     for server in servers {
-        if let Ok(tools) = axagent_core::repo::mcp_server::list_tools_for_server(db, &server.id).await {
+        if let Ok(tools) =
+            axagent_core::repo::mcp_server::list_tools_for_server(db, &server.id).await
+        {
             for tool in tools {
                 tool_names.push(tool.name);
             }
@@ -287,7 +300,10 @@ async fn get_local_tool_names(state: &AppState) -> Vec<String> {
 fn get_plugin_tool_names() -> Result<Vec<String>, String> {
     let manager = create_plugin_manager()?;
     let tools = manager.aggregated_tools().map_err(|e| e.to_string())?;
-    Ok(tools.into_iter().map(|t| t.definition().name.clone()).collect())
+    Ok(tools
+        .into_iter()
+        .map(|t| t.definition().name.clone())
+        .collect())
 }
 
 // ── Commands ──
@@ -311,20 +327,28 @@ pub async fn preview_decomposition(
             );
 
             return Ok(DecompositionPreviewResponse {
-                atomic_skills: cached.result.atomic_skills.iter().map(|s| AtomicSkillPreview {
-                    id: s.id.clone(),
-                    name: s.name.clone(),
-                    description: s.description.clone(),
-                    entry_type: s.entry_type.to_string(),
-                    entry_ref: s.entry_ref.clone(),
-                }).collect(),
-                tool_dependencies: dep_results.iter().map(|d| ToolDependencyPreview {
-                    name: d.dependency.name.clone(),
-                    tool_type: d.dependency.tool_type.clone(),
-                    status: format!("{:?}", d.dependency.status),
-                    install_instructions: d.install_instructions.clone(),
-                    config_requirements: d.config_requirements.clone(),
-                }).collect(),
+                atomic_skills: cached
+                    .result
+                    .atomic_skills
+                    .iter()
+                    .map(|s| AtomicSkillPreview {
+                        id: s.id.clone(),
+                        name: s.name.clone(),
+                        description: s.description.clone(),
+                        entry_type: s.entry_type.to_string(),
+                        entry_ref: s.entry_ref.clone(),
+                    })
+                    .collect(),
+                tool_dependencies: dep_results
+                    .iter()
+                    .map(|d| ToolDependencyPreview {
+                        name: d.dependency.name.clone(),
+                        tool_type: d.dependency.tool_type.clone(),
+                        status: format!("{:?}", d.dependency.status),
+                        install_instructions: d.install_instructions.clone(),
+                        config_requirements: d.config_requirements.clone(),
+                    })
+                    .collect(),
                 workflow_nodes: cached.result.workflow_nodes.clone(),
                 workflow_edges: cached.result.workflow_edges.clone(),
                 original_source: CompositeSourceInfoResponse {
@@ -346,8 +370,7 @@ pub async fn preview_decomposition(
         repo: request.repo.clone(),
     };
 
-    let parsed = axagent_trajectory::SkillDecomposer::parse(&composite)
-        .map_err(|e| e.message)?;
+    let parsed = axagent_trajectory::SkillDecomposer::parse(&composite).map_err(|e| e.message)?;
 
     let existing_skills: Vec<axagent_trajectory::AtomicSkill> =
         axagent_core::repo::atomic_skill::list_atomic_skills(&state.sea_db, None, None, None)
@@ -369,7 +392,10 @@ pub async fn preview_decomposition(
                 },
                 entry_ref: m.entry_ref,
                 category: m.category,
-                tags: m.tags.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
+                tags: m
+                    .tags
+                    .and_then(|t| serde_json::from_str(&t).ok())
+                    .unwrap_or_default(),
                 version: m.version,
                 enabled: m.enabled,
                 source: m.source,
@@ -396,28 +422,38 @@ pub async fn preview_decomposition(
 
     {
         let mut cache = DECOMPOSITION_CACHE.lock().await;
-        cache.set(content_hash, CachedDecomposition {
-            result: result.clone(),
-            cache_id: cache_id.clone(),
-            created_at: Instant::now(),
-        });
+        cache.set(
+            content_hash,
+            CachedDecomposition {
+                result: result.clone(),
+                cache_id: cache_id.clone(),
+                created_at: Instant::now(),
+            },
+        );
     }
 
     Ok(DecompositionPreviewResponse {
-        atomic_skills: result.atomic_skills.iter().map(|s| AtomicSkillPreview {
-            id: s.id.clone(),
-            name: s.name.clone(),
-            description: s.description.clone(),
-            entry_type: s.entry_type.to_string(),
-            entry_ref: s.entry_ref.clone(),
-        }).collect(),
-        tool_dependencies: dep_results.iter().map(|d| ToolDependencyPreview {
-            name: d.dependency.name.clone(),
-            tool_type: d.dependency.tool_type.clone(),
-            status: format!("{:?}", d.dependency.status),
-            install_instructions: d.install_instructions.clone(),
-            config_requirements: d.config_requirements.clone(),
-        }).collect(),
+        atomic_skills: result
+            .atomic_skills
+            .iter()
+            .map(|s| AtomicSkillPreview {
+                id: s.id.clone(),
+                name: s.name.clone(),
+                description: s.description.clone(),
+                entry_type: s.entry_type.to_string(),
+                entry_ref: s.entry_ref.clone(),
+            })
+            .collect(),
+        tool_dependencies: dep_results
+            .iter()
+            .map(|d| ToolDependencyPreview {
+                name: d.dependency.name.clone(),
+                tool_type: d.dependency.tool_type.clone(),
+                status: format!("{:?}", d.dependency.status),
+                install_instructions: d.install_instructions.clone(),
+                config_requirements: d.config_requirements.clone(),
+            })
+            .collect(),
         workflow_nodes: result.workflow_nodes,
         workflow_edges: result.workflow_edges,
         original_source: CompositeSourceInfoResponse {
@@ -443,8 +479,7 @@ pub async fn confirm_decomposition(
         repo: request.preview.repo.clone(),
     };
 
-    let parsed = axagent_trajectory::SkillDecomposer::parse(&composite)
-        .map_err(|e| e.message)?;
+    let parsed = axagent_trajectory::SkillDecomposer::parse(&composite).map_err(|e| e.message)?;
 
     let existing_skills: Vec<axagent_trajectory::AtomicSkill> =
         axagent_core::repo::atomic_skill::list_atomic_skills(&state.sea_db, None, None, None)
@@ -466,7 +501,10 @@ pub async fn confirm_decomposition(
                 },
                 entry_ref: m.entry_ref,
                 category: m.category,
-                tags: m.tags.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
+                tags: m
+                    .tags
+                    .and_then(|t| serde_json::from_str(&t).ok())
+                    .unwrap_or_default(),
                 version: m.version,
                 enabled: m.enabled,
                 source: m.source,
@@ -480,8 +518,14 @@ pub async fn confirm_decomposition(
 
     let mut saved_skill_ids = Vec::new();
     for skill in &result.atomic_skills {
-        let input_schema = skill.input_schema.as_ref().and_then(|s| serde_json::to_string(s).ok());
-        let output_schema = skill.output_schema.as_ref().and_then(|s| serde_json::to_string(s).ok());
+        let input_schema = skill
+            .input_schema
+            .as_ref()
+            .and_then(|s| serde_json::to_string(s).ok());
+        let output_schema = skill
+            .output_schema
+            .as_ref()
+            .and_then(|s| serde_json::to_string(s).ok());
         let tags = serde_json::to_string(&skill.tags).ok();
 
         if let Err(e) = axagent_core::repo::atomic_skill::create_atomic_skill(
@@ -547,11 +591,7 @@ pub async fn confirm_decomposition(
                 .iter()
                 .filter_map(|node| {
                     let node_id = node.get("id")?.as_str()?.to_string();
-                    let skill_id = node
-                        .get("data")?
-                        .get("skill_id")?
-                        .as_str()?
-                        .to_string();
+                    let skill_id = node.get("data")?.get("skill_id")?.as_str()?.to_string();
                     Some((skill_id, node_id))
                 })
                 .collect()
@@ -560,7 +600,10 @@ pub async fn confirm_decomposition(
 
     for skill_id in &saved_skill_ids {
         let ref_id = uuid::Uuid::new_v4().to_string();
-        let node_id = skill_node_map.get(skill_id).cloned().unwrap_or_else(|| "decomposed".to_string());
+        let node_id = skill_node_map
+            .get(skill_id)
+            .cloned()
+            .unwrap_or_else(|| "decomposed".to_string());
         if let Err(e) = axagent_core::repo::skill_reference::create_reference(
             &state.sea_db,
             &ref_id,
@@ -603,9 +646,7 @@ pub async fn generate_missing_tool(
     let template = "You are a tool that processes the following input according to its description.\n\nInput: {{{{input}}}}\n\nProcess the input and return a result that matches the expected output format.".to_string();
 
     let tool = axagent_runtime::tool_generator::ToolGenerator::parse_agent_response(
-        &template,
-        &input,
-        None,
+        &template, &input, None,
     )
     .map_err(|e| e.to_string())?;
 
@@ -651,7 +692,9 @@ pub async fn check_tool_semantic_matches(
         }
     }
 
-    Ok(ToolSemanticCheckResponse { matches: all_matches })
+    Ok(ToolSemanticCheckResponse {
+        matches: all_matches,
+    })
 }
 
 #[tauri::command]
@@ -663,10 +706,12 @@ pub async fn upgrade_tool_with_llm(
         .await
         .map_err(|e| e.to_string())?;
 
-    let provider_id = settings.default_provider_id
+    let provider_id = settings
+        .default_provider_id
         .as_ref()
         .ok_or_else(|| "No default provider configured".to_string())?;
-    let model_id = settings.default_model_id
+    let model_id = settings
+        .default_model_id
         .as_ref()
         .ok_or_else(|| "No default model configured".to_string())?;
 
@@ -678,8 +723,9 @@ pub async fn upgrade_tool_with_llm(
         .await
         .map_err(|e| e.to_string())?;
 
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+            .map_err(|e| e.to_string())?;
 
     let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let registry_key = match provider.provider_type {
@@ -692,27 +738,33 @@ pub async fn upgrade_tool_with_llm(
         axagent_core::types::ProviderType::Ollama => "ollama",
     };
 
-    let adapter = registry.get(registry_key)
+    let adapter = registry
+        .get(registry_key)
         .ok_or_else(|| format!("Provider adapter not found for {}", registry_key))?;
 
-    let existing_input = request.existing_input_schema
+    let existing_input = request
+        .existing_input_schema
         .as_ref()
         .map(|j| serde_json::to_string_pretty(j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
-    let existing_output = request.existing_output_schema
+    let existing_output = request
+        .existing_output_schema
         .as_ref()
         .map(|j| serde_json::to_string_pretty(j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
-    let generated_input = request.generated_input_schema
+    let generated_input = request
+        .generated_input_schema
         .as_ref()
         .map(|j| serde_json::to_string_pretty(j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
-    let generated_output = request.generated_output_schema
+    let generated_output = request
+        .generated_output_schema
         .as_ref()
         .map(|j| serde_json::to_string_pretty(j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
 
-    let prompt = format!(r#"You are an AI tool upgrade advisor. Your task is to analyze an existing tool and a newly generated tool specification, then produce an improved version.
+    let prompt = format!(
+        r#"You are an AI tool upgrade advisor. Your task is to analyze an existing tool and a newly generated tool specification, then produce an improved version.
 
 ## Existing Tool (MUST BE PRESERVED - used by existing workflows)
 - Name: {}
@@ -766,7 +818,8 @@ Only output the JSON, no other text."#,
         generated_output
     );
 
-    let base_url = axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
+    let base_url =
+        axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
     let ctx = axagent_providers::ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id,
@@ -781,17 +834,15 @@ Only output the JSON, no other text."#,
         store_response: None,
     };
 
-    use axagent_core::types::{ChatRequest, ChatMessage, ChatContent};
+    use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
     let llm_request = ChatRequest {
         model: model_id.clone(),
-        messages: vec![
-            ChatMessage {
-                role: "user".to_string(),
-                content: ChatContent::Text(prompt),
-                tool_calls: None,
-                tool_call_id: None,
-            }
-        ],
+        messages: vec![ChatMessage {
+            role: "user".to_string(),
+            content: ChatContent::Text(prompt),
+            tool_calls: None,
+            tool_call_id: None,
+        }],
         temperature: Some(0.7),
         top_p: None,
         max_tokens: Some(4096),
@@ -807,7 +858,9 @@ Only output the JSON, no other text."#,
         store: None,
     };
 
-    let response = adapter.chat(&ctx, llm_request).await
+    let response = adapter
+        .chat(&ctx, llm_request)
+        .await
         .map_err(|e| format!("LLM call failed: {}", e))?;
 
     let content = response.content.trim();
@@ -819,8 +872,145 @@ Only output the JSON, no other text."#,
         _ => content,
     };
 
-    let suggestion: ToolUpgradeSuggestion = serde_json::from_str(json_str)
-        .map_err(|e| format!("Failed to parse LLM response as JSON: {}. Content: {}", e, content))?;
+    let suggestion: ToolUpgradeSuggestion = serde_json::from_str(json_str).map_err(|e| {
+        format!(
+            "Failed to parse LLM response as JSON: {}. Content: {}",
+            e, content
+        )
+    })?;
 
     Ok(ToolUpgradeResponse { suggestion })
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct MarketplaceSkillContent {
+    pub content: String,
+    pub file_name: String,
+    pub found: bool,
+    pub error: Option<String>,
+}
+
+const SKILL_FILENAMES: [&str; 4] = ["SKILL.md", "skill.md", "README.md", "readme.md"];
+
+#[tauri::command]
+pub async fn get_marketplace_skill_content(
+    repo: String,
+) -> Result<MarketplaceSkillContent, String> {
+    let parts: Vec<&str> = repo.split('/').collect();
+    if parts.len() != 2 {
+        return Err(format!(
+            "Invalid repo format: '{}'. Expected 'owner/repo'",
+            repo
+        ));
+    }
+    let owner = parts[0];
+    let repo_name = parts[1];
+
+    let client = reqwest::Client::new();
+
+    let default_branch = {
+        let url = format!("https://api.github.com/repos/{}/{}", owner, repo_name);
+        let response = client
+            .get(&url)
+            .header("User-Agent", "AxAgent")
+            .header("Accept", "application/vnd.github.v3+json")
+            .send()
+            .await
+            .map_err(|e| format!("Failed to fetch repo info: {}", e))?;
+
+        if !response.status().is_success() {
+            return Err(format!(
+                "GitHub API returned {}: {}",
+                response.status(),
+                response.text().await.unwrap_or_default()
+            ));
+        }
+
+        let body: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse repo info: {}", e))?;
+        body["default_branch"]
+            .as_str()
+            .unwrap_or("main")
+            .to_string()
+    };
+
+    let contents_url = format!(
+        "https://api.github.com/repos/{}/{}/contents?ref={}",
+        owner, repo_name, default_branch
+    );
+    let response = client
+        .get(&contents_url)
+        .header("User-Agent", "AxAgent")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch contents: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "GitHub Contents API returned {}",
+            response.status()
+        ));
+    }
+
+    let contents: Vec<serde_json::Value> = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse contents: {}", e))?;
+
+    let md_files: Vec<&serde_json::Value> = contents
+        .iter()
+        .filter(|item| {
+            item["type"].as_str() == Some("file")
+                && item["name"]
+                    .as_str()
+                    .map(|n| n.to_uppercase().ends_with(".MD"))
+                    .unwrap_or(false)
+        })
+        .collect();
+
+    for filename in &SKILL_FILENAMES {
+        if let Some(file) = md_files.iter().find(|f| {
+            f["name"]
+                .as_str()
+                .map(|n| n.eq_ignore_ascii_case(filename))
+                .unwrap_or(false)
+        }) {
+            let download_url = file["download_url"].as_str().unwrap_or("");
+            if download_url.is_empty() {
+                continue;
+            }
+            let content_response = client
+                .get(download_url)
+                .header("User-Agent", "AxAgent")
+                .send()
+                .await
+                .map_err(|e| format!("Failed to download file: {}", e))?;
+
+            if content_response.status().is_success() {
+                let content = content_response
+                    .text()
+                    .await
+                    .map_err(|e| format!("Failed to read file content: {}", e))?;
+                return Ok(MarketplaceSkillContent {
+                    content,
+                    file_name: file["name"].as_str().unwrap_or(filename).to_string(),
+                    found: true,
+                    error: None,
+                });
+            }
+        }
+    }
+
+    Ok(MarketplaceSkillContent {
+        content: String::new(),
+        file_name: String::new(),
+        found: false,
+        error: Some(format!(
+            "No skill definition file found. Searched for: {}",
+            SKILL_FILENAMES.join(", ")
+        )),
+    })
 }

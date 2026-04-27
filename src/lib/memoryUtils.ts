@@ -9,7 +9,7 @@ export interface MemoryRetrievedItem {
 }
 
 export interface MemorySourceResult {
-  source_type: 'knowledge' | 'memory';
+  source_type: "knowledge" | "memory";
   container_id: string;
   items: MemoryRetrievedItem[];
 }
@@ -23,13 +23,13 @@ export interface RagContextRetrievedEvent {
  * Build a `<knowledge-retrieval>` custom tag for markstream-react rendering.
  */
 export function buildKnowledgeTag(
-  status: 'searching' | 'done' | 'error',
+  status: "searching" | "done" | "error",
   sources?: MemorySourceResult[],
 ): string {
-  if (status === 'searching') {
+  if (status === "searching") {
     return '<knowledge-retrieval status="searching" data-axagent="1"></knowledge-retrieval>';
   }
-  if (status === 'error') {
+  if (status === "error") {
     return '<knowledge-retrieval status="error" data-axagent="1"></knowledge-retrieval>';
   }
   const json = JSON.stringify(sources ?? []);
@@ -40,13 +40,13 @@ export function buildKnowledgeTag(
  * Build a `<memory-retrieval>` custom tag for markstream-react rendering.
  */
 export function buildMemoryTag(
-  status: 'searching' | 'done' | 'error',
+  status: "searching" | "done" | "error",
   sources?: MemorySourceResult[],
 ): string {
-  if (status === 'searching') {
+  if (status === "searching") {
     return '<memory-retrieval status="searching" data-axagent="1"></memory-retrieval>';
   }
-  if (status === 'error') {
+  if (status === "error") {
     return '<memory-retrieval status="error" data-axagent="1"></memory-retrieval>';
   }
   const json = JSON.stringify(sources ?? []);

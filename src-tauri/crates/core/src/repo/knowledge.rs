@@ -38,6 +38,7 @@ fn model_to_doc(m: knowledge_documents::Model) -> KnowledgeDocument {
         indexing_status: m.indexing_status,
         doc_type: m.doc_type,
         index_error: m.index_error,
+        source_conversation_id: m.source_conversation_id,
     }
 }
 
@@ -205,11 +206,7 @@ pub async fn add_document(
     Ok(model_to_doc(model))
 }
 
-pub async fn update_document_status(
-    db: &DatabaseConnection,
-    id: &str,
-    status: &str,
-) -> Result<()> {
+pub async fn update_document_status(db: &DatabaseConnection, id: &str, status: &str) -> Result<()> {
     update_document_status_with_error(db, id, status, None).await
 }
 

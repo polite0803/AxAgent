@@ -1,6 +1,8 @@
+use crate::builtin_tools_registry::{
+    get_global_db_path, get_handler, register_builtin_handler, BoxedToolHandler,
+};
 use crate::error::{AxAgentError, Result};
 use crate::mcp_client::McpToolResult;
-use crate::builtin_tools_registry::{register_builtin_handler, get_handler, get_global_db_path, BoxedToolHandler};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -34,281 +36,1393 @@ fn load_skills_metadata(path: &std::path::Path) -> Result<Vec<SkillMetadata>> {
     if !path.exists() {
         return Ok(Vec::new());
     }
-    let content = std::fs::read_to_string(path).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    let content =
+        std::fs::read_to_string(path).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
     serde_json::from_str(&content).map_err(|e| AxAgentError::Gateway(e.to_string()))
 }
 
 #[allow(dead_code)]
 fn save_skills_metadata(path: &std::path::Path, skills: &[SkillMetadata]) -> Result<()> {
-    let content = serde_json::to_string_pretty(skills).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    let content =
+        serde_json::to_string_pretty(skills).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
     std::fs::write(path, content).map_err(|e| AxAgentError::Gateway(e.to_string()))
 }
 
 pub fn init_builtin_handlers() {
-    register_builtin_handler("@axagent/fetch", "fetch_url", make_handler(|args: Value| {
-        Box::pin(async move {
-            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default();
-            let max_length = args.get("max_length").and_then(|v| v.as_u64()).map(|v| v as usize);
-            fetch_url(url, max_length).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/fetch",
+        "fetch_url",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default();
+                let max_length = args
+                    .get("max_length")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                fetch_url(url, max_length).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/fetch", "fetch_markdown", make_handler(|args: Value| {
-        Box::pin(async move {
-            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default();
-            let max_length = args.get("max_length").and_then(|v| v.as_u64()).map(|v| v as usize);
-            fetch_markdown(url, max_length).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/fetch",
+        "fetch_markdown",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default();
+                let max_length = args
+                    .get("max_length")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                fetch_markdown(url, max_length).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/search-file", "read_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            read_file(path).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/search-file",
+        "read_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                read_file(path).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/search-file", "list_directory", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
-            list_directory(path).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/search-file",
+        "list_directory",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+                list_directory(path).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/search-file", "search_files", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
-            let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("*");
-            let max_results = args.get("max_results").and_then(|v| v.as_u64()).map(|v| v as usize);
-            search_files(path, pattern, max_results).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/search-file",
+        "search_files",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+                let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("*");
+                let max_results = args
+                    .get("max_results")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                search_files(path, pattern, max_results).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/search-file", "grep_content", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
-            let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or_default();
-            let file_pattern = args.get("file_pattern").and_then(|v| v.as_str()).unwrap_or("*");
-            let max_results = args.get("max_results").and_then(|v| v.as_u64()).map(|v| v as usize);
-            grep_content(path, pattern, file_pattern, max_results).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/search-file",
+        "grep_content",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+                let pattern = args
+                    .get("pattern")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let file_pattern = args
+                    .get("file_pattern")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("*");
+                let max_results = args
+                    .get("max_results")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                grep_content(path, pattern, file_pattern, max_results).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/filesystem", "write_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            let content = args.get("content").and_then(|v| v.as_str()).unwrap_or_default();
-            write_file(path, content).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/filesystem",
+        "write_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let content = args
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                write_file(path, content).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/filesystem", "edit_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            let old_str = args.get("old_str").and_then(|v| v.as_str()).unwrap_or_default();
-            let new_str = args.get("new_str").and_then(|v| v.as_str()).unwrap_or_default();
-            edit_file(path, old_str, new_str).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/filesystem",
+        "edit_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let old_str = args
+                    .get("old_str")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let new_str = args
+                    .get("new_str")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                edit_file(path, old_str, new_str).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/filesystem", "delete_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            delete_file(path).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/filesystem",
+        "delete_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                delete_file(path).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/filesystem", "create_directory", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            create_directory(path).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/filesystem",
+        "create_directory",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                create_directory(path).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/filesystem", "file_exists", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            file_exists(path).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/filesystem",
+        "file_exists",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                file_exists(path).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/filesystem", "get_file_info", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            get_file_info(path).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/filesystem",
+        "get_file_info",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                get_file_info(path).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/filesystem", "move_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let source = args.get("source").and_then(|v| v.as_str()).unwrap_or_default();
-            let destination = args.get("destination").and_then(|v| v.as_str()).unwrap_or_default();
-            move_file(source, destination).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/filesystem",
+        "move_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let source = args
+                    .get("source")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let destination = args
+                    .get("destination")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                move_file(source, destination).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/system", "run_command", make_handler(|args: Value| {
-        Box::pin(async move {
-            let command = args.get("command").and_then(|v| v.as_str()).unwrap_or_default();
-            let timeout_secs = args.get("timeout_secs").and_then(|v| v.as_u64()).unwrap_or(30);
-            run_command(command, timeout_secs).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/system",
+        "run_command",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let command = args
+                    .get("command")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let timeout_secs = args
+                    .get("timeout_secs")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(30);
+                run_command(command, timeout_secs).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/system", "get_system_info", make_handler(|_args: Value| {
-        Box::pin(async move { get_system_info() })
-    }));
+    register_builtin_handler(
+        "@axagent/system",
+        "get_system_info",
+        make_handler(|_args: Value| Box::pin(async move { get_system_info() })),
+    );
 
-    register_builtin_handler("@axagent/system", "list_processes", make_handler(|args: Value| {
-        Box::pin(async move {
-            let limit = args.get("limit").and_then(|v| v.as_u64()).map(|v| v as usize).unwrap_or(20);
-            list_processes(limit).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/system",
+        "list_processes",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let limit = args
+                    .get("limit")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize)
+                    .unwrap_or(20);
+                list_processes(limit).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/knowledge", "list_knowledge_bases", make_handler(|_args: Value| {
-        Box::pin(async move { list_knowledge_bases() })
-    }));
+    register_builtin_handler(
+        "@axagent/knowledge",
+        "list_knowledge_bases",
+        make_handler(|_args: Value| Box::pin(async move { list_knowledge_bases() })),
+    );
 
-    register_builtin_handler("@axagent/knowledge", "search_knowledge", make_handler(|args: Value| {
-        Box::pin(async move {
-            let base_id = args.get("base_id").and_then(|v| v.as_str()).unwrap_or_default();
-            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or_default();
-            let top_k = args.get("top_k").and_then(|v| v.as_u64()).map(|v| v as usize).unwrap_or(5);
-            search_knowledge(base_id.to_string(), query.to_string(), top_k).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/knowledge",
+        "search_knowledge",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let base_id = args
+                    .get("base_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let query = args
+                    .get("query")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let top_k = args
+                    .get("top_k")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize)
+                    .unwrap_or(5);
+                search_knowledge(base_id.to_string(), query.to_string(), top_k).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/knowledge", "create_knowledge_entity", make_handler(|args: Value| {
-        Box::pin(async move {
-            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
-            let entity_type = args.get("entity_type").and_then(|v| v.as_str()).unwrap_or("entity");
-            let description = args.get("description").and_then(|v| v.as_str());
-            let source_path = args.get("source_path").and_then(|v| v.as_str()).unwrap_or_default();
-            let source_language = args.get("source_language").and_then(|v| v.as_str());
-            let properties = args.get("properties").cloned().unwrap_or(serde_json::Value::Null);
-            let lifecycle = args.get("lifecycle").cloned();
-            let behaviors = args.get("behaviors").cloned();
-            create_knowledge_entity_tool(kb_id, name, entity_type, description, source_path, source_language, properties, lifecycle, behaviors).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/knowledge",
+        "create_knowledge_entity",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let kb_id = args
+                    .get("knowledge_base_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let name = args
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let entity_type = args
+                    .get("entity_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("entity");
+                let description = args.get("description").and_then(|v| v.as_str());
+                let source_path = args
+                    .get("source_path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let source_language = args.get("source_language").and_then(|v| v.as_str());
+                let properties = args
+                    .get("properties")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null);
+                let lifecycle = args.get("lifecycle").cloned();
+                let behaviors = args.get("behaviors").cloned();
+                create_knowledge_entity_tool(
+                    kb_id,
+                    name,
+                    entity_type,
+                    description,
+                    source_path,
+                    source_language,
+                    properties,
+                    lifecycle,
+                    behaviors,
+                )
+                .await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/knowledge", "create_knowledge_flow", make_handler(|args: Value| {
-        Box::pin(async move {
-            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
-            let flow_type = args.get("flow_type").and_then(|v| v.as_str()).unwrap_or("process");
-            let description = args.get("description").and_then(|v| v.as_str());
-            let source_path = args.get("source_path").and_then(|v| v.as_str()).unwrap_or_default();
-            let steps = args.get("steps").cloned().unwrap_or(serde_json::Value::Null);
-            let decision_points = args.get("decision_points").cloned();
-            let error_handling = args.get("error_handling").cloned();
-            let preconditions = args.get("preconditions").cloned();
-            let postconditions = args.get("postconditions").cloned();
-            create_knowledge_flow_tool(kb_id, name, flow_type, description, source_path, steps, decision_points, error_handling, preconditions, postconditions).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/knowledge",
+        "create_knowledge_flow",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let kb_id = args
+                    .get("knowledge_base_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let name = args
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let flow_type = args
+                    .get("flow_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("process");
+                let description = args.get("description").and_then(|v| v.as_str());
+                let source_path = args
+                    .get("source_path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let steps = args
+                    .get("steps")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null);
+                let decision_points = args.get("decision_points").cloned();
+                let error_handling = args.get("error_handling").cloned();
+                let preconditions = args.get("preconditions").cloned();
+                let postconditions = args.get("postconditions").cloned();
+                create_knowledge_flow_tool(
+                    kb_id,
+                    name,
+                    flow_type,
+                    description,
+                    source_path,
+                    steps,
+                    decision_points,
+                    error_handling,
+                    preconditions,
+                    postconditions,
+                )
+                .await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/knowledge", "create_knowledge_interface", make_handler(|args: Value| {
-        Box::pin(async move {
-            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
-            let interface_type = args.get("interface_type").and_then(|v| v.as_str()).unwrap_or("api");
-            let description = args.get("description").and_then(|v| v.as_str());
-            let source_path = args.get("source_path").and_then(|v| v.as_str()).unwrap_or_default();
-            let input_schema = args.get("input_schema").cloned().unwrap_or(serde_json::Value::Null);
-            let output_schema = args.get("output_schema").cloned().unwrap_or(serde_json::Value::Null);
-            let error_codes = args.get("error_codes").cloned();
-            let communication_pattern = args.get("communication_pattern").and_then(|v| v.as_str());
-            create_knowledge_interface_tool(kb_id, name, interface_type, description, source_path, input_schema, output_schema, error_codes, communication_pattern).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/knowledge",
+        "create_knowledge_interface",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let kb_id = args
+                    .get("knowledge_base_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let name = args
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let interface_type = args
+                    .get("interface_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("api");
+                let description = args.get("description").and_then(|v| v.as_str());
+                let source_path = args
+                    .get("source_path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let input_schema = args
+                    .get("input_schema")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null);
+                let output_schema = args
+                    .get("output_schema")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null);
+                let error_codes = args.get("error_codes").cloned();
+                let communication_pattern =
+                    args.get("communication_pattern").and_then(|v| v.as_str());
+                create_knowledge_interface_tool(
+                    kb_id,
+                    name,
+                    interface_type,
+                    description,
+                    source_path,
+                    input_schema,
+                    output_schema,
+                    error_codes,
+                    communication_pattern,
+                )
+                .await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/knowledge", "add_knowledge_document", make_handler(|args: Value| {
-        Box::pin(async move {
-            let kb_id = args.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or_default();
-            let content = args.get("content").and_then(|v| v.as_str()).unwrap_or_default();
-            add_knowledge_document_tool(kb_id, title, content).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/knowledge",
+        "add_knowledge_document",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let kb_id = args
+                    .get("knowledge_base_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let title = args
+                    .get("title")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let content = args
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                add_knowledge_document_tool(kb_id, title, content).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/storage", "get_storage_info", make_handler(|_args: Value| {
-        Box::pin(async move { get_storage_info() })
-    }));
+    register_builtin_handler(
+        "@axagent/storage",
+        "get_storage_info",
+        make_handler(|_args: Value| Box::pin(async move { get_storage_info() })),
+    );
 
-    register_builtin_handler("@axagent/storage", "list_storage_files", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            let limit = args.get("limit").and_then(|v| v.as_u64()).map(|v| v as usize).unwrap_or(50);
-            list_storage_files(path.to_string(), limit)
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/storage",
+        "list_storage_files",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let limit = args
+                    .get("limit")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize)
+                    .unwrap_or(50);
+                list_storage_files(path.to_string(), limit)
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/storage", "upload_storage_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or_default();
-            let content_base64 = args.get("content_base64").and_then(|v| v.as_str()).unwrap_or_default();
-            let bucket = args.get("bucket").and_then(|v| v.as_str()).unwrap_or_default();
-            upload_storage_file(filename.to_string(), content_base64.to_string(), bucket.to_string())
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/storage",
+        "upload_storage_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let filename = args
+                    .get("filename")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let content_base64 = args
+                    .get("content_base64")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let bucket = args
+                    .get("bucket")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                upload_storage_file(
+                    filename.to_string(),
+                    content_base64.to_string(),
+                    bucket.to_string(),
+                )
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/storage", "download_storage_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            download_storage_file(path.to_string())
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/storage",
+        "download_storage_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                download_storage_file(path.to_string())
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/storage", "delete_storage_file", make_handler(|args: Value| {
-        Box::pin(async move {
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default();
-            delete_storage_file(path.to_string())
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/storage",
+        "delete_storage_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                delete_storage_file(path.to_string())
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/search", "web_search", make_handler(|args: Value| {
-        Box::pin(async move {
-            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or_default();
-            let provider_type = args.get("provider_type").and_then(|v| v.as_str()).unwrap_or_default();
-            let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
-            let endpoint = args.get("endpoint").and_then(|v| v.as_str());
-            let max_results = args.get("max_results").and_then(|v| v.as_u64()).map(|v| v as i32).unwrap_or(5);
-            let timeout_ms = args.get("timeout_ms").and_then(|v| v.as_u64()).map(|v| v as i32).unwrap_or(15000);
-            web_search(query, provider_type, api_key, endpoint, max_results, timeout_ms).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/search",
+        "web_search",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let query = args
+                    .get("query")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let provider_type = args
+                    .get("provider_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let api_key = args
+                    .get("api_key")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let endpoint = args.get("endpoint").and_then(|v| v.as_str());
+                let max_results = args
+                    .get("max_results")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as i32)
+                    .unwrap_or(5);
+                let timeout_ms = args
+                    .get("timeout_ms")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as i32)
+                    .unwrap_or(15000);
+                web_search(
+                    query,
+                    provider_type,
+                    api_key,
+                    endpoint,
+                    max_results,
+                    timeout_ms,
+                )
+                .await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/skills", "skill_manage", make_handler(|args: Value| {
-        Box::pin(async move {
-            let action = args.get("action").and_then(|v| v.as_str()).unwrap_or_default();
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
-            let description = args.get("description").and_then(|v| v.as_str()).unwrap_or_default();
-            let content = args.get("content").and_then(|v| v.as_str()).unwrap_or_default();
-            let skills_dir = args.get("skills_dir").and_then(|v| v.as_str()).unwrap_or_default();
-            skill_manage(action, name, description, content, skills_dir).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/skills",
+        "skill_manage",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let action = args
+                    .get("action")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let name = args
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let description = args
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let content = args
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let skills_dir = args
+                    .get("skills_dir")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                skill_manage(action, name, description, content, skills_dir).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/session", "session_search", make_handler(|args: Value| {
-        Box::pin(async move {
-            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or_default();
-            let limit = args.get("limit").and_then(|v| v.as_i64()).map(|v| v as i32).unwrap_or(10);
-            let db_path = args.get("db_path").and_then(|v| v.as_str()).unwrap_or_default();
-            session_search(query, limit, db_path).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/session",
+        "session_search",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let query = args
+                    .get("query")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let limit = args
+                    .get("limit")
+                    .and_then(|v| v.as_i64())
+                    .map(|v| v as i32)
+                    .unwrap_or(10);
+                let db_path = args
+                    .get("db_path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                session_search(query, limit, db_path).await
+            })
+        }),
+    );
 
-    register_builtin_handler("@axagent/memory", "memory_flush", make_handler(|args: Value| {
-        Box::pin(async move {
-            let content = args.get("content").and_then(|v| v.as_str()).unwrap_or_default();
-            let target = args.get("target").and_then(|v| v.as_str()).unwrap_or("memory");
-            let category = args.get("category").and_then(|v| v.as_str()).unwrap_or("insight");
-            memory_flush(content, target, category).await
-        })
-    }));
+    register_builtin_handler(
+        "@axagent/memory",
+        "memory_flush",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let content = args
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let target = args
+                    .get("target")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("memory");
+                let category = args
+                    .get("category")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("insight");
+                memory_flush(content, target, category).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/computer-control",
+        "screen_capture",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let monitor = args
+                    .get("monitor")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as u32);
+                let window_title = args
+                    .get("window_title")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                let region = args
+                    .get("region")
+                    .map(|v| crate::screen_capture::CaptureRegion {
+                        x: v.get("x").and_then(|x| x.as_i64()).unwrap_or(0) as i32,
+                        y: v.get("y").and_then(|y| y.as_i64()).unwrap_or(0) as i32,
+                        width: v.get("width").and_then(|w| w.as_u64()).unwrap_or(0) as u32,
+                        height: v.get("height").and_then(|h| h.as_u64()).unwrap_or(0) as u32,
+                    });
+                match crate::computer_control::screen_capture(monitor, region, window_title).await {
+                    Ok(result) => Ok(McpToolResult {
+                        content: serde_json::to_string(&result).unwrap(),
+                        is_error: false,
+                    }),
+                    Err(e) => Err(AxAgentError::Gateway(e.to_string())),
+                }
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/computer-control",
+        "find_ui_elements",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let query = crate::ui_automation::UIElementQuery {
+                    role: args.get("role").and_then(|v| v.as_str()).map(String::from),
+                    name_contains: args
+                        .get("name_contains")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                    value_contains: None,
+                    application: args
+                        .get("application")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                    window_title: args
+                        .get("window_title")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                    max_depth: None,
+                };
+                match crate::computer_control::find_ui_elements(query).await {
+                    Ok(elements) => Ok(McpToolResult {
+                        content: serde_json::to_string(&elements).unwrap(),
+                        is_error: false,
+                    }),
+                    Err(e) => Err(AxAgentError::Gateway(e.to_string())),
+                }
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/computer-control",
+        "mouse_click",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let x = args.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let y = args.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let button = args
+                    .get("button")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                crate::computer_control::mouse_click(x, y, button)
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Click successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/computer-control",
+        "type_text",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let text = args
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let x = args.get("x").and_then(|v| v.as_f64());
+                let y = args.get("y").and_then(|v| v.as_f64());
+                crate::computer_control::type_text(text.to_string(), x, y)
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Type text successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/computer-control",
+        "press_key",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let key = args.get("key").and_then(|v| v.as_str()).unwrap_or_default();
+                let modifiers: Vec<String> = args
+                    .get("modifiers")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                crate::computer_control::press_key(key.to_string(), modifiers)
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Key press successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/computer-control",
+        "mouse_scroll",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let x = args.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let y = args.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let delta = args.get("delta").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                crate::computer_control::mouse_scroll(x, y, delta)
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Scroll successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_navigate",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default();
+                if url.is_empty() {
+                    return Err(AxAgentError::Gateway("url is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                let result = rt
+                    .block_on(async {
+                        let mut client =
+                            crate::browser_automation::PlaywrightClient::launch().await?;
+                        client.navigate(url).await
+                    })
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: format!("Navigated to {} - Title: {}", result.url, result.title),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_screenshot",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let full_page = args
+                    .get("full_page")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                let result = rt
+                    .block_on(async {
+                        let mut client =
+                            crate::browser_automation::PlaywrightClient::launch().await?;
+                        client.screenshot(full_page).await
+                    })
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: format!("Screenshot captured ({} bytes)", result.image_base64.len()),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_click",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let selector = args
+                    .get("selector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if selector.is_empty() {
+                    return Err(AxAgentError::Gateway("selector is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                rt.block_on(async {
+                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    client.click(selector).await
+                })
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Click successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_fill",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let selector = args
+                    .get("selector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let value = args
+                    .get("value")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if selector.is_empty() {
+                    return Err(AxAgentError::Gateway("selector is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                rt.block_on(async {
+                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    client.fill(selector, value).await
+                })
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Fill successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_type",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let selector = args
+                    .get("selector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let text = args
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if selector.is_empty() {
+                    return Err(AxAgentError::Gateway("selector is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                rt.block_on(async {
+                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    client.type_text(selector, text).await
+                })
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Type successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_extract_text",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let selector = args
+                    .get("selector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if selector.is_empty() {
+                    return Err(AxAgentError::Gateway("selector is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                let text = rt
+                    .block_on(async {
+                        let mut client =
+                            crate::browser_automation::PlaywrightClient::launch().await?;
+                        client.extract_text(selector).await
+                    })
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: text,
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_extract_all",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let selector = args
+                    .get("selector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if selector.is_empty() {
+                    return Err(AxAgentError::Gateway("selector is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                let elements = rt
+                    .block_on(async {
+                        let mut client =
+                            crate::browser_automation::PlaywrightClient::launch().await?;
+                        client.extract_all(selector).await
+                    })
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                let content = serde_json::to_string_pretty(&elements)
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content,
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_get_content",
+        make_handler(|_args: Value| {
+            Box::pin(async move {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                let html = rt
+                    .block_on(async {
+                        let mut client =
+                            crate::browser_automation::PlaywrightClient::launch().await?;
+                        client.get_content().await
+                    })
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: html,
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_select",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let selector = args
+                    .get("selector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let value = args
+                    .get("value")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if selector.is_empty() {
+                    return Err(AxAgentError::Gateway("selector is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                rt.block_on(async {
+                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    client.select_option(selector, value).await
+                })
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Select successful".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/browser",
+        "browser_wait_for",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let selector = args
+                    .get("selector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let timeout = args
+                    .get("timeout")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as u32);
+                if selector.is_empty() {
+                    return Err(AxAgentError::Gateway("selector is required".to_string()));
+                }
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                rt.block_on(async {
+                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    client.wait_for(selector, timeout).await
+                })
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                Ok(McpToolResult {
+                    content: "Element found".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/image-gen",
+        "generate_image",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let prompt = args
+                    .get("prompt")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if prompt.is_empty() {
+                    return Err(AxAgentError::Gateway("prompt is required".to_string()));
+                }
+                let negative_prompt = args
+                    .get("negative_prompt")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                let width = args.get("width").and_then(|v| v.as_u64()).map(|v| v as u32);
+                let height = args
+                    .get("height")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as u32);
+                let steps = args.get("steps").and_then(|v| v.as_u64()).map(|v| v as u32);
+                let _seed = args.get("seed").and_then(|v| v.as_u64());
+                let provider = args
+                    .get("provider")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                let api_key = args
+                    .get("api_key")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+
+                let provider_name = provider.as_deref().unwrap_or("flux");
+                let client = reqwest::Client::new();
+
+                let result = match provider_name {
+                    "flux" | "Flux" => {
+                        let token = api_key.ok_or_else(|| {
+                            AxAgentError::Gateway("API key required for Flux".to_string())
+                        })?;
+                        let size = match (width, height) {
+                            (Some(w), Some(h)) => format!("{}x{}", w, h),
+                            _ => "1024x1024".to_string(),
+                        };
+                        let mut body = serde_json::json!({
+                            "version": "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea757525e28f18b5198a0b426",
+                            "input": {
+                                "prompt": prompt,
+                                "aspect_ratio": size,
+                                "num_inference_steps": steps.unwrap_or(25)
+                            }
+                        });
+                        if let Some(np) = negative_prompt {
+                            body["input"]["negative_prompt"] = serde_json::json!(np);
+                        }
+                        let resp = client
+                            .post("https://api.replicate.com/v1/predictions")
+                            .header("Authorization", format!("Token {}", token))
+                            .header("Content-Type", "application/json")
+                            .json(&body)
+                            .send()
+                            .await
+                            .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                        let resp_json: serde_json::Value = resp
+                            .json()
+                            .await
+                            .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                        let output_url = resp_json["urls"]["get"].as_str().ok_or_else(|| {
+                            AxAgentError::Gateway("No prediction URL in response".to_string())
+                        })?;
+                        loop {
+                            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                            let status_resp = client
+                                .get(output_url)
+                                .header("Authorization", format!("Token {}", token))
+                                .send()
+                                .await
+                                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                            let status_json: serde_json::Value = status_resp
+                                .json()
+                                .await
+                                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                            if status_json["status"].as_str() == Some("succeeded") {
+                                let outputs = &status_json["output"];
+                                if let Some(first) = outputs.as_array().and_then(|arr| arr.first())
+                                {
+                                    let image_url = first.as_str().unwrap_or("");
+                                    let image_resp = client
+                                        .get(image_url)
+                                        .send()
+                                        .await
+                                        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                                    let bytes = image_resp
+                                        .bytes()
+                                        .await
+                                        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                                    let base64 = base64::Engine::encode(
+                                        &base64::engine::general_purpose::STANDARD,
+                                        &bytes,
+                                    );
+                                    break Ok(serde_json::json!({
+                                        "images": [{
+                                            "url": image_url,
+                                            "base64": base64,
+                                            "width": width.unwrap_or(1024),
+                                            "height": height.unwrap_or(1024)
+                                        }],
+                                        "model_used": "flux-sdxl",
+                                        "elapsed_ms": 0
+                                    }));
+                                }
+                            } else if status_json["status"].as_str() == Some("failed") {
+                                break Err(AxAgentError::Gateway(
+                                    "Flux generation failed".to_string(),
+                                ));
+                            }
+                        }
+                    }
+                    "dall-e" | "dalle" | "DALL-E" => {
+                        let key = api_key.ok_or_else(|| {
+                            AxAgentError::Gateway("API key required for DALL-E".to_string())
+                        })?;
+                        let size = match (width, height) {
+                            (Some(w), Some(h)) if w == 1024 && h == 1024 => "1024x1024",
+                            (Some(w), Some(h)) if w == 1792 && h == 1024 => "1792x1024",
+                            (Some(w), Some(h)) if w == 1024 && h == 1792 => "1024x1792",
+                            _ => "1024x1024",
+                        };
+                        let body = serde_json::json!({
+                            "model": "dall-e-3",
+                            "prompt": prompt,
+                            "n": 1,
+                            "size": size,
+                            "quality": "standard"
+                        });
+                        let resp = client
+                            .post("https://api.openai.com/v1/images/generations")
+                            .header("Authorization", format!("Bearer {}", key))
+                            .header("Content-Type", "application/json")
+                            .json(&body)
+                            .send()
+                            .await
+                            .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                        let resp_json: serde_json::Value = resp
+                            .json()
+                            .await
+                            .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                        let image_url = resp_json["data"][0]["url"].as_str().ok_or_else(|| {
+                            AxAgentError::Gateway("No image URL in response".to_string())
+                        })?;
+                        let revised_prompt = resp_json["data"][0]["revised_prompt"]
+                            .as_str()
+                            .unwrap_or(prompt);
+                        Ok(serde_json::json!({
+                            "images": [{
+                                "url": image_url,
+                                "width": width.unwrap_or(1024),
+                                "height": height.unwrap_or(1024)
+                            }],
+                            "model_used": "dall-e-3",
+                            "revised_prompt": revised_prompt,
+                            "elapsed_ms": 0
+                        }))
+                    }
+                    _ => Err(AxAgentError::Gateway(format!(
+                        "Unknown provider: {}",
+                        provider_name
+                    ))),
+                };
+
+                match result {
+                    Ok(resp) => Ok(McpToolResult {
+                        content: serde_json::to_string(&resp).unwrap(),
+                        is_error: false,
+                    }),
+                    Err(e) => Err(e),
+                }
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/chart-gen",
+        "generate_chart_config",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let description = args
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                if description.is_empty() {
+                    return Err(AxAgentError::Gateway("description is required".to_string()));
+                }
+                let api_key = args
+                    .get("api_key")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                let api_key = api_key.ok_or_else(|| {
+                    AxAgentError::Gateway("API key required for chart generation".to_string())
+                })?;
+
+                let base_url = args
+                    .get("base_url")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
+                let model = args
+                    .get("model")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_else(|| "gpt-4o-mini".to_string());
+
+                let system_prompt = r#"You are a chart configuration generator. Given a natural language description and optional data, generate a valid ECharts option object.
+
+Rules:
+1. Output ONLY valid JSON (no markdown, no code fences)
+2. The JSON must be a valid ECharts option
+3. Use Chinese labels when the description is in Chinese
+4. Include proper axis labels, legends, and tooltips
+5. Use color palette: ['#5470c6','#91cc75','#fac858','#ee6666','#73c0de','#3ba272']
+6. Set animation: false
+7. Include "_chartType" field with the inferred type (line/bar/pie/scatter/heatmap/radar/treemap/sankey/funnel/gauge)
+8. Include "_title" field with the chart title"#;
+
+                let data = args
+                    .get("data")
+                    .map(|v| serde_json::to_string(&v).unwrap_or_default());
+                let user_message = if let Some(ref d) = data {
+                    format!("Description: {}\n\nData:\n{}", description, d)
+                } else {
+                    format!("Description: {}", description)
+                };
+
+                let client = reqwest::Client::new();
+                let request_body = serde_json::json!({
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message}
+                    ],
+                    "temperature": 0.1
+                });
+
+                let resp = client
+                    .post(format!("{}/chat/completions", base_url))
+                    .header("Authorization", format!("Bearer {}", api_key))
+                    .header("Content-Type", "application/json")
+                    .json(&request_body)
+                    .send()
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+
+                let resp_json: serde_json::Value = resp
+                    .json()
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+
+                let content = resp_json["choices"][0]["message"]["content"]
+                    .as_str()
+                    .ok_or_else(|| AxAgentError::Gateway("No content in response".to_string()))?;
+
+                let option: serde_json::Value = serde_json::from_str(content).map_err(|e| {
+                    AxAgentError::Gateway(format!("Failed to parse chart config: {}", e))
+                })?;
+
+                let chart_type = option["_chartType"].as_str().unwrap_or("unknown");
+                let title = option["_title"].as_str().unwrap_or(description);
+
+                let result = serde_json::json!({
+                    "option": option,
+                    "chart_type": chart_type,
+                    "title": title
+                });
+
+                Ok(McpToolResult {
+                    content: serde_json::to_string(&result).unwrap(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
 }
 
 pub async fn dispatch(server_name: &str, tool_name: &str, args: Value) -> Result<McpToolResult> {
@@ -453,7 +1567,16 @@ async fn web_search(
         });
     }
 
-    match crate::search::execute_search(provider_type, endpoint, api_key, query, max_results, timeout_ms).await {
+    match crate::search::execute_search(
+        provider_type,
+        endpoint,
+        api_key,
+        query,
+        max_results,
+        timeout_ms,
+    )
+    .await
+    {
         Ok(resp) => {
             if resp.ok {
                 let mut lines = vec![format!("Search results for '{}':", resp.query)];
@@ -493,6 +1616,54 @@ async fn web_search(
 // File tools
 // ---------------------------------------------------------------------------
 
+const ALLOWED_FILE_DIRECTORIES: &[&str] = &["workspace", "documents", "downloads", "skills"];
+
+fn validate_and_resolve_path(path: &str, base_dir: &str) -> Result<std::path::PathBuf> {
+    if path.is_empty() {
+        return Err(AxAgentError::Validation("path must not be empty".into()));
+    }
+    if path.starts_with('/') || path.starts_with('\\') || path.contains("..") {
+        return Err(AxAgentError::Validation(format!("invalid path: {}", path)));
+    }
+
+    let base_path = std::path::Path::new(base_dir);
+    let requested_path = base_path.join(path);
+
+    let absolute_path = if requested_path.is_absolute() {
+        requested_path.clone()
+    } else {
+        std::env::current_dir()
+            .map_err(|_| AxAgentError::Validation("cannot determine current directory".into()))?
+            .join(&requested_path)
+    };
+
+    let canonical_path = absolute_path
+        .canonicalize()
+        .map_err(|_| AxAgentError::Validation(format!("path does not exist: {}", path)))?;
+
+    for allowed_dir in ALLOWED_FILE_DIRECTORIES {
+        let allowed_path = std::path::Path::new(allowed_dir);
+        let canonical_allowed = if allowed_path.is_absolute() {
+            allowed_path.canonicalize().ok()
+        } else {
+            std::env::current_dir()
+                .ok()
+                .and_then(|cwd| cwd.join(allowed_path).canonicalize().ok())
+        };
+
+        if let Some(canonical_allowed) = canonical_allowed {
+            if canonical_path.starts_with(&canonical_allowed) {
+                return Ok(canonical_path);
+            }
+        }
+    }
+
+    Err(AxAgentError::Validation(format!(
+        "path '{}' is outside allowed directories",
+        path
+    )))
+}
+
 async fn read_file(path: &str) -> Result<McpToolResult> {
     if path.is_empty() {
         return Ok(McpToolResult {
@@ -501,7 +1672,17 @@ async fn read_file(path: &str) -> Result<McpToolResult> {
         });
     }
 
-    match tokio::fs::read_to_string(path).await {
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    match tokio::fs::read_to_string(&resolved_path).await {
         Ok(content) => {
             let truncated = truncate_text(&content, 50000);
             Ok(McpToolResult {
@@ -517,7 +1698,24 @@ async fn read_file(path: &str) -> Result<McpToolResult> {
 }
 
 async fn list_directory(path: &str) -> Result<McpToolResult> {
-    let mut entries = match tokio::fs::read_dir(path).await {
+    if path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: path parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let mut entries = match tokio::fs::read_dir(&resolved_path).await {
         Ok(rd) => rd,
         Err(e) => {
             return Ok(McpToolResult {
@@ -777,18 +1975,22 @@ fn html_to_markdown(html: &str) -> String {
     remove_blocks(&mut text, "style");
 
     let re_heading = Regex::new(r"(?i)<h([1-6])[^>]*>(.*?)</h[1-6]>").unwrap();
-    text = re_heading.replace_all(&text, |caps: &regex::Captures| {
-        let level = caps[1].parse::<usize>().unwrap_or(1);
-        let content = &caps[2];
-        let hashes = "#".repeat(level);
-        format!("\n{} {}\n", hashes, content)
-    }).to_string();
+    text = re_heading
+        .replace_all(&text, |caps: &regex::Captures| {
+            let level = caps[1].parse::<usize>().unwrap_or(1);
+            let content = &caps[2];
+            let hashes = "#".repeat(level);
+            format!("\n{} {}\n", hashes, content)
+        })
+        .to_string();
 
     let re_blockquote = Regex::new(r"(?i)<blockquote[^>]*>(.*?)</blockquote>").unwrap();
     text = re_blockquote.replace_all(&text, "> $1\n").to_string();
 
     let re_code_block = Regex::new(r"(?i)<pre[^>]*><code[^>]*>(.*?)</code></pre>").unwrap();
-    text = re_code_block.replace_all(&text, "```\n$1\n```\n").to_string();
+    text = re_code_block
+        .replace_all(&text, "```\n$1\n```\n")
+        .to_string();
 
     let re_inline_code = Regex::new(r"(?i)<code[^>]*>(.*?)</code>").unwrap();
     text = re_inline_code.replace_all(&text, "`$1`").to_string();
@@ -854,7 +2056,11 @@ fn truncate_text(text: &str, max: usize) -> String {
         let boundary = trunc_at.min(text.len());
         // Use floor_char_boundary to avoid splitting multi-byte UTF-8 characters
         let safe_boundary = text.floor_char_boundary(boundary);
-        format!("{}...[truncated {} chars]", &text[..safe_boundary], text.len() - max + 50)
+        format!(
+            "{}...[truncated {} chars]",
+            &text[..safe_boundary],
+            text.len() - max + 50
+        )
     }
 }
 
@@ -927,13 +2133,15 @@ async fn skill_manage(
         "create" | "edit" | "patch" => {
             if name.is_empty() {
                 return Ok(McpToolResult {
-                    content: "Error: name parameter required for 'create'/'edit'/'patch' action".into(),
+                    content: "Error: name parameter required for 'create'/'edit'/'patch' action"
+                        .into(),
                     is_error: true,
                 });
             }
             if content.is_empty() {
                 return Ok(McpToolResult {
-                    content: "Error: content parameter required for 'create'/'edit'/'patch' action".into(),
+                    content: "Error: content parameter required for 'create'/'edit'/'patch' action"
+                        .into(),
                     is_error: true,
                 });
             }
@@ -951,8 +2159,12 @@ async fn skill_manage(
                 format!("{}{}", frontmatter, content)
             };
 
-            tokio::fs::create_dir_all(&skills_root).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
-            tokio::fs::write(&skill_path, file_content.as_bytes()).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+            tokio::fs::create_dir_all(&skills_root)
+                .await
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+            tokio::fs::write(&skill_path, file_content.as_bytes())
+                .await
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
             let mut skills = load_skills_metadata(&metadata_path)?;
             if !skills.iter().any(|s| s.name == name) {
@@ -965,7 +2177,15 @@ async fn skill_manage(
             }
 
             Ok(McpToolResult {
-                content: format!("Skill '{}' {}", name, if action == "create" { "created" } else { "updated" }),
+                content: format!(
+                    "Skill '{}' {}",
+                    name,
+                    if action == "create" {
+                        "created"
+                    } else {
+                        "updated"
+                    }
+                ),
                 is_error: false,
             })
         }
@@ -979,7 +2199,9 @@ async fn skill_manage(
 
             let skill_path = skills_root.join(format!("{}.md", name));
             if skill_path.exists() {
-                tokio::fs::remove_file(&skill_path).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+                tokio::fs::remove_file(&skill_path)
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
             }
 
             let mut skills = load_skills_metadata(&metadata_path)?;
@@ -992,7 +2214,10 @@ async fn skill_manage(
             })
         }
         _ => Ok(McpToolResult {
-            content: format!("Unknown action '{}'. Use: list, view, create, edit, patch, delete", action),
+            content: format!(
+                "Unknown action '{}'. Use: list, view, create, edit, patch, delete",
+                action
+            ),
             is_error: true,
         }),
     }
@@ -1001,6 +2226,49 @@ async fn skill_manage(
 // ---------------------------------------------------------------------------
 // Session tools
 // ---------------------------------------------------------------------------
+
+fn sanitize_fts5_query(query: &str) -> Result<String> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Err(AxAgentError::Validation("query must not be empty".into()));
+    }
+    if trimmed.len() > 1000 {
+        return Err(AxAgentError::Validation(
+            "query too long (max 1000 chars)".into(),
+        ));
+    }
+    let mut sanitized = String::with_capacity(trimmed.len() * 2);
+    let mut in_phrase = false;
+    for c in trimmed.chars() {
+        match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | ' ' | '\t' | '\n' | '-' | '_' | '.' | '@' | '#' => {
+                sanitized.push(c);
+            }
+            '"' => {
+                in_phrase = !in_phrase;
+                sanitized.push(c);
+            }
+            '*' => {
+                if !in_phrase {
+                    sanitized.push(c);
+                }
+            }
+            '(' | ')' => {
+                sanitized.push(c);
+            }
+            _ => {}
+        }
+    }
+    if in_phrase {
+        return Err(AxAgentError::Validation("unmatched quote in query".into()));
+    }
+    if sanitized.contains("..") || sanitized.contains('\'') {
+        return Err(AxAgentError::Validation(
+            "invalid characters in query".into(),
+        ));
+    }
+    Ok(sanitized)
+}
 
 async fn session_search(query: &str, limit: i32, _db_path: &str) -> Result<McpToolResult> {
     if query.is_empty() {
@@ -1022,9 +2290,7 @@ async fn session_search(query: &str, limit: i32, _db_path: &str) -> Result<McpTo
     };
 
     // Convert "sqlite:/path/to/db" to just "/path/to/db"
-    let db_file = db_path_str
-        .strip_prefix("sqlite:")
-        .unwrap_or(&db_path_str);
+    let db_file = db_path_str.strip_prefix("sqlite:").unwrap_or(&db_path_str);
 
     match rusqlite::Connection::open(db_file) {
         Ok(conn) => {
@@ -1042,20 +2308,24 @@ async fn session_search(query: &str, limit: i32, _db_path: &str) -> Result<McpTo
                     }) {
                         Ok(rows) => rows.filter_map(|r| r.ok()).collect::<Vec<_>>(),
                         Err(_) => {
-                            // Fallback: direct interpolation with basic escaping
-                            let safe_query = query.replace('"', "\"\"").replace('\'', "''");
-                            let fallback_sql = format!(
-                                "SELECT m.conversation_id, snippet(messages_fts, 0, '>>', '<<', '...', 24) as snippet, bm25(messages_fts) as rank FROM messages_fts JOIN messages m ON m.rowid = messages_fts.rowid WHERE messages_fts MATCH '\"{}\"' ORDER BY rank LIMIT {}",
-                                safe_query, limit
-                            );
-                            match conn.prepare(&fallback_sql) {
-                                Ok(mut stmt2) => {
-                                    match stmt2.query_map([], |row| {
-                                        let conv_id: String = row.get(0)?;
-                                        let snippet: String = row.get(1)?;
-                                        Ok(format!("[{}] {}", conv_id, snippet))
-                                    }) {
-                                        Ok(rows) => rows.filter_map(|r| r.ok()).collect(),
+                            // Fallback: use sanitized query (already validated by sanitize_fts5_query)
+                            match sanitize_fts5_query(query) {
+                                Ok(safe_query) => {
+                                    let fallback_sql = "SELECT m.conversation_id, snippet(messages_fts, 0, '>>', '<<', '...', 24) as snippet, bm25(messages_fts) as rank FROM messages_fts JOIN messages m ON m.rowid = messages_fts.rowid WHERE messages_fts MATCH ? ORDER BY rank LIMIT ?";
+                                    match conn.prepare(fallback_sql) {
+                                        Ok(mut stmt2) => {
+                                            match stmt2.query_map(
+                                                rusqlite::params![safe_query, limit],
+                                                |row| {
+                                                    let conv_id: String = row.get(0)?;
+                                                    let snippet: String = row.get(1)?;
+                                                    Ok(format!("[{}] {}", conv_id, snippet))
+                                                },
+                                            ) {
+                                                Ok(rows) => rows.filter_map(|r| r.ok()).collect(),
+                                                Err(_) => Vec::new(),
+                                            }
+                                        }
                                         Err(_) => Vec::new(),
                                     }
                                 }
@@ -1079,7 +2349,12 @@ async fn session_search(query: &str, limit: i32, _db_path: &str) -> Result<McpTo
                 })
             } else {
                 Ok(McpToolResult {
-                    content: format!("Search results for '{}' ({} hits):\n{}", query, rows.len(), rows.join("\n\n")),
+                    content: format!(
+                        "Search results for '{}' ({} hits):\n{}",
+                        query,
+                        rows.len(),
+                        rows.join("\n\n")
+                    ),
                     is_error: false,
                 })
             }
@@ -1110,16 +2385,18 @@ async fn memory_flush(content: &str, target: &str, category: &str) -> Result<Mcp
         }
     };
 
-    let db_file = db_path_str
-        .strip_prefix("sqlite:")
-        .unwrap_or(&db_path_str);
+    let db_file = db_path_str.strip_prefix("sqlite:").unwrap_or(&db_path_str);
 
     match rusqlite::Connection::open(db_file) {
         Ok(conn) => {
             // Try to insert into memory_items table if it exists
             let id = uuid::Uuid::new_v4().to_string();
             let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
-            let namespace_id = if target == "user" { "user_preferences" } else { "system_memory" };
+            let namespace_id = if target == "user" {
+                "user_preferences"
+            } else {
+                "system_memory"
+            };
 
             let result = conn.execute(
                 "INSERT OR IGNORE INTO memory_namespaces (id, name, created_at, updated_at) VALUES (?1, ?2, ?3, ?4)",
@@ -1136,7 +2413,12 @@ async fn memory_flush(content: &str, target: &str, category: &str) -> Result<Mcp
 
             match table_result {
                 Ok(_) => Ok(McpToolResult {
-                    content: format!("Memory saved: target={}, category={}, id={}", target, category, &id[..8]),
+                    content: format!(
+                        "Memory saved: target={}, category={}, id={}",
+                        target,
+                        category,
+                        &id[..8]
+                    ),
                     is_error: false,
                 }),
                 Err(e) => {
@@ -1153,11 +2435,19 @@ async fn memory_flush(content: &str, target: &str, category: &str) -> Result<Mcp
                     });
                     match std::fs::write(&file_path, entry.to_string()) {
                         Ok(_) => Ok(McpToolResult {
-                            content: format!("Memory saved to file: target={}, category={}, id={}", target, category, &id[..8]),
+                            content: format!(
+                                "Memory saved to file: target={}, category={}, id={}",
+                                target,
+                                category,
+                                &id[..8]
+                            ),
                             is_error: false,
                         }),
                         Err(write_err) => Ok(McpToolResult {
-                            content: format!("Memory save failed: DB error ({}) and file fallback error ({})", e, write_err),
+                            content: format!(
+                                "Memory save failed: DB error ({}) and file fallback error ({})",
+                                e, write_err
+                            ),
                             is_error: true,
                         }),
                     }
@@ -1185,7 +2475,10 @@ fn get_storage_info() -> Result<McpToolResult> {
         0
     };
     Ok(McpToolResult {
-        content: format!("Storage Info:\n  Root: documents/\n  Total files: {}", total),
+        content: format!(
+            "Storage Info:\n  Root: documents/\n  Total files: {}",
+            total
+        ),
         is_error: false,
     })
 }
@@ -1221,7 +2514,11 @@ fn list_storage_files(path: String, limit: usize) -> Result<McpToolResult> {
     }
 }
 
-fn upload_storage_file(filename: String, content_base64: String, bucket: String) -> Result<McpToolResult> {
+fn upload_storage_file(
+    filename: String,
+    content_base64: String,
+    bucket: String,
+) -> Result<McpToolResult> {
     let decoded = base64_decode(&content_base64)?;
     let docs = std::path::Path::new("documents");
     let bucket_path = if bucket.is_empty() {
@@ -1236,7 +2533,11 @@ fn upload_storage_file(filename: String, content_base64: String, bucket: String)
     std::fs::write(&bucket_path, decoded).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     Ok(McpToolResult {
-        content: format!("File '{}' uploaded to '{}'", filename, bucket_path.display()),
+        content: format!(
+            "File '{}' uploaded to '{}'",
+            filename,
+            bucket_path.display()
+        ),
         is_error: false,
     })
 }
@@ -1285,10 +2586,25 @@ fn delete_storage_file(path: String) -> Result<McpToolResult> {
 // Base64 helper
 // ---------------------------------------------------------------------------
 
+const MAX_BASE64_DECODE_SIZE: usize = 100 * 1024 * 1024; // 100MB decoded max
+
 fn base64_decode(input: &str) -> Result<Vec<u8>> {
+    if input.len() > MAX_BASE64_DECODE_SIZE * 4 / 3 + 100 {
+        return Err(AxAgentError::Validation("Base64 input too large".into()));
+    }
     use base64::Engine;
-    Engine::decode(&base64::engine::general_purpose::STANDARD, input)
-        .map_err(|e| AxAgentError::Gateway(format!("Base64 decode error: {}", e)))
+    let decoded = Engine::decode(&base64::engine::general_purpose::STANDARD, input)
+        .map_err(|e| AxAgentError::Gateway(format!("Base64 decode error: {}", e)))?;
+
+    if decoded.len() > MAX_BASE64_DECODE_SIZE {
+        return Err(AxAgentError::Validation(format!(
+            "Decoded data too large: {} bytes (max: {} bytes)",
+            decoded.len(),
+            MAX_BASE64_DECODE_SIZE
+        )));
+    }
+
+    Ok(decoded)
 }
 
 // ---------------------------------------------------------------------------
@@ -1321,17 +2637,36 @@ async fn write_file(path: &str, content: &str) -> Result<McpToolResult> {
         });
     }
 
-    let path_obj = std::path::Path::new(path);
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let path_str = resolved_path.to_string_lossy();
+    let path_obj = std::path::Path::new(&*path_str);
     if let Some(parent) = path_obj.parent() {
         if !parent.as_os_str().is_empty() {
-            tokio::fs::create_dir_all(parent).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
         }
     }
 
-    tokio::fs::write(path, content.as_bytes()).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    tokio::fs::write(&*path_str, content.as_bytes())
+        .await
+        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     Ok(McpToolResult {
-        content: format!("File '{}' written successfully ({} bytes)", path, content.len()),
+        content: format!(
+            "File '{}' written successfully ({} bytes)",
+            path,
+            content.len()
+        ),
         is_error: false,
     })
 }
@@ -1350,7 +2685,20 @@ async fn edit_file(path: &str, old_str: &str, new_str: &str) -> Result<McpToolRe
         });
     }
 
-    let full_content = tokio::fs::read_to_string(path).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let path_str = resolved_path.to_string_lossy();
+    let full_content = tokio::fs::read_to_string(&*path_str)
+        .await
+        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     let new_content = if let Some(pos) = full_content.find(old_str) {
         let mut result = String::with_capacity(full_content.len() - old_str.len() + new_str.len());
@@ -1364,7 +2712,9 @@ async fn edit_file(path: &str, old_str: &str, new_str: &str) -> Result<McpToolRe
             is_error: true,
         });
     };
-    tokio::fs::write(path, new_content.as_bytes()).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    tokio::fs::write(&*path_str, new_content.as_bytes())
+        .await
+        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     Ok(McpToolResult {
         content: format!("File '{}' edited successfully", path),
@@ -1380,7 +2730,20 @@ async fn delete_file(path: &str) -> Result<McpToolResult> {
         });
     }
 
-    tokio::fs::remove_file(path).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let path_str = resolved_path.to_string_lossy();
+    tokio::fs::remove_file(&*path_str)
+        .await
+        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     Ok(McpToolResult {
         content: format!("File '{}' deleted successfully", path),
@@ -1403,8 +2766,31 @@ async fn move_file(source: &str, destination: &str) -> Result<McpToolResult> {
         });
     }
 
-    // Ensure the destination parent directory exists
-    if let Some(parent) = std::path::Path::new(destination).parent() {
+    let resolved_source = match validate_and_resolve_path(source, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let resolved_dest = match validate_and_resolve_path(destination, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let source_str = resolved_source.to_string_lossy();
+    let dest_str = resolved_dest.to_string_lossy();
+
+    let dest_parent = std::path::Path::new(&*dest_str).parent();
+    if let Some(parent) = dest_parent {
         if !parent.as_os_str().is_empty() {
             tokio::fs::create_dir_all(parent)
                 .await
@@ -1412,7 +2798,7 @@ async fn move_file(source: &str, destination: &str) -> Result<McpToolResult> {
         }
     }
 
-    tokio::fs::rename(source, destination)
+    tokio::fs::rename(&*source_str, &*dest_str)
         .await
         .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
@@ -1430,7 +2816,20 @@ async fn create_directory(path: &str) -> Result<McpToolResult> {
         });
     }
 
-    tokio::fs::create_dir_all(path).await.map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let path_str = resolved_path.to_string_lossy();
+    tokio::fs::create_dir_all(&*path_str)
+        .await
+        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     Ok(McpToolResult {
         content: format!("Directory '{}' created successfully", path),
@@ -1446,9 +2845,24 @@ async fn file_exists(path: &str) -> Result<McpToolResult> {
         });
     }
 
-    let exists = std::path::Path::new(path).exists();
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(_) => {
+            return Ok(McpToolResult {
+                content: format!("{}: does not exist (outside allowed directories)", path),
+                is_error: false,
+            });
+        }
+    };
+
+    let path_str = resolved_path.to_string_lossy();
+    let exists = std::path::Path::new(&*path_str).exists();
     Ok(McpToolResult {
-        content: format!("{}: {}", path, if exists { "exists" } else { "does not exist" }),
+        content: format!(
+            "{}: {}",
+            path,
+            if exists { "exists" } else { "does not exist" }
+        ),
         is_error: false,
     })
 }
@@ -1461,7 +2875,18 @@ async fn get_file_info(path: &str) -> Result<McpToolResult> {
         });
     }
 
-    let meta = std::fs::metadata(path).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let path_str = resolved_path.to_string_lossy();
+    let meta = std::fs::metadata(&*path_str).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     let info = format!(
         "File: {}\n  Size: {} bytes\n  Modified: {:?}",
@@ -1492,14 +2917,28 @@ async fn run_command(command: &str, timeout_secs: u64) -> Result<McpToolResult> 
         #[cfg(windows)]
         {
             &[
-                "del /s /q C:\\", "rd /s /q C:\\", "format ", "diskpart",
-                "net user ", "net localgroup ", "reg delete ",
-                "powershell -enc", "cmd /c del", "taskkill /f",
+                "del /s /q C:\\",
+                "rd /s /q C:\\",
+                "format ",
+                "diskpart",
+                "net user ",
+                "net localgroup ",
+                "reg delete ",
+                "powershell -enc",
+                "cmd /c del",
+                "taskkill /f",
             ]
         }
         #[cfg(not(windows))]
         {
-            &["rm -rf /", "mkfs", "dd if=", ":(){:|:&};", "chmod -R 777 /", "chown -R "]
+            &[
+                "rm -rf /",
+                "mkfs",
+                "dd if=",
+                ":(){:|:&};",
+                "chmod -R 777 /",
+                "chown -R ",
+            ]
         }
     };
     for block in blocked {
@@ -1523,21 +2962,22 @@ async fn run_command(command: &str, timeout_secs: u64) -> Result<McpToolResult> 
         cmd
     };
 
-    let output = match tokio::time::timeout(std::time::Duration::from_secs(timeout_secs), output).await {
-        Ok(Ok(o)) => o,
-        Ok(Err(e)) => {
-            return Ok(McpToolResult {
-                content: format!("Error executing command: {}", e),
-                is_error: true,
-            });
-        }
-        Err(_) => {
-            return Ok(McpToolResult {
-                content: format!("Error: Command timed out after {} seconds", timeout_secs),
-                is_error: true,
-            });
-        }
-    };
+    let output =
+        match tokio::time::timeout(std::time::Duration::from_secs(timeout_secs), output).await {
+            Ok(Ok(o)) => o,
+            Ok(Err(e)) => {
+                return Ok(McpToolResult {
+                    content: format!("Error executing command: {}", e),
+                    is_error: true,
+                });
+            }
+            Err(_) => {
+                return Ok(McpToolResult {
+                    content: format!("Error: Command timed out after {} seconds", timeout_secs),
+                    is_error: true,
+                });
+            }
+        };
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -1621,7 +3061,20 @@ async fn list_processes(limit: usize) -> Result<McpToolResult> {
 /// (embedding + vector store) which requires runtime dependencies.
 #[allow(clippy::type_complexity)]
 static KNOWLEDGE_SEARCH_CALLBACK: std::sync::OnceLock<
-    std::sync::Arc<dyn Fn(&str, &str, usize) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<KnowledgeSearchHit>>> + Send + 'static>> + Send + Sync>,
+    std::sync::Arc<
+        dyn Fn(
+                &str,
+                &str,
+                usize,
+            ) -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<Output = Result<Vec<KnowledgeSearchHit>>>
+                        + Send
+                        + 'static,
+                >,
+            > + Send
+            + Sync,
+    >,
 > = std::sync::OnceLock::new();
 
 /// A single hit from knowledge base search.
@@ -1636,7 +3089,18 @@ pub struct KnowledgeSearchHit {
 #[allow(clippy::type_complexity)]
 pub fn set_knowledge_search_callback(
     cb: std::sync::Arc<
-        dyn Fn(&str, &str, usize) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<KnowledgeSearchHit>>> + Send + 'static>> + Send + Sync,
+        dyn Fn(
+                &str,
+                &str,
+                usize,
+            ) -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<Output = Result<Vec<KnowledgeSearchHit>>>
+                        + Send
+                        + 'static,
+                >,
+            > + Send
+            + Sync,
     >,
 ) {
     let _ = KNOWLEDGE_SEARCH_CALLBACK.set(cb);
@@ -1653,9 +3117,7 @@ fn list_knowledge_bases() -> Result<McpToolResult> {
         }
     };
 
-    let db_file = db_path
-        .strip_prefix("sqlite:")
-        .unwrap_or(&db_path);
+    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
 
     match rusqlite::Connection::open(db_file) {
         Ok(conn) => {
@@ -1672,26 +3134,31 @@ fn list_knowledge_bases() -> Result<McpToolResult> {
             };
 
             let rows: Vec<String> = match stmt.query_map([], |row| {
-                    let id: String = row.get(0)?;
-                    let name: String = row.get(1)?;
-                    let desc: Option<String> = row.get(2)?;
-                    let enabled: i32 = row.get(3)?;
-                    let status = if enabled != 0 { "enabled" } else { "disabled" };
-                    let desc_str = desc.map(|d| format!(" - {}", d)).unwrap_or_default();
-                    Ok(format!("- {} [{}] ({}){}", name, id, status, desc_str))
-                }) {
-                    Ok(rows) => rows.filter_map(|r| r.ok()).collect(),
-                    Err(_) => Vec::new(),
-                };
+                let id: String = row.get(0)?;
+                let name: String = row.get(1)?;
+                let desc: Option<String> = row.get(2)?;
+                let enabled: i32 = row.get(3)?;
+                let status = if enabled != 0 { "enabled" } else { "disabled" };
+                let desc_str = desc.map(|d| format!(" - {}", d)).unwrap_or_default();
+                Ok(format!("- {} [{}] ({}){}", name, id, status, desc_str))
+            }) {
+                Ok(rows) => rows.filter_map(|r| r.ok()).collect(),
+                Err(_) => Vec::new(),
+            };
 
             if rows.is_empty() {
                 Ok(McpToolResult {
-                    content: "No knowledge bases found. Create one in Settings > Knowledge.".to_string(),
+                    content: "No knowledge bases found. Create one in Settings > Knowledge."
+                        .to_string(),
                     is_error: false,
                 })
             } else {
                 Ok(McpToolResult {
-                    content: format!("Available knowledge bases ({}):\n{}", rows.len(), rows.join("\n")),
+                    content: format!(
+                        "Available knowledge bases ({}):\n{}",
+                        rows.len(),
+                        rows.join("\n")
+                    ),
                     is_error: false,
                 })
             }
@@ -1718,7 +3185,10 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                 let hits: Vec<KnowledgeSearchHit> = hits;
                 if hits.is_empty() {
                     Ok(McpToolResult {
-                        content: format!("No results found in knowledge base '{}' for '{}'", base_id, query),
+                        content: format!(
+                            "No results found in knowledge base '{}' for '{}'",
+                            base_id, query
+                        ),
                         is_error: false,
                     })
                 } else {
@@ -1729,7 +3199,10 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                     Ok(McpToolResult {
                         content: format!(
                             "Search results in '{}' for '{}' ({} hits):\n{}",
-                            base_id, query, hits.len(), lines.join("\n\n")
+                            base_id,
+                            query,
+                            hits.len(),
+                            lines.join("\n\n")
                         ),
                         is_error: false,
                     })
@@ -1752,9 +3225,7 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
             }
         };
 
-        let db_file = db_path
-            .strip_prefix("sqlite:")
-            .unwrap_or(&db_path);
+        let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
 
         // Try to read from the metadata table directly (no vector search, just text match)
         match rusqlite::Connection::open(db_file) {
@@ -1767,8 +3238,8 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                 let like_pattern = format!("%{}%", query);
                 match conn.prepare(&sql) {
                     Ok(mut stmt) => {
-                        let rows: Vec<String> = match stmt
-                            .query_map(rusqlite::params![like_pattern], |row| {
+                        let rows: Vec<String> =
+                            match stmt.query_map(rusqlite::params![like_pattern], |row| {
                                 let content: String = row.get(0)?;
                                 Ok(content)
                             }) {
@@ -1778,7 +3249,10 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
 
                         if rows.is_empty() {
                             Ok(McpToolResult {
-                                content: format!("No text matches found in knowledge base '{}' for '{}'", base_id, query),
+                                content: format!(
+                                    "No text matches found in knowledge base '{}' for '{}'",
+                                    base_id, query
+                                ),
                                 is_error: false,
                             })
                         } else {
@@ -1792,7 +3266,10 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                         }
                     }
                     Err(e) => Ok(McpToolResult {
-                        content: format!("Knowledge base '{}' may not exist or has no indexed content: {}", base_id, e),
+                        content: format!(
+                            "Knowledge base '{}' may not exist or has no indexed content: {}",
+                            base_id, e
+                        ),
                         is_error: true,
                     }),
                 }
@@ -1852,8 +3329,12 @@ async fn create_knowledge_entity_tool(
     let id = generate_uuid();
     let now = current_timestamp();
     let properties_json = serde_json::to_string(&properties).unwrap_or_else(|_| "{}".to_string());
-    let lifecycle_json = lifecycle.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let behaviors_json = behaviors.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let lifecycle_json = lifecycle
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let behaviors_json = behaviors
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
 
     match rusqlite::Connection::open(db_file) {
         Ok(conn) => {
@@ -1877,7 +3358,10 @@ async fn create_knowledge_entity_tool(
 
             match result {
                 Ok(_) => Ok(McpToolResult {
-                    content: format!("Created knowledge entity '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+                    content: format!(
+                        "Created knowledge entity '{}' (id: {}) in knowledge base '{}'",
+                        name, id, kb_id
+                    ),
                     is_error: false,
                 }),
                 Err(e) => Ok(McpToolResult {
@@ -1933,10 +3417,18 @@ async fn create_knowledge_flow_tool(
     let id = generate_uuid();
     let now = current_timestamp();
     let steps_json = serde_json::to_string(&steps).unwrap_or_else(|_| "[]".to_string());
-    let decision_points_json = decision_points.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let error_handling_json = error_handling.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let preconditions_json = preconditions.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let postconditions_json = postconditions.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let decision_points_json = decision_points
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let error_handling_json = error_handling
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let preconditions_json = preconditions
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let postconditions_json = postconditions
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
 
     match rusqlite::Connection::open(db_file) {
         Ok(conn) => {
@@ -1961,7 +3453,10 @@ async fn create_knowledge_flow_tool(
 
             match result {
                 Ok(_) => Ok(McpToolResult {
-                    content: format!("Created knowledge flow '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+                    content: format!(
+                        "Created knowledge flow '{}' (id: {}) in knowledge base '{}'",
+                        name, id, kb_id
+                    ),
                     is_error: false,
                 }),
                 Err(e) => Ok(McpToolResult {
@@ -2015,9 +3510,13 @@ async fn create_knowledge_interface_tool(
     let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
     let id = generate_uuid();
     let now = current_timestamp();
-    let input_schema_json = serde_json::to_string(&input_schema).unwrap_or_else(|_| "{}".to_string());
-    let output_schema_json = serde_json::to_string(&output_schema).unwrap_or_else(|_| "{}".to_string());
-    let error_codes_json = error_codes.as_ref().map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
+    let input_schema_json =
+        serde_json::to_string(&input_schema).unwrap_or_else(|_| "{}".to_string());
+    let output_schema_json =
+        serde_json::to_string(&output_schema).unwrap_or_else(|_| "{}".to_string());
+    let error_codes_json = error_codes
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
 
     match rusqlite::Connection::open(db_file) {
         Ok(conn) => {
@@ -2041,7 +3540,10 @@ async fn create_knowledge_interface_tool(
 
             match result {
                 Ok(_) => Ok(McpToolResult {
-                    content: format!("Created knowledge interface '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+                    content: format!(
+                        "Created knowledge interface '{}' (id: {}) in knowledge base '{}'",
+                        name, id, kb_id
+                    ),
                     is_error: false,
                 }),
                 Err(e) => Ok(McpToolResult {
@@ -2129,7 +3631,10 @@ async fn add_knowledge_document_tool(
 
             match result {
                 Ok(_) => Ok(McpToolResult {
-                    content: format!("Added knowledge document '{}' (id: {}) to knowledge base '{}'", title, id, kb_id),
+                    content: format!(
+                        "Added knowledge document '{}' (id: {}) to knowledge base '{}'",
+                        title, id, kb_id
+                    ),
                     is_error: false,
                 }),
                 Err(e) => Ok(McpToolResult {

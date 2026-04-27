@@ -104,7 +104,10 @@ impl VectorStore {
         if !Self::is_valid_collection_id(collection_id) {
             return Err(AxAgentError::Validation("Invalid collection_id: must contain only alphanumeric characters, hyphens, and underscores".to_string()));
         }
-        Ok(format!("vec_{}", Self::sanitize_collection_id(collection_id)))
+        Ok(format!(
+            "vec_{}",
+            Self::sanitize_collection_id(collection_id)
+        ))
     }
 
     /// Ensure both the metadata and vec0 tables exist for a collection.
@@ -525,10 +528,7 @@ impl VectorStore {
 
     /// List all chunk metadata with rowids for re-embedding.
     /// Returns (rowid, chunk_id, content) tuples.
-    pub async fn list_all_chunks(
-        &self,
-        collection_id: &str,
-    ) -> Result<Vec<(i64, String, String)>> {
+    pub async fn list_all_chunks(&self, collection_id: &str) -> Result<Vec<(i64, String, String)>> {
         self.list_chunks_raw(collection_id, None).await
     }
 
@@ -591,7 +591,8 @@ impl VectorStore {
         collection_id: &str,
         entries: Vec<(i64, Vec<f32>)>, // (rowid, embedding)
     ) -> Result<()> {
-        self.upsert_document_embeddings(collection_id, entries).await
+        self.upsert_document_embeddings(collection_id, entries)
+            .await
     }
 
     /// Insert or replace embeddings for specific rowids.
@@ -759,11 +760,16 @@ impl VectorStore {
 
     /// Delete rows from both vec0 and metadata tables by `document_id`.
     async fn delete_rows_by_document(&self, table_name: &str, document_id: &str) -> Result<()> {
-        self.delete_rows_by_document_inner(table_name, document_id).await
+        self.delete_rows_by_document_inner(table_name, document_id)
+            .await
     }
 
     /// Internal implementation of delete_rows_by_document (usable inside a transaction).
-    async fn delete_rows_by_document_inner(&self, table_name: &str, document_id: &str) -> Result<()> {
+    async fn delete_rows_by_document_inner(
+        &self,
+        table_name: &str,
+        document_id: &str,
+    ) -> Result<()> {
         self.db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,

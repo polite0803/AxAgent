@@ -1,6 +1,6 @@
+use async_trait::async_trait;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
-use async_trait::async_trait;
 use futures::Stream;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,8 @@ impl Default for GeminiAdapter {
 impl GeminiAdapter {
     pub fn new() -> Self {
         Self {
-            client: crate::build_default_http_client().expect("Failed to build default HTTP client"),
+            client: crate::build_default_http_client()
+                .expect("Failed to build default HTTP client"),
         }
     }
 
@@ -350,7 +351,9 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
 }
 
 fn make_gen_config(request: &ChatRequest) -> Option<GeminiGenerationConfig> {
-    let thinking_config = request.thinking_budget.map(|b| GeminiThinkingConfig { thinking_budget: b });
+    let thinking_config = request
+        .thinking_budget
+        .map(|b| GeminiThinkingConfig { thinking_budget: b });
     if request.temperature.is_some()
         || request.top_p.is_some()
         || request.max_tokens.is_some()
@@ -564,8 +567,9 @@ impl ProviderAdapter for GeminiAdapter {
                     return;
                 }
                 Err(e) => {
-                    let _ = tx
-                        .unbounded_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
+                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
+                        super::diagnose_reqwest_error(&e),
+                    )));
                     return;
                 }
             };
@@ -612,21 +616,28 @@ impl ProviderAdapter for GeminiAdapter {
                                                 content = Some(text.clone());
                                             }
                                             if let Some(ref fc) = part.function_call {
-                                                tool_calls_vec.push(axagent_core::types::ToolCall {
-                                                    id: format!(
-                                                        "gemini_{}",
-                                                        std::time::SystemTime::now()
-                                                            .duration_since(std::time::UNIX_EPOCH)
-                                                            .map(|d| d.as_nanos())
-                                                            .unwrap_or(0)
-                                                    ),
-                                                    call_type: "function".to_string(),
-                                                    function: axagent_core::types::ToolCallFunction {
-                                                        name: fc.name.clone(),
-                                                        arguments: serde_json::to_string(&fc.args)
-                                                            .unwrap_or_default(),
+                                                tool_calls_vec.push(
+                                                    axagent_core::types::ToolCall {
+                                                        id: format!(
+                                                            "gemini_{}",
+                                                            std::time::SystemTime::now()
+                                                                .duration_since(
+                                                                    std::time::UNIX_EPOCH
+                                                                )
+                                                                .map(|d| d.as_nanos())
+                                                                .unwrap_or(0)
+                                                        ),
+                                                        call_type: "function".to_string(),
+                                                        function:
+                                                            axagent_core::types::ToolCallFunction {
+                                                                name: fc.name.clone(),
+                                                                arguments: serde_json::to_string(
+                                                                    &fc.args,
+                                                                )
+                                                                .unwrap_or_default(),
+                                                            },
                                                     },
-                                                });
+                                                );
                                             }
                                         }
                                     }
@@ -653,7 +664,11 @@ impl ProviderAdapter for GeminiAdapter {
                                     }));
                                 }
                                 Err(e) => {
-                                    tracing::warn!("Failed to parse SSE event JSON: {}. Data: {}", e, &data[..data.len().min(200)]);
+                                    tracing::warn!(
+                                        "Failed to parse SSE event JSON: {}. Data: {}",
+                                        e,
+                                        &data[..data.len().min(200)]
+                                    );
                                 }
                             }
                         }

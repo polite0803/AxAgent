@@ -1,4 +1,20 @@
+import { CopyButton } from "@/components/common/CopyButton";
+import { ModelParamSliders } from "@/components/common/ModelParamSliders";
+import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
+import { IconEditor } from "@/components/shared/IconEditor";
+import { invoke } from "@/lib/invoke";
 import {
+  getEditableCapabilities,
+  getVisibleModelCapabilities,
+  sanitizeModelCapabilities,
+} from "@/lib/modelCapabilities";
+import { SmartProviderIcon } from "@/lib/providerIcons";
+import { useProviderStore, useUIStore } from "@/stores";
+import type { Model, ModelCapability, ModelParamOverrides, ModelType, ProviderType } from "@/types";
+import { ModelIcon } from "@lobehub/icons";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  App,
   AutoComplete,
   Button,
   Card,
@@ -18,42 +34,59 @@ import {
   Spin,
   Switch,
   Tag,
+  theme,
   Tooltip,
   Typography,
-  App,
-  theme,
-} from 'antd';
-import { Maximize2, Mic, Lightbulb, Database, Trash2, Eye, Heart, Key, MessageSquare, Plus, RefreshCw, Search, Settings, Minimize2, Wrench, Undo2, CircleHelp, ChevronRight, ChevronDown, Expand, Shrink, SquarePen, ListChecks, X, Power, PowerOff, Pencil, Download } from 'lucide-react';
-import { ModelIcon } from '@lobehub/icons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { useTranslation } from 'react-i18next';
-import { invoke } from '@/lib/invoke';
-import { useProviderStore, useUIStore } from '@/stores';
-import { SmartProviderIcon } from '@/lib/providerIcons';
-import { getEditableCapabilities, getVisibleModelCapabilities, sanitizeModelCapabilities } from '@/lib/modelCapabilities';
-import { IconEditor } from '@/components/shared/IconEditor';
-import { DynamicLobeIcon } from '@/components/shared/DynamicLobeIcon';
-import type { Model, ModelCapability, ModelType, ModelParamOverrides, ProviderType } from '@/types';
-import { ModelParamSliders } from '@/components/common/ModelParamSliders';
-import { CopyButton } from '@/components/common/CopyButton';
+} from "antd";
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Database,
+  Download,
+  Expand,
+  Eye,
+  Heart,
+  Key,
+  Lightbulb,
+  ListChecks,
+  Maximize2,
+  MessageSquare,
+  Mic,
+  Minimize2,
+  Pencil,
+  Plus,
+  Power,
+  PowerOff,
+  RefreshCw,
+  Search,
+  Settings,
+  Shrink,
+  SquarePen,
+  Trash2,
+  Undo2,
+  Wrench,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
 const CAPABILITY_LABEL_KEYS: Record<ModelCapability, string> = {
-  TextChat: 'settings.capability.TextChat',
-  Vision: 'settings.capability.Vision',
-  FunctionCalling: 'settings.capability.FunctionCalling',
-  Reasoning: 'settings.capability.Reasoning',
-  RealtimeVoice: 'settings.capability.RealtimeVoice',
+  TextChat: "settings.capability.TextChat",
+  Vision: "settings.capability.Vision",
+  FunctionCalling: "settings.capability.FunctionCalling",
+  Reasoning: "settings.capability.Reasoning",
+  RealtimeVoice: "settings.capability.RealtimeVoice",
 };
 
 const CAPABILITY_COLORS: Record<ModelCapability, string> = {
-  TextChat: 'blue',
-  Vision: 'green',
-  FunctionCalling: 'purple',
-  Reasoning: 'orange',
-  RealtimeVoice: 'red',
+  TextChat: "blue",
+  Vision: "green",
+  FunctionCalling: "purple",
+  Reasoning: "orange",
+  RealtimeVoice: "red",
 };
 
 const CAPABILITY_ICONS: Record<ModelCapability, React.ReactNode> = {
@@ -65,49 +98,49 @@ const CAPABILITY_ICONS: Record<ModelCapability, React.ReactNode> = {
 };
 
 const MODEL_TYPE_LABEL_KEYS: Record<ModelType, string> = {
-  Chat: 'settings.modelType.Chat',
-  Voice: 'settings.modelType.Voice',
-  Embedding: 'settings.modelType.Embedding',
+  Chat: "settings.modelType.Chat",
+  Voice: "settings.modelType.Voice",
+  Embedding: "settings.modelType.Embedding",
 };
 
 const MODEL_TYPE_CONFIG: Record<ModelType, { color: string; icon: React.ReactNode }> = {
-  Chat: { color: 'blue', icon: <MessageSquare size={12} /> },
-  Voice: { color: 'red', icon: <Mic size={12} /> },
-  Embedding: { color: 'cyan', icon: <Database size={12} /> },
+  Chat: { color: "blue", icon: <MessageSquare size={12} /> },
+  Voice: { color: "red", icon: <Mic size={12} /> },
+  Embedding: { color: "cyan", icon: <Database size={12} /> },
 };
 
 const DEFAULT_PATHS: Record<ProviderType, string> = {
-  openai: '/v1/chat/completions',
-  openai_responses: '/v1/responses',
-  anthropic: '/v1/messages',
-  gemini: '/v1beta/models',
-  openclaw: '/v1/chat/completions',
-  hermes: '/v1/chat/completions',
-  ollama: '/v1/chat/completions',
+  openai: "/v1/chat/completions",
+  openai_responses: "/v1/responses",
+  anthropic: "/v1/messages",
+  gemini: "/v1beta/models",
+  openclaw: "/v1/chat/completions",
+  hermes: "/v1/chat/completions",
+  ollama: "/v1/chat/completions",
 };
 
 const DEFAULT_HOSTS: Record<ProviderType, string> = {
-  openai: 'https://api.openai.com',
-  openai_responses: 'https://api.openai.com',
-  anthropic: 'https://api.anthropic.com',
-  gemini: 'https://generativelanguage.googleapis.com',
-  openclaw: '',
-  hermes: '',
-  ollama: 'http://localhost:11434',
+  openai: "https://api.openai.com",
+  openai_responses: "https://api.openai.com",
+  anthropic: "https://api.anthropic.com",
+  gemini: "https://generativelanguage.googleapis.com",
+  openclaw: "",
+  hermes: "",
+  ollama: "http://localhost:11434",
 };
 
 function deriveModelGroupName(model_id: string): string {
   const parts = model_id
     .trim()
-    .split('-')
+    .split("-")
     .filter((part) => part.length > 0);
 
-  if (parts.length >= 2) return parts.slice(0, 2).join('-');
-  if (parts.length === 1) return parts[0];
+  if (parts.length >= 2) { return parts.slice(0, 2).join("-"); }
+  if (parts.length === 1) { return parts[0]; }
   return model_id.trim();
 }
 
-function getModelGroupName(model: Pick<Model, 'model_id' | 'group_name'>): string {
+function getModelGroupName(model: Pick<Model, "model_id" | "group_name">): string {
   const explicitGroup = model.group_name?.trim();
   return explicitGroup || deriveModelGroupName(model.model_id);
 }
@@ -126,13 +159,13 @@ function formatTokenCount(tokens: number): string {
 
 function getDefaultCapabilitiesForType(modelType: ModelType): ModelCapability[] {
   switch (modelType) {
-    case 'Voice':
-      return ['RealtimeVoice'];
-    case 'Embedding':
+    case "Voice":
+      return ["RealtimeVoice"];
+    case "Embedding":
       return [];
-    case 'Chat':
+    case "Chat":
     default:
-      return ['TextChat'];
+      return ["TextChat"];
   }
 }
 
@@ -145,9 +178,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const { message } = App.useApp();
   const { token } = theme.useToken();
 
-  const provider = useProviderStore((s) =>
-    s.providers.find((p) => p.id === providerId),
-  );
+  const provider = useProviderStore((s) => s.providers.find((p) => p.id === providerId));
   const toggleProvider = useProviderStore((s) => s.toggleProvider);
   const updateProvider = useProviderStore((s) => s.updateProvider);
   const deleteProvider = useProviderStore((s) => s.deleteProvider);
@@ -163,23 +194,23 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const testModel = useProviderStore((s) => s.testModel);
 
   const [addKeyModal, setAddKeyModal] = useState(false);
-  const [keyValue, setKeyValue] = useState('');
+  const [keyValue, setKeyValue] = useState("");
   const [validatingKeys, setValidatingKeys] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [fetchingAll, setFetchingAll] = useState(false);
-  const [modelSearch, setModelSearch] = useState('');
+  const [modelSearch, setModelSearch] = useState("");
   const [showModelSearch, setShowModelSearch] = useState(false);
   const [addModelModalOpen, setAddModelModalOpen] = useState(false);
-  const [addModelId, setAddModelId] = useState('');
-  const [addModelName, setAddModelName] = useState('');
-  const [addModelGroupName, setAddModelGroupName] = useState('');
-  const [addModelType, setAddModelType] = useState<ModelType>('Chat');
+  const [addModelId, setAddModelId] = useState("");
+  const [addModelName, setAddModelName] = useState("");
+  const [addModelGroupName, setAddModelGroupName] = useState("");
+  const [addModelType, setAddModelType] = useState<ModelType>("Chat");
   const addModelNameDirty = useRef(false);
   const addModelGroupDirty = useRef(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<Model | null>(null);
   const [editCapabilities, setEditCapabilities] = useState<ModelCapability[]>([]);
-  const [editModelType, setEditModelType] = useState<ModelType>('Chat');
+  const [editModelType, setEditModelType] = useState<ModelType>("Chat");
   const [editMaxTokens, setEditMaxTokens] = useState<number | null>(null);
   const [editTemperature, setEditTemperature] = useState<number | null>(0.7);
   const [editMaxTokensParam, setEditMaxTokensParam] = useState<number | null>(4096);
@@ -188,42 +219,44 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [editUseMaxCompletionTokens, setEditUseMaxCompletionTokens] = useState(false);
   const [editNoSystemRole, setEditNoSystemRole] = useState(false);
   const [editForceMaxTokens, setEditForceMaxTokens] = useState(false);
-  const [editThinkingParamStyle, setEditThinkingParamStyle] = useState<string>('reasoning_effort');
+  const [editThinkingParamStyle, setEditThinkingParamStyle] = useState<string>("reasoning_effort");
   const [iconOverrides, setIconOverrides] = useState<Record<string, string>>({});
-  const [apiHostLocal, setApiHostLocal] = useState(provider?.api_host ?? '');
-  const [apiPathLocal, setApiPathLocal] = useState(provider?.api_path ?? '');
+  const [apiHostLocal, setApiHostLocal] = useState(provider?.api_host ?? "");
+  const [apiPathLocal, setApiPathLocal] = useState(provider?.api_path ?? "");
   const [customHeadersLocal, setCustomHeadersLocal] = useState(() => {
     try {
-      const obj = JSON.parse(provider?.custom_headers ?? '{}') as Record<string, string>;
-      return Object.entries(obj).map(([k, v]) => `${k}=${v}`).join('\n');
-    } catch { return ''; }
+      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<string, string>;
+      return Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n");
+    } catch {
+      return "";
+    }
   });
   const apiHostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const apiPathTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [testingModels, setTestingModels] = useState<Set<string>>(new Set());
   const [testResults, setTestResults] = useState<Map<string, { latencyMs?: number; error?: string }>>(new Map());
   const [singleTestModalOpen, setSingleTestModalOpen] = useState(false);
-  const [singleTestModelId, setSingleTestModelId] = useState<string>('');
+  const [singleTestModelId, setSingleTestModelId] = useState<string>("");
   const [singleTestResult, setSingleTestResult] = useState<{ latencyMs?: number; error?: string } | null>(null);
   const [singleTestLoading, setSingleTestLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'append' | 'replace'>('append');
+  const [pickerMode, setPickerMode] = useState<"append" | "replace">("append");
   const [pickerModels, setPickerModels] = useState<Model[]>([]);
   const [pickerSelected, setPickerSelected] = useState<Set<string>>(new Set());
-  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerSearch, setPickerSearch] = useState("");
   const [pickerCollapsed, setPickerCollapsed] = useState<Set<string>>(new Set());
   const [providerEditModalOpen, setProviderEditModalOpen] = useState(false);
-  const [editProviderName, setEditProviderName] = useState('');
-  const [editProviderType, setEditProviderType] = useState<ProviderType>('openai');
+  const [editProviderName, setEditProviderName] = useState("");
+  const [editProviderType, setEditProviderType] = useState<ProviderType>("openai");
 
   // Batch editing state
   const [batchMode, setBatchMode] = useState(false);
   const [batchSelected, setBatchSelected] = useState<Set<string>>(new Set());
   const [batchEditModalOpen, setBatchEditModalOpen] = useState(false);
   // Batch edit fields — each has a value + an "enabled" flag
-  const [batchModelType, setBatchModelType] = useState<ModelType>('Chat');
+  const [batchModelType, setBatchModelType] = useState<ModelType>("Chat");
   const [batchModelTypeEnabled, setBatchModelTypeEnabled] = useState(false);
-  const [batchCapabilities, setBatchCapabilities] = useState<ModelCapability[]>(['TextChat']);
+  const [batchCapabilities, setBatchCapabilities] = useState<ModelCapability[]>(["TextChat"]);
   const [batchCapabilitiesEnabled, setBatchCapabilitiesEnabled] = useState(false);
   const [batchMaxTokens, setBatchMaxTokens] = useState<number>(128000);
   const [batchMaxTokensEnabled, setBatchMaxTokensEnabled] = useState(false);
@@ -241,34 +274,37 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [batchNoSystemRoleEnabled, setBatchNoSystemRoleEnabled] = useState(false);
   const [batchForceMaxTokens, setBatchForceMaxTokens] = useState(false);
   const [batchForceMaxTokensEnabled, setBatchForceMaxTokensEnabled] = useState(false);
-  const [batchThinkingParamStyle, setBatchThinkingParamStyle] = useState<string>('reasoning_effort');
+  const [batchThinkingParamStyle, setBatchThinkingParamStyle] = useState<string>("reasoning_effort");
   const [batchThinkingParamStyleEnabled, setBatchThinkingParamStyleEnabled] = useState(false);
 
   const pickerGroups = useMemo(() => {
     const filtered = pickerModels.filter((m) =>
-      !pickerSearch || [m.name, m.model_id].some((v) => v.toLowerCase().includes(pickerSearch.toLowerCase())),
+      !pickerSearch || [m.name, m.model_id].some((v) => v.toLowerCase().includes(pickerSearch.toLowerCase()))
     );
     const groups: Record<string, Model[]> = {};
     for (const m of filtered) {
       const key = getModelGroupName(m);
-      if (!groups[key]) groups[key] = [];
+      if (!groups[key]) { groups[key] = []; }
       groups[key].push(m);
     }
     return { filtered, entries: Object.entries(groups) };
   }, [pickerModels, pickerSearch]);
 
   // Flatten picker groups into virtual rows
-  type PickerRow = { type: 'group'; group: string; models: Model[] } | { type: 'model'; model: Model } | { type: 'spacer'; beforeGroup: string };
+  type PickerRow = { type: "group"; group: string; models: Model[] } | { type: "model"; model: Model } | {
+    type: "spacer";
+    beforeGroup: string;
+  };
   const flatPickerRows = useMemo<PickerRow[]>(() => {
     const rows: PickerRow[] = [];
     const entries = pickerGroups.entries;
     for (let i = 0; i < entries.length; i++) {
       const [group, models] = entries[i];
-      if (i > 0) rows.push({ type: 'spacer', beforeGroup: group });
-      rows.push({ type: 'group', group, models });
+      if (i > 0) { rows.push({ type: "spacer", beforeGroup: group }); }
+      rows.push({ type: "group", group, models });
       if (!pickerCollapsed.has(group)) {
         for (const model of models) {
-          rows.push({ type: 'model', model });
+          rows.push({ type: "model", model });
         }
       }
     }
@@ -281,14 +317,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     getScrollElement: () => pickerListParentRef.current,
     estimateSize: (index) => {
       const row = flatPickerRows[index];
-      if (row.type === 'spacer') return 8;
-      if (row.type === 'group') return 40;
+      if (row.type === "spacer") { return 8; }
+      if (row.type === "group") { return 40; }
       return 40;
     },
     getItemKey: (index) => {
       const row = flatPickerRows[index];
-      if (row.type === 'spacer') return `spacer-${row.beforeGroup}`;
-      if (row.type === 'group') return `group-${row.group}`;
+      if (row.type === "spacer") { return `spacer-${row.beforeGroup}`; }
+      if (row.type === "group") { return `group-${row.group}`; }
       return `model-${row.model.model_id}`;
     },
     overscan: 15,
@@ -296,44 +332,46 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
   // Sync local state when provider changes (e.g. switching providers)
   useEffect(() => {
-    setApiHostLocal(provider?.api_host ?? '');
-    setApiPathLocal(provider?.api_path ?? '');
+    setApiHostLocal(provider?.api_host ?? "");
+    setApiPathLocal(provider?.api_path ?? "");
     try {
-      const obj = JSON.parse(provider?.custom_headers ?? '{}') as Record<string, string>;
-      setCustomHeadersLocal(Object.entries(obj).map(([k, v]) => `${k}=${v}`).join('\n'));
-    } catch { setCustomHeadersLocal(''); }
+      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<string, string>;
+      setCustomHeadersLocal(Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n"));
+    } catch {
+      setCustomHeadersLocal("");
+    }
   }, [provider?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Resolve actual request URLs for preview
   const resolvedUrls = useMemo(() => {
-    const providerType = provider?.provider_type ?? 'openai';
-    const host = apiHostLocal || DEFAULT_HOSTS[providerType] || '';
-    const path = apiPathLocal || DEFAULT_PATHS[providerType] || '';
+    const providerType = provider?.provider_type ?? "openai";
+    const host = apiHostLocal || DEFAULT_HOSTS[providerType] || "";
+    const path = apiPathLocal || DEFAULT_PATHS[providerType] || "";
 
     // Default version path per provider type
-    const defaultVersion = providerType === 'gemini' ? '/v1beta' : '/v1';
+    const defaultVersion = providerType === "gemini" ? "/v1beta" : "/v1";
 
     // Check if URL ends with a versioned path like /v1, /v1beta, /v2, etc.
     const hasVersionSuffix = (url: string) => {
-      const lastSeg = url.split('/').pop() || '';
+      const lastSeg = url.split("/").pop() || "";
       return /^v\d/.test(lastSeg);
     };
     // Extract version prefix like "/v1", "/v1beta"
     const extractVersionPrefix = (url: string): string | null => {
-      const lastSeg = url.split('/').pop() || '';
+      const lastSeg = url.split("/").pop() || "";
       return /^v\d/.test(lastSeg) ? `/${lastSeg}` : null;
     };
 
     // resolve base_url: strip trailing !, auto-add default version if missing
-    const trimmed = host.replace(/\/+$/, '');
-    const forced = trimmed.endsWith('!');
-    const rawHost = forced ? trimmed.slice(0, -1).replace(/\/+$/, '') : trimmed;
+    const trimmed = host.replace(/\/+$/, "");
+    const forced = trimmed.endsWith("!");
+    const rawHost = forced ? trimmed.slice(0, -1).replace(/\/+$/, "") : trimmed;
     const resolvedBase = forced ? rawHost : hasVersionSuffix(rawHost) ? rawHost : `${rawHost}${defaultVersion}`;
 
     // resolve chat url: strip ! from path, dedup version prefix
-    const pathForced = path.endsWith('!');
+    const pathForced = path.endsWith("!");
     const rawPath = pathForced ? path.slice(0, -1) : path;
-    const normalizedPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+    const normalizedPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
     let chatUrl: string;
     if (pathForced) {
       chatUrl = `${resolvedBase}${normalizedPath}`;
@@ -354,29 +392,29 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       (provider?.models ?? []).filter((m) =>
         [m.name, m.model_id, getModelGroupName(m)]
           .filter((value): value is string => Boolean(value))
-          .some((value) => value.toLowerCase().includes(modelSearch.toLowerCase())),
+          .some((value) => value.toLowerCase().includes(modelSearch.toLowerCase()))
       ),
     [provider?.models, modelSearch],
   );
 
   const handleOpenAddModel = useCallback((groupName?: string) => {
-    setAddModelId('');
-    setAddModelName('');
-    setAddModelGroupName(groupName ?? '');
-    setAddModelType('Chat');
+    setAddModelId("");
+    setAddModelName("");
+    setAddModelGroupName(groupName ?? "");
+    setAddModelType("Chat");
     addModelNameDirty.current = false;
     addModelGroupDirty.current = !!groupName;
     setAddModelModalOpen(true);
   }, []);
 
   const handleAddKey = useCallback(async () => {
-    if (!keyValue.trim()) return;
+    if (!keyValue.trim()) { return; }
     try {
       await addProviderKey(providerId, keyValue);
-      setKeyValue('');
+      setKeyValue("");
       setAddKeyModal(false);
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
   }, [keyValue, providerId, addProviderKey, message, t]);
 
@@ -386,12 +424,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       try {
         const valid = await validateProviderKey(keyId);
         if (valid) {
-          message.success(t('settings.keyValidSuccess'));
+          message.success(t("settings.keyValidSuccess"));
         } else {
-          message.error(t('settings.keyInvalidError'));
+          message.error(t("settings.keyInvalidError"));
         }
       } catch (e) {
-        message.error(t('error.keyValidationFailed') + ': ' + String(e));
+        message.error(t("error.keyValidationFailed") + ": " + String(e));
       } finally {
         setValidatingKeys((s) => {
           const next = new Set(s);
@@ -410,21 +448,21 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       const existingIds = new Set((provider?.models ?? []).map((m) => m.model_id));
       const newModels = models.filter((m) => !existingIds.has(m.model_id));
       if (newModels.length === 0) {
-        message.info(t('settings.noNewModels'));
+        message.info(t("settings.noNewModels"));
         return;
       }
       setPickerModels(newModels);
       setPickerSelected(new Set(newModels.map((m) => m.model_id)));
-      setPickerMode('append');
-      setPickerSearch('');
+      setPickerMode("append");
+      setPickerSearch("");
       setPickerCollapsed(new Set());
       setPickerOpen(true);
     } catch (e) {
       const errMsg = String(e);
-      if (errMsg.includes('No active key') || errMsg.includes('key')) {
-        message.error(t('settings.noActiveKeyError'));
+      if (errMsg.includes("No active key") || errMsg.includes("key")) {
+        message.error(t("settings.noActiveKeyError"));
       } else {
-        message.error(t('error.loadFailed') + ': ' + errMsg);
+        message.error(t("error.loadFailed") + ": " + errMsg);
       }
     } finally {
       setRefreshing(false);
@@ -436,22 +474,22 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     try {
       const remoteModels = await fetchRemoteModels(providerId);
       if (remoteModels.length === 0) {
-        message.info(t('settings.noNewModels'));
+        message.info(t("settings.noNewModels"));
         return;
       }
       const existingIds = new Set((provider?.models ?? []).map((m) => m.model_id));
       setPickerModels(remoteModels);
       setPickerSelected(new Set(existingIds));
-      setPickerMode('replace');
-      setPickerSearch('');
+      setPickerMode("replace");
+      setPickerSearch("");
       setPickerCollapsed(new Set());
       setPickerOpen(true);
     } catch (e) {
       const errMsg = String(e);
-      if (errMsg.includes('No active key') || errMsg.includes('key')) {
-        message.error(t('settings.noActiveKeyError'));
+      if (errMsg.includes("No active key") || errMsg.includes("key")) {
+        message.error(t("settings.noActiveKeyError"));
       } else {
-        message.error(t('error.loadFailed') + ': ' + errMsg);
+        message.error(t("error.loadFailed") + ": " + errMsg);
       }
     } finally {
       setFetchingAll(false);
@@ -464,24 +502,24 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       setPickerOpen(false);
       return;
     }
-    const merged = pickerMode === 'replace'
+    const merged = pickerMode === "replace"
       ? selectedModels
       : [...(provider?.models ?? []), ...selectedModels];
     try {
       await saveModels(providerId, merged);
-      if (pickerMode === 'replace') {
-        message.success(t('settings.fetchAllModelsSuccess', { count: selectedModels.length }));
+      if (pickerMode === "replace") {
+        message.success(t("settings.fetchAllModelsSuccess", { count: selectedModels.length }));
       } else {
-        message.success(t('settings.modelsAdded', { count: selectedModels.length }));
+        message.success(t("settings.modelsAdded", { count: selectedModels.length }));
       }
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
     setPickerOpen(false);
   }, [pickerModels, pickerSelected, pickerMode, provider?.models, providerId, saveModels, message, t]);
 
   const handleTestSingleModel = useCallback(async () => {
-    if (!singleTestModelId) return;
+    if (!singleTestModelId) { return; }
     setSingleTestLoading(true);
     setSingleTestResult(null);
     try {
@@ -512,7 +550,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
   const handleTestAllModels = useCallback(async () => {
     const models = provider?.models ?? [];
-    if (models.length === 0) return;
+    if (models.length === 0) { return; }
     setTestResults(new Map());
     setTestingModels(new Set(models.map((m) => m.model_id)));
     for (const model of models) {
@@ -537,13 +575,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     const manualGroupName = addModelGroupName.trim();
 
     if (!nextModelId) {
-      message.error(t('settings.modelIdRequired'));
+      message.error(t("settings.modelIdRequired"));
       return;
     }
 
     const duplicateExists = (provider?.models ?? []).some((model) => model.model_id === nextModelId);
     if (duplicateExists) {
-      message.error(t('settings.duplicateModelError'));
+      message.error(t("settings.duplicateModelError"));
       return;
     }
 
@@ -562,19 +600,19 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     try {
       await saveModels(providerId, [...(provider?.models ?? []), nextModel]);
       setAddModelModalOpen(false);
-      setAddModelId('');
-      setAddModelName('');
-      setAddModelGroupName('');
-      setAddModelType('Chat');
+      setAddModelId("");
+      setAddModelName("");
+      setAddModelGroupName("");
+      setAddModelType("Chat");
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
   }, [addModelGroupName, addModelId, addModelName, addModelType, message, provider?.models, providerId, saveModels, t]);
 
   const handleOpenSettings = useCallback(
     (model: Model) => {
       setEditingModel(model);
-      const nextModelType = model.model_type || 'Chat';
+      const nextModelType = model.model_type || "Chat";
       setEditCapabilities(sanitizeModelCapabilities(nextModelType, model.capabilities));
       setEditModelType(nextModelType);
       setEditMaxTokens(model.max_tokens ?? 128000);
@@ -585,14 +623,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       setEditUseMaxCompletionTokens(model.param_overrides?.use_max_completion_tokens ?? false);
       setEditNoSystemRole(model.param_overrides?.no_system_role ?? false);
       setEditForceMaxTokens(model.param_overrides?.force_max_tokens ?? false);
-      setEditThinkingParamStyle(model.param_overrides?.thinking_param_style ?? 'reasoning_effort');
+      setEditThinkingParamStyle(model.param_overrides?.thinking_param_style ?? "reasoning_effort");
       setSettingsModalOpen(true);
     },
     [],
   );
 
   const handleSaveSettings = useCallback(async () => {
-    if (!editingModel) return;
+    if (!editingModel) { return; }
     const values: ModelParamOverrides = {
       temperature: editTemperature ?? undefined,
       max_tokens: editMaxTokensParam ?? undefined,
@@ -601,7 +639,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       use_max_completion_tokens: editUseMaxCompletionTokens,
       no_system_role: editNoSystemRole,
       force_max_tokens: editForceMaxTokens,
-      thinking_param_style: editThinkingParamStyle === 'reasoning_effort' ? undefined : editThinkingParamStyle,
+      thinking_param_style: editThinkingParamStyle === "reasoning_effort" ? undefined : editThinkingParamStyle,
     };
     const nextCapabilities = sanitizeModelCapabilities(editModelType, editCapabilities);
     try {
@@ -609,21 +647,46 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       // Update capabilities locally via saveModels
       const updatedModels = (provider?.models ?? []).map((m) =>
         m.model_id === editingModel.model_id
-          ? { ...m, capabilities: nextCapabilities, model_type: editModelType, param_overrides: values, max_tokens: editMaxTokens }
-          : m,
+          ? {
+            ...m,
+            capabilities: nextCapabilities,
+            model_type: editModelType,
+            param_overrides: values,
+            max_tokens: editMaxTokens,
+          }
+          : m
       );
       await saveModels(providerId, updatedModels);
       setSettingsModalOpen(false);
       setEditingModel(null);
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
-  }, [editingModel, editCapabilities, editModelType, editMaxTokens, editTemperature, editMaxTokensParam, editTopP, editFreqPenalty, editUseMaxCompletionTokens, editNoSystemRole, editForceMaxTokens, editThinkingParamStyle, providerId, updateModelParams, saveModels, provider?.models, message, t]);
+  }, [
+    editingModel,
+    editCapabilities,
+    editModelType,
+    editMaxTokens,
+    editTemperature,
+    editMaxTokensParam,
+    editTopP,
+    editFreqPenalty,
+    editUseMaxCompletionTokens,
+    editNoSystemRole,
+    editForceMaxTokens,
+    editThinkingParamStyle,
+    providerId,
+    updateModelParams,
+    saveModels,
+    provider?.models,
+    message,
+    t,
+  ]);
 
   const handleApiHostChange = useCallback(
     (value: string) => {
       setApiHostLocal(value);
-      if (apiHostTimerRef.current) clearTimeout(apiHostTimerRef.current);
+      if (apiHostTimerRef.current) { clearTimeout(apiHostTimerRef.current); }
       apiHostTimerRef.current = setTimeout(() => {
         updateProvider(providerId, { api_host: value });
       }, 500);
@@ -634,7 +697,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const handleApiPathChange = useCallback(
     (value: string) => {
       setApiPathLocal(value);
-      if (apiPathTimerRef.current) clearTimeout(apiPathTimerRef.current);
+      if (apiPathTimerRef.current) { clearTimeout(apiPathTimerRef.current); }
       apiPathTimerRef.current = setTimeout(() => {
         updateProvider(providerId, { api_path: value || null });
       }, 500);
@@ -656,8 +719,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const handleBatchToggleModel = useCallback((model_id: string) => {
     setBatchSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(model_id)) next.delete(model_id);
-      else next.add(model_id);
+      if (next.has(model_id)) { next.delete(model_id); }
+      else { next.add(model_id); }
       return next;
     });
   }, []);
@@ -667,57 +730,57 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       const next = new Set(prev);
       const allSelected = groupModels.every((m) => prev.has(m.model_id));
       if (allSelected) {
-        for (const m of groupModels) next.delete(m.model_id);
+        for (const m of groupModels) { next.delete(m.model_id); }
       } else {
-        for (const m of groupModels) next.add(m.model_id);
+        for (const m of groupModels) { next.add(m.model_id); }
       }
       return next;
     });
   }, []);
 
   const handleBatchEnable = useCallback(async () => {
-    if (batchSelected.size === 0) return;
+    if (batchSelected.size === 0) { return; }
     const updatedModels = (provider?.models ?? []).map((m) =>
-      batchSelected.has(m.model_id) ? { ...m, enabled: true } : m,
+      batchSelected.has(m.model_id) ? { ...m, enabled: true } : m
     );
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t('settings.batchEnableSuccess', { count: batchSelected.size }));
+      message.success(t("settings.batchEnableSuccess", { count: batchSelected.size }));
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
   const handleBatchDisable = useCallback(async () => {
-    if (batchSelected.size === 0) return;
+    if (batchSelected.size === 0) { return; }
     const updatedModels = (provider?.models ?? []).map((m) =>
-      batchSelected.has(m.model_id) ? { ...m, enabled: false } : m,
+      batchSelected.has(m.model_id) ? { ...m, enabled: false } : m
     );
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t('settings.batchDisableSuccess', { count: batchSelected.size }));
+      message.success(t("settings.batchDisableSuccess", { count: batchSelected.size }));
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
   const handleBatchDelete = useCallback(async () => {
-    if (batchSelected.size === 0) return;
+    if (batchSelected.size === 0) { return; }
     const updatedModels = (provider?.models ?? []).filter((m) => !batchSelected.has(m.model_id));
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t('settings.batchDeleteSuccess', { count: batchSelected.size }));
+      message.success(t("settings.batchDeleteSuccess", { count: batchSelected.size }));
       setBatchSelected(new Set());
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
   const handleOpenBatchEdit = useCallback(() => {
     // Reset all batch edit fields and disable all toggles
-    setBatchModelType('Chat');
+    setBatchModelType("Chat");
     setBatchModelTypeEnabled(false);
-    setBatchCapabilities(['TextChat']);
+    setBatchCapabilities(["TextChat"]);
     setBatchCapabilitiesEnabled(false);
     setBatchMaxTokens(128000);
     setBatchMaxTokensEnabled(false);
@@ -735,52 +798,88 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     setBatchNoSystemRoleEnabled(false);
     setBatchForceMaxTokens(false);
     setBatchForceMaxTokensEnabled(false);
-    setBatchThinkingParamStyle('reasoning_effort');
+    setBatchThinkingParamStyle("reasoning_effort");
     setBatchThinkingParamStyleEnabled(false);
     setBatchEditModalOpen(true);
   }, []);
 
   const handleBatchEditSave = useCallback(async () => {
-    if (batchSelected.size === 0) return;
+    if (batchSelected.size === 0) { return; }
     const updatedModels = (provider?.models ?? []).map((m) => {
-      if (!batchSelected.has(m.model_id)) return m;
+      if (!batchSelected.has(m.model_id)) { return m; }
       let updated = { ...m };
       if (batchModelTypeEnabled) {
         updated.model_type = batchModelType;
-        updated.capabilities = sanitizeModelCapabilities(batchModelType, batchCapabilitiesEnabled ? batchCapabilities : updated.capabilities);
+        updated.capabilities = sanitizeModelCapabilities(
+          batchModelType,
+          batchCapabilitiesEnabled ? batchCapabilities : updated.capabilities,
+        );
       }
       if (batchCapabilitiesEnabled && !batchModelTypeEnabled) {
-        updated.capabilities = sanitizeModelCapabilities(updated.model_type || 'Chat', batchCapabilities);
+        updated.capabilities = sanitizeModelCapabilities(updated.model_type || "Chat", batchCapabilities);
       }
       if (batchMaxTokensEnabled) {
         updated.max_tokens = batchMaxTokens;
       }
       const overrides: ModelParamOverrides = { ...(updated.param_overrides ?? {}) };
-      if (batchTemperatureEnabled) overrides.temperature = batchTemperature;
-      if (batchTopPEnabled) overrides.top_p = batchTopP;
-      if (batchMaxTokensParamEnabled) overrides.max_tokens = batchMaxTokensParam;
-      if (batchFreqPenaltyEnabled) overrides.frequency_penalty = batchFreqPenalty;
-      if (batchUseMaxCompletionTokensEnabled) overrides.use_max_completion_tokens = batchUseMaxCompletionTokens;
-      if (batchNoSystemRoleEnabled) overrides.no_system_role = batchNoSystemRole;
-      if (batchForceMaxTokensEnabled) overrides.force_max_tokens = batchForceMaxTokens;
-      if (batchThinkingParamStyleEnabled) overrides.thinking_param_style = batchThinkingParamStyle === 'reasoning_effort' ? undefined : batchThinkingParamStyle;
+      if (batchTemperatureEnabled) { overrides.temperature = batchTemperature; }
+      if (batchTopPEnabled) { overrides.top_p = batchTopP; }
+      if (batchMaxTokensParamEnabled) { overrides.max_tokens = batchMaxTokensParam; }
+      if (batchFreqPenaltyEnabled) { overrides.frequency_penalty = batchFreqPenalty; }
+      if (batchUseMaxCompletionTokensEnabled) { overrides.use_max_completion_tokens = batchUseMaxCompletionTokens; }
+      if (batchNoSystemRoleEnabled) { overrides.no_system_role = batchNoSystemRole; }
+      if (batchForceMaxTokensEnabled) { overrides.force_max_tokens = batchForceMaxTokens; }
+      if (batchThinkingParamStyleEnabled) {
+        overrides.thinking_param_style = batchThinkingParamStyle === "reasoning_effort"
+          ? undefined
+          : batchThinkingParamStyle;
+      }
       updated.param_overrides = overrides;
       return updated;
     });
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t('settings.batchEditSuccess', { count: batchSelected.size }));
+      message.success(t("settings.batchEditSuccess", { count: batchSelected.size }));
       setBatchEditModalOpen(false);
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
-  }, [batchSelected, provider?.models, providerId, saveModels, message, t, batchModelType, batchModelTypeEnabled, batchCapabilities, batchCapabilitiesEnabled, batchMaxTokens, batchMaxTokensEnabled, batchTemperature, batchTemperatureEnabled, batchTopP, batchTopPEnabled, batchMaxTokensParam, batchMaxTokensParamEnabled, batchFreqPenalty, batchFreqPenaltyEnabled, batchUseMaxCompletionTokens, batchUseMaxCompletionTokensEnabled, batchNoSystemRole, batchNoSystemRoleEnabled, batchForceMaxTokens, batchForceMaxTokensEnabled, batchThinkingParamStyle, batchThinkingParamStyleEnabled]);
+  }, [
+    batchSelected,
+    provider?.models,
+    providerId,
+    saveModels,
+    message,
+    t,
+    batchModelType,
+    batchModelTypeEnabled,
+    batchCapabilities,
+    batchCapabilitiesEnabled,
+    batchMaxTokens,
+    batchMaxTokensEnabled,
+    batchTemperature,
+    batchTemperatureEnabled,
+    batchTopP,
+    batchTopPEnabled,
+    batchMaxTokensParam,
+    batchMaxTokensParamEnabled,
+    batchFreqPenalty,
+    batchFreqPenaltyEnabled,
+    batchUseMaxCompletionTokens,
+    batchUseMaxCompletionTokensEnabled,
+    batchNoSystemRole,
+    batchNoSystemRoleEnabled,
+    batchForceMaxTokens,
+    batchForceMaxTokensEnabled,
+    batchThinkingParamStyle,
+    batchThinkingParamStyleEnabled,
+  ]);
 
   const groupedModels = useMemo(() => {
     const groups: Record<string, Model[]> = {};
     for (const model of filteredModels) {
       const groupKey = getModelGroupName(model);
-      if (!groups[groupKey]) groups[groupKey] = [];
+      if (!groups[groupKey]) { groups[groupKey] = []; }
       groups[groupKey].push(model);
     }
     return groups;
@@ -811,17 +910,20 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [modelListFullscreen, setModelListFullscreen] = useState(false);
 
   // Flatten grouped models into virtual rows
-  type ModelListRow = { type: 'group'; group: string; models: Model[] } | { type: 'model'; model: Model; group: string } | { type: 'spacer'; beforeGroup: string };
+  type ModelListRow =
+    | { type: "group"; group: string; models: Model[] }
+    | { type: "model"; model: Model; group: string }
+    | { type: "spacer"; beforeGroup: string };
   const flatModelRows = useMemo<ModelListRow[]>(() => {
     const rows: ModelListRow[] = [];
     const entries = Object.entries(groupedModels);
     for (let i = 0; i < entries.length; i++) {
       const [group, models] = entries[i];
-      if (i > 0) rows.push({ type: 'spacer', beforeGroup: group });
-      rows.push({ type: 'group', group, models });
+      if (i > 0) { rows.push({ type: "spacer", beforeGroup: group }); }
+      rows.push({ type: "group", group, models });
       if (expandedGroups.includes(group)) {
         for (const model of models) {
-          rows.push({ type: 'model', model, group });
+          rows.push({ type: "model", model, group });
         }
       }
     }
@@ -834,14 +936,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     getScrollElement: () => modelListParentRef.current,
     estimateSize: (index) => {
       const row = flatModelRows[index];
-      if (row.type === 'spacer') return 8;
-      if (row.type === 'group') return 40;
+      if (row.type === "spacer") { return 8; }
+      if (row.type === "group") { return 40; }
       return 44;
     },
     getItemKey: (index) => {
       const row = flatModelRows[index];
-      if (row.type === 'spacer') return `spacer-${row.beforeGroup}`;
-      if (row.type === 'group') return `group-${row.group}`;
+      if (row.type === "spacer") { return `spacer-${row.beforeGroup}`; }
+      if (row.type === "group") { return `group-${row.group}`; }
       return `model-${row.model.model_id}`;
     },
     overscan: 10,
@@ -852,27 +954,27 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     try {
       await saveModels(providerId, updatedModels);
     } catch {
-      message.error(t('error.saveFailed'));
+      message.error(t("error.saveFailed"));
     }
   }, [provider?.models, providerId, saveModels, message, t]);
 
-  if (!provider) return null;
+  if (!provider) { return null; }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <IconEditor
-            iconType={provider.icon ? 'model_icon' : null}
+            iconType={provider.icon ? "model_icon" : null}
             iconValue={provider.icon ?? null}
             onChange={(type, value) => {
-              if (type === 'model_icon' && value) {
+              if (type === "model_icon" && value) {
                 updateProvider(providerId, { icon: value });
-              } else if (type === 'emoji' || type === 'url' || type === 'file') {
+              } else if (type === "emoji" || type === "url" || type === "file") {
                 updateProvider(providerId, { icon: `${type}:${value}` });
               } else {
-                updateProvider(providerId, { icon: '' });
+                updateProvider(providerId, { icon: "" });
               }
             }}
             size={40}
@@ -905,18 +1007,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           <Switch
             checked={provider.enabled}
             onChange={(checked) => toggleProvider(providerId, checked)}
-            checkedChildren={t('common.enabled')}
-            unCheckedChildren={t('common.disabled')}
+            checkedChildren={t("common.enabled")}
+            unCheckedChildren={t("common.disabled")}
           />
           {!provider.builtin_id && (
             <Popconfirm
-              title={t('settings.deleteProviderConfirm')}
+              title={t("settings.deleteProviderConfirm")}
               onConfirm={async () => {
                 await deleteProvider(providerId);
                 setSelectedProviderId(null);
               }}
-              okText={t('common.confirm')}
-              cancelText={t('common.cancel')}
+              okText={t("common.confirm")}
+              cancelText={t("common.cancel")}
               okButtonProps={{ danger: true }}
             >
               <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
@@ -929,7 +1031,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
       {/* API Keys */}
       <Card
-        title={t('settings.apiKeys')}
+        title={t("settings.apiKeys")}
         size="small"
         extra={
           <Button
@@ -937,81 +1039,81 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             icon={<Plus size={14} />}
             onClick={() => setAddKeyModal(true)}
           >
-            {t('settings.addKey')}
+            {t("settings.addKey")}
           </Button>
         }
       >
-        {provider.keys.length === 0 ? (
-          <Text type="secondary">{t('common.noData')}</Text>
-        ) : (
-          <Space orientation="vertical" className="w-full" size="small">
-            {provider.keys.map((key) => (
-              <div
-                key={key.id}
-                className="flex items-center justify-between rounded-md px-3 py-2"
-                style={{ border: '1px solid var(--border-color)' }}
-              >
-                <Space>
-                  <Switch
-                    size="small"
-                    checked={key.enabled}
-                    onChange={(checked) => toggleProviderKey(key.id, checked)}
-                  />
-                  <Key size={14} />
-                  <Text code>{key.key_prefix}••••••••</Text>
-                </Space>
-                <Space size="small">
-                  <CopyButton
-                    text={async () => {
-                      const raw = await invoke<string>('get_decrypted_provider_key', { keyId: key.id });
-                      return raw;
-                    }}
-                    size={14}
-                    successMessage={t('common.copySuccess')}
-                    onError={(e) => {
-                      console.error('copy key failed:', e);
-                      message.error(t('error.unknown'));
-                    }}
-                  />
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Heart size={14} />}
-                    loading={validatingKeys.has(key.id)}
-                    onClick={() => handleValidateKey(key.id)}
-                    title={t('settings.validateKey')}
-                  />
-                  <Popconfirm
-                    title={t('settings.deleteKeyConfirm')}
-                    onConfirm={() => deleteProviderKey(key.id)}
-                    okText={t('common.confirm')}
-                    cancelText={t('common.cancel')}
-                    okButtonProps={{ danger: true }}
-                  >
-                    <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
-                  </Popconfirm>
-                </Space>
-              </div>
-            ))}
-          </Space>
-        )}
+        {provider.keys.length === 0
+          ? <Text type="secondary">{t("common.noData")}</Text>
+          : (
+            <Space orientation="vertical" className="w-full" size="small">
+              {provider.keys.map((key) => (
+                <div
+                  key={key.id}
+                  className="flex items-center justify-between rounded-md px-3 py-2"
+                  style={{ border: "1px solid var(--border-color)" }}
+                >
+                  <Space>
+                    <Switch
+                      size="small"
+                      checked={key.enabled}
+                      onChange={(checked) => toggleProviderKey(key.id, checked)}
+                    />
+                    <Key size={14} />
+                    <Text code>{key.key_prefix}••••••••</Text>
+                  </Space>
+                  <Space size="small">
+                    <CopyButton
+                      text={async () => {
+                        const raw = await invoke<string>("get_decrypted_provider_key", { keyId: key.id });
+                        return raw;
+                      }}
+                      size={14}
+                      successMessage={t("common.copySuccess")}
+                      onError={(e) => {
+                        console.error("copy key failed:", e);
+                        message.error(t("error.unknown"));
+                      }}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<Heart size={14} />}
+                      loading={validatingKeys.has(key.id)}
+                      onClick={() => handleValidateKey(key.id)}
+                      title={t("settings.validateKey")}
+                    />
+                    <Popconfirm
+                      title={t("settings.deleteKeyConfirm")}
+                      onConfirm={() => deleteProviderKey(key.id)}
+                      okText={t("common.confirm")}
+                      cancelText={t("common.cancel")}
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
+                    </Popconfirm>
+                  </Space>
+                </div>
+              ))}
+            </Space>
+          )}
       </Card>
 
       {/* API Host + Path */}
-      <Card title={t('settings.apiHost')} size="small">
-        <Form layout="horizontal" colon={false} labelCol={{ flex: '110px' }} wrapperCol={{ flex: 1 }}>
+      <Card title={t("settings.apiHost")} size="small">
+        <Form layout="horizontal" colon={false} labelCol={{ flex: "110px" }} wrapperCol={{ flex: 1 }}>
           <Form.Item
             label={
               <Space size={4}>
                 <span>Base URL</span>
-                <Tooltip title={t('settings.urlHintExclamation')}>
-                  <CircleHelp size={14} style={{ cursor: 'help' }} />
+                <Tooltip title={t("settings.urlHintExclamation")}>
+                  <CircleHelp size={14} style={{ cursor: "help" }} />
                 </Tooltip>
               </Space>
             }
             style={{ marginBottom: 12 }}
           >
-            <Space.Compact style={{ width: '100%' }}>
+            <Space.Compact style={{ width: "100%" }}>
               <Input
                 value={apiHostLocal}
                 onChange={(e) => handleApiHostChange(e.target.value)}
@@ -1025,19 +1127,20 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   updateProvider(providerId, { api_host: defaultHost });
                 }}
               >
-                {t('settings.resetDefault')}
+                {t("settings.resetDefault")}
               </Button>
             </Space.Compact>
             <div style={{ marginTop: 4, fontSize: 12, color: token.colorTextQuaternary }}>
-              {t('settings.urlPreviewLabel')}{resolvedUrls.resolvedBase}
+              {t("settings.urlPreviewLabel")}
+              {resolvedUrls.resolvedBase}
             </div>
           </Form.Item>
           <Form.Item
             label={
               <Space size={4}>
-                <span>{t('settings.apiPath')}</span>
-                <Tooltip title={t('settings.urlHintExclamation')}>
-                  <CircleHelp size={14} style={{ cursor: 'help' }} />
+                <span>{t("settings.apiPath")}</span>
+                <Tooltip title={t("settings.urlHintExclamation")}>
+                  <CircleHelp size={14} style={{ cursor: "help" }} />
                 </Tooltip>
               </Space>
             }
@@ -1049,7 +1152,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               placeholder={DEFAULT_PATHS[provider.provider_type]}
             />
             <div style={{ marginTop: 4, fontSize: 12, color: token.colorTextQuaternary }}>
-              {t('settings.urlPreviewLabel')}{resolvedUrls.chatUrl}
+              {t("settings.urlPreviewLabel")}
+              {resolvedUrls.chatUrl}
             </div>
           </Form.Item>
         </Form>
@@ -1058,79 +1162,124 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       {/* Models List */}
       {modelListFullscreen && (
         <div
-          style={{ position: 'fixed', top: 37, left: 0, right: 0, bottom: 0, zIndex: 999, background: 'rgba(0,0,1.0.0)' }}
+          style={{
+            position: "fixed",
+            top: 37,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999,
+            background: "rgba(0,0,1.0.0)",
+          }}
           onClick={() => setModelListFullscreen(false)}
         />
       )}
       <Card
-        style={modelListFullscreen ? { position: 'fixed', top: 47, left: 10, right: 10, bottom: 10, zIndex: 1000, overflow: 'auto', display: 'flex', flexDirection: 'column' } : undefined}
-        title={
-          batchMode ? (
+        style={modelListFullscreen
+          ? {
+            position: "fixed",
+            top: 47,
+            left: 10,
+            right: 10,
+            bottom: 10,
+            zIndex: 1000,
+            overflow: "auto",
+            display: "flex",
+            flexDirection: "column",
+          }
+          : undefined}
+        title={batchMode
+          ? (
             <Space>
               <Text type="secondary" style={{ fontSize: 13 }}>
-                {t('settings.batchSelected', { count: batchSelected.size })}
+                {t("settings.batchSelected", { count: batchSelected.size })}
               </Text>
             </Space>
-          ) : (
+          )
+          : (
             <Space>
-              <span>{t('settings.models')}</span>
+              <span>{t("settings.models")}</span>
               <Tag>{filteredModels.length}</Tag>
             </Space>
-          )
-        }
+          )}
         size="small"
-        extra={
-          batchMode ? (
+        extra={batchMode
+          ? (
             <Space size={4}>
-              <Tooltip title={t('settings.batchEnable')}>
-                <Button type="text" size="small" icon={<Power size={14} />} disabled={batchSelected.size === 0} onClick={handleBatchEnable} />
+              <Tooltip title={t("settings.batchEnable")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Power size={14} />}
+                  disabled={batchSelected.size === 0}
+                  onClick={handleBatchEnable}
+                />
               </Tooltip>
-              <Tooltip title={t('settings.batchDisable')}>
-                <Button type="text" size="small" icon={<PowerOff size={14} />} disabled={batchSelected.size === 0} onClick={handleBatchDisable} />
+              <Tooltip title={t("settings.batchDisable")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<PowerOff size={14} />}
+                  disabled={batchSelected.size === 0}
+                  onClick={handleBatchDisable}
+                />
               </Tooltip>
-              <Tooltip title={t('settings.batchEdit')}>
-                <Button type="text" size="small" icon={<Pencil size={14} />} disabled={batchSelected.size === 0} onClick={handleOpenBatchEdit} />
+              <Tooltip title={t("settings.batchEdit")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Pencil size={14} />}
+                  disabled={batchSelected.size === 0}
+                  onClick={handleOpenBatchEdit}
+                />
               </Tooltip>
               <Popconfirm
-                title={t('settings.batchDeleteConfirm', { count: batchSelected.size })}
+                title={t("settings.batchDeleteConfirm", { count: batchSelected.size })}
                 onConfirm={handleBatchDelete}
-                okText={t('common.confirm')}
-                cancelText={t('common.cancel')}
+                okText={t("common.confirm")}
+                cancelText={t("common.cancel")}
                 okButtonProps={{ danger: true }}
                 disabled={batchSelected.size === 0}
               >
-                <Tooltip title={t('settings.batchDeleteBtn')}>
-                  <Button type="text" size="small" danger icon={<Trash2 size={14} />} disabled={batchSelected.size === 0} />
+                <Tooltip title={t("settings.batchDeleteBtn")}>
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<Trash2 size={14} />}
+                    disabled={batchSelected.size === 0}
+                  />
                 </Tooltip>
               </Popconfirm>
-              <Divider type="vertical" style={{ margin: '0 2px' }} />
-              <Tooltip title={t('settings.batchExit')}>
+              <Divider type="vertical" style={{ margin: "0 2px" }} />
+              <Tooltip title={t("settings.batchExit")}>
                 <Button type="text" size="small" icon={<X size={14} />} onClick={handleExitBatchMode} />
               </Tooltip>
             </Space>
-          ) : (
-          <Space size={4}>
-            <Tooltip title={t('settings.searchModels')}>
-              <Button
-                type="text"
-                size="small"
-                icon={<Search size={14} />}
-                onClick={() => {
-                  setShowModelSearch(!showModelSearch);
-                  if (showModelSearch) setModelSearch('');
-                }}
-                style={{ color: showModelSearch ? token.colorPrimary : undefined }}
-              />
-            </Tooltip>
-            <Tooltip title={t('settings.batchEditMode')}>
-              <Button
-                type="text"
-                size="small"
-                icon={<ListChecks size={14} />}
-                onClick={handleEnterBatchMode}
-              />
-            </Tooltip>
-             <Tooltip title={t('settings.syncModels')}>
+          )
+          : (
+            <Space size={4}>
+              <Tooltip title={t("settings.searchModels")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Search size={14} />}
+                  onClick={() => {
+                    setShowModelSearch(!showModelSearch);
+                    if (showModelSearch) { setModelSearch(""); }
+                  }}
+                  style={{ color: showModelSearch ? token.colorPrimary : undefined }}
+                />
+              </Tooltip>
+              <Tooltip title={t("settings.batchEditMode")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ListChecks size={14} />}
+                  onClick={handleEnterBatchMode}
+                />
+              </Tooltip>
+              <Tooltip title={t("settings.syncModels")}>
                 <Button
                   type="text"
                   size="small"
@@ -1139,7 +1288,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   onClick={handleRefreshModels}
                 />
               </Tooltip>
-              <Tooltip title={t('settings.fetchAllModels')}>
+              <Tooltip title={t("settings.fetchAllModels")}>
                 <Button
                   type="text"
                   size="small"
@@ -1148,7 +1297,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   onClick={handleFetchAllModels}
                 />
               </Tooltip>
-              <Tooltip title={t('settings.addModel')}>
+              <Tooltip title={t("settings.addModel")}>
                 <Button
                   type="text"
                   size="small"
@@ -1159,12 +1308,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               <Dropdown
                 menu={{
                   items: [
-                    { key: 'single', label: t('settings.testSingleModel') },
-                    { key: 'all', label: t('settings.testAllModels') },
+                    { key: "single", label: t("settings.testSingleModel") },
+                    { key: "all", label: t("settings.testAllModels") },
                   ],
                   onClick: ({ key }) => {
-                    if (key === 'single') {
-                      setSingleTestModelId('');
+                    if (key === "single") {
+                      setSingleTestModelId("");
                       setSingleTestResult(null);
                       setSingleTestLoading(false);
                       setSingleTestModalOpen(true);
@@ -1173,39 +1322,38 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     }
                   },
                 }}
-                trigger={['click']}
+                trigger={["click"]}
               >
-                <Tooltip title={t('settings.testModels')}>
+                <Tooltip title={t("settings.testModels")}>
                   <Button type="text" size="small" icon={<Heart size={14} />} />
                 </Tooltip>
               </Dropdown>
-            <Tooltip title={allExpanded ? t('common.collapseAll') : t('common.expandAll')}>
-              <Button
-                type="text"
-                size="small"
-                icon={allExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                onClick={() => {
-                  if (allExpanded) setExpandedGroups([]);
-                  else setExpandedGroups(groupKeys);
-                }}
-              />
-            </Tooltip>
-            <Tooltip title={modelListFullscreen ? t('settings.exitFullscreen') : t('settings.fullscreen')}>
-              <Button
-                type="text"
-                size="small"
-                icon={modelListFullscreen ? <Shrink size={14} /> : <Expand size={14} />}
-                onClick={() => setModelListFullscreen(!modelListFullscreen)}
-              />
-            </Tooltip>
-          </Space>
-          )
-        }
+              <Tooltip title={allExpanded ? t("common.collapseAll") : t("common.expandAll")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={allExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                  onClick={() => {
+                    if (allExpanded) { setExpandedGroups([]); }
+                    else { setExpandedGroups(groupKeys); }
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title={modelListFullscreen ? t("settings.exitFullscreen") : t("settings.fullscreen")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={modelListFullscreen ? <Shrink size={14} /> : <Expand size={14} />}
+                  onClick={() => setModelListFullscreen(!modelListFullscreen)}
+                />
+              </Tooltip>
+            </Space>
+          )}
       >
         {showModelSearch && (
           <Input
             prefix={<Search size={14} />}
-            placeholder={t('settings.searchModels')}
+            placeholder={t("settings.searchModels")}
             value={modelSearch}
             onChange={(e) => setModelSearch(e.target.value)}
             allowClear
@@ -1216,22 +1364,29 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         )}
         <div
           ref={modelListParentRef}
-          style={{ maxHeight: modelListFullscreen ? 'calc(100vh - 140px)' : 520, overflow: 'auto' }}
+          style={{ maxHeight: modelListFullscreen ? "calc(100vh - 140px)" : 520, overflow: "auto" }}
         >
-          <div style={{ height: modelListVirtualizer.getTotalSize(), position: 'relative' }}>
+          <div style={{ height: modelListVirtualizer.getTotalSize(), position: "relative" }}>
             {modelListVirtualizer.getVirtualItems().map((virtualRow) => {
               const row = flatModelRows[virtualRow.index];
-              if (row.type === 'spacer') {
+              if (row.type === "spacer") {
                 return (
                   <div
                     key={virtualRow.key}
                     data-index={virtualRow.index}
                     ref={modelListVirtualizer.measureElement}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 8, transform: `translateY(${virtualRow.start}px)` }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: 8,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
                   />
                 );
               }
-              if (row.type === 'group') {
+              if (row.type === "group") {
                 const { group, models } = row;
                 const allEnabled = models.every((m) => m.enabled);
                 const someEnabled = models.some((m) => m.enabled);
@@ -1243,17 +1398,27 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     key={`g-${group}`}
                     data-index={virtualRow.index}
                     ref={modelListVirtualizer.measureElement}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
                   >
                     <div
                       className="flex items-center gap-2 px-2 py-1.5 rounded-md"
-                      style={{ cursor: 'pointer', userSelect: 'none', background: 'var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))' }}
+                      style={{
+                        cursor: "pointer",
+                        userSelect: "none",
+                        background: "var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))",
+                      }}
                       onClick={() => {
                         if (batchMode) {
                           handleBatchToggleGroup(models);
                         } else {
-                          if (isExpanded) setExpandedGroups((prev) => prev.filter((k) => k !== group));
-                          else setExpandedGroups((prev) => [...prev, group]);
+                          if (isExpanded) { setExpandedGroups((prev) => prev.filter((k) => k !== group)); }
+                          else { setExpandedGroups((prev) => [...prev, group]); }
                         }
                       }}
                     >
@@ -1268,16 +1433,23 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       <ModelIcon model={models[0]?.model_id ?? group} size={20} type="avatar" />
                       <Text style={{ fontWeight: 600 }}>{group}</Text>
-                      <Tag style={{ fontSize: 11, lineHeight: '18px', padding: '0 6px', margin: 0 }}>{models.length}</Tag>
+                      <Tag style={{ fontSize: 11, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                        {models.length}
+                      </Tag>
                       <div style={{ flex: 1 }} />
                       <Space size="small" onClick={(e) => e.stopPropagation()}>
                         {!batchMode && (
-                          <Tooltip title={t('settings.addModelToGroup')}>
-                            <Button size="small" type="text" icon={<Plus size={14} />} onClick={() => handleOpenAddModel(group)} />
+                          <Tooltip title={t("settings.addModelToGroup")}>
+                            <Button
+                              size="small"
+                              type="text"
+                              icon={<Plus size={14} />}
+                              onClick={() => handleOpenAddModel(group)}
+                            />
                           </Tooltip>
                         )}
                         {!batchMode && (
-                          <Tooltip title={t('settings.testGroup')}>
+                          <Tooltip title={t("settings.testGroup")}>
                             <Button
                               size="small"
                               type="text"
@@ -1295,22 +1467,24 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           size="small"
                           checked={someEnabled}
                           style={someEnabled && !allEnabled ? { backgroundColor: token.colorWarning } : undefined}
-                          onChange={(checked) => { models.forEach((m) => toggleModel(providerId, m.model_id, checked)); }}
+                          onChange={(checked) => {
+                            models.forEach((m) => toggleModel(providerId, m.model_id, checked));
+                          }}
                         />
                         {!batchMode && (
                           <Popconfirm
-                            title={t('settings.deleteGroupConfirm')}
+                            title={t("settings.deleteGroupConfirm")}
                             onConfirm={async () => {
                               const modelIds = new Set(models.map((m) => m.model_id));
                               const updatedModels = (provider?.models ?? []).filter((m) => !modelIds.has(m.model_id));
                               try {
                                 await saveModels(providerId, updatedModels);
                               } catch {
-                                message.error(t('error.saveFailed'));
+                                message.error(t("error.saveFailed"));
                               }
                             }}
-                            okText={t('common.confirm')}
-                            cancelText={t('common.cancel')}
+                            okText={t("common.confirm")}
+                            cancelText={t("common.cancel")}
                             okButtonProps={{ danger: true }}
                           >
                             <Button size="small" type="text" danger icon={<Trash2 size={14} />} />
@@ -1328,11 +1502,21 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   key={`m-${model.model_id}`}
                   data-index={virtualRow.index}
                   ref={modelListVirtualizer.measureElement}
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
                 >
                   <div
                     className="flex items-center gap-2 px-2 py-1.5 rounded-md"
-                    style={{ opacity: model.enabled ? 1 : (batchMode ? 0.7 : 0.45), paddingLeft: batchMode ? 24 : 36, cursor: batchMode ? 'pointer' : undefined }}
+                    style={{
+                      opacity: model.enabled ? 1 : (batchMode ? 0.7 : 0.45),
+                      paddingLeft: batchMode ? 24 : 36,
+                      cursor: batchMode ? "pointer" : undefined,
+                    }}
                     onClick={batchMode ? () => handleBatchToggleModel(model.model_id) : undefined}
                   >
                     {batchMode && (
@@ -1344,8 +1528,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     )}
                     {iconOverrides[model.model_id]
                       ? <DynamicLobeIcon iconId={iconOverrides[model.model_id]} size={20} type="avatar" />
-                      : <ModelIcon model={model.model_id} size={20} type="avatar" />
-                    }
+                      : <ModelIcon model={model.model_id} size={20} type="avatar" />}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1 flex-wrap">
                         <span>{model.name || model.model_id}</span>
@@ -1353,22 +1536,35 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           <Text type="secondary" style={{ fontSize: 11 }}>({model.model_id})</Text>
                         )}
                         <Tag
-                          color={MODEL_TYPE_CONFIG[model.model_type || 'Chat'].color}
+                          color={MODEL_TYPE_CONFIG[model.model_type || "Chat"].color}
                           variant="filled"
-                          style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}
+                          style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
                         >
-                          {MODEL_TYPE_CONFIG[model.model_type || 'Chat'].icon}
-                          <span style={{ marginLeft: 2 }}>{t(`settings.modelType.${model.model_type || 'Chat'}`, MODEL_TYPE_LABEL_KEYS[model.model_type || 'Chat'])}</span>
+                          {MODEL_TYPE_CONFIG[model.model_type || "Chat"].icon}
+                          <span style={{ marginLeft: 2 }}>
+                            {t(
+                              `settings.modelType.${model.model_type || "Chat"}`,
+                              MODEL_TYPE_LABEL_KEYS[model.model_type || "Chat"],
+                            )}
+                          </span>
                         </Tag>
                         {getVisibleModelCapabilities(model).map((cap) => (
                           <Tooltip key={cap} title={t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}>
-                            <Tag color={CAPABILITY_COLORS[cap]} variant="filled" style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+                            <Tag
+                              color={CAPABILITY_COLORS[cap]}
+                              variant="filled"
+                              style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+                            >
                               {CAPABILITY_ICONS[cap]}
                             </Tag>
                           </Tooltip>
                         ))}
                         {model.max_tokens != null && model.max_tokens > 0 && (
-                          <Tag variant="filled" color="default" style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+                          <Tag
+                            variant="filled"
+                            color="default"
+                            style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+                          >
                             {formatTokenCount(model.max_tokens)}
                           </Tag>
                         )}
@@ -1379,26 +1575,51 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       {!batchMode && !testingModels.has(model.model_id) && testResults.has(model.model_id) && (() => {
                         const result = testResults.get(model.model_id)!;
                         if (result.latencyMs != null) {
-                          return <span style={{ fontSize: 11, color: token.colorSuccess }}>{(result.latencyMs / 1000).toFixed(1)}s</span>;
+                          return (
+                            <span style={{ fontSize: 11, color: token.colorSuccess }}>
+                              {(result.latencyMs / 1000).toFixed(1)}s
+                            </span>
+                          );
                         }
                         return (
-                          <Popover content={<div style={{ maxWidth: 300, wordBreak: 'break-all' }}>{result.error}</div>} title={t('common.errorDetail')} trigger="click">
-                            <span style={{ fontSize: 11, color: token.colorError, cursor: 'pointer' }}>{t('common.failed')}</span>
+                          <Popover
+                            content={<div style={{ maxWidth: 300, wordBreak: "break-all" }}>{result.error}</div>}
+                            title={t("common.errorDetail")}
+                            trigger="click"
+                          >
+                            <span style={{ fontSize: 11, color: token.colorError, cursor: "pointer" }}>
+                              {t("common.failed")}
+                            </span>
                           </Popover>
                         );
                       })()}
-                      <Switch size="small" checked={model.enabled} onChange={(checked) => toggleModel(providerId, model.model_id, checked)} />
+                      <Switch
+                        size="small"
+                        checked={model.enabled}
+                        onChange={(checked) => toggleModel(providerId, model.model_id, checked)}
+                      />
                       {!batchMode && (
                         <>
-                          <Button type="text" size="small" icon={<Settings size={14} />} onClick={() => handleOpenSettings(model)} />
-                          <Tooltip title={t('settings.testModels')}>
-                            <Button type="text" size="small" icon={<Heart size={14} />} loading={testingModels.has(model.model_id)} onClick={() => handleTestInlineModel(model.model_id)} />
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<Settings size={14} />}
+                            onClick={() => handleOpenSettings(model)}
+                          />
+                          <Tooltip title={t("settings.testModels")}>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<Heart size={14} />}
+                              loading={testingModels.has(model.model_id)}
+                              onClick={() => handleTestInlineModel(model.model_id)}
+                            />
                           </Tooltip>
                           <Popconfirm
-                            title={t('settings.removeModelConfirm')}
+                            title={t("settings.removeModelConfirm")}
                             onConfirm={() => handleRemoveModel(model.model_id)}
-                            okText={t('common.confirm')}
-                            cancelText={t('common.cancel')}
+                            okText={t("common.confirm")}
+                            cancelText={t("common.cancel")}
                             okButtonProps={{ danger: true }}
                           >
                             <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
@@ -1418,17 +1639,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       <Collapse
         items={[
           {
-            key: 'custom-headers',
-            label: t('settings.customHeaders'),
+            key: "custom-headers",
+            label: t("settings.customHeaders"),
             children: (
               <Input.TextArea
                 value={customHeadersLocal}
                 onChange={(e) => setCustomHeadersLocal(e.target.value)}
                 onBlur={() => {
-                  const lines = customHeadersLocal.split('\n').filter((l) => l.trim());
+                  const lines = customHeadersLocal.split("\n").filter((l) => l.trim());
                   const obj: Record<string, string> = {};
                   for (const line of lines) {
-                    const idx = line.indexOf('=');
+                    const idx = line.indexOf("=");
                     if (idx > 0) {
                       obj[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
                     }
@@ -1436,7 +1657,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   const json = Object.keys(obj).length > 0 ? JSON.stringify(obj) : null;
                   updateProvider(providerId, { custom_headers: json });
                 }}
-                placeholder={t('settings.customHeadersPlaceholder')}
+                placeholder={t("settings.customHeadersPlaceholder")}
                 autoSize={{ minRows: 2, maxRows: 8 }}
               />
             ),
@@ -1448,33 +1669,32 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       <Collapse
         items={[
           {
-            key: 'proxy',
-            label: t('settings.providerProxy'),
+            key: "proxy",
+            label: t("settings.providerProxy"),
             children: (
-              <Form layout="vertical" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <Form.Item label={t('settings.proxyType')} style={{ marginBottom: 0 }}>
+              <Form layout="vertical" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Form.Item label={t("settings.proxyType")} style={{ marginBottom: 0 }}>
                   <Select
-                    value={provider.proxy_config?.proxy_type ?? 'none'}
+                    value={provider.proxy_config?.proxy_type ?? "none"}
                     onChange={(val) =>
                       updateProvider(providerId, {
                         proxy_config: {
-                          proxy_type: val === 'none' ? null : val,
+                          proxy_type: val === "none" ? null : val,
                           proxy_address: provider.proxy_config?.proxy_address ?? null,
                           proxy_port: provider.proxy_config?.proxy_port ?? null,
                         },
-                      })
-                    }
+                      })}
                     options={[
-                      { label: t('settings.proxyNone'), value: 'none' },
-                      { label: t('settings.proxySystem'), value: 'system' },
-                      { label: 'HTTP', value: 'http' },
-                      { label: 'SOCKS5', value: 'socks5' },
+                      { label: t("settings.proxyNone"), value: "none" },
+                      { label: t("settings.proxySystem"), value: "system" },
+                      { label: "HTTP", value: "http" },
+                      { label: "SOCKS5", value: "socks5" },
                     ]}
                   />
                 </Form.Item>
-                <Form.Item label={t('settings.proxyAddress')} style={{ marginBottom: 0 }}>
+                <Form.Item label={t("settings.proxyAddress")} style={{ marginBottom: 0 }}>
                   <Input
-                    value={provider.proxy_config?.proxy_address ?? ''}
+                    value={provider.proxy_config?.proxy_address ?? ""}
                     onChange={(e) =>
                       updateProvider(providerId, {
                         proxy_config: {
@@ -1483,13 +1703,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           proxy_address: e.target.value || null,
                           proxy_port: provider.proxy_config?.proxy_port ?? null,
                         },
-                      })
-                    }
+                      })}
                     placeholder="127.1.0.0"
-                    disabled={provider.proxy_config?.proxy_type === 'system'}
+                    disabled={provider.proxy_config?.proxy_type === "system"}
                   />
                 </Form.Item>
-                <Form.Item label={t('settings.proxyPort')} style={{ marginBottom: 0 }}>
+                <Form.Item label={t("settings.proxyPort")} style={{ marginBottom: 0 }}>
                   <InputNumber
                     value={provider.proxy_config?.proxy_port}
                     onChange={(val) =>
@@ -1500,13 +1719,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           proxy_address: provider.proxy_config?.proxy_address ?? null,
                           proxy_port: val ?? null,
                         },
-                      })
-                    }
+                      })}
                     placeholder="7890"
                     min={1}
                     max={65535}
-                    style={{ width: '100%' }}
-                    disabled={provider.proxy_config?.proxy_type === 'system'}
+                    style={{ width: "100%" }}
+                    disabled={provider.proxy_config?.proxy_type === "system"}
                   />
                 </Form.Item>
               </Form>
@@ -1517,42 +1735,42 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
       {/* Add Key Modal */}
       <Modal
-        title={t('settings.addKey')}
+        title={t("settings.addKey")}
         open={addKeyModal}
         mask={{ enabled: true, blur: true }}
         onOk={handleAddKey}
         onCancel={() => {
           setAddKeyModal(false);
-          setKeyValue('');
+          setKeyValue("");
         }}
-        okText={t('common.confirm')}
-        cancelText={t('common.cancel')}
-        >
-          <Input.Password
-            value={keyValue}
-            onChange={(e) => setKeyValue(e.target.value)}
-            placeholder="sk-..."
-          />
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
+      >
+        <Input.Password
+          value={keyValue}
+          onChange={(e) => setKeyValue(e.target.value)}
+          placeholder="sk-..."
+        />
       </Modal>
 
       <Modal
-        title={t('settings.addModel')}
+        title={t("settings.addModel")}
         open={addModelModalOpen}
         mask={{ enabled: true, blur: true }}
         onCancel={() => {
           setAddModelModalOpen(false);
-          setAddModelId('');
-          setAddModelName('');
-          setAddModelGroupName('');
-          setAddModelType('Chat');
+          setAddModelId("");
+          setAddModelName("");
+          setAddModelGroupName("");
+          setAddModelType("Chat");
         }}
         onOk={handleAddModel}
-        okText={t('settings.addModel')}
-        cancelText={t('common.cancel')}
+        okText={t("settings.addModel")}
+        cancelText={t("common.cancel")}
         destroyOnHidden
       >
         <Form layout="vertical">
-          <Form.Item label={t('settings.model_id')} required>
+          <Form.Item label={t("settings.model_id")} required>
             <Input
               value={addModelId}
               onChange={(e) => {
@@ -1562,13 +1780,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   setAddModelName(id);
                 }
                 if (!addModelGroupDirty.current) {
-                  setAddModelGroupName(id.trim() ? deriveModelGroupName(id) : '');
+                  setAddModelGroupName(id.trim() ? deriveModelGroupName(id) : "");
                 }
               }}
               placeholder="gpt-5.4-think"
             />
           </Form.Item>
-          <Form.Item label={t('settings.modelName')}>
+          <Form.Item label={t("settings.modelName")}>
             <Input
               value={addModelName}
               onChange={(e) => {
@@ -1578,7 +1796,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               placeholder="GPT 5.4 Think"
             />
           </Form.Item>
-          <Form.Item label={t('settings.modelGroup')}>
+          <Form.Item label={t("settings.modelGroup")}>
             <AutoComplete
               value={addModelGroupName}
               onChange={(val) => {
@@ -1586,10 +1804,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 setAddModelGroupName(val);
               }}
               options={modelGroupOptions}
-              placeholder={addModelId.trim() ? deriveModelGroupName(addModelId) : t('settings.modelGroupAuto')}
+              placeholder={addModelId.trim() ? deriveModelGroupName(addModelId) : t("settings.modelGroupAuto")}
             />
           </Form.Item>
-          <Form.Item label={t('settings.modelType.title')} style={{ marginBottom: 0 }}>
+          <Form.Item label={t("settings.modelType.title")} style={{ marginBottom: 0 }}>
             <Select
               value={addModelType}
               onChange={(value) => setAddModelType(value as ModelType)}
@@ -1604,7 +1822,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
       {/* Model Settings Modal */}
       <Modal
-        title={t('settings.modelSettings')}
+        title={t("settings.modelSettings")}
         open={settingsModalOpen}
         mask={{ enabled: true, blur: true }}
         onCancel={() => {
@@ -1612,386 +1830,482 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           setEditingModel(null);
         }}
         onOk={handleSaveSettings}
-        okText={t('common.save')}
-        cancelText={t('common.cancel')}
+        okText={t("common.save")}
+        cancelText={t("common.cancel")}
         width={520}
         destroyOnHidden
       >
         {editingModel && (
-          <div data-os-scrollbar style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 4 }}>
-          <div className="space-y-3">
-            {/* Model Icon + Name + ID */}
-            <div className="flex items-center gap-3">
-              <IconEditor
-                iconType={iconOverrides[editingModel.model_id] ? 'model_icon' : null}
-                iconValue={iconOverrides[editingModel.model_id] ? `model:${iconOverrides[editingModel.model_id]}` : null}
-                onChange={(type, value) => {
-                  if (editingModel) {
-                    if (type === 'model_icon' && value) {
-                      const iconId = value.indexOf(':') > 0 ? value.substring(value.indexOf(':') + 1) : value;
-                      setIconOverrides((prev) => ({ ...prev, [editingModel.model_id]: iconId }));
-                    } else {
-                      // Clear override for non-model_icon types (or clear)
-                      setIconOverrides((prev) => {
-                        const next = { ...prev };
-                        delete next[editingModel.model_id];
-                        return next;
-                      });
+          <div data-os-scrollbar style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
+            <div className="space-y-3">
+              {/* Model Icon + Name + ID */}
+              <div className="flex items-center gap-3">
+                <IconEditor
+                  iconType={iconOverrides[editingModel.model_id] ? "model_icon" : null}
+                  iconValue={iconOverrides[editingModel.model_id]
+                    ? `model:${iconOverrides[editingModel.model_id]}`
+                    : null}
+                  onChange={(type, value) => {
+                    if (editingModel) {
+                      if (type === "model_icon" && value) {
+                        const iconId = value.indexOf(":") > 0 ? value.substring(value.indexOf(":") + 1) : value;
+                        setIconOverrides((prev) => ({ ...prev, [editingModel.model_id]: iconId }));
+                      } else {
+                        // Clear override for non-model_icon types (or clear)
+                        setIconOverrides((prev) => {
+                          const next = { ...prev };
+                          delete next[editingModel.model_id];
+                          return next;
+                        });
+                      }
                     }
-                  }
-                }}
-                size={32}
-                showModelIcons
-                showClear={!!iconOverrides[editingModel.model_id]}
-                defaultIcon={<ModelIcon model={editingModel.model_id} size={32} type="avatar" />}
-              />
-              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <span className="font-medium truncate">{editingModel.name || editingModel.model_id}</span>
-                {editingModel.name && (
-                  <span className="text-xs shrink-0" style={{ color: token.colorTextSecondary }}>({editingModel.model_id})</span>
-                )}
-                <CopyButton
-                  text={editingModel.model_id}
-                  size={12}
-                  successMessage={t('common.copySuccess')}
-                  className="shrink-0"
-                />
-              </div>
-            </div>
-
-            <Divider className="my-2!" />
-
-            {/* Model Type */}
-            <div>
-              <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>{t('settings.modelType.title')}</div>
-              <div className="flex gap-2 flex-wrap">
-                {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => (
-                  <Tag
-                    key={type_}
-                    color={editModelType === type_ ? MODEL_TYPE_CONFIG[type_].color : 'default'}
-                    style={{ cursor: 'pointer', fontSize: 12 }}
-                    onClick={() => {
-                      setEditModelType(type_);
-                      setEditCapabilities((current) => sanitizeModelCapabilities(type_, current));
-                    }}
-                  >
-                    {MODEL_TYPE_CONFIG[type_].icon}
-                    <span style={{ marginLeft: 4 }}>{t(`settings.modelType.${type_}`, MODEL_TYPE_LABEL_KEYS[type_])}</span>
-                  </Tag>
-                ))}
-              </div>
-            </div>
-
-            {editModelType === 'Chat' && (
-              <>
-                <Divider className="my-2!" />
-
-                {/* Capabilities as clickable tags */}
-                <div>
-                  <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>{t('settings.modelAbilities')}</div>
-                  <div className="flex gap-2 flex-wrap">
-                    {getEditableCapabilities(editModelType).map((cap) => {
-                      const selected = editCapabilities.includes(cap);
-                      return (
-                        <Tag
-                          key={cap}
-                          color={selected ? CAPABILITY_COLORS[cap] : 'default'}
-                          style={{ cursor: 'pointer', fontSize: 12, opacity: selected ? 1 : 0.6 }}
-                          onClick={() => {
-                            const next = selected
-                              ? editCapabilities.filter((c) => c !== cap)
-                              : [...editCapabilities, cap];
-                            setEditCapabilities(sanitizeModelCapabilities(editModelType, next));
-                          }}
-                        >
-                          {CAPABILITY_ICONS[cap]}
-                          <span style={{ marginLeft: 4 }}>{t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}</span>
-                        </Tag>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-
-            <Divider className="my-2!" />
-
-            {/* Parameters — horizontal label-control layout */}
-            <div>
-              <div className="font-medium mb-2" style={{ fontSize: 13 }}>{t('settings.modelParams')}</div>
-              <div className="space-y-3">
-                {/* Context Window */}
-                <div>
-                  <div className="flex items-center justify-between" style={{ padding: '8px 0' }}>
-                    <span className="text-sm shrink-0" style={{ color: token.colorText }}>{t('settings.contextWindow')}</span>
-                    <InputNumber
-                      value={editMaxTokens}
-                      onChange={(v) => v != null && setEditMaxTokens(v)}
-                      min={1024}
-                      step={1024}
-                      style={{ width: 110 }}
-                      size="small"
-                      formatter={(v) => v ? `${Number(v).toLocaleString()}` : ''}
-                    />
-                  </div>
-                  <div style={{ paddingBottom: 8 }}>
-                    <Slider
-                      min={1024}
-                      max={1048576}
-                      step={1024}
-                      marks={{ 1024: '', 32768: '32K', 131072: '128K', 524288: '512K', 1048576: '1M' }}
-                      value={Math.min(editMaxTokens ?? 128000, 1048576)}
-                      onChange={(v) => setEditMaxTokens(v)}
-                    />
-                  </div>
-                </div>
-
-                <ModelParamSliders
-                  values={{
-                    temperature: editTemperature,
-                    topP: editTopP,
-                    maxTokens: editMaxTokensParam,
-                    frequencyPenalty: editFreqPenalty,
                   }}
-                  onChange={(v) => {
-                    if ('temperature' in v) setEditTemperature(v.temperature!);
-                    if ('topP' in v) setEditTopP(v.topP!);
-                    if ('maxTokens' in v) setEditMaxTokensParam(v.maxTokens!);
-                    if ('frequencyPenalty' in v) setEditFreqPenalty(v.frequencyPenalty!);
-                  }}
-                  showDividers={false}
+                  size={32}
+                  showModelIcons
+                  showClear={!!iconOverrides[editingModel.model_id]}
+                  defaultIcon={<ModelIcon model={editingModel.model_id} size={32} type="avatar" />}
                 />
-
-                <Divider className="my-2!" />
-
-                {/* Switches — horizontal */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.useMaxCompletionTokens')}</span>
-                  <Switch size="small" checked={editUseMaxCompletionTokens} onChange={setEditUseMaxCompletionTokens} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.noSystemRole')}</span>
-                  <Switch size="small" checked={editNoSystemRole} onChange={setEditNoSystemRole} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.forceMaxTokens')}</span>
-                  <Switch size="small" checked={editForceMaxTokens} onChange={setEditForceMaxTokens} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.thinkingParamStyle')}</span>
-                  <Select
-                    size="small"
-                    style={{ width: 180 }}
-                    value={editThinkingParamStyle}
-                    onChange={setEditThinkingParamStyle}
-                    options={[
-                      { value: 'reasoning_effort', label: 'reasoning_effort (OpenAI)' },
-                      { value: 'enable_thinking', label: 'enable_thinking (SiliconFlow)' },
-                      { value: 'none', label: t('settings.thinkingParamStyleNone') },
-                    ]}
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <span className="font-medium truncate">{editingModel.name || editingModel.model_id}</span>
+                  {editingModel.name && (
+                    <span className="text-xs shrink-0" style={{ color: token.colorTextSecondary }}>
+                      ({editingModel.model_id})
+                    </span>
+                  )}
+                  <CopyButton
+                    text={editingModel.model_id}
+                    size={12}
+                    successMessage={t("common.copySuccess")}
+                    className="shrink-0"
                   />
                 </div>
               </div>
+
+              <Divider className="my-2!" />
+
+              {/* Model Type */}
+              <div>
+                <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>{t("settings.modelType.title")}</div>
+                <div className="flex gap-2 flex-wrap">
+                  {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => (
+                    <Tag
+                      key={type_}
+                      color={editModelType === type_ ? MODEL_TYPE_CONFIG[type_].color : "default"}
+                      style={{ cursor: "pointer", fontSize: 12 }}
+                      onClick={() => {
+                        setEditModelType(type_);
+                        setEditCapabilities((current) => sanitizeModelCapabilities(type_, current));
+                      }}
+                    >
+                      {MODEL_TYPE_CONFIG[type_].icon}
+                      <span style={{ marginLeft: 4 }}>
+                        {t(`settings.modelType.${type_}`, MODEL_TYPE_LABEL_KEYS[type_])}
+                      </span>
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+
+              {editModelType === "Chat" && (
+                <>
+                  <Divider className="my-2!" />
+
+                  {/* Capabilities as clickable tags */}
+                  <div>
+                    <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>{t("settings.modelAbilities")}</div>
+                    <div className="flex gap-2 flex-wrap">
+                      {getEditableCapabilities(editModelType).map((cap) => {
+                        const selected = editCapabilities.includes(cap);
+                        return (
+                          <Tag
+                            key={cap}
+                            color={selected ? CAPABILITY_COLORS[cap] : "default"}
+                            style={{ cursor: "pointer", fontSize: 12, opacity: selected ? 1 : 0.6 }}
+                            onClick={() => {
+                              const next = selected
+                                ? editCapabilities.filter((c) => c !== cap)
+                                : [...editCapabilities, cap];
+                              setEditCapabilities(sanitizeModelCapabilities(editModelType, next));
+                            }}
+                          >
+                            {CAPABILITY_ICONS[cap]}
+                            <span style={{ marginLeft: 4 }}>
+                              {t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}
+                            </span>
+                          </Tag>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <Divider className="my-2!" />
+
+              {/* Parameters — horizontal label-control layout */}
+              <div>
+                <div className="font-medium mb-2" style={{ fontSize: 13 }}>{t("settings.modelParams")}</div>
+                <div className="space-y-3">
+                  {/* Context Window */}
+                  <div>
+                    <div className="flex items-center justify-between" style={{ padding: "8px 0" }}>
+                      <span className="text-sm shrink-0" style={{ color: token.colorText }}>
+                        {t("settings.contextWindow")}
+                      </span>
+                      <InputNumber
+                        value={editMaxTokens}
+                        onChange={(v) => v != null && setEditMaxTokens(v)}
+                        min={1024}
+                        step={1024}
+                        style={{ width: 110 }}
+                        size="small"
+                        formatter={(v) => v ? `${Number(v).toLocaleString()}` : ""}
+                      />
+                    </div>
+                    <div style={{ paddingBottom: 8 }}>
+                      <Slider
+                        min={1024}
+                        max={1048576}
+                        step={1024}
+                        marks={{ 1024: "", 32768: "32K", 131072: "128K", 524288: "512K", 1048576: "1M" }}
+                        value={Math.min(editMaxTokens ?? 128000, 1048576)}
+                        onChange={(v) => setEditMaxTokens(v)}
+                      />
+                    </div>
+                  </div>
+
+                  <ModelParamSliders
+                    values={{
+                      temperature: editTemperature,
+                      topP: editTopP,
+                      maxTokens: editMaxTokensParam,
+                      frequencyPenalty: editFreqPenalty,
+                    }}
+                    onChange={(v) => {
+                      if ("temperature" in v) { setEditTemperature(v.temperature!); }
+                      if ("topP" in v) { setEditTopP(v.topP!); }
+                      if ("maxTokens" in v) { setEditMaxTokensParam(v.maxTokens!); }
+                      if ("frequencyPenalty" in v) { setEditFreqPenalty(v.frequencyPenalty!); }
+                    }}
+                    showDividers={false}
+                  />
+
+                  <Divider className="my-2!" />
+
+                  {/* Switches — horizontal */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: token.colorText }}>
+                      {t("settings.useMaxCompletionTokens")}
+                    </span>
+                    <Switch
+                      size="small"
+                      checked={editUseMaxCompletionTokens}
+                      onChange={setEditUseMaxCompletionTokens}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.noSystemRole")}</span>
+                    <Switch size="small" checked={editNoSystemRole} onChange={setEditNoSystemRole} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.forceMaxTokens")}</span>
+                    <Switch size="small" checked={editForceMaxTokens} onChange={setEditForceMaxTokens} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: token.colorText }}>
+                      {t("settings.thinkingParamStyle")}
+                    </span>
+                    <Select
+                      size="small"
+                      style={{ width: 180 }}
+                      value={editThinkingParamStyle}
+                      onChange={setEditThinkingParamStyle}
+                      options={[
+                        { value: "reasoning_effort", label: "reasoning_effort (OpenAI)" },
+                        { value: "enable_thinking", label: "enable_thinking (SiliconFlow)" },
+                        { value: "none", label: t("settings.thinkingParamStyleNone") },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
           </div>
         )}
       </Modal>
 
       {/* Batch Edit Modal */}
       <Modal
-        title={t('settings.batchEditTitle', { count: batchSelected.size })}
+        title={t("settings.batchEditTitle", { count: batchSelected.size })}
         open={batchEditModalOpen}
         mask={{ enabled: true, blur: true }}
         onCancel={() => setBatchEditModalOpen(false)}
         onOk={handleBatchEditSave}
-        okText={t('settings.batchApply')}
-        cancelText={t('common.cancel')}
+        okText={t("settings.batchApply")}
+        cancelText={t("common.cancel")}
         width={520}
         destroyOnHidden
-        okButtonProps={{ disabled: ![batchModelTypeEnabled, batchCapabilitiesEnabled, batchMaxTokensEnabled, batchTemperatureEnabled, batchTopPEnabled, batchMaxTokensParamEnabled, batchFreqPenaltyEnabled, batchUseMaxCompletionTokensEnabled, batchNoSystemRoleEnabled, batchForceMaxTokensEnabled, batchThinkingParamStyleEnabled].some(Boolean) }}
+        okButtonProps={{
+          disabled: ![
+            batchModelTypeEnabled,
+            batchCapabilitiesEnabled,
+            batchMaxTokensEnabled,
+            batchTemperatureEnabled,
+            batchTopPEnabled,
+            batchMaxTokensParamEnabled,
+            batchFreqPenaltyEnabled,
+            batchUseMaxCompletionTokensEnabled,
+            batchNoSystemRoleEnabled,
+            batchForceMaxTokensEnabled,
+            batchThinkingParamStyleEnabled,
+          ].some(Boolean),
+        }}
       >
-        <div data-os-scrollbar style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 4 }}>
-        <div className="space-y-3">
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {t('settings.batchEditHint')}
-          </Text>
+        <div data-os-scrollbar style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
+          <div className="space-y-3">
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {t("settings.batchEditHint")}
+            </Text>
 
-          <Divider className="my-2!" />
+            <Divider className="my-2!" />
 
-          {/* Model Type */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="font-medium" style={{ fontSize: 13 }}>{t('settings.modelType.title')}</div>
-              <Switch size="small" checked={batchModelTypeEnabled} onChange={setBatchModelTypeEnabled} />
-            </div>
-            <div className="flex gap-2 flex-wrap" style={{ opacity: batchModelTypeEnabled ? 1 : 0.4, pointerEvents: batchModelTypeEnabled ? 'auto' : 'none' }}>
-              {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => (
-                <Tag
-                  key={type_}
-                  color={batchModelType === type_ ? MODEL_TYPE_CONFIG[type_].color : 'default'}
-                  style={{ cursor: 'pointer', fontSize: 12 }}
-                  onClick={() => {
-                    setBatchModelType(type_);
-                    setBatchCapabilities((current) => sanitizeModelCapabilities(type_, current));
-                  }}
-                >
-                  {MODEL_TYPE_CONFIG[type_].icon}
-                  <span style={{ marginLeft: 4 }}>{t(`settings.modelType.${type_}`, MODEL_TYPE_LABEL_KEYS[type_])}</span>
-                </Tag>
-              ))}
-            </div>
-          </div>
-
-          <Divider className="my-2!" />
-
-          {/* Capabilities */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="font-medium" style={{ fontSize: 13 }}>{t('settings.modelAbilities')}</div>
-              <Switch size="small" checked={batchCapabilitiesEnabled} onChange={setBatchCapabilitiesEnabled} />
-            </div>
-            <div className="flex gap-2 flex-wrap" style={{ opacity: batchCapabilitiesEnabled ? 1 : 0.4, pointerEvents: batchCapabilitiesEnabled ? 'auto' : 'none' }}>
-              {getEditableCapabilities(batchModelType).map((cap) => {
-                const selected = batchCapabilities.includes(cap);
-                return (
+            {/* Model Type */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="font-medium" style={{ fontSize: 13 }}>{t("settings.modelType.title")}</div>
+                <Switch size="small" checked={batchModelTypeEnabled} onChange={setBatchModelTypeEnabled} />
+              </div>
+              <div
+                className="flex gap-2 flex-wrap"
+                style={{
+                  opacity: batchModelTypeEnabled ? 1 : 0.4,
+                  pointerEvents: batchModelTypeEnabled ? "auto" : "none",
+                }}
+              >
+                {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => (
                   <Tag
-                    key={cap}
-                    color={selected ? CAPABILITY_COLORS[cap] : 'default'}
-                    style={{ cursor: 'pointer', fontSize: 12, opacity: selected ? 1 : 0.6 }}
+                    key={type_}
+                    color={batchModelType === type_ ? MODEL_TYPE_CONFIG[type_].color : "default"}
+                    style={{ cursor: "pointer", fontSize: 12 }}
                     onClick={() => {
-                      const next = selected
-                        ? batchCapabilities.filter((c) => c !== cap)
-                        : [...batchCapabilities, cap];
-                      setBatchCapabilities(sanitizeModelCapabilities(batchModelType, next));
+                      setBatchModelType(type_);
+                      setBatchCapabilities((current) => sanitizeModelCapabilities(type_, current));
                     }}
                   >
-                    {CAPABILITY_ICONS[cap]}
-                    <span style={{ marginLeft: 4 }}>{t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}</span>
+                    {MODEL_TYPE_CONFIG[type_].icon}
+                    <span style={{ marginLeft: 4 }}>
+                      {t(`settings.modelType.${type_}`, MODEL_TYPE_LABEL_KEYS[type_])}
+                    </span>
                   </Tag>
-                );
-              })}
-            </div>
-          </div>
-
-          <Divider className="my-2!" />
-
-          {/* Context Window */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-medium" style={{ fontSize: 13 }}>{t('settings.contextWindow')}</span>
-              <Switch size="small" checked={batchMaxTokensEnabled} onChange={setBatchMaxTokensEnabled} />
-            </div>
-            <div style={{ opacity: batchMaxTokensEnabled ? 1 : 0.4, pointerEvents: batchMaxTokensEnabled ? 'auto' : 'none' }}>
-              <div className="flex items-center justify-between" style={{ padding: '4px 0' }}>
-                <InputNumber
-                  value={batchMaxTokens}
-                  onChange={(v) => v != null && setBatchMaxTokens(v)}
-                  min={1024}
-                  step={1024}
-                  style={{ width: 110 }}
-                  size="small"
-                  formatter={(v) => v ? `${Number(v).toLocaleString()}` : ''}
-                />
+                ))}
               </div>
-              <Slider
-                min={1024}
-                max={1048576}
-                step={1024}
-                marks={{ 1024: '', 32768: '32K', 131072: '128K', 524288: '512K', 1048576: '1M' }}
-                value={Math.min(batchMaxTokens, 1048576)}
-                onChange={(v) => setBatchMaxTokens(v)}
-              />
             </div>
-          </div>
 
-          {/* Parameters */}
-          <div>
-            <div className="font-medium mb-2" style={{ fontSize: 13 }}>{t('settings.modelParams')}</div>
+            <Divider className="my-2!" />
+
+            {/* Capabilities */}
             <div>
-              <ModelParamSliders
-                values={{
-                  temperature: batchTemperatureEnabled ? batchTemperature : null,
-                  topP: batchTopPEnabled ? batchTopP : null,
-                  maxTokens: batchMaxTokensParamEnabled ? batchMaxTokensParam : null,
-                  frequencyPenalty: batchFreqPenaltyEnabled ? batchFreqPenalty : null,
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="font-medium" style={{ fontSize: 13 }}>{t("settings.modelAbilities")}</div>
+                <Switch size="small" checked={batchCapabilitiesEnabled} onChange={setBatchCapabilitiesEnabled} />
+              </div>
+              <div
+                className="flex gap-2 flex-wrap"
+                style={{
+                  opacity: batchCapabilitiesEnabled ? 1 : 0.4,
+                  pointerEvents: batchCapabilitiesEnabled ? "auto" : "none",
                 }}
-                onChange={(v) => {
-                  if ('temperature' in v) {
-                    if (v.temperature == null) setBatchTemperatureEnabled(false);
-                    else { setBatchTemperatureEnabled(true); setBatchTemperature(v.temperature); }
-                  }
-                  if ('topP' in v) {
-                    if (v.topP == null) setBatchTopPEnabled(false);
-                    else { setBatchTopPEnabled(true); setBatchTopP(v.topP); }
-                  }
-                  if ('maxTokens' in v) {
-                    if (v.maxTokens == null) setBatchMaxTokensParamEnabled(false);
-                    else { setBatchMaxTokensParamEnabled(true); setBatchMaxTokensParam(v.maxTokens); }
-                  }
-                  if ('frequencyPenalty' in v) {
-                    if (v.frequencyPenalty == null) setBatchFreqPenaltyEnabled(false);
-                    else { setBatchFreqPenaltyEnabled(true); setBatchFreqPenalty(v.frequencyPenalty); }
-                  }
+              >
+                {getEditableCapabilities(batchModelType).map((cap) => {
+                  const selected = batchCapabilities.includes(cap);
+                  return (
+                    <Tag
+                      key={cap}
+                      color={selected ? CAPABILITY_COLORS[cap] : "default"}
+                      style={{ cursor: "pointer", fontSize: 12, opacity: selected ? 1 : 0.6 }}
+                      onClick={() => {
+                        const next = selected
+                          ? batchCapabilities.filter((c) => c !== cap)
+                          : [...batchCapabilities, cap];
+                        setBatchCapabilities(sanitizeModelCapabilities(batchModelType, next));
+                      }}
+                    >
+                      {CAPABILITY_ICONS[cap]}
+                      <span style={{ marginLeft: 4 }}>
+                        {t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}
+                      </span>
+                    </Tag>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Divider className="my-2!" />
+
+            {/* Context Window */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-medium" style={{ fontSize: 13 }}>{t("settings.contextWindow")}</span>
+                <Switch size="small" checked={batchMaxTokensEnabled} onChange={setBatchMaxTokensEnabled} />
+              </div>
+              <div
+                style={{
+                  opacity: batchMaxTokensEnabled ? 1 : 0.4,
+                  pointerEvents: batchMaxTokensEnabled ? "auto" : "none",
                 }}
-              />
-
-              <Divider className="my-2!" />
-
-              {/* Switches — checkbox on the left to enable, value switch on the right */}
-              <div className="flex items-center justify-between">
-                <Space size="small">
-                  <Checkbox checked={batchUseMaxCompletionTokensEnabled} onChange={e => setBatchUseMaxCompletionTokensEnabled(e.target.checked)} />
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.useMaxCompletionTokens')}</span>
-                </Space>
-                <Switch size="small" checked={batchUseMaxCompletionTokens} onChange={setBatchUseMaxCompletionTokens} disabled={!batchUseMaxCompletionTokensEnabled} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Space size="small">
-                  <Checkbox checked={batchNoSystemRoleEnabled} onChange={e => setBatchNoSystemRoleEnabled(e.target.checked)} />
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.noSystemRole')}</span>
-                </Space>
-                <Switch size="small" checked={batchNoSystemRole} onChange={setBatchNoSystemRole} disabled={!batchNoSystemRoleEnabled} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Space size="small">
-                  <Checkbox checked={batchForceMaxTokensEnabled} onChange={e => setBatchForceMaxTokensEnabled(e.target.checked)} />
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.forceMaxTokens')}</span>
-                </Space>
-                <Switch size="small" checked={batchForceMaxTokens} onChange={setBatchForceMaxTokens} disabled={!batchForceMaxTokensEnabled} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Space size="small">
-                  <Checkbox checked={batchThinkingParamStyleEnabled} onChange={e => setBatchThinkingParamStyleEnabled(e.target.checked)} />
-                  <span className="text-sm" style={{ color: token.colorText }}>{t('settings.thinkingParamStyle')}</span>
-                </Space>
-                <Select
-                  size="small"
-                  style={{ width: 180 }}
-                  value={batchThinkingParamStyle}
-                  onChange={setBatchThinkingParamStyle}
-                  disabled={!batchThinkingParamStyleEnabled}
-                  options={[
-                    { value: 'reasoning_effort', label: 'reasoning_effort (OpenAI)' },
-                    { value: 'enable_thinking', label: 'enable_thinking (SiliconFlow)' },
-                    { value: 'none', label: t('settings.thinkingParamStyleNone') },
-                  ]}
+              >
+                <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+                  <InputNumber
+                    value={batchMaxTokens}
+                    onChange={(v) => v != null && setBatchMaxTokens(v)}
+                    min={1024}
+                    step={1024}
+                    style={{ width: 110 }}
+                    size="small"
+                    formatter={(v) => v ? `${Number(v).toLocaleString()}` : ""}
+                  />
+                </div>
+                <Slider
+                  min={1024}
+                  max={1048576}
+                  step={1024}
+                  marks={{ 1024: "", 32768: "32K", 131072: "128K", 524288: "512K", 1048576: "1M" }}
+                  value={Math.min(batchMaxTokens, 1048576)}
+                  onChange={(v) => setBatchMaxTokens(v)}
                 />
               </div>
             </div>
+
+            {/* Parameters */}
+            <div>
+              <div className="font-medium mb-2" style={{ fontSize: 13 }}>{t("settings.modelParams")}</div>
+              <div>
+                <ModelParamSliders
+                  values={{
+                    temperature: batchTemperatureEnabled ? batchTemperature : null,
+                    topP: batchTopPEnabled ? batchTopP : null,
+                    maxTokens: batchMaxTokensParamEnabled ? batchMaxTokensParam : null,
+                    frequencyPenalty: batchFreqPenaltyEnabled ? batchFreqPenalty : null,
+                  }}
+                  onChange={(v) => {
+                    if ("temperature" in v) {
+                      if (v.temperature == null) { setBatchTemperatureEnabled(false); }
+                      else {
+                        setBatchTemperatureEnabled(true);
+                        setBatchTemperature(v.temperature);
+                      }
+                    }
+                    if ("topP" in v) {
+                      if (v.topP == null) { setBatchTopPEnabled(false); }
+                      else {
+                        setBatchTopPEnabled(true);
+                        setBatchTopP(v.topP);
+                      }
+                    }
+                    if ("maxTokens" in v) {
+                      if (v.maxTokens == null) { setBatchMaxTokensParamEnabled(false); }
+                      else {
+                        setBatchMaxTokensParamEnabled(true);
+                        setBatchMaxTokensParam(v.maxTokens);
+                      }
+                    }
+                    if ("frequencyPenalty" in v) {
+                      if (v.frequencyPenalty == null) { setBatchFreqPenaltyEnabled(false); }
+                      else {
+                        setBatchFreqPenaltyEnabled(true);
+                        setBatchFreqPenalty(v.frequencyPenalty);
+                      }
+                    }
+                  }}
+                />
+
+                <Divider className="my-2!" />
+
+                {/* Switches — checkbox on the left to enable, value switch on the right */}
+                <div className="flex items-center justify-between">
+                  <Space size="small">
+                    <Checkbox
+                      checked={batchUseMaxCompletionTokensEnabled}
+                      onChange={e => setBatchUseMaxCompletionTokensEnabled(e.target.checked)}
+                    />
+                    <span className="text-sm" style={{ color: token.colorText }}>
+                      {t("settings.useMaxCompletionTokens")}
+                    </span>
+                  </Space>
+                  <Switch
+                    size="small"
+                    checked={batchUseMaxCompletionTokens}
+                    onChange={setBatchUseMaxCompletionTokens}
+                    disabled={!batchUseMaxCompletionTokensEnabled}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Space size="small">
+                    <Checkbox
+                      checked={batchNoSystemRoleEnabled}
+                      onChange={e => setBatchNoSystemRoleEnabled(e.target.checked)}
+                    />
+                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.noSystemRole")}</span>
+                  </Space>
+                  <Switch
+                    size="small"
+                    checked={batchNoSystemRole}
+                    onChange={setBatchNoSystemRole}
+                    disabled={!batchNoSystemRoleEnabled}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Space size="small">
+                    <Checkbox
+                      checked={batchForceMaxTokensEnabled}
+                      onChange={e => setBatchForceMaxTokensEnabled(e.target.checked)}
+                    />
+                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.forceMaxTokens")}</span>
+                  </Space>
+                  <Switch
+                    size="small"
+                    checked={batchForceMaxTokens}
+                    onChange={setBatchForceMaxTokens}
+                    disabled={!batchForceMaxTokensEnabled}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Space size="small">
+                    <Checkbox
+                      checked={batchThinkingParamStyleEnabled}
+                      onChange={e => setBatchThinkingParamStyleEnabled(e.target.checked)}
+                    />
+                    <span className="text-sm" style={{ color: token.colorText }}>
+                      {t("settings.thinkingParamStyle")}
+                    </span>
+                  </Space>
+                  <Select
+                    size="small"
+                    style={{ width: 180 }}
+                    value={batchThinkingParamStyle}
+                    onChange={setBatchThinkingParamStyle}
+                    disabled={!batchThinkingParamStyleEnabled}
+                    options={[
+                      { value: "reasoning_effort", label: "reasoning_effort (OpenAI)" },
+                      { value: "enable_thinking", label: "enable_thinking (SiliconFlow)" },
+                      { value: "none", label: t("settings.thinkingParamStyleNone") },
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
         </div>
       </Modal>
 
       {/* Single Model Test Modal */}
       <Modal
-        title={t('settings.testSingleModel')}
+        title={t("settings.testSingleModel")}
         open={singleTestModalOpen}
         onCancel={() => setSingleTestModalOpen(false)}
         footer={[
           <Button key="cancel" onClick={() => setSingleTestModalOpen(false)}>
-            {t('common.cancel')}
+            {t("common.cancel")}
           </Button>,
           <Button
             key="test"
@@ -2000,17 +2314,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             disabled={!singleTestModelId}
             onClick={handleTestSingleModel}
           >
-            {t('settings.startTest')}
+            {t("settings.startTest")}
           </Button>,
         ]}
       >
         <Form layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item label={t('settings.selectModel')}>
+          <Form.Item label={t("settings.selectModel")}>
             <Select
               showSearch
               value={singleTestModelId || undefined}
               onChange={setSingleTestModelId}
-              placeholder={t('settings.selectModel')}
+              placeholder={t("settings.selectModel")}
               optionFilterProp="label"
               options={(provider?.models ?? []).map((m) => ({
                 label: m.name || m.model_id,
@@ -2020,37 +2334,41 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           </Form.Item>
         </Form>
         {singleTestResult && (
-          <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 6, background: token.colorBgLayout }}>
-            {singleTestResult.latencyMs != null ? (
-              <span style={{ color: token.colorSuccess }}>
-                ✓ {t('settings.testSuccess')} — {(singleTestResult.latencyMs / 1000).toFixed(2)}s
-              </span>
-            ) : (
-              <div>
-                <span style={{ color: token.colorError }}>✗ {t('common.failed')}</span>
-                <div style={{ marginTop: 4, fontSize: 12, color: token.colorTextSecondary, wordBreak: 'break-all' }}>
-                  {singleTestResult.error}
+          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 6, background: token.colorBgLayout }}>
+            {singleTestResult.latencyMs != null
+              ? (
+                <span style={{ color: token.colorSuccess }}>
+                  ✓ {t("settings.testSuccess")} — {(singleTestResult.latencyMs / 1000).toFixed(2)}s
+                </span>
+              )
+              : (
+                <div>
+                  <span style={{ color: token.colorError }}>✗ {t("common.failed")}</span>
+                  <div style={{ marginTop: 4, fontSize: 12, color: token.colorTextSecondary, wordBreak: "break-all" }}>
+                    {singleTestResult.error}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
         )}
       </Modal>
 
       {/* Model picker modal */}
       <Modal
-        title={pickerMode === 'replace' ? t('settings.fetchAllModels') : t('settings.selectModels')}
+        title={pickerMode === "replace" ? t("settings.fetchAllModels") : t("settings.selectModels")}
         open={pickerOpen}
         onCancel={() => setPickerOpen(false)}
         onOk={handlePickerConfirm}
-        okText={pickerMode === 'replace'
-          ? `${t('settings.confirmSelection')} (${pickerSelected.size})`
-          : `${t('settings.addSelected')} (${pickerSelected.size})`}
-        cancelText={t('common.cancel')}
+        okText={pickerMode === "replace"
+          ? `${t("settings.confirmSelection")} (${pickerSelected.size})`
+          : `${t("settings.addSelected")} (${pickerSelected.size})`}
+        cancelText={t("common.cancel")}
         okButtonProps={{ disabled: pickerSelected.size === 0 }}
         width={560}
         styles={{ body: { padding: 0 } }}
-        afterOpenChange={(open) => { if (open) pickerVirtualizer.measure(); }}
+        afterOpenChange={(open) => {
+          if (open) { pickerVirtualizer.measure(); }
+        }}
       >
         {(() => {
           const { filtered } = pickerGroups;
@@ -2058,7 +2376,19 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           const someFilteredChecked = filtered.some((m) => pickerSelected.has(m.model_id));
           return (
             <>
-              <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'inherit', padding: '8px 24px', borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 1,
+                  background: "inherit",
+                  padding: "8px 24px",
+                  borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
                 <Checkbox
                   checked={allFilteredChecked}
                   indeterminate={someFilteredChecked && !allFilteredChecked}
@@ -2066,18 +2396,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     setPickerSelected((prev) => {
                       const next = new Set(prev);
                       for (const m of filtered) {
-                        if (e.target.checked) next.add(m.model_id);
-                        else next.delete(m.model_id);
+                        if (e.target.checked) { next.add(m.model_id); }
+                        else { next.delete(m.model_id); }
                       }
                       return next;
                     });
                   }}
-                  style={{ whiteSpace: 'nowrap' }}
+                  style={{ whiteSpace: "nowrap" }}
                 >
-                  {t('common.selectAll')} ({pickerSelected.size}/{pickerModels.length})
+                  {t("common.selectAll")} ({pickerSelected.size}/{pickerModels.length})
                 </Checkbox>
                 <Input
-                  placeholder={t('settings.searchModels')}
+                  placeholder={t("settings.searchModels")}
                   prefix={<Search size={14} />}
                   value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
@@ -2085,7 +2415,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   size="small"
                   style={{ flex: 1 }}
                 />
-                <Tooltip title={pickerCollapsed.size === 0 ? t('settings.collapseAll') : t('settings.expandAll')}>
+                <Tooltip title={pickerCollapsed.size === 0 ? t("settings.collapseAll") : t("settings.expandAll")}>
                   <Button
                     size="small"
                     type="text"
@@ -2103,22 +2433,29 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               <div
                 ref={pickerListParentRef}
                 className="model-picker-list"
-                style={{ maxHeight: 420, overflow: 'auto', padding: '8px 16px 12px' }}
+                style={{ maxHeight: 420, overflow: "auto", padding: "8px 16px 12px" }}
               >
-                <div style={{ height: pickerVirtualizer.getTotalSize(), position: 'relative' }}>
+                <div style={{ height: pickerVirtualizer.getTotalSize(), position: "relative" }}>
                   {pickerVirtualizer.getVirtualItems().map((virtualRow) => {
                     const row = flatPickerRows[virtualRow.index];
-                    if (row.type === 'spacer') {
+                    if (row.type === "spacer") {
                       return (
                         <div
                           key={virtualRow.key}
                           data-index={virtualRow.index}
                           ref={pickerVirtualizer.measureElement}
-                          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 8, transform: `translateY(${virtualRow.start}px)` }}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: 8,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
                         />
                       );
                     }
-                    if (row.type === 'group') {
+                    if (row.type === "group") {
                       const { group, models } = row;
                       const allChecked = models.every((m) => pickerSelected.has(m.model_id));
                       const someChecked = models.some((m) => pickerSelected.has(m.model_id));
@@ -2128,16 +2465,28 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           key={`g-${group}`}
                           data-index={virtualRow.index}
                           ref={pickerVirtualizer.measureElement}
-                          style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
                         >
                           <div
                             className="flex items-center gap-2 px-2 py-1.5 rounded-md"
-                            style={{ cursor: 'pointer', userSelect: 'none', background: 'var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))' }}
-                            onClick={() => setPickerCollapsed((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(group)) next.delete(group); else next.add(group);
-                              return next;
-                            })}
+                            style={{
+                              cursor: "pointer",
+                              userSelect: "none",
+                              background: "var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))",
+                            }}
+                            onClick={() =>
+                              setPickerCollapsed((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(group)) { next.delete(group); }
+                                else { next.add(group); }
+                                return next;
+                              })}
                           >
                             {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                             <div onClick={(e) => e.stopPropagation()}>
@@ -2148,8 +2497,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                                   setPickerSelected((prev) => {
                                     const next = new Set(prev);
                                     for (const m of models) {
-                                      if (e.target.checked) next.add(m.model_id);
-                                      else next.delete(m.model_id);
+                                      if (e.target.checked) { next.add(m.model_id); }
+                                      else { next.delete(m.model_id); }
                                     }
                                     return next;
                                   });
@@ -2158,7 +2507,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             </div>
                             <ModelIcon model={models[0]?.model_id ?? group} size={20} type="avatar" />
                             <Text style={{ fontWeight: 600 }}>{group}</Text>
-                            <Tag style={{ fontSize: 11, lineHeight: '18px', padding: '0 6px', margin: 0 }}>{models.length}</Tag>
+                            <Tag style={{ fontSize: 11, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                              {models.length}
+                            </Tag>
                           </div>
                         </div>
                       );
@@ -2170,7 +2521,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         key={`m-${m.model_id}`}
                         data-index={virtualRow.index}
                         ref={pickerVirtualizer.measureElement}
-                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
                       >
                         <div
                           className="flex items-center gap-2 px-2 py-1.5 rounded-md"
@@ -2181,8 +2538,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             onChange={(e) => {
                               setPickerSelected((prev) => {
                                 const next = new Set(prev);
-                                if (e.target.checked) next.add(m.model_id);
-                                else next.delete(m.model_id);
+                                if (e.target.checked) { next.add(m.model_id); }
+                                else { next.delete(m.model_id); }
                                 return next;
                               });
                             }}
@@ -2209,46 +2566,46 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
       {/* Provider Edit Modal */}
       <Modal
-        title={t('settings.editProvider')}
+        title={t("settings.editProvider")}
         open={providerEditModalOpen}
         onCancel={() => setProviderEditModalOpen(false)}
         onOk={() => {
           const trimmed = editProviderName.trim();
-          if (!trimmed) return;
+          if (!trimmed) { return; }
           const updates: Record<string, unknown> = {};
-          if (trimmed !== provider.name) updates.name = trimmed;
-          if (editProviderType !== provider.provider_type) updates.provider_type = editProviderType;
+          if (trimmed !== provider.name) { updates.name = trimmed; }
+          if (editProviderType !== provider.provider_type) { updates.provider_type = editProviderType; }
           if (Object.keys(updates).length > 0) {
             updateProvider(providerId, updates);
           }
           setProviderEditModalOpen(false);
         }}
-        okText={t('common.save')}
-        cancelText={t('common.cancel')}
+        okText={t("common.save")}
+        cancelText={t("common.cancel")}
         destroyOnHidden
         width={420}
       >
         <Form layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item label={t('settings.providerName')}>
+          <Form.Item label={t("settings.providerName")}>
             <Input
               value={editProviderName}
               onChange={(e) => setEditProviderName(e.target.value)}
               autoFocus
             />
           </Form.Item>
-          <Form.Item label={t('settings.endpointFormat')} style={{ marginBottom: 0 }}>
+          <Form.Item label={t("settings.endpointFormat")} style={{ marginBottom: 0 }}>
             <Select
               value={editProviderType}
               onChange={(val) => setEditProviderType(val as ProviderType)}
               options={[
-                { label: 'OpenAI', value: 'openai' },
-                { label: 'OpenAI Responses', value: 'openai_responses' },
-                { label: 'Anthropic', value: 'anthropic' },
-                { label: 'Gemini', value: 'gemini' },
-                { label: 'Ollama', value: 'ollama' },
+                { label: "OpenAI", value: "openai" },
+                { label: "OpenAI Responses", value: "openai_responses" },
+                { label: "Anthropic", value: "anthropic" },
+                { label: "Gemini", value: "gemini" },
+                { label: "Ollama", value: "ollama" },
               ]}
               popupMatchSelectWidth={false}
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </Form.Item>
         </Form>

@@ -1,8 +1,8 @@
-import React from 'react';
-import { Input, Select, Button, Divider } from 'antd';
-import { Plus, Trash2 } from 'lucide-react';
-import type { WorkflowNode, ConditionNode, Condition, CompareOperator, LogicalOperator } from '../../types';
-import { BasePropertyPanel } from './BasePropertyPanel';
+import { Button, Divider, Input, Select } from "antd";
+import { Plus, Trash2 } from "lucide-react";
+import React from "react";
+import type { CompareOperator, Condition, ConditionNode, LogicalOperator, WorkflowNode } from "../../types";
+import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface ConditionPropertyPanelProps {
   node: WorkflowNode;
@@ -11,33 +11,33 @@ interface ConditionPropertyPanelProps {
 }
 
 const OPERATOR_OPTIONS: { value: CompareOperator; label: string }[] = [
-  { value: 'eq', label: '=' },
-  { value: 'ne', label: '≠' },
-  { value: 'gt', label: '>' },
-  { value: 'lt', label: '<' },
-  { value: 'gte', label: '≥' },
-  { value: 'lte', label: '≤' },
-  { value: 'contains', label: '包含' },
-  { value: 'notContains', label: '不包含' },
-  { value: 'startsWith', label: '开头是' },
-  { value: 'endsWith', label: '结尾是' },
-  { value: 'regexMatch', label: '正则匹配' },
-  { value: 'isEmpty', label: '为空' },
-  { value: 'isNotEmpty', label: '不为空' },
+  { value: "eq", label: "=" },
+  { value: "ne", label: "≠" },
+  { value: "gt", label: ">" },
+  { value: "lt", label: "<" },
+  { value: "gte", label: "≥" },
+  { value: "lte", label: "≤" },
+  { value: "contains", label: "包含" },
+  { value: "notContains", label: "不包含" },
+  { value: "startsWith", label: "开头是" },
+  { value: "endsWith", label: "结尾是" },
+  { value: "regexMatch", label: "正则匹配" },
+  { value: "isEmpty", label: "为空" },
+  { value: "isNotEmpty", label: "不为空" },
 ];
 
 export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
   const conditionNode = node as ConditionNode;
   const config = conditionNode.config || {
     conditions: [],
-    logical_op: 'and' as LogicalOperator,
+    logical_op: "and" as LogicalOperator,
   };
 
   const handleAddCondition = () => {
     const newCondition: Condition = {
-      var_path: '',
-      operator: 'eq',
-      value: '',
+      var_path: "",
+      operator: "eq",
+      value: "",
     };
     onUpdate({
       config: {
@@ -78,24 +78,24 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>逻辑操作</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>逻辑操作</label>
         <Select
           value={config.logical_op}
           onChange={handleLogicalOpChange}
           size="small"
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
           options={[
-            { value: 'and', label: 'AND - 所有条件都为真' },
-            { value: 'or', label: 'OR - 任一条件为真' },
+            { value: "and", label: "AND - 所有条件都为真" },
+            { value: "or", label: "OR - 任一条件为真" },
           ]}
         />
       </div>
 
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <label style={{ color: '#999', fontSize: 11 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <label style={{ color: "#999", fontSize: 11 }}>
             条件 ({config.conditions.length})
           </label>
           <Button
@@ -108,15 +108,15 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
           </Button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {config.conditions.map((condition, index) => (
             <div
               key={index}
               style={{
                 padding: 8,
-                background: '#1e1e1e',
+                background: "#1e1e1e",
                 borderRadius: 6,
-                border: '1px solid #333',
+                border: "1px solid #333",
               }}
             >
               <div style={{ marginBottom: 8 }}>
@@ -128,7 +128,13 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: 4, marginBottom: condition.operator === 'isEmpty' || condition.operator === 'isNotEmpty' ? 0 : 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 4,
+                  marginBottom: condition.operator === "isEmpty" || condition.operator === "isNotEmpty" ? 0 : 8,
+                }}
+              >
                 <Select
                   value={condition.operator}
                   onChange={(value) => handleUpdateCondition(index, { operator: value })}
@@ -137,9 +143,9 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
                   options={OPERATOR_OPTIONS}
                 />
 
-                {condition.operator !== 'isEmpty' && condition.operator !== 'isNotEmpty' && (
+                {condition.operator !== "isEmpty" && condition.operator !== "isNotEmpty" && (
                   <Input
-                    value={String(condition.value || '')}
+                    value={String(condition.value || "")}
                     onChange={(e) => handleUpdateCondition(index, { value: e.target.value })}
                     size="small"
                     placeholder="值"
@@ -159,16 +165,16 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
           ))}
 
           {config.conditions.length === 0 && (
-            <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 16 }}>
+            <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 16 }}>
               点击"添加条件"创建第一个条件
             </div>
           )}
         </div>
       </div>
 
-      <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: '1px solid #333', paddingTop: 12, marginTop: 4 }}>
+      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
         <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
       </div>
     </div>

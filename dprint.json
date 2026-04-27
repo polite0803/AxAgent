@@ -1,9 +1,8 @@
 {
   "$schema": "https://dprint.dev/schemas/v0.json",
-  "projectType": "openSource",
-  "includes": [
-    "src/**/*.{ts,tsx,js,jsx}",
-    "scripts/**/*.{ts,tsx,js,jsx}"
+  "plugins": [
+    "node_modules/@dprint/typescript/plugin.wasm",
+    "node_modules/@dprint/json/plugin.wasm"
   ],
   "excludes": [
     "node_modules/**/*",
@@ -12,32 +11,7 @@
   ],
   "typescript": {
     "quoteStyle": "preferDouble",
-    "useBraces": "always",
-    "bracePosition": "sameLine",
-    "singleBodyPosition": "sameLine",
-    "useSemicolons": true,
-    "trailingCommas": "es5",
-    "ifStatement.bracePosition": "sameLine",
-    "forStatement.bracePosition": "sameLine",
-    "whileStatement.bracePosition": "sameLine",
-    "doStatement.bracePosition": "sameLine",
-    "switchStatement.bracePosition": "sameLine",
-    "tryStatement.bracePosition": "sameLine",
-    "catchBracePosition": "sameLine",
-    "finallyBracePosition": "sameLine",
-    "memberExpression.parenthesized": "whenRequired",
-    "newLineKind": "auto",
-    "useTabs": false,
-    "indentWidth": 4,
-    "useTrailingCommas": true,
-    "operatorPosition": "sameLine",
-    "reservedWords": "preserve"
+    "useBraces": "always"
   },
-  "json": {
-    "quoteStyle": "preferDouble"
-  },
-  "markdown": {
-    "textWrap": "preserve",
-    "proseWrap": "preserve"
-  }
+  "json": {}
 }

@@ -1,6 +1,6 @@
+use async_trait::async_trait;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
-use async_trait::async_trait;
 use futures::Stream;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,8 @@ impl Default for OpenAIResponsesAdapter {
 impl OpenAIResponsesAdapter {
     pub fn new() -> Self {
         Self {
-            client: crate::build_default_http_client().expect("Failed to build default HTTP client"),
+            client: crate::build_default_http_client()
+                .expect("Failed to build default HTTP client"),
         }
     }
 
@@ -270,7 +271,10 @@ fn strip_mcp_blocks(text: &str) -> String {
 
 /// Convert internal ChatMessage array → Responses API `input` + `instructions`.
 /// If `extra_instructions` is provided, it will be prepended to any system message content.
-fn build_responses_input(messages: &[ChatMessage], extra_instructions: Option<&str>) -> (serde_json::Value, Option<String>) {
+fn build_responses_input(
+    messages: &[ChatMessage],
+    extra_instructions: Option<&str>,
+) -> (serde_json::Value, Option<String>) {
     let mut instructions: Option<String> = None;
 
     if let Some(extra) = extra_instructions {
@@ -361,10 +365,7 @@ fn build_responses_input(messages: &[ChatMessage], extra_instructions: Option<&s
                         "role".to_string(),
                         serde_json::Value::String("assistant".to_string()),
                     );
-                    item.insert(
-                        "content".to_string(),
-                        serde_json::Value::String(text),
-                    );
+                    item.insert("content".to_string(), serde_json::Value::String(text));
                     input_items.push(serde_json::Value::Object(item));
                 }
             }
@@ -403,7 +404,8 @@ fn build_responses_input(messages: &[ChatMessage], extra_instructions: Option<&s
 }
 
 fn build_request(request: &ChatRequest, stream: bool) -> ResponsesRequest {
-    let (input, instructions) = build_responses_input(&request.messages, request.instructions.as_deref());
+    let (input, instructions) =
+        build_responses_input(&request.messages, request.instructions.as_deref());
 
     let reasoning = request.thinking_budget.map(|b| {
         let effort = match b {
@@ -415,7 +417,11 @@ fn build_request(request: &ChatRequest, stream: bool) -> ResponsesRequest {
         };
         ResponsesReasoning {
             effort: effort.to_string(),
-            summary: if effort == "none" { None } else { Some("auto".to_string()) },
+            summary: if effort == "none" {
+                None
+            } else {
+                Some("auto".to_string())
+            },
         }
     });
 
@@ -462,10 +468,7 @@ fn parse_response_output(output: &[serde_json::Value]) -> (String, Option<Vec<To
             Some(o) => o,
             None => continue,
         };
-        let item_type = obj
-            .get("type")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let item_type = obj.get("type").and_then(|v| v.as_str()).unwrap_or_default();
 
         match item_type {
             "message" => {
@@ -614,8 +617,9 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                     return;
                 }
                 Err(e) => {
-                    let _ = tx
-                        .unbounded_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
+                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
+                        super::diagnose_reqwest_error(&e),
+                    )));
                     return;
                 }
             };
@@ -734,8 +738,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                                     item.call_id.unwrap_or_else(|| item_id.clone());
                                                 let name = item.name.unwrap_or_default();
                                                 if let Some(idx) = evt.output_index {
-                                                    index_to_item_id
-                                                        .insert(idx, item_id.clone());
+                                                    index_to_item_id.insert(idx, item_id.clone());
                                                 }
                                                 pending_tool_calls.insert(
                                                     item_id,
@@ -784,64 +787,66 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                 }
                                 "response.completed" => {
                                     // Try full deserialization first
-                                    let (usage, mut extra_tool_calls) =
-                                        if let Ok(evt) =
-                                            serde_json::from_str::<StreamCompletedEvent>(data)
-                                        {
-                                            let usage =
-                                                evt.response.as_ref().and_then(|r| r.usage.as_ref()).map(
-                                                    |u| TokenUsage {
-                                                        prompt_tokens: u.input_tokens,
-                                                        completion_tokens: u.output_tokens,
-                                                        total_tokens: u.total_tokens,
-                                                    },
-                                                );
-                                            // Extract function_call items from response.output as fallback
-                                            let fc_from_output: Vec<ToolCall> = evt
-                                                .response
-                                                .as_ref()
-                                                .map(|r| {
-                                                    r.output
-                                                        .iter()
-                                                        .filter_map(|item| {
-                                                            let obj = item.as_object()?;
-                                                            if obj.get("type")?.as_str()? != "function_call" {
-                                                                return None;
-                                                            }
-                                                            let call_id = obj
-                                                                .get("call_id")
-                                                                .and_then(|v| v.as_str())
-                                                                .unwrap_or_default()
-                                                                .to_string();
-                                                            let name = obj
-                                                                .get("name")
-                                                                .and_then(|v| v.as_str())
-                                                                .unwrap_or_default()
-                                                                .to_string();
-                                                            let arguments = obj
-                                                                .get("arguments")
-                                                                .and_then(|v| v.as_str())
-                                                                .unwrap_or_default()
-                                                                .to_string();
-                                                            Some(ToolCall {
-                                                                id: call_id,
-                                                                call_type: "function".to_string(),
-                                                                function: ToolCallFunction {
-                                                                    name,
-                                                                    arguments,
-                                                                },
-                                                            })
+                                    let (usage, mut extra_tool_calls) = if let Ok(evt) =
+                                        serde_json::from_str::<StreamCompletedEvent>(data)
+                                    {
+                                        let usage = evt
+                                            .response
+                                            .as_ref()
+                                            .and_then(|r| r.usage.as_ref())
+                                            .map(|u| TokenUsage {
+                                                prompt_tokens: u.input_tokens,
+                                                completion_tokens: u.output_tokens,
+                                                total_tokens: u.total_tokens,
+                                            });
+                                        // Extract function_call items from response.output as fallback
+                                        let fc_from_output: Vec<ToolCall> = evt
+                                            .response
+                                            .as_ref()
+                                            .map(|r| {
+                                                r.output
+                                                    .iter()
+                                                    .filter_map(|item| {
+                                                        let obj = item.as_object()?;
+                                                        if obj.get("type")?.as_str()?
+                                                            != "function_call"
+                                                        {
+                                                            return None;
+                                                        }
+                                                        let call_id = obj
+                                                            .get("call_id")
+                                                            .and_then(|v| v.as_str())
+                                                            .unwrap_or_default()
+                                                            .to_string();
+                                                        let name = obj
+                                                            .get("name")
+                                                            .and_then(|v| v.as_str())
+                                                            .unwrap_or_default()
+                                                            .to_string();
+                                                        let arguments = obj
+                                                            .get("arguments")
+                                                            .and_then(|v| v.as_str())
+                                                            .unwrap_or_default()
+                                                            .to_string();
+                                                        Some(ToolCall {
+                                                            id: call_id,
+                                                            call_type: "function".to_string(),
+                                                            function: ToolCallFunction {
+                                                                name,
+                                                                arguments,
+                                                            },
                                                         })
-                                                        .collect()
-                                                })
-                                                .unwrap_or_default();
-                                            (usage, fc_from_output)
-                                        } else {
-                                            tracing::warn!(
+                                                    })
+                                                    .collect()
+                                            })
+                                            .unwrap_or_default();
+                                        (usage, fc_from_output)
+                                    } else {
+                                        tracing::warn!(
                                                 "[responses] Failed to deserialize response.completed event"
                                             );
-                                            (None, Vec::new())
-                                        };
+                                        (None, Vec::new())
+                                    };
 
                                     // Merge: pending_tool_calls (from streaming) take priority,
                                     // then fill from response.output for any missed ones
@@ -893,7 +898,10 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                                 .map(|s| s.to_string())
                                         })
                                         .unwrap_or_else(|| {
-                                            format!("Response {}", current_event_type.replace("response.", ""))
+                                            format!(
+                                                "Response {}",
+                                                current_event_type.replace("response.", "")
+                                            )
                                         });
                                     tracing::error!(
                                         "[responses] {}: {}",
@@ -1072,7 +1080,11 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
         })
     }
 
-    async fn get_response(&self, ctx: &ProviderRequestContext, response_id: &str) -> Result<String> {
+    async fn get_response(
+        &self,
+        ctx: &ProviderRequestContext,
+        response_id: &str,
+    ) -> Result<String> {
         let url = format!("{}/responses/{}", Self::base_url(ctx), response_id);
 
         let resp = crate::apply_request_headers(
@@ -1093,7 +1105,9 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
             )));
         }
 
-        resp.text().await.map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
+        resp.text()
+            .await
+            .map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
     }
 
     async fn delete_response(&self, ctx: &ProviderRequestContext, response_id: &str) -> Result<()> {

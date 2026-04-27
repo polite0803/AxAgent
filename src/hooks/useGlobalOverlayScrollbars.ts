@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { OverlayScrollbars } from 'overlayscrollbars';
+import { OverlayScrollbars } from "overlayscrollbars";
+import { useEffect, useRef } from "react";
 
 /**
  * Selectors for elements that should receive custom overlay scrollbars.
@@ -13,20 +13,20 @@ import { OverlayScrollbars } from 'overlayscrollbars';
  * scroll indicator (`ChatScrollIndicator`) instead.
  */
 const SCROLLABLE_SELECTORS = [
-  '.overflow-y-auto',
-  '[data-os-scrollbar]',
+  ".overflow-y-auto",
+  "[data-os-scrollbar]",
 ];
 
 const OS_OPTIONS: Parameters<typeof OverlayScrollbars>[1] = {
   scrollbars: {
-    theme: 'os-theme-axagent',
-    autoHide: 'scroll',
+    theme: "os-theme-axagent",
+    autoHide: "scroll",
     autoHideDelay: 600,
     autoHideSuspend: true,
     clickScroll: true,
   },
   overflow: {
-    x: 'hidden',
+    x: "hidden",
   },
 };
 
@@ -46,8 +46,8 @@ export function useGlobalOverlayScrollbars() {
     const instances = instancesRef.current;
 
     function initElement(el: HTMLElement) {
-      if (instances.has(el)) return;
-      if (OverlayScrollbars.valid(el)) return;
+      if (instances.has(el)) { return; }
+      if (OverlayScrollbars.valid(el)) { return; }
 
       try {
         const inst = OverlayScrollbars(
@@ -61,7 +61,7 @@ export function useGlobalOverlayScrollbars() {
     }
 
     function scanAndInit() {
-      const selector = SCROLLABLE_SELECTORS.join(',');
+      const selector = SCROLLABLE_SELECTORS.join(",");
       document.querySelectorAll<HTMLElement>(selector).forEach(initElement);
     }
 

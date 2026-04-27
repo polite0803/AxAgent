@@ -1,7 +1,7 @@
-import React from 'react';
-import { Select, InputNumber, Input, Divider } from 'antd';
-import type { WorkflowNode, DelayNode } from '../../types';
-import { BasePropertyPanel } from './BasePropertyPanel';
+import { Divider, Input, InputNumber, Select } from "antd";
+import React from "react";
+import type { DelayNode, WorkflowNode } from "../../types";
+import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface DelayPropertyPanelProps {
   node: WorkflowNode;
@@ -12,7 +12,7 @@ interface DelayPropertyPanelProps {
 export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
   const delayNode = node as DelayNode;
   const config = delayNode.config || {
-    delay_type: 'seconds',
+    delay_type: "seconds",
     seconds: 5,
   };
 
@@ -22,19 +22,19 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
 
   const renderDelayConfig = () => {
     switch (config.delay_type) {
-      case 'seconds':
+      case "seconds":
         return (
           <div>
-            <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>延迟秒数</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟秒数</label>
             <InputNumber
               value={config.seconds ?? 5}
-              onChange={(value) => handleConfigChange('seconds', value)}
+              onChange={(value) => handleConfigChange("seconds", value)}
               min={1}
               max={31536000}
               size="small"
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
-            <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
+            <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
               {(config.seconds || 5) >= 60
                 ? `≈ ${Math.floor((config.seconds || 5) / 60)} 分钟`
                 : `${config.seconds || 5} 秒`}
@@ -42,47 +42,47 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
           </div>
         );
 
-      case 'minutes':
+      case "minutes":
         return (
           <div>
-            <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>延迟分钟数</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟分钟数</label>
             <InputNumber
               value={Math.floor((config.seconds || 5) / 60)}
-              onChange={(value) => handleConfigChange('seconds', (value || 1) * 60)}
+              onChange={(value) => handleConfigChange("seconds", (value || 1) * 60)}
               min={1}
               max={525600}
               size="small"
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </div>
         );
 
-      case 'hours':
+      case "hours":
         return (
           <div>
-            <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>延迟小时数</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟小时数</label>
             <InputNumber
               value={Math.floor((config.seconds || 5) / 3600)}
-              onChange={(value) => handleConfigChange('seconds', (value || 1) * 3600)}
+              onChange={(value) => handleConfigChange("seconds", (value || 1) * 3600)}
               min={1}
               max={8760}
               size="small"
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </div>
         );
 
-      case 'until':
+      case "until":
         return (
           <div>
-            <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>延迟到</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟到</label>
             <Input
-              value={config.until || ''}
-              onChange={(e) => handleConfigChange('until', e.target.value)}
+              value={config.until || ""}
+              onChange={(e) => handleConfigChange("until", e.target.value)}
               size="small"
               placeholder="ISO 8601 时间或变量"
             />
-            <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
+            <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
               支持 ISO 8601 格式或变量引用
             </div>
           </div>
@@ -94,28 +94,28 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>延迟类型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟类型</label>
         <Select
           value={config.delay_type}
-          onChange={(value) => handleConfigChange('delay_type', value)}
+          onChange={(value) => handleConfigChange("delay_type", value)}
           size="small"
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
           options={[
-            { value: 'seconds', label: '秒' },
-            { value: 'minutes', label: '分钟' },
-            { value: 'hours', label: '小时' },
-            { value: 'until', label: '直到指定时间' },
+            { value: "seconds", label: "秒" },
+            { value: "minutes", label: "分钟" },
+            { value: "hours", label: "小时" },
+            { value: "until", label: "直到指定时间" },
           ]}
         />
       </div>
 
       {renderDelayConfig()}
 
-      <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: '1px solid #333', paddingTop: 12, marginTop: 4 }}>
+      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
         <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
       </div>
     </div>

@@ -1,16 +1,30 @@
-import { Switch, InputNumber, Select, Divider, Tag, App, Button, Modal, Form, Input, Popconfirm, Checkbox, TimePicker } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { useSettingsStore, useBackupStore } from '@/stores';
-import { isTauri, invoke } from '@/lib/invoke';
-import { SettingsGroup } from './SettingsGroup';
-import { useState, useEffect } from 'react';
-import { Plus, Pause, Play, Edit2, Trash2 } from 'lucide-react';
-import dayjs from 'dayjs';
+import { invoke, isTauri } from "@/lib/invoke";
+import { useBackupStore, useSettingsStore } from "@/stores";
+import {
+  App,
+  Button,
+  Checkbox,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Switch,
+  Tag,
+  TimePicker,
+} from "antd";
+import dayjs from "dayjs";
+import { Edit2, Pause, Play, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { SettingsGroup } from "./SettingsGroup";
 
-const rowStyle: React.CSSProperties = { padding: '4px 0' };
+const rowStyle: React.CSSProperties = { padding: "4px 0" };
 
-type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
-type ScheduleType = 'interval' | 'daily' | 'weekly' | 'monthly' | 'advanced';
+type Weekday = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+type ScheduleType = "interval" | "daily" | "weekly" | "monthly" | "advanced";
 
 interface TimeRange {
   start_hour: number;
@@ -42,13 +56,13 @@ interface ScheduledTask {
   id: string;
   name: string;
   description: string;
-  task_type: 'custom';
+  task_type: "custom";
   cron_expression: string | null;
   interval_seconds: number | null;
   next_run_at: string;
   last_run_at: string | null;
   last_result: { success: boolean; output: string; error: string | null; duration_ms: number } | null;
-  status: 'active' | 'paused' | 'disabled';
+  status: "active" | "paused" | "disabled";
   config: TaskConfig;
   schedule_config: ScheduleConfig;
   created_at: string;
@@ -103,127 +117,135 @@ export function SchedulerSettings() {
 
   const loadCustomTasks = async () => {
     try {
-      const tasks = await invoke<ScheduledTask[]>('list_scheduled_tasks');
-      setCustomTasks(tasks.filter(t => t.task_type === 'custom'));
+      const tasks = await invoke<ScheduledTask[]>("list_scheduled_tasks");
+      setCustomTasks(tasks.filter(t => t.task_type === "custom"));
     } catch (e) {
-      console.warn('Failed to load scheduled tasks:', e);
+      console.warn("Failed to load scheduled tasks:", e);
     }
   };
 
   const loadTemplates = async () => {
     try {
-      const templates = await invoke<TaskTemplate[]>('get_scheduled_task_templates');
+      const templates = await invoke<TaskTemplate[]>("get_scheduled_task_templates");
       setTaskTemplates(templates);
     } catch (e) {
-      console.warn('Failed to load task templates:', e);
+      console.warn("Failed to load task templates:", e);
     }
   };
 
   const handleAutoBackupChange = async (enabled: boolean) => {
-    if (!backupSettings) return;
+    if (!backupSettings) { return; }
     const newSettings = { ...backupSettings, enabled };
     await updateBackupSettings(newSettings);
-    message.success(t('settings.scheduler.saved'));
+    message.success(t("settings.scheduler.saved"));
   };
 
   const handleBackupIntervalChange = async (intervalHours: number | null) => {
-    if (!backupSettings || !intervalHours) return;
+    if (!backupSettings || !intervalHours) { return; }
     const newSettings = { ...backupSettings, intervalHours };
     await updateBackupSettings(newSettings);
-    message.success(t('settings.scheduler.saved'));
+    message.success(t("settings.scheduler.saved"));
   };
 
   const handleWebdavSyncChange = async (syncEnabled: boolean) => {
     saveSettings({ webdav_sync_enabled: syncEnabled });
     if (inTauri) {
       try {
-        await invoke('restart_webdav_sync');
+        await invoke("restart_webdav_sync");
       } catch (e) {
-        console.warn('Failed to restart WebDAV sync:', e);
+        console.warn("Failed to restart WebDAV sync:", e);
       }
     }
-    message.success(t('settings.scheduler.saved'));
+    message.success(t("settings.scheduler.saved"));
   };
 
   const handleWebdavIntervalChange = async (syncIntervalMinutes: number) => {
     saveSettings({ webdav_sync_interval_minutes: syncIntervalMinutes });
     if (inTauri) {
       try {
-        await invoke('restart_webdav_sync');
+        await invoke("restart_webdav_sync");
       } catch (e) {
-        console.warn('Failed to restart WebDAV sync:', e);
+        console.warn("Failed to restart WebDAV sync:", e);
       }
     }
-    message.success(t('settings.scheduler.saved'));
+    message.success(t("settings.scheduler.saved"));
   };
 
   const handleClosedLoopChange = (closedLoopEnabled: boolean) => {
     saveSettings({ closed_loop_enabled: closedLoopEnabled });
-    message.success(t('settings.scheduler.saved'));
+    message.success(t("settings.scheduler.saved"));
   };
 
   const handleClosedLoopIntervalChange = (closedLoopIntervalMinutes: number) => {
     saveSettings({ closed_loop_interval_minutes: closedLoopIntervalMinutes });
-    message.success(t('settings.scheduler.saved'));
+    message.success(t("settings.scheduler.saved"));
   };
 
   const webdavIntervalOptions = [
-    { value: 15, label: t('settings.scheduler.minutes', { count: 15 }) },
-    { value: 30, label: t('settings.scheduler.minutes', { count: 30 }) },
-    { value: 60, label: t('settings.scheduler.hour') },
-    { value: 120, label: t('settings.scheduler.hours', { count: 2 }) },
-    { value: 360, label: t('settings.scheduler.hours', { count: 6 }) },
-    { value: 720, label: t('settings.scheduler.hours', { count: 12 }) },
-    { value: 1440, label: t('settings.scheduler.hours', { count: 24 }) },
+    { value: 15, label: t("settings.scheduler.minutes", { count: 15 }) },
+    { value: 30, label: t("settings.scheduler.minutes", { count: 30 }) },
+    { value: 60, label: t("settings.scheduler.hour") },
+    { value: 120, label: t("settings.scheduler.hours", { count: 2 }) },
+    { value: 360, label: t("settings.scheduler.hours", { count: 6 }) },
+    { value: 720, label: t("settings.scheduler.hours", { count: 12 }) },
+    { value: 1440, label: t("settings.scheduler.hours", { count: 24 }) },
   ];
 
   const closedLoopIntervalOptions = [
-    { value: 1, label: t('settings.scheduler.minutes', { count: 1 }) },
-    { value: 5, label: t('settings.scheduler.minutes', { count: 5 }) },
-    { value: 10, label: t('settings.scheduler.minutes', { count: 10 }) },
-    { value: 15, label: t('settings.scheduler.minutes', { count: 15 }) },
-    { value: 30, label: t('settings.scheduler.minutes', { count: 30 }) },
-    { value: 60, label: t('settings.scheduler.hour') },
+    { value: 1, label: t("settings.scheduler.minutes", { count: 1 }) },
+    { value: 5, label: t("settings.scheduler.minutes", { count: 5 }) },
+    { value: 10, label: t("settings.scheduler.minutes", { count: 10 }) },
+    { value: 15, label: t("settings.scheduler.minutes", { count: 15 }) },
+    { value: 30, label: t("settings.scheduler.minutes", { count: 30 }) },
+    { value: 60, label: t("settings.scheduler.hour") },
   ];
 
   const weekdayOptions = [
-    { value: 'monday' as Weekday, label: t('settings.scheduler.monday') },
-    { value: 'tuesday' as Weekday, label: t('settings.scheduler.tuesday') },
-    { value: 'wednesday' as Weekday, label: t('settings.scheduler.wednesday') },
-    { value: 'thursday' as Weekday, label: t('settings.scheduler.thursday') },
-    { value: 'friday' as Weekday, label: t('settings.scheduler.friday') },
-    { value: 'saturday' as Weekday, label: t('settings.scheduler.saturday') },
-    { value: 'sunday' as Weekday, label: t('settings.scheduler.sunday') },
+    { value: "monday" as Weekday, label: t("settings.scheduler.monday") },
+    { value: "tuesday" as Weekday, label: t("settings.scheduler.tuesday") },
+    { value: "wednesday" as Weekday, label: t("settings.scheduler.wednesday") },
+    { value: "thursday" as Weekday, label: t("settings.scheduler.thursday") },
+    { value: "friday" as Weekday, label: t("settings.scheduler.friday") },
+    { value: "saturday" as Weekday, label: t("settings.scheduler.saturday") },
+    { value: "sunday" as Weekday, label: t("settings.scheduler.sunday") },
   ];
 
   const scheduleTypeOptions = [
-    { value: 'interval' as ScheduleType, label: t('settings.scheduler.scheduleInterval') },
-    { value: 'daily' as ScheduleType, label: t('settings.scheduler.scheduleDaily') },
-    { value: 'weekly' as ScheduleType, label: t('settings.scheduler.scheduleWeekly') },
-    { value: 'monthly' as ScheduleType, label: t('settings.scheduler.scheduleMonthly') },
-    { value: 'advanced' as ScheduleType, label: t('settings.scheduler.scheduleAdvanced') },
+    { value: "interval" as ScheduleType, label: t("settings.scheduler.scheduleInterval") },
+    { value: "daily" as ScheduleType, label: t("settings.scheduler.scheduleDaily") },
+    { value: "weekly" as ScheduleType, label: t("settings.scheduler.scheduleWeekly") },
+    { value: "monthly" as ScheduleType, label: t("settings.scheduler.scheduleMonthly") },
+    { value: "advanced" as ScheduleType, label: t("settings.scheduler.scheduleAdvanced") },
   ];
 
   const monthDayOptions = Array.from({ length: 31 }, (_, i) => ({
     value: i + 1,
-    label: t('settings.scheduler.dayOfMonth', { day: i + 1 }),
+    label: t("settings.scheduler.dayOfMonth", { day: i + 1 }),
   }));
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'green';
-      case 'paused': return 'orange';
-      case 'disabled': return 'red';
-      default: return 'default';
+      case "active":
+        return "green";
+      case "paused":
+        return "orange";
+      case "disabled":
+        return "red";
+      default:
+        return "default";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return t('settings.scheduler.taskActive');
-      case 'paused': return t('settings.scheduler.taskPaused');
-      case 'disabled': return t('settings.scheduler.taskDisabled');
-      default: return status;
+      case "active":
+        return t("settings.scheduler.taskActive");
+      case "paused":
+        return t("settings.scheduler.taskPaused");
+      case "disabled":
+        return t("settings.scheduler.taskDisabled");
+      default:
+        return status;
     }
   };
 
@@ -237,14 +259,23 @@ export function SchedulerSettings() {
   };
 
   const parseScheduleConfig = (task: ScheduledTask): Partial<TaskFormData> => {
-    const config = task.schedule_config || { schedule_type: 'interval', weekdays: [], time_ranges: [], interval_seconds: null, exclude_holidays: false, exclude_custom_dates: [], month_day: null };
+    const config = task.schedule_config
+      || {
+        schedule_type: "interval",
+        weekdays: [],
+        time_ranges: [],
+        interval_seconds: null,
+        exclude_holidays: false,
+        exclude_custom_dates: [],
+        month_day: null,
+      };
     const timeRanges = config.time_ranges?.map((tr: TimeRange) => ({
       start: dayjs().hour(tr.start_hour).minute(tr.start_minute),
       end: dayjs().hour(tr.end_hour).minute(tr.end_minute),
     })) || [{ start: dayjs().hour(9).minute(0), end: dayjs().hour(17).minute(0) }];
 
     return {
-      schedule_type: config.schedule_type || 'interval',
+      schedule_type: config.schedule_type || "interval",
       weekdays: config.weekdays || [],
       time_ranges: timeRanges,
       exclude_holidays: config.exclude_holidays || false,
@@ -264,7 +295,7 @@ export function SchedulerSettings() {
         end_hour: tr.end.hour(),
         end_minute: tr.end.minute(),
       })) || [],
-      interval_seconds: values.schedule_type === 'interval' ? values.interval_hours * 3600 : null,
+      interval_seconds: values.schedule_type === "interval" ? values.interval_hours * 3600 : null,
       exclude_holidays: values.exclude_holidays || false,
       exclude_custom_dates: values.exclude_custom_dates || [],
       month_day: values.month_day || null,
@@ -273,22 +304,22 @@ export function SchedulerSettings() {
 
   const formatScheduleDescription = (task: ScheduledTask): string => {
     const config = task.schedule_config;
-    if (!config) return '-';
+    if (!config) { return "-"; }
 
     switch (config.schedule_type) {
-      case 'interval':
-        return t('settings.scheduler.intervalDesc', { hours: (config.interval_seconds || 86400) / 3600 });
-      case 'daily':
-        return t('settings.scheduler.dailyDesc');
-      case 'weekly':
-        const dayNames = (config.weekdays || []).map(w => t(`settings.scheduler.${w}`)).join(', ');
-        return t('settings.scheduler.weeklyDesc', { days: dayNames || '-' });
-      case 'monthly':
-        return t('settings.scheduler.monthlyDesc', { day: config.month_day || '-' });
-      case 'advanced':
-        return t('settings.scheduler.advancedDesc');
+      case "interval":
+        return t("settings.scheduler.intervalDesc", { hours: (config.interval_seconds || 86400) / 3600 });
+      case "daily":
+        return t("settings.scheduler.dailyDesc");
+      case "weekly":
+        const dayNames = (config.weekdays || []).map(w => t(`settings.scheduler.${w}`)).join(", ");
+        return t("settings.scheduler.weeklyDesc", { days: dayNames || "-" });
+      case "monthly":
+        return t("settings.scheduler.monthlyDesc", { day: config.month_day || "-" });
+      case "advanced":
+        return t("settings.scheduler.advancedDesc");
       default:
-        return '-';
+        return "-";
     }
   };
 
@@ -297,9 +328,9 @@ export function SchedulerSettings() {
     setSelectedTemplate(null);
     form.resetFields();
     form.setFieldsValue({
-      schedule_type: 'interval',
+      schedule_type: "interval",
       interval_hours: 24,
-      weekdays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      weekdays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
       time_ranges: [{ start: dayjs().hour(9).minute(0), end: dayjs().hour(17).minute(0) }],
       exclude_holidays: false,
       exclude_custom_dates: [],
@@ -361,24 +392,24 @@ export function SchedulerSettings() {
           interval_seconds: scheduleConfig.interval_seconds,
           schedule_config: scheduleConfig,
         };
-        await invoke('update_scheduled_task', { taskId: editingTask.id, task: updatedTask });
-        message.success(t('settings.scheduler.updateTask') + ' - OK');
+        await invoke("update_scheduled_task", { taskId: editingTask.id, task: updatedTask });
+        message.success(t("settings.scheduler.updateTask") + " - OK");
       } else {
-        const taskType = values.workflow_id ? 'workflow' : 'custom';
-        await invoke('create_scheduled_task', {
+        const taskType = values.workflow_id ? "workflow" : "custom";
+        await invoke("create_scheduled_task", {
           name: values.name,
           description: values.description,
           task_type: taskType,
           schedule_config: scheduleConfig,
           workflow_id: values.workflow_id,
         });
-        message.success(t('settings.scheduler.createTask') + ' - OK');
+        message.success(t("settings.scheduler.createTask") + " - OK");
       }
 
       setTaskModalOpen(false);
       await loadCustomTasks();
     } catch (e) {
-      console.error('Failed to save task:', e);
+      console.error("Failed to save task:", e);
       message.error(String(e));
     } finally {
       setLoading(false);
@@ -387,47 +418,47 @@ export function SchedulerSettings() {
 
   const handlePauseTask = async (taskId: string) => {
     try {
-      await invoke('pause_scheduled_task', { taskId });
+      await invoke("pause_scheduled_task", { taskId });
       await loadCustomTasks();
-      message.success(t('settings.scheduler.pauseTask') + ' - OK');
+      message.success(t("settings.scheduler.pauseTask") + " - OK");
     } catch (e) {
-      console.error('Failed to pause task:', e);
+      console.error("Failed to pause task:", e);
     }
   };
 
   const handleResumeTask = async (taskId: string) => {
     try {
-      await invoke('resume_scheduled_task', { taskId });
+      await invoke("resume_scheduled_task", { taskId });
       await loadCustomTasks();
-      message.success(t('settings.scheduler.resumeTask') + ' - OK');
+      message.success(t("settings.scheduler.resumeTask") + " - OK");
     } catch (e) {
-      console.error('Failed to resume task:', e);
+      console.error("Failed to resume task:", e);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      await invoke('delete_scheduled_task', { taskId });
+      await invoke("delete_scheduled_task", { taskId });
       await loadCustomTasks();
-      message.success(t('settings.scheduler.deleteTask') + ' - OK');
+      message.success(t("settings.scheduler.deleteTask") + " - OK");
     } catch (e) {
-      console.error('Failed to delete task:', e);
+      console.error("Failed to delete task:", e);
     }
   };
 
   return (
     <div>
-      <SettingsGroup title={t('settings.scheduler.autoBackup')}>
+      <SettingsGroup title={t("settings.scheduler.autoBackup")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.enabled')}</span>
+          <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             checked={backupSettings?.enabled ?? false}
             onChange={handleAutoBackupChange}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.backupInterval')}</span>
+          <span>{t("settings.scheduler.backupInterval")}</span>
           <div className="flex items-center gap-2">
             <InputNumber
               min={1}
@@ -436,20 +467,20 @@ export function SchedulerSettings() {
               onChange={handleBackupIntervalChange}
               style={{ width: 80 }}
             />
-            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-              {t('settings.scheduler.hoursUnit')}
+            <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+              {t("settings.scheduler.hoursUnit")}
             </span>
           </div>
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.maxCount')}</span>
+          <span>{t("settings.scheduler.maxCount")}</span>
           <InputNumber
             min={1}
             max={100}
             value={backupSettings?.maxCount ?? 10}
             onChange={async (v) => {
-              if (!backupSettings || !v) return;
+              if (!backupSettings || !v) { return; }
               await updateBackupSettings({ ...backupSettings, maxCount: v });
             }}
             style={{ width: 80 }}
@@ -457,28 +488,28 @@ export function SchedulerSettings() {
         </div>
         {backupSettings?.enabled && (
           <>
-            <Divider style={{ margin: '4px 0' }} />
+            <Divider style={{ margin: "4px 0" }} />
             <div style={rowStyle} className="flex items-center justify-between">
-              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                {t('settings.scheduler.status')}
+              <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                {t("settings.scheduler.status")}
               </span>
-              <Tag color="green">{t('settings.scheduler.running')}</Tag>
+              <Tag color="green">{t("settings.scheduler.running")}</Tag>
             </div>
           </>
         )}
       </SettingsGroup>
 
-      <SettingsGroup title={t('settings.scheduler.webdavSync')}>
+      <SettingsGroup title={t("settings.scheduler.webdavSync")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.enabled')}</span>
+          <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             checked={settings.webdav_sync_enabled ?? false}
             onChange={handleWebdavSyncChange}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.syncInterval')}</span>
+          <span>{t("settings.scheduler.syncInterval")}</span>
           <Select
             value={settings.webdav_sync_interval_minutes ?? 60}
             options={webdavIntervalOptions}
@@ -486,9 +517,9 @@ export function SchedulerSettings() {
             style={{ width: 120 }}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.maxRemoteBackups')}</span>
+          <span>{t("settings.scheduler.maxRemoteBackups")}</span>
           <InputNumber
             min={1}
             max={100}
@@ -499,28 +530,28 @@ export function SchedulerSettings() {
         </div>
         {settings.webdav_sync_enabled && (
           <>
-            <Divider style={{ margin: '4px 0' }} />
+            <Divider style={{ margin: "4px 0" }} />
             <div style={rowStyle} className="flex items-center justify-between">
-              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                {t('settings.scheduler.status')}
+              <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                {t("settings.scheduler.status")}
               </span>
-              <Tag color="green">{t('settings.scheduler.running')}</Tag>
+              <Tag color="green">{t("settings.scheduler.running")}</Tag>
             </div>
           </>
         )}
       </SettingsGroup>
 
-      <SettingsGroup title={t('settings.scheduler.closedLoop')}>
+      <SettingsGroup title={t("settings.scheduler.closedLoop")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.enabled')}</span>
+          <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             checked={settings.closed_loop_enabled ?? true}
             onChange={handleClosedLoopChange}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.scheduler.nudgeInterval')}</span>
+          <span>{t("settings.scheduler.nudgeInterval")}</span>
           <Select
             value={settings.closed_loop_interval_minutes ?? 5}
             options={closedLoopIntervalOptions}
@@ -530,19 +561,19 @@ export function SchedulerSettings() {
         </div>
         {(settings.closed_loop_enabled ?? true) && (
           <>
-            <Divider style={{ margin: '4px 0' }} />
+            <Divider style={{ margin: "4px 0" }} />
             <div style={rowStyle} className="flex items-center justify-between">
-              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                {t('settings.scheduler.status')}
+              <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                {t("settings.scheduler.status")}
               </span>
-              <Tag color="blue">{t('settings.scheduler.running')}</Tag>
+              <Tag color="blue">{t("settings.scheduler.running")}</Tag>
             </div>
           </>
         )}
       </SettingsGroup>
 
       <SettingsGroup
-        title={t('settings.scheduler.customTasks')}
+        title={t("settings.scheduler.customTasks")}
         extra={
           <Button
             type="primary"
@@ -550,134 +581,146 @@ export function SchedulerSettings() {
             icon={<Plus size={14} />}
             onClick={openCreateModal}
           >
-            {t('settings.scheduler.addTask')}
+            {t("settings.scheduler.addTask")}
           </Button>
         }
       >
-        {customTasks.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--color-text-secondary)' }}>
-            {t('settings.scheduler.noTasks')}
-          </div>
-        ) : (
-          customTasks.map((task) => (
-            <div key={task.id}>
-              <div style={rowStyle} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span style={{ fontWeight: 500 }}>{task.name}</span>
-                  <Tag color={getStatusColor(task.status)}>{getStatusText(task.status)}</Tag>
-                </div>
-                <div className="flex items-center gap-1">
-                  {task.status === 'active' ? (
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<Pause size={14} />}
-                      onClick={() => handlePauseTask(task.id)}
-                      title={t('settings.scheduler.pauseTask')}
-                    />
-                  ) : (
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<Play size={14} />}
-                      onClick={() => handleResumeTask(task.id)}
-                      title={t('settings.scheduler.resumeTask')}
-                    />
-                  )}
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Edit2 size={14} />}
-                    onClick={() => openEditModal(task)}
-                    title={t('settings.scheduler.editTask')}
-                  />
-                  <Popconfirm
-                    title={t('settings.scheduler.deleteTaskConfirm')}
-                    onConfirm={() => handleDeleteTask(task.id)}
-                    okText="Yes"
-                    cancelText="No"
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<Trash2 size={14} />}
-                      title={t('settings.scheduler.deleteTask')}
-                    />
-                  </Popconfirm>
-                </div>
-              </div>
-              {task.description && (
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 4 }}>
-                  {task.description}
-                </div>
-              )}
-              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 8 }}>
-                <span>{t('settings.scheduler.schedule')}: {formatScheduleDescription(task)}</span>
-                <span style={{ marginLeft: 16 }}>{t('settings.scheduler.nextRunAt')}: {formatNextRun(task.next_run_at)}</span>
-              </div>
-              <Divider style={{ margin: '4px 0' }} />
+        {customTasks.length === 0
+          ? (
+            <div style={{ textAlign: "center", padding: "20px 0", color: "var(--color-text-secondary)" }}>
+              {t("settings.scheduler.noTasks")}
             </div>
-          ))
-        )}
+          )
+          : (
+            customTasks.map((task) => (
+              <div key={task.id}>
+                <div style={rowStyle} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontWeight: 500 }}>{task.name}</span>
+                    <Tag color={getStatusColor(task.status)}>{getStatusText(task.status)}</Tag>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {task.status === "active"
+                      ? (
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<Pause size={14} />}
+                          onClick={() => handlePauseTask(task.id)}
+                          title={t("settings.scheduler.pauseTask")}
+                        />
+                      )
+                      : (
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<Play size={14} />}
+                          onClick={() => handleResumeTask(task.id)}
+                          title={t("settings.scheduler.resumeTask")}
+                        />
+                      )}
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<Edit2 size={14} />}
+                      onClick={() => openEditModal(task)}
+                      title={t("settings.scheduler.editTask")}
+                    />
+                    <Popconfirm
+                      title={t("settings.scheduler.deleteTaskConfirm")}
+                      onConfirm={() => handleDeleteTask(task.id)}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<Trash2 size={14} />}
+                        title={t("settings.scheduler.deleteTask")}
+                      />
+                    </Popconfirm>
+                  </div>
+                </div>
+                {task.description && (
+                  <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 4 }}>
+                    {task.description}
+                  </div>
+                )}
+                <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 8 }}>
+                  <span>{t("settings.scheduler.schedule")}: {formatScheduleDescription(task)}</span>
+                  <span style={{ marginLeft: 16 }}>
+                    {t("settings.scheduler.nextRunAt")}: {formatNextRun(task.next_run_at)}
+                  </span>
+                </div>
+                <Divider style={{ margin: "4px 0" }} />
+              </div>
+            ))
+          )}
       </SettingsGroup>
 
       <Modal
-        title={editingTask ? t('settings.scheduler.editTask') : t('settings.scheduler.addTask')}
+        title={editingTask ? t("settings.scheduler.editTask") : t("settings.scheduler.addTask")}
         open={taskModalOpen}
         onOk={handleCreateOrUpdateTask}
         onCancel={() => setTaskModalOpen(false)}
         confirmLoading={loading}
-        okText={editingTask ? t('settings.scheduler.updateTask') : t('settings.scheduler.createTask')}
+        okText={editingTask ? t("settings.scheduler.updateTask") : t("settings.scheduler.createTask")}
         cancelText="Cancel"
         width={700}
       >
         {!editingTask && (
           <>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, display: 'block', marginBottom: 8 }}>{t('settings.scheduler.selectTemplate') || 'Select Template'}</label>
+              <label style={{ fontWeight: 500, display: "block", marginBottom: 8 }}>
+                {t("settings.scheduler.selectTemplate") || "Select Template"}
+              </label>
 
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>{t('settings.scheduler.reportTemplates')}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+                  {t("settings.scheduler.reportTemplates")}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
                   {taskTemplates.filter(t => !t.workflow_id).map((template) => (
                     <div
                       key={template.template_type}
                       onClick={() => handleTemplateSelect(template.template_type)}
                       style={{
-                        padding: '10px',
-                        border: selectedTemplate === template.template_type ? '2px solid #1677ff' : '1px solid #d9d9d9',
+                        padding: "10px",
+                        border: selectedTemplate === template.template_type ? "2px solid #1677ff" : "1px solid #d9d9d9",
                         borderRadius: 6,
-                        cursor: 'pointer',
-                        backgroundColor: selectedTemplate === template.template_type ? '#e6f4ff' : 'white',
-                        transition: 'all 0.2s',
+                        cursor: "pointer",
+                        backgroundColor: selectedTemplate === template.template_type ? "#e6f4ff" : "white",
+                        transition: "all 0.2s",
                       }}
                     >
                       <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13 }}>{template.name}</div>
-                      <div style={{ fontSize: 11, color: '#666' }}>{template.description}</div>
+                      <div style={{ fontSize: 11, color: "#666" }}>{template.description}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>{t('settings.scheduler.workflowTemplates')}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+                  {t("settings.scheduler.workflowTemplates")}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
                   {taskTemplates.filter(t => t.workflow_id).map((template) => (
                     <div
                       key={template.template_type}
                       onClick={() => handleTemplateSelect(template.template_type)}
                       style={{
-                        padding: '10px',
-                        border: selectedTemplate === template.template_type ? '2px solid #52c41a' : '1px solid #d9d9d9',
+                        padding: "10px",
+                        border: selectedTemplate === template.template_type ? "2px solid #52c41a" : "1px solid #d9d9d9",
                         borderRadius: 6,
-                        cursor: 'pointer',
-                        backgroundColor: selectedTemplate === template.template_type ? '#f6ffed' : 'white',
-                        transition: 'all 0.2s',
+                        cursor: "pointer",
+                        backgroundColor: selectedTemplate === template.template_type ? "#f6ffed" : "white",
+                        transition: "all 0.2s",
                       }}
                     >
                       <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13 }}>{template.name}</div>
-                      <div style={{ fontSize: 11, color: '#666' }}>{template.description}</div>
+                      <div style={{ fontSize: 11, color: "#666" }}>{template.description}</div>
                     </div>
                   ))}
                 </div>
@@ -689,134 +732,143 @@ export function SchedulerSettings() {
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
             name="name"
-            label={t('settings.scheduler.taskName')}
-            rules={[{ required: true, message: 'Please input task name' }]}
+            label={t("settings.scheduler.taskName")}
+            rules={[{ required: true, message: "Please input task name" }]}
           >
-            <Input placeholder={t('settings.scheduler.taskName')} />
+            <Input placeholder={t("settings.scheduler.taskName")} />
           </Form.Item>
           <Form.Item
             name="description"
-            label={t('settings.scheduler.taskDescription')}
+            label={t("settings.scheduler.taskDescription")}
           >
-            <Input.TextArea placeholder={t('settings.scheduler.taskDescription')} rows={2} />
+            <Input.TextArea placeholder={t("settings.scheduler.taskDescription")} rows={2} />
           </Form.Item>
-          <Divider>{t('settings.scheduler.scheduleSettings')}</Divider>
+          <Divider>{t("settings.scheduler.scheduleSettings")}</Divider>
           <Form.Item
             name="schedule_type"
-            label={t('settings.scheduler.scheduleType')}
+            label={t("settings.scheduler.scheduleType")}
             rules={[{ required: true }]}
           >
-            <Select options={scheduleTypeOptions} placeholder={t('settings.scheduler.selectScheduleType')} />
+            <Select options={scheduleTypeOptions} placeholder={t("settings.scheduler.selectScheduleType")} />
           </Form.Item>
 
-          <Form.Item noStyle shouldUpdate={(_, values) => values.schedule_type === 'interval'}>
+          <Form.Item noStyle shouldUpdate={(_, values) => values.schedule_type === "interval"}>
             {({ getFieldValue }) =>
-              getFieldValue('schedule_type') === 'interval' && (
+              getFieldValue("schedule_type") === "interval" && (
                 <Form.Item
                   name="interval_hours"
-                  label={t('settings.scheduler.intervalHours')}
-                  rules={[{ required: true, message: 'Please select interval' }]}
+                  label={t("settings.scheduler.intervalHours")}
+                  rules={[{ required: true, message: "Please select interval" }]}
                 >
                   <Select
                     options={[
-                      { value: 1, label: t('settings.scheduler.hour') },
-                      { value: 6, label: t('settings.scheduler.hours', { count: 6 }) },
-                      { value: 12, label: t('settings.scheduler.hours', { count: 12 }) },
-                      { value: 24, label: t('settings.scheduler.daily') },
-                      { value: 168, label: t('settings.scheduler.weekly') },
-                      { value: 720, label: t('settings.scheduler.monthly') },
+                      { value: 1, label: t("settings.scheduler.hour") },
+                      { value: 6, label: t("settings.scheduler.hours", { count: 6 }) },
+                      { value: 12, label: t("settings.scheduler.hours", { count: 12 }) },
+                      { value: 24, label: t("settings.scheduler.daily") },
+                      { value: 168, label: t("settings.scheduler.weekly") },
+                      { value: 720, label: t("settings.scheduler.monthly") },
                     ]}
                   />
                 </Form.Item>
-              )
-            }
+              )}
           </Form.Item>
 
-          <Form.Item noStyle shouldUpdate={(_, values) => ['weekly', 'advanced'].includes(values.schedule_type)}>
+          <Form.Item noStyle shouldUpdate={(_, values) => ["weekly", "advanced"].includes(values.schedule_type)}>
             {({ getFieldValue }) =>
-              ['weekly', 'advanced'].includes(getFieldValue('schedule_type')) && (
+              ["weekly", "advanced"].includes(getFieldValue("schedule_type")) && (
                 <Form.Item
                   name="weekdays"
-                  label={t('settings.scheduler.weekdays')}
-                  rules={[{ required: true, message: 'Please select weekdays' }]}
+                  label={t("settings.scheduler.weekdays")}
+                  rules={[{ required: true, message: "Please select weekdays" }]}
                 >
                   <Checkbox.Group options={weekdayOptions} />
                 </Form.Item>
-              )
-            }
+              )}
           </Form.Item>
 
-          <Form.Item noStyle shouldUpdate={(_, values) => ['daily', 'weekly', 'monthly', 'advanced'].includes(values.schedule_type)}>
+          <Form.Item
+            noStyle
+            shouldUpdate={(_, values) => ["daily", "weekly", "monthly", "advanced"].includes(values.schedule_type)}
+          >
             {({ getFieldValue }) =>
-              ['daily', 'weekly', 'monthly', 'advanced'].includes(getFieldValue('schedule_type')) && (
+              ["daily", "weekly", "monthly", "advanced"].includes(getFieldValue("schedule_type")) && (
                 <Form.Item
                   name="time_ranges"
-                  label={t('settings.scheduler.timeRanges')}
-                  rules={[{ required: true, message: 'Please add time range' }]}
+                  label={t("settings.scheduler.timeRanges")}
+                  rules={[{ required: true, message: "Please add time range" }]}
                 >
                   <Form.List name="time_ranges">
                     {(fields, { add, remove }) => (
                       <>
                         {fields.map(({ key, name, ...restField }, index) => (
-                          <div key={key} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                          <div key={key} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
                             <TimePicker
                               format="HH:mm"
-                              placeholder={t('settings.scheduler.startTime')}
+                              placeholder={t("settings.scheduler.startTime")}
                               {...restField}
                               style={{ flex: 1 }}
                             />
                             <span>-</span>
                             <TimePicker
                               format="HH:mm"
-                              placeholder={t('settings.scheduler.endTime')}
+                              placeholder={t("settings.scheduler.endTime")}
                               {...restField}
                               style={{ flex: 1 }}
                             />
                             {index > 0 && (
-                              <Button type="text" danger onClick={() => remove(index)}>-</Button>
+                              <Button
+                                type="text"
+                                danger
+                                onClick={() => remove(index)}
+                              >
+                                -
+                              </Button>
                             )}
                           </div>
                         ))}
-                        <Button type="dashed" onClick={() => add({ start: dayjs().hour(9).minute(0), end: dayjs().hour(17).minute(0) })} block>
-                          + {t('settings.scheduler.addTimeRange')}
+                        <Button
+                          type="dashed"
+                          onClick={() => add({ start: dayjs().hour(9).minute(0), end: dayjs().hour(17).minute(0) })}
+                          block
+                        >
+                          + {t("settings.scheduler.addTimeRange")}
                         </Button>
                       </>
                     )}
                   </Form.List>
                 </Form.Item>
-              )
-            }
+              )}
           </Form.Item>
 
-          <Form.Item noStyle shouldUpdate={(_, values) => values.schedule_type === 'monthly'}>
+          <Form.Item noStyle shouldUpdate={(_, values) => values.schedule_type === "monthly"}>
             {({ getFieldValue }) =>
-              getFieldValue('schedule_type') === 'monthly' && (
+              getFieldValue("schedule_type") === "monthly" && (
                 <Form.Item
                   name="month_day"
-                  label={t('settings.scheduler.monthDay')}
-                  rules={[{ required: true, message: 'Please select day of month' }]}
+                  label={t("settings.scheduler.monthDay")}
+                  rules={[{ required: true, message: "Please select day of month" }]}
                 >
-                  <Select options={monthDayOptions} placeholder={t('settings.scheduler.selectDayOfMonth')} />
+                  <Select options={monthDayOptions} placeholder={t("settings.scheduler.selectDayOfMonth")} />
                 </Form.Item>
-              )
-            }
+              )}
           </Form.Item>
 
           <Form.Item
             name="exclude_holidays"
             valuePropName="checked"
           >
-            <Checkbox>{t('settings.scheduler.excludeHolidays')}</Checkbox>
+            <Checkbox>{t("settings.scheduler.excludeHolidays")}</Checkbox>
           </Form.Item>
 
           <Form.Item
             name="exclude_custom_dates"
-            label={t('settings.scheduler.excludeCustomDates')}
+            label={t("settings.scheduler.excludeCustomDates")}
           >
             <Select
               mode="tags"
-              placeholder={t('settings.scheduler.enterExcludeDates')}
-              tokenSeparators={[',']}
+              placeholder={t("settings.scheduler.enterExcludeDates")}
+              tokenSeparators={[","]}
             />
           </Form.Item>
         </Form>

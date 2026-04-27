@@ -5,14 +5,14 @@
  * regenerateMessage, and regenerateWithModel to reduce code duplication
  * and ensure consistent error handling.
  */
-import { useStreamStore } from '@/stores/domain/streamStore';
+import { useStreamStore } from "@/stores/domain/streamStore";
 import {
   _streamUiFlushTimer,
   setPendingUiChunk,
-  setStreamUiFlushTimer,
   setStreamBuffer,
-} from '@/stores/domain/streamStore';
-import type { Message } from '@/types';
+  setStreamUiFlushTimer,
+} from "@/stores/domain/streamStore";
+import type { Message } from "@/types";
 
 // ─── Types ───
 
@@ -41,7 +41,7 @@ export function createOptimisticUserMessage(
   return {
     id: `temp-user-${Date.now()}`,
     conversation_id: conversationId,
-    role: 'user',
+    role: "user",
     content,
     provider_id: null,
     model_id: null,
@@ -50,7 +50,7 @@ export function createOptimisticUserMessage(
       id: `temp-att-${Date.now()}`,
       file_name: a.file_name,
       file_type: a.file_type,
-      file_path: '',
+      file_path: "",
       file_size: a.file_size ?? 0,
       data: a.data,
     })),
@@ -61,7 +61,7 @@ export function createOptimisticUserMessage(
     parent_message_id: null,
     version_index: 0,
     is_active: true,
-    status: 'complete',
+    status: "complete",
   };
 }
 
@@ -71,14 +71,14 @@ export function createOptimisticUserMessage(
 export function createPlaceholderAssistant(
   conversationId: string,
   parentId: string,
-  content = '',
+  content = "",
   providerId?: string | null,
   modelId?: string | null,
 ): Message {
   return {
     id: `temp-assistant-${Date.now()}`,
     conversation_id: conversationId,
-    role: 'assistant',
+    role: "assistant",
     content,
     provider_id: providerId ?? null,
     model_id: modelId ?? null,
@@ -91,7 +91,7 @@ export function createPlaceholderAssistant(
     parent_message_id: parentId,
     version_index: 0,
     is_active: true,
-    status: 'partial',
+    status: "partial",
   };
 }
 
@@ -142,8 +142,8 @@ export function handleStreamError(
   setMessages(
     currentMessages.map((m) =>
       m.id === state.tempAssistantId
-        ? { ...m, content: state.errorMessage, status: 'error' as const }
-        : m,
+        ? { ...m, content: state.errorMessage, status: "error" as const }
+        : m
     ),
   );
 }

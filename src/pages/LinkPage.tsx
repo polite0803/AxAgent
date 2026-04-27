@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { theme } from 'antd';
-import { useGatewayLinkStore } from '@/stores';
-import { GatewayLinkList, GatewayLinkDetail, AddGatewayLinkModal } from '@/components/link';
+import { AddGatewayLinkModal, GatewayLinkDetail, GatewayLinkList } from "@/components/link";
+import { useGatewayLinkStore } from "@/stores";
+import { theme } from "antd";
+import { useEffect, useState } from "react";
 
 export function LinkPage() {
   const { token } = theme.useToken();

@@ -27,9 +27,13 @@ pub async fn update_conversation_category(
     id: String,
     input: UpdateConversationCategoryInput,
 ) -> Result<ConversationCategory, String> {
-    axagent_core::repo::conversation_category::update_conversation_category(&state.sea_db, &id, input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_core::repo::conversation_category::update_conversation_category(
+        &state.sea_db,
+        &id,
+        input,
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

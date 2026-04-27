@@ -71,54 +71,145 @@ impl CrossSessionRetriever {
     pub fn new(storage: Arc<TrajectoryStorage>) -> Self {
         let stop_words = vec![
             // English stop words
-            "a".to_string(), "an".to_string(), "the".to_string(),
-            "is".to_string(), "are".to_string(), "was".to_string(),
-            "were".to_string(), "be".to_string(), "been".to_string(),
-            "being".to_string(), "have".to_string(), "has".to_string(),
-            "had".to_string(), "do".to_string(), "does".to_string(),
-            "did".to_string(), "will".to_string(), "would".to_string(),
-            "could".to_string(), "should".to_string(), "may".to_string(),
-            "might".to_string(), "must".to_string(), "can".to_string(),
-            "to".to_string(), "of".to_string(), "in".to_string(),
-            "for".to_string(), "on".to_string(), "with".to_string(),
-            "at".to_string(), "by".to_string(), "from".to_string(),
-            "as".to_string(), "into".to_string(), "through".to_string(),
-            "during".to_string(), "before".to_string(), "after".to_string(),
-            "above".to_string(), "below".to_string(), "between".to_string(),
-            "under".to_string(), "again".to_string(), "further".to_string(),
-            "then".to_string(), "once".to_string(), "here".to_string(),
-            "there".to_string(), "when".to_string(), "where".to_string(),
-            "why".to_string(), "how".to_string(), "all".to_string(),
-            "each".to_string(), "few".to_string(), "more".to_string(),
-            "most".to_string(), "other".to_string(), "some".to_string(),
-            "such".to_string(), "no".to_string(), "nor".to_string(),
-            "not".to_string(), "only".to_string(), "own".to_string(),
-            "same".to_string(), "so".to_string(), "than".to_string(),
-            "too".to_string(), "very".to_string(), "just".to_string(),
-            "but".to_string(), "and".to_string(), "or".to_string(),
-            "if".to_string(), "because".to_string(), "until".to_string(),
+            "a".to_string(),
+            "an".to_string(),
+            "the".to_string(),
+            "is".to_string(),
+            "are".to_string(),
+            "was".to_string(),
+            "were".to_string(),
+            "be".to_string(),
+            "been".to_string(),
+            "being".to_string(),
+            "have".to_string(),
+            "has".to_string(),
+            "had".to_string(),
+            "do".to_string(),
+            "does".to_string(),
+            "did".to_string(),
+            "will".to_string(),
+            "would".to_string(),
+            "could".to_string(),
+            "should".to_string(),
+            "may".to_string(),
+            "might".to_string(),
+            "must".to_string(),
+            "can".to_string(),
+            "to".to_string(),
+            "of".to_string(),
+            "in".to_string(),
+            "for".to_string(),
+            "on".to_string(),
+            "with".to_string(),
+            "at".to_string(),
+            "by".to_string(),
+            "from".to_string(),
+            "as".to_string(),
+            "into".to_string(),
+            "through".to_string(),
+            "during".to_string(),
+            "before".to_string(),
+            "after".to_string(),
+            "above".to_string(),
+            "below".to_string(),
+            "between".to_string(),
+            "under".to_string(),
+            "again".to_string(),
+            "further".to_string(),
+            "then".to_string(),
+            "once".to_string(),
+            "here".to_string(),
+            "there".to_string(),
+            "when".to_string(),
+            "where".to_string(),
+            "why".to_string(),
+            "how".to_string(),
+            "all".to_string(),
+            "each".to_string(),
+            "few".to_string(),
+            "more".to_string(),
+            "most".to_string(),
+            "other".to_string(),
+            "some".to_string(),
+            "such".to_string(),
+            "no".to_string(),
+            "nor".to_string(),
+            "not".to_string(),
+            "only".to_string(),
+            "own".to_string(),
+            "same".to_string(),
+            "so".to_string(),
+            "than".to_string(),
+            "too".to_string(),
+            "very".to_string(),
+            "just".to_string(),
+            "but".to_string(),
+            "and".to_string(),
+            "or".to_string(),
+            "if".to_string(),
+            "because".to_string(),
+            "until".to_string(),
             "while".to_string(),
             // Chinese stop words
-            "的".to_string(), "了".to_string(), "是".to_string(),
-            "在".to_string(), "我".to_string(), "有".to_string(),
-            "和".to_string(), "就".to_string(), "不".to_string(),
-            "人".to_string(), "都".to_string(), "一".to_string(),
-            "个".to_string(), "上".to_string(), "也".to_string(),
-            "很".to_string(), "到".to_string(), "说".to_string(),
-            "要".to_string(), "去".to_string(), "你".to_string(),
-            "会".to_string(), "着".to_string(), "没有".to_string(),
-            "看".to_string(), "好".to_string(), "自己".to_string(),
-            "这".to_string(), "他".to_string(), "她".to_string(),
-            "它".to_string(), "们".to_string(), "那".to_string(),
-            "些".to_string(), "什么".to_string(), "怎么".to_string(),
-            "哪".to_string(), "为什么".to_string(), "可以".to_string(),
-            "因为".to_string(), "所以".to_string(), "但是".to_string(),
-            "如果".to_string(), "虽然".to_string(), "而且".to_string(),
-            "或者".to_string(), "还是".to_string(), "已经".to_string(),
-            "把".to_string(), "被".to_string(), "让".to_string(),
-            "给".to_string(), "从".to_string(), "对".to_string(),
-            "比".to_string(), "向".to_string(), "过".to_string(),
-            "得".to_string(), "地".to_string(),
+            "的".to_string(),
+            "了".to_string(),
+            "是".to_string(),
+            "在".to_string(),
+            "我".to_string(),
+            "有".to_string(),
+            "和".to_string(),
+            "就".to_string(),
+            "不".to_string(),
+            "人".to_string(),
+            "都".to_string(),
+            "一".to_string(),
+            "个".to_string(),
+            "上".to_string(),
+            "也".to_string(),
+            "很".to_string(),
+            "到".to_string(),
+            "说".to_string(),
+            "要".to_string(),
+            "去".to_string(),
+            "你".to_string(),
+            "会".to_string(),
+            "着".to_string(),
+            "没有".to_string(),
+            "看".to_string(),
+            "好".to_string(),
+            "自己".to_string(),
+            "这".to_string(),
+            "他".to_string(),
+            "她".to_string(),
+            "它".to_string(),
+            "们".to_string(),
+            "那".to_string(),
+            "些".to_string(),
+            "什么".to_string(),
+            "怎么".to_string(),
+            "哪".to_string(),
+            "为什么".to_string(),
+            "可以".to_string(),
+            "因为".to_string(),
+            "所以".to_string(),
+            "但是".to_string(),
+            "如果".to_string(),
+            "虽然".to_string(),
+            "而且".to_string(),
+            "或者".to_string(),
+            "还是".to_string(),
+            "已经".to_string(),
+            "把".to_string(),
+            "被".to_string(),
+            "让".to_string(),
+            "给".to_string(),
+            "从".to_string(),
+            "对".to_string(),
+            "比".to_string(),
+            "向".to_string(),
+            "过".to_string(),
+            "得".to_string(),
+            "地".to_string(),
         ];
 
         Self {
@@ -146,7 +237,12 @@ impl CrossSessionRetriever {
         word.to_string()
     }
 
-    fn calculate_idf(&self, term: &str, doc_count: usize, term_doc_counts: &HashMap<String, usize>) -> f64 {
+    fn calculate_idf(
+        &self,
+        term: &str,
+        doc_count: usize,
+        term_doc_counts: &HashMap<String, usize>,
+    ) -> f64 {
         let doc_freq = *term_doc_counts.get(term).unwrap_or(&0) as f64;
         if doc_freq == 0.0 {
             return 0.0;
@@ -154,7 +250,10 @@ impl CrossSessionRetriever {
         ((doc_count as f64 - doc_freq + 0.5) / (doc_freq + 0.5) + 1.0).ln()
     }
 
-    pub fn retrieve(&self, query: &CrossSessionQuery) -> anyhow::Result<Vec<MemoryRetrievalResult>> {
+    pub fn retrieve(
+        &self,
+        query: &CrossSessionQuery,
+    ) -> anyhow::Result<Vec<MemoryRetrievalResult>> {
         let query_terms = self.tokenize(&query.query);
         let limit = query.limit.unwrap_or(10);
 
@@ -202,7 +301,10 @@ impl CrossSessionRetriever {
                     // Standard BM25 TF normalization:
                     // tf_norm = tf * (k1 + 1) / (k1 * (1 - b + b * dl/avgdl) + tf)
                     let tf_norm = (tf as f64 * (self.config.k1 + 1.0))
-                        / (self.config.k1 * (1.0 - self.config.b + self.config.b * (doc_length as f64 / avg_doc_length)) + tf as f64);
+                        / (self.config.k1
+                            * (1.0 - self.config.b
+                                + self.config.b * (doc_length as f64 / avg_doc_length))
+                            + tf as f64);
                     score += idf * tf_norm;
                 }
             }
@@ -235,7 +337,10 @@ impl CrossSessionRetriever {
         Ok(results)
     }
 
-    pub fn retrieve_by_entities(&self, entities: &[String]) -> anyhow::Result<Vec<MemoryRetrievalResult>> {
+    pub fn retrieve_by_entities(
+        &self,
+        entities: &[String],
+    ) -> anyhow::Result<Vec<MemoryRetrievalResult>> {
         let query = CrossSessionQuery {
             query: entities.join(" "),
             intent: None,

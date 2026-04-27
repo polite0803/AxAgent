@@ -17,7 +17,10 @@ pub async fn list_workflow_templates(
         query = query.filter(workflow_template::Column::IsPreset.eq(preset));
     }
 
-    let templates = query.order_by(workflow_template::Column::UpdatedAt, Order::Desc).all(db).await?;
+    let templates = query
+        .order_by(workflow_template::Column::UpdatedAt, Order::Desc)
+        .all(db)
+        .await?;
     Ok(templates)
 }
 
@@ -90,11 +93,13 @@ pub async fn update_workflow_template(
         active_model.description = Set(description);
         active_model.icon = Set(icon);
         active_model.tags = Set(Some(serde_json::to_string(&tags).unwrap_or_default()));
-        active_model.trigger_config = Set(trigger_config.and_then(|c| serde_json::to_string(&c).ok()));
+        active_model.trigger_config =
+            Set(trigger_config.and_then(|c| serde_json::to_string(&c).ok()));
         active_model.nodes = Set(serde_json::to_string(&nodes).unwrap_or_default());
         active_model.edges = Set(serde_json::to_string(&edges).unwrap_or_default());
         active_model.input_schema = Set(input_schema.and_then(|s| serde_json::to_string(&s).ok()));
-        active_model.output_schema = Set(output_schema.and_then(|s| serde_json::to_string(&s).ok()));
+        active_model.output_schema =
+            Set(output_schema.and_then(|s| serde_json::to_string(&s).ok()));
         active_model.variables = Set(Some(serde_json::to_string(&variables).unwrap_or_default()));
         active_model.error_config = Set(error_config.and_then(|e| serde_json::to_string(&e).ok()));
         active_model.version = Set(t.version + 1);
@@ -121,10 +126,7 @@ pub async fn count_workflow_templates(db: &DatabaseConnection) -> Result<i64> {
     Ok(count as i64)
 }
 
-pub async fn get_template_versions(
-    db: &DatabaseConnection,
-    id: &str,
-) -> Result<Vec<i32>> {
+pub async fn get_template_versions(db: &DatabaseConnection, id: &str) -> Result<Vec<i32>> {
     let template = workflow_template::Entity::find_by_id(id).one(db).await?;
     match template {
         Some(t) => Ok(vec![t.version]),
@@ -142,4 +144,15 @@ pub async fn get_template_by_version(
         Some(t) if t.version == version => Ok(Some(t)),
         _ => Ok(None),
     }
+}
+
+pub async fn get_workflow_by_composite_source(
+    db: &DatabaseConnection,
+    composite_source: &str,
+) -> Result<Option<workflow_template::Model>> {
+    let template = workflow_template::Entity::find()
+        .filter(workflow_template::Column::CompositeSource.eq(composite_source))
+        .one(db)
+        .await?;
+    Ok(template)
 }

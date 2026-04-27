@@ -5,7 +5,7 @@
 //! defines the shared payload types used by both `commands/agent.rs` and
 //! `session_manager.rs`.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Agent permission request payload (used by ChannelPermissionPrompter)
 #[derive(Debug, Clone, Serialize, Deserialize)]

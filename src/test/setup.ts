@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 
-if (typeof window !== 'undefined' && !window.matchMedia) {
-  Object.defineProperty(window, 'matchMedia', {
+if (typeof window !== "undefined" && !window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
     writable: true,
     value: (query: string) => ({
       matches: false,
@@ -16,7 +16,7 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   });
 }
 
-if (typeof globalThis.ResizeObserver === 'undefined') {
+if (typeof globalThis.ResizeObserver === "undefined") {
   class ResizeObserver {
     observe() {}
     unobserve() {}

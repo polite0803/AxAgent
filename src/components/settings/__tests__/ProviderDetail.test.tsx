@@ -1,8 +1,8 @@
-import { App } from 'antd';
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProviderDetail } from '../ProviderDetail';
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { App } from "antd";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ProviderDetail } from "../ProviderDetail";
 
 const toggleProvider = vi.fn();
 const updateProvider = vi.fn();
@@ -17,20 +17,20 @@ const fetchRemoteModels = vi.fn();
 const saveModels = vi.fn();
 
 let provider = {
-  id: 'provider-1',
-  name: 'OpenAI',
-  provider_type: 'openai',
-  api_host: 'https://api.openai.com',
-  api_path: '/v1/chat/completions',
+  id: "provider-1",
+  name: "OpenAI",
+  provider_type: "openai",
+  api_host: "https://api.openai.com",
+  api_path: "/v1/chat/completions",
   enabled: true,
   models: [
     {
-      provider_id: 'provider-1',
-      model_id: 'gpt-5.4',
-      name: 'GPT 5.4',
-      group_name: 'gpt-5.4',
-      model_type: 'Chat',
-      capabilities: ['TextChat'],
+      provider_id: "provider-1",
+      model_id: "gpt-5.4",
+      name: "GPT 5.4",
+      group_name: "gpt-5.4",
+      model_type: "Chat",
+      capabilities: ["TextChat"],
       max_tokens: null,
       enabled: true,
       param_overrides: null,
@@ -43,22 +43,22 @@ let provider = {
   updated_at: 0,
 };
 
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string) => fallback ?? key,
   }),
 }));
 
-vi.mock('@lobehub/icons', () => ({
+vi.mock("@lobehub/icons", () => ({
   ProviderIcon: () => <div>provider-icon</div>,
   ModelIcon: () => <div>model-icon</div>,
 }));
 
-vi.mock('../IconPickerModal', () => ({
+vi.mock("../IconPickerModal", () => ({
   default: () => null,
 }));
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useProviderStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
       providers: [provider],
@@ -76,24 +76,24 @@ vi.mock('@/stores', () => ({
     }),
 }));
 
-describe('ProviderDetail', () => {
+describe("ProviderDetail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     provider = {
-      id: 'provider-1',
-      name: 'OpenAI',
-      provider_type: 'openai',
-      api_host: 'https://api.openai.com',
-      api_path: '/v1/chat/completions',
+      id: "provider-1",
+      name: "OpenAI",
+      provider_type: "openai",
+      api_host: "https://api.openai.com",
+      api_path: "/v1/chat/completions",
       enabled: true,
       models: [
         {
-          provider_id: 'provider-1',
-          model_id: 'gpt-5.4',
-          name: 'GPT 5.4',
-          group_name: 'gpt-5.4',
-          model_type: 'Chat',
-          capabilities: ['TextChat'],
+          provider_id: "provider-1",
+          model_id: "gpt-5.4",
+          name: "GPT 5.4",
+          group_name: "gpt-5.4",
+          model_type: "Chat",
+          capabilities: ["TextChat"],
           max_tokens: null,
           enabled: true,
           param_overrides: null,
@@ -107,7 +107,7 @@ describe('ProviderDetail', () => {
     };
     saveModels.mockResolvedValue(undefined);
 
-    Object.defineProperty(window, 'matchMedia', {
+    Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
         matches: false,
@@ -122,46 +122,46 @@ describe('ProviderDetail', () => {
     });
   });
 
-  it('adds a model from the card-level action and derives the default group from the model id', async () => {
+  it("adds a model from the card-level action and derives the default group from the model id", async () => {
     render(
       <App>
         <ProviderDetail providerId="provider-1" />
       </App>,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: '添加模型' }));
+    await userEvent.click(screen.getByRole("button", { name: "添加模型" }));
 
-    const dialog = await screen.findByRole('dialog');
-    const inputs = within(dialog).getAllByRole('textbox');
-    await userEvent.type(inputs[0], 'gpt-5.4-think');
-    await userEvent.type(inputs[1], 'GPT 5.4 Think');
+    const dialog = await screen.findByRole("dialog");
+    const inputs = within(dialog).getAllByRole("textbox");
+    await userEvent.type(inputs[0], "gpt-5.4-think");
+    await userEvent.type(inputs[1], "GPT 5.4 Think");
 
-    await userEvent.click(within(dialog).getByRole('button', { name: '添加模型' }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "添加模型" }));
 
     expect(saveModels).toHaveBeenCalledWith(
-      'provider-1',
+      "provider-1",
       expect.arrayContaining([
         expect.objectContaining({
-          model_id: 'gpt-5.4-think',
-          name: 'GPT 5.4 Think',
-          group_name: 'gpt-5.4',
-          model_type: 'Chat',
+          model_id: "gpt-5.4-think",
+          name: "GPT 5.4 Think",
+          group_name: "gpt-5.4",
+          model_type: "Chat",
         }),
       ]),
     );
   });
 
-  it('prefills the current group when adding a model from a group header', async () => {
+  it("prefills the current group when adding a model from a group header", async () => {
     render(
       <App>
         <ProviderDetail providerId="provider-1" />
       </App>,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: '添加到当前分组' }));
+    await userEvent.click(screen.getByRole("button", { name: "添加到当前分组" }));
 
-    const dialog = await screen.findByRole('dialog');
-    const inputs = within(dialog).getAllByRole('textbox');
-    expect(inputs[2]).toHaveValue('gpt-5.4');
+    const dialog = await screen.findByRole("dialog");
+    const inputs = within(dialog).getAllByRole("textbox");
+    expect(inputs[2]).toHaveValue("gpt-5.4");
   });
 });

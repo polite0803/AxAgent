@@ -1,11 +1,6 @@
-import { create } from 'zustand';
-import { invoke, listen } from '@/lib/invoke';
-import type {
-  KnowledgeBase,
-  KnowledgeDocument,
-  CreateKnowledgeBaseInput,
-  UpdateKnowledgeBaseInput,
-} from '@/types';
+import { invoke, listen } from "@/lib/invoke";
+import type { CreateKnowledgeBaseInput, KnowledgeBase, KnowledgeDocument, UpdateKnowledgeBaseInput } from "@/types";
+import { create } from "zustand";
 
 interface DocumentIndexedEvent {
   documentId: string;
@@ -42,7 +37,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
   loadBases: async () => {
     set({ loading: true });
     try {
-      const bases = await invoke<KnowledgeBase[]>('list_knowledge_bases');
+      const bases = await invoke<KnowledgeBase[]>("list_knowledge_bases");
       set({ bases, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -51,7 +46,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   createBase: async (input) => {
     try {
-      const base = await invoke<KnowledgeBase>('create_knowledge_base', { input });
+      const base = await invoke<KnowledgeBase>("create_knowledge_base", { input });
       set((s) => ({ bases: [...s.bases, base], error: null }));
       return base;
     } catch (e) {
@@ -62,7 +57,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   updateBase: async (id, input) => {
     try {
-      const updated = await invoke<KnowledgeBase>('update_knowledge_base', { id, input });
+      const updated = await invoke<KnowledgeBase>("update_knowledge_base", { id, input });
       set((s) => ({ bases: s.bases.map((b) => (b.id === id ? updated : b)), error: null }));
     } catch (e) {
       set({ error: String(e) });
@@ -72,7 +67,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   deleteBase: async (id) => {
     try {
-      await invoke('delete_knowledge_base', { id });
+      await invoke("delete_knowledge_base", { id });
       set((s) => ({ bases: s.bases.filter((b) => b.id !== id), error: null }));
     } catch (e) {
       set({ error: String(e) });
@@ -87,7 +82,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       .filter(Boolean) as KnowledgeBase[];
     set({ bases: reordered });
     try {
-      await invoke('reorder_knowledge_bases', { baseIds });
+      await invoke("reorder_knowledge_bases", { baseIds });
     } catch (e) {
       set({ bases: prev, error: String(e) });
     }
@@ -96,7 +91,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
   loadDocuments: async (baseId) => {
     set({ loading: true });
     try {
-      const documents = await invoke<KnowledgeDocument[]>('list_knowledge_documents', { baseId });
+      const documents = await invoke<KnowledgeDocument[]>("list_knowledge_documents", { baseId });
       set({ documents, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -105,7 +100,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   addDocument: async (baseId, title, sourcePath, mimeType) => {
     try {
-      await invoke('add_knowledge_document', { baseId, title, sourcePath, mimeType });
+      await invoke("add_knowledge_document", { baseId, title, sourcePath, mimeType });
       await get().loadDocuments(baseId);
     } catch (e) {
       set({ error: String(e) });
@@ -115,7 +110,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   deleteDocument: async (knowledgeBaseId, documentId) => {
     try {
-      await invoke('delete_knowledge_document', { baseId: knowledgeBaseId, id: documentId });
+      await invoke("delete_knowledge_document", { baseId: knowledgeBaseId, id: documentId });
       await get().loadDocuments(knowledgeBaseId);
     } catch (e) {
       set({ error: String(e) });
@@ -129,42 +124,42 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   setupEventListeners: async () => {
     const unlistenIndexed = await listen<DocumentIndexedEvent>(
-      'knowledge-document-indexed',
+      "knowledge-document-indexed",
       (event) => {
         const { documentId, success, error } = event.payload;
         set((state) => ({
           documents: state.documents.map((doc) =>
             doc.id === documentId
               ? {
-                  ...doc,
-                  indexingStatus: success ? 'ready' : 'failed',
-                  indexError: success ? undefined : error,
-                }
+                ...doc,
+                indexingStatus: success ? "ready" : "failed",
+                indexError: success ? undefined : error,
+              }
               : doc
           ),
         }));
-      }
+      },
     );
 
     const unlistenReindexed = await listen<{ chunkId: string; success: boolean }>(
-      'knowledge-chunk-reindexed',
+      "knowledge-chunk-reindexed",
       () => {
         // Chunk reindexed — refresh documents if a base is selected
         const selectedBaseId = get().selectedBaseId;
         if (selectedBaseId) {
           get().loadDocuments(selectedBaseId);
         }
-      }
+      },
     );
 
     const unlistenRebuild = await listen<{ baseId: string }>(
-      'knowledge-rebuild-complete',
+      "knowledge-rebuild-complete",
       (event) => {
         const selectedBaseId = get().selectedBaseId;
         if (selectedBaseId === event.payload.baseId) {
           get().loadDocuments(selectedBaseId);
         }
-      }
+      },
     );
 
     // Return cleanup function

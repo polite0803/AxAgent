@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Input, Table, Tag, Space, Button } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { useAtomicSkillStore } from '../../stores/feature/atomicSkillStore';
-import type { AtomicSkill } from '../../types';
+import { PlusOutlined } from "@ant-design/icons";
+import { Button, Input, Modal, Space, Table, Tag } from "antd";
+import React, { useEffect, useState } from "react";
+import { useAtomicSkillStore } from "../../stores/feature/atomicSkillStore";
+import type { AtomicSkill } from "../../types";
 
 interface AtomicSkillSelectorProps {
   visible: boolean;
@@ -12,25 +12,28 @@ interface AtomicSkillSelectorProps {
 }
 
 const ENTRY_TYPE_COLORS: Record<string, string> = {
-  builtin: 'blue',
-  mcp: 'purple',
-  local: 'green',
-  plugin: 'orange',
+  builtin: "blue",
+  mcp: "purple",
+  local: "green",
+  plugin: "orange",
 };
 
 export const AtomicSkillSelector: React.FC<AtomicSkillSelectorProps> = ({
-  visible, onSelect, onClose, onCreateNew,
+  visible,
+  onSelect,
+  onClose,
+  onCreateNew,
 }) => {
   const { skills, loading, loadSkills } = useAtomicSkillStore();
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    if (visible) loadSkills();
+    if (visible) { loadSkills(); }
   }, [visible, loadSkills]);
 
   const filteredSkills = skills.filter((s) =>
-    !searchText || s.name.toLowerCase().includes(searchText.toLowerCase()) ||
-    s.description.toLowerCase().includes(searchText.toLowerCase())
+    !searchText || s.name.toLowerCase().includes(searchText.toLowerCase())
+    || s.description.toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
@@ -41,7 +44,7 @@ export const AtomicSkillSelector: React.FC<AtomicSkillSelectorProps> = ({
       footer={null}
       width={560}
     >
-      <Space style={{ marginBottom: 12, width: '100%' }} direction="vertical">
+      <Space style={{ marginBottom: 12, width: "100%" }} direction="vertical">
         <Space>
           <Input
             placeholder="搜索..."
@@ -50,25 +53,37 @@ export const AtomicSkillSelector: React.FC<AtomicSkillSelectorProps> = ({
             style={{ width: 300 }}
             allowClear
           />
-          {onCreateNew && (
-            <Button icon={<PlusOutlined />} onClick={onCreateNew}>新建</Button>
-          )}
+          {onCreateNew && <Button icon={<PlusOutlined />} onClick={onCreateNew}>新建</Button>}
         </Space>
       </Space>
 
       <Table
         dataSource={filteredSkills}
         columns={[
-          { title: '名称', dataIndex: 'name', key: 'name' },
-          { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
+          { title: "名称", dataIndex: "name", key: "name" },
+          { title: "描述", dataIndex: "description", key: "description", ellipsis: true },
           {
-            title: '入口类型', dataIndex: 'entry_type', key: 'entry_type', width: 80,
-            render: (t: string) => <Tag color={ENTRY_TYPE_COLORS[t] || 'default'}>{t}</Tag>,
+            title: "入口类型",
+            dataIndex: "entry_type",
+            key: "entry_type",
+            width: 80,
+            render: (t: string) => <Tag color={ENTRY_TYPE_COLORS[t] || "default"}>{t}</Tag>,
           },
           {
-            title: '操作', key: 'action', width: 70,
+            title: "操作",
+            key: "action",
+            width: 70,
             render: (_: unknown, record: AtomicSkill) => (
-              <Button size="small" type="link" onClick={() => { onSelect(record); onClose(); }}>选择</Button>
+              <Button
+                size="small"
+                type="link"
+                onClick={() => {
+                  onSelect(record);
+                  onClose();
+                }}
+              >
+                选择
+              </Button>
             ),
           },
         ]}

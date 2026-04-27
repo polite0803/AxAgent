@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { writeText as tauriWriteText } from '@tauri-apps/plugin-clipboard-manager';
+import { writeText as tauriWriteText } from "@tauri-apps/plugin-clipboard-manager";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 async function writeToClipboard(text: string): Promise<void> {
   try {
@@ -25,7 +25,7 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
       try {
         await writeToClipboard(text);
         setCopiedValue(text);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
         timeoutRef.current = setTimeout(() => setCopiedValue(null), timeout);
         return true;
       } catch {
@@ -37,7 +37,7 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
     };
   }, []);
 

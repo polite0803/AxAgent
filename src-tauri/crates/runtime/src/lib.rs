@@ -8,6 +8,8 @@
 #![allow(clippy::await_holding_lock)]
 #![allow(clippy::wrong_self_convention)]
 
+pub mod adversarial_debate;
+pub mod agent_roles;
 mod bash;
 pub mod bash_validation;
 mod bootstrap;
@@ -16,12 +18,6 @@ mod compact;
 mod config;
 pub mod config_validate;
 mod conversation;
-pub mod adversarial_debate;
-pub mod agent_roles;
-pub mod shared_memory;
-pub mod workflow_engine;
-pub mod tool_generator;
-pub mod work_engine;
 mod file_ops;
 mod git_context;
 pub mod green_contract;
@@ -36,7 +32,6 @@ pub mod mcp_server;
 mod mcp_stdio;
 pub mod mcp_tool_bridge;
 pub mod message_gateway;
-pub mod transport_handlers;
 mod oauth;
 pub mod permission_enforcer;
 mod permissions;
@@ -48,6 +43,12 @@ mod remote;
 pub mod sandbox;
 mod session;
 pub mod session_control;
+pub mod shared_memory;
+pub mod tool_generator;
+pub mod transport_handlers;
+pub mod validation_executor;
+pub mod work_engine;
+pub mod workflow_engine;
 pub use session_control::SessionStore;
 mod sse;
 pub mod stale_base;

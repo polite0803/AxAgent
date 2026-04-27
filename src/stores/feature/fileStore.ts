@@ -1,9 +1,9 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { FileCategory, FileRow, FileSortKey, FilesPageEntry } from '@/types';
+import { invoke } from "@/lib/invoke";
+import type { FileCategory, FileRow, FileSortKey, FilesPageEntry } from "@/types";
+import { create } from "zustand";
 
 function normalizeFileRow(row: FileRow | FilesPageEntry): FileRow {
-  if ('displayName' in row) {
+  if ("displayName" in row) {
     const previewUrl = row.previewUrl ?? undefined;
     return {
       id: row.id,
@@ -45,16 +45,16 @@ export const useFileStore = create<FileStoreState>((set, get) => ({
   rows: [],
   loading: false,
   error: null,
-  search: '',
-  sortKey: 'createdAt',
+  search: "",
+  sortKey: "createdAt",
 
   loadCategory: async (category: FileCategory) => {
     set({ loading: true, error: null });
     try {
       const { search, sortKey } = get();
       const args: Record<string, unknown> = { category, sort_key: sortKey };
-      if (search) args.search = search;
-      const rawRows = (await invoke<Array<FileRow | FilesPageEntry>>('list_files_page_entries', args)) ?? [];
+      if (search) { args.search = search; }
+      const rawRows = (await invoke<Array<FileRow | FilesPageEntry>>("list_files_page_entries", args)) ?? [];
       const rows = rawRows.map(normalizeFileRow);
       set({ rows, loading: false });
     } catch (e) {
@@ -70,9 +70,9 @@ export const useFileStore = create<FileStoreState>((set, get) => ({
 
   openEntry: async (path: string) => {
     const row = get().rows.find((r) => r.path === path);
-    if (!row || row.missing) return;
+    if (!row || row.missing) { return; }
     try {
-      await invoke('open_files_page_entry', { path });
+      await invoke("open_files_page_entry", { path });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -81,9 +81,9 @@ export const useFileStore = create<FileStoreState>((set, get) => ({
 
   revealEntry: async (path: string) => {
     const row = get().rows.find((r) => r.path === path);
-    if (!row || row.missing) return;
+    if (!row || row.missing) { return; }
     try {
-      await invoke('reveal_files_page_entry', { path });
+      await invoke("reveal_files_page_entry", { path });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -92,9 +92,9 @@ export const useFileStore = create<FileStoreState>((set, get) => ({
 
   cleanupMissingEntry: async (entryId: string) => {
     const row = get().rows.find((r) => r.id === entryId);
-    if (!row || !row.missing) return;
+    if (!row || !row.missing) { return; }
     try {
-      await invoke('cleanup_missing_files_page_entry', { entryId });
+      await invoke("cleanup_missing_files_page_entry", { entryId });
       set({ rows: get().rows.filter((r) => r.id !== entryId) });
     } catch (e) {
       set({ error: String(e) });

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Button, Typography, Space, Alert } from 'antd';
-import { DownloadOutlined, CheckOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { useDecompositionStore } from '../../stores/feature/decompositionStore';
-import type { ToolDependency } from '../../types';
+import { CheckOutlined, DownloadOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import { Alert, Button, Space, Typography } from "antd";
+import React, { useState } from "react";
+import { useDecompositionStore } from "../../stores/feature/decompositionStore";
+import type { ToolDependency } from "../../types";
 
 const { Text, Paragraph } = Typography;
 
@@ -16,9 +16,9 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
 
-  const isAutoInstallable = dependency.status === 'auto_installable';
-  const isManualInstallable = dependency.status === 'manual_installable';
-  const needsGeneration = dependency.status === 'needs_generation';
+  const isAutoInstallable = dependency.status === "auto_installable";
+  const isManualInstallable = dependency.status === "manual_installable";
+  const needsGeneration = dependency.status === "needs_generation";
 
   const handleAutoInstall = async () => {
     setInstalling(true);
@@ -35,8 +35,8 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
       await generateMissingTool(
         dependency.name,
         dependency.install_instructions || dependency.name,
-        { type: 'object', properties: {} },
-        { type: 'object', properties: {} },
+        { type: "object", properties: {} },
+        { type: "object", properties: {} },
       );
       setInstalled(true);
       onComplete?.();
@@ -50,11 +50,11 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
   }
 
   return (
-    <div style={{ padding: '12px 0' }}>
-      <Text strong style={{ display: 'block', marginBottom: 8 }}>{dependency.name}</Text>
+    <div style={{ padding: "12px 0" }}>
+      <Text strong style={{ display: "block", marginBottom: 8 }}>{dependency.name}</Text>
 
       {isAutoInstallable && (
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space direction="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
             此工具可自动安装，点击下方按钮开始安装。
           </Paragraph>
@@ -71,21 +71,30 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
       )}
 
       {isManualInstallable && (
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space direction="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
             此工具需要手动安装，请按照以下说明操作：
           </Paragraph>
           {dependency.install_instructions && (
-            <div style={{
-              padding: 8, background: '#f5f5f5', borderRadius: 4,
-              fontFamily: 'monospace', fontSize: 12, whiteSpace: 'pre-wrap',
-            }}>
+            <div
+              style={{
+                padding: 8,
+                background: "#f5f5f5",
+                borderRadius: 4,
+                fontFamily: "monospace",
+                fontSize: 12,
+                whiteSpace: "pre-wrap",
+              }}
+            >
               {dependency.install_instructions}
             </div>
           )}
           <Button
             icon={<CheckOutlined />}
-            onClick={() => { setInstalled(true); onComplete?.(); }}
+            onClick={() => {
+              setInstalled(true);
+              onComplete?.();
+            }}
             size="small"
           >
             已完成安装
@@ -94,7 +103,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
       )}
 
       {needsGeneration && (
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space direction="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
             此工具无法通过安装获取，将使用 Developer Agent 自动生成 Prompt 模板实现。
           </Paragraph>

@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { invoke, type UnlistenFn, isTauri } from '@/lib/invoke';
-import type { Message } from '@/types';
+import { invoke, isTauri, type UnlistenFn } from "@/lib/invoke";
+import type { Message } from "@/types";
+import { create } from "zustand";
 
 // ─── Module-level variables (exported for use by conversationStore) ───
 
@@ -51,7 +51,7 @@ export function clearOrphanedBuffer(conversationId: string) {
   _orphanedBuffers.delete(conversationId);
 }
 /** Prefix injected before streaming content (e.g., search result tags) */
-export let _streamPrefix = '';
+export let _streamPrefix = "";
 /** Conversations whose stream completed while the user was viewing a different
  *  conversation.  When the user switches back we trigger a fetchMessages so the
  *  final AI response is loaded from the backend. */
@@ -116,24 +116,58 @@ export let _userManuallySelectedVersion = false;
 // ─── Setter functions for module-level variables ───
 // conversationStore needs to mutate these from outside this module.
 
-export function setUnlisten(value: UnlistenFn | null) { _unlisten = value; }
-export function incrementListenerGen() { return ++_listenerGen; }
-export function setStreamBuffer(value: StreamBuffer | null) { _streamBuffer = value; }
-export function setStreamPrefix(value: string) { _streamPrefix = value; }
-export function clearPendingConversationRefresh() { _pendingConversationRefresh.clear(); }
-export function addPendingConversationRefresh(id: string) { _pendingConversationRefresh.add(id); }
-export function deletePendingConversationRefresh(id: string) { _pendingConversationRefresh.delete(id); }
-export function setPendingUiChunk(value: PendingUiChunk | null) { _pendingUiChunk = value; }
-export function setStreamUiFlushTimer(value: ReturnType<typeof setTimeout> | null) { _streamUiFlushTimer = value; }
-export function incrementActiveMessageLoadSeq() { return ++_activeMessageLoadSeq; }
+export function setUnlisten(value: UnlistenFn | null) {
+  _unlisten = value;
+}
+export function incrementListenerGen() {
+  return ++_listenerGen;
+}
+export function setStreamBuffer(value: StreamBuffer | null) {
+  _streamBuffer = value;
+}
+export function setStreamPrefix(value: string) {
+  _streamPrefix = value;
+}
+export function clearPendingConversationRefresh() {
+  _pendingConversationRefresh.clear();
+}
+export function addPendingConversationRefresh(id: string) {
+  _pendingConversationRefresh.add(id);
+}
+export function deletePendingConversationRefresh(id: string) {
+  _pendingConversationRefresh.delete(id);
+}
+export function setPendingUiChunk(value: PendingUiChunk | null) {
+  _pendingUiChunk = value;
+}
+export function setStreamUiFlushTimer(value: ReturnType<typeof setTimeout> | null) {
+  _streamUiFlushTimer = value;
+}
+export function incrementActiveMessageLoadSeq() {
+  return ++_activeMessageLoadSeq;
+}
 
-export function setMultiModelTotalRemaining(value: number) { _multiModelTotalRemaining = value; }
-export function decrementMultiModelTotalRemaining() { _multiModelTotalRemaining--; }
-export function setMultiModelDoneResolve(value: (() => void) | null) { _multiModelDoneResolve = value; }
-export function setIsMultiModelActive(value: boolean) { _isMultiModelActive = value; }
-export function setMultiModelFirstModelId(value: string | null) { _multiModelFirstModelId = value; }
-export function setMultiModelFirstMessageId(value: string | null) { _multiModelFirstMessageId = value; }
-export function setUserManuallySelectedVersion(value: boolean) { _userManuallySelectedVersion = value; }
+export function setMultiModelTotalRemaining(value: number) {
+  _multiModelTotalRemaining = value;
+}
+export function decrementMultiModelTotalRemaining() {
+  _multiModelTotalRemaining--;
+}
+export function setMultiModelDoneResolve(value: (() => void) | null) {
+  _multiModelDoneResolve = value;
+}
+export function setIsMultiModelActive(value: boolean) {
+  _isMultiModelActive = value;
+}
+export function setMultiModelFirstModelId(value: string | null) {
+  _multiModelFirstModelId = value;
+}
+export function setMultiModelFirstMessageId(value: string | null) {
+  _multiModelFirstMessageId = value;
+}
+export function setUserManuallySelectedVersion(value: boolean) {
+  _userManuallySelectedVersion = value;
+}
 
 /** Reset all multi-model module-level state to defaults */
 export function resetMultiModelState() {
@@ -171,7 +205,6 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
   model_id?: string,
   providerId?: string,
 ) {
-
   // Accumulate into stream buffer only in single-stream mode
   // (parallel multi-model streams would corrupt the shared buffer)
   if (!_isMultiModelActive) {
@@ -181,9 +214,9 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
         preserveOrphanedBuffer();
       }
       _streamBuffer = { messageId, conversationId, content: _streamPrefix, resolvedId: null, thinking: null };
-      _streamPrefix = ''; // consumed
+      _streamPrefix = ""; // consumed
     }
-    _streamBuffer.content += content ?? '';
+    _streamBuffer.content += content ?? "";
     // Track ID resolution (placeholder → real ID)
     if (_streamBuffer.messageId !== messageId && !_streamBuffer.resolvedId) {
       _streamBuffer.resolvedId = messageId;
@@ -191,12 +224,14 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
   }
 
   // Only update messages in UI if this is the active conversation
-  if (get().activeConversationId !== conversationId) return;
+  if (get().activeConversationId !== conversationId) { return; }
 
-  if (_pendingUiChunk && (
-    _pendingUiChunk.conversationId !== conversationId
-    || _pendingUiChunk.messageId !== messageId
-  )) {
+  if (
+    _pendingUiChunk && (
+      _pendingUiChunk.conversationId !== conversationId
+      || _pendingUiChunk.messageId !== messageId
+    )
+  ) {
     flushPendingStreamChunk(set, get);
   }
 
@@ -204,13 +239,13 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
     _pendingUiChunk = {
       messageId,
       conversationId,
-      content: '',
+      content: "",
       model_id,
       providerId,
     };
   }
 
-  _pendingUiChunk.content += content ?? '';
+  _pendingUiChunk.content += content ?? "";
 
   const contentLength = _pendingUiChunk.content.length;
   if (contentLength >= STREAM_MAX_CHUNK_SIZE) {
@@ -235,10 +270,10 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
 
   const pending = _pendingUiChunk;
   _pendingUiChunk = null;
-  if (!pending) return;
+  if (!pending) { return; }
 
   const { messageId, content, conversationId, model_id: chunkModelId, providerId: chunkProviderId } = pending;
-  if (get().activeConversationId !== conversationId) return;
+  if (get().activeConversationId !== conversationId) { return; }
 
   set((s) => {
     // 1. Direct ID match — append to existing message
@@ -248,13 +283,13 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
         messages: s.messages.map((m) =>
           m.id === messageId
             ? {
-                ...m,
-                content: m.content + (content ?? ''),
-                // Enrich model info from chunk if missing
-                model_id: m.model_id ?? chunkModelId ?? null,
-                provider_id: m.provider_id ?? chunkProviderId ?? null,
-              }
-            : m,
+              ...m,
+              content: m.content + (content ?? ""),
+              // Enrich model info from chunk if missing
+              model_id: m.model_id ?? chunkModelId ?? null,
+              provider_id: m.provider_id ?? chunkProviderId ?? null,
+            }
+            : m
         ),
       } as Partial<T>;
     }
@@ -265,18 +300,18 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
     // streamingMessageId is a real ID and companion chunks must NOT hijack it —
     // they fall through to case 3 and create their own message entries.
     if (s.streamingMessageId && s.streamingMessageId !== messageId) {
-      if (!_isMultiModelActive || s.streamingMessageId.startsWith('temp-')) {
+      if (!_isMultiModelActive || s.streamingMessageId.startsWith("temp-")) {
         const placeholder = s.messages.find((m) => m.id === s.streamingMessageId);
         if (placeholder) {
           return {
             messages: s.messages.map((m) =>
               m.id === s.streamingMessageId
                 ? {
-                    ...m,
-                    id: messageId,
-                    content: m.content + (content ?? ''),
-                  }
-                : m,
+                  ...m,
+                  id: messageId,
+                  content: m.content + (content ?? ""),
+                }
+                : m
             ),
             streamingMessageId: messageId,
           } as Partial<T>;
@@ -289,8 +324,8 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
     const newMessage: Message = {
       id: messageId,
       conversation_id: conversationId,
-      role: 'assistant',
-      content: _streamBuffer?.content ?? (content ?? ''),
+      role: "assistant",
+      content: _streamBuffer?.content ?? (content ?? ""),
       provider_id: chunkProviderId ?? null,
       model_id: chunkModelId ?? null,
       token_count: null,
@@ -304,7 +339,7 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
       parent_message_id: isMultiModel ? s.multiModelParentId : null,
       version_index: 0,
       is_active: !isMultiModel,
-      status: 'partial',
+      status: "partial",
     };
     return {
       messages: [...s.messages, newMessage],
@@ -371,7 +406,7 @@ export function stopConversationStream(
   activeStreams: Record<string, string>,
   conversationId: string,
 ) {
-  if (!(conversationId in activeStreams)) return { activeStreams };
+  if (!(conversationId in activeStreams)) { return { activeStreams }; }
   const { [conversationId]: _removed, ...rest } = activeStreams;
   return {
     activeStreams: rest,
@@ -434,12 +469,14 @@ export const useStreamStore = create<StreamState>((set, get) => ({
     const activeConvId = conversationId ?? state.streamingConversationId ?? convRef?.getState().activeConversationId;
 
     // If no specific conversation, cancel ALL active streams
-    if (!activeConvId) return;
+    if (!activeConvId) { return; }
 
     // Flush pending UI chunk through conversationStore if available
     if (convRef) {
       flushPendingStreamChunk(
-        (fn) => { convRef.setState(fn(convRef.getState())); },
+        (fn) => {
+          convRef.setState(fn(convRef.getState()));
+        },
         () => convRef.getState(),
       );
     }
@@ -463,11 +500,11 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     // Tell the backend to cancel the stream — fire and forget
     if (isTauri()) {
-      invoke('cancel_stream', { conversationId: activeConvId }).catch(() => {});
+      invoke("cancel_stream", { conversationId: activeConvId }).catch(() => {});
       // Also cancel the agent if in agent mode
       const conv = convRef?.getState().conversations?.find((c: any) => c.id === activeConvId);
-      if (conv?.mode === 'agent') {
-        invoke('agent_cancel', { request: { conversationId: activeConvId } }).catch(() => {});
+      if (conv?.mode === "agent") {
+        invoke("agent_cancel", { request: { conversationId: activeConvId } }).catch(() => {});
       }
     }
 
@@ -485,9 +522,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     if (streamMsgId && convRef) {
       convRef.setState((s: any) => ({
-        messages: s.messages.map((m: Message) =>
-          m.id === streamMsgId ? { ...m, status: 'partial' as const } : m
-        ),
+        messages: s.messages.map((m: Message) => m.id === streamMsgId ? { ...m, status: "partial" as const } : m),
       }));
     }
   },

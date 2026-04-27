@@ -1,6 +1,6 @@
-import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import { listen as tauriListen } from '@tauri-apps/api/event';
-import { handleCommand } from './browserMock';
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+import { listen as tauriListen } from "@tauri-apps/api/event";
+import { handleCommand } from "./browserMock";
 
 export type UnlistenFn = () => void;
 
@@ -46,12 +46,12 @@ function recordInvocation(cmd: string, durationMs: number, success: boolean, err
   const stats = _invokeCounts.get(cmd) || { total: 0, failed: 0, totalDurationMs: 0 };
   stats.total++;
   stats.totalDurationMs += durationMs;
-  if (!success) stats.failed++;
+  if (!success) { stats.failed++; }
   _invokeCounts.set(cmd, stats);
 }
 
 function percentile(sorted: number[], pct: number): number {
-  if (sorted.length === 0) return 0;
+  if (sorted.length === 0) { return 0; }
   const idx = Math.ceil(pct / 100 * sorted.length) - 1;
   return sorted[Math.max(0, idx)];
 }
@@ -88,7 +88,7 @@ export function getInvokeMetrics(): InvokeMetricsSnapshot {
 const SLOW_CALL_THRESHOLD_MS = 3000;
 
 export function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
 /**
@@ -142,10 +142,12 @@ async function withTimeout<T>(
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       timedOut = true;
-      reject(new Error(
-        `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. ` +
-        `The operation may still be running in the backend. You can try again later.`,
-      ));
+      reject(
+        new Error(
+          `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. `
+            + `The operation may still be running in the backend. You can try again later.`,
+        ),
+      );
     }, timeoutMs);
   });
 
@@ -155,8 +157,14 @@ async function withTimeout<T>(
   } catch (e) {
     // Transform IPC connection errors into user-friendly messages
     const msg = String(e).toLowerCase();
-    if (!timedOut && (msg.includes('connection') || msg.includes('refused') || msg.includes('fetch') || msg.includes('ipc') || msg.includes('protocol'))) {
-      throw new Error(`Backend connection failed for "${cmdName}". The AxAgent backend may not be running or has crashed. Please restart the application using 'npm run tauri dev'.`);
+    if (
+      !timedOut
+      && (msg.includes("connection") || msg.includes("refused") || msg.includes("fetch") || msg.includes("ipc")
+        || msg.includes("protocol"))
+    ) {
+      throw new Error(
+        `Backend connection failed for "${cmdName}". The AxAgent backend may not be running or has crashed. Please restart the application using 'npm run tauri dev'.`,
+      );
     }
     throw e;
   } finally {

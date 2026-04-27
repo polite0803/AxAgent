@@ -1,16 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { parseChatMarkdown, stripAxAgentTags } from '../chatMarkdown';
+import { parseChatMarkdown, stripAxAgentTags } from "../chatMarkdown";
 
-describe('parseChatMarkdown', () => {
-  it('parses fenced code blocks into markdown nodes', () => {
-    const nodes = parseChatMarkdown('```ts\nconst value = 1;\n```');
+describe("parseChatMarkdown", () => {
+  it("parses fenced code blocks into markdown nodes", () => {
+    const nodes = parseChatMarkdown("```ts\nconst value = 1;\n```");
 
     expect(nodes.length).toBeGreaterThan(0);
-    expect(nodes.some((node) => node.type === 'code_block')).toBe(true);
+    expect(nodes.some((node) => node.type === "code_block")).toBe(true);
   });
 
-  it('parses stored assistant d2 replies as a single d2 code block node', () => {
+  it("parses stored assistant d2 replies as a single d2 code block node", () => {
     const nodes = parseChatMarkdown(`\`\`\`d2
 User: 用户
 UI: 登录页
@@ -39,12 +39,12 @@ UI -> App: 携带token访问
 
     expect(nodes).toHaveLength(1);
     expect(nodes[0]).toMatchObject({
-      type: 'code_block',
-      language: 'd2',
+      type: "code_block",
+      language: "d2",
     });
   });
 
-  it('strips think and axagent-only tags when preparing export-safe transcript text', () => {
+  it("strips think and axagent-only tags when preparing export-safe transcript text", () => {
     const cleaned = stripAxAgentTags(`Final answer
 <think>Hidden reasoning</think>
 <knowledge-retrieval data-axagent="1">retrieved</knowledge-retrieval>
@@ -53,6 +53,6 @@ payload
 :::
 Visible tail`);
 
-    expect(cleaned).toBe('Final answer\nVisible tail');
+    expect(cleaned).toBe("Final answer\nVisible tail");
   });
 });

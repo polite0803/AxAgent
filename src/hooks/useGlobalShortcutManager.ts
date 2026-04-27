@@ -1,15 +1,15 @@
-import { useEffect } from 'react';
-import { isTauri } from '@/lib/invoke';
-import { useSettingsStore } from '@/stores';
+import { isTauri } from "@/lib/invoke";
+import { executeShortcutAction } from "@/lib/shortcutActions";
 import {
-  SHORTCUT_ACTIONS,
   getShortcutBinding,
   isGlobalShortcutAction,
-  toTauriAccelerator,
+  SHORTCUT_ACTIONS,
   type ShortcutAction,
-} from '@/lib/shortcuts';
-import { executeShortcutAction } from '@/lib/shortcutActions';
-import type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from '@/stores';
+  toTauriAccelerator,
+} from "@/lib/shortcuts";
+import { useSettingsStore } from "@/stores";
+import type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "@/stores";
+import { useEffect } from "react";
 
 export function useGlobalShortcutManager() {
   const settings = useSettingsStore((s) => s.settings);
@@ -18,7 +18,7 @@ export function useGlobalShortcutManager() {
   useEffect(() => {
     const diagnostics: GlobalShortcutDiagnostic[] = [];
     const pushDiagnostic = (
-      entry: Omit<GlobalShortcutDiagnostic, 'timestamp'>,
+      entry: Omit<GlobalShortcutDiagnostic, "timestamp">,
     ) => {
       const withTimestamp: GlobalShortcutDiagnostic = {
         timestamp: new Date().toISOString(),
@@ -28,7 +28,7 @@ export function useGlobalShortcutManager() {
       if (diagnostics.length > 40) {
         diagnostics.splice(0, diagnostics.length - 40);
       }
-      if (!settings.shortcut_registration_logs_enabled) return;
+      if (!settings.shortcut_registration_logs_enabled) { return; }
       const consolePayload = {
         phase: withTimestamp.phase,
         level: withTimestamp.level,
@@ -37,15 +37,15 @@ export function useGlobalShortcutManager() {
         reason: withTimestamp.reason,
         message: withTimestamp.message,
       };
-      if (withTimestamp.level === 'error') {
-        console.error('[global-shortcut]', consolePayload);
-      } else if (withTimestamp.level === 'warn') {
-        console.warn('[global-shortcut]', consolePayload);
+      if (withTimestamp.level === "error") {
+        console.error("[global-shortcut]", consolePayload);
+      } else if (withTimestamp.level === "warn") {
+        console.warn("[global-shortcut]", consolePayload);
       } else {
-        console.info('[global-shortcut]', consolePayload);
+        console.info("[global-shortcut]", consolePayload);
       }
     };
-    const updateStatus = (status: Omit<GlobalShortcutStatus, 'diagnostics'>) => {
+    const updateStatus = (status: Omit<GlobalShortcutStatus, "diagnostics">) => {
       setGlobalShortcutStatus({
         ...status,
         diagnostics: settings.shortcut_registration_logs_enabled ? [...diagnostics] : [],
@@ -54,35 +54,35 @@ export function useGlobalShortcutManager() {
 
     if (!isTauri()) {
       pushDiagnostic({
-        phase: 'env',
-        level: 'warn',
-        message: 'Skipping global shortcut registration because current runtime is not Tauri.',
+        phase: "env",
+        level: "warn",
+        message: "Skipping global shortcut registration because current runtime is not Tauri.",
       });
       updateStatus({ enabled: false, registered: [], failed: [] });
       return;
     }
     if (!settings.global_shortcuts_enabled) {
       pushDiagnostic({
-        phase: 'env',
-        level: 'info',
-        message: 'Global shortcuts are disabled by settings.',
+        phase: "env",
+        level: "info",
+        message: "Global shortcuts are disabled by settings.",
       });
       updateStatus({ enabled: false, registered: [], failed: [] });
-      void import('@tauri-apps/plugin-global-shortcut')
+      void import("@tauri-apps/plugin-global-shortcut")
         .then(async ({ unregisterAll }) => {
           await unregisterAll();
           pushDiagnostic({
-            phase: 'cleanup',
-            level: 'info',
-            message: 'Unregistered all global shortcuts while disabled.',
+            phase: "cleanup",
+            level: "info",
+            message: "Unregistered all global shortcuts while disabled.",
           });
           updateStatus({ enabled: false, registered: [], failed: [] });
         })
         .catch((error) => {
           pushDiagnostic({
-            phase: 'cleanup',
-            level: 'warn',
-            message: 'Failed to unregister global shortcuts while disabled.',
+            phase: "cleanup",
+            level: "warn",
+            message: "Failed to unregister global shortcuts while disabled.",
             reason: String(error),
           });
           updateStatus({ enabled: false, registered: [], failed: [] });
@@ -96,47 +96,47 @@ export function useGlobalShortcutManager() {
       const registered: string[] = [];
       const failed: Array<{ shortcut: string; reason: string }> = [];
       pushDiagnostic({
-        phase: 'register',
-        level: 'info',
-        message: 'Starting global shortcut registration pass.',
+        phase: "register",
+        level: "info",
+        message: "Starting global shortcut registration pass.",
       });
       try {
-        const { register, unregisterAll, isRegistered } = await import('@tauri-apps/plugin-global-shortcut');
+        const { register, unregisterAll, isRegistered } = await import("@tauri-apps/plugin-global-shortcut");
         pushDiagnostic({
-          phase: 'register',
-          level: 'info',
-          message: 'Global shortcut plugin loaded.',
+          phase: "register",
+          level: "info",
+          message: "Global shortcut plugin loaded.",
         });
         await unregisterAll();
         pushDiagnostic({
-          phase: 'cleanup',
-          level: 'info',
-          message: 'Cleared previously registered global shortcuts before re-register.',
+          phase: "cleanup",
+          level: "info",
+          message: "Cleared previously registered global shortcuts before re-register.",
         });
-        if (cancelled) return;
+        if (cancelled) { return; }
 
         for (const action of SHORTCUT_ACTIONS) {
-          if (!isGlobalShortcutAction(action)) continue;
+          if (!isGlobalShortcutAction(action)) { continue; }
           const binding = getShortcutBinding(settings, action);
           const accelerator = toTauriAccelerator(binding);
           pushDiagnostic({
-            phase: 'register',
-            level: 'info',
+            phase: "register",
+            level: "info",
             action,
             shortcut: accelerator,
-            message: 'Attempting to register global shortcut.',
+            message: "Attempting to register global shortcut.",
           });
           try {
             await register(accelerator, async (event) => {
-              if (event.state !== 'Pressed') return;
+              if (event.state !== "Pressed") { return; }
               pushDiagnostic({
-                phase: 'register',
-                level: 'info',
+                phase: "register",
+                level: "info",
                 action,
                 shortcut: accelerator,
-                message: 'Global shortcut callback fired.',
+                message: "Global shortcut callback fired.",
               });
-              console.info('[shortcut-global-hit]', {
+              console.info("[shortcut-global-hit]", {
                 action,
                 accelerator,
                 eventShortcut: event.shortcut,
@@ -146,56 +146,66 @@ export function useGlobalShortcutManager() {
             });
             const verifyRegistered = await isRegistered(accelerator);
             if (!verifyRegistered) {
-              const reason = 'register returned without error but isRegistered returned false';
+              const reason = "register returned without error but isRegistered returned false";
               failed.push({ shortcut: accelerator, reason });
               pushDiagnostic({
-                phase: 'register',
-                level: 'warn',
+                phase: "register",
+                level: "warn",
                 action,
                 shortcut: accelerator,
                 reason,
-                message: 'Global shortcut registration verification failed.',
+                message: "Global shortcut registration verification failed.",
               });
               continue;
             }
             registered.push(accelerator);
             pushDiagnostic({
-              phase: 'register',
-              level: 'info',
+              phase: "register",
+              level: "info",
               action,
               shortcut: accelerator,
-              message: 'Global shortcut registered successfully.',
+              message: "Global shortcut registered successfully.",
             });
           } catch (error) {
-            const reason = String(error);
+            let reason = String(error);
+            if (reason.includes("HotKey already registered")) {
+              reason = "快捷键已被其他应用程序占用，请尝试更换快捷键";
+            } else if (reason.includes("Invalid shortcut")) {
+              reason = "快捷键格式无效";
+            } else if (reason.includes(" accelerators are not supported")) {
+              reason = "系统不支持此快捷键组合";
+            }
             failed.push({ shortcut: accelerator, reason });
             pushDiagnostic({
-              phase: 'register',
-              level: 'error',
+              phase: "register",
+              level: "error",
               action,
               shortcut: accelerator,
               reason,
-              message: 'Failed to register global shortcut.',
+              message: "Failed to register global shortcut.",
             });
             console.warn(`Failed to register global shortcut for ${action} (${accelerator}):`, error);
           }
         }
       } catch (error) {
-        const reason = String(error);
-        failed.push({ shortcut: '*', reason });
+        let reason = String(error);
+        if (reason.includes("HotKey already registered")) {
+          reason = "快捷键已被其他应用程序占用，请尝试更换快捷键";
+        }
+        failed.push({ shortcut: "*", reason });
         pushDiagnostic({
-          phase: 'register',
-          level: 'error',
-          shortcut: '*',
+          phase: "register",
+          level: "error",
+          shortcut: "*",
           reason,
-          message: 'Failed to initialize global shortcut plugin.',
+          message: "Failed to initialize global shortcut plugin.",
         });
-        console.warn('Failed to register global shortcuts:', error);
+        console.warn("Failed to register global shortcuts:", error);
       } finally {
         if (!cancelled) {
           pushDiagnostic({
-            phase: 'register',
-            level: failed.length > 0 ? 'warn' : 'info',
+            phase: "register",
+            level: failed.length > 0 ? "warn" : "info",
             message: `Registration pass finished. success=${registered.length}, failed=${failed.length}`,
           });
           updateStatus({
@@ -212,21 +222,21 @@ export function useGlobalShortcutManager() {
     return () => {
       cancelled = true;
       if (settings.global_shortcuts_enabled) {
-        void import('@tauri-apps/plugin-global-shortcut')
+        void import("@tauri-apps/plugin-global-shortcut")
           .then(async ({ unregisterAll }) => {
             await unregisterAll();
             pushDiagnostic({
-              phase: 'cleanup',
-              level: 'info',
-              message: 'Unregistered all global shortcuts on effect cleanup.',
+              phase: "cleanup",
+              level: "info",
+              message: "Unregistered all global shortcuts on effect cleanup.",
             });
             updateStatus({ enabled: true, registered: [], failed: [] });
           })
           .catch((error) => {
             pushDiagnostic({
-              phase: 'cleanup',
-              level: 'warn',
-              message: 'Failed to unregister global shortcuts on cleanup.',
+              phase: "cleanup",
+              level: "warn",
+              message: "Failed to unregister global shortcuts on cleanup.",
               reason: String(error),
             });
             updateStatus({ enabled: true, registered: [], failed: [] });

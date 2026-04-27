@@ -10,6 +10,8 @@
     "files": "Fichiers",
     "settings": "Paramètres",
     "skills": "Compétences",
+    "marketplace": "Marché",
+    "prompts": "Modèles",
     "link": "Link"
   },
   "chat": {
@@ -115,6 +117,8 @@
     "deselectAll": "Tout désélectionner",
     "batchDeleteContent": "Voulez-vous vraiment supprimer {{count}} conversations ?",
     "archivedSuccess": "{{count}} conversations archivées",
+    "archiveToKnowledgeBase": "Archiver dans la base de connaissances",
+    "noKnowledgeBases": "Aucune base de connaissances. Veuillez en créer une d'abord",
     "noArchivedConversations": "Aucune conversation archivée",
     "multiSelect": "Sélection multiple",
     "createCategory": "Nouvelle catégorie",
@@ -450,7 +454,10 @@
     "adaptingFromInteractions": "Adapting from interactions...",
     "rewindConversation": "Rewind Conversation",
     "rewindConfirmContent": "This will delete all messages after this point. This action cannot be undone.",
-    "rewind": "Rewind"
+    "rewind": "Rewind",
+    "batchArchiveToKnowledgeBase": "Batch Archive to Knowledge Base",
+    "saveAsWorkflow": "Save as Workflow",
+    "selectOneConversation": "Please select one conversation"
   },
   "gateway": {
     "title": "Passerelle",
@@ -1216,7 +1223,8 @@
       "title": "Tool Manager",
       "tabBuiltin": "Builtin Tools",
       "tabMcp": "MCP Servers",
-      "tabGenerated": "Generated Tools"
+      "tabGenerated": "Generated Tools",
+      "tabSemantic": "Semantic Check"
     },
     "generatedTools": {
       "title": "Generated Tools",
@@ -1229,8 +1237,45 @@
       "total": "{{count}} generated tool(s)",
       "empty": "No generated tools"
     },
+    "toolSemanticCheck": {
+      "title": "Tool Semantic Check",
+      "description": "Find similar tools and upgrade existing ones using AI",
+      "searchPlaceholder": "Enter tool name or description",
+      "emptySearch": "Please enter a search term",
+      "noMatches": "No similar tools found",
+      "empty": "Enter a search term to find similar tools",
+      "matches": "{{count}} matches",
+      "checkingTool": "Checking for tools similar to {{tool}}",
+      "similarity": "Similarity",
+      "upgrade": "Upgrade",
+      "upgradeModalTitle": "Upgrade Tool",
+      "existingTool": "Existing Tool",
+      "generatedTool": "Generated Tool",
+      "toolType": "Tool Type",
+      "noDescription": "No description",
+      "performUpgrade": "Perform Upgrade",
+      "upgradeSuccess": "Tool upgrade suggestion generated",
+      "upgradeSuggestion": "Upgrade Suggestion",
+      "reasoning": "Reasoning"
+    },
     "groupWorkspace": "Workspace",
-    "defaultWorkspaceDir": "Default Workspace Directory"
+    "defaultWorkspaceDir": "Default Workspace Directory",
+    "userProfile": {
+      "title": "User Profile",
+      "overview": "Profile Overview",
+      "userId": "User ID",
+      "lastUpdated": "Last Updated",
+      "codingStyle": "Coding Style",
+      "namingConvention": "Naming Convention",
+      "indentationStyle": "Indentation Style",
+      "commentStyle": "Comment Style",
+      "communication": "Communication",
+      "detailLevel": "Detail Level",
+      "tone": "Tone",
+      "language": "Language",
+      "confidence": "Profile Confidence",
+      "loading": "Loading profile..."
+    }
   },
   "backup": {
     "title": "Centre de sauvegarde",
@@ -1635,7 +1680,9 @@
       "dismiss": "Dismiss",
       "created": "Skill '{{name}}' created",
       "error": "Failed to create skill"
-    }
+    },
+    "extractAtomicSkills": "Extract Atomic Skills",
+    "decomposeSuccess": "Atomic skills extracted successfully"
   },
   "agent": {
     "askUserPlaceholder": "Saisissez votre réponse...",
@@ -1723,5 +1770,17 @@
     "policySaveFailed": "Failed to save policy",
     "noPolicy": "No policy configured",
     "loadPolicy": "Load Policy"
+  },
+  "style": {
+    "preview": "Style Preview",
+    "dimensions": "Dimensions",
+    "applying": "Applying...",
+    "applyStyle": "Apply Style",
+    "reset": "Reset",
+    "original": "Original",
+    "styled": "Styled",
+    "stats": "Style Statistics",
+    "totalProfiles": "Total Profiles",
+    "totalSamples": "Total Samples"
   }
 }

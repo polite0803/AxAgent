@@ -16,7 +16,7 @@ mod windows_utils;
 #[allow(clippy::disallowed_types)]
 mod app_state;
 
-use tauri::{Manager, Emitter};
+use tauri::{Emitter, Manager};
 
 pub use app_state::AppState;
 
@@ -68,6 +68,7 @@ pub fn run() {
             commands::conversations::send_message,
             commands::conversations::toggle_pin_conversation,
             commands::conversations::toggle_archive_conversation,
+            commands::conversations::archive_conversation_to_knowledge_base,
             commands::conversations::list_archived_conversations,
             commands::conversations::regenerate_message,
             commands::conversations::regenerate_with_model,
@@ -203,6 +204,23 @@ pub fn run() {
             commands::desktop::list_system_fonts,
             commands::desktop::minimize_window,
             commands::desktop::toggle_maximize_window,
+            commands::computer_control::screen_capture,
+            commands::computer_control::find_ui_elements,
+            commands::computer_control::mouse_click,
+            commands::computer_control::type_text,
+            commands::computer_control::press_key,
+            commands::computer_control::mouse_scroll,
+            commands::browser::browser_navigate,
+            commands::browser::browser_screenshot,
+            commands::browser::browser_click,
+            commands::browser::browser_fill,
+            commands::browser::browser_type,
+            commands::browser::browser_extract_text,
+            commands::browser::browser_extract_all,
+            commands::browser::browser_get_content,
+            commands::browser::browser_wait_for,
+            commands::browser::browser_select,
+            commands::browser::browser_close,
             commands::files::upload_file,
             commands::files::download_file,
             commands::files::list_files,
@@ -238,6 +256,8 @@ pub fn run() {
             commands::agent::agent_backup_and_clear_sdk_context,
             commands::agent::agent_restore_sdk_context_from_backup,
             commands::agent::workflow_create,
+            commands::agent::workflow_execute,
+            commands::agent::workflow_execute_with_session,
             commands::agent::workflow_get_status,
             commands::agent::workflow_cancel,
             commands::agent::workflow_list,
@@ -249,6 +269,9 @@ pub fn run() {
             commands::agent::shared_memory_list,
             commands::agent::shared_memory_get,
             commands::agent::shared_memory_stats,
+            commands::agent::get_conversation_workflow_preview,
+            commands::agent::save_skill_workflow_from_llm,
+            commands::agent::force_save_skill_workflow,
             commands::agent::workflow_get_steps,
             commands::agent_nudge::nudge_list,
             commands::agent_nudge::nudge_dismiss,
@@ -265,6 +288,19 @@ pub fn run() {
             commands::agent_insight::insight_report,
             commands::agent::memory_flush,
             commands::agent::record_feedback,
+            // Proactive commands
+            commands::proactive::proactive_list_suggestions,
+            commands::proactive::proactive_predict,
+            commands::proactive::proactive_list_reminders,
+            commands::proactive::proactive_dismiss_suggestion,
+            commands::proactive::proactive_accept_suggestion,
+            commands::proactive::proactive_snooze_suggestion,
+            commands::proactive::proactive_add_reminder,
+            commands::proactive::proactive_delete_reminder,
+            commands::proactive::proactive_complete_reminder,
+            commands::proactive::proactive_set_enabled,
+            commands::proactive::proactive_update_config,
+            commands::proactive::proactive_prefetch,
             commands::agent_analytics::trajectory_stats,
             commands::agent_analytics::trajectory_list,
             commands::agent_analytics::pattern_stats,
@@ -283,6 +319,11 @@ pub fn run() {
             commands::artifacts::create_artifact,
             commands::artifacts::update_artifact,
             commands::artifacts::delete_artifact,
+            commands::sandbox::execute_sandbox,
+            commands::image_gen::generate_image,
+            commands::image_gen_settings::get_image_gen_config,
+            commands::image_gen_settings::save_image_gen_config,
+            commands::chart_generator::generate_chart_config,
             commands::gateway::get_gateway_status,
             commands::gateway::start_gateway,
             commands::gateway::stop_gateway,
@@ -419,6 +460,7 @@ pub fn run() {
             commands::skill_decomposition::generate_missing_tool,
             commands::skill_decomposition::check_tool_semantic_matches,
             commands::skill_decomposition::upgrade_tool_with_llm,
+            commands::skill_decomposition::get_marketplace_skill_content,
             // Work Engine commands
             commands::work_engine::start_workflow_execution,
             commands::work_engine::pause_workflow_execution,
@@ -428,6 +470,70 @@ pub fn run() {
             commands::work_engine::list_workflow_executions,
             commands::work_engine::migrate_workflow_nodes,
             commands::work_engine::migrate_all_workflows,
+            // User Profile & Style Migration commands
+            commands::user_profile::get_user_profile,
+            commands::user_profile::update_user_profile,
+            commands::user_profile::clear_user_profile_data,
+            commands::user_profile::style_get_profile,
+            commands::user_profile::style_apply_code,
+            commands::user_profile::style_apply_document,
+            commands::user_profile::style_learn_code,
+            commands::user_profile::style_learn_messages,
+            commands::user_profile::style_export_profile,
+            commands::user_profile::style_import_profile,
+            commands::user_profile::style_get_stats,
+            commands::tracer::tracer_start_span,
+            commands::tracer::tracer_end_span,
+            commands::tracer::tracer_record_error,
+            commands::tracer::tracer_list_traces,
+            commands::tracer::tracer_get_trace,
+            commands::tracer::tracer_get_span,
+            commands::tracer::tracer_get_metrics,
+            commands::tracer::tracer_export_traces,
+            commands::tracer::tracer_delete_trace,
+            commands::tracer::tracer_delete_old_traces,
+            commands::evaluator::evaluator_list_benchmarks,
+            commands::evaluator::evaluator_get_benchmark,
+            commands::evaluator::evaluator_run_benchmark,
+            commands::evaluator::evaluator_generate_report,
+            commands::evaluator::evaluator_list_datasets,
+            commands::evaluator::evaluator_import_dataset,
+            commands::evaluator::evaluator_export_report,
+            commands::rl::rl_list_policies,
+            commands::rl::rl_get_policy,
+            commands::rl::rl_create_policy,
+            commands::rl::rl_delete_policy,
+            commands::rl::rl_get_stats,
+            commands::rl::rl_record_experience,
+            commands::rl::rl_train_policy,
+            commands::rl::rl_export_model,
+            commands::rl::rl_import_model,
+            commands::fine_tune::list_datasets,
+            commands::fine_tune::get_dataset,
+            commands::fine_tune::create_dataset,
+            commands::fine_tune::add_sample,
+            commands::fine_tune::delete_dataset,
+            commands::fine_tune::list_training_jobs,
+            commands::fine_tune::get_training_job,
+            commands::fine_tune::create_training_job,
+            commands::fine_tune::start_training_job,
+            commands::fine_tune::cancel_training_job,
+            commands::fine_tune::delete_training_job,
+            commands::fine_tune::get_training_stats,
+            commands::fine_tune::list_base_models,
+            commands::fine_tune::list_lora_adapters,
+            commands::fine_tune::set_active_model,
+            commands::fine_tune::get_active_model,
+            commands::tool_recommender::analyze_task,
+            commands::tool_recommender::get_tool_recommendations,
+            commands::tool_recommender::get_available_tools,
+            commands::tool_recommender::get_tools_by_category,
+            commands::tool_recommender::record_tool_usage,
+            commands::screen_vision::analyze_screen,
+            commands::screen_vision::find_element_on_screen,
+            commands::screen_vision::suggest_screen_action,
+            commands::screen_vision::click_element_at_position,
+            commands::screen_vision::execute_vision_action,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -471,11 +577,12 @@ pub fn run() {
                 let user_md_path = home.join(".axagent").join("USER.md");
                 if user_md_path.exists() {
                     if let Ok(content) = std::fs::read_to_string(&user_md_path) {
-                        let profile = axagent_trajectory::UserProfile::from_user_md(&content);
-                        let mut p = state.user_profile.write().unwrap();
-                        *p = profile;
-                        tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
-                            p.preferences.len(), p.expertise.len());
+                        if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
+                            let mut p = state.user_profile.write().unwrap();
+                            *p = profile;
+                            tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
+                                p.preferences.len(), p.expertise.len());
+                        }
                     }
                 }
             }
@@ -612,7 +719,8 @@ pub fn run() {
             #[cfg(target_os = "windows")]
             {
                 let lower = error_msg.to_lowercase();
-                if lower.contains("webview2") || lower.contains("webview") || lower.contains("edge") {
+                if lower.contains("webview2") || lower.contains("webview") || lower.contains("edge")
+                {
                     let user_ok = windows_utils::show_warning_ok_cancel("AxAgent",
                         "æœªæ£€æµ‹åˆ° Microsoft Edge WebView2 Runtimeï¼ŒAxAgent æ— æ³•å¯åŠ¨ã€‚\n\nç‚¹å‡»ã€Œç¡®å®šã€æ‰“å¼€ä¸‹è½½é¡µé¢è¿›è¡Œå®‰è£…ï¼Œå®‰è£…å®ŒæˆåŽé‡æ–°å¯åŠ¨ AxAgentã€‚");
                     if user_ok {
@@ -621,7 +729,10 @@ pub fn run() {
                             .spawn();
                     }
                 } else {
-                    windows_utils::show_error_dialog("AxAgent", &format!("åº”ç”¨å¯åŠ¨å¤±è´¥ï¼š{}", error_msg));
+                    windows_utils::show_error_dialog(
+                        "AxAgent",
+                        &format!("åº”ç”¨å¯åŠ¨å¤±è´¥ï¼š{}", error_msg),
+                    );
                 }
             }
             std::process::exit(1);
@@ -630,7 +741,11 @@ pub fn run() {
 
     app.run(|_app, _event| {
         #[cfg(target_os = "macos")]
-        if let tauri::RunEvent::Reopen { has_visible_windows, .. } = _event {
+        if let tauri::RunEvent::Reopen {
+            has_visible_windows,
+            ..
+        } = _event
+        {
             if !has_visible_windows {
                 if let Some(w) = _app.get_webview_window("main") {
                     let _ = w.show();

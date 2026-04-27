@@ -10,11 +10,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Conversations::Table)
-                    .add_column(
-                        ColumnDef::new(Conversations::Scenario)
-                            .string()
-                            .null(),
-                    )
+                    .add_column(ColumnDef::new(Conversations::Scenario).string().null())
                     .to_owned(),
             )
             .await?;

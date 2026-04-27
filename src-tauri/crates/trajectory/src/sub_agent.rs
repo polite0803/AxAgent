@@ -1,6 +1,5 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -247,8 +246,7 @@ impl AgentMailbox {
     /// Receive all messages of a specific kind.
     pub fn receive_by_kind(&self, kind: AgentMessageKind) -> Vec<AgentMessage> {
         let mut msgs = self.messages.write().unwrap();
-        let (matching, remaining): (Vec<_>, Vec<_>) =
-            msgs.drain(..).partition(|m| m.kind == kind);
+        let (matching, remaining): (Vec<_>, Vec<_>) = msgs.drain(..).partition(|m| m.kind == kind);
         *msgs = remaining.into_iter().collect();
         matching
     }
@@ -447,8 +445,11 @@ impl SubAgentRegistry {
     }
 
     fn get_storage_path() -> Result<PathBuf> {
-        if let Some(proj_dirs) = ProjectDirs::from("com", "clawcode", "trajectory") {
-            let path = proj_dirs.data_dir().join("sub_agents.json");
+        if let Some(data_dir) = dirs::data_dir() {
+            let path = data_dir
+                .join("clawcode")
+                .join("trajectory")
+                .join("sub_agents.json");
             return Ok(path);
         }
         Ok(PathBuf::from("sub_agents.json"))
@@ -639,7 +640,10 @@ impl SubAgentRegistry {
                 parent_id,
                 child_id,
                 AgentMessageKind::TaskError,
-                format!("Duplicate task detected (similarity: {:.2}), skipping dispatch", similarity),
+                format!(
+                    "Duplicate task detected (similarity: {:.2}), skipping dispatch",
+                    similarity
+                ),
             );
             let _ = self.message_bus.send(msg);
             return Err(AgentMessageError::MailboxFull(child_id.to_string()));
@@ -711,11 +715,12 @@ impl SubAgentRegistry {
 
     /// Check if all children of a parent have finished (completed, failed, or cancelled).
     pub fn all_children_finished(&self, parent_id: &str) -> bool {
-        self.get_children(parent_id)
-            .iter()
-            .all(|c| matches!(c.status,
+        self.get_children(parent_id).iter().all(|c| {
+            matches!(
+                c.status,
                 SubAgentStatus::Completed | SubAgentStatus::Failed | SubAgentStatus::Cancelled
-            ))
+            )
+        })
     }
 
     // -----------------------------------------------------------------------
@@ -730,7 +735,8 @@ impl SubAgentRegistry {
         child_id: &str,
         progress: f32,
     ) -> Result<(), AgentMessageError> {
-        let parent_id = self.agents
+        let parent_id = self
+            .agents
             .iter_mut()
             .find(|a| a.id == child_id)
             .and_then(|child| {
@@ -762,7 +768,8 @@ impl SubAgentRegistry {
         child_id: &str,
         result: String,
     ) -> Result<(), AgentMessageError> {
-        let parent_id = self.agents
+        let parent_id = self
+            .agents
             .iter_mut()
             .find(|a| a.id == child_id)
             .and_then(|child| {
@@ -772,12 +779,7 @@ impl SubAgentRegistry {
             });
 
         if let Some(pid) = parent_id {
-            let msg = AgentMessage::new(
-                child_id,
-                &pid,
-                AgentMessageKind::TaskResult,
-                result,
-            );
+            let msg = AgentMessage::new(child_id, &pid, AgentMessageKind::TaskResult, result);
             if let Err(e) = self.message_bus.send(msg) {
                 tracing::warn!("Failed to deliver completion notification for child {}: {:?}. Parent can poll registry.", child_id, e);
             }
@@ -786,12 +788,9 @@ impl SubAgentRegistry {
     }
 
     /// Report task error from a child agent to its parent.
-    pub fn report_error(
-        &mut self,
-        child_id: &str,
-        error: String,
-    ) -> Result<(), AgentMessageError> {
-        let parent_id = self.agents
+    pub fn report_error(&mut self, child_id: &str, error: String) -> Result<(), AgentMessageError> {
+        let parent_id = self
+            .agents
             .iter_mut()
             .find(|a| a.id == child_id)
             .and_then(|child| {
@@ -801,12 +800,7 @@ impl SubAgentRegistry {
             });
 
         if let Some(pid) = parent_id {
-            let msg = AgentMessage::new(
-                child_id,
-                &pid,
-                AgentMessageKind::TaskError,
-                error,
-            );
+            let msg = AgentMessage::new(child_id, &pid, AgentMessageKind::TaskError, error);
             self.message_bus.send(msg)
         } else {
             Ok(())
@@ -883,7 +877,11 @@ impl TaskDeduplicator {
         let set_b: std::collections::HashSet<&str> = b.iter().map(|s| s.as_str()).collect();
         let intersection = set_a.intersection(&set_b).count() as f64;
         let union = set_a.union(&set_b).count() as f64;
-        if union == 0.0 { 0.0 } else { intersection / union }
+        if union == 0.0 {
+            0.0
+        } else {
+            intersection / union
+        }
     }
 
     /// Check if a new task is a duplicate of any known task.
@@ -946,7 +944,12 @@ mod tests {
         bus.register("parent");
         bus.register("child");
 
-        let msg = AgentMessage::new("parent", "child", AgentMessageKind::TaskAssign, "Do X".to_string());
+        let msg = AgentMessage::new(
+            "parent",
+            "child",
+            AgentMessageKind::TaskAssign,
+            "Do X".to_string(),
+        );
         assert!(bus.send(msg).is_ok());
 
         let received = bus.receive("child");
@@ -966,26 +969,57 @@ mod tests {
 
     #[test]
     fn test_dispatch_and_collect() {
-        let mut registry = SubAgentRegistry::new_with_path(
-            &std::path::PathBuf::from("test_dispatch_agents.json"),
-        ).unwrap();
+        let mut registry =
+            SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_dispatch_agents.json"))
+                .unwrap();
 
         // Create parent and children
         let parent = registry.create("coordinator".to_string(), "Parent agent".to_string(), None);
-        let child1 = registry.create("worker1".to_string(), "Worker 1".to_string(), Some(parent.id.clone()));
-        let child2 = registry.create("worker2".to_string(), "Worker 2".to_string(), Some(parent.id.clone()));
+        let child1 = registry.create(
+            "worker1".to_string(),
+            "Worker 1".to_string(),
+            Some(parent.id.clone()),
+        );
+        let child2 = registry.create(
+            "worker2".to_string(),
+            "Worker 2".to_string(),
+            Some(parent.id.clone()),
+        );
 
         // Dispatch tasks (use distinct descriptions to avoid dedup)
-        registry.dispatch_task(&parent.id, &child1.id, "Analyze the codebase structure".to_string()).unwrap();
-        registry.dispatch_task(&parent.id, &child2.id, "Write unit tests for module".to_string()).unwrap();
+        registry
+            .dispatch_task(
+                &parent.id,
+                &child1.id,
+                "Analyze the codebase structure".to_string(),
+            )
+            .unwrap();
+        registry
+            .dispatch_task(
+                &parent.id,
+                &child2.id,
+                "Write unit tests for module".to_string(),
+            )
+            .unwrap();
 
         // Verify tasks assigned
-        assert_eq!(registry.get(&child1.id).unwrap().task.as_deref(), Some("Analyze the codebase structure"));
-        assert_eq!(registry.get(&child2.id).unwrap().task.as_deref(), Some("Write unit tests for module"));
+        assert_eq!(
+            registry.get(&child1.id).unwrap().task.as_deref(),
+            Some("Analyze the codebase structure")
+        );
+        assert_eq!(
+            registry.get(&child2.id).unwrap().task.as_deref(),
+            Some("Write unit tests for module")
+        );
 
         // Simulate child1 completing
-        registry.report_completion(&child1.id, "Result A".to_string()).unwrap();
-        assert_eq!(registry.get(&child1.id).unwrap().status, SubAgentStatus::Completed);
+        registry
+            .report_completion(&child1.id, "Result A".to_string())
+            .unwrap();
+        assert_eq!(
+            registry.get(&child1.id).unwrap().status,
+            SubAgentStatus::Completed
+        );
 
         // Collect results — child1 done, child2 pending
         let (results, pending) = registry.collect_results(&parent.id);
@@ -994,7 +1028,9 @@ mod tests {
         assert_eq!(pending[0], child2.id);
 
         // Simulate child2 completing
-        registry.report_completion(&child2.id, "Result B".to_string()).unwrap();
+        registry
+            .report_completion(&child2.id, "Result B".to_string())
+            .unwrap();
 
         // Now all children finished
         assert!(registry.all_children_finished(&parent.id));
@@ -1008,19 +1044,25 @@ mod tests {
 
     #[test]
     fn test_progress_reporting() {
-        let mut registry = SubAgentRegistry::new_with_path(
-            &std::path::PathBuf::from("test_progress_agents.json"),
-        ).unwrap();
+        let mut registry =
+            SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_progress_agents.json"))
+                .unwrap();
 
         let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None);
-        let child = registry.create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()));
+        let child = registry.create(
+            "worker".to_string(),
+            "Worker".to_string(),
+            Some(parent.id.clone()),
+        );
 
         // Report progress
         registry.report_progress(&child.id, 0.5).unwrap();
         assert!((registry.get(&child.id).unwrap().progress - 0.5).abs() < 1.0);
 
         // Parent should have received a ProgressReport message
-        let msgs = registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::ProgressReport);
+        let msgs = registry
+            .message_bus()
+            .receive_by_kind(&parent.id, AgentMessageKind::ProgressReport);
         assert_eq!(msgs.len(), 1);
         let progress: f32 = serde_json::from_str(&msgs[0].payload).unwrap();
         assert!((progress - 0.5).abs() < 1.0);
@@ -1031,17 +1073,28 @@ mod tests {
 
     #[test]
     fn test_error_reporting() {
-        let mut registry = SubAgentRegistry::new_with_path(
-            &std::path::PathBuf::from("test_error_agents.json"),
-        ).unwrap();
+        let mut registry =
+            SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_error_agents.json"))
+                .unwrap();
 
         let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None);
-        let child = registry.create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()));
+        let child = registry.create(
+            "worker".to_string(),
+            "Worker".to_string(),
+            Some(parent.id.clone()),
+        );
 
-        registry.report_error(&child.id, "Something went wrong".to_string()).unwrap();
-        assert_eq!(registry.get(&child.id).unwrap().status, SubAgentStatus::Failed);
+        registry
+            .report_error(&child.id, "Something went wrong".to_string())
+            .unwrap();
+        assert_eq!(
+            registry.get(&child.id).unwrap().status,
+            SubAgentStatus::Failed
+        );
 
-        let msgs = registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::TaskError);
+        let msgs = registry
+            .message_bus()
+            .receive_by_kind(&parent.id, AgentMessageKind::TaskError);
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0].payload, "Something went wrong");
 

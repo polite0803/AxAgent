@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Drawer, Form, Input, Switch, Button, Space, message,
-} from 'antd';
-import { useAtomicSkillStore } from '../../stores/feature/atomicSkillStore';
-import { EntryTypeSelector } from './EntryTypeSelector';
-import { EntryRefSelector } from './EntryRefSelector';
-import { JsonSchemaEditor } from './JsonSchemaEditor';
-import { SemanticConflictAlert } from './SemanticConflictAlert';
-import type { AtomicSkill, CreateAtomicSkillParams, UpdateAtomicSkillParams } from '../../types';
+import { Button, Drawer, Form, Input, message, Space, Switch } from "antd";
+import React, { useEffect, useState } from "react";
+import { useAtomicSkillStore } from "../../stores/feature/atomicSkillStore";
+import type { AtomicSkill, CreateAtomicSkillParams, UpdateAtomicSkillParams } from "../../types";
+import { EntryRefSelector } from "./EntryRefSelector";
+import { EntryTypeSelector } from "./EntryTypeSelector";
+import { JsonSchemaEditor } from "./JsonSchemaEditor";
+import { SemanticConflictAlert } from "./SemanticConflictAlert";
 
 const { TextArea } = Input;
 
@@ -34,7 +32,7 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
           entry_type: skill.entry_type,
           entry_ref: skill.entry_ref,
           category: skill.category,
-          tags: skill.tags.join(', '),
+          tags: skill.tags.join(", "),
           version: skill.version,
           enabled: skill.enabled,
         });
@@ -54,7 +52,7 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
       setSemanticConflict(null);
 
       const tags = values.tags
-        ? values.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+        ? values.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
         : [];
 
       if (isEdit && skill) {
@@ -70,7 +68,7 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
         };
         const success = await updateSkill(skill.id, params);
         if (success) {
-          message.success('原子Skill已更新');
+          message.success("原子Skill已更新");
           onClose();
         }
       } else {
@@ -90,13 +88,13 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
           description: values.description,
           entry_type: values.entry_type,
           entry_ref: values.entry_ref,
-          category: values.category || 'general',
+          category: values.category || "general",
           tags,
-          version: values.version || '1.0.0',
+          version: values.version || "1.0.0",
           enabled: values.enabled ?? true,
         };
         await createSkill(params);
-        message.success('原子Skill已创建');
+        message.success("原子Skill已创建");
         onClose();
       }
     } catch {
@@ -108,7 +106,7 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
 
   return (
     <Drawer
-      title={isEdit ? '编辑原子Skill' : '新建原子Skill'}
+      title={isEdit ? "编辑原子Skill" : "新建原子Skill"}
       open={visible}
       onClose={onClose}
       width={560}
@@ -125,15 +123,15 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
       />
 
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
+        <Form.Item name="name" label="名称" rules={[{ required: true, message: "请输入名称" }]}>
           <Input placeholder="atomic_my_skill" />
         </Form.Item>
 
-        <Form.Item name="description" label="描述" rules={[{ required: true, message: '请输入描述' }]}>
+        <Form.Item name="description" label="描述" rules={[{ required: true, message: "请输入描述" }]}>
           <TextArea rows={3} placeholder="描述此原子Skill的功能" />
         </Form.Item>
 
-        <Form.Item name="entry_type" label="执行入口类型" rules={[{ required: true, message: '请选择入口类型' }]}>
+        <Form.Item name="entry_type" label="执行入口类型" rules={[{ required: true, message: "请选择入口类型" }]}>
           <EntryTypeSelector
             onChange={(v) => {
               setEntryType(v);
@@ -142,7 +140,7 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
           />
         </Form.Item>
 
-        <Form.Item name="entry_ref" label="执行入口引用" rules={[{ required: true, message: '请选择或输入入口引用' }]}>
+        <Form.Item name="entry_ref" label="执行入口引用" rules={[{ required: true, message: "请选择或输入入口引用" }]}>
           <EntryRefSelector entryType={entryType} />
         </Form.Item>
 

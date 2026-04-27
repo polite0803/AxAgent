@@ -10,7 +10,9 @@
     "gateway": "网关",
     "files": "文件",
     "settings": "设置",
-    "skills": "技能"
+    "skills": "技能",
+    "marketplace": "市场",
+    "prompts": "提示词"
   },
   "chat": {
     "newConversation": "新建对话",
@@ -121,6 +123,11 @@
     "deselectAll": "取消全选",
     "batchDeleteContent": "确定删除 {{count}} 个对话？",
     "archivedSuccess": "已归档 {{count}} 个对话",
+    "archiveToKnowledgeBase": "归档到知识库",
+    "batchArchiveToKnowledgeBase": "批量归档到知识库",
+    "saveAsWorkflow": "保存为工作流",
+    "selectOneConversation": "请选择一个会话",
+    "noKnowledgeBases": "暂无知识库，请先创建知识库",
     "noArchivedConversations": "暂无归档对话",
     "multiSelect": "多选",
     "createCategory": "新建分类",
@@ -301,7 +308,7 @@
       "dagVisualization": "DAG 可视化",
       "dagHint": "将此 Mermaid 代码粘贴到 Mermaid 渲染器中以可视化 DAG。",
       "listView": "列表",
-      "dagView": "DAG",
+      "dagView": "DAG 视图",
       "stepStatus": "状态：",
       "dependsOn": "依赖于：",
       "retries": "重试：",
@@ -944,14 +951,6 @@
       "groupSession": "会话搜索",
       "groupMemory": "记忆管理"
     },
-    "workflow": {
-      "title": "工作流设置",
-      "description": "管理工作流模板和编辑器设置",
-      "createNew": "创建新模板",
-      "visualEditor": "可视化编辑器",
-      "visualEditorDesc": "使用拖拽式 DAG 编辑器创建和编辑工作流",
-      "openEditor": "打开编辑器"
-    },
     "mcpServers": {
       "title": "MCP 服务器",
       "add": "添加 MCP 服务器",
@@ -996,14 +995,14 @@
       "title": "工具管理",
       "tabBuiltin": "内置工具",
       "tabMcp": "MCP 服务器",
-      "tabGenerated": "生成工具"
+      "tabGenerated": "生成工具",
+      "tabSemantic": "语义检查"
     },
     "generatedTools": {
       "title": "生成工具",
-      "description": "来自复合技能分解生成的 Prompt 模板工具。这些工具由 LLM 执行 Prompt 来模拟功能。",
+      "description": "描述",
       "toolName": "工具名称",
       "originalName": "原始名称",
-      "description": "描述",
       "createdAt": "创建时间",
       "deleteConfirm": "确定删除此生成工具？",
       "deleteSuccess": "删除成功",
@@ -1328,6 +1327,43 @@
       "workflowPerformance": "性能优化工作流",
       "workflowKnowledgeExtract": "知识提取工作流",
       "workflowKnowledgeToCode": "知识转代码工作流"
+    },
+    "userProfile": {
+      "title": "用户画像",
+      "overview": "画像概览",
+      "userId": "用户 ID",
+      "lastUpdated": "最后更新",
+      "codingStyle": "编码风格",
+      "namingConvention": "命名规范",
+      "indentationStyle": "缩进风格",
+      "commentStyle": "注释风格",
+      "communication": "沟通偏好",
+      "detailLevel": "详细程度",
+      "tone": "语气",
+      "language": "语言",
+      "confidence": "画像置信度",
+      "loading": "正在加载画像..."
+    },
+    "toolSemanticCheck": {
+      "title": "工具语义检查",
+      "description": "查找相似工具并使用 AI 升级现有工具",
+      "searchPlaceholder": "输入工具名称或描述",
+      "emptySearch": "请输入搜索词",
+      "noMatches": "未找到相似工具",
+      "empty": "输入搜索词以查找相似工具",
+      "matches": "{{count}} 个匹配",
+      "checkingTool": "正在检查与 {{tool}} 相似的工具",
+      "similarity": "相似度",
+      "upgrade": "升级",
+      "upgradeModalTitle": "升级工具",
+      "existingTool": "现有工具",
+      "generatedTool": "生成工具",
+      "toolType": "工具类型",
+      "noDescription": "无描述",
+      "performUpgrade": "执行升级",
+      "upgradeSuccess": "工具升级建议已生成",
+      "upgradeSuggestion": "升级建议",
+      "reasoning": "推理过程"
     }
   },
   "backup": {
@@ -1447,7 +1483,7 @@
     "cut": "剪切",
     "paste": "粘贴",
     "modeLabel": "模式",
-    "agentMode": "Agent",
+    "agentMode": "Agent 模式",
     "chatMode": "问答",
     "permissionDefault": "默认",
     "permissionAcceptEdits": "允许编辑",
@@ -1688,7 +1724,7 @@
     "source": {
       "axagent": "AxAgent",
       "claude": "Claude",
-      "agents": "Agents",
+      "agents": "代理",
       "builtin": "内置",
       "project": "项目"
     },
@@ -1726,5 +1762,17 @@
     "askUserSupplementPlaceholder": "补充说明（可选）...",
     "askUserSubmit": "提交",
     "askUserSubmitted": "已提交"
+  },
+  "style": {
+    "preview": "风格预览",
+    "dimensions": "维度",
+    "applying": "应用...",
+    "applyStyle": "应用风格",
+    "reset": "重置",
+    "original": "原始",
+    "styled": "已风格化",
+    "stats": "风格统计",
+    "totalProfiles": "总画像数",
+    "totalSamples": "总样本数"
   }
 }

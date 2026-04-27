@@ -12,7 +12,10 @@ fn task_to_entity(task: &ScheduledTask) -> axagent_core::entity::scheduled_tasks
     };
     let config = serde_json::to_string(&task.config).unwrap_or_default();
     let schedule_config = serde_json::to_string(&task.schedule_config).unwrap_or_default();
-    let last_result = task.last_result.as_ref().and_then(|r| serde_json::to_string(r).ok());
+    let last_result = task
+        .last_result
+        .as_ref()
+        .and_then(|r| serde_json::to_string(r).ok());
 
     axagent_core::entity::scheduled_tasks::ActiveModel {
         id: sea_orm::Set(task.id.clone()),
@@ -51,12 +54,15 @@ fn entity_to_task(model: &axagent_core::entity::scheduled_tasks::Model) -> Sched
         _ => axagent_trajectory::ScheduledTaskStatus::Active,
     };
 
-    let config: axagent_trajectory::TaskConfig = serde_json::from_str(&model.config).unwrap_or_default();
-    let schedule_config: axagent_trajectory::ScheduleConfig = model.cron_expression
+    let config: axagent_trajectory::TaskConfig =
+        serde_json::from_str(&model.config).unwrap_or_default();
+    let schedule_config: axagent_trajectory::ScheduleConfig = model
+        .cron_expression
         .as_ref()
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or_default();
-    let last_result: Option<TaskRunResult> = model.last_result
+    let last_result: Option<TaskRunResult> = model
+        .last_result
         .as_ref()
         .and_then(|s| serde_json::from_str(s).ok());
 
@@ -69,7 +75,9 @@ fn entity_to_task(model: &axagent_core::entity::scheduled_tasks::Model) -> Sched
         schedule_config,
         next_run_at: chrono::DateTime::from_timestamp_millis(model.next_run_at)
             .unwrap_or_else(chrono::Utc::now),
-        last_run_at: model.last_run_at.and_then(chrono::DateTime::from_timestamp_millis),
+        last_run_at: model
+            .last_run_at
+            .and_then(chrono::DateTime::from_timestamp_millis),
         last_result,
         status,
         config,
@@ -81,7 +89,8 @@ fn entity_to_task(model: &axagent_core::entity::scheduled_tasks::Model) -> Sched
 }
 
 #[tauri::command]
-pub async fn get_scheduled_task_templates() -> Result<Vec<axagent_trajectory::TaskTemplateInfo>, String> {
+pub async fn get_scheduled_task_templates(
+) -> Result<Vec<axagent_trajectory::TaskTemplateInfo>, String> {
     Ok(axagent_trajectory::TaskTemplate::all_templates())
 }
 
@@ -194,9 +203,7 @@ pub async fn list_scheduled_tasks(
 }
 
 #[tauri::command]
-pub async fn list_due_tasks(
-    state: State<'_, AppState>,
-) -> Result<Vec<ScheduledTask>, String> {
+pub async fn list_due_tasks(state: State<'_, AppState>) -> Result<Vec<ScheduledTask>, String> {
     let service = state.scheduled_task_service.read().await;
     Ok(service.list_due_tasks().await)
 }
@@ -350,15 +357,15 @@ pub async fn execute_scheduled_task(
 }
 
 #[tauri::command]
-pub async fn load_scheduled_tasks_from_db(
-    state: State<'_, AppState>,
-) -> Result<usize, String> {
+pub async fn load_scheduled_tasks_from_db(state: State<'_, AppState>) -> Result<usize, String> {
     load_tasks_from_db_internal(&state.sea_db, &state.scheduled_task_service).await
 }
 
 pub async fn load_tasks_from_db_internal(
     sea_db: &sea_orm::DatabaseConnection,
-    scheduled_task_service: &std::sync::Arc<tokio::sync::RwLock<axagent_trajectory::ScheduledTaskService>>,
+    scheduled_task_service: &std::sync::Arc<
+        tokio::sync::RwLock<axagent_trajectory::ScheduledTaskService>,
+    >,
 ) -> Result<usize, String> {
     let db_models = db_repo::list_scheduled_tasks(sea_db)
         .await

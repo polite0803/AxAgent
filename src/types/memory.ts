@@ -1,4 +1,4 @@
-import type { MemoryScope, MemorySource } from './knowledge';
+import type { MemoryScope, MemorySource } from "./knowledge";
 
 export type MemoryNamespace = {
   id: string;

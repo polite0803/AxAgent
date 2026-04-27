@@ -7,7 +7,7 @@
 //! - Task persistence and recovery
 
 use anyhow::Result;
-use chrono::{Datelike, DateTime, Utc};
+use chrono::{DateTime, Datelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -72,12 +72,14 @@ impl ScheduledTask {
         match self.schedule_config.schedule_type {
             ScheduleType::Interval => {
                 if let Some(interval) = self.schedule_config.interval_seconds {
-                    self.next_run_at = self.last_run_at
-                        .unwrap_or(now)
+                    self.next_run_at = self.last_run_at.unwrap_or(now)
                         + chrono::Duration::seconds(interval as i64);
                 }
             }
-            ScheduleType::Daily | ScheduleType::Weekly | ScheduleType::Monthly | ScheduleType::Advanced => {
+            ScheduleType::Daily
+            | ScheduleType::Weekly
+            | ScheduleType::Monthly
+            | ScheduleType::Advanced => {
                 let mut next = naive_now + chrono::Duration::days(1);
                 let mut attempts = 0;
 
@@ -89,7 +91,9 @@ impl ScheduledTask {
                         continue;
                     }
 
-                    if holidays.is_excluded_date(&next.date(), &self.schedule_config.exclude_custom_dates) {
+                    if holidays
+                        .is_excluded_date(&next.date(), &self.schedule_config.exclude_custom_dates)
+                    {
                         next += chrono::Duration::days(1);
                         continue;
                     }
@@ -101,15 +105,16 @@ impl ScheduledTask {
                         && self.schedule_config.weekdays.is_empty()
                         || self.schedule_config.weekdays.contains(&weekday);
 
-                    let month_day_match = if self.schedule_config.schedule_type == ScheduleType::Monthly {
-                        if let Some(day) = self.schedule_config.month_day {
-                            next.day() == day
+                    let month_day_match =
+                        if self.schedule_config.schedule_type == ScheduleType::Monthly {
+                            if let Some(day) = self.schedule_config.month_day {
+                                next.day() == day
+                            } else {
+                                true
+                            }
                         } else {
                             true
-                        }
-                    } else {
-                        true
-                    };
+                        };
 
                     if !weekday_match || !month_day_match {
                         next += chrono::Duration::days(1);
@@ -117,7 +122,8 @@ impl ScheduledTask {
                     }
 
                     if let Some(first_range) = self.schedule_config.time_ranges.first() {
-                        next = next.date()
+                        next = next
+                            .date()
                             .and_hms_opt(first_range.start_hour, first_range.start_minute, 0)
                             .unwrap();
                         self.next_run_at = DateTime::from_naive_utc_and_offset(next, Utc);
@@ -337,7 +343,9 @@ impl TaskTemplate {
 
     pub fn description(&self) -> &'static str {
         match self {
-            TaskTemplate::DailySummary => "Generate a daily summary of conversations and activities",
+            TaskTemplate::DailySummary => {
+                "Generate a daily summary of conversations and activities"
+            }
             TaskTemplate::WeeklySummary => "Generate a weekly summary report",
             TaskTemplate::ConversationStats => "Analyze conversation patterns and statistics",
             TaskTemplate::KnowledgeGraphUpdate => "Update and optimize the knowledge graph",
@@ -417,11 +425,7 @@ impl TaskTemplate {
             },
             TaskTemplate::KnowledgeGraphUpdate => ScheduleConfig {
                 schedule_type: ScheduleType::Daily,
-                weekdays: vec![
-                    Weekday::Monday,
-                    Weekday::Wednesday,
-                    Weekday::Friday,
-                ],
+                weekdays: vec![Weekday::Monday, Weekday::Wednesday, Weekday::Friday],
                 time_ranges: vec![TimeRange::new(2, 0, 4, 0)],
                 interval_seconds: None,
                 exclude_holidays: false,
@@ -485,11 +489,7 @@ impl TaskTemplate {
             },
             TaskTemplate::WorkflowExplore => ScheduleConfig {
                 schedule_type: ScheduleType::Daily,
-                weekdays: vec![
-                    Weekday::Monday,
-                    Weekday::Wednesday,
-                    Weekday::Friday,
-                ],
+                weekdays: vec![Weekday::Monday, Weekday::Wednesday, Weekday::Friday],
                 time_ranges: vec![TimeRange::new(8, 0, 9, 0)],
                 interval_seconds: None,
                 exclude_holidays: false,
@@ -551,7 +551,9 @@ impl TaskTemplate {
             },
             TaskTemplateInfo {
                 template_type: TaskTemplate::KnowledgeGraphUpdate,
-                name: TaskTemplate::KnowledgeGraphUpdate.display_name().to_string(),
+                name: TaskTemplate::KnowledgeGraphUpdate
+                    .display_name()
+                    .to_string(),
                 description: TaskTemplate::KnowledgeGraphUpdate.description().to_string(),
                 schedule_config: TaskTemplate::KnowledgeGraphUpdate.default_schedule(),
                 workflow_id: None,
@@ -575,7 +577,9 @@ impl TaskTemplate {
                 name: TaskTemplate::WorkflowCodeReview.display_name().to_string(),
                 description: TaskTemplate::WorkflowCodeReview.description().to_string(),
                 schedule_config: TaskTemplate::WorkflowCodeReview.default_schedule(),
-                workflow_id: TaskTemplate::WorkflowCodeReview.workflow_id().map(String::from),
+                workflow_id: TaskTemplate::WorkflowCodeReview
+                    .workflow_id()
+                    .map(String::from),
             },
             TaskTemplateInfo {
                 template_type: TaskTemplate::WorkflowBugFix,
@@ -596,42 +600,62 @@ impl TaskTemplate {
                 name: TaskTemplate::WorkflowTestGen.display_name().to_string(),
                 description: TaskTemplate::WorkflowTestGen.description().to_string(),
                 schedule_config: TaskTemplate::WorkflowTestGen.default_schedule(),
-                workflow_id: TaskTemplate::WorkflowTestGen.workflow_id().map(String::from),
+                workflow_id: TaskTemplate::WorkflowTestGen
+                    .workflow_id()
+                    .map(String::from),
             },
             TaskTemplateInfo {
                 template_type: TaskTemplate::WorkflowRefactor,
                 name: TaskTemplate::WorkflowRefactor.display_name().to_string(),
                 description: TaskTemplate::WorkflowRefactor.description().to_string(),
                 schedule_config: TaskTemplate::WorkflowRefactor.default_schedule(),
-                workflow_id: TaskTemplate::WorkflowRefactor.workflow_id().map(String::from),
+                workflow_id: TaskTemplate::WorkflowRefactor
+                    .workflow_id()
+                    .map(String::from),
             },
             TaskTemplateInfo {
                 template_type: TaskTemplate::WorkflowExplore,
                 name: TaskTemplate::WorkflowExplore.display_name().to_string(),
                 description: TaskTemplate::WorkflowExplore.description().to_string(),
                 schedule_config: TaskTemplate::WorkflowExplore.default_schedule(),
-                workflow_id: TaskTemplate::WorkflowExplore.workflow_id().map(String::from),
+                workflow_id: TaskTemplate::WorkflowExplore
+                    .workflow_id()
+                    .map(String::from),
             },
             TaskTemplateInfo {
                 template_type: TaskTemplate::WorkflowPerformance,
                 name: TaskTemplate::WorkflowPerformance.display_name().to_string(),
                 description: TaskTemplate::WorkflowPerformance.description().to_string(),
                 schedule_config: TaskTemplate::WorkflowPerformance.default_schedule(),
-                workflow_id: TaskTemplate::WorkflowPerformance.workflow_id().map(String::from),
+                workflow_id: TaskTemplate::WorkflowPerformance
+                    .workflow_id()
+                    .map(String::from),
             },
             TaskTemplateInfo {
                 template_type: TaskTemplate::WorkflowKnowledgeExtract,
-                name: TaskTemplate::WorkflowKnowledgeExtract.display_name().to_string(),
-                description: TaskTemplate::WorkflowKnowledgeExtract.description().to_string(),
+                name: TaskTemplate::WorkflowKnowledgeExtract
+                    .display_name()
+                    .to_string(),
+                description: TaskTemplate::WorkflowKnowledgeExtract
+                    .description()
+                    .to_string(),
                 schedule_config: TaskTemplate::WorkflowKnowledgeExtract.default_schedule(),
-                workflow_id: TaskTemplate::WorkflowKnowledgeExtract.workflow_id().map(String::from),
+                workflow_id: TaskTemplate::WorkflowKnowledgeExtract
+                    .workflow_id()
+                    .map(String::from),
             },
             TaskTemplateInfo {
                 template_type: TaskTemplate::WorkflowKnowledgeToCode,
-                name: TaskTemplate::WorkflowKnowledgeToCode.display_name().to_string(),
-                description: TaskTemplate::WorkflowKnowledgeToCode.description().to_string(),
+                name: TaskTemplate::WorkflowKnowledgeToCode
+                    .display_name()
+                    .to_string(),
+                description: TaskTemplate::WorkflowKnowledgeToCode
+                    .description()
+                    .to_string(),
                 schedule_config: TaskTemplate::WorkflowKnowledgeToCode.default_schedule(),
-                workflow_id: TaskTemplate::WorkflowKnowledgeToCode.workflow_id().map(String::from),
+                workflow_id: TaskTemplate::WorkflowKnowledgeToCode
+                    .workflow_id()
+                    .map(String::from),
             },
         ]
     }
@@ -705,7 +729,10 @@ impl TimeRange {
     }
 
     pub fn to_minutes(&self) -> (u32, u32) {
-        (self.start_hour * 60 + self.start_minute, self.end_hour * 60 + self.end_minute)
+        (
+            self.start_hour * 60 + self.start_minute,
+            self.end_hour * 60 + self.end_minute,
+        )
     }
 
     pub fn contains_time(&self, hour: u32, minute: u32) -> bool {
@@ -870,7 +897,9 @@ impl ChineseHolidays {
         if self.workdays.contains(&date_str) {
             return false;
         }
-        self.holidays.contains(&date_str) || date.weekday() == chrono::Weekday::Sat || date.weekday() == chrono::Weekday::Sun
+        self.holidays.contains(&date_str)
+            || date.weekday() == chrono::Weekday::Sat
+            || date.weekday() == chrono::Weekday::Sun
     }
 
     pub fn is_workday(&self, date: &chrono::NaiveDate) -> bool {
@@ -1054,15 +1083,12 @@ impl ScheduledTaskService {
         hour: u32,
         minute: u32,
     ) -> Result<String> {
-        let tomorrow = (Utc::now().date_naive() + chrono::Days::new(1)).and_hms_opt(hour, minute, 0).unwrap();
+        let tomorrow = (Utc::now().date_naive() + chrono::Days::new(1))
+            .and_hms_opt(hour, minute, 0)
+            .unwrap();
         let next_run = DateTime::<Utc>::from_naive_utc_and_offset(tomorrow, Utc);
 
-        let task = ScheduledTask::new(
-            name,
-            description,
-            TaskType::DailySummary,
-            next_run,
-        );
+        let task = ScheduledTask::new(name, description, TaskType::DailySummary, next_run);
 
         self.create_task(task).await
     }
@@ -1075,12 +1101,8 @@ impl ScheduledTaskService {
     ) -> Result<String> {
         let next_run = Utc::now() + chrono::Duration::hours(interval_hours as i64);
 
-        let task = ScheduledTask::new(
-            name,
-            description,
-            TaskType::Backup,
-            next_run,
-        ).with_schedule_config(ScheduleConfig::interval(interval_hours));
+        let task = ScheduledTask::new(name, description, TaskType::Backup, next_run)
+            .with_schedule_config(ScheduleConfig::interval(interval_hours));
 
         self.create_task(task).await
     }
@@ -1093,12 +1115,8 @@ impl ScheduledTaskService {
     ) -> Result<String> {
         let next_run = Utc::now() + chrono::Duration::hours(interval_hours as i64);
 
-        let task = ScheduledTask::new(
-            name,
-            description,
-            TaskType::Cleanup,
-            next_run,
-        ).with_schedule_config(ScheduleConfig::interval(interval_hours));
+        let task = ScheduledTask::new(name, description, TaskType::Cleanup, next_run)
+            .with_schedule_config(ScheduleConfig::interval(interval_hours));
 
         self.create_task(task).await
     }
@@ -1224,7 +1242,10 @@ impl ScheduledTaskService {
                     def.prompt_template.chars().take(100).collect::<String>()
                 );
                 TaskRunResult::success(
-                    format!("Task '{}' executed successfully. Prompt: {}", name, def.prompt_template),
+                    format!(
+                        "Task '{}' executed successfully. Prompt: {}",
+                        name, def.prompt_template
+                    ),
                     start.elapsed().as_millis() as u64,
                 )
             }

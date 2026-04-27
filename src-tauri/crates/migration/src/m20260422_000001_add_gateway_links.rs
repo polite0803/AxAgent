@@ -17,22 +17,14 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(GatewayLinks::Name)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(GatewayLinks::Name).string().not_null())
                     .col(
                         ColumnDef::new(GatewayLinks::LinkType)
                             .string()
                             .not_null()
                             .default("custom"),
                     )
-                    .col(
-                        ColumnDef::new(GatewayLinks::Endpoint)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(GatewayLinks::Endpoint).string().not_null())
                     .col(ColumnDef::new(GatewayLinks::ApiKeyId).string().null())
                     .col(
                         ColumnDef::new(GatewayLinks::Enabled)
@@ -62,16 +54,8 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(GatewayLinks::LastSyncAt).integer().null())
                     .col(ColumnDef::new(GatewayLinks::LatencyMs).integer().null())
                     .col(ColumnDef::new(GatewayLinks::Version).string().null())
-                    .col(
-                        ColumnDef::new(GatewayLinks::CreatedAt)
-                            .integer()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(GatewayLinks::UpdatedAt)
-                            .integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(GatewayLinks::CreatedAt).integer().not_null())
+                    .col(ColumnDef::new(GatewayLinks::UpdatedAt).integer().not_null())
                     .to_owned(),
             )
             .await?;
@@ -104,9 +88,21 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(ColumnDef::new(GatewayLinkPolicies::GlobalRpm).integer().null())
-                    .col(ColumnDef::new(GatewayLinkPolicies::PerModelRpm).integer().null())
-                    .col(ColumnDef::new(GatewayLinkPolicies::TokenLimitPerMinute).integer().null())
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::GlobalRpm)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::PerModelRpm)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(GatewayLinkPolicies::TokenLimitPerMinute)
+                            .integer()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(GatewayLinkPolicies::KeyRotationStrategy)
                             .string()
@@ -150,7 +146,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(GatewayLinkActivities::Description).string().null())
+                    .col(
+                        ColumnDef::new(GatewayLinkActivities::Description)
+                            .string()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(GatewayLinkActivities::CreatedAt)
                             .integer()

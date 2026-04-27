@@ -1,5 +1,5 @@
 //! Performance indexes migration
-//! 
+//!
 //! This migration adds performance-critical indexes to improve query speed.
 
 use sea_orm_migration::prelude::*;
@@ -143,17 +143,59 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Drop all indexes in reverse order
-        manager.drop_index(Index::drop().name("idx_skill_states_enabled").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_mcp_servers_is_enabled").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_providers_is_enabled").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_knowledge_documents_base_id").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_memory_items_created_at").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_memory_items_namespace").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_messages_created_at").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_messages_conversation_id").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_conversations_category_id").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_conversations_is_archived").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx_conversations_created_at").to_owned()).await?;
+        manager
+            .drop_index(Index::drop().name("idx_skill_states_enabled").to_owned())
+            .await?;
+        manager
+            .drop_index(Index::drop().name("idx_mcp_servers_is_enabled").to_owned())
+            .await?;
+        manager
+            .drop_index(Index::drop().name("idx_providers_is_enabled").to_owned())
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_knowledge_documents_base_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(Index::drop().name("idx_memory_items_created_at").to_owned())
+            .await?;
+        manager
+            .drop_index(Index::drop().name("idx_memory_items_namespace").to_owned())
+            .await?;
+        manager
+            .drop_index(Index::drop().name("idx_messages_created_at").to_owned())
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_messages_conversation_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_conversations_category_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_conversations_is_archived")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_conversations_created_at")
+                    .to_owned(),
+            )
+            .await?;
 
         Ok(())
     }

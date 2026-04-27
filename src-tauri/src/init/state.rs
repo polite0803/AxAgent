@@ -1,13 +1,20 @@
+use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use std::path::PathBuf;
 
-use crate::AppState;
 use super::database::DatabaseInitResult;
+use crate::commands::proactive::ProactiveService;
+use crate::AppState;
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
-    let DatabaseInitResult { db_handle, master_key, db_path, app_dir, .. } = db_result;
+    let DatabaseInitResult {
+        db_handle,
+        master_key,
+        db_path,
+        app_dir,
+        ..
+    } = db_result;
 
     let rt = tokio::runtime::Runtime::new().unwrap();
 
@@ -20,26 +27,32 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         let db_conn = sea_db.clone();
         let mk = master_key;
         let vs = vector_store_arc.clone();
-        axagent_core::builtin_tools::set_knowledge_search_callback(
-            std::sync::Arc::new(move |base_id: &str, query: &str, top_k: usize| {
+        axagent_core::builtin_tools::set_knowledge_search_callback(std::sync::Arc::new(
+            move |base_id: &str, query: &str, top_k: usize| {
                 let db = db_conn.clone();
                 let vs2 = vs.clone();
                 let bid = base_id.to_string();
                 let q = query.to_string();
                 Box::pin(async move {
-                    let results = crate::indexing::search_knowledge(&db, &mk, &vs2, &bid, &q, top_k).await?;
-                    Ok(results.into_iter().map(|r| axagent_core::builtin_tools::KnowledgeSearchHit {
-                        document_id: r.document_id,
-                        chunk_index: r.chunk_index,
-                        content: r.content,
-                        score: r.score,
-                    }).collect())
+                    let results =
+                        crate::indexing::search_knowledge(&db, &mk, &vs2, &bid, &q, top_k).await?;
+                    Ok(results
+                        .into_iter()
+                        .map(|r| axagent_core::builtin_tools::KnowledgeSearchHit {
+                            document_id: r.document_id,
+                            chunk_index: r.chunk_index,
+                            content: r.content,
+                            score: r.score,
+                        })
+                        .collect())
                 })
-            }),
-        );
+            },
+        ));
     }
 
-    let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(&sea_db));
+    let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(
+        &sea_db,
+    ));
     rt.block_on(axagent_core::path_vars::migrate_hardcoded_paths(&sea_db));
     rt.block_on(axagent_core::repo::local_tool::migrate_legacy_keys(&sea_db));
 
@@ -48,7 +61,10 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         .unwrap_or_default();
 
     axagent_core::storage_paths::init_documents_root(
-        app_settings.documents_root_override.as_ref().map(PathBuf::from),
+        app_settings
+            .documents_root_override
+            .as_ref()
+            .map(PathBuf::from),
     );
     axagent_core::storage_paths::ensure_documents_dirs()
         .expect("failed to create documents storage dirs (custom root)");
@@ -94,46 +110,69 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
         workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
-        shared_memory: Arc::new(std::sync::RwLock::new(axagent_runtime::shared_memory::SharedMemory::new())),
-        sub_agent_registry: Arc::new(std::sync::RwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default())),
+        shared_memory: Arc::new(std::sync::RwLock::new(
+            axagent_runtime::shared_memory::SharedMemory::new(),
+        )),
+        sub_agent_registry: Arc::new(std::sync::RwLock::new(
+            axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+        )),
         memory_service: memory_service.clone(),
-        nudge_service: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),
+        nudge_service: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::NudgeService::new(),
+        )),
         trajectory_storage: shared_trajectory_storage.clone(),
-        closed_loop_service: Arc::new(axagent_trajectory::ClosedLoopService::new(shared_trajectory_storage.clone())),
+        closed_loop_service: Arc::new(axagent_trajectory::ClosedLoopService::new(
+            shared_trajectory_storage.clone(),
+        )),
         insight_system: Arc::new(std::sync::RwLock::new(
-            axagent_trajectory::LearningInsightSystem::new()
-                .with_storage_limits(200, 30)
+            axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
         )),
-        realtime_learning: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::RealTimeLearning::new())),
+        realtime_learning: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::RealTimeLearning::new(),
+        )),
         pattern_learner: Arc::new(std::sync::RwLock::new(
-            axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default())
+            axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default()),
         )),
-        cross_session_learner: Arc::new(std::sync::RwLock::new(axagent_trajectory::CrossSessionLearner::new())),
-        rl_engine: Arc::new(std::sync::RwLock::new(
-            axagent_trajectory::RLEngine::new(
-                axagent_trajectory::RLConfig::default(),
-                axagent_trajectory::RewardWeights::default(),
-            )
+        cross_session_learner: Arc::new(std::sync::RwLock::new(
+            axagent_trajectory::CrossSessionLearner::new(),
         )),
+        rl_engine: Arc::new(std::sync::RwLock::new(axagent_trajectory::RLEngine::new(
+            axagent_trajectory::RLConfig::default(),
+            axagent_trajectory::RewardWeights::default(),
+        ))),
         batch_processor: Arc::new(axagent_trajectory::BatchProcessor::new(
             shared_trajectory_storage.clone(),
             axagent_trajectory::BatchConfig::default(),
         )),
-        skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::SkillEvolutionEngine::new())),
-        skill_proposal_service: Arc::new(std::sync::RwLock::new(axagent_trajectory::SkillProposalService::new(
-            shared_trajectory_storage.clone(),
-        ))),
-        auto_memory_extractor: Arc::new(std::sync::RwLock::new(axagent_trajectory::AutoMemoryExtractor::new(
-            shared_trajectory_storage.clone(),
-            memory_service.clone(),
-            Arc::new(std::sync::RwLock::new(axagent_trajectory::PatternLearner::new(
-                axagent_trajectory::PatternConfig::default(),
-            ))),
-        ))),
-        parallel_execution_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ParallelExecutionService::new(10))),
-        scheduled_task_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ScheduledTaskService::new(100))),
-        platform_integration_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PlatformIntegrationService::new())),
-        user_profile: Arc::new(std::sync::RwLock::new(axagent_trajectory::UserProfile::new())),
+        skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::SkillEvolutionEngine::new(),
+        )),
+        skill_proposal_service: Arc::new(std::sync::RwLock::new(
+            axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
+        )),
+        auto_memory_extractor: Arc::new(std::sync::RwLock::new(
+            axagent_trajectory::AutoMemoryExtractor::new(
+                shared_trajectory_storage.clone(),
+                memory_service.clone(),
+                Arc::new(std::sync::RwLock::new(
+                    axagent_trajectory::PatternLearner::new(
+                        axagent_trajectory::PatternConfig::default(),
+                    ),
+                )),
+            ),
+        )),
+        parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
+            axagent_trajectory::ParallelExecutionService::new(10),
+        )),
+        scheduled_task_service: Arc::new(tokio::sync::RwLock::new(
+            axagent_trajectory::ScheduledTaskService::new(100),
+        )),
+        platform_integration_service: Arc::new(tokio::sync::RwLock::new(
+            axagent_trajectory::PlatformIntegrationService::new(),
+        )),
+        user_profile: Arc::new(std::sync::RwLock::new(
+            axagent_trajectory::UserProfile::new(),
+        )),
         local_tool_registry: {
             let mut registry = axagent_agent::LocalToolRegistry::init_from_registry();
             // Load enabled state synchronously in the runtime block
@@ -143,7 +182,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             });
             Arc::new(tokio::sync::Mutex::new(registry))
         },
-        work_engine: Arc::new(tokio::sync::RwLock::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(sea_db.clone())))),
-        skill_decomposer: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new())),
+        work_engine: Arc::new(tokio::sync::RwLock::new(
+            axagent_runtime::work_engine::WorkEngine::new(Arc::new(sea_db.clone())),
+        )),
+        skill_decomposer: Arc::new(tokio::sync::RwLock::new(
+            axagent_trajectory::SkillDecomposer::new(),
+        )),
+        proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
     }
 }

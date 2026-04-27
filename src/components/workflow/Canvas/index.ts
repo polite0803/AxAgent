@@ -1,1 +1,1 @@
-export { AlignmentGuides } from './AlignmentGuides';
+export { AlignmentGuides } from "./AlignmentGuides";

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Select, Input, Spin } from 'antd';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
+import { Input, Select, Spin } from "antd";
+import React, { useEffect, useState } from "react";
 
 interface EntryRefSelectorProps {
   entryType?: string;
@@ -26,17 +26,17 @@ export const EntryRefSelector: React.FC<EntryRefSelectorProps> = ({ entryType, v
     setLoading(true);
     (async () => {
       try {
-        if (entryType === 'builtin' || entryType === 'local') {
+        if (entryType === "builtin" || entryType === "local") {
           // Fetch local/builtin tools from the registry
-          const tools: ToolOption[] = await invoke('list_local_tools');
+          const tools: ToolOption[] = await invoke("list_local_tools");
           setOptions(tools);
-        } else if (entryType === 'mcp') {
+        } else if (entryType === "mcp") {
           // Fetch MCP tools
-          const tools: ToolOption[] = await invoke('list_mcp_tools');
+          const tools: ToolOption[] = await invoke("list_mcp_tools");
           setOptions(tools);
-        } else if (entryType === 'plugin') {
+        } else if (entryType === "plugin") {
           // Fetch plugin tools
-          const tools: ToolOption[] = await invoke('list_plugin_tools');
+          const tools: ToolOption[] = await invoke("list_plugin_tools");
           setOptions(tools);
         } else {
           setOptions([]);
@@ -49,7 +49,7 @@ export const EntryRefSelector: React.FC<EntryRefSelectorProps> = ({ entryType, v
     })();
   }, [entryType]);
 
-  if (loading) return <Spin size="small" />;
+  if (loading) { return <Spin size="small" />; }
 
   if (!entryType) {
     return <Input placeholder="请先选择入口类型" disabled />;
@@ -64,7 +64,7 @@ export const EntryRefSelector: React.FC<EntryRefSelectorProps> = ({ entryType, v
         label: t.description ? `${t.name} - ${t.description}` : t.name,
       }))}
       placeholder={`选择${entryType}工具...`}
-      style={{ width: '100%' }}
+      style={{ width: "100%" }}
       showSearch
       allowClear
     />

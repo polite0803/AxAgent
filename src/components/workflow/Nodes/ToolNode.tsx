@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
-import { Tag } from 'antd';
+import { Tag } from "antd";
+import React, { memo } from "react";
+import { Handle, type NodeProps, Position } from "reactflow";
 
 interface ToolNodeData {
   id: string;
@@ -16,8 +16,8 @@ interface ToolNodeData {
 }
 
 const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }) => {
-  const color = '#52c41a';
-  const toolName = data.toolName || '未选择工具';
+  const color = "#52c41a";
+  const toolName = data.toolName || "未选择工具";
   const inputMapping = data.inputMapping || {};
   const outputVar = data.outputVar;
 
@@ -29,25 +29,25 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
         minWidth: 180,
         maxWidth: 220,
         opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? 'none' : 'grayscale(100%)',
+        filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: '#1e1e1e',
-          border: `2px solid ${selected ? '#1890ff' : color}`,
+          background: "#1e1e1e",
+          border: `2px solid ${selected ? "#1890ff" : color}`,
           borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: selected ? `0 0 0 2px ${color}40` : 'none',
-          transition: 'all 0.2s',
+          overflow: "hidden",
+          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
+          transition: "all 0.2s",
         }}
       >
         <div
           style={{
-            padding: '8px 12px',
+            padding: "8px 12px",
             borderBottom: `1px solid ${color}30`,
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 8,
             background: `${color}15`,
           }}
@@ -64,16 +64,16 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
           </span>
         </div>
 
-        <div style={{ padding: '10px 12px' }}>
+        <div style={{ padding: "10px 12px" }}>
           <div
             style={{
               fontSize: 13,
-              color: '#fff',
+              color: "#fff",
               fontWeight: 500,
               marginBottom: 6,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {data.title}
@@ -84,28 +84,28 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
               fontSize: 11,
               color: color,
               marginBottom: 6,
-              padding: '4px 6px',
+              padding: "4px 6px",
               background: `${color}15`,
               borderRadius: 4,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
               fontWeight: 500,
             }}
           >
             {toolName}
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {inputCount > 0 && (
               <Tag
                 style={{
                   margin: 0,
                   fontSize: 9,
-                  padding: '0 4px',
-                  background: '#252525',
-                  border: '1px solid #444',
-                  color: '#aaa',
+                  padding: "0 4px",
+                  background: "#252525",
+                  border: "1px solid #444",
+                  color: "#aaa",
                 }}
               >
                 📥 {inputCount} 输入
@@ -117,10 +117,10 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
                 style={{
                   margin: 0,
                   fontSize: 9,
-                  padding: '0 4px',
-                  background: '#1890ff20',
-                  border: '1px solid #1890ff50',
-                  color: '#1890ff',
+                  padding: "0 4px",
+                  background: "#1890ff20",
+                  border: "1px solid #1890ff50",
+                  color: "#1890ff",
                 }}
               >
                 📤 {outputVar}
@@ -135,7 +135,7 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
         position={Position.Top}
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
@@ -146,7 +146,7 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
         position={Position.Bottom}
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}

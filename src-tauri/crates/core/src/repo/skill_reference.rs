@@ -55,10 +55,7 @@ pub async fn delete_references_by_workflow(
     Ok(result.rows_affected)
 }
 
-pub async fn count_references(
-    db: &DatabaseConnection,
-    skill_id: &str,
-) -> Result<i64> {
+pub async fn count_references(db: &DatabaseConnection, skill_id: &str) -> Result<i64> {
     let count = skill_references::Entity::find()
         .filter(skill_references::Column::SkillId.eq(skill_id))
         .count(db)

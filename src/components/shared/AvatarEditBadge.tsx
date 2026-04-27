@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { Pencil } from 'lucide-react';
-import { theme } from 'antd';
+import { theme } from "antd";
+import { Pencil } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface AvatarEditBadgeProps {
   children: ReactNode;
@@ -18,22 +18,22 @@ export function AvatarEditBadge({ children, size = 64 }: AvatarEditBadgeProps) {
   const iconSize = Math.round(badgeSize * 0.55);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-flex' }}>
+    <div style={{ position: "relative", display: "inline-flex" }}>
       {children}
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           right: 0,
           bottom: 0,
           width: badgeSize,
           height: badgeSize,
-          borderRadius: '50%',
+          borderRadius: "50%",
           backgroundColor: token.colorPrimary,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           border: `2px solid ${token.colorBgElevated}`,
-          pointerEvents: 'none',
+          pointerEvents: "none",
         }}
       >
         <Pencil size={iconSize} color="#fff" />

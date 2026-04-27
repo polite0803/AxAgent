@@ -1,6 +1,7 @@
 use crate::workflow_types::*;
 use chrono::Utc;
 use sea_orm::DatabaseConnection;
+use std::collections::HashMap;
 
 pub struct PresetTemplate {
     pub id: &'static str,
@@ -12,11 +13,94 @@ pub struct PresetTemplate {
     pub steps: Vec<PresetStep>,
 }
 
+#[derive(Debug, Clone)]
 pub struct PresetStep {
     pub id: &'static str,
     pub goal: &'static str,
     pub role: &'static str,
     pub needs: Vec<&'static str>,
+}
+
+pub fn get_input_schema_for_template(preset: &PresetTemplate) -> Option<JsonSchema> {
+    let mut props = HashMap::new();
+    props.insert(
+        "task".to_string(),
+        JsonSchemaProperty {
+            schema_type: "string".to_string(),
+            description: Some("The main task or goal for this workflow".to_string()),
+            default: None,
+            enum_values: None,
+            format: None,
+        },
+    );
+    props.insert(
+        "context".to_string(),
+        JsonSchemaProperty {
+            schema_type: "object".to_string(),
+            description: Some("Additional context for the workflow".to_string()),
+            default: None,
+            enum_values: None,
+            format: None,
+        },
+    );
+    Some(JsonSchema {
+        schema_type: "object".to_string(),
+        description: Some(format!("Input schema for {} workflow", preset.name)),
+        properties: Some(props),
+        required: Some(vec!["task".to_string()]),
+        items: None,
+    })
+}
+
+pub fn get_output_schema_for_template(preset: &PresetTemplate) -> Option<JsonSchema> {
+    let mut props = HashMap::new();
+    props.insert(
+        "result".to_string(),
+        JsonSchemaProperty {
+            schema_type: "object".to_string(),
+            description: Some("The workflow execution result".to_string()),
+            default: None,
+            enum_values: None,
+            format: None,
+        },
+    );
+    props.insert(
+        "success".to_string(),
+        JsonSchemaProperty {
+            schema_type: "boolean".to_string(),
+            description: Some("Whether the workflow completed successfully".to_string()),
+            default: Some(serde_json::json!(true)),
+            enum_values: None,
+            format: None,
+        },
+    );
+    props.insert(
+        "summary".to_string(),
+        JsonSchemaProperty {
+            schema_type: "string".to_string(),
+            description: Some("Summary of the workflow execution".to_string()),
+            default: None,
+            enum_values: None,
+            format: None,
+        },
+    );
+    props.insert(
+        "outputs".to_string(),
+        JsonSchemaProperty {
+            schema_type: "object".to_string(),
+            description: Some("Named outputs from each step".to_string()),
+            default: None,
+            enum_values: None,
+            format: None,
+        },
+    );
+    Some(JsonSchema {
+        schema_type: "object".to_string(),
+        description: Some(format!("Output schema for {} workflow", preset.name)),
+        properties: Some(props),
+        required: Some(vec!["success".to_string()]),
+        items: None,
+    })
 }
 
 pub fn get_preset_templates() -> Vec<PresetTemplate> {
@@ -366,7 +450,7 @@ Use these tools to save knowledge:
     ]
 }
 
-fn step_to_agent_node(step: &PresetStep, index: usize, _total_steps: usize) -> WorkflowNode {
+fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
     let base = WorkflowNodeBase {
         id: step.id.to_string(),
         title: format!("Agent: {}", step.role),
@@ -427,10 +511,138 @@ fn create_edges_for_steps(steps: &[PresetStep]) -> Vec<WorkflowEdge> {
     edges
 }
 
+fn detect_parallel_groups(steps: &[PresetStep]) -> Vec<Vec<&PresetStep>> {
+    if steps.is_empty() {
+        return vec![];
+    }
+
+    let mut groups: Vec<Vec<&PresetStep>> = Vec::new();
+    let mut processed: std::collections::HashSet<_> = std::collections::HashSet::new();
+
+    for step in steps {
+        if processed.contains(&step.id) {
+            continue;
+        }
+
+        let mut group: Vec<&PresetStep> = vec![step];
+        processed.insert(step.id);
+
+        for other in steps {
+            if processed.contains(&other.id) {
+                continue;
+            }
+
+            if step.id == other.id {
+                continue;
+            }
+
+            let step_needs: std::collections::HashSet<_> = step.needs.iter().collect();
+            let other_needs: std::collections::HashSet<_> = other.needs.iter().collect();
+
+            if step_needs == other_needs && !step_needs.is_empty() {
+                let step_deps_on_other = step.needs.contains(&other.id);
+                let other_deps_on_step = other.needs.contains(&step.id);
+
+                if !step_deps_on_other && !other_deps_on_step {
+                    group.push(other);
+                    processed.insert(other.id);
+                }
+            }
+        }
+
+        if group.len() > 1 {
+            groups.push(group);
+        }
+    }
+
+    groups
+}
+
+fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode> {
+    let mut nodes: Vec<WorkflowNode> = Vec::new();
+    let parallel_groups = detect_parallel_groups(steps);
+
+    let parallel_group_ids: std::collections::HashSet<_> = parallel_groups
+        .iter()
+        .flat_map(|g| g.iter().map(|s| s.id))
+        .collect();
+
+    for (i, step) in steps.iter().enumerate() {
+        if parallel_group_ids.contains(&step.id) {
+            continue;
+        }
+
+        let y = start_y + (i as f64 * 200.0);
+        nodes.push(step_to_agent_node(step, i));
+        if let Some(node) = nodes.last_mut() {
+            if let WorkflowNode::Agent(agent) = node {
+                agent.base.position.y = y;
+            }
+        }
+    }
+
+    for (group_idx, group) in parallel_groups.iter().enumerate() {
+        let y = start_y + ((steps.len() + group_idx) as f64 * 200.0);
+
+        let branch_ids: Vec<String> = group.iter().map(|s| s.id.to_string()).collect();
+
+        nodes.push(WorkflowNode::Parallel(ParallelNode {
+            base: WorkflowNodeBase {
+                id: format!("parallel_{}", group[0].id),
+                title: "Parallel Execution".to_string(),
+                description: Some(format!(
+                    "Executes {} branches in parallel",
+                    branch_ids.len()
+                )),
+                position: Position { x: 400.0, y },
+                retry: RetryConfig::default(),
+                timeout: Some(600),
+                enabled: true,
+            },
+            config: ParallelNodeConfig {
+                branches: group
+                    .iter()
+                    .enumerate()
+                    .map(|(i, s)| Branch {
+                        id: format!("branch_{}", i),
+                        title: s.role.to_string(),
+                        steps: vec![s.id.to_string()],
+                    })
+                    .collect(),
+                wait_for_all: true,
+                timeout: Some(600),
+            },
+        }));
+
+        nodes.push(WorkflowNode::Merge(MergeNode {
+            base: WorkflowNodeBase {
+                id: format!("merge_{}", group[0].id),
+                title: "Merge".to_string(),
+                description: Some("Merges parallel branches".to_string()),
+                position: Position {
+                    x: 250.0,
+                    y: y + 250.0,
+                },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+            },
+            config: MergeNodeConfig {
+                merge_type: "all".to_string(),
+                inputs: branch_ids.clone(),
+            },
+        }));
+    }
+
+    nodes
+}
+
 pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowTemplateData {
     let now = Utc::now().timestamp_millis();
 
     let mut nodes: Vec<WorkflowNode> = Vec::new();
+    let mut edges: Vec<WorkflowEdge> = Vec::new();
+
     nodes.push(WorkflowNode::Trigger(TriggerNode {
         base: WorkflowNodeBase {
             id: "trigger".to_string(),
@@ -447,15 +659,10 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         },
     }));
 
-    let step_nodes: Vec<WorkflowNode> = preset
-        .steps
-        .iter()
-        .enumerate()
-        .map(|(i, s)| step_to_agent_node(s, i, preset.steps.len()))
-        .collect();
+    let step_nodes = build_workflow_nodes(&preset.steps, 100.0);
     nodes.extend(step_nodes);
 
-    let end_y = 100.0 + (preset.steps.len() as f64 * 200.0);
+    let end_y = 100.0 + ((preset.steps.len() + 2) as f64 * 200.0);
     nodes.push(WorkflowNode::End(EndNode {
         base: WorkflowNodeBase {
             id: "end".to_string(),
@@ -469,21 +676,105 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         config: EndNodeConfig { output_var: None },
     }));
 
-    let mut edges = create_edges_for_steps(&preset.steps);
-    edges.push(WorkflowEdge {
-        id: "edge_trigger_start".to_string(),
-        source: "trigger".to_string(),
-        source_handle: None,
-        target: preset.steps.first().map(|s| s.id.to_string()).unwrap_or_else(|| "end".to_string()),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    });
+    edges.extend(create_edges_for_steps(&preset.steps));
 
-    if let Some(last_step) = preset.steps.last() {
+    let parallel_groups = detect_parallel_groups(&preset.steps);
+    for group in &parallel_groups {
+        let parallel_id = format!("parallel_{}", group[0].id);
+        let merge_id = format!("merge_{}", group[0].id);
+
+        for (i, step) in group.iter().enumerate() {
+            edges.push(WorkflowEdge {
+                id: format!("edge_parallel_to_{}", step.id),
+                source: parallel_id.clone(),
+                source_handle: Some(format!("branch_{}", i)),
+                target: step.id.to_string(),
+                target_handle: None,
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+
+            edges.push(WorkflowEdge {
+                id: format!("edge_{}_to_merge", step.id),
+                source: step.id.to_string(),
+                source_handle: None,
+                target: merge_id.clone(),
+                target_handle: Some(format!("input_{}", i)),
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+        }
+
+        if let Some(first_need) = group[0].needs.first() {
+            edges.push(WorkflowEdge {
+                id: format!("edge_{}_to_parallel", first_need),
+                source: first_need.to_string(),
+                source_handle: None,
+                target: parallel_id.clone(),
+                target_handle: None,
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+        }
+    }
+
+    if let Some(first_step) = preset.steps.first() {
+        let is_in_parallel = parallel_groups
+            .iter()
+            .any(|g| g.iter().any(|s| s.id == first_step.id));
+        if !is_in_parallel {
+            edges.push(WorkflowEdge {
+                id: "edge_trigger_start".to_string(),
+                source: "trigger".to_string(),
+                source_handle: None,
+                target: first_step.id.to_string(),
+                target_handle: None,
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+        }
+    }
+
+    for group in &parallel_groups {
+        if !group[0].needs.is_empty() {
+            edges.push(WorkflowEdge {
+                id: format!("edge_trigger_to_parallel_{}", group[0].id),
+                source: "trigger".to_string(),
+                source_handle: None,
+                target: format!("parallel_{}", group[0].id),
+                target_handle: None,
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+        }
+    }
+
+    let non_parallel_last_steps: Vec<_> = preset
+        .steps
+        .iter()
+        .filter(|s| {
+            !parallel_groups
+                .iter()
+                .any(|g| g.iter().any(|gs| gs.id == s.id))
+        })
+        .collect();
+
+    if let Some(last_step) = non_parallel_last_steps.last() {
         edges.push(WorkflowEdge {
             id: "edge_last_end".to_string(),
             source: last_step.id.to_string(),
+            source_handle: None,
+            target: "end".to_string(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        });
+    }
+
+    for group in &parallel_groups {
+        edges.push(WorkflowEdge {
+            id: format!("edge_merge_{}_to_end", group[0].id),
+            source: format!("merge_{}", group[0].id),
             source_handle: None,
             target: "end".to_string(),
             target_handle: None,
@@ -508,8 +799,8 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         }),
         nodes,
         edges,
-        input_schema: None,
-        output_schema: None,
+        input_schema: get_input_schema_for_template(preset),
+        output_schema: get_output_schema_for_template(preset),
         variables: vec![],
         error_config: Some(ErrorConfig {
             retry_policy: Some(RetryPolicy {
@@ -526,7 +817,9 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
     }
 }
 
-pub async fn seed_preset_templates(db: &DatabaseConnection) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn seed_preset_templates(
+    db: &DatabaseConnection,
+) -> Result<(), Box<dyn std::error::Error>> {
     use crate::repo::workflow_template as repo;
 
     let presets = get_preset_templates();
@@ -544,13 +837,33 @@ pub async fn seed_preset_templates(db: &DatabaseConnection) -> Result<(), Box<dy
             is_preset: sea_orm::Set(template.is_preset),
             is_editable: sea_orm::Set(template.is_editable),
             is_public: sea_orm::Set(template.is_public),
-            trigger_config: sea_orm::Set(template.trigger_config.as_ref().and_then(|c| serde_json::to_string(c).ok())),
+            trigger_config: sea_orm::Set(
+                template
+                    .trigger_config
+                    .as_ref()
+                    .and_then(|c| serde_json::to_string(c).ok()),
+            ),
             nodes: sea_orm::Set(serde_json::to_string(&template.nodes)?),
             edges: sea_orm::Set(serde_json::to_string(&template.edges)?),
-            input_schema: sea_orm::Set(template.input_schema.as_ref().and_then(|s| serde_json::to_string(s).ok())),
-            output_schema: sea_orm::Set(template.output_schema.as_ref().and_then(|s| serde_json::to_string(s).ok())),
+            input_schema: sea_orm::Set(
+                template
+                    .input_schema
+                    .as_ref()
+                    .and_then(|s| serde_json::to_string(s).ok()),
+            ),
+            output_schema: sea_orm::Set(
+                template
+                    .output_schema
+                    .as_ref()
+                    .and_then(|s| serde_json::to_string(s).ok()),
+            ),
             variables: sea_orm::Set(Some(serde_json::to_string(&template.variables)?)),
-            error_config: sea_orm::Set(template.error_config.as_ref().and_then(|e| serde_json::to_string(e).ok())),
+            error_config: sea_orm::Set(
+                template
+                    .error_config
+                    .as_ref()
+                    .and_then(|e| serde_json::to_string(e).ok()),
+            ),
             composite_source: sea_orm::Set(None),
             created_at: sea_orm::Set(template.created_at),
             updated_at: sea_orm::Set(template.updated_at),

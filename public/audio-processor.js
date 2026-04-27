@@ -2,7 +2,7 @@
 class AudioPcm16Processor extends AudioWorkletProcessor {
   process(inputs) {
     const input = inputs[0];
-    if (!input || !input[0]) return true;
+    if (!input || !input[0]) { return true; }
 
     const float32 = input[0];
     const int16 = new Int16Array(float32.length);
@@ -16,4 +16,4 @@ class AudioPcm16Processor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('audio-pcm16-processor', AudioPcm16Processor);
+registerProcessor("audio-pcm16-processor", AudioPcm16Processor);

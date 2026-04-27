@@ -1,50 +1,50 @@
-import { Input, Modal, Tabs, theme } from 'antd';
-import { Search } from 'lucide-react';
-import { toc } from '@lobehub/icons/es/toc';
-import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { DynamicLobeIcon } from '@/components/shared/DynamicLobeIcon';
+import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
+import { toc } from "@lobehub/icons/es/toc";
+import { Input, Modal, Tabs, theme } from "antd";
+import { Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface IconPickerModalProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (iconId: string, group: 'model' | 'provider') => void;
-  defaultTab?: 'model' | 'provider';
+  onSelect: (iconId: string, group: "model" | "provider") => void;
+  defaultTab?: "model" | "provider";
 }
 
-export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 'model' }: IconPickerModalProps) {
+export default function IconPickerModal({ open, onClose, onSelect, defaultTab = "model" }: IconPickerModalProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
 
   useEffect(() => {
-    if (open) setActiveTab(defaultTab);
+    if (open) { setActiveTab(defaultTab); }
   }, [open, defaultTab]);
 
   const filteredIcons = useMemo(() => {
     const s = search.toLowerCase();
     return toc.filter(
       (icon) =>
-        icon.group === activeTab &&
-        (icon.title.toLowerCase().includes(s) || icon.fullTitle.toLowerCase().includes(s)),
+        icon.group === activeTab
+        && (icon.title.toLowerCase().includes(s) || icon.fullTitle.toLowerCase().includes(s)),
     );
   }, [search, activeTab]);
 
   const handleSelect = (iconId: string) => {
-    onSelect(iconId, activeTab as 'model' | 'provider');
+    onSelect(iconId, activeTab as "model" | "provider");
     onClose();
-    setSearch('');
+    setSearch("");
   };
 
   return (
     <Modal
-      title={t('settings.chooseIcon')}
+      title={t("settings.chooseIcon")}
       open={open}
       mask={{ enabled: true, blur: true }}
       onCancel={() => {
         onClose();
-        setSearch('');
+        setSearch("");
       }}
       footer={null}
       width={520}
@@ -52,7 +52,7 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
     >
       <Input
         prefix={<Search size={14} />}
-        placeholder={t('settings.searchIcon')}
+        placeholder={t("settings.searchIcon")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         allowClear
@@ -64,8 +64,11 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
         onChange={setActiveTab}
         size="small"
         items={[
-          { key: 'model', label: `${t('settings.iconGroupModel')} (${toc.filter((i) => i.group === 'model').length})` },
-          { key: 'provider', label: `${t('settings.iconGroupProvider')} (${toc.filter((i) => i.group === 'provider').length})` },
+          { key: "model", label: `${t("settings.iconGroupModel")} (${toc.filter((i) => i.group === "model").length})` },
+          {
+            key: "provider",
+            label: `${t("settings.iconGroupProvider")} (${toc.filter((i) => i.group === "provider").length})`,
+          },
         ]}
       />
 
@@ -87,7 +90,7 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
             <DynamicLobeIcon
               iconId={icon.id}
               size={24}
-              type={icon.param.hasColor ? 'color' : 'avatar'}
+              type={icon.param.hasColor ? "color" : "avatar"}
             />
             <span
               className="text-xs text-center truncate w-full"
@@ -107,12 +110,14 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
         )}
       </div>
 
-      <style>{`
+      <style>
+        {`
         .icon-picker-item:hover {
           background-color: ${token.colorPrimaryBg} !important;
           border-color: ${token.colorPrimary} !important;
         }
-      `}</style>
+      `}
+      </style>
     </Modal>
   );
 }

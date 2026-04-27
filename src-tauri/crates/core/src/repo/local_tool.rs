@@ -16,16 +16,56 @@ struct BuiltinGroupDef {
 }
 
 const BUILTIN_GROUP_DEFS: &[BuiltinGroupDef] = &[
-    BuiltinGroupDef { id: "builtin-fetch",       name: "@axagent/fetch",       default_enabled: true },
-    BuiltinGroupDef { id: "builtin-search-file",  name: "@axagent/search-file", default_enabled: true },
-    BuiltinGroupDef { id: "builtin-skills",       name: "@axagent/skills",     default_enabled: true },
-    BuiltinGroupDef { id: "builtin-session",      name: "@axagent/session",    default_enabled: true },
-    BuiltinGroupDef { id: "builtin-search",       name: "@axagent/search",     default_enabled: true },
-    BuiltinGroupDef { id: "builtin-filesystem",   name: "@axagent/filesystem", default_enabled: true },
-    BuiltinGroupDef { id: "builtin-system",       name: "@axagent/system",     default_enabled: true },
-    BuiltinGroupDef { id: "builtin-knowledge",    name: "@axagent/knowledge",  default_enabled: true },
-    BuiltinGroupDef { id: "builtin-storage",      name: "@axagent/storage",    default_enabled: true },
-    BuiltinGroupDef { id: "builtin-memory",       name: "@axagent/memory",     default_enabled: true },
+    BuiltinGroupDef {
+        id: "builtin-fetch",
+        name: "@axagent/fetch",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-search-file",
+        name: "@axagent/search-file",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-skills",
+        name: "@axagent/skills",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-session",
+        name: "@axagent/session",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-search",
+        name: "@axagent/search",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-filesystem",
+        name: "@axagent/filesystem",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-system",
+        name: "@axagent/system",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-knowledge",
+        name: "@axagent/knowledge",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-storage",
+        name: "@axagent/storage",
+        default_enabled: true,
+    },
+    BuiltinGroupDef {
+        id: "builtin-memory",
+        name: "@axagent/memory",
+        default_enabled: true,
+    },
 ];
 
 // ── Settings key helpers ───────────────────────────────────────────────
@@ -54,11 +94,7 @@ pub async fn get_enabled(db: &DatabaseConnection, group_id: &str, default: bool)
 }
 
 /// Set the enabled state for a local tool group, persisting to the settings table.
-pub async fn set_enabled(
-    db: &DatabaseConnection,
-    group_id: &str,
-    enabled: bool,
-) -> Result<()> {
+pub async fn set_enabled(db: &DatabaseConnection, group_id: &str, enabled: bool) -> Result<()> {
     settings::set_setting(
         db,
         &local_tool_setting_key(group_id),
@@ -105,7 +141,10 @@ pub async fn migrate_legacy_keys(db: &DatabaseConnection) {
                 // No legacy key exists, nothing to migrate
             }
             Err(e) => {
-                warn!("Failed to read legacy key '{}' during migration: {}", old_key, e);
+                warn!(
+                    "Failed to read legacy key '{}' during migration: {}",
+                    old_key, e
+                );
             }
         }
     }
@@ -123,7 +162,10 @@ pub fn is_builtin_group_id(id: &str) -> bool {
 
 /// Get the group name (e.g. "@axagent/fetch") for a builtin group ID.
 pub fn get_group_name(id: &str) -> Option<&'static str> {
-    BUILTIN_GROUP_DEFS.iter().find(|d| d.id == id).map(|d| d.name)
+    BUILTIN_GROUP_DEFS
+        .iter()
+        .find(|d| d.id == id)
+        .map(|d| d.name)
 }
 
 /// Get the default enabled state for a builtin group ID.

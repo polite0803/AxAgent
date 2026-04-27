@@ -1,5 +1,7 @@
 use axagent_core::db::create_test_pool;
-use axagent_core::repo::{conversation, conversation_category, message, provider, settings, stored_file};
+use axagent_core::repo::{
+    conversation, conversation_category, message, provider, settings, stored_file,
+};
 use axagent_core::types::*;
 use axagent_core::utils::gen_id;
 
@@ -73,7 +75,9 @@ async fn test_conversation_category_crud() {
     assert!(!cat.id.is_empty());
 
     // list
-    let cats = conversation_category::list_conversation_categories(db).await.unwrap();
+    let cats = conversation_category::list_conversation_categories(db)
+        .await
+        .unwrap();
     assert_eq!(cats.len(), 1);
     assert_eq!(cats[0].name, "Work");
 
@@ -102,7 +106,9 @@ async fn test_conversation_category_crud() {
     conversation_category::delete_conversation_category(db, &cat.id)
         .await
         .unwrap();
-    let cats = conversation_category::list_conversation_categories(db).await.unwrap();
+    let cats = conversation_category::list_conversation_categories(db)
+        .await
+        .unwrap();
     assert!(cats.is_empty());
 }
 
@@ -169,7 +175,9 @@ async fn test_conversation_category_reorder() {
         .await
         .unwrap();
 
-    let cats = conversation_category::list_conversation_categories(db).await.unwrap();
+    let cats = conversation_category::list_conversation_categories(db)
+        .await
+        .unwrap();
     assert_eq!(cats[0].id, c.id);
     assert_eq!(cats[1].id, b.id);
     assert_eq!(cats[2].id, a.id);
@@ -351,10 +359,9 @@ async fn test_conversation_crud() {
     let db = &h.conn;
 
     // create (5 args: db, title, model_id, provider_id, system_prompt)
-    let conv =
-        conversation::create_conversation(db, "Hello World", "gpt-4", "openai-1", None)
-            .await
-            .unwrap();
+    let conv = conversation::create_conversation(db, "Hello World", "gpt-4", "openai-1", None)
+        .await
+        .unwrap();
     assert_eq!(conv.title, "Hello World");
     assert_eq!(conv.model_id, "gpt-4");
     assert_eq!(conv.provider_id, "openai-1");

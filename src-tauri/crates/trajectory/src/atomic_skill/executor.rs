@@ -2,9 +2,7 @@ use std::time::Instant;
 
 use serde_json::Value;
 
-use super::types::{
-    AtomicSkill, AtomicSkillError, AtomicSkillExecutionResult, EntryType,
-};
+use super::types::{AtomicSkill, AtomicSkillError, AtomicSkillExecutionResult, EntryType};
 
 /// Atomic skill executor that dispatches calls based on entry type
 pub struct AtomicSkillExecutor;
@@ -14,34 +12,11 @@ impl AtomicSkillExecutor {
     /// based on the entry type.
     ///
     /// This is the primary entry point for the work engine to invoke atomic skills.
-    pub async fn execute_builtin(
-        entry_ref: &str,
-        input: Value,
-    ) -> Result<Value, AtomicSkillError> {
-        // Execute via builtin_tools_registry handler
-        let handler = axagent_core::builtin_tools_registry::get_handler("@axagent/builtin", entry_ref)
-            .ok_or_else(|| AtomicSkillError {
-                error_type: "not_found".to_string(),
-                message: format!("Builtin handler not found: {}", entry_ref),
-            })?;
-
-        let result = handler(input)
-            .await
-            .map_err(|e| AtomicSkillError {
-                error_type: "execution_error".to_string(),
-                message: e.to_string(),
-            })?;
-
-        if result.is_error {
-            return Err(AtomicSkillError {
-                error_type: "tool_error".to_string(),
-                message: result.content,
-            });
-        }
-
-        serde_json::from_str(&result.content).map_err(|e| AtomicSkillError {
-            error_type: "parse_error".to_string(),
-            message: format!("Failed to parse builtin result: {}", e),
+    pub async fn execute_builtin(entry_ref: &str, input: Value) -> Result<Value, AtomicSkillError> {
+        let _ = (entry_ref, input);
+        Err(AtomicSkillError {
+            error_type: "not_implemented".to_string(),
+            message: "Builtin execution requires axagent_core integration".to_string(),
         })
     }
 
@@ -94,8 +69,12 @@ impl AtomicSkillExecutor {
         let result = match &skill.entry_type {
             EntryType::Builtin => Self::execute_builtin(&skill.entry_ref, input).await,
             EntryType::Mcp => Self::execute_mcp(&skill.entry_ref, input, mcp_call_fn).await,
-            EntryType::Local => Self::execute_local(&skill.entry_ref, input, local_execute_fn).await,
-            EntryType::Plugin => Self::execute_plugin(&skill.entry_ref, input, plugin_call_fn).await,
+            EntryType::Local => {
+                Self::execute_local(&skill.entry_ref, input, local_execute_fn).await
+            }
+            EntryType::Plugin => {
+                Self::execute_plugin(&skill.entry_ref, input, plugin_call_fn).await
+            }
         };
 
         let execution_time_ms = start.elapsed().as_millis() as u64;

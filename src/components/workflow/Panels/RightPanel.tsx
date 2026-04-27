@@ -1,25 +1,26 @@
-import React from 'react';
-import { Tabs, Input, Select, Button, Divider } from 'antd';
-import { Trash2 } from 'lucide-react';
-import { useWorkflowEditorStore } from '@/stores';
-import { NODE_TYPE_MAP, type WorkflowNode, type WorkflowEdge } from '../types';
+import { useWorkflowEditorStore } from "@/stores";
+import { Button, Divider, Input, Select, Tabs } from "antd";
+import { Trash2 } from "lucide-react";
+import React from "react";
+import { NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "../types";
 import {
-  TriggerPropertyPanel,
   AgentPropertyPanel,
-  LLMPropertyPanel,
+  AtomicSkillPropertyPanel,
+  CodePropertyPanel,
   ConditionPropertyPanel,
-  ParallelPropertyPanel,
+  DelayPropertyPanel,
+  DocumentParserPropertyPanel,
+  EndPropertyPanel,
+  LLMPropertyPanel,
   LoopPropertyPanel,
   MergePropertyPanel,
-  DelayPropertyPanel,
-  AtomicSkillPropertyPanel,
-  ToolPropertyPanel,
-  CodePropertyPanel,
+  ParallelPropertyPanel,
   SubWorkflowPropertyPanel,
-  DocumentParserPropertyPanel,
+  ToolPropertyPanel,
+  TriggerPropertyPanel,
+  ValidationPropertyPanel,
   VectorRetrievePropertyPanel,
-  EndPropertyPanel,
-} from './PropertyPanels';
+} from "./PropertyPanels";
 
 interface RightPanelProps {
   selectedNode: WorkflowNode | null;
@@ -47,17 +48,17 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
   const renderNodeProperties = () => {
     if (!selectedNode) {
       return (
-        <div style={{ padding: 20, textAlign: 'center', color: '#666' }}>
+        <div style={{ padding: 20, textAlign: "center", color: "#666" }}>
           选择一个节点以编辑属性
         </div>
       );
     }
 
-    const nodeTypeInfo = NODE_TYPE_MAP[selectedNode.type] || { label: selectedNode.type, color: '#999' };
+    const nodeTypeInfo = NODE_TYPE_MAP[selectedNode.type] || { label: selectedNode.type, color: "#999" };
 
     const renderPropertyPanel = () => {
       switch (selectedNode.type) {
-        case 'trigger':
+        case "trigger":
           return (
             <TriggerPropertyPanel
               node={selectedNode}
@@ -65,7 +66,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'agent':
+        case "agent":
           return (
             <AgentPropertyPanel
               node={selectedNode}
@@ -73,7 +74,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'llm':
+        case "llm":
           return (
             <LLMPropertyPanel
               node={selectedNode}
@@ -81,7 +82,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'condition':
+        case "condition":
           return (
             <ConditionPropertyPanel
               node={selectedNode}
@@ -89,7 +90,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'parallel':
+        case "parallel":
           return (
             <ParallelPropertyPanel
               node={selectedNode}
@@ -97,7 +98,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'loop':
+        case "loop":
           return (
             <LoopPropertyPanel
               node={selectedNode}
@@ -105,7 +106,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'merge':
+        case "merge":
           return (
             <MergePropertyPanel
               node={selectedNode}
@@ -113,7 +114,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'delay':
+        case "delay":
           return (
             <DelayPropertyPanel
               node={selectedNode}
@@ -121,7 +122,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'atomicSkill':
+        case "atomicSkill":
           return (
             <AtomicSkillPropertyPanel
               node={selectedNode}
@@ -129,7 +130,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'tool':
+        case "tool":
           return (
             <ToolPropertyPanel
               node={selectedNode}
@@ -137,7 +138,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'code':
+        case "code":
           return (
             <CodePropertyPanel
               node={selectedNode}
@@ -145,7 +146,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'subWorkflow':
+        case "subWorkflow":
           return (
             <SubWorkflowPropertyPanel
               node={selectedNode}
@@ -153,7 +154,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'documentParser':
+        case "documentParser":
           return (
             <DocumentParserPropertyPanel
               node={selectedNode}
@@ -161,7 +162,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'vectorRetrieve':
+        case "vectorRetrieve":
           return (
             <VectorRetrievePropertyPanel
               node={selectedNode}
@@ -169,7 +170,15 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
               onDelete={handleDeleteNode}
             />
           );
-        case 'end':
+        case "validation":
+          return (
+            <ValidationPropertyPanel
+              node={selectedNode}
+              onUpdate={handleUpdateNode}
+              onDelete={handleDeleteNode}
+            />
+          );
+        case "end":
           return (
             <EndPropertyPanel
               node={selectedNode}
@@ -179,7 +188,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
           );
         default:
           return (
-            <div style={{ color: '#666', textAlign: 'center', padding: 20 }}>
+            <div style={{ color: "#666", textAlign: "center", padding: 20 }}>
               暂不支持此节点类型的编辑
             </div>
           );
@@ -189,13 +198,13 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
     return (
       <div style={{ padding: 12 }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ color: '#999', fontSize: 11, textTransform: 'uppercase' }}>节点类型</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ color: "#999", fontSize: 11, textTransform: "uppercase" }}>节点类型</span>
             <span
               style={{
                 background: `${nodeTypeInfo.color}20`,
                 color: nodeTypeInfo.color,
-                padding: '2px 8px',
+                padding: "2px 8px",
                 borderRadius: 4,
                 fontSize: 11,
                 fontWeight: 500,
@@ -206,7 +215,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
           </div>
         </div>
 
-        <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+        <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
         {renderPropertyPanel()}
       </div>
@@ -216,7 +225,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
   const renderEdgeProperties = () => {
     if (!selectedEdge) {
       return (
-        <div style={{ padding: 20, textAlign: 'center', color: '#666' }}>
+        <div style={{ padding: 20, textAlign: "center", color: "#666" }}>
           选择一条边以编辑属性
         </div>
       );
@@ -225,46 +234,42 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
     return (
       <div style={{ padding: 12 }}>
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>边类型</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>边类型</label>
           <Select
             value={selectedEdge.edge_type}
-            onChange={(edge_type) =>
-              useWorkflowEditorStore.getState().updateEdge(selectedEdge.id, { edge_type })
-            }
+            onChange={(edge_type) => useWorkflowEditorStore.getState().updateEdge(selectedEdge.id, { edge_type })}
             size="small"
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
             options={[
-              { value: 'direct', label: '直接' },
-              { value: 'conditionTrue', label: '条件-真' },
-              { value: 'conditionFalse', label: '条件-假' },
-              { value: 'loopBack', label: '循环回边' },
-              { value: 'parallelBranch', label: '并行分支' },
-              { value: 'merge', label: '合并' },
-              { value: 'error', label: '错误' },
+              { value: "direct", label: "直接" },
+              { value: "conditionTrue", label: "条件-真" },
+              { value: "conditionFalse", label: "条件-假" },
+              { value: "loopBack", label: "循环回边" },
+              { value: "parallelBranch", label: "并行分支" },
+              { value: "merge", label: "合并" },
+              { value: "error", label: "错误" },
             ]}
           />
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>标签</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>标签</label>
           <Input
-            value={selectedEdge.label || ''}
-            onChange={(e) =>
-              useWorkflowEditorStore.getState().updateEdge(selectedEdge.id, { label: e.target.value })
-            }
+            value={selectedEdge.label || ""}
+            onChange={(e) => useWorkflowEditorStore.getState().updateEdge(selectedEdge.id, { label: e.target.value })}
             size="small"
             placeholder="边的标签（可选）"
           />
         </div>
 
-        <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+        <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
         <Button
           type="text"
           danger
           icon={<Trash2 size={14} />}
           onClick={() => deleteEdge(selectedEdge.id)}
-          style={{ width: '100%', justifyContent: 'flex-start' }}
+          style={{ width: "100%", justifyContent: "flex-start" }}
         >
           删除边
         </Button>
@@ -273,69 +278,65 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
   };
 
   const renderTemplateSettings = () => {
-    if (!currentTemplate) return null;
+    if (!currentTemplate) { return null; }
 
     return (
       <div style={{ padding: 12 }}>
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>名称</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>名称</label>
           <Input
             value={currentTemplate.name}
             size="small"
-            onChange={(e) =>
-              useWorkflowEditorStore.getState().updateTemplateMetadata({ name: e.target.value })
-            }
+            onChange={(e) => useWorkflowEditorStore.getState().updateTemplateMetadata({ name: e.target.value })}
           />
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>描述</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>描述</label>
           <Input.TextArea
-            value={currentTemplate.description || ''}
+            value={currentTemplate.description || ""}
             rows={3}
             size="small"
-            onChange={(e) =>
-              useWorkflowEditorStore.getState().updateTemplateMetadata({ description: e.target.value })
-            }
+            onChange={(e) => useWorkflowEditorStore.getState().updateTemplateMetadata({ description: e.target.value })}
           />
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>图标</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>图标</label>
           <Select
             value={currentTemplate.icon}
             size="small"
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
             onChange={(icon) => useWorkflowEditorStore.getState().updateTemplateMetadata({ icon })}
             options={[
-              { value: 'Bot', label: '🤖 Bot' },
-              { value: 'Code', label: '💻 Code' },
-              { value: 'FileText', label: '📄 Document' },
-              { value: 'GitBranch', label: '🔀 Git Branch' },
-              { value: 'Zap', label: '⚡ Zap' },
-              { value: 'Layers', label: '📚 Layers' },
+              { value: "Bot", label: "🤖 Bot" },
+              { value: "Code", label: "💻 Code" },
+              { value: "FileText", label: "📄 Document" },
+              { value: "GitBranch", label: "🔀 Git Branch" },
+              { value: "Zap", label: "⚡ Zap" },
+              { value: "Layers", label: "📚 Layers" },
             ]}
           />
         </div>
 
-        <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+        <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
         <div>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>标签</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>标签</label>
           <Select
             mode="tags"
             value={currentTemplate.tags || []}
             size="small"
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
             onChange={(tags) => useWorkflowEditorStore.getState().updateTemplateMetadata({ tags })}
             placeholder="添加标签..."
             options={[
-              { value: 'ai', label: 'AI' },
-              { value: 'automation', label: '自动化' },
-              { value: 'workflow', label: '工作流' },
-              { value: 'agent', label: 'Agent' },
-              { value: 'chatbot', label: '聊天机器人' },
-              { value: 'data-processing', label: '数据处理' },
+              { value: "ai", label: "AI" },
+              { value: "automation", label: "自动化" },
+              { value: "workflow", label: "工作流" },
+              { value: "agent", label: "Agent" },
+              { value: "chatbot", label: "聊天机器人" },
+              { value: "data-processing", label: "数据处理" },
             ]}
           />
         </div>
@@ -347,35 +348,43 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
     <div
       style={{
         width: 320,
-        background: '#252525',
-        borderLeft: '1px solid #333',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
+        background: "#252525",
+        borderLeft: "1px solid #333",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
       }}
     >
       <Tabs
         defaultActiveKey="properties"
         size="small"
-        style={{ height: '100%' }}
+        style={{ height: "100%", overflow: "auto" }}
         items={[
           {
-            key: 'properties',
-            label: '属性',
-            children: selectedNode
-              ? renderNodeProperties()
-              : selectedEdge
-              ? renderEdgeProperties()
-              : (
-                <div style={{ padding: 20, textAlign: 'center', color: '#666' }}>
-                  选择节点或边以编辑属性
-                </div>
-              ),
+            key: "properties",
+            label: "属性",
+            children: (
+              <div style={{ overflow: "auto", maxHeight: "calc(100vh - 120px)" }}>
+                {selectedNode
+                  ? renderNodeProperties()
+                  : selectedEdge
+                  ? renderEdgeProperties()
+                  : (
+                    <div style={{ padding: 20, textAlign: "center", color: "#666" }}>
+                      选择节点或边以编辑属性
+                    </div>
+                  )}
+              </div>
+            ),
           },
           {
-            key: 'settings',
-            label: '设置',
-            children: renderTemplateSettings(),
+            key: "settings",
+            label: "设置",
+            children: (
+              <div style={{ overflow: "auto", maxHeight: "calc(100vh - 120px)" }}>
+                {renderTemplateSettings()}
+              </div>
+            ),
           },
         ]}
       />

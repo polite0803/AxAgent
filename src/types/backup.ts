@@ -1,6 +1,6 @@
-export type BackupJobKind = 'backup' | 'restore' | 'indexing';
-export type BackupJobStatus = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
-export type BackupTargetKind = 'local' | 'webdav' | 's3';
+export type BackupJobKind = "backup" | "restore" | "indexing";
+export type BackupJobStatus = "pending" | "running" | "success" | "failed" | "cancelled";
+export type BackupTargetKind = "local" | "webdav" | "s3";
 
 export type WebDavConfig = {
   host: string;
@@ -69,8 +69,8 @@ export type ProgramPolicy = {
   rateLimitPerMinute?: number;
 };
 
-export type GatewayDiagnosticCategory = 'provider_latency' | 'provider_error' | 'proxy' | 'auth' | 'port';
-export type GatewayDiagnosticStatus = 'ok' | 'warning' | 'error';
+export type GatewayDiagnosticCategory = "provider_latency" | "provider_error" | "proxy" | "auth" | "port";
+export type GatewayDiagnosticStatus = "ok" | "warning" | "error";
 
 export type GatewayDiagnostic = {
   id: string;
@@ -96,8 +96,8 @@ export type GatewayRequestLog = {
   createdAt: number;
 };
 
-export type GatewayTemplateTarget = 'cursor' | 'vscode' | 'claude_code' | 'openai_compatible';
-export type GatewayTemplateFormat = 'json' | 'yaml' | 'markdown';
+export type GatewayTemplateTarget = "cursor" | "vscode" | "claude_code" | "openai_compatible";
+export type GatewayTemplateFormat = "json" | "yaml" | "markdown";
 
 export type GatewayTemplate = {
   id: string;
@@ -109,8 +109,8 @@ export type GatewayTemplate = {
 };
 
 // CLI Tool Integration
-export type CliToolStatus = 'not_installed' | 'not_connected' | 'connected';
-export type QuickConnectProtocol = 'http' | 'https';
+export type CliToolStatus = "not_installed" | "not_connected" | "connected";
+export type QuickConnectProtocol = "http" | "https";
 
 export type CliToolInfo = {
   id: string;
@@ -122,7 +122,13 @@ export type CliToolInfo = {
   connectedProtocol: QuickConnectProtocol | null;
 };
 
-export type DesktopCapabilityKey = 'tray' | 'global_shortcut' | 'protocol_handler' | 'mini_window' | 'artifact_window' | 'notification';
+export type DesktopCapabilityKey =
+  | "tray"
+  | "global_shortcut"
+  | "protocol_handler"
+  | "mini_window"
+  | "artifact_window"
+  | "notification";
 
 export type DesktopCapability = {
   key: DesktopCapabilityKey;
@@ -130,16 +136,16 @@ export type DesktopCapability = {
   reason?: string;
 };
 
-export type TrayAction = 'show_main' | 'open_mini_window' | 'resume_voice_call' | 'run_quick_backup' | 'quit';
+export type TrayAction = "show_main" | "open_mini_window" | "resume_voice_call" | "run_quick_backup" | "quit";
 
 export type ProtocolLaunchPayload = {
-  source: 'browser' | 'os_protocol';
-  route: 'chat' | 'gateway' | 'settings';
+  source: "browser" | "os_protocol";
+  route: "chat" | "gateway" | "settings";
   query?: Record<string, string>;
 };
 
 export type WindowStateSnapshot = {
-  windowKey: 'main' | 'mini' | 'voice' | 'artifact';
+  windowKey: "main" | "mini" | "voice" | "artifact";
   width: number;
   height: number;
   x?: number;
@@ -150,7 +156,7 @@ export type WindowStateSnapshot = {
 
 export type DesktopNotification = {
   id: string;
-  level: 'info' | 'success' | 'warning' | 'error';
+  level: "info" | "success" | "warning" | "error";
   title: string;
   body: string;
   actionLabel?: string;

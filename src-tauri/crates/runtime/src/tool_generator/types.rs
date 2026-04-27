@@ -20,10 +20,7 @@ pub enum GeneratedToolImplementation {
         temperature: Option<f32>,
     },
     /// Script code: future extension
-    Script {
-        language: String,
-        code: String,
-    },
+    Script { language: String, code: String },
 }
 
 /// A generated tool

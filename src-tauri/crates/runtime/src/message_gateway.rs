@@ -96,9 +96,10 @@ pub enum Protocol {
     #[default]
     Mcp,
     A2A,
-    Custom { name: String },
+    Custom {
+        name: String,
+    },
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -112,7 +113,6 @@ pub enum TransportType {
     IPC,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[derive(Default)]
@@ -124,7 +124,6 @@ pub enum ConnectionState {
     Reconnecting,
     Failed,
 }
-
 
 #[derive(Debug, Clone, Default)]
 pub struct AgentEndpoint {
@@ -156,7 +155,11 @@ pub trait TransportHandler: Send + Sync {
     async fn connect(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError>;
     async fn disconnect(&self, endpoint_id: &str) -> Result<(), GatewayError>;
     async fn send(&self, endpoint_id: &str, message: &AgentMessage) -> Result<(), GatewayError>;
-    async fn broadcast(&self, agent_ids: &[String], message: &AgentMessage) -> Result<(), GatewayError>;
+    async fn broadcast(
+        &self,
+        agent_ids: &[String],
+        message: &AgentMessage,
+    ) -> Result<(), GatewayError>;
     fn get_state(&self, endpoint_id: &str) -> ConnectionState;
 }
 

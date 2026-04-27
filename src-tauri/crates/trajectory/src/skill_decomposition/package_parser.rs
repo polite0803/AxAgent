@@ -57,8 +57,8 @@ impl SkillPackageParser {
                     end_idx += 1;
                 }
 
-                let block_content: String = lines[start_idx + 1..end_idx.min(lines.len())]
-                    .join("\n");
+                let block_content: String =
+                    lines[start_idx + 1..end_idx.min(lines.len())].join("\n");
 
                 let block_id = format!("cb_{}", block_counter);
                 blocks.push(CodeBlock {
@@ -79,7 +79,11 @@ impl SkillPackageParser {
         blocks
     }
 
-    pub fn extract_references(path: &str, content: &str, file_type: &FileType) -> Vec<FileReference> {
+    pub fn extract_references(
+        path: &str,
+        content: &str,
+        file_type: &FileType,
+    ) -> Vec<FileReference> {
         let mut refs = Vec::new();
 
         match file_type {
@@ -134,7 +138,8 @@ impl SkillPackageParser {
     fn extract_js_imports(file_path: &str, content: &str) -> Vec<FileReference> {
         let mut refs = Vec::new();
         let require_re = Regex::new(r#"require\s*\(\s*["']([^"']+)["']\s*\)"#).unwrap();
-        let import_re = Regex::new(r#"import\s+(?:(?:\{[^}]+\}|\w+)\s+from\s+)?["']([^"']+)["']"#).unwrap();
+        let import_re =
+            Regex::new(r#"import\s+(?:(?:\{[^}]+\}|\w+)\s+from\s+)?["']([^"']+)["']"#).unwrap();
 
         for line in content.lines() {
             if let Some(caps) = require_re.captures(line) {

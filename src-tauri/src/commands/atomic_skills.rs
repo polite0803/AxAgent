@@ -27,14 +27,17 @@ pub struct AtomicSkillResponse {
 
 impl From<axagent_core::entity::atomic_skills::Model> for AtomicSkillResponse {
     fn from(m: axagent_core::entity::atomic_skills::Model) -> Self {
-        let tags: Vec<String> = m.tags
+        let tags: Vec<String> = m
+            .tags
             .as_ref()
             .and_then(|t| serde_json::from_str(t).ok())
             .unwrap_or_default();
-        let input_schema: Option<serde_json::Value> = m.input_schema
+        let input_schema: Option<serde_json::Value> = m
+            .input_schema
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok());
-        let output_schema: Option<serde_json::Value> = m.output_schema
+        let output_schema: Option<serde_json::Value> = m
+            .output_schema
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok());
 
@@ -158,19 +161,30 @@ pub async fn create_atomic_skill(
     params: CreateAtomicSkillRequest,
 ) -> Result<String, String> {
     let id = uuid::Uuid::new_v4().to_string();
-    let input_schema = params.input_schema.as_ref().and_then(|s| serde_json::to_string(s).ok());
-    let output_schema = params.output_schema.as_ref().and_then(|s| serde_json::to_string(s).ok());
-    let tags = params.tags.as_ref().and_then(|t| serde_json::to_string(t).ok());
+    let input_schema = params
+        .input_schema
+        .as_ref()
+        .and_then(|s| serde_json::to_string(s).ok());
+    let output_schema = params
+        .output_schema
+        .as_ref()
+        .and_then(|s| serde_json::to_string(s).ok());
+    let tags = params
+        .tags
+        .as_ref()
+        .and_then(|t| serde_json::to_string(t).ok());
 
     // Check name uniqueness
-    let existing = axagent_core::repo::atomic_skill::check_name_uniqueness(
-        &state.sea_db, &params.name,
-    )
-    .await
-    .map_err(|e| e.to_string())?;
+    let existing =
+        axagent_core::repo::atomic_skill::check_name_uniqueness(&state.sea_db, &params.name)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if existing.is_some() {
-        return Err(format!("Atomic skill with name '{}' already exists", params.name));
+        return Err(format!(
+            "Atomic skill with name '{}' already exists",
+            params.name
+        ));
     }
 
     // Check semantic uniqueness
@@ -218,8 +232,14 @@ pub async fn update_atomic_skill(
     id: String,
     params: UpdateAtomicSkillRequest,
 ) -> Result<bool, String> {
-    let input_schema = params.input_schema.as_ref().map(|s| serde_json::to_string(s).ok());
-    let output_schema = params.output_schema.as_ref().map(|s| serde_json::to_string(s).ok());
+    let input_schema = params
+        .input_schema
+        .as_ref()
+        .map(|s| serde_json::to_string(s).ok());
+    let output_schema = params
+        .output_schema
+        .as_ref()
+        .map(|s| serde_json::to_string(s).ok());
     let tags = params.tags.as_ref().map(|t| serde_json::to_string(t).ok());
 
     axagent_core::repo::atomic_skill::update_atomic_skill(
@@ -242,10 +262,7 @@ pub async fn update_atomic_skill(
 }
 
 #[tauri::command]
-pub async fn delete_atomic_skill(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<bool, String> {
+pub async fn delete_atomic_skill(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     // Check reference count
     let count = axagent_core::repo::skill_reference::count_references(&state.sea_db, &id)
         .await
@@ -282,8 +299,12 @@ pub async fn check_semantic_uniqueness(
     input_schema: Option<serde_json::Value>,
     output_schema: Option<serde_json::Value>,
 ) -> Result<Option<AtomicSkillResponse>, String> {
-    let input_str = input_schema.as_ref().and_then(|s| serde_json::to_string(s).ok());
-    let output_str = output_schema.as_ref().and_then(|s| serde_json::to_string(s).ok());
+    let input_str = input_schema
+        .as_ref()
+        .and_then(|s| serde_json::to_string(s).ok());
+    let output_str = output_schema
+        .as_ref()
+        .and_then(|s| serde_json::to_string(s).ok());
 
     let existing = axagent_core::repo::atomic_skill::check_semantic_uniqueness(
         &state.sea_db,
@@ -303,9 +324,10 @@ pub async fn get_skill_references(
     state: State<'_, AppState>,
     skill_id: String,
 ) -> Result<Vec<SkillReferenceResponse>, String> {
-    let refs = axagent_core::repo::skill_reference::get_references_by_skill(&state.sea_db, &skill_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let refs =
+        axagent_core::repo::skill_reference::get_references_by_skill(&state.sea_db, &skill_id)
+            .await
+            .map_err(|e| e.to_string())?;
 
     Ok(refs.into_iter().map(SkillReferenceResponse::from).collect())
 }
@@ -334,12 +356,19 @@ pub async fn execute_atomic_skill(
         id: skill_model.id,
         name: skill_model.name,
         description: skill_model.description,
-        input_schema: skill_model.input_schema.and_then(|s| serde_json::from_str(&s).ok()),
-        output_schema: skill_model.output_schema.and_then(|s| serde_json::from_str(&s).ok()),
+        input_schema: skill_model
+            .input_schema
+            .and_then(|s| serde_json::from_str(&s).ok()),
+        output_schema: skill_model
+            .output_schema
+            .and_then(|s| serde_json::from_str(&s).ok()),
         entry_type,
         entry_ref: skill_model.entry_ref,
         category: skill_model.category,
-        tags: skill_model.tags.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
+        tags: skill_model
+            .tags
+            .and_then(|t| serde_json::from_str(&t).ok())
+            .unwrap_or_default(),
         version: skill_model.version,
         enabled: skill_model.enabled,
         source: skill_model.source,
@@ -349,12 +378,14 @@ pub async fn execute_atomic_skill(
 
     let result = match skill.entry_type {
         axagent_trajectory::EntryType::Builtin => {
-            axagent_trajectory::AtomicSkillExecutor::execute_builtin(&skill.entry_ref, input)
-                .await
-        },
+            axagent_trajectory::AtomicSkillExecutor::execute_builtin(&skill.entry_ref, input).await
+        }
         _ => Err(axagent_trajectory::AtomicSkillError {
             error_type: "not_implemented".to_string(),
-            message: format!("Execution of {} skills not yet implemented in this context", skill.entry_type),
+            message: format!(
+                "Execution of {} skills not yet implemented in this context",
+                skill.entry_type
+            ),
         }),
     };
 
@@ -479,10 +510,12 @@ pub async fn upgrade_skill_with_llm(
         .await
         .map_err(|e| e.to_string())?;
 
-    let provider_id = settings.default_provider_id
+    let provider_id = settings
+        .default_provider_id
         .as_ref()
         .ok_or_else(|| "No default provider configured".to_string())?;
-    let model_id = settings.default_model_id
+    let model_id = settings
+        .default_model_id
         .as_ref()
         .ok_or_else(|| "No default model configured".to_string())?;
 
@@ -492,8 +525,8 @@ pub async fn upgrade_skill_with_llm(
     let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider.id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted_key = decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted_key =
+        decrypt_key(&key_row.key_encrypted, &state.master_key).map_err(|e| e.to_string())?;
 
     let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let registry_key = match provider.provider_type {
@@ -505,29 +538,35 @@ pub async fn upgrade_skill_with_llm(
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
     };
-    let adapter = registry.get(registry_key)
+    let adapter = registry
+        .get(registry_key)
         .ok_or_else(|| format!("Provider adapter not found for {}", registry_key))?;
 
-    let existing_input = existing_skill.input_schema
+    let existing_input = existing_skill
+        .input_schema
         .as_ref()
         .and_then(|s: &String| serde_json::from_str::<serde_json::Value>(s).ok())
         .map(|j: serde_json::Value| serde_json::to_string_pretty(&j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
-    let existing_output = existing_skill.output_schema
+    let existing_output = existing_skill
+        .output_schema
         .as_ref()
         .and_then(|s: &String| serde_json::from_str::<serde_json::Value>(s).ok())
         .map(|j: serde_json::Value| serde_json::to_string_pretty(&j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
-    let generated_input = request.generated_input_schema
+    let generated_input = request
+        .generated_input_schema
         .as_ref()
         .map(|j: &serde_json::Value| serde_json::to_string_pretty(j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
-    let generated_output = request.generated_output_schema
+    let generated_output = request
+        .generated_output_schema
         .as_ref()
         .map(|j: &serde_json::Value| serde_json::to_string_pretty(j).unwrap_or_default())
         .unwrap_or_else(|| "null".to_string());
 
-    let prompt = format!(r#"You are an AI skill upgrade advisor. Your task is to analyze an existing atomic skill and a newly generated skill specification, then produce an improved version.
+    let prompt = format!(
+        r#"You are an AI skill upgrade advisor. Your task is to analyze an existing atomic skill and a newly generated skill specification, then produce an improved version.
 
 ## Existing Skill (MUST BE PRESERVED - used by existing workflows)
 - Name: {}
@@ -585,7 +624,8 @@ Only output the JSON, no other text."#,
         generated_output
     );
 
-    let base_url = axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
+    let base_url =
+        axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
     let ctx = axagent_providers::ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id,
@@ -602,14 +642,12 @@ Only output the JSON, no other text."#,
 
     let llm_request = ChatRequest {
         model: model_id.clone(),
-        messages: vec![
-            ChatMessage {
-                role: "user".to_string(),
-                content: ChatContent::Text(prompt),
-                tool_calls: None,
-                tool_call_id: None,
-            }
-        ],
+        messages: vec![ChatMessage {
+            role: "user".to_string(),
+            content: ChatContent::Text(prompt),
+            tool_calls: None,
+            tool_call_id: None,
+        }],
         temperature: Some(0.7),
         top_p: None,
         max_tokens: Some(4096),
@@ -625,7 +663,9 @@ Only output the JSON, no other text."#,
         store: None,
     };
 
-    let response = adapter.chat(&ctx, llm_request).await
+    let response = adapter
+        .chat(&ctx, llm_request)
+        .await
         .map_err(|e| format!("LLM call failed: {}", e))?;
 
     let content = response.content.trim();
@@ -637,8 +677,12 @@ Only output the JSON, no other text."#,
         _ => content,
     };
 
-    let suggestion: SkillUpgradeSuggestion = serde_json::from_str(json_str)
-        .map_err(|e| format!("Failed to parse LLM response as JSON: {}. Content: {}", e, content))?;
+    let suggestion: SkillUpgradeSuggestion = serde_json::from_str(json_str).map_err(|e| {
+        format!(
+            "Failed to parse LLM response as JSON: {}. Content: {}",
+            e, content
+        )
+    })?;
 
     Ok(SkillUpgradeResponse { suggestion })
 }

@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { Modal, theme } from 'antd';
-import { useTranslation } from 'react-i18next';
+import { Modal, theme } from "antd";
+import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface CodeBlockPreviewPayload {
   node?: { code?: string; type: string; language?: string; raw: string };
-  artifactType?: 'text/html' | 'image/svg+xml';
+  artifactType?: "text/html" | "image/svg+xml";
   artifactTitle?: string;
   id?: string;
   language?: string;
@@ -23,11 +23,12 @@ export const CodeBlockPreviewModal: React.FC<Props> = ({ payload, open, onClose 
   const { token } = theme.useToken();
 
   const srcdoc = useMemo(() => {
-    if (!payload) return '';
-    const base = payload.node?.code ?? payload.code ?? '';
+    if (!payload) { return ""; }
+    const base = payload.node?.code ?? payload.code ?? "";
     const lowered = base.trim().toLowerCase();
-    if (lowered.startsWith('<!doctype') || lowered.startsWith('<html') || lowered.startsWith('<body'))
+    if (lowered.startsWith("<!doctype") || lowered.startsWith("<html") || lowered.startsWith("<body")) {
       return base;
+    }
 
     const bg = token.colorBgElevated;
     const fg = token.colorText;
@@ -57,10 +58,10 @@ export const CodeBlockPreviewModal: React.FC<Props> = ({ payload, open, onClose 
 
   const title = (() => {
     const raw = payload?.artifactTitle;
-    if (!raw) return t('common.preview');
+    if (!raw) { return t("common.preview"); }
     const type = payload?.artifactType;
-    if (type === 'text/html') return `HTML ${t('common.preview')}`;
-    if (type === 'image/svg+xml') return `SVG ${t('common.preview')}`;
+    if (type === "text/html") { return `HTML ${t("common.preview")}`; }
+    if (type === "image/svg+xml") { return `SVG ${t("common.preview")}`; }
     return raw;
   })();
 
@@ -75,7 +76,7 @@ export const CodeBlockPreviewModal: React.FC<Props> = ({ payload, open, onClose 
       styles={{
         body: {
           padding: 0,
-          overflow: 'hidden',
+          overflow: "hidden",
           borderRadius: token.borderRadiusLG,
         },
       }}
@@ -88,10 +89,10 @@ export const CodeBlockPreviewModal: React.FC<Props> = ({ payload, open, onClose 
           srcDoc={srcdoc}
           title={title}
           style={{
-            width: '100%',
-            height: 'calc(80vh - 80px)',
-            border: 'none',
-            display: 'block',
+            width: "100%",
+            height: "calc(80vh - 80px)",
+            border: "none",
+            display: "block",
             borderRadius: token.borderRadiusLG,
             backgroundColor: token.colorBgElevated,
           }}

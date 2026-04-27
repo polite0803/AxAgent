@@ -1,11 +1,11 @@
-import type { Message } from '@/types';
+import type { Message } from "@/types";
 
 export function buildAssistantDisplayContent(message: Message, _messages: Message[]): string {
   return message.content;
 }
 
 export function shouldHideAssistantBubble(message: Message, displayContent: string): boolean {
-  if (message.role !== 'assistant') {
+  if (message.role !== "assistant") {
     return false;
   }
 

@@ -64,10 +64,22 @@ impl KeywordPatterns {
             "spreadsheet",
             vec!["excel", "spreadsheet", "xlsx", "csv", "table"],
         );
-        patterns.insert("browser", vec!["browser", "navigate", "click", "web page", "website"]);
-        patterns.insert("github", vec!["github", "git", "repository", "pull request", "issue"]);
-        patterns.insert("terminal", vec!["terminal", "shell", "bash", "command", "cli"]);
-        patterns.insert("memory", vec!["memory", "remember", "context", "persistent"]);
+        patterns.insert(
+            "browser",
+            vec!["browser", "navigate", "click", "web page", "website"],
+        );
+        patterns.insert(
+            "github",
+            vec!["github", "git", "repository", "pull request", "issue"],
+        );
+        patterns.insert(
+            "terminal",
+            vec!["terminal", "shell", "bash", "command", "cli"],
+        );
+        patterns.insert(
+            "memory",
+            vec!["memory", "remember", "context", "persistent"],
+        );
         patterns.insert("notion", vec!["notion", "notes", "database"]);
         patterns.insert("slack", vec!["slack", "message", "channel", "team"]);
         patterns.insert("email", vec!["email", "mail", "smtp", "imap"]);
@@ -79,23 +91,26 @@ impl KeywordPatterns {
             "code-review",
             vec!["code review", "review code", "security check"],
         );
-        patterns.insert(
-            "pptx",
-            vec!["powerpoint", "presentation", "slides", "pptx"],
-        );
+        patterns.insert("pptx", vec!["powerpoint", "presentation", "slides", "pptx"]);
         patterns.insert("weather", vec!["weather", "forecast", "temperature"]);
         patterns.insert(
             "sql",
             vec!["sql", "database", "query", "postgresql", "mysql"],
         );
-        patterns.insert("image", vec!["image", "resize", "convert", "photo", "picture"]);
+        patterns.insert(
+            "image",
+            vec!["image", "resize", "convert", "photo", "picture"],
+        );
         patterns.insert(
             "calendar",
             vec!["calendar", "event", "schedule", "google calendar"],
         );
         patterns.insert("tavily", vec!["tavily", "deep research", "research search"]);
         patterns.insert("brave-search", vec!["brave", "privacy search"]);
-        patterns.insert("youtube", vec!["youtube", "video", "transcript", "subtitle"]);
+        patterns.insert(
+            "youtube",
+            vec!["youtube", "video", "transcript", "subtitle"],
+        );
         patterns.insert("obsidian", vec!["obsidian", "markdown", "vault", "notes"]);
         patterns.insert("news", vec!["news", "headlines", "rss", "article"]);
         patterns.insert(
@@ -137,7 +152,13 @@ struct ComplexityIndicators;
 impl ComplexityIndicators {
     fn get_high() -> Vec<&'static str> {
         vec![
-            "analyze", "compare", "multiple", "complex", "integrate", "migrate", "build system",
+            "analyze",
+            "compare",
+            "multiple",
+            "complex",
+            "integrate",
+            "migrate",
+            "build system",
         ]
     }
 
@@ -168,11 +189,7 @@ fn calculate_match_score(
     let patterns = KeywordPatterns::get();
 
     if skill_id_lower.contains("openclaw-") {
-        if let Some(skill_key) = skill_id_lower
-            .replace("openclaw-", "")
-            .split('-')
-            .next()
-        {
+        if let Some(skill_key) = skill_id_lower.replace("openclaw-", "").split('-').next() {
             if let Some(keywords) = patterns.get(skill_key) {
                 for keyword in keywords {
                     if input_lower.contains(keyword) {
@@ -256,11 +273,7 @@ impl SkillMatcher {
         }
     }
 
-    pub fn find_matches(
-        &self,
-        user_input: &str,
-        installed_skills: &[Skill],
-    ) -> MatchingResult {
+    pub fn find_matches(&self, user_input: &str, installed_skills: &[Skill]) -> MatchingResult {
         let mut matches: Vec<SkillMatch> = Vec::new();
 
         for skill in installed_skills {

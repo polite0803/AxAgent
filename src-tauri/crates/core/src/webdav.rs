@@ -180,10 +180,9 @@ impl WebDavClient {
                     )));
                 }
 
-                let text = response
-                    .text()
-                    .await
-                    .map_err(|e| AxAgentError::Gateway(format!("Failed to read response: {}", e)))?;
+                let text = response.text().await.map_err(|e| {
+                    AxAgentError::Gateway(format!("Failed to read response: {}", e))
+                })?;
 
                 parse_propfind_response(&text)
             },
@@ -396,10 +395,12 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
             );
         } else if name == "master.key" {
             let path = dest_dir.join("master.key");
-            let mut outfile = std::fs::File::create(&path)
-                .map_err(|e| AxAgentError::Gateway(format!("Failed to extract master.key: {}", e)))?;
-            std::io::copy(&mut entry, &mut outfile)
-                .map_err(|e| AxAgentError::Gateway(format!("Failed to extract master.key: {}", e)))?;
+            let mut outfile = std::fs::File::create(&path).map_err(|e| {
+                AxAgentError::Gateway(format!("Failed to extract master.key: {}", e))
+            })?;
+            std::io::copy(&mut entry, &mut outfile).map_err(|e| {
+                AxAgentError::Gateway(format!("Failed to extract master.key: {}", e))
+            })?;
             master_key_path = Some(path);
         } else if name.starts_with("documents/") && !entry.is_dir() {
             has_documents = true;
@@ -425,7 +426,8 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
     }
 
     Ok(BackupZipContents {
-        db_path: db_path.ok_or_else(|| AxAgentError::Gateway("No axagent.db in backup ZIP".into()))?,
+        db_path: db_path
+            .ok_or_else(|| AxAgentError::Gateway("No axagent.db in backup ZIP".into()))?,
         metadata: metadata
             .ok_or_else(|| AxAgentError::Gateway("No metadata.json in backup ZIP".into()))?,
         has_documents,

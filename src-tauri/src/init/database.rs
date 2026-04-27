@@ -12,7 +12,8 @@ pub struct DatabaseInitResult {
 
 pub fn init_database() -> Result<DatabaseInitResult, String> {
     let app_dir = crate::paths::axagent_home();
-    std::fs::create_dir_all(&app_dir).map_err(|e| format!("failed to create AxAgent home dir: {}", e))?;
+    std::fs::create_dir_all(&app_dir)
+        .map_err(|e| format!("failed to create AxAgent home dir: {}", e))?;
 
     axagent_core::storage_paths::ensure_documents_dirs()
         .map_err(|e| format!("failed to create documents storage dirs: {}", e))?;
@@ -26,7 +27,8 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
     axagent_core::builtin_tools_registry::set_global_db_path(&db_path);
 
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let db_handle = rt.block_on(axagent_core::db::create_pool(&db_path))
+    let db_handle = rt
+        .block_on(axagent_core::db::create_pool(&db_path))
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
     Ok(DatabaseInitResult {
@@ -39,7 +41,8 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
 
 fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32], String> {
     if key_path.exists() {
-        let mut bytes = std::fs::read(key_path).map_err(|e| format!("failed to read master key: {}", e))?;
+        let mut bytes =
+            std::fs::read(key_path).map_err(|e| format!("failed to read master key: {}", e))?;
         if bytes.len() != 32 {
             return Err(format!(
                 "master.key is corrupted: expected 32 bytes, got {}. Delete the file to regenerate.",

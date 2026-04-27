@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
-import { NODE_TYPE_MAP } from '../types';
+import React, { memo } from "react";
+import { Handle, type NodeProps, Position } from "reactflow";
+import { NODE_TYPE_MAP } from "../types";
 
 interface BaseNodeData {
   id: string;
@@ -13,7 +13,7 @@ interface BaseNodeData {
 }
 
 const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }) => {
-  const typeInfo = NODE_TYPE_MAP[data.nodeType] || { label: data.nodeType, color: '#999' };
+  const typeInfo = NODE_TYPE_MAP[data.nodeType] || { label: data.nodeType, color: "#999" };
 
   return (
     <div
@@ -21,25 +21,25 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
         minWidth: 160,
         maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? 'none' : 'grayscale(100%)',
+        filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: '#252525',
-          border: `2px solid ${selected ? '#1890ff' : data.color}`,
+          background: "#252525",
+          border: `2px solid ${selected ? "#1890ff" : data.color}`,
           borderRadius: 8,
           padding: 0,
-          boxShadow: selected ? `0 0 0 2px ${data.color}40` : 'none',
-          transition: 'all 0.2s',
+          boxShadow: selected ? `0 0 0 2px ${data.color}40` : "none",
+          transition: "all 0.2s",
         }}
       >
         <div
           style={{
-            padding: '8px 12px',
+            padding: "8px 12px",
             borderBottom: `1px solid ${data.color}40`,
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 8,
           }}
         >
@@ -55,16 +55,16 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
           </span>
         </div>
 
-        <div style={{ padding: '8px 12px' }}>
+        <div style={{ padding: "8px 12px" }}>
           <div
             style={{
               fontSize: 13,
-              color: '#fff',
+              color: "#fff",
               fontWeight: 500,
               marginBottom: data.description ? 4 : 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {data.title}
@@ -73,10 +73,10 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
             <div
               style={{
                 fontSize: 10,
-                color: '#666',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                color: "#666",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
               {data.description}
@@ -90,7 +90,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
         position={Position.Top}
         style={{
           background: data.color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
@@ -101,13 +101,13 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
         position={Position.Bottom}
         style={{
           background: data.color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
       />
 
-      {['condition', 'parallel', 'merge'].includes(data.nodeType) && (
+      {["condition", "parallel", "merge"].includes(data.nodeType) && (
         <>
           <Handle
             type="target"
@@ -115,10 +115,10 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
             id="left-handle"
             style={{
               background: data.color,
-              border: 'none',
+              border: "none",
               width: 6,
               height: 6,
-              top: '50%',
+              top: "50%",
             }}
           />
           <Handle
@@ -127,10 +127,10 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
             id="right-handle"
             style={{
               background: data.color,
-              border: 'none',
+              border: "none",
               width: 6,
               height: 6,
-              top: '50%',
+              top: "50%",
             }}
           />
         </>
@@ -141,22 +141,22 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
 
 function getNodeIcon(type: string): string {
   const icons: Record<string, string> = {
-    trigger: '⚡',
-    agent: '🤖',
-    llm: '🧠',
-    condition: '❓',
-    parallel: '⫴',
-    loop: '🔄',
-    merge: '⊕',
-    delay: '⏱',
-    tool: '🔧',
-    code: '💻',
-    subWorkflow: '📦',
-    documentParser: '📄',
-    vectorRetrieve: '🔍',
-    end: '🏁',
+    trigger: "⚡",
+    agent: "🤖",
+    llm: "🧠",
+    condition: "❓",
+    parallel: "⏩",
+    loop: "🔄",
+    merge: "🔗",
+    delay: "⏱",
+    tool: "🔧",
+    code: "💻",
+    subWorkflow: "📦",
+    documentParser: "📄",
+    vectorRetrieve: "🔍",
+    end: "🏁",
   };
-  return icons[type] || '📦';
+  return icons[type] || "📦";
 }
 
 export const BaseNode = memo(BaseNodeComponent);

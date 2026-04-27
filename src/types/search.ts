@@ -1,4 +1,4 @@
-export type SearchProviderType = 'tavily' | 'zhipu' | 'bocha';
+export type SearchProviderType = "tavily" | "zhipu" | "bocha";
 
 export type SearchProvider = {
   id: string;

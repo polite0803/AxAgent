@@ -1,18 +1,20 @@
-import { Slider, InputNumber, Button, Input, Tooltip, Modal, Divider, theme } from 'antd';
-import { Settings, Info, Undo2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useSettingsStore, useProviderStore } from '@/stores';
-import { useEffect, useCallback, useState } from 'react';
-import type { AppSettings } from '@/types';
-import { ModelSelect, parseModelValue } from '@/components/shared/ModelSelect';
-import { ModelParamSliders } from '@/components/common/ModelParamSliders';
-import { SettingsGroup } from './SettingsGroup';
+import { ModelParamSliders } from "@/components/common/ModelParamSliders";
+import { ModelSelect, parseModelValue } from "@/components/shared/ModelSelect";
+import { useProviderStore, useSettingsStore } from "@/stores";
+import type { AppSettings } from "@/types";
+import { Button, Divider, Input, InputNumber, Modal, Slider, theme, Tooltip } from "antd";
+import { Info, Settings, Undo2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { SettingsGroup } from "./SettingsGroup";
 
 const { TextArea } = Input;
 
-const DEFAULT_TITLE_SUMMARY_PROMPT = '请根据以下对话内容，生成一个简短精炼的标题（不超过20个字），直接返回标题文本，不要包含引号或任何额外说明。';
+const DEFAULT_TITLE_SUMMARY_PROMPT =
+  "请根据以下对话内容，生成一个简短精炼的标题（不超过20个字），直接返回标题文本，不要包含引号或任何额外说明。";
 
-const DEFAULT_COMPRESSION_PROMPT = '你是一个对话摘要助手。请将以下对话历史压缩为简洁摘要。\n\n要求：\n1. 保留所有用户明确表达的需求、偏好和决策\n2. 保留关键技术细节（代码片段、配置、错误信息等）\n3. 保留待办事项和未解决的问题\n4. 用简洁的要点形式组织\n5. 保持摘要简洁，不超过 500 字';
+const DEFAULT_COMPRESSION_PROMPT =
+  "你是一个对话摘要助手。请将以下对话历史压缩为简洁摘要。\n\n要求：\n1. 保留所有用户明确表达的需求、偏好和决策\n2. 保留关键技术细节（代码片段、配置、错误信息等）\n3. 保留待办事项和未解决的问题\n4. 用简洁的要点形式组织\n5. 保持摘要简洁，不超过 500 字";
 
 // ── Context count slider ───────────────────────────────────
 
@@ -30,31 +32,34 @@ function ContextCountParam({
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const effectiveValue = value ?? 5;
-  const contextMarks: Record<number, string> = { 0: '0', 5: '5', 10: '10', 15: '15', 50: t('common.unlimited') };
+  const contextMarks: Record<number, string> = { 0: "0", 5: "5", 10: "10", 15: "15", 50: t("common.unlimited") };
 
   return (
     <>
-      <div style={{ padding: '12px 0 4px' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
+      <div style={{ padding: "12px 0 4px" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14 }}>
           {label}
           {tooltip && (
             <Tooltip title={tooltip}>
-              <Info size={12} style={{ color: token.colorTextSecondary, cursor: 'help' }} />
+              <Info size={12} style={{ color: token.colorTextSecondary, cursor: "help" }} />
             </Tooltip>
           )}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 8 }}>
         <Slider
           style={{ flex: 1 }}
-          min={0} max={50} step={1}
+          min={0}
+          max={50}
+          step={1}
           marks={contextMarks}
           value={effectiveValue}
           onChange={(v) => onChange(v)}
         />
         <InputNumber
           style={{ width: 72 }}
-          min={0} max={50}
+          min={0}
+          max={50}
           value={effectiveValue}
           onChange={(v) => onChange(v ?? 5)}
           size="small"
@@ -110,8 +115,8 @@ function ModelParamsModal({
       [topPKey]: null,
       [maxTokensKey]: null,
     };
-    if (contextCountKey) resetValues[contextCountKey] = null;
-    if (promptKey) resetValues[promptKey] = null;
+    if (contextCountKey) { resetValues[contextCountKey] = null; }
+    if (promptKey) { resetValues[promptKey] = null; }
     saveSettings(resetValues as Partial<AppSettings>);
   }, [saveSettings, temperatureKey, topPKey, maxTokensKey, contextCountKey, promptKey]);
 
@@ -127,20 +132,20 @@ function ModelParamsModal({
       {showPrompt && promptKey && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-            {t('settings.promptLabel')}
+            {t("settings.promptLabel")}
           </div>
           <TextArea
             rows={4}
             value={(settings[promptKey] as string | null) ?? (defaultPrompt || DEFAULT_TITLE_SUMMARY_PROMPT)}
             onChange={(e) => saveSettings({ [promptKey]: e.target.value || null } as Partial<AppSettings>)}
-            placeholder={promptPlaceholder || t('settings.titleSummaryPromptPlaceholder')}
+            placeholder={promptPlaceholder || t("settings.titleSummaryPromptPlaceholder")}
           />
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
         <span style={{ fontSize: 14, fontWeight: 600 }}>
-          {t('settings.modelParams')}
+          {t("settings.modelParams")}
         </span>
         <Button
           type="text"
@@ -149,7 +154,7 @@ function ModelParamsModal({
           onClick={handleReset}
         />
       </div>
-      <Divider style={{ margin: '4px 0 0' }} />
+      <Divider style={{ margin: "4px 0 0" }} />
 
       <ModelParamSliders
         values={{
@@ -160,19 +165,19 @@ function ModelParamsModal({
         }}
         onChange={(v) => {
           const patch: Record<string, unknown> = {};
-          if ('temperature' in v) patch[temperatureKey] = v.temperature;
-          if ('topP' in v) patch[topPKey] = v.topP;
-          if ('maxTokens' in v) patch[maxTokensKey] = v.maxTokens;
+          if ("temperature" in v) { patch[temperatureKey] = v.temperature; }
+          if ("topP" in v) { patch[topPKey] = v.topP; }
+          if ("maxTokens" in v) { patch[maxTokensKey] = v.maxTokens; }
           saveSettings(patch as Partial<AppSettings>);
         }}
         defaults={{ temperature: defaultTemperature, topP: defaultTopP, maxTokens: defaultMaxTokens }}
-        visibleParams={['temperature', 'topP', 'maxTokens']}
+        visibleParams={["temperature", "topP", "maxTokens"]}
       />
 
       {showContextCount && contextCountKey && (
         <ContextCountParam
-          label={t('settings.contextCount')}
-          tooltip={t('settings.contextCountTooltip')}
+          label={t("settings.contextCount")}
+          tooltip={t("settings.contextCountTooltip")}
           value={settings[contextCountKey] as number | null}
           onChange={(v) => saveSettings({ [contextCountKey]: v } as Partial<AppSettings>)}
         />
@@ -253,7 +258,7 @@ function ModelCard({
         <div style={{ fontSize: 12, color: token.colorTextDescription, marginBottom: 12 }}>
           {description}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <ModelSelect
             style={{ flex: 1 }}
             value={currentValue}
@@ -300,17 +305,17 @@ export function DefaultModelSettings() {
     fetchProviders();
   }, [fetchProviders]);
 
-  const placeholderText = t('settings.useActiveModel');
+  const placeholderText = t("settings.useActiveModel");
 
   return (
     <div style={{ padding: 24 }}>
       <ModelCard
-        title={t('settings.defaultConversationModel')}
-        description={t('settings.defaultConversationModelDesc')}
+        title={t("settings.defaultConversationModel")}
+        description={t("settings.defaultConversationModelDesc")}
         providerIdKey="default_provider_id"
         modelIdKey="default_model_id"
         placeholder={placeholderText}
-        modalTitle={t('settings.defaultConversationModel')}
+        modalTitle={t("settings.defaultConversationModel")}
         showPrompt={false}
         showContextCount={true}
         temperatureKey="default_temperature"
@@ -323,12 +328,12 @@ export function DefaultModelSettings() {
       />
 
       <ModelCard
-        title={t('settings.titleSummaryModel')}
-        description={t('settings.titleSummaryModelDesc')}
+        title={t("settings.titleSummaryModel")}
+        description={t("settings.titleSummaryModelDesc")}
         providerIdKey="title_summary_provider_id"
         modelIdKey="title_summary_model_id"
         placeholder={placeholderText}
-        modalTitle={t('settings.titleSummaryModel')}
+        modalTitle={t("settings.titleSummaryModel")}
         showPrompt={true}
         showContextCount={false}
         promptKey="title_summary_prompt"
@@ -341,12 +346,12 @@ export function DefaultModelSettings() {
       />
 
       <ModelCard
-        title={t('settings.compressionModel')}
-        description={t('settings.compressionModelDesc')}
+        title={t("settings.compressionModel")}
+        description={t("settings.compressionModelDesc")}
         providerIdKey="compression_provider_id"
         modelIdKey="compression_model_id"
         placeholder={placeholderText}
-        modalTitle={t('settings.compressionModel')}
+        modalTitle={t("settings.compressionModel")}
         showPrompt={true}
         showContextCount={false}
         promptKey="compression_prompt"
@@ -357,7 +362,7 @@ export function DefaultModelSettings() {
         defaultTopP={1.0}
         defaultMaxTokens={1024}
         defaultPrompt={DEFAULT_COMPRESSION_PROMPT}
-        promptPlaceholder={t('settings.compressionPromptPlaceholder')}
+        promptPlaceholder={t("settings.compressionPromptPlaceholder")}
       />
     </div>
   );

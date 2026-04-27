@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Slider, Button, Tooltip, Card, theme } from 'antd';
-import { ModelIcon } from '@lobehub/icons';
-import { Info, Undo2, Bot } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useConversationStore, useSettingsStore } from '@/stores';
-import { CONV_ICON_KEY, type ConvIconType, type ConvIcon } from '@/lib/convIcon';
-import { IconEditor } from '@/components/shared/IconEditor';
-import { ModelParamSliders } from '@/components/common/ModelParamSliders';
-import type { MenuProps } from 'antd';
+import { ModelParamSliders } from "@/components/common/ModelParamSliders";
+import { IconEditor } from "@/components/shared/IconEditor";
+import { CONV_ICON_KEY, type ConvIcon, type ConvIconType } from "@/lib/convIcon";
+import { useConversationStore, useSettingsStore } from "@/stores";
+import { ModelIcon } from "@lobehub/icons";
+import { Button, Card, Input, Modal, Slider, theme, Tooltip } from "antd";
+import type { MenuProps } from "antd";
+import { Bot, Info, Undo2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ConversationSettingsModalProps {
   open: boolean;
@@ -28,8 +28,8 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
   const conversation = conversations.find((c) => c.id === activeConversationId);
 
   // Form state
-  const [title, setTitle] = useState('');
-  const [systemPrompt, setSystemPrompt] = useState('');
+  const [title, setTitle] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
   const [contextLimit, setContextLimit] = useState(50);
   const [temperature, setTemperature] = useState<number | null>(null);
   const [topP, setTopP] = useState<number | null>(null);
@@ -38,14 +38,14 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
   const [saving, setSaving] = useState(false);
 
   // Icon state
-  const [iconType, setIconType] = useState<ConvIconType>('model');
-  const [iconValue, setIconValue] = useState('');
+  const [iconType, setIconType] = useState<ConvIconType>("model");
+  const [iconValue, setIconValue] = useState("");
 
   // Initialize form when modal opens
   useEffect(() => {
     if (open && conversation) {
       setTitle(conversation.title);
-      setSystemPrompt(conversation.system_prompt ?? '');
+      setSystemPrompt(conversation.system_prompt ?? "");
       setTemperature(conversation.temperature ?? null);
       setTopP(conversation.top_p ?? null);
       setMaxTokens(conversation.max_tokens ?? null);
@@ -62,18 +62,17 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
           setIconType(parsed.type);
           setIconValue(parsed.value);
         } catch {
-          setIconType('model');
-          setIconValue('');
+          setIconType("model");
+          setIconValue("");
         }
       } else {
-        setIconType('model');
-        setIconValue('');
+        setIconType("model");
+        setIconValue("");
       }
     }
   }, [open, conversation]);
 
-  if (!conversation) return null;
-
+  if (!conversation) { return null; }
 
   const handleReset = () => {
     setTemperature(null);
@@ -95,7 +94,7 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
       });
       localStorage.setItem(CONTEXT_LIMIT_KEY(conversation.id), String(contextLimit));
       // Save icon
-      if (iconType === 'model') {
+      if (iconType === "model") {
         localStorage.removeItem(CONV_ICON_KEY(conversation.id));
       } else {
         localStorage.setItem(CONV_ICON_KEY(conversation.id), JSON.stringify({ type: iconType, value: iconValue }));
@@ -106,18 +105,21 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
     }
   };
 
-  const useModelIconMenuItem: MenuProps['items'] = [
+  const useModelIconMenuItem: MenuProps["items"] = [
     {
-      key: 'use_model',
+      key: "use_model",
       icon: <Bot size={14} />,
-      label: t('settings.useModelIcon'),
-      onClick: () => { setIconType('model'); setIconValue(''); },
+      label: t("settings.useModelIcon"),
+      onClick: () => {
+        setIconType("model");
+        setIconValue("");
+      },
     },
   ];
 
   const sliderRowStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 12,
   };
 
@@ -125,70 +127,70 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
     fontSize: 13,
     color: token.colorText,
     marginBottom: 6,
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 4,
   };
 
   return (
     <Modal
-      title={t('settings.conversationSettings')}
+      title={t("settings.conversationSettings")}
       open={open}
       mask={{ enabled: true, blur: true }}
       onCancel={onClose}
       width={520}
       destroyOnHidden
       footer={
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
           <Button type="primary" onClick={handleSave} loading={saving}>
-            {t('common.save')}
+            {t("common.save")}
           </Button>
         </div>
       }
     >
-      <div data-os-scrollbar style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 4 }}>
+      <div data-os-scrollbar style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
         {/* Avatar with IconEditor */}
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0 16px' }}>
+        <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 16px" }}>
           <IconEditor
-            iconType={iconType === 'model' ? null : iconType}
-            iconValue={iconType === 'model' ? null : iconValue}
+            iconType={iconType === "model" ? null : iconType}
+            iconValue={iconType === "model" ? null : iconValue}
             onChange={(type, value) => {
               if (type && value) {
                 setIconType(type as ConvIconType);
                 setIconValue(value);
               } else {
-                setIconType('model');
-                setIconValue('');
+                setIconType("model");
+                setIconValue("");
               }
             }}
             size={64}
             defaultIcon={<ModelIcon model={conversation.model_id} size={64} type="avatar" />}
             prependMenuItems={useModelIconMenuItem}
-            showClear={iconType !== 'model'}
+            showClear={iconType !== "model"}
           />
         </div>
 
         {/* Name */}
         <div style={{ marginBottom: 16 }}>
-          <div style={labelStyle}>{t('common.name')}</div>
+          <div style={labelStyle}>{t("common.name")}</div>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         {/* System Prompt */}
         <div style={{ marginBottom: 16 }}>
-          <div style={labelStyle}>{t('settings.systemPromptLabel')}</div>
+          <div style={labelStyle}>{t("settings.systemPromptLabel")}</div>
           <Input.TextArea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             rows={3}
-            placeholder={t('settings.systemPromptPlaceholder')}
+            placeholder={t("settings.systemPromptPlaceholder")}
           />
         </div>
 
         {/* Model Settings Card */}
         <Card
-          title={t('settings.modelSettings')}
+          title={t("settings.modelSettings")}
           size="small"
           extra={
             <Button
@@ -197,20 +199,19 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
               icon={<Undo2 size={14} />}
               onClick={handleReset}
             >
-              {t('common.reset')}
+              {t("common.reset")}
             </Button>
           }
         >
-
           {/* Context Message Limit */}
           <div style={{ marginBottom: 20 }}>
             <div style={labelStyle}>
-              {t('settings.contextMessageLimit')}
-              <Tooltip title={t('settings.contextMessageLimitTooltip')}>
-                <Info size={14} style={{ color: token.colorTextSecondary, cursor: 'help' }} />
+              {t("settings.contextMessageLimit")}
+              <Tooltip title={t("settings.contextMessageLimitTooltip")}>
+                <Info size={14} style={{ color: token.colorTextSecondary, cursor: "help" }} />
               </Tooltip>
-              <span style={{ marginLeft: 'auto', color: token.colorTextSecondary, fontSize: 12 }}>
-                {contextLimit >= 50 ? t('common.unlimited') : contextLimit}
+              <span style={{ marginLeft: "auto", color: token.colorTextSecondary, fontSize: 12 }}>
+                {contextLimit >= 50 ? t("common.unlimited") : contextLimit}
               </span>
             </div>
             <div style={sliderRowStyle}>
@@ -220,7 +221,7 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
                 max={50}
                 value={contextLimit}
                 onChange={setContextLimit}
-                marks={{ 1: '1', 10: '10', 25: '25', 50: '50' }}
+                marks={{ 1: "1", 10: "10", 25: "25", 50: "50" }}
               />
             </div>
           </div>
@@ -234,10 +235,10 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
               frequencyPenalty,
             }}
             onChange={(v) => {
-              if ('temperature' in v) setTemperature(v.temperature!);
-              if ('topP' in v) setTopP(v.topP!);
-              if ('maxTokens' in v) setMaxTokens(v.maxTokens!);
-              if ('frequencyPenalty' in v) setFrequencyPenalty(v.frequencyPenalty!);
+              if ("temperature" in v) { setTemperature(v.temperature!); }
+              if ("topP" in v) { setTopP(v.topP!); }
+              if ("maxTokens" in v) { setMaxTokens(v.maxTokens!); }
+              if ("frequencyPenalty" in v) { setFrequencyPenalty(v.frequencyPenalty!); }
             }}
             defaults={{
               temperature: settings.default_temperature ?? 0.7,

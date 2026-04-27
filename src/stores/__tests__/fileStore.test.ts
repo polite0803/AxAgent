@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FileRow } from '@/types';
+import type { FileRow } from "@/types";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const invokeMock = vi.fn();
 
-vi.mock('@/lib/invoke', () => ({
+vi.mock("@/lib/invoke", () => ({
   invoke: invokeMock,
   listen: vi.fn(),
   isTauri: () => false,
@@ -19,95 +19,95 @@ function makeRow(id: string, overrides: Partial<FileRow> = {}): FileRow {
   };
 }
 
-describe('fileStore', () => {
+describe("fileStore", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    const { useFileStore } = await import('../feature/fileStore');
+    const { useFileStore } = await import("../feature/fileStore");
     useFileStore.setState({
       rows: [],
       loading: false,
       error: null,
-      search: '',
-      sortKey: 'createdAt',
+      search: "",
+      sortKey: "createdAt",
     });
   });
 
   // ── loadCategory ──────────────────────────────────────────────────────────
 
-  describe('loadCategory', () => {
-    it('requests the correct category from the backend', async () => {
+  describe("loadCategory", () => {
+    it("requests the correct category from the backend", async () => {
       invokeMock.mockResolvedValueOnce([]);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
+      await useFileStore.getState().loadCategory("images");
 
       expect(invokeMock).toHaveBeenCalledWith(
-        'list_files_page_entries',
-        expect.objectContaining({ category: 'images' }),
+        "list_files_page_entries",
+        expect.objectContaining({ category: "images" }),
       );
     });
 
-    it('search is scoped to the active category — passes current search text in request', async () => {
+    it("search is scoped to the active category — passes current search text in request", async () => {
       invokeMock.mockResolvedValueOnce([]);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      useFileStore.setState({ search: 'sunset' });
-      await useFileStore.getState().loadCategory('images');
+      useFileStore.setState({ search: "sunset" });
+      await useFileStore.getState().loadCategory("images");
 
       expect(invokeMock).toHaveBeenCalledWith(
-        'list_files_page_entries',
-        expect.objectContaining({ category: 'images', search: 'sunset' }),
+        "list_files_page_entries",
+        expect.objectContaining({ category: "images", search: "sunset" }),
       );
     });
 
-    it('omits the search key when search text is empty', async () => {
+    it("omits the search key when search text is empty", async () => {
       invokeMock.mockResolvedValueOnce([]);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('files');
+      await useFileStore.getState().loadCategory("files");
 
       const callArgs = invokeMock.mock.calls[0][1] as Record<string, unknown>;
-      expect(callArgs).not.toHaveProperty('search');
+      expect(callArgs).not.toHaveProperty("search");
     });
 
-    it('missing-file rows remain in results', async () => {
-      const rows = [makeRow('1'), makeRow('2', { missing: true })];
+    it("missing-file rows remain in results", async () => {
+      const rows = [makeRow("1"), makeRow("2", { missing: true })];
       invokeMock.mockResolvedValueOnce(rows);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
+      await useFileStore.getState().loadCategory("images");
 
       expect(useFileStore.getState().rows).toHaveLength(2);
-      expect(useFileStore.getState().rows.find((r) => r.id === '2')?.missing).toBe(true);
+      expect(useFileStore.getState().rows.find((r) => r.id === "2")?.missing).toBe(true);
     });
 
-    it('normalizes real files-page backend entries into frontend rows', async () => {
+    it("normalizes real files-page backend entries into frontend rows", async () => {
       invokeMock.mockResolvedValueOnce([
         {
-          id: 'attachment::img-1',
-          sourceKind: 'attachment',
-          category: 'images',
-          displayName: 'screen.png',
-          path: 'conv-1/screen.png',
+          id: "attachment::img-1",
+          sourceKind: "attachment",
+          category: "images",
+          displayName: "screen.png",
+          path: "conv-1/screen.png",
           sizeBytes: 2048,
-          createdAt: '2026-03-24T08:00:00Z',
+          createdAt: "2026-03-24T08:00:00Z",
           missing: false,
-          previewUrl: 'file:///tmp/screen.png',
+          previewUrl: "file:///tmp/screen.png",
         },
       ]);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
+      await useFileStore.getState().loadCategory("images");
 
       expect(useFileStore.getState().rows).toEqual([
         expect.objectContaining({
-          id: 'attachment::img-1',
-          category: 'images',
-          name: 'screen.png',
-          path: 'conv-1/screen.png',
+          id: "attachment::img-1",
+          category: "images",
+          name: "screen.png",
+          path: "conv-1/screen.png",
           size: 2048,
-          createdAt: '2026-03-24T08:00:00Z',
+          createdAt: "2026-03-24T08:00:00Z",
           hasThumbnail: true,
         }),
       ]);
@@ -116,95 +116,95 @@ describe('fileStore', () => {
 
   // ── openEntry ─────────────────────────────────────────────────────────────
 
-  describe('openEntry', () => {
-    it('dispatches open command for a row that still exists (not missing)', async () => {
+  describe("openEntry", () => {
+    it("dispatches open command for a row that still exists (not missing)", async () => {
       invokeMock
-        .mockResolvedValueOnce([makeRow('1', { path: '/img/a.jpg' })])
+        .mockResolvedValueOnce([makeRow("1", { path: "/img/a.jpg" })])
         .mockResolvedValueOnce(undefined);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
-      await useFileStore.getState().openEntry('/img/a.jpg');
+      await useFileStore.getState().loadCategory("images");
+      await useFileStore.getState().openEntry("/img/a.jpg");
 
-      expect(invokeMock).toHaveBeenCalledWith('open_files_page_entry', { path: '/img/a.jpg' });
+      expect(invokeMock).toHaveBeenCalledWith("open_files_page_entry", { path: "/img/a.jpg" });
     });
 
-    it('does NOT dispatch open command for a missing row', async () => {
-      invokeMock.mockResolvedValueOnce([makeRow('1', { path: '/img/a.jpg', missing: true })]);
-      const { useFileStore } = await import('../feature/fileStore');
+    it("does NOT dispatch open command for a missing row", async () => {
+      invokeMock.mockResolvedValueOnce([makeRow("1", { path: "/img/a.jpg", missing: true })]);
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
-      await useFileStore.getState().openEntry('/img/a.jpg');
+      await useFileStore.getState().loadCategory("images");
+      await useFileStore.getState().openEntry("/img/a.jpg");
 
-      expect(invokeMock).not.toHaveBeenCalledWith('open_files_page_entry', expect.anything());
+      expect(invokeMock).not.toHaveBeenCalledWith("open_files_page_entry", expect.anything());
     });
   });
 
   // ── revealEntry ───────────────────────────────────────────────────────────
 
-  describe('revealEntry', () => {
-    it('dispatches reveal command for a row that still exists (not missing)', async () => {
+  describe("revealEntry", () => {
+    it("dispatches reveal command for a row that still exists (not missing)", async () => {
       invokeMock
-        .mockResolvedValueOnce([makeRow('1', { path: '/img/a.jpg' })])
+        .mockResolvedValueOnce([makeRow("1", { path: "/img/a.jpg" })])
         .mockResolvedValueOnce(undefined);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
-      await useFileStore.getState().revealEntry('/img/a.jpg');
+      await useFileStore.getState().loadCategory("images");
+      await useFileStore.getState().revealEntry("/img/a.jpg");
 
-      expect(invokeMock).toHaveBeenCalledWith('reveal_files_page_entry', { path: '/img/a.jpg' });
+      expect(invokeMock).toHaveBeenCalledWith("reveal_files_page_entry", { path: "/img/a.jpg" });
     });
 
-    it('does NOT dispatch reveal command for a missing row', async () => {
-      invokeMock.mockResolvedValueOnce([makeRow('1', { path: '/img/a.jpg', missing: true })]);
-      const { useFileStore } = await import('../feature/fileStore');
+    it("does NOT dispatch reveal command for a missing row", async () => {
+      invokeMock.mockResolvedValueOnce([makeRow("1", { path: "/img/a.jpg", missing: true })]);
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
-      await useFileStore.getState().revealEntry('/img/a.jpg');
+      await useFileStore.getState().loadCategory("images");
+      await useFileStore.getState().revealEntry("/img/a.jpg");
 
-      expect(invokeMock).not.toHaveBeenCalledWith('reveal_files_page_entry', expect.anything());
+      expect(invokeMock).not.toHaveBeenCalledWith("reveal_files_page_entry", expect.anything());
     });
   });
 
   // ── cleanupMissingEntry ───────────────────────────────────────────────────
 
-  describe('cleanupMissingEntry', () => {
-    it('dispatches cleanup command only for rows marked missing', async () => {
+  describe("cleanupMissingEntry", () => {
+    it("dispatches cleanup command only for rows marked missing", async () => {
       invokeMock
-        .mockResolvedValueOnce([makeRow('1', { missing: true })])
+        .mockResolvedValueOnce([makeRow("1", { missing: true })])
         .mockResolvedValueOnce(undefined);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
-      await useFileStore.getState().cleanupMissingEntry('1');
+      await useFileStore.getState().loadCategory("images");
+      await useFileStore.getState().cleanupMissingEntry("1");
 
-      expect(invokeMock).toHaveBeenCalledWith('cleanup_missing_files_page_entry', { entryId: '1' });
+      expect(invokeMock).toHaveBeenCalledWith("cleanup_missing_files_page_entry", { entryId: "1" });
     });
 
-    it('does NOT dispatch cleanup command for a non-missing row', async () => {
-      invokeMock.mockResolvedValueOnce([makeRow('1', { missing: false })]);
-      const { useFileStore } = await import('../feature/fileStore');
+    it("does NOT dispatch cleanup command for a non-missing row", async () => {
+      invokeMock.mockResolvedValueOnce([makeRow("1", { missing: false })]);
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
-      await useFileStore.getState().cleanupMissingEntry('1');
+      await useFileStore.getState().loadCategory("images");
+      await useFileStore.getState().cleanupMissingEntry("1");
 
       expect(invokeMock).not.toHaveBeenCalledWith(
-        'cleanup_missing_files_page_entry',
+        "cleanup_missing_files_page_entry",
         expect.anything(),
       );
     });
 
-    it('removes the cleaned-up row from the list', async () => {
+    it("removes the cleaned-up row from the list", async () => {
       invokeMock
-        .mockResolvedValueOnce([makeRow('1', { missing: true }), makeRow('2')])
+        .mockResolvedValueOnce([makeRow("1", { missing: true }), makeRow("2")])
         .mockResolvedValueOnce(undefined);
-      const { useFileStore } = await import('../feature/fileStore');
+      const { useFileStore } = await import("../feature/fileStore");
 
-      await useFileStore.getState().loadCategory('images');
-      await useFileStore.getState().cleanupMissingEntry('1');
+      await useFileStore.getState().loadCategory("images");
+      await useFileStore.getState().cleanupMissingEntry("1");
 
-      expect(useFileStore.getState().rows.find((r) => r.id === '1')).toBeUndefined();
-      expect(useFileStore.getState().rows.find((r) => r.id === '2')).toBeDefined();
+      expect(useFileStore.getState().rows.find((r) => r.id === "1")).toBeUndefined();
+      expect(useFileStore.getState().rows.find((r) => r.id === "2")).toBeDefined();
     });
   });
 });

@@ -13,63 +13,125 @@
 #![allow(clippy::non_canonical_partial_ord_impl)]
 #![allow(clippy::manual_strip)]
 
+mod adaptation;
+mod atomic_skill;
 mod auto_memory;
 mod batch;
+mod behavior_tracker;
+#[allow(dead_code)]
+mod chat_memory;
+mod compactor;
+mod context;
+mod context_predictor;
 mod fts5;
+mod hooks;
+mod insight;
 mod memory;
 mod nudge;
-mod pattern;
 mod parallel_execution;
-mod scheduled_task;
+mod pattern;
+mod pattern_analyzer;
+mod platform_integration;
+mod preference_learner;
+mod proactive_assistant;
+mod reminder_manager;
 #[allow(dead_code)]
 mod retrieval;
-mod insight;
-mod context;
-mod compactor;
-mod adaptation;
 mod rl;
+mod scheduled_task;
 mod skill;
+mod skill_decomposition;
 mod skill_evolution;
 mod skill_manager;
 mod skill_matcher;
 mod skill_proposal;
-mod platform_integration;
-mod user_profile;
-#[allow(dead_code)]
-mod chat_memory;
-mod hooks;
 mod storage;
+mod style_applier;
+mod style_extractor;
+mod style_migrator;
+mod style_vectorizer;
 mod sub_agent;
+mod suggestion_engine;
+mod task_prefetcher;
 mod trajectory;
-mod atomic_skill;
-mod skill_decomposition;
+mod user_profile;
 
+pub use adaptation::*;
+pub use atomic_skill::*;
 pub use auto_memory::*;
 pub use batch::*;
-pub use fts5::*;
-pub use memory::*;
-pub use pattern::*;
-pub use insight::*;
+pub use behavior_tracker::*;
+pub use compactor::{
+    verify_compression_integrity, IntegrityCheck, IntegrityCheckResult, MessageRecord,
+    SessionCompactor,
+};
 pub use context::*;
-pub use adaptation::*;
+pub use fts5::*;
+pub use hooks::*;
+pub use insight::*;
+pub use memory::*;
+pub use nudge::{
+    Nudge, NudgeAction, NudgeCandidate, NudgeConfig, NudgeContext, NudgeEntity, NudgeMessage,
+    NudgeService, NudgeSession, NudgeType, Urgency,
+};
+pub use parallel_execution::*;
+pub use platform_integration::*;
+pub use preference_learner::*;
 pub use rl::*;
+pub use scheduled_task::*;
 pub use skill::*;
+pub use skill_decomposition::*;
 pub use skill_evolution::*;
 pub use skill_manager::*;
 pub use skill_matcher::*;
 pub use skill_proposal::*;
-pub use platform_integration::*;
-pub use user_profile::*;
-pub use hooks::*;
+pub use storage::*;
+pub use style_applier::{
+    CodeStyleTemplate, CodeTemplate, StyleApplier, StylePattern, StylePatternType,
+};
+pub use style_extractor::{
+    DocumentStyleProfile, ExtractedCodePatterns, FormattingPreferences, IndentStyle, LineEnding,
+    StyleExtractor,
+};
+pub use style_migrator::*;
+pub use style_vectorizer::{
+    CodeSample, MessageSample, StyleDimensions, StyleVector, StyleVectorizer,
+};
 pub use sub_agent::*;
 pub use trajectory::*;
-pub use atomic_skill::*;
-pub use skill_decomposition::*;
-pub use compactor::{MessageRecord, IntegrityCheckResult, IntegrityCheck, SessionCompactor, verify_compression_integrity};
-pub use nudge::{NudgeService, NudgeConfig, Nudge, NudgeSession, NudgeCandidate, NudgeContext, NudgeEntity, Urgency, NudgeAction, NudgeType, NudgeMessage};
-pub use parallel_execution::*;
-pub use scheduled_task::*;
-pub use storage::*;
+
+pub use context_predictor::{
+    ActionType, ActivityLevel, ContextFeatures, ContextPredictor, PatternMatch, PredictionResult,
+    PredictionRule,
+};
+pub use pattern::{
+    CrossSessionInsight, CrossSessionLearner, DetectedPattern, PatternConfig, PatternLearner,
+    PatternStatistics, PatternType,
+};
+pub use pattern_analyzer::{
+    CodingPatternMatch, ExtractedPatterns, PatternAnalyzer, TemporalPattern, ToolPreferencePattern,
+    TopicPattern,
+};
+pub use proactive_assistant::{
+    CapabilityType, ContextPrediction, ContextWindow, PredictedIntent, Priority, ProactiveAction,
+    ProactiveAssistant, ProactiveCapability, ProactiveConfig, ProactiveSuggestion,
+    RecurrenceFrequency, Reminder, ReminderRecurrence, SuggestionAction, SuggestionType,
+    TriggerCondition, TriggerConditionType,
+};
+pub use reminder_manager::{
+    ReminderError, ReminderManager, ReminderManagerConfig, ReminderNotification, ReminderSchedule,
+};
+pub use suggestion_engine::{
+    CodingStylePreference, CommunicationStylePreference, CommunicationTone, DetailLevel,
+    DocumentationLevel, SuggestionEngine, SuggestionEngineConfig, UserPreferenceProfile,
+    WorkHabitPreference,
+};
+pub use task_prefetcher::{
+    PrefetchResult, PrefetchResults, PrefetchType, PrefetcherConfig, TaskPrefetcher,
+};
+pub use user_profile::{
+    calculate_confidence, ExpertiseLevel, ProfileUpdate, UpdateSource, UserProfile,
+};
 
 pub mod prelude {
     pub use crate::auto_memory::{
@@ -86,17 +148,13 @@ pub mod prelude {
         NudgeCandidate, PeriodicNudge, Relationship, RelationshipType, SearchResult,
         SkillUpgradeProposal, WorkingMemory,
     };
-    pub use crate::pattern::{
-        CrossSessionInsight, CrossSessionLearner, DetectedPattern, PatternConfig, PatternLearner,
-        PatternStatistics, PatternStep, PatternType,
-    };
     pub use crate::parallel_execution::{
         ExecutionResult, ExecutionStatus, ExecutionStrategy, ParallelExecution,
         ParallelExecutionService, ParallelTask, TaskResultSummary, TaskStatus,
     };
-    pub use crate::scheduled_task::{
-        DailySummaryConfig, ScheduledTask, ScheduledTaskService, ScheduledTaskStatus,
-        SummaryFormat, TaskConfig, TaskDefinition, TaskRunResult, TaskType,
+    pub use crate::pattern::{
+        CrossSessionInsight, CrossSessionLearner, DetectedPattern, PatternConfig, PatternLearner,
+        PatternStatistics, PatternStep, PatternType,
     };
     pub use crate::platform_integration::{
         DiscordHandler, DiscordMessage, MessagePlatform, OutgoingMessage, PlatformConfig,
@@ -104,6 +162,10 @@ pub mod prelude {
         TelegramMessage,
     };
     pub use crate::rl::{RLConfig, RLEngine, RLState, RewardNormalizer, RewardWeights};
+    pub use crate::scheduled_task::{
+        DailySummaryConfig, ScheduledTask, ScheduledTaskService, ScheduledTaskStatus,
+        SummaryFormat, TaskConfig, TaskDefinition, TaskRunResult, TaskType,
+    };
     pub use crate::skill::{
         EvolutionOutcome, HermesMetadata, Impact, MetricsDelta, ModificationType, Skill,
         SkillAnalysis, SkillConfig, SkillContext, SkillCreator, SkillEvolution, SkillExecution,
@@ -113,8 +175,8 @@ pub mod prelude {
     pub use crate::skill_proposal::{create_skill_from_proposal, SkillProposalService};
     pub use crate::storage::{TrajectoryStatistics, TrajectoryStorage};
     pub use crate::sub_agent::{
-        AgentMailbox, AgentMessage, AgentMessageError, AgentMessageKind,
-        MessageBus, SubAgent, SubAgentMetadata, SubAgentQuery, SubAgentRegistry, SubAgentResult, SubAgentStatus,
+        AgentMailbox, AgentMessage, AgentMessageError, AgentMessageKind, MessageBus, SubAgent,
+        SubAgentMetadata, SubAgentQuery, SubAgentRegistry, SubAgentResult, SubAgentStatus,
         TaskDeduplicator,
     };
     pub use crate::trajectory::{

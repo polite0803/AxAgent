@@ -68,8 +68,8 @@ pub async fn add_provider_key(
     let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
         .await
         .map_err(|e| e.to_string())?;
-    let encrypted =
-        axagent_core::crypto::encrypt_key(&raw_key, &state.master_key).map_err(|e| e.to_string())?;
+    let encrypted = axagent_core::crypto::encrypt_key(&raw_key, &state.master_key)
+        .map_err(|e| e.to_string())?;
     let prefix = if raw_key.len() >= 8 {
         format!("{}...", &raw_key[..8])
     } else {
@@ -86,8 +86,8 @@ pub async fn update_provider_key(
     key_id: String,
     raw_key: String,
 ) -> Result<ProviderKey, String> {
-    let encrypted =
-        axagent_core::crypto::encrypt_key(&raw_key, &state.master_key).map_err(|e| e.to_string())?;
+    let encrypted = axagent_core::crypto::encrypt_key(&raw_key, &state.master_key)
+        .map_err(|e| e.to_string())?;
     let prefix = if raw_key.len() >= 8 {
         format!("{}...", &raw_key[..8])
     } else {
@@ -164,7 +164,10 @@ pub async fn validate_provider_key(
         api_key: decrypted,
         key_id: key_id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(axagent_providers::resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -181,7 +184,9 @@ pub async fn validate_provider_key(
         Err(e) => {
             tracing::warn!("Key validation failed for key {}: {}", key_id, e);
             // Update as invalid, then return the error
-            let _ = axagent_core::repo::provider::update_key_validation(&state.sea_db, &key_id, false).await;
+            let _ =
+                axagent_core::repo::provider::update_key_validation(&state.sea_db, &key_id, false)
+                    .await;
             return Err(e.to_string());
         }
     };
@@ -231,14 +236,9 @@ pub async fn update_model_params(
     let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
         .await
         .map_err(|e| e.to_string())?;
-    axagent_core::repo::provider::update_model_params(
-        &state.sea_db,
-        &real_id,
-        &model_id,
-        overrides,
-    )
-    .await
-    .map_err(|e| e.to_string())
+    axagent_core::repo::provider::update_model_params(&state.sea_db, &real_id, &model_id, overrides)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -280,7 +280,10 @@ pub async fn fetch_remote_models(
         api_key: decrypted,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(axagent_providers::resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -336,7 +339,10 @@ pub async fn test_model(
         api_key: decrypted,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(axagent_providers::resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -395,4 +401,3 @@ pub async fn reorder_providers(
         .await
         .map_err(|e| e.to_string())
 }
-

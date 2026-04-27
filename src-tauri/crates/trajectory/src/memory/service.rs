@@ -32,13 +32,11 @@ pub struct MemoryEntry {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkingMemory {
     pub memory: HashMap<String, MemoryEntry>,
     pub user: HashMap<String, MemoryEntry>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryUsage {
@@ -101,8 +99,12 @@ impl MemoryService {
             };
 
             match memory.memory_type.as_str() {
-                "memory" => { working.memory.insert(entry.id.clone(), entry); }
-                "user" => { working.user.insert(entry.id.clone(), entry); }
+                "memory" => {
+                    working.memory.insert(entry.id.clone(), entry);
+                }
+                "user" => {
+                    working.user.insert(entry.id.clone(), entry);
+                }
                 _ => {}
             }
         }
@@ -110,11 +112,7 @@ impl MemoryService {
         Ok(())
     }
 
-    pub fn add_memory(
-        &self,
-        target: &str,
-        content: &str,
-    ) -> MemoryActionResult {
+    pub fn add_memory(&self, target: &str, content: &str) -> MemoryActionResult {
         if content.trim().is_empty() {
             return MemoryActionResult {
                 success: false,
@@ -125,7 +123,11 @@ impl MemoryService {
 
         let memory_type = target.to_string();
         let entry = MemoryEntry {
-            id: format!("mem_{}_{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4()),
+            id: format!(
+                "mem_{}_{}",
+                chrono::Utc::now().timestamp_millis(),
+                uuid::Uuid::new_v4()
+            ),
             content: content.to_string(),
             memory_type: memory_type.clone(),
             updated_at: chrono::Utc::now().timestamp(),
@@ -140,7 +142,10 @@ impl MemoryService {
         }
 
         // Sync FTS5 index
-        if let Err(e) = self.storage.index_memory_fts(&entry.id, &entry.memory_type, &entry.content, &[]) {
+        if let Err(e) =
+            self.storage
+                .index_memory_fts(&entry.id, &entry.memory_type, &entry.content, &[])
+        {
             tracing::warn!("Failed to sync FTS5 index for new memory: {}", e);
         }
 
@@ -150,13 +155,19 @@ impl MemoryService {
                 e.into_inner()
             });
             match target {
-                "memory" => { mem.memory.insert(entry.id.clone(), entry); }
-                "user" => { mem.user.insert(entry.id.clone(), entry); }
-                _ => return MemoryActionResult {
-                    success: false,
-                    message: "无效的记忆类型".to_string(),
-                    new_usage: None,
-                },
+                "memory" => {
+                    mem.memory.insert(entry.id.clone(), entry);
+                }
+                "user" => {
+                    mem.user.insert(entry.id.clone(), entry);
+                }
+                _ => {
+                    return MemoryActionResult {
+                        success: false,
+                        message: "无效的记忆类型".to_string(),
+                        new_usage: None,
+                    }
+                }
             }
         }
 
@@ -185,11 +196,13 @@ impl MemoryService {
         let map = match target {
             "memory" => &mut mem.memory,
             "user" => &mut mem.user,
-            _ => return MemoryActionResult {
-                success: false,
-                message: "无效的记忆类型".to_string(),
-                new_usage: None,
-            },
+            _ => {
+                return MemoryActionResult {
+                    success: false,
+                    message: "无效的记忆类型".to_string(),
+                    new_usage: None,
+                }
+            }
         };
 
         let mut found = None;
@@ -217,7 +230,10 @@ impl MemoryService {
             }
 
             // Sync FTS5 index
-            if let Err(e) = self.storage.index_memory_fts(&entry.id, &entry.memory_type, &entry.content, &[]) {
+            if let Err(e) =
+                self.storage
+                    .index_memory_fts(&entry.id, &entry.memory_type, &entry.content, &[])
+            {
                 tracing::warn!("Failed to sync FTS5 index for replaced memory: {}", e);
             }
 
@@ -250,11 +266,13 @@ impl MemoryService {
         let map = match target {
             "memory" => &mut mem.memory,
             "user" => &mut mem.user,
-            _ => return MemoryActionResult {
-                success: false,
-                message: "无效的记忆类型".to_string(),
-                new_usage: None,
-            },
+            _ => {
+                return MemoryActionResult {
+                    success: false,
+                    message: "无效的记忆类型".to_string(),
+                    new_usage: None,
+                }
+            }
         };
 
         let mut found = None;
@@ -303,15 +321,9 @@ impl MemoryService {
         let memory_count = mem.memory.len();
         let user_count = mem.user.len();
 
-        let working_tokens: usize = mem.memory
-            .values()
-            .map(|e| e.content.len() / 4)
-            .sum();
+        let working_tokens: usize = mem.memory.values().map(|e| e.content.len() / 4).sum();
 
-        let user_tokens: usize = mem.user
-            .values()
-            .map(|e| e.content.len() / 4)
-            .sum();
+        let user_tokens: usize = mem.user.values().map(|e| e.content.len() / 4).sum();
 
         MemoryUsage {
             memory_count,

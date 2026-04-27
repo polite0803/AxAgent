@@ -1,13 +1,13 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import { _activeMessageLoadSeq } from './streamStore';
+import { invoke } from "@/lib/invoke";
 import type {
+  CompareResponsesResult,
+  ConversationBranch,
+  ConversationWorkspaceSnapshot,
   Message,
   MessagePage,
-  ConversationWorkspaceSnapshot,
-  ConversationBranch,
-  CompareResponsesResult,
-} from '@/types';
+} from "@/types";
+import { create } from "zustand";
+import { _activeMessageLoadSeq } from "./streamStore";
 
 // ─── Constants ───
 
@@ -113,20 +113,20 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   insertContextClear: async () => {
     const conversationId = _conversationStoreRef?.getState().activeConversationId;
-    if (!conversationId) return;
+    if (!conversationId) { return; }
     try {
-      const msg = await invoke<Message>('send_system_message', {
+      const msg = await invoke<Message>("send_system_message", {
         conversationId,
-        content: '<!-- context-clear -->',
+        content: "<!-- context-clear -->",
       });
       set((s) => ({ messages: [...s.messages, msg] }));
-      await invoke('agent_backup_and_clear_sdk_context', { conversationId }).catch(() => {});
+      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch(() => {});
     } catch {
       const localMsg: Message = {
         id: `ctx-clear-${Date.now()}`,
         conversation_id: conversationId,
-        role: 'system',
-        content: '<!-- context-clear -->',
+        role: "system",
+        content: "<!-- context-clear -->",
         provider_id: null,
         model_id: null,
         token_count: null,
@@ -138,7 +138,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         parent_message_id: null,
         version_index: 0,
         is_active: true,
-        status: 'complete',
+        status: "complete",
       };
       set((s) => ({ messages: [...s.messages, localMsg] }));
     }
@@ -146,16 +146,16 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   removeContextClear: async (messageId) => {
     const conversationId = _conversationStoreRef?.getState().activeConversationId;
-    if (messageId.startsWith('ctx-clear-') || messageId.startsWith('temp-')) {
+    if (messageId.startsWith("ctx-clear-") || messageId.startsWith("temp-")) {
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       return;
     }
 
     try {
-      await invoke('delete_message', { id: messageId });
+      await invoke("delete_message", { id: messageId });
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       if (conversationId) {
-        await invoke('agent_restore_sdk_context_from_backup', { conversationId }).catch(() => {});
+        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch(() => {});
       }
     } catch (e) {
       set({ error: String(e) });
@@ -165,26 +165,32 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   clearAllMessages: async () => {
     const conversationId = _conversationStoreRef?.getState().activeConversationId;
-    if (!conversationId) return;
+    if (!conversationId) { return; }
     try {
-      await invoke('clear_conversation_messages', { conversationId });
-      set({ messages: [], hasOlderMessages: false, totalActiveCount: 0, oldestLoadedMessageId: null, loadingOlder: false });
+      await invoke("clear_conversation_messages", { conversationId });
+      set({
+        messages: [],
+        hasOlderMessages: false,
+        totalActiveCount: 0,
+        oldestLoadedMessageId: null,
+        loadingOlder: false,
+      });
     } catch (e) {
-      console.error('Failed to clear messages:', e);
+      console.error("Failed to clear messages:", e);
     }
   },
 
   deleteMessage: async (messageId) => {
     const conversationId = _conversationStoreRef?.getState().activeConversationId;
-    if (!conversationId) return;
-    if (messageId.startsWith('temp-')) {
+    if (!conversationId) { return; }
+    if (messageId.startsWith("temp-")) {
       set((s) => ({
         messages: s.messages.filter((m) => m.id !== messageId),
       }));
       return;
     }
     try {
-      await invoke('delete_message', { id: messageId });
+      await invoke("delete_message", { id: messageId });
       set((s) => ({
         messages: s.messages.filter((m) => m.id !== messageId),
       }));
@@ -197,12 +203,15 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     const requestSeq = _activeMessageLoadSeq;
     set({ loading: true });
     try {
-      const page = await invoke<MessagePage>('list_messages_page', {
+      const page = await invoke<MessagePage>("list_messages_page", {
         conversationId,
         limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: null,
       });
-      if (requestSeq !== _activeMessageLoadSeq || _conversationStoreRef?.getState().activeConversationId !== conversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || _conversationStoreRef?.getState().activeConversationId !== conversationId
+      ) {
         return;
       }
 
@@ -219,7 +228,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         };
       });
     } catch (e) {
-      if (requestSeq !== _activeMessageLoadSeq || _conversationStoreRef?.getState().activeConversationId !== conversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || _conversationStoreRef?.getState().activeConversationId !== conversationId
+      ) {
         return;
       }
       set({ error: String(e), loading: false, loadingOlder: false });
@@ -236,12 +248,15 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     const requestSeq = _activeMessageLoadSeq;
     set({ loadingOlder: true, error: null });
     try {
-      const page = await invoke<MessagePage>('list_messages_page', {
+      const page = await invoke<MessagePage>("list_messages_page", {
         conversationId: activeConversationId,
         limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: oldestLoadedMessageId,
       });
-      if (requestSeq !== _activeMessageLoadSeq || _conversationStoreRef?.getState().activeConversationId !== activeConversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || _conversationStoreRef?.getState().activeConversationId !== activeConversationId
+      ) {
         return;
       }
 
@@ -254,7 +269,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         error: null,
       }));
     } catch (e) {
-      if (requestSeq !== _activeMessageLoadSeq || _conversationStoreRef?.getState().activeConversationId !== activeConversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || _conversationStoreRef?.getState().activeConversationId !== activeConversationId
+      ) {
         return;
       }
       set({ error: String(e), loadingOlder: false });
@@ -266,7 +284,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     // after checking _isMultiModelActive. The multi-model branch stays in
     // conversationStore because it needs to call setUserManuallySelectedVersion.
     try {
-      await invoke('switch_message_version', { conversationId, parentMessageId, messageId });
+      await invoke("switch_message_version", { conversationId, parentMessageId, messageId });
 
       const versions = await get().listMessageVersions(conversationId, parentMessageId);
       if (versions.length > 0) {
@@ -274,11 +292,11 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           const versionMap = new Map(versions.map(v => [v.id, v]));
           const existingIds = new Set(
             s.messages
-              .filter(m => m.parent_message_id === parentMessageId && m.role === 'assistant')
+              .filter(m => m.parent_message_id === parentMessageId && m.role === "assistant")
               .map(m => m.id),
           );
           const updatedMessages = s.messages.map((m) => {
-            if (m.parent_message_id !== parentMessageId || m.role !== 'assistant') return m;
+            if (m.parent_message_id !== parentMessageId || m.role !== "assistant") { return m; }
             const dbVersion = versionMap.get(m.id);
             if (dbVersion) {
               return { ...dbVersion, is_active: m.id === messageId };
@@ -301,7 +319,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   listMessageVersions: async (conversationId, parentMessageId) => {
     try {
-      return await invoke<Message[]>('list_message_versions', { conversationId, parentMessageId });
+      return await invoke<Message[]>("list_message_versions", { conversationId, parentMessageId });
     } catch (e) {
       set({ error: String(e) });
       return [];
@@ -310,7 +328,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   updateMessageContent: async (messageId, content) => {
     try {
-      const updated = await invoke<Message>('update_message_content', { id: messageId, content });
+      const updated = await invoke<Message>("update_message_content", { id: messageId, content });
       set((s) => ({
         messages: s.messages.map((m) => (m.id === messageId ? { ...m, content: updated.content } : m)),
       }));
@@ -321,20 +339,16 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   deleteMessageGroup: async (conversationId, userMessageId) => {
-    if (userMessageId.startsWith('temp-')) {
+    if (userMessageId.startsWith("temp-")) {
       set((s) => ({
-        messages: s.messages.filter(m =>
-          m.id !== userMessageId && m.parent_message_id !== userMessageId
-        ),
+        messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));
       return;
     }
     try {
-      await invoke('delete_message_group', { conversationId, userMessageId });
+      await invoke("delete_message_group", { conversationId, userMessageId });
       set((s) => ({
-        messages: s.messages.filter(m =>
-          m.id !== userMessageId && m.parent_message_id !== userMessageId
-        ),
+        messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));
     } catch (e) {
       set({ error: String(e) });
@@ -345,7 +359,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   loadWorkspaceSnapshot: async (conversationId) => {
     try {
-      const snapshot = await invoke<ConversationWorkspaceSnapshot>('get_workspace_snapshot', {
+      const snapshot = await invoke<ConversationWorkspaceSnapshot>("get_workspace_snapshot", {
         conversationId: conversationId,
       });
       set({ workspaceSnapshot: snapshot });
@@ -358,7 +372,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   updateWorkspaceSnapshot: async (conversationId, snapshot) => {
     try {
-      await invoke('update_workspace_snapshot', {
+      await invoke("update_workspace_snapshot", {
         conversationId: conversationId,
         ...snapshot,
       });
@@ -368,19 +382,19 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           : null,
       }));
     } catch (e) {
-      console.error('Failed to update workspace snapshot:', e);
+      console.error("Failed to update workspace snapshot:", e);
     }
   },
 
   forkConversation: async (conversationId, fromMessageId?) => {
     try {
-      const branch = await invoke<ConversationBranch>('fork_conversation', {
+      const branch = await invoke<ConversationBranch>("fork_conversation", {
         conversationId: conversationId,
         messageId: fromMessageId,
       });
       // Refresh conversations list via conversationStore
       const { fetchConversations } = _conversationStoreRef?.getState() ?? {};
-      if (fetchConversations) await fetchConversations();
+      if (fetchConversations) { await fetchConversations(); }
       return branch;
     } catch (e) {
       set({ error: String(e) });
@@ -390,7 +404,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   compareResponses: async (leftMessageId, rightMessageId) => {
     try {
-      return await invoke<CompareResponsesResult>('compare_branches', {
+      return await invoke<CompareResponsesResult>("compare_branches", {
         branchA: leftMessageId,
         branchB: rightMessageId,
       });

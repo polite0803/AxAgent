@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 
-use serde_json::{Map, Value};
 use axagent_telemetry::SessionTracer;
+use serde_json::{Map, Value};
 
 use crate::compact::{
     compact_session, estimate_session_tokens, CompactionConfig, CompactionResult,
@@ -29,6 +29,7 @@ pub struct ApiRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AssistantEvent {
     TextDelta(String),
+    ThinkingDelta(String),
     ToolUse {
         id: String,
         name: String,
@@ -114,6 +115,7 @@ pub struct TurnSummary {
     pub iterations: usize,
     pub usage: TokenUsage,
     pub auto_compaction: Option<AutoCompactionEvent>,
+    pub thinking: String,
 }
 
 /// Details about automatic session compaction applied during a turn.
@@ -203,13 +205,19 @@ where
     /// Set a cancel token. When the AtomicBool is set to `true`,
     /// the `run_turn` loop will abort at the next iteration.
     #[must_use]
-    pub fn with_cancel_token(mut self, token: std::sync::Arc<std::sync::atomic::AtomicBool>) -> Self {
+    pub fn with_cancel_token(
+        mut self,
+        token: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    ) -> Self {
         self.cancel_token = Some(token);
         self
     }
 
     #[must_use]
-    pub fn with_pause_check(mut self, check_fn: std::sync::Arc<dyn Fn() -> bool + Send + Sync>) -> Self {
+    pub fn with_pause_check(
+        mut self,
+        check_fn: std::sync::Arc<dyn Fn() -> bool + Send + Sync>,
+    ) -> Self {
         self.pause_check_fn = Some(check_fn);
         self
     }
@@ -241,7 +249,12 @@ where
         self
     }
 
-    fn run_pre_tool_use_hook(&mut self, tool_name: &str, input: &str, tool_use_id: Option<&str>) -> HookRunResult {
+    fn run_pre_tool_use_hook(
+        &mut self,
+        tool_name: &str,
+        input: &str,
+        tool_use_id: Option<&str>,
+    ) -> HookRunResult {
         if let Some(reporter) = self.hook_progress_reporter.as_mut() {
             self.hook_runner.run_pre_tool_use_with_context(
                 tool_name,
@@ -366,12 +379,14 @@ where
         let mut tool_results = Vec::new();
         let mut prompt_cache_events = Vec::new();
         let mut iterations = 0;
+        let mut thinking = String::new();
 
         // Track recent tool calls to detect repeated identical invocations.
         // Key: (tool_name, input_hash), Value: consecutive repeat count.
-        let mut recent_tool_calls: std::collections::HashMap<(String, u64), u32> = std::collections::HashMap::new();
-        const MAX_IDENTICAL_CALLS: u32 = 3;  // Warn after 3 identical calls
-        const MAX_IDENTICAL_CALLS_HARD: u32 = 5;  // Hard limit: abort after 5
+        let mut recent_tool_calls: std::collections::HashMap<(String, u64), u32> =
+            std::collections::HashMap::new();
+        const MAX_IDENTICAL_CALLS: u32 = 3; // Warn after 3 identical calls
+        const MAX_IDENTICAL_CALLS_HARD: u32 = 5; // Hard limit: abort after 5
 
         loop {
             iterations += 1;
@@ -393,7 +408,8 @@ where
                     // Re-check cancel while paused
                     if let Some(ref token) = self.cancel_token {
                         if token.load(std::sync::atomic::Ordering::Relaxed) {
-                            let error = RuntimeError::new("Agent cancelled while paused".to_string());
+                            let error =
+                                RuntimeError::new("Agent cancelled while paused".to_string());
                             self.record_turn_failed(iterations, &error);
                             return Err(error);
                         }
@@ -403,9 +419,10 @@ where
             }
 
             if iterations > self.max_iterations {
-                let error = RuntimeError::new(
-                    format!("conversation loop exceeded the maximum number of iterations ({})", self.max_iterations),
-                );
+                let error = RuntimeError::new(format!(
+                    "conversation loop exceeded the maximum number of iterations ({})",
+                    self.max_iterations
+                ));
                 self.record_turn_failed(iterations, &error);
                 return Err(error);
             }
@@ -438,12 +455,15 @@ where
                             // Check cancel token before sleeping
                             if let Some(ref token) = self.cancel_token {
                                 if token.load(std::sync::atomic::Ordering::Relaxed) {
-                                    let cancel_err = RuntimeError::new("Agent cancelled by user".to_string());
+                                    let cancel_err =
+                                        RuntimeError::new("Agent cancelled by user".to_string());
                                     self.record_turn_failed(iterations, &cancel_err);
                                     return Err(cancel_err);
                                 }
                             }
-                            std::thread::sleep(std::time::Duration::from_millis(RETRY_DELAY_MS * retry_count as u64));
+                            std::thread::sleep(std::time::Duration::from_millis(
+                                RETRY_DELAY_MS * retry_count as u64,
+                            ));
                             let retry_request = ApiRequest {
                                 system_prompt: self.system_prompt.clone(),
                                 messages: self.session.messages.clone(),
@@ -471,7 +491,7 @@ where
                     }
                 }
             };
-            let (assistant_message, usage, turn_prompt_cache_events) =
+            let (assistant_message, usage, turn_prompt_cache_events, turn_thinking) =
                 match build_assistant_message(events) {
                     Ok(result) => result,
                     Err(error) => {
@@ -479,6 +499,12 @@ where
                         return Err(error);
                     }
                 };
+            if !turn_thinking.is_empty() {
+                if !thinking.is_empty() {
+                    thinking.push('\n');
+                }
+                thinking.push_str(&turn_thinking);
+            }
             if let Some(usage) = usage {
                 self.usage_tracker.record(usage);
             }
@@ -522,11 +548,11 @@ where
 
                 if *repeat_count >= MAX_IDENTICAL_CALLS_HARD {
                     // Hard limit: abort the turn to prevent wasting API credits
-                    let error = RuntimeError::new(
-                        format!("Aborted: tool '{}' called {} times with identical arguments. \
+                    let error = RuntimeError::new(format!(
+                        "Aborted: tool '{}' called {} times with identical arguments. \
                                  This likely indicates a loop — please try a different approach.",
-                                tool_name, repeat_count),
-                    );
+                        tool_name, repeat_count
+                    ));
                     self.record_turn_failed(iterations, &error);
                     return Err(error);
                 }
@@ -540,11 +566,13 @@ where
                                          tool_name, repeat_count),
                         },
                     ]);
-                    self.session.push_message(warning_msg)
+                    self.session
+                        .push_message(warning_msg)
                         .map_err(|error| RuntimeError::new(error.to_string()))?;
                 }
 
-                let pre_hook_result = self.run_pre_tool_use_hook(&tool_name, &input, Some(&tool_use_id));
+                let pre_hook_result =
+                    self.run_pre_tool_use_hook(&tool_name, &input, Some(&tool_use_id));
                 let effective_input = pre_hook_result
                     .updated_input()
                     .map_or_else(|| input.clone(), ToOwned::to_owned);
@@ -604,13 +632,16 @@ where
                             // If the tool exceeds its category timeout, we return a
                             // timeout error immediately (the scoped thread is joined
                             // automatically when the scope exits, so no resource leak).
-                            let (result_tx, result_rx) = std::sync::mpsc::channel::<Result<String, ToolError>>();
+                            let (result_tx, result_rx) =
+                                std::sync::mpsc::channel::<Result<String, ToolError>>();
                             let tool_name_ref = &tool_name;
                             let effective_input_ref = &effective_input;
 
                             let scope_result = std::thread::scope(|s| {
                                 s.spawn(|| {
-                                    let result = self.tool_executor.execute(tool_name_ref, effective_input_ref);
+                                    let result = self
+                                        .tool_executor
+                                        .execute(tool_name_ref, effective_input_ref);
                                     let _ = result_tx.send(result);
                                 });
                                 result_rx.recv_timeout(tool_timeout)
@@ -620,14 +651,16 @@ where
                                 Ok(Ok(output)) => Ok(output),
                                 Ok(Err(tool_err)) => Err(RuntimeError::new(tool_err.to_string())),
                                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                                    Err(RuntimeError::new(
-                                        format!("Tool '{}' timed out after {:?}", tool_name, tool_timeout)
-                                    ))
+                                    Err(RuntimeError::new(format!(
+                                        "Tool '{}' timed out after {:?}",
+                                        tool_name, tool_timeout
+                                    )))
                                 }
                                 Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                                    Err(RuntimeError::new(
-                                        format!("Tool '{}' execution thread panicked (disconnected)", tool_name)
-                                    ))
+                                    Err(RuntimeError::new(format!(
+                                        "Tool '{}' execution thread panicked (disconnected)",
+                                        tool_name
+                                    )))
                                 }
                             };
                             match first_result {
@@ -657,20 +690,29 @@ where
                                             }
                                             // Check cancel token before sleeping
                                             if let Some(ref token) = self.cancel_token {
-                                                if token.load(std::sync::atomic::Ordering::Relaxed) {
-                                                    break ("Agent cancelled by user".to_string(), true);
+                                                if token.load(std::sync::atomic::Ordering::Relaxed)
+                                                {
+                                                    break (
+                                                        "Agent cancelled by user".to_string(),
+                                                        true,
+                                                    );
                                                 }
                                             }
                                             std::thread::sleep(std::time::Duration::from_millis(
                                                 TOOL_RETRY_DELAY_MS * retry_count as u64,
                                             ));
                                             // Retry with same timeout enforcement
-                                            let (retry_tx, retry_rx) = std::sync::mpsc::channel::<Result<String, ToolError>>();
+                                            let (retry_tx, retry_rx) = std::sync::mpsc::channel::<
+                                                Result<String, ToolError>,
+                                            >(
+                                            );
                                             let retry_tool_name = &tool_name;
                                             let retry_input = &effective_input;
                                             let retry_scope_result = std::thread::scope(|s| {
                                                 s.spawn(|| {
-                                                    let result = self.tool_executor.execute(retry_tool_name, retry_input);
+                                                    let result = self
+                                                        .tool_executor
+                                                        .execute(retry_tool_name, retry_input);
                                                     let _ = retry_tx.send(result);
                                                 });
                                                 retry_rx.recv_timeout(tool_timeout)
@@ -694,7 +736,8 @@ where
                                                 Err(retry_err) => {
                                                     let retry_str = retry_err.to_string();
                                                     let retry_lower = retry_str.to_lowercase();
-                                                    let still_retryable = retry_lower.contains("timeout")
+                                                    let still_retryable = retry_lower
+                                                        .contains("timeout")
                                                         || retry_lower.contains("timed out")
                                                         || retry_lower.contains("network")
                                                         || retry_lower.contains("connection")
@@ -702,7 +745,9 @@ where
                                                         || retry_lower.contains("broken pipe")
                                                         || retry_lower.contains("eof")
                                                         || retry_lower.contains("unavailable");
-                                                    if !still_retryable || retry_count >= MAX_TOOL_RETRIES {
+                                                    if !still_retryable
+                                                        || retry_count >= MAX_TOOL_RETRIES
+                                                    {
                                                         break (retry_str, true);
                                                     }
                                                     // Continue retrying
@@ -773,6 +818,7 @@ where
             iterations,
             usage: self.usage_tracker.cumulative_usage(),
             auto_compaction,
+            thinking,
         };
         self.record_turn_completed(&summary);
 
@@ -909,9 +955,20 @@ where
 
         // Execute/shell operations — longest timeout
         const EXECUTE_PATTERNS: &[&str] = &[
-            "shell", "bash", "exec", "run", "command", "terminal",
-            "python", "node", "npm", "cargo", "make", "gradle",
-            "subprocess", "spawn",
+            "shell",
+            "bash",
+            "exec",
+            "run",
+            "command",
+            "terminal",
+            "python",
+            "node",
+            "npm",
+            "cargo",
+            "make",
+            "gradle",
+            "subprocess",
+            "spawn",
         ];
         if EXECUTE_PATTERNS.iter().any(|p| name_lower.contains(p)) {
             return std::time::Duration::from_secs(300);
@@ -919,9 +976,8 @@ where
 
         // Write operations — moderate-long timeout
         const WRITE_PATTERNS: &[&str] = &[
-            "write", "edit", "create", "delete", "remove", "move",
-            "rename", "patch", "mkdir", "save", "put", "post",
-            "upload", "install",
+            "write", "edit", "create", "delete", "remove", "move", "rename", "patch", "mkdir",
+            "save", "put", "post", "upload", "install",
         ];
         if WRITE_PATTERNS.iter().any(|p| name_lower.contains(p)) {
             return std::time::Duration::from_secs(120);
@@ -929,8 +985,8 @@ where
 
         // Search operations — moderate timeout
         const SEARCH_PATTERNS: &[&str] = &[
-            "search", "query", "find", "rag", "vector", "web",
-            "fetch", "http", "request", "api", "crawl",
+            "search", "query", "find", "rag", "vector", "web", "fetch", "http", "request", "api",
+            "crawl",
         ];
         if SEARCH_PATTERNS.iter().any(|p| name_lower.contains(p)) {
             return std::time::Duration::from_secs(60);
@@ -938,8 +994,8 @@ where
 
         // Read operations — short timeout
         const READ_PATTERNS: &[&str] = &[
-            "read", "list", "get", "grep", "glob", "head", "cat",
-            "stat", "ls", "dir", "type", "peek", "view",
+            "read", "list", "get", "grep", "glob", "head", "cat", "stat", "ls", "dir", "type",
+            "peek", "view",
         ];
         if READ_PATTERNS.iter().any(|p| name_lower.contains(p)) {
             return std::time::Duration::from_secs(30);
@@ -1032,10 +1088,12 @@ fn build_assistant_message(
         ConversationMessage,
         Option<TokenUsage>,
         Vec<PromptCacheEvent>,
+        String,
     ),
     RuntimeError,
 > {
     let mut text = String::new();
+    let mut thinking = String::new();
     let mut blocks = Vec::new();
     let mut prompt_cache_events = Vec::new();
     let mut finished = false;
@@ -1044,6 +1102,7 @@ fn build_assistant_message(
     for event in events {
         match event {
             AssistantEvent::TextDelta(delta) => text.push_str(&delta),
+            AssistantEvent::ThinkingDelta(delta) => thinking.push_str(&delta),
             AssistantEvent::ToolUse { id, name, input } => {
                 flush_text_block(&mut text, &mut blocks);
                 blocks.push(ContentBlock::ToolUse { id, name, input });
@@ -1085,6 +1144,7 @@ fn build_assistant_message(
                 ConversationMessage::assistant_with_usage(blocks, usage),
                 usage,
                 prompt_cache_events,
+                thinking,
             ));
         }
         return Err(RuntimeError::new(
@@ -1099,6 +1159,7 @@ fn build_assistant_message(
         ConversationMessage::assistant_with_usage(blocks, usage),
         usage,
         prompt_cache_events,
+        thinking,
     ))
 }
 
@@ -1186,11 +1247,11 @@ mod tests {
     use crate::session::{ContentBlock, MessageRole, Session};
     use crate::usage::TokenUsage;
     use crate::ToolError;
+    use axagent_telemetry::{MemoryTelemetrySink, SessionTracer, TelemetryEvent};
     use std::fs;
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
-    use axagent_telemetry::{MemoryTelemetrySink, SessionTracer, TelemetryEvent};
 
     struct ScriptedApiClient {
         call_count: usize,

@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
-import { Button, Typography, Spin } from 'antd';
-import { Mic, MicOff, Phone, Loader, Volume2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useVoiceChat } from '@/hooks/useVoiceChat';
-import type { RealtimeConfig, VoiceSessionState } from '@/types';
+import { useVoiceChat } from "@/hooks/useVoiceChat";
+import type { RealtimeConfig, VoiceSessionState } from "@/types";
+import { Button, Spin, Typography } from "antd";
+import { Loader, Mic, MicOff, Phone, Volume2 } from "lucide-react";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface VoiceCallProps {
   visible: boolean;
@@ -18,25 +18,25 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
 
   const content = useMemo(() => {
     switch (state) {
-      case 'Connecting':
+      case "Connecting":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Spin indicator={<Loader size={48} style={{ color: '#fff', animation: 'spin 1s linear infinite' }} />} />
-            <Typography.Text style={{ color: '#fff', fontSize: 18 }}>
-              {t('voice.connecting')}
+            <Spin indicator={<Loader size={48} style={{ color: "#fff", animation: "spin 1s linear infinite" }} />} />
+            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+              {t("voice.connecting")}
             </Typography.Text>
           </div>
         );
-      case 'Connected':
+      case "Connected":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Mic size={48} style={{ color: '#52c41a' }} />
-            <Typography.Text style={{ color: '#fff', fontSize: 18 }}>
-              {t('voice.connected')}
+            <Mic size={48} style={{ color: "#52c41a" }} />
+            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+              {t("voice.connected")}
             </Typography.Text>
           </div>
         );
-      case 'Speaking':
+      case "Speaking":
         return (
           <div className="flex flex-col items-center gap-4">
             <div className="voice-waveform">
@@ -50,26 +50,26 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
                 />
               ))}
             </div>
-            <Typography.Text style={{ color: '#fff', fontSize: 18 }}>
-              {t('voice.speaking')}
+            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+              {t("voice.speaking")}
             </Typography.Text>
           </div>
         );
-      case 'Listening':
+      case "Listening":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Volume2 size={48} style={{ color: '#1677ff' }} className="animate-pulse" />
-            <Typography.Text style={{ color: '#fff', fontSize: 18 }}>
-              {t('voice.listening')}
+            <Volume2 size={48} style={{ color: "#1677ff" }} className="animate-pulse" />
+            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+              {t("voice.listening")}
             </Typography.Text>
           </div>
         );
-      case 'Disconnecting':
+      case "Disconnecting":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Spin indicator={<Loader size={48} style={{ color: '#fff', animation: 'spin 1s linear infinite' }} />} />
-            <Typography.Text style={{ color: '#fff', fontSize: 18 }}>
-              {t('voice.disconnecting')}
+            <Spin indicator={<Loader size={48} style={{ color: "#fff", animation: "spin 1s linear infinite" }} />} />
+            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+              {t("voice.disconnecting")}
             </Typography.Text>
           </div>
         );
@@ -86,7 +86,7 @@ export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallPro
   const { state, isMuted, start, stop, toggleMute } = useVoiceChat({ port, host, config });
 
   // Auto-start when overlay becomes visible
-  if (visible && state === 'Idle') {
+  if (visible && state === "Idle") {
     start();
   }
 
@@ -95,12 +95,12 @@ export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallPro
     onClose();
   };
 
-  if (!visible) return null;
+  if (!visible) { return null; }
 
   return (
     <div
       className="fixed inset-0 z-[1000] flex flex-col items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.85)' }}
+      style={{ background: "rgba(0,0,0,0.85)" }}
     >
       {/* Status display */}
       <div className="flex-1 flex items-center justify-center">
@@ -117,31 +117,32 @@ export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallPro
           style={{
             width: 56,
             height: 56,
-            background: isMuted ? '#ff4d4f' : 'rgba(255,255,255,0.2)',
-            border: 'none',
-            color: '#fff',
+            background: isMuted ? "#ff4d4f" : "rgba(255,255,255,0.2)",
+            border: "none",
+            color: "#fff",
           }}
-          title={t('voice.toggleMute')}
+          title={t("voice.toggleMute")}
         />
         <Button
           shape="circle"
           size="large"
-          icon={<Phone size={24} style={{ transform: 'rotate(225deg)' }} />}
+          icon={<Phone size={24} style={{ transform: "rotate(225deg)" }} />}
           onClick={handleEndCall}
           style={{
             width: 72,
             height: 72,
-            background: '#ff4d4f',
-            border: 'none',
-            color: '#fff',
+            background: "#ff4d4f",
+            border: "none",
+            color: "#fff",
             fontSize: 24,
           }}
-          title={t('voice.endCall')}
+          title={t("voice.endCall")}
         />
       </div>
 
       {/* Waveform CSS */}
-      <style>{`
+      <style>
+        {`
         .voice-waveform {
           display: flex;
           align-items: center;
@@ -159,7 +160,8 @@ export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallPro
           0% { height: 12px; }
           100% { height: 48px; }
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 }

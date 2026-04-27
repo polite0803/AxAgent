@@ -157,7 +157,9 @@ impl HooksService {
         match event {
             HookEvent::PreToolUse => self.store.pre_tool_use.push(new_hook.clone()),
             HookEvent::PostToolUse => self.store.post_tool_use.push(new_hook.clone()),
-            HookEvent::PostToolUseFailure => self.store.post_tool_use_failure.push(new_hook.clone()),
+            HookEvent::PostToolUseFailure => {
+                self.store.post_tool_use_failure.push(new_hook.clone())
+            }
         }
 
         new_hook
@@ -343,12 +345,7 @@ mod tests {
     fn test_remove_hook_command() {
         let mut service = HooksService::new();
 
-        let hook = service.add_hook_command(
-            HookEvent::PreToolUse,
-            "echo".to_string(),
-            None,
-            None,
-        );
+        let hook = service.add_hook_command(HookEvent::PreToolUse, "echo".to_string(), None, None);
 
         let result = service.remove_hook_command(HookEvent::PreToolUse, &hook.id);
         assert!(result);
@@ -361,12 +358,7 @@ mod tests {
     fn test_toggle_hook_enabled() {
         let mut service = HooksService::new();
 
-        let hook = service.add_hook_command(
-            HookEvent::PreToolUse,
-            "echo".to_string(),
-            None,
-            None,
-        );
+        let hook = service.add_hook_command(HookEvent::PreToolUse, "echo".to_string(), None, None);
 
         assert_eq!(hook.enabled, true);
 
@@ -406,12 +398,7 @@ mod tests {
     fn test_execution_stats() {
         let mut service = HooksService::new();
 
-        service.add_hook_command(
-            HookEvent::PreToolUse,
-            "echo".to_string(),
-            None,
-            None,
-        );
+        service.add_hook_command(HookEvent::PreToolUse, "echo".to_string(), None, None);
 
         let stats = service.get_execution_stats();
         assert_eq!(stats.total_executions, 0);

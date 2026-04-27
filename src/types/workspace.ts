@@ -1,4 +1,4 @@
-export type ContextSourceType = 'attachment' | 'search' | 'knowledge' | 'memory' | 'tool';
+export type ContextSourceType = "attachment" | "search" | "knowledge" | "memory" | "tool";
 
 export type ContextSource = {
   id: string;
@@ -24,14 +24,14 @@ export type ConversationBranch = {
 export type SearchPolicy = {
   enabled: boolean;
   searchProviderId?: string;
-  queryMode: 'manual' | 'auto';
+  queryMode: "manual" | "auto";
   resultLimit: number;
 };
 
 export type ToolBinding = {
   serverIds: string[];
   defaultTools?: string[];
-  approvalMode: 'inherit' | 'ask' | 'allow_safe';
+  approvalMode: "inherit" | "ask" | "allow_safe";
 };
 
 export type KnowledgeBinding = {

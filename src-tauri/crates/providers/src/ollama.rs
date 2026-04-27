@@ -13,9 +13,9 @@
 
 use crate::openai::OpenAIAdapter;
 use crate::{ProviderAdapter, ProviderRequestContext};
+use async_trait::async_trait;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
-use async_trait::async_trait;
 use futures::Stream;
 use serde::Deserialize;
 use std::pin::Pin;
@@ -59,10 +59,7 @@ impl OllamaAdapter {
     #[allow(dead_code)]
     fn effective_chat_url(ctx: &ProviderRequestContext) -> String {
         let base = Self::base_url(ctx);
-        let path = ctx
-            .api_path
-            .as_deref()
-            .unwrap_or(DEFAULT_OLLAMA_PATH);
+        let path = ctx.api_path.as_deref().unwrap_or(DEFAULT_OLLAMA_PATH);
         crate::resolve_chat_url(&base, Some(path), DEFAULT_OLLAMA_PATH)
     }
 

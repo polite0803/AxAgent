@@ -28,9 +28,21 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("running"),
                     )
-                    .col(ColumnDef::new(WorkflowExecutions::InputParams).string().null())
-                    .col(ColumnDef::new(WorkflowExecutions::OutputResult).string().null())
-                    .col(ColumnDef::new(WorkflowExecutions::NodeExecutions).string().null())
+                    .col(
+                        ColumnDef::new(WorkflowExecutions::InputParams)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(WorkflowExecutions::OutputResult)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(WorkflowExecutions::NodeExecutions)
+                            .string()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(WorkflowExecutions::TotalTimeMs)
                             .integer()

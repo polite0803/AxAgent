@@ -4,7 +4,9 @@ use axagent_core::workflow_types::*;
 use sea_orm::{ActiveModelTrait, Set};
 use tauri::State;
 
-fn model_to_active_model(template: &WorkflowTemplateData) -> axagent_core::entity::workflow_template::ActiveModel {
+fn model_to_active_model(
+    template: &WorkflowTemplateData,
+) -> axagent_core::entity::workflow_template::ActiveModel {
     let now = chrono::Utc::now().timestamp_millis();
 
     axagent_core::entity::workflow_template::ActiveModel {
@@ -12,18 +14,34 @@ fn model_to_active_model(template: &WorkflowTemplateData) -> axagent_core::entit
         name: Set(template.name.clone()),
         description: Set(template.description.clone()),
         icon: Set(template.icon.clone()),
-        tags: Set(Some(serde_json::to_string(&template.tags).unwrap_or_default())),
+        tags: Set(Some(
+            serde_json::to_string(&template.tags).unwrap_or_default(),
+        )),
         version: Set(template.version),
         is_preset: Set(template.is_preset),
         is_editable: Set(template.is_editable),
         is_public: Set(template.is_public),
-        trigger_config: Set(template.trigger_config.as_ref().and_then(|c| serde_json::to_string(c).ok())),
+        trigger_config: Set(template
+            .trigger_config
+            .as_ref()
+            .and_then(|c| serde_json::to_string(c).ok())),
         nodes: Set(serde_json::to_string(&template.nodes).unwrap_or_default()),
         edges: Set(serde_json::to_string(&template.edges).unwrap_or_default()),
-        input_schema: Set(template.input_schema.as_ref().and_then(|s| serde_json::to_string(s).ok())),
-        output_schema: Set(template.output_schema.as_ref().and_then(|s| serde_json::to_string(s).ok())),
-        variables: Set(Some(serde_json::to_string(&template.variables).unwrap_or_default())),
-        error_config: Set(template.error_config.as_ref().and_then(|e| serde_json::to_string(e).ok())),
+        input_schema: Set(template
+            .input_schema
+            .as_ref()
+            .and_then(|s| serde_json::to_string(s).ok())),
+        output_schema: Set(template
+            .output_schema
+            .as_ref()
+            .and_then(|s| serde_json::to_string(s).ok())),
+        variables: Set(Some(
+            serde_json::to_string(&template.variables).unwrap_or_default(),
+        )),
+        error_config: Set(template
+            .error_config
+            .as_ref()
+            .and_then(|e| serde_json::to_string(e).ok())),
         composite_source: Set(None),
         created_at: Set(template.created_at),
         updated_at: Set(now),
@@ -63,8 +81,7 @@ pub async fn get_workflow_template(
 
         if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
             axagent_core::workflow_types::WorkflowMigrator::migrate(&mut nodes);
-            let updated_nodes_str = serde_json::to_string(&nodes)
-                .map_err(|e| e.to_string())?;
+            let updated_nodes_str = serde_json::to_string(&nodes).map_err(|e| e.to_string())?;
 
             // Persist the migrated nodes back
             let active_model = axagent_core::entity::workflow_template::ActiveModel {
@@ -208,10 +225,10 @@ pub async fn duplicate_workflow_template(
 }
 
 #[tauri::command]
-pub async fn seed_preset_templates(
-    state: State<'_, AppState>,
-) -> Result<usize, String> {
-    use axagent_core::preset_templates::{get_preset_templates, convert_preset_to_workflow_template};
+pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, String> {
+    use axagent_core::preset_templates::{
+        convert_preset_to_workflow_template, get_preset_templates,
+    };
 
     let db = &state.sea_db;
     let presets = get_preset_templates();
@@ -222,17 +239,35 @@ pub async fn seed_preset_templates(
             .await
             .map_err(|e| e.to_string())?;
 
-        if existing.is_none() {
-            let mut template = convert_preset_to_workflow_template(&preset);
-            template.is_preset = true;
-            template.is_editable = true;
-            template.is_public = true;
+        match existing {
+            // Template doesn't exist yet → insert full data (first run)
+            None => {
+                let mut template = convert_preset_to_workflow_template(&preset);
+                template.is_preset = true;
+                template.is_editable = true;
+                template.is_public = true;
 
-            let active_model = model_to_active_model(&template);
-            db_repo::insert_workflow_template(db, active_model)
-                .await
-                .map_err(|e| e.to_string())?;
-            count += 1;
+                let active_model = model_to_active_model(&template);
+                db_repo::insert_workflow_template(db, active_model)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                count += 1;
+            }
+            // Template exists with empty nodes (upgrade from old data) → update with full data
+            Some(ref t) if t.nodes == "[]" || t.nodes.is_empty() => {
+                let mut template = convert_preset_to_workflow_template(&preset);
+                template.is_preset = true;
+                template.is_editable = true;
+                template.is_public = true;
+
+                let active_model = model_to_active_model(&template);
+                db_repo::upsert_workflow_template(db, active_model)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                count += 1;
+            }
+            // Template exists with nodes → user may have edited it, keep as-is
+            _ => {}
         }
     }
 
@@ -273,8 +308,9 @@ pub async fn validate_workflow_template(
 ) -> Result<ValidationResult, String> {
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
-    let node_ids: std::collections::HashSet<String> = nodes.iter().filter_map(|n| {
-        match n {
+    let node_ids: std::collections::HashSet<String> = nodes
+        .iter()
+        .filter_map(|n| match n {
             WorkflowNode::Trigger(t) => Some(t.base.id.clone()),
             WorkflowNode::AtomicSkill(t) => Some(t.base.id.clone()),
             WorkflowNode::Agent(t) => Some(t.base.id.clone()),
@@ -290,8 +326,8 @@ pub async fn validate_workflow_template(
             WorkflowNode::DocumentParser(t) => Some(t.base.id.clone()),
             WorkflowNode::VectorRetrieve(t) => Some(t.base.id.clone()),
             WorkflowNode::End(t) => Some(t.base.id.clone()),
-        }
-    }).collect();
+        })
+        .collect();
 
     if nodes.is_empty() {
         errors.push(ValidationError {
@@ -302,13 +338,18 @@ pub async fn validate_workflow_template(
         });
     }
 
-    let trigger_count = nodes.iter().filter(|n| matches!(n, WorkflowNode::Trigger(_))).count();
+    let trigger_count = nodes
+        .iter()
+        .filter(|n| matches!(n, WorkflowNode::Trigger(_)))
+        .count();
     if trigger_count == 0 {
         errors.push(ValidationError {
             error_type: "missing_trigger".to_string(),
             node_id: None,
             message: "Workflow must have at least one trigger node".to_string(),
-            suggestion: Some("Add a trigger node (manual, schedule, webhook, or event)".to_string()),
+            suggestion: Some(
+                "Add a trigger node (manual, schedule, webhook, or event)".to_string(),
+            ),
         });
     } else if trigger_count > 1 {
         warnings.push(ValidationWarning {
@@ -318,12 +359,17 @@ pub async fn validate_workflow_template(
         });
     }
 
-    let end_count = nodes.iter().filter(|n| matches!(n, WorkflowNode::End(_))).count();
+    let end_count = nodes
+        .iter()
+        .filter(|n| matches!(n, WorkflowNode::End(_)))
+        .count();
     if end_count == 0 {
         warnings.push(ValidationWarning {
             warning_type: "missing_end".to_string(),
             node_id: None,
-            message: "Workflow has no End node. Consider adding one for proper workflow termination.".to_string(),
+            message:
+                "Workflow has no End node. Consider adding one for proper workflow termination."
+                    .to_string(),
         });
     }
 
@@ -332,7 +378,10 @@ pub async fn validate_workflow_template(
             errors.push(ValidationError {
                 error_type: "invalid_edge_source".to_string(),
                 node_id: Some(edge.id.clone()),
-                message: format!("Edge '{}' references non-existent source node '{}'", edge.id, edge.source),
+                message: format!(
+                    "Edge '{}' references non-existent source node '{}'",
+                    edge.id, edge.source
+                ),
                 suggestion: Some("Remove this edge or create the missing source node".to_string()),
             });
         }
@@ -340,7 +389,10 @@ pub async fn validate_workflow_template(
             errors.push(ValidationError {
                 error_type: "invalid_edge_target".to_string(),
                 node_id: Some(edge.id.clone()),
-                message: format!("Edge '{}' references non-existent target node '{}'", edge.id, edge.target),
+                message: format!(
+                    "Edge '{}' references non-existent target node '{}'",
+                    edge.id, edge.target
+                ),
                 suggestion: Some("Remove this edge or create the missing target node".to_string()),
             });
         }
@@ -371,9 +423,13 @@ pub async fn validate_workflow_template(
     let mut has_cycle = false;
     let mut visited = std::collections::HashSet::new();
     let mut rec_stack = std::collections::HashSet::new();
-    let mut adjacency: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut adjacency: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
     for edge in &edges {
-        adjacency.entry(edge.source.clone()).or_default().push(edge.target.clone());
+        adjacency
+            .entry(edge.source.clone())
+            .or_default()
+            .push(edge.target.clone());
     }
 
     fn dfs(
@@ -411,7 +467,9 @@ pub async fn validate_workflow_template(
             error_type: "cyclic_dependency".to_string(),
             node_id: None,
             message: "Workflow contains cyclic dependencies".to_string(),
-            suggestion: Some("Remove loops in the workflow graph or use a Loop node for iteration".to_string()),
+            suggestion: Some(
+                "Remove loops in the workflow graph or use a Loop node for iteration".to_string(),
+            ),
         });
     }
 
@@ -437,8 +495,7 @@ pub async fn export_workflow_template(
     let template = template.ok_or("Template not found")?;
     let response = WorkflowTemplateResponse::from(template);
 
-    serde_json::to_string_pretty(&response)
-        .map_err(|e| e.to_string())
+    serde_json::to_string_pretty(&response).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -448,17 +505,18 @@ pub async fn import_workflow_template(
 ) -> Result<String, String> {
     let db = &state.sea_db;
 
-    let template: WorkflowTemplateResponse = serde_json::from_str(&json_data)
-        .map_err(|e| format!("Invalid JSON format: {}", e))?;
+    let template: WorkflowTemplateResponse =
+        serde_json::from_str(&json_data).map_err(|e| format!("Invalid JSON format: {}", e))?;
 
     // Auto-migrate legacy Tool/Code nodes to AtomicSkill nodes on import
     let mut nodes = template.nodes.clone();
-    let migrated_nodes: Vec<axagent_core::workflow_types::WorkflowNode> = if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
-        axagent_core::workflow_types::WorkflowMigrator::migrate(&mut nodes);
-        nodes
-    } else {
-        nodes
-    };
+    let migrated_nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
+        if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
+            axagent_core::workflow_types::WorkflowMigrator::migrate(&mut nodes);
+            nodes
+        } else {
+            nodes
+        };
 
     let now = chrono::Utc::now().timestamp_millis();
     let new_template = WorkflowTemplateData {

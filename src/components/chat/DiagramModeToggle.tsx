@@ -1,11 +1,11 @@
-import React from 'react';
-import { Segmented, theme } from 'antd';
-import { Eye, Code2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Segmented, theme } from "antd";
+import { Code2, Eye } from "lucide-react";
+import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   showSource: boolean;
-  onSwitchMode: (mode: 'preview' | 'source') => void;
+  onSwitchMode: (mode: "preview" | "source") => void;
 }
 
 export const DiagramModeToggle: React.FC<Props> = ({ showSource, onSwitchMode }) => {
@@ -15,26 +15,26 @@ export const DiagramModeToggle: React.FC<Props> = ({ showSource, onSwitchMode })
   return (
     <Segmented
       size="small"
-      value={showSource ? 'source' : 'preview'}
-      onChange={(value) => onSwitchMode(value as 'preview' | 'source')}
+      value={showSource ? "source" : "preview"}
+      onChange={(value) => onSwitchMode(value as "preview" | "source")}
       options={[
         {
           label: (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
               <Eye size={12} />
-              {t('common.preview')}
+              {t("common.preview")}
             </span>
           ),
-          value: 'preview',
+          value: "preview",
         },
         {
           label: (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
               <Code2 size={12} />
-              {t('common.source')}
+              {t("common.source")}
             </span>
           ),
-          value: 'source',
+          value: "source",
         },
       ]}
       style={{ fontSize: token.fontSizeSM }}

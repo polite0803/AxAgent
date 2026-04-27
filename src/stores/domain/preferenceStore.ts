@@ -1,21 +1,21 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import { useConversationStore } from './conversationStore';
-import { useProviderStore } from '../feature/providerStore';
-import { supportsReasoning, findModelByIds } from '@/lib/modelCapabilities';
-import type { Conversation, UpdateConversationInput } from '@/types';
+import { invoke } from "@/lib/invoke";
+import { findModelByIds, supportsReasoning } from "@/lib/modelCapabilities";
+import type { Conversation, UpdateConversationInput } from "@/types";
+import { create } from "zustand";
+import { useProviderStore } from "../feature/providerStore";
+import { useConversationStore } from "./conversationStore";
 
 // Sequence counter to prevent stale preference saves
 const _conversationPreferenceSaveSeq = new Map<string, number>();
 
 type ConversationPreferenceState = Pick<
   PreferenceState,
-  | 'searchEnabled'
-  | 'searchProviderId'
-  | 'thinkingBudget'
-  | 'enabledMcpServerIds'
-  | 'enabledKnowledgeBaseIds'
-  | 'enabledMemoryNamespaceIds'
+  | "searchEnabled"
+  | "searchProviderId"
+  | "thinkingBudget"
+  | "enabledMcpServerIds"
+  | "enabledKnowledgeBaseIds"
+  | "enabledMemoryNamespaceIds"
 >;
 
 function conversationPreferenceStateFromConversation(
@@ -34,21 +34,21 @@ function conversationPreferenceStateFromConversation(
 function conversationPreferenceUpdateFromState(
   state: Pick<
     PreferenceState,
-    | 'searchEnabled'
-    | 'searchProviderId'
-    | 'thinkingBudget'
-    | 'enabledMcpServerIds'
-    | 'enabledKnowledgeBaseIds'
-    | 'enabledMemoryNamespaceIds'
+    | "searchEnabled"
+    | "searchProviderId"
+    | "thinkingBudget"
+    | "enabledMcpServerIds"
+    | "enabledKnowledgeBaseIds"
+    | "enabledMemoryNamespaceIds"
   >,
 ): Pick<
   UpdateConversationInput,
-  | 'search_enabled'
-  | 'search_provider_id'
-  | 'thinking_budget'
-  | 'enabled_mcp_server_ids'
-  | 'enabled_knowledge_base_ids'
-  | 'enabled_memory_namespace_ids'
+  | "search_enabled"
+  | "search_provider_id"
+  | "thinking_budget"
+  | "enabled_mcp_server_ids"
+  | "enabled_knowledge_base_ids"
+  | "enabled_memory_namespace_ids"
 > {
   return {
     search_enabled: state.searchEnabled,
@@ -106,8 +106,8 @@ async function persistConversationPreferences(
 ) {
   const requestSeq = nextConversationPreferenceSaveSeq(conversationId);
   try {
-    const updated = await invoke<Conversation>('update_conversation', { id: conversationId, input });
-    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) return;
+    const updated = await invoke<Conversation>("update_conversation", { id: conversationId, input });
+    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) { return; }
 
     const convState = useConversationStore.getState();
     useConversationStore.setState((state) => ({
@@ -123,7 +123,7 @@ async function persistConversationPreferences(
       usePreferenceStore.setState(conversationPreferenceStateFromConversation(updated));
     }
   } catch (error) {
-    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) return;
+    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) { return; }
 
     const prefState = usePreferenceStore.getState();
     const convState = useConversationStore.getState();
@@ -149,27 +149,34 @@ async function persistConversationPreferences(
 
 export function getEffectiveThinkingBudget(conversationId: string): number | undefined {
   const thinkingBudget = usePreferenceStore.getState().thinkingBudget;
-  if (thinkingBudget === null) return undefined;
+  if (thinkingBudget === null) { return undefined; }
 
   const conversation = useConversationStore.getState().conversations.find((item) => item.id === conversationId);
-  if (!conversation) return thinkingBudget;
+  if (!conversation) { return thinkingBudget; }
 
   const providers = useProviderStore.getState().providers;
   const model = findModelByIds(providers, conversation.provider_id, conversation.model_id);
-  if (!model) return thinkingBudget;
+  if (!model) { return thinkingBudget; }
   return supportsReasoning(model) ? thinkingBudget : undefined;
 }
 
 export function categoryTemplateUpdateFromCategory(
-  category?: { id: string; system_prompt?: string | null; default_temperature?: number | null; default_max_tokens?: number | null; default_top_p?: number | null; default_frequency_penalty?: number | null } | null,
+  category?: {
+    id: string;
+    system_prompt?: string | null;
+    default_temperature?: number | null;
+    default_max_tokens?: number | null;
+    default_top_p?: number | null;
+    default_frequency_penalty?: number | null;
+  } | null,
 ): Pick<
   UpdateConversationInput,
-  | 'category_id'
-  | 'system_prompt'
-  | 'temperature'
-  | 'max_tokens'
-  | 'top_p'
-  | 'frequency_penalty'
+  | "category_id"
+  | "system_prompt"
+  | "temperature"
+  | "max_tokens"
+  | "top_p"
+  | "frequency_penalty"
 > {
   if (!category) {
     return {};
@@ -186,7 +193,11 @@ export function categoryTemplateUpdateFromCategory(
 }
 
 // Re-export for use in conversationStore's setActiveConversation
-export { conversationPreferenceStateFromConversation, conversationPreferenceUpdateFromState, mergeConversationCollections };
+export {
+  conversationPreferenceStateFromConversation,
+  conversationPreferenceUpdateFromState,
+  mergeConversationCollections,
+};
 
 interface PreferenceState {
   searchEnabled: boolean;

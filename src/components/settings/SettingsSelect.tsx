@@ -1,7 +1,7 @@
-import { Dropdown, Input, theme } from 'antd';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import { Dropdown, Input, theme } from "antd";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 interface SettingsSelectOption {
   label: ReactNode;
@@ -21,15 +21,15 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
   const { token } = theme.useToken();
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const searchRef = useRef<any>(null);
   const currentLabel = options.find((o) => o.value === value)?.label ?? value;
 
   const filteredOptions = useMemo(() => {
-    if (!searchable || !search) return options;
+    if (!searchable || !search) { return options; }
     const q = search.toLowerCase();
     return options.filter((o) => {
-      const text = typeof o.label === 'string' ? o.label : o.value;
+      const text = typeof o.label === "string" ? o.label : o.value;
       return text.toLowerCase().includes(q);
     });
   }, [options, search, searchable]);
@@ -37,7 +37,7 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
   const handleSelect = useCallback((val: string) => {
     onChange?.(val);
     setOpen(false);
-    setSearch('');
+    setSearch("");
   }, [onChange]);
 
   const trigger = (
@@ -47,22 +47,24 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
+        display: "inline-flex",
+        alignItems: "center",
         gap: 4,
-        padding: '3px 10px',
+        padding: "3px 10px",
         borderRadius: 6,
-        border: 'none',
-        background: hovered ? token.colorFillTertiary : 'transparent',
-        cursor: disabled ? 'not-allowed' : 'pointer',
+        border: "none",
+        background: hovered ? token.colorFillTertiary : "transparent",
+        cursor: disabled ? "not-allowed" : "pointer",
         fontSize: 13,
         color: token.colorText,
-        userSelect: 'none',
-        transition: 'background 0.2s',
+        userSelect: "none",
+        transition: "background 0.2s",
         ...style,
       }}
     >
-      <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentLabel}</span>
+      <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {currentLabel}
+      </span>
       <ChevronsUpDown size={12} style={{ opacity: 0.4 }} />
     </div>
   );
@@ -71,21 +73,26 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
     return (
       <Dropdown
         open={open}
-        onOpenChange={(v) => { setOpen(v); if (!v) setSearch(''); }}
-        trigger={['click']}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) { setSearch(""); }
+        }}
+        trigger={["click"]}
         disabled={disabled}
         dropdownRender={() => (
-          <div style={{
-            background: token.colorBgElevated,
-            borderRadius: 8,
-            boxShadow: token.boxShadowSecondary,
-            padding: 4,
-            maxHeight: 320,
-            display: 'flex',
-            flexDirection: 'column',
-            minWidth: 200,
-          }}>
-            <div style={{ padding: '4px 4px 2px' }}>
+          <div
+            style={{
+              background: token.colorBgElevated,
+              borderRadius: 8,
+              boxShadow: token.boxShadowSecondary,
+              padding: 4,
+              maxHeight: 320,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 200,
+            }}
+          >
+            <div style={{ padding: "4px 4px 2px" }}>
               <Input
                 ref={searchRef}
                 size="small"
@@ -98,33 +105,43 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
                 style={{ borderRadius: 6 }}
               />
             </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '4px 0' }}>
+            <div style={{ overflowY: "auto", flex: 1, padding: "4px 0" }}>
               {filteredOptions.map((opt) => (
                 <div
                   key={opt.value}
                   onClick={() => handleSelect(opt.value)}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                     gap: 16,
-                    padding: '5px 12px',
+                    padding: "5px 12px",
                     borderRadius: 4,
-                    cursor: 'pointer',
+                    cursor: "pointer",
                     fontSize: 13,
                     color: token.colorText,
-                    background: opt.value === value ? token.colorFillTertiary : 'transparent',
+                    background: opt.value === value ? token.colorFillTertiary : "transparent",
                     minWidth: 140,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = token.colorFillSecondary; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = opt.value === value ? token.colorFillTertiary : 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = token.colorFillSecondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = opt.value === value ? token.colorFillTertiary : "transparent";
+                  }}
                 >
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.label}</span>
-                  {opt.value === value && <Check size={15} style={{ color: token.colorTextSecondary, flexShrink: 0 }} />}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {opt.label}
+                  </span>
+                  {opt.value === value && (
+                    <Check size={15} style={{ color: token.colorTextSecondary, flexShrink: 0 }} />
+                  )}
                 </div>
               ))}
               {filteredOptions.length === 0 && (
-                <div style={{ padding: '8px 12px', color: token.colorTextDescription, fontSize: 12, textAlign: 'center' }}>
+                <div
+                  style={{ padding: "8px 12px", color: token.colorTextDescription, fontSize: 12, textAlign: "center" }}
+                >
                   No results
                 </div>
               )}
@@ -143,7 +160,9 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
         items: options.map((opt) => ({
           key: opt.value,
           label: (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, minWidth: 140 }}>
+            <div
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, minWidth: 140 }}
+            >
               <span>{opt.label}</span>
               {opt.value === value && <Check size={15} style={{ color: token.colorTextSecondary }} />}
             </div>
@@ -151,7 +170,7 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
         })),
         onClick: ({ key }) => onChange?.(key),
       }}
-      trigger={['click']}
+      trigger={["click"]}
       disabled={disabled}
     >
       {trigger}

@@ -1,8 +1,8 @@
-import type { SearchResultItem } from '@/types';
+import type { SearchResultItem } from "@/types";
 
-const SEARCH_MARKER_START = '<!-- search:';
-const SEARCH_MARKER_END = ' -->';
-const SEARCH_SEPARATOR = '\n---\n\n';
+const SEARCH_MARKER_START = "<!-- search:";
+const SEARCH_MARKER_END = " -->";
+const SEARCH_SEPARATOR = "\n---\n\n";
 
 export interface SearchSourceTag {
   title: string;
@@ -24,7 +24,7 @@ export function formatSearchContent(
   const metadata = JSON.stringify({ sources: sourceTags });
 
   let block = `${SEARCH_MARKER_START}${metadata}${SEARCH_MARKER_END}\n`;
-  block += '以下是与问题相关的网络搜索结果，请参考回答：\n\n';
+  block += "以下是与问题相关的网络搜索结果，请参考回答：\n\n";
 
   results.forEach((r, i) => {
     block += `${i + 1}. **${r.title}** - ${r.url}\n   ${r.content}\n\n`;
@@ -37,13 +37,13 @@ export function formatSearchContent(
  * Build a `<web-search>` custom tag for markstream-react rendering.
  */
 export function buildSearchTag(
-  status: 'searching' | 'done' | 'error',
+  status: "searching" | "done" | "error",
   results?: SearchResultItem[],
 ): string {
-  if (status === 'searching') {
+  if (status === "searching") {
     return '<web-search status="searching" data-axagent="1"></web-search>';
   }
-  if (status === 'error') {
+  if (status === "error") {
     return '<web-search status="error" data-axagent="1"></web-search>';
   }
   const json = JSON.stringify(
@@ -76,10 +76,9 @@ export function parseSearchContent(content: string): {
   }
 
   const separatorIdx = content.indexOf(SEARCH_SEPARATOR);
-  const userContent =
-    separatorIdx !== -1
-      ? content.substring(separatorIdx + SEARCH_SEPARATOR.length)
-      : content.substring(markerEndIdx + SEARCH_MARKER_END.length);
+  const userContent = separatorIdx !== -1
+    ? content.substring(separatorIdx + SEARCH_SEPARATOR.length)
+    : content.substring(markerEndIdx + SEARCH_MARKER_END.length);
 
   return { hasSearch: true, sources, userContent };
 }

@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { McpServer, CreateMcpServerInput, UpdateMcpServerInput, ToolDescriptor, ToolExecution } from '@/types';
+import { invoke } from "@/lib/invoke";
+import type { CreateMcpServerInput, McpServer, ToolDescriptor, ToolExecution, UpdateMcpServerInput } from "@/types";
+import { create } from "zustand";
 
 interface McpState {
   servers: McpServer[];
@@ -30,7 +30,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
   loadServers: async () => {
     set({ loading: true });
     try {
-      const servers = await invoke<McpServer[]>('list_mcp_servers');
+      const servers = await invoke<McpServer[]>("list_mcp_servers");
       set({ servers, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -39,7 +39,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   createServer: async (input) => {
     try {
-      const server = await invoke<McpServer>('create_mcp_server', { input });
+      const server = await invoke<McpServer>("create_mcp_server", { input });
       set((s) => ({ servers: [...s.servers, server], error: null }));
       return server;
     } catch (e) {
@@ -50,7 +50,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   updateServer: async (id, input) => {
     try {
-      const updated = await invoke<McpServer>('update_mcp_server', { id, input });
+      const updated = await invoke<McpServer>("update_mcp_server", { id, input });
       set((s) => ({
         servers: s.servers.map((srv) => (srv.id === id ? updated : srv)),
         error: null,
@@ -63,7 +63,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   deleteServer: async (id) => {
     try {
-      await invoke('delete_mcp_server', { id });
+      await invoke("delete_mcp_server", { id });
       set((s) => ({
         servers: s.servers.filter((srv) => srv.id !== id),
         toolDescriptors: Object.fromEntries(
@@ -80,7 +80,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
   testServer: async (id) => {
     try {
       const result = await invoke<{ ok: boolean; error?: string }>(
-        'test_mcp_server',
+        "test_mcp_server",
         { id },
       );
       return result;
@@ -91,7 +91,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   loadToolDescriptors: async (serverId) => {
     try {
-      const tools = await invoke<ToolDescriptor[]>('list_mcp_tools', { serverId });
+      const tools = await invoke<ToolDescriptor[]>("list_mcp_tools", { serverId });
       set((s) => ({
         toolDescriptors: { ...s.toolDescriptors, [serverId]: tools },
         error: null,
@@ -103,7 +103,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   discoverTools: async (serverId) => {
     try {
-      const tools = await invoke<ToolDescriptor[]>('discover_mcp_tools', { id: serverId });
+      const tools = await invoke<ToolDescriptor[]>("discover_mcp_tools", { id: serverId });
       set((s) => ({
         toolDescriptors: { ...s.toolDescriptors, [serverId]: tools },
         error: null,
@@ -117,7 +117,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   loadToolExecutions: async (conversationId) => {
     try {
-      const executions = await invoke<ToolExecution[]>('list_tool_executions', {
+      const executions = await invoke<ToolExecution[]>("list_tool_executions", {
         conversationId,
       });
       set({ toolExecutions: executions, error: null });
@@ -128,7 +128,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   hotReloadServer: async (serverId) => {
     try {
-      const result = await invoke<{ ok: boolean; toolCount: number }>('hot_reload_mcp_server', {
+      const result = await invoke<{ ok: boolean; toolCount: number }>("hot_reload_mcp_server", {
         id: serverId,
       });
       // Refresh tool descriptors for this server

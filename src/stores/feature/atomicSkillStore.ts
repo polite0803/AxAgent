@@ -1,12 +1,12 @@
-import { create } from 'zustand';
-import { invoke } from '../../lib/invoke';
+import { create } from "zustand";
+import { invoke } from "../../lib/invoke";
 import type {
   AtomicSkill,
   AtomicSkillFilter,
   CreateAtomicSkillParams,
-  UpdateAtomicSkillParams,
   SkillReference,
-} from '../../types';
+  UpdateAtomicSkillParams,
+} from "../../types";
 
 interface AtomicSkillState {
   skills: AtomicSkill[];
@@ -40,7 +40,7 @@ export const useAtomicSkillStore = create<AtomicSkillState>((set, get) => ({
     set({ loading: true });
     try {
       const f = filter ?? get().filter;
-      const skills = await invoke<AtomicSkill[]>('list_atomic_skills', { filter: f });
+      const skills = await invoke<AtomicSkill[]>("list_atomic_skills", { filter: f });
       set({ skills, filter: f });
     } finally {
       set({ loading: false });
@@ -48,30 +48,30 @@ export const useAtomicSkillStore = create<AtomicSkillState>((set, get) => ({
   },
 
   getSkill: async (id: string) => {
-    const skill = await invoke<AtomicSkill | null>('get_atomic_skill', { id });
+    const skill = await invoke<AtomicSkill | null>("get_atomic_skill", { id });
     set({ selectedSkill: skill });
   },
 
   createSkill: async (params: CreateAtomicSkillParams) => {
-    const id = await invoke<string>('create_atomic_skill', { params });
+    const id = await invoke<string>("create_atomic_skill", { params });
     await get().loadSkills();
     return id;
   },
 
   updateSkill: async (id: string, params: UpdateAtomicSkillParams) => {
-    const success = await invoke<boolean>('update_atomic_skill', { id, params });
-    if (success) await get().loadSkills();
+    const success = await invoke<boolean>("update_atomic_skill", { id, params });
+    if (success) { await get().loadSkills(); }
     return success;
   },
 
   deleteSkill: async (id: string) => {
-    const success = await invoke<boolean>('delete_atomic_skill', { id });
-    if (success) await get().loadSkills();
+    const success = await invoke<boolean>("delete_atomic_skill", { id });
+    if (success) { await get().loadSkills(); }
     return success;
   },
 
   toggleSkill: async (id: string, enabled: boolean) => {
-    await invoke<boolean>('toggle_atomic_skill', { id, enabled });
+    await invoke<boolean>("toggle_atomic_skill", { id, enabled });
     await get().loadSkills();
   },
 
@@ -81,7 +81,7 @@ export const useAtomicSkillStore = create<AtomicSkillState>((set, get) => ({
     input_schema?: Record<string, unknown>,
     output_schema?: Record<string, unknown>,
   ) => {
-    return invoke<AtomicSkill | null>('check_semantic_uniqueness', {
+    return invoke<AtomicSkill | null>("check_semantic_uniqueness", {
       entry_type,
       entry_ref,
       input_schema,
@@ -90,7 +90,7 @@ export const useAtomicSkillStore = create<AtomicSkillState>((set, get) => ({
   },
 
   getReferences: async (skillId: string) => {
-    return invoke<SkillReference[]>('get_skill_references', { skill_id: skillId });
+    return invoke<SkillReference[]>("get_skill_references", { skill_id: skillId });
   },
 
   setFilter: (filter: AtomicSkillFilter) => {

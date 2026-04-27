@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { BackupManifest, AutoBackupSettings } from '@/types';
+import { invoke } from "@/lib/invoke";
+import type { AutoBackupSettings, BackupManifest } from "@/types";
+import { create } from "zustand";
 
 interface BackupState {
   backups: BackupManifest[];
@@ -29,17 +29,17 @@ export const useBackupStore = create<BackupState>((set, get) => ({
   loadBackups: async () => {
     set({ loading: true });
     try {
-      const backups = await invoke<BackupManifest[]>('list_backups');
+      const backups = await invoke<BackupManifest[]>("list_backups");
       set({ backups, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
     }
   },
 
-  createBackup: async (format = 'json') => {
+  createBackup: async (format = "json") => {
     set({ loading: true, error: null });
     try {
-      const backup = await invoke<BackupManifest>('create_backup', { format });
+      const backup = await invoke<BackupManifest>("create_backup", { format });
       await get().loadBackups();
       return backup;
     } catch (e) {
@@ -51,7 +51,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
   restoreBackup: async (backupId: string) => {
     set({ loading: true, error: null });
     try {
-      await invoke('restore_backup', { backupId });
+      await invoke("restore_backup", { backupId });
       set({ loading: false });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -61,7 +61,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
 
   deleteBackup: async (id: string) => {
     try {
-      await invoke('delete_backup', { backupId: id });
+      await invoke("delete_backup", { backupId: id });
       set({
         backups: get().backups.filter((b) => b.id !== id),
         selectedIds: get().selectedIds.filter((i) => i !== id),
@@ -75,7 +75,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
   batchDeleteBackups: async (ids: string[]) => {
     set({ loading: true, error: null });
     try {
-      await invoke('batch_delete_backups', { backupIds: ids });
+      await invoke("batch_delete_backups", { backupIds: ids });
       set({
         backups: get().backups.filter((b) => !ids.includes(b.id)),
         selectedIds: [],
@@ -93,7 +93,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
 
   loadBackupSettings: async () => {
     try {
-      const settings = await invoke<AutoBackupSettings>('get_backup_settings');
+      const settings = await invoke<AutoBackupSettings>("get_backup_settings");
       set({ backupSettings: settings });
     } catch (e) {
       set({ error: String(e) });
@@ -102,7 +102,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
 
   updateBackupSettings: async (settings: AutoBackupSettings) => {
     try {
-      await invoke('update_backup_settings', { backupSettings: settings });
+      await invoke("update_backup_settings", { backupSettings: settings });
       set({ backupSettings: settings });
     } catch (e) {
       set({ error: String(e) });

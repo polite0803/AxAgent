@@ -1,22 +1,22 @@
-import { create } from 'zustand';
-import { invoke, listen, type UnlistenFn } from '@/lib/invoke';
-import { useConversationStore, useStreamStore } from '@/stores';
-import { getStreamingMessageId, deriveLegacyStreamFields } from '@/stores/domain/streamStore';
+import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
+import { useConversationStore, useStreamStore } from "@/stores";
+import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
 import type {
-  AgentSession,
-  ToolCallState,
-  ToolUseEvent,
-  ToolStartEvent,
-  ToolResultEvent,
-  PermissionRequestEvent,
-  AskUserEvent,
-  AgentStatusEvent,
+  AgentCancelledEvent,
   AgentDoneEvent,
   AgentErrorEvent,
-  AgentCancelledEvent,
   AgentRateLimitEvent,
-} from '@/types/agent';
-import type { ToolExecution } from '@/types/mcp';
+  AgentSession,
+  AgentStatusEvent,
+  AskUserEvent,
+  PermissionRequestEvent,
+  ToolCallState,
+  ToolResultEvent,
+  ToolStartEvent,
+  ToolUseEvent,
+} from "@/types/agent";
+import type { ToolExecution } from "@/types/mcp";
+import { create } from "zustand";
 
 interface QueryStats {
   numTurns?: number;
@@ -89,7 +89,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   fetchSession: async (conversationId) => {
     try {
-      const session = await invoke<AgentSession | null>('agent_get_session', {
+      const session = await invoke<AgentSession | null>("agent_get_session", {
         conversation_id: conversationId,
       });
       if (session) {
@@ -99,14 +99,14 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       }
       return session;
     } catch (e) {
-      console.error('[agentStore] fetchSession failed:', e);
+      console.error("[agentStore] fetchSession failed:", e);
       return null;
     }
   },
 
   updateCwd: async (conversationId, cwd) => {
     try {
-      const session = await invoke<AgentSession>('agent_update_session', {
+      const session = await invoke<AgentSession>("agent_update_session", {
         conversation_id: conversationId,
         cwd,
       });
@@ -114,13 +114,13 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         sessions: { ...s.sessions, [conversationId]: session },
       }));
     } catch (e) {
-      console.error('[agentStore] updateCwd failed:', e);
+      console.error("[agentStore] updateCwd failed:", e);
     }
   },
 
   updatePermissionMode: async (conversationId, mode) => {
     try {
-      const session = await invoke<AgentSession>('agent_update_session', {
+      const session = await invoke<AgentSession>("agent_update_session", {
         conversation_id: conversationId,
         permission_mode: mode,
       });
@@ -128,13 +128,13 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         sessions: { ...s.sessions, [conversationId]: session },
       }));
     } catch (e) {
-      console.error('[agentStore] updatePermissionMode failed:', e);
+      console.error("[agentStore] updatePermissionMode failed:", e);
     }
   },
 
   approveToolUse: async (conversationId, toolUseId, decision, toolName) => {
     try {
-      await invoke('agent_approve', {
+      await invoke("agent_approve", {
         request: {
           conversationId,
           toolUseId,
@@ -144,7 +144,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       });
       get().handlePermissionResolved(toolUseId, decision);
     } catch (e) {
-      console.error('[agentStore] approveToolUse failed:', e);
+      console.error("[agentStore] approveToolUse failed:", e);
     }
   },
 
@@ -155,7 +155,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         toolName: event.toolName,
         input: event.input,
         assistantMessageId: event.assistantMessageId,
-        executionStatus: 'queued',
+        executionStatus: "queued",
       };
       const updates: Record<string, ToolCallState> = {
         [event.toolUseId]: toolCall,
@@ -181,7 +181,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         toolName: event.toolName,
         input: event.input,
         assistantMessageId: event.assistantMessageId,
-        executionStatus: 'running',
+        executionStatus: "running",
         approvalStatus: existing?.approvalStatus,
       };
       const updates: Record<string, ToolCallState> = {
@@ -198,10 +198,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   handleToolResult: (event) => {
     set((s) => {
       const existing = s.toolCalls[event.toolUseId];
-      const newStatus = event.isError ? 'failed' : 'success';
+      const newStatus = event.isError ? "failed" : "success";
       const updated: ToolCallState = {
         toolUseId: event.toolUseId,
-        toolName: event.toolName || existing?.toolName || '',
+        toolName: event.toolName || existing?.toolName || "",
         input: existing?.input ?? {},
         assistantMessageId: event.assistantMessageId,
         executionStatus: newStatus,
@@ -234,12 +234,12 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       const existing = s.toolCalls[toolUseId];
       const updatedToolCalls = existing
         ? {
-            ...s.toolCalls,
-            [toolUseId]: {
-              ...existing,
-              approvalStatus: decision === 'deny' ? ('denied' as const) : ('approved' as const),
-            },
-          }
+          ...s.toolCalls,
+          [toolUseId]: {
+            ...existing,
+            approvalStatus: decision === "deny" ? ("denied" as const) : ("approved" as const),
+          },
+        }
         : s.toolCalls;
       return {
         pendingPermissions: rest,
@@ -263,12 +263,12 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   respondAskUser: async (askId, answer) => {
     try {
-      await invoke('agent_respond_ask', { request: { askId, answer } });
+      await invoke("agent_respond_ask", { request: { askId, answer } });
       // Brief delay so user sees the loading/submitted feedback
       await new Promise((r) => setTimeout(r, 500));
       get().handleAskUserResolved(askId);
     } catch (e) {
-      console.error('[agentStore] respondAskUser failed:', e);
+      console.error("[agentStore] respondAskUser failed:", e);
     }
   },
 
@@ -287,12 +287,12 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   handleDone: (event) => {
     const stats: QueryStats = {};
-    if (event.numTurns != null) stats.numTurns = event.numTurns;
+    if (event.numTurns != null) { stats.numTurns = event.numTurns; }
     if (event.usage) {
       stats.inputTokens = event.usage.input_tokens;
       stats.outputTokens = event.usage.output_tokens;
     }
-    if (event.costUsd != null) stats.costUsd = event.costUsd;
+    if (event.costUsd != null) { stats.costUsd = event.costUsd; }
     if (event.assistantMessageId && Object.keys(stats).length > 0) {
       set((s) => ({
         queryStats: { ...s.queryStats, [event.assistantMessageId]: stats },
@@ -303,7 +303,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   handleError: (event) => {
-    console.error('[agentStore] Agent error:', event);
+    console.error("[agentStore] Agent error:", event);
     // Clear status and expire unresolved permissions for the conversation
     if (event.conversationId) {
       get().clearStatus(event.conversationId);
@@ -315,25 +315,31 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     if (streamMsgId) {
       const targetId = streamMsgId;
       // Detect stream interruption errors that may have partial content
-      const isStreamInterrupt = event.message?.toLowerCase().includes('stream') &&
-        (event.message?.toLowerCase().includes('interrupt') ||
-         event.message?.toLowerCase().includes('timeout') ||
-         event.message?.toLowerCase().includes('connection') ||
-         event.message?.toLowerCase().includes('network'));
+      const isStreamInterrupt = event.message?.toLowerCase().includes("stream")
+        && (event.message?.toLowerCase().includes("interrupt")
+          || event.message?.toLowerCase().includes("timeout")
+          || event.message?.toLowerCase().includes("connection")
+          || event.message?.toLowerCase().includes("network"));
       const errorPrefix = isStreamInterrupt
-        ? '⚠️ Stream interrupted — partial response may be lost. '
-        : '';
+        ? "⚠️ Stream interrupted — partial response may be lost. "
+        : "";
       useStreamStore.setState((s) => {
         const { [event.conversationId]: _removed, ...restStreams } = s.activeStreams;
         const restCount = Object.keys(restStreams).length;
         return {
           activeStreams: restStreams,
-          ...(restCount > 0 ? deriveLegacyStreamFields(restStreams) : { streaming: false, streamingMessageId: null, streamingConversationId: null }),
-          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[event.conversationId]; return t; })(),
+          ...(restCount > 0
+            ? deriveLegacyStreamFields(restStreams)
+            : { streaming: false, streamingMessageId: null, streamingConversationId: null }),
+          streamingStartTimestamps: (() => {
+            const t = { ...s.streamingStartTimestamps };
+            delete t[event.conversationId];
+            return t;
+          })(),
           thinkingActiveMessageIds: (() => {
             const current = s.thinkingActiveMessageIds;
             const next = new Set(current);
-            if (targetId) next.delete(targetId);
+            if (targetId) { next.delete(targetId); }
             return next;
           })(),
         };
@@ -341,7 +347,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       useConversationStore.setState((s) => ({
         messages: s.messages.map((m) =>
           m.id === targetId
-            ? { ...m, content: errorPrefix + event.message, status: 'error' as const }
+            ? { ...m, content: errorPrefix + event.message, status: "error" as const }
             : m
         ),
       }));
@@ -349,7 +355,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   handleCancelled: (event) => {
-    console.info('[agentStore] Agent cancelled:', event.reason);
+    console.info("[agentStore] Agent cancelled:", event.reason);
     // Clear status and expire unresolved permissions for the conversation
     if (event.conversationId) {
       get().clearStatus(event.conversationId);
@@ -358,7 +364,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   handleRateLimit: (event) => {
-    console.warn('[agentStore] Rate limited:', event.message);
+    console.warn("[agentStore] Rate limited:", event.message);
     set((s) => ({
       rateLimitInfo: { ...s.rateLimitInfo, [event.conversationId]: event },
     }));
@@ -381,7 +387,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           expiredKeys.add(id);
         }
       }
-      if (expiredKeys.size === 0) return s;
+      if (expiredKeys.size === 0) { return s; }
 
       // Remove from pendingPermissions and mark toolCalls as expired
       const pendingPermissions: Record<string, PermissionRequestEvent> = {};
@@ -393,7 +399,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       const toolCalls: Record<string, ToolCallState> = {};
       for (const [id, tc] of Object.entries(s.toolCalls)) {
         if (expiredKeys.has(id)) {
-          toolCalls[id] = { ...tc, approvalStatus: 'denied' as const };
+          toolCalls[id] = { ...tc, approvalStatus: "denied" as const };
         } else {
           toolCalls[id] = tc;
         }
@@ -404,45 +410,47 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   loadToolHistory: async (conversationId) => {
     try {
-      const executions = await invoke<ToolExecution[]>('list_tool_executions', {
+      const executions = await invoke<ToolExecution[]>("list_tool_executions", {
         conversationId,
       });
-      const agentExecs = executions.filter((e) => e.serverId === '__agent_sdk__');
+      const agentExecs = executions.filter((e) => e.serverId === "__agent_sdk__");
 
       const toolCalls: Record<string, ToolCallState> = {};
       for (const exec of agentExecs) {
-        let executionStatus: ToolCallState['executionStatus'] = 'queued';
-        if (exec.status === 'running') executionStatus = 'running';
-        else if (exec.status === 'success') executionStatus = 'success';
-        else if (exec.status === 'failed') executionStatus = 'failed';
-        else if (exec.status === 'cancelled') executionStatus = 'cancelled';
+        let executionStatus: ToolCallState["executionStatus"] = "queued";
+        if (exec.status === "running") { executionStatus = "running"; }
+        else if (exec.status === "success") { executionStatus = "success"; }
+        else if (exec.status === "failed") { executionStatus = "failed"; }
+        else if (exec.status === "cancelled") { executionStatus = "cancelled"; }
 
         // Historical records still showing pending/running means the agent
         // was interrupted or a duplicate record was left behind.
         // Treat them as success to avoid perpetual loading spinners.
-        if (executionStatus === 'queued' || executionStatus === 'running') {
-          executionStatus = 'success';
+        if (executionStatus === "queued" || executionStatus === "running") {
+          executionStatus = "success";
         }
 
-        let approvalStatus: ToolCallState['approvalStatus'] | undefined;
-        if (exec.approvalStatus === 'approved') approvalStatus = 'approved';
-        else if (exec.approvalStatus === 'denied') approvalStatus = 'denied';
-        else if (exec.approvalStatus === 'pending') approvalStatus = 'pending';
+        let approvalStatus: ToolCallState["approvalStatus"] | undefined;
+        if (exec.approvalStatus === "approved") { approvalStatus = "approved"; }
+        else if (exec.approvalStatus === "denied") { approvalStatus = "denied"; }
+        else if (exec.approvalStatus === "pending") { approvalStatus = "pending"; }
 
         let input: Record<string, unknown> = {};
         if (exec.inputPreview) {
-          try { input = JSON.parse(exec.inputPreview); } catch { /* leave empty */ }
+          try {
+            input = JSON.parse(exec.inputPreview);
+          } catch { /* leave empty */ }
         }
 
         toolCalls[exec.id] = {
           toolUseId: exec.id,
           toolName: exec.toolName,
           input,
-          assistantMessageId: exec.messageId ?? '',
+          assistantMessageId: exec.messageId ?? "",
           executionStatus,
           approvalStatus,
           output: exec.outputPreview ?? exec.errorMessage,
-          isError: exec.status === 'failed',
+          isError: exec.status === "failed",
         };
       }
 
@@ -450,7 +458,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         toolCalls: { ...toolCalls, ...s.toolCalls },
       }));
     } catch (e) {
-      console.error('[agentStore] loadToolHistory failed:', e);
+      console.error("[agentStore] loadToolHistory failed:", e);
     }
   },
 
@@ -501,33 +509,42 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       const { [conversationId]: _rateLimit, ...rateLimitInfo } = s.rateLimitInfo;
       const pausedConversations = new Set(s.pausedConversations);
       pausedConversations.delete(conversationId);
-      return { sessions, agentStatus, pendingPermissions, pendingAskUser, toolCalls, sdkIdToExecId, rateLimitInfo, pausedConversations };
+      return {
+        sessions,
+        agentStatus,
+        pendingPermissions,
+        pendingAskUser,
+        toolCalls,
+        sdkIdToExecId,
+        rateLimitInfo,
+        pausedConversations,
+      };
     });
   },
 
   pauseAgent: async (conversationId) => {
     try {
-      await invoke('agent_pause', { conversationId });
+      await invoke("agent_pause", { conversationId });
       set((s) => {
         const pausedConversations = new Set(s.pausedConversations);
         pausedConversations.add(conversationId);
         return { pausedConversations };
       });
     } catch (err) {
-      console.error('[agentStore] pauseAgent failed:', err);
+      console.error("[agentStore] pauseAgent failed:", err);
     }
   },
 
   resumeAgent: async (conversationId) => {
     try {
-      await invoke('agent_resume', { conversationId });
+      await invoke("agent_resume", { conversationId });
       set((s) => {
         const pausedConversations = new Set(s.pausedConversations);
         pausedConversations.delete(conversationId);
         return { pausedConversations };
       });
     } catch (err) {
-      console.error('[agentStore] resumeAgent failed:', err);
+      console.error("[agentStore] resumeAgent failed:", err);
     }
   },
 
@@ -551,68 +568,68 @@ export function setupAgentEventListeners(): () => void {
   const store = useAgentStore.getState();
 
   unlisteners.push(
-    listen<ToolUseEvent>('agent-tool-use', (event) => {
+    listen<ToolUseEvent>("agent-tool-use", (event) => {
       store.handleToolUse(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<ToolStartEvent>('agent-tool-start', (event) => {
+    listen<ToolStartEvent>("agent-tool-start", (event) => {
       store.handleToolStart(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<ToolResultEvent>('agent-tool-result', (event) => {
+    listen<ToolResultEvent>("agent-tool-result", (event) => {
       store.handleToolResult(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<PermissionRequestEvent>('agent-permission-request', (event) => {
+    listen<PermissionRequestEvent>("agent-permission-request", (event) => {
       store.handlePermissionRequest(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<AskUserEvent>('agent-ask-user', (event) => {
+    listen<AskUserEvent>("agent-ask-user", (event) => {
       store.handleAskUser(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<AgentStatusEvent>('agent-status', (event) => {
+    listen<AgentStatusEvent>("agent-status", (event) => {
       store.handleStatus(event.payload.conversationId, event.payload.message);
     }),
   );
 
   unlisteners.push(
-    listen<AgentDoneEvent>('agent-done', (event) => {
+    listen<AgentDoneEvent>("agent-done", (event) => {
       store.clearStatus(event.payload.conversationId);
       store.handleDone(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<AgentErrorEvent>('agent-error', (event) => {
+    listen<AgentErrorEvent>("agent-error", (event) => {
       store.handleError(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<AgentCancelledEvent>('agent-cancelled', (event) => {
+    listen<AgentCancelledEvent>("agent-cancelled", (event) => {
       store.handleCancelled(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<AgentRateLimitEvent>('agent-rate-limit', (event) => {
+    listen<AgentRateLimitEvent>("agent-rate-limit", (event) => {
       store.handleRateLimit(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<{ conversationId: string }>('agent-paused', (event) => {
+    listen<{ conversationId: string }>("agent-paused", (event) => {
       useAgentStore.setState((s) => {
         const pausedConversations = new Set(s.pausedConversations);
         pausedConversations.add(event.payload.conversationId);
@@ -622,7 +639,7 @@ export function setupAgentEventListeners(): () => void {
   );
 
   unlisteners.push(
-    listen<{ conversationId: string }>('agent-resumed', (event) => {
+    listen<{ conversationId: string }>("agent-resumed", (event) => {
       useAgentStore.setState((s) => {
         const pausedConversations = new Set(s.pausedConversations);
         pausedConversations.delete(event.payload.conversationId);

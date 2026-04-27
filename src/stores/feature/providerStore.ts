@@ -1,13 +1,13 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
+import { invoke } from "@/lib/invoke";
 import type {
-  ProviderConfig,
   CreateProviderInput,
-  UpdateProviderInput,
-  ProviderKey,
   Model,
   ModelParamOverrides,
-} from '@/types';
+  ProviderConfig,
+  ProviderKey,
+  UpdateProviderInput,
+} from "@/types";
+import { create } from "zustand";
 
 interface ProviderState {
   providers: ProviderConfig[];
@@ -39,7 +39,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
   fetchProviders: async () => {
     set({ loading: true });
     try {
-      const providers = await invoke<ProviderConfig[]>('list_providers');
+      const providers = await invoke<ProviderConfig[]>("list_providers");
       set({ providers, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -48,7 +48,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   createProvider: async (input) => {
     try {
-      const provider = await invoke<ProviderConfig>('create_provider', { input });
+      const provider = await invoke<ProviderConfig>("create_provider", { input });
       set((s) => ({ providers: [...s.providers, provider], error: null }));
       return provider;
     } catch (e) {
@@ -59,7 +59,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   updateProvider: async (id, input) => {
     try {
-      const updated = await invoke<ProviderConfig>('update_provider', { id, input });
+      const updated = await invoke<ProviderConfig>("update_provider", { id, input });
       set((s) => ({
         providers: s.providers.map((p) => (p.id === id ? updated : p)),
         error: null,
@@ -72,7 +72,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   deleteProvider: async (id) => {
     try {
-      await invoke('delete_provider', { id });
+      await invoke("delete_provider", { id });
       set((s) => ({
         providers: s.providers.filter((p) => p.id !== id),
         error: null,
@@ -85,16 +85,14 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   toggleProvider: async (id, enabled) => {
     try {
-      await invoke('toggle_provider', { id, enabled });
-      if (id.startsWith('builtin_')) {
+      await invoke("toggle_provider", { id, enabled });
+      if (id.startsWith("builtin_")) {
         // Virtual provider was materialized — refetch to get real ID
-        const providers = await invoke<ProviderConfig[]>('list_providers');
+        const providers = await invoke<ProviderConfig[]>("list_providers");
         set({ providers, error: null });
       } else {
         set((s) => ({
-          providers: s.providers.map((p) =>
-            p.id === id ? { ...p, enabled } : p,
-          ),
+          providers: s.providers.map((p) => p.id === id ? { ...p, enabled } : p),
           error: null,
         }));
       }
@@ -105,11 +103,11 @@ export const useProviderStore = create<ProviderState>((set) => ({
   },
 
   reorderProviders: async (providerIds) => {
-    const hasVirtual = providerIds.some((id) => id.startsWith('builtin_'));
-    await invoke('reorder_providers', { providerIds });
+    const hasVirtual = providerIds.some((id) => id.startsWith("builtin_"));
+    await invoke("reorder_providers", { providerIds });
     if (hasVirtual) {
       // Virtual IDs were materialized — refetch to get real IDs
-      const providers = await invoke<ProviderConfig[]>('list_providers');
+      const providers = await invoke<ProviderConfig[]>("list_providers");
       set({ providers });
     } else {
       set((s) => {
@@ -126,14 +124,12 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   addProviderKey: async (providerId, rawKey) => {
     try {
-      const key = await invoke<ProviderKey>('add_provider_key', {
+      const key = await invoke<ProviderKey>("add_provider_key", {
         providerId,
         rawKey,
       });
       set((s) => ({
-        providers: s.providers.map((p) =>
-          p.id === providerId ? { ...p, keys: [...p.keys, key] } : p,
-        ),
+        providers: s.providers.map((p) => p.id === providerId ? { ...p, keys: [...p.keys, key] } : p),
         error: null,
       }));
     } catch (e) {
@@ -144,7 +140,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   updateProviderKey: async (keyId, rawKey) => {
     try {
-      const key = await invoke<ProviderKey>('update_provider_key', {
+      const key = await invoke<ProviderKey>("update_provider_key", {
         keyId,
         rawKey,
       });
@@ -163,7 +159,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   deleteProviderKey: async (keyId) => {
     try {
-      await invoke('delete_provider_key', { keyId });
+      await invoke("delete_provider_key", { keyId });
       set((s) => ({
         providers: s.providers.map((p) => ({
           ...p,
@@ -179,7 +175,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   toggleProviderKey: async (keyId, enabled) => {
     try {
-      await invoke('toggle_provider_key', { keyId, enabled });
+      await invoke("toggle_provider_key", { keyId, enabled });
       set((s) => ({
         providers: s.providers.map((p) => ({
           ...p,
@@ -195,7 +191,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   validateProviderKey: async (keyId) => {
     try {
-      return await invoke<boolean>('validate_provider_key', { keyId });
+      return await invoke<boolean>("validate_provider_key", { keyId });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -204,11 +200,9 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   saveModels: async (providerId, models) => {
     try {
-      await invoke('save_models', { providerId, models });
+      await invoke("save_models", { providerId, models });
       set((s) => ({
-        providers: s.providers.map((p) =>
-          p.id === providerId ? { ...p, models } : p,
-        ),
+        providers: s.providers.map((p) => p.id === providerId ? { ...p, models } : p),
         error: null,
       }));
     } catch (e) {
@@ -219,7 +213,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   toggleModel: async (providerId, model_id, enabled) => {
     try {
-      const model = await invoke<Model>('toggle_model', {
+      const model = await invoke<Model>("toggle_model", {
         providerId,
         modelId: model_id,
         enabled,
@@ -228,12 +222,10 @@ export const useProviderStore = create<ProviderState>((set) => ({
         providers: s.providers.map((p) =>
           p.id === providerId
             ? {
-                ...p,
-                models: p.models.map((m) =>
-                  m.model_id === model_id ? model : m,
-                ),
-              }
-            : p,
+              ...p,
+              models: p.models.map((m) => m.model_id === model_id ? model : m),
+            }
+            : p
         ),
         error: null,
       }));
@@ -246,7 +238,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   updateModelParams: async (providerId, model_id, overrides) => {
     try {
-      const model = await invoke<Model>('update_model_params', {
+      const model = await invoke<Model>("update_model_params", {
         providerId,
         modelId: model_id,
         overrides,
@@ -255,12 +247,10 @@ export const useProviderStore = create<ProviderState>((set) => ({
         providers: s.providers.map((p) =>
           p.id === providerId
             ? {
-                ...p,
-                models: p.models.map((m) =>
-                  m.model_id === model_id ? model : m,
-                ),
-              }
-            : p,
+              ...p,
+              models: p.models.map((m) => m.model_id === model_id ? model : m),
+            }
+            : p
         ),
         error: null,
       }));
@@ -273,7 +263,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   fetchRemoteModels: async (providerId) => {
     try {
-      return await invoke<Model[]>('fetch_remote_models', { providerId });
+      return await invoke<Model[]>("fetch_remote_models", { providerId });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -281,6 +271,6 @@ export const useProviderStore = create<ProviderState>((set) => ({
   },
 
   testModel: async (providerId, model_id) => {
-    return await invoke<number>('test_model', { providerId, modelId: model_id });
+    return await invoke<number>("test_model", { providerId, modelId: model_id });
   },
 }));

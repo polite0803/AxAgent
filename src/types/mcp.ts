@@ -1,8 +1,8 @@
-export type McpTransport = 'stdio' | 'http' | 'sse';
-export type McpPermissionPolicy = 'ask' | 'allow_safe' | 'allow_all';
-export type ToolExecutionStatus = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
+export type McpTransport = "stdio" | "http" | "sse";
+export type McpPermissionPolicy = "ask" | "allow_safe" | "allow_all";
+export type ToolExecutionStatus = "pending" | "running" | "success" | "failed" | "cancelled";
 
-export type McpServerSource = 'builtin' | 'custom';
+export type McpServerSource = "builtin" | "custom";
 
 export type McpServer = {
   id: string;

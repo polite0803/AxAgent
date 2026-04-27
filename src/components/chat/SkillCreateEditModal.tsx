@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Modal, Input, Form, message } from 'antd';
-import { useSkillStore } from '@/stores';
-import { useTranslation } from 'react-i18next';
+import { useSkillStore } from "@/stores";
+import { Form, Input, message, Modal } from "antd";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SkillCreateModalProps {
   open: boolean;
@@ -18,7 +18,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({ open, onClos
     try {
       const values = await form.validateFields();
       setLoading(true);
-      const result = await createSkill(values.name, values.description || '', values.content);
+      const result = await createSkill(values.name, values.description || "", values.content);
       message.success(result);
       form.resetFields();
       onClose();
@@ -33,36 +33,36 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({ open, onClos
 
   return (
     <Modal
-      title={t('skill.createTitle')}
+      title={t("skill.createTitle")}
       open={open}
       onCancel={onClose}
       onOk={handleOk}
-      okText={t('skill.create')}
+      okText={t("skill.create")}
       confirmLoading={loading}
       width={640}
     >
       <Form form={form} layout="vertical">
         <Form.Item
           name="name"
-          label={t('skill.name')}
-          rules={[{ required: true, message: t('skill.nameRequired') }]}
+          label={t("skill.name")}
+          rules={[{ required: true, message: t("skill.nameRequired") }]}
         >
-          <Input placeholder={t('skill.namePlaceholder')} />
+          <Input placeholder={t("skill.namePlaceholder")} />
         </Form.Item>
         <Form.Item
           name="description"
-          label={t('skill.description')}
+          label={t("skill.description")}
         >
-          <Input placeholder={t('skill.descriptionPlaceholder')} />
+          <Input placeholder={t("skill.descriptionPlaceholder")} />
         </Form.Item>
         <Form.Item
           name="content"
-          label={t('skill.content')}
-          rules={[{ required: true, message: t('skill.contentRequired') }]}
+          label={t("skill.content")}
+          rules={[{ required: true, message: t("skill.contentRequired") }]}
         >
           <Input.TextArea
             rows={12}
-            placeholder={t('skill.contentPlaceholder')}
+            placeholder={t("skill.contentPlaceholder")}
           />
         </Form.Item>
       </Form>
@@ -75,7 +75,7 @@ interface SkillEditModalProps {
   onClose: () => void;
   skillName: string;
   initialContent: string;
-  mode: 'edit' | 'patch';
+  mode: "edit" | "patch";
 }
 
 export const SkillEditModal: React.FC<SkillEditModalProps> = ({
@@ -96,10 +96,10 @@ export const SkillEditModal: React.FC<SkillEditModalProps> = ({
   }, [initialContent]);
 
   const handleOk = async () => {
-    if (!content.trim()) return;
+    if (!content.trim()) { return; }
     setLoading(true);
     try {
-      const result = mode === 'patch'
+      const result = mode === "patch"
         ? await patchSkill(skillName, content)
         : await editSkill(skillName, content);
       message.success(result);
@@ -115,14 +115,13 @@ export const SkillEditModal: React.FC<SkillEditModalProps> = ({
 
   return (
     <Modal
-      title={mode === 'patch'
-        ? t('skill.patchTitle', { name: skillName })
-        : t('skill.editTitle', { name: skillName })
-      }
+      title={mode === "patch"
+        ? t("skill.patchTitle", { name: skillName })
+        : t("skill.editTitle", { name: skillName })}
       open={open}
       onCancel={onClose}
       onOk={handleOk}
-      okText={mode === 'patch' ? t('skill.patch') : t('skill.edit')}
+      okText={mode === "patch" ? t("skill.patch") : t("skill.edit")}
       confirmLoading={loading}
       width={640}
     >
@@ -130,10 +129,9 @@ export const SkillEditModal: React.FC<SkillEditModalProps> = ({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={16}
-        placeholder={mode === 'patch'
-          ? t('skill.patchPlaceholder')
-          : t('skill.editPlaceholder')
-        }
+        placeholder={mode === "patch"
+          ? t("skill.patchPlaceholder")
+          : t("skill.editPlaceholder")}
       />
     </Modal>
   );

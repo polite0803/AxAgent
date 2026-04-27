@@ -2,9 +2,13 @@ use crate::paths::axagent_home;
 use crate::AppState;
 use axagent_core::types::*;
 use axagent_plugins::PluginManager;
-use axagent_trajectory::{Skill, SkillMetadata, HermesMetadata};
+use axagent_trajectory::{HermesMetadata, Skill, SkillMetadata};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 use tauri::State;
+
+const SEARCH_CACHE_TTL_SECS: u64 = 300;
 
 fn home_dir() -> PathBuf {
     dirs::home_dir().expect("Could not determine home directory")
@@ -34,6 +38,60 @@ fn create_plugin_manager_with_skill_dirs() -> Result<PluginManager, String> {
     Ok(PluginManager::new(config))
 }
 
+#[derive(Debug, Clone)]
+struct CachedSearchResult {
+    results: Vec<MarketplaceSkill>,
+    created_at: Instant,
+}
+
+pub struct MarketplaceSearchCache {
+    cache: HashMap<String, CachedSearchResult>,
+    ttl: Duration,
+}
+
+impl MarketplaceSearchCache {
+    pub fn new(ttl_seconds: u64) -> Self {
+        Self {
+            cache: HashMap::new(),
+            ttl: Duration::from_secs(ttl_seconds),
+        }
+    }
+
+    pub fn get(&self, key: &str) -> Option<Vec<MarketplaceSkill>> {
+        self.cache.get(key).and_then(|cached| {
+            if cached.created_at.elapsed() < self.ttl {
+                Some(cached.results.clone())
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn set(&mut self, key: String, results: Vec<MarketplaceSkill>) {
+        self.cache.insert(
+            key,
+            CachedSearchResult {
+                results,
+                created_at: Instant::now(),
+            },
+        );
+    }
+
+    #[allow(dead_code)]
+    pub fn cleanup_expired(&mut self) {
+        self.cache.retain(|_, v| v.created_at.elapsed() < self.ttl);
+    }
+
+    pub fn make_key(query: &str, source: &str, sort: &str, page: u32) -> String {
+        format!("{}:{}:{}:{}", query, source, sort, page)
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref MARKETPLACE_SEARCH_CACHE: tokio::sync::Mutex<MarketplaceSearchCache> =
+        tokio::sync::Mutex::new(MarketplaceSearchCache::new(SEARCH_CACHE_TTL_SECS));
+}
+
 #[tauri::command]
 pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
     let plugin_manager = create_plugin_manager_with_skill_dirs()?;
@@ -53,7 +111,11 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
                 author: None,
                 version: Some(p.metadata.version.clone()),
                 source: p.metadata.source.clone(),
-                source_path: p.metadata.root.map(|p| p.to_string_lossy().to_string()).unwrap_or_default(),
+                source_path: p
+                    .metadata
+                    .root
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default(),
                 enabled,
                 has_update: false,
                 user_invocable: true,
@@ -81,7 +143,12 @@ pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<Skill
         .await
         .map_err(|e| e.to_string())?;
 
-    let source_path = plugin.metadata.root.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+    let source_path = plugin
+        .metadata
+        .root
+        .as_ref()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
     let skill_dir = plugin.metadata.root.unwrap_or(PathBuf::new());
 
     // List files in skill directory
@@ -154,7 +221,10 @@ pub(crate) fn collect_markdown_files(dir: &Path) -> std::io::Result<Vec<PathBuf>
         let path = entry.path();
         if path.is_dir() {
             files.extend(collect_markdown_files(&path)?);
-        } else if path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md")) {
+        } else if path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+        {
             files.push(path);
         }
     }
@@ -187,18 +257,19 @@ pub async fn install_skill(
     };
     std::fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
 
-    let (skill_name, commit, source_ref, source_kind) = if source.starts_with('/') || source.starts_with('.') {
-        let (name, commit) = install_from_local(&source, &target_dir).await?;
-        (name, commit, source.clone(), "local".to_string())
-    } else {
-        let (owner, repo) = parse_github_source(&source)?;
-        let ((name, commit), source_ref, source_kind) = (
-            install_from_github(&owner, &repo, &target_dir).await?,
-            format!("{}/{}", owner, repo),
-            "github".to_string(),
-        );
-        (name, commit, source_ref, source_kind)
-    };
+    let (skill_name, commit, source_ref, source_kind) =
+        if source.starts_with('/') || source.starts_with('.') {
+            let (name, commit) = install_from_local(&source, &target_dir).await?;
+            (name, commit, source.clone(), "local".to_string())
+        } else {
+            let (owner, repo) = parse_github_source(&source)?;
+            let ((name, commit), source_ref, source_kind) = (
+                install_from_github(&owner, &repo, &target_dir).await?,
+                format!("{}/{}", owner, repo),
+                "github".to_string(),
+            );
+            (name, commit, source_ref, source_kind)
+        };
 
     let skill_target = target_dir.join(&skill_name);
     let content = collect_skill_content(&skill_target);
@@ -236,6 +307,7 @@ pub async fn install_skill(
                 source_kind: Some(source_kind),
                 source_ref: Some(source_ref),
                 commit: Some(commit),
+                skill_dependencies: None,
             },
             references: vec![],
         },
@@ -282,7 +354,10 @@ fn load_plugin_version(skill_dir: &Path) -> String {
     "1.0.0".to_string()
 }
 
-fn merge_scenarios(manifest_scenarios: Vec<String>, user_scenarios: Option<Vec<String>>) -> Vec<String> {
+fn merge_scenarios(
+    manifest_scenarios: Vec<String>,
+    user_scenarios: Option<Vec<String>>,
+) -> Vec<String> {
     match user_scenarios {
         Some(user) if !user.is_empty() => {
             let mut merged = manifest_scenarios;
@@ -325,10 +400,53 @@ async fn install_from_github(
     repo: &str,
     target_dir: &Path,
 ) -> Result<(String, String), String> {
-    let url = format!(
-        "https://api.github.com/repos/{}/{}/zipball",
-        owner, repo
-    );
+    let git_url = format!("https://github.com/{}/{}.git", owner, repo);
+    let skill_target = target_dir.join(repo);
+
+    if skill_target.exists() {
+        std::fs::remove_dir_all(&skill_target).map_err(|e| e.to_string())?;
+    }
+
+    let git_available = std::process::Command::new("git")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if git_available {
+        let output = std::process::Command::new("git")
+            .args([
+                "clone",
+                "--depth",
+                "1",
+                &git_url,
+                skill_target.to_str().unwrap_or(""),
+            ])
+            .output()
+            .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+        if output.status.success() {
+            let commit = get_git_commit(&skill_target).unwrap_or_else(|| "unknown".to_string());
+            save_skill_manifest(
+                &skill_target,
+                "github",
+                &format!("{}/{}", owner, repo),
+                "main",
+                &commit,
+            )?;
+            return Ok((repo.to_string(), commit));
+        }
+    }
+
+    install_from_github_zipball(owner, repo, target_dir).await
+}
+
+async fn install_from_github_zipball(
+    owner: &str,
+    repo: &str,
+    target_dir: &Path,
+) -> Result<(String, String), String> {
+    let url = format!("https://api.github.com/repos/{}/{}/zipball", owner, repo);
 
     let client = reqwest::Client::new();
     let response = client
@@ -354,7 +472,6 @@ async fn install_from_github(
     let mut archive =
         zip::ZipArchive::new(cursor).map_err(|e| format!("Failed to read zip: {}", e))?;
 
-    // GitHub zipball has a top-level directory like "owner-repo-hash/"
     let top_dir = archive
         .file_names()
         .next()
@@ -362,7 +479,11 @@ async fn install_from_github(
         .map(String::from)
         .ok_or("Empty archive")?;
 
-    let commit = top_dir.split('-').next_back().unwrap_or("unknown").to_string();
+    let commit = top_dir
+        .split('-')
+        .next_back()
+        .unwrap_or("unknown")
+        .to_string();
 
     archive
         .extract(temp_dir.path())
@@ -376,23 +497,187 @@ async fn install_from_github(
     }
 
     copy_dir_recursive(&extracted, &skill_target)?;
+    save_skill_manifest(
+        &skill_target,
+        "github",
+        &format!("{}/{}", owner, repo),
+        "main",
+        &commit,
+    )?;
 
-    let manifest = serde_json::json!({
-        "source_kind": "github",
-        "source_ref": format!("{}/{}", owner, repo),
-        "branch": "main",
-        "commit": commit,
-        "installed_at": chrono::Utc::now().to_rfc3339(),
-        "installed_via": "marketplace"
-    });
+    Ok((repo.to_string(), commit))
+}
+
+fn get_git_commit(repo_path: &Path) -> Option<String> {
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(repo_path)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let hash = String::from_utf8_lossy(&output.stdout);
+        Some(hash.trim()[..7.min(hash.len())].to_string())
+    } else {
+        None
+    }
+}
+
+fn save_skill_manifest(
+    skill_target: &Path,
+    source_kind: &str,
+    source_ref: &str,
+    branch: &str,
+    commit: &str,
+) -> Result<(), String> {
     let manifest_path = skill_target.join("skill-manifest.json");
+
+    let mut manifest: serde_json::Value = if manifest_path.exists() {
+        let existing = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&existing).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
+    manifest["source_kind"] = serde_json::json!(source_kind);
+    manifest["source_ref"] = serde_json::json!(source_ref);
+    manifest["branch"] = serde_json::json!(branch);
+    manifest["commit"] = serde_json::json!(commit);
+    manifest["installed_at"] = serde_json::json!(chrono::Utc::now().to_rfc3339());
+    manifest["installed_via"] = serde_json::json!("marketplace");
+
+    let version_entry = serde_json::json!({
+        "version": commit,
+        "installed_at": chrono::Utc::now().to_rfc3339(),
+        "commit": commit
+    });
+
+    if let Some(versions) = manifest["versions"].as_array_mut() {
+        versions.insert(0, version_entry);
+        if versions.len() > 10 {
+            *versions = versions.iter().take(10).cloned().collect();
+        }
+    } else {
+        manifest["versions"] = serde_json::json!([version_entry]);
+    }
+
     std::fs::write(
         &manifest_path,
         serde_json::to_string_pretty(&manifest).unwrap(),
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| e.to_string())
+}
 
-    Ok((repo.to_string(), commit))
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)]
+pub struct SkillVersion {
+    pub version: String,
+    pub installed_at: String,
+    pub commit: String,
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn get_skill_versions(skill_name: String) -> Result<Vec<SkillVersion>, String> {
+    let skill_dir = skills_dir().join(&skill_name);
+    let manifest_path = skill_dir.join("skill-manifest.json");
+
+    if !manifest_path.exists() {
+        return Err(format!("Skill {} not found", skill_name));
+    }
+
+    let manifest_str = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_str).map_err(|e| e.to_string())?;
+
+    let versions: Vec<SkillVersion> = manifest["versions"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| {
+                    Some(SkillVersion {
+                        version: v["version"].as_str()?.to_string(),
+                        installed_at: v["installed_at"].as_str()?.to_string(),
+                        commit: v["commit"].as_str()?.to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(versions)
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn rollback_skill(skill_name: String, target_version: String) -> Result<String, String> {
+    let skill_dir = skills_dir().join(&skill_name);
+    let manifest_path = skill_dir.join("skill-manifest.json");
+
+    if !manifest_path.exists() {
+        return Err(format!("Skill {} not found", skill_name));
+    }
+
+    let manifest_str = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_str).map_err(|e| e.to_string())?;
+
+    let source_kind = manifest["source_kind"].as_str().unwrap_or("github");
+    let source_ref = manifest["source_ref"].as_str().unwrap_or("");
+    let branch = manifest["branch"].as_str().unwrap_or("main");
+
+    if source_kind != "github" {
+        return Err("Rollback is only supported for GitHub-sourced skills".to_string());
+    }
+
+    let parts: Vec<&str> = source_ref.split('/').collect();
+    if parts.len() != 2 {
+        return Err("Invalid source_ref format".to_string());
+    }
+
+    let (owner, repo) = (parts[0], parts[1]);
+    let git_url = format!("https://github.com/{}/{}.git", owner, repo);
+
+    std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&skill_dir).map_err(|e| e.to_string())?;
+
+    let output = std::process::Command::new("git")
+        .args([
+            "clone",
+            "--depth",
+            "50",
+            &git_url,
+            skill_dir.to_str().unwrap_or(""),
+        ])
+        .output()
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "Git clone failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    let checkout_output = std::process::Command::new("git")
+        .args(["checkout", &target_version])
+        .current_dir(&skill_dir)
+        .output()
+        .map_err(|e| format!("Failed to checkout version: {}", e))?;
+
+    if !checkout_output.status.success() {
+        return Err(format!(
+            "Git checkout failed: {}",
+            String::from_utf8_lossy(&checkout_output.stderr)
+        ));
+    }
+
+    save_skill_manifest(&skill_dir, source_kind, source_ref, branch, &target_version)?;
+
+    Ok(format!(
+        "Rolled back {} to version {}",
+        skill_name, target_version
+    ))
 }
 
 async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, String), String> {
@@ -492,7 +777,9 @@ pub async fn open_skill_dir(path: String) -> Result<(), String> {
     let dir = if p.is_dir() {
         p.to_path_buf()
     } else {
-        p.parent().map(|d| d.to_path_buf()).unwrap_or_else(|| p.to_path_buf())
+        p.parent()
+            .map(|d| d.to_path_buf())
+            .unwrap_or_else(|| p.to_path_buf())
     };
     if dir.exists() {
         open::that(&dir).map_err(|e| format!("Failed to open directory: {}", e))
@@ -594,7 +881,11 @@ fn get_installed_skill_info(repo: &str) -> Option<InstalledSkillInfo> {
     })
 }
 
-async fn check_github_update(owner: &str, repo: &str, current_commit: &str) -> Option<(String, String)> {
+async fn check_github_update(
+    owner: &str,
+    repo: &str,
+    current_commit: &str,
+) -> Option<(String, String)> {
     let url = format!(
         "https://api.github.com/repos/{}/{}/commits?per_page=1",
         owner, repo
@@ -618,11 +909,16 @@ async fn check_github_update(owner: &str, repo: &str, current_commit: &str) -> O
     let latest = commits.first()?;
     let latest_sha = latest["sha"].as_str()?;
 
-    if latest_sha.starts_with(current_commit) || current_commit == &latest_sha[..7.min(latest_sha.len())] {
+    if latest_sha.starts_with(current_commit)
+        || current_commit == &latest_sha[..7.min(latest_sha.len())]
+    {
         return None;
     }
 
-    Some((latest_sha[..7.min(latest_sha.len())].to_string(), latest_sha.to_string()))
+    Some((
+        latest_sha[..7.min(latest_sha.len())].to_string(),
+        latest_sha.to_string(),
+    ))
 }
 
 #[tauri::command]
@@ -635,157 +931,255 @@ pub async fn search_marketplace(
 ) -> Result<Vec<MarketplaceSkill>, String> {
     let installed_refs = installed_source_refs();
     let sort_order = sort.as_deref().unwrap_or("popular");
+    let source_str = source.as_deref().unwrap_or("skillhub");
     let page_num = page.unwrap_or(1).max(1);
     let per_page_num = per_page.unwrap_or(20).min(100);
 
-    match source.as_deref().unwrap_or("skillhub") {
+    let cache_key = MarketplaceSearchCache::make_key(&query, source_str, sort_order, page_num);
+    let cache_result = {
+        let cache = MARKETPLACE_SEARCH_CACHE.lock().await;
+        cache.get(&cache_key)
+    };
+    if let Some(cached_results) = cache_result {
+        return Ok(cached_results);
+    }
+
+    let results = match source_str {
         "github" => {
-            let gh_sort = match sort_order {
-                "latest" => "updated",
-                "stars" => "stars",
-                _ => "stars",
-            };
-            let url = format!(
-                "https://api.github.com/search/repositories?q={}+topic:agent-skill&sort={}&per_page={}&page={}",
-                urlencoding::encode(&query),
-                gh_sort,
-                per_page_num,
-                page_num
-            );
-
-            let client = reqwest::Client::new();
-            let response = client
-                .get(&url)
-                .header("User-Agent", "AxAgent")
-                .header("Accept", "application/vnd.github.v3+json")
-                .send()
-                .await
-                .map_err(|e| format!("Search failed: {}", e))?;
-
-            if !response.status().is_success() {
-                return Err(format!("GitHub API error: {}", response.status()));
-            }
-
-            let body: serde_json::Value =
-                response.json().await.map_err(|e| e.to_string())?;
-            let items = body["items"].as_array().cloned().unwrap_or_default();
-
-            let mut results: Vec<MarketplaceSkill> = Vec::new();
-            for item in items {
-                let skill_name = item["name"].as_str().unwrap_or("").to_string();
-                let repo = item["full_name"]
-                    .as_str()
-                    .unwrap_or("")
-                    .to_string();
-                let repo_lower = repo.trim().trim_end_matches('/').to_lowercase();
-                let installed = installed_refs.contains(&repo_lower);
-
-                let mut skill = MarketplaceSkill {
-                    name: skill_name,
-                    description: item["description"]
-                        .as_str()
-                        .unwrap_or("")
-                        .to_string(),
-                    repo: repo.clone(),
-                    stars: item["stargazers_count"].as_i64().unwrap_or(0),
-                    installs: 0,
-                    installed,
-                    ..Default::default()
-                };
-
-                if installed {
-                    if let Some(info) = get_installed_skill_info(&repo) {
-                        skill.current_version = Some(info.version);
-                        let parts: Vec<&str> = info.source_ref.split('/').collect();
-                        if parts.len() == 2 {
-                            if let Some((latest_short, _)) = check_github_update(parts[0], parts[1], &info.commit).await {
-                                skill.has_update = Some(true);
-                                skill.latest_version = Some(latest_short);
-                            }
-                        }
-                    }
-                }
-
-                results.push(skill);
-            }
-
-            Ok(results)
+            search_github_marketplace(&query, sort_order, page_num, per_page_num, &installed_refs)
+                .await?
         }
         _ => {
-            let (sort_param, _) = match sort_order {
-                "latest" => ("recent", 20),
-                "stars" => ("stars", 20),
-                _ => ("downloads", 20),
-            };
-            let search_query = if query.is_empty() { "claude".to_string() } else { query };
-            let offset = (page_num - 1) * per_page_num;
-            let url = format!(
-                "https://skillshub.wtf/api/v1/skills/search?q={}&sort={}&limit={}&offset={}",
-                urlencoding::encode(&search_query),
-                sort_param,
-                per_page_num,
-                offset
-            );
+            search_skillhub_marketplace(&query, sort_order, page_num, per_page_num, &installed_refs)
+                .await?
+        }
+    };
 
-            let client = reqwest::Client::new();
-            let response = client
-                .get(&url)
-                .header("User-Agent", "AxAgent")
-                .header("Accept", "application/json")
-                .send()
-                .await
-                .map_err(|e| format!("Search failed: {}", e))?;
+    {
+        let mut cache = MARKETPLACE_SEARCH_CACHE.lock().await;
+        cache.set(cache_key, results.clone());
+    }
 
-            if !response.status().is_success() {
-                return Err(format!("skillhub API error: {}", response.status()));
-            }
+    Ok(results)
+}
 
-            let body: serde_json::Value =
-                response.json().await.map_err(|e| e.to_string())?;
-            let items = body["data"].as_array().cloned().unwrap_or_default();
+async fn search_github_marketplace(
+    query: &str,
+    sort_order: &str,
+    page: u32,
+    per_page: u32,
+    installed_refs: &std::collections::HashSet<String>,
+) -> Result<Vec<MarketplaceSkill>, String> {
+    let gh_sort = match sort_order {
+        "latest" => "updated",
+        "stars" => "stars",
+        _ => "stars",
+    };
+    let url = format!(
+        "https://api.github.com/search/repositories?q={}+topic:agent-skill&sort={}&per_page={}&page={}",
+        urlencoding::encode(query),
+        gh_sort,
+        per_page,
+        page
+    );
 
-            let mut results: Vec<MarketplaceSkill> = Vec::new();
-            for item in items {
-                let name = item["name"].as_str().unwrap_or("").to_string();
-                let slug = item["slug"].as_str().unwrap_or("").to_string();
-                let description = item["description"].as_str().unwrap_or("").to_string();
-                let repo_obj = item.get("repo").ok_or("missing repo object")?;
-                let github_owner = repo_obj.get("githubOwner").and_then(|v| v.as_str()).ok_or("missing githubOwner")?;
-                let github_repo_name = repo_obj.get("githubRepoName").and_then(|v| v.as_str()).ok_or("missing githubRepoName")?;
-                let repo = format!("{}/{}", github_owner, github_repo_name);
-                let installed = installed_refs.contains(&repo.to_lowercase());
-                let stars = item["stars"].as_i64().unwrap_or(0);
-                let installs = item["downloads"].as_i64().unwrap_or(0);
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&url)
+        .header("User-Agent", "AxAgent")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .map_err(|e| format!("Search failed: {}", e))?;
 
-                let mut skill = MarketplaceSkill {
-                    name: if !name.is_empty() { name } else { slug },
-                    description: description.to_string(),
-                    repo: repo.clone(),
-                    stars,
-                    installs,
-                    installed,
-                    ..Default::default()
-                };
+    if !response.status().is_success() {
+        return Err(format!("GitHub API error: {}", response.status()));
+    }
 
-                if installed {
-                    if let Some(info) = get_installed_skill_info(&repo) {
-                        skill.current_version = Some(info.version);
-                        let parts: Vec<&str> = info.source_ref.split('/').collect();
-                        if parts.len() == 2 {
-                            if let Some((latest_short, _)) = check_github_update(parts[0], parts[1], &info.commit).await {
-                                skill.has_update = Some(true);
-                                skill.latest_version = Some(latest_short);
-                            }
-                        }
+    let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let items = body["items"].as_array().cloned().unwrap_or_default();
+
+    let mut results: Vec<MarketplaceSkill> = Vec::new();
+    for item in items {
+        let skill_name = item["name"].as_str().unwrap_or("").to_string();
+        let repo = item["full_name"].as_str().unwrap_or("").to_string();
+        let repo_lower = repo.trim().trim_end_matches('/').to_lowercase();
+        let installed = installed_refs.contains(&repo_lower);
+
+        let mut skill = MarketplaceSkill {
+            name: skill_name,
+            description: item["description"].as_str().unwrap_or("").to_string(),
+            repo: repo.clone(),
+            stars: item["stargazers_count"].as_i64().unwrap_or(0),
+            installs: 0,
+            installed,
+            ..Default::default()
+        };
+
+        if installed {
+            if let Some(info) = get_installed_skill_info(&repo) {
+                skill.current_version = Some(info.version);
+                let parts: Vec<&str> = info.source_ref.split('/').collect();
+                if parts.len() == 2 {
+                    if let Some((latest_short, _)) =
+                        check_github_update(parts[0], parts[1], &info.commit).await
+                    {
+                        skill.has_update = Some(true);
+                        skill.latest_version = Some(latest_short);
                     }
                 }
-
-                results.push(skill);
             }
-
-            Ok(results)
         }
+
+        results.push(skill);
     }
+
+    Ok(results)
+}
+
+async fn search_skillhub_marketplace(
+    query: &str,
+    sort_order: &str,
+    page: u32,
+    per_page: u32,
+    installed_refs: &std::collections::HashSet<String>,
+) -> Result<Vec<MarketplaceSkill>, String> {
+    let (sort_param, _) = match sort_order {
+        "latest" => ("recent", 20),
+        "stars" => ("stars", 20),
+        _ => ("downloads", 20),
+    };
+    let search_query = if query.is_empty() {
+        "claude".to_string()
+    } else {
+        query.to_string()
+    };
+    let offset = (page - 1) * per_page;
+    let url = format!(
+        "https://skillshub.wtf/api/v1/skills/search?q={}&sort={}&limit={}&offset={}",
+        urlencoding::encode(&search_query),
+        sort_param,
+        per_page,
+        offset
+    );
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&url)
+        .header("User-Agent", "AxAgent")
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Search failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("skillhub API error: {}", response.status()));
+    }
+
+    let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let items = body["data"].as_array().cloned().unwrap_or_default();
+
+    let mut results: Vec<MarketplaceSkill> = Vec::new();
+    for item in items {
+        let name = item["name"].as_str().unwrap_or("").to_string();
+        let slug = item["slug"].as_str().unwrap_or("").to_string();
+        let description = item["description"].as_str().unwrap_or("").to_string();
+        let repo_obj = item.get("repo").ok_or("missing repo object")?;
+        let github_owner = repo_obj
+            .get("githubOwner")
+            .and_then(|v| v.as_str())
+            .ok_or("missing githubOwner")?;
+        let github_repo_name = repo_obj
+            .get("githubRepoName")
+            .and_then(|v| v.as_str())
+            .ok_or("missing githubRepoName")?;
+        let repo = format!("{}/{}", github_owner, github_repo_name);
+        let installed = installed_refs.contains(&repo.to_lowercase());
+        let stars = item["stars"].as_i64().unwrap_or(0);
+        let installs = item["downloads"].as_i64().unwrap_or(0);
+
+        let categories = item
+            .get("categories")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            });
+
+        let tags = item.get("tags").and_then(|v| v.as_array()).map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        });
+
+        let mut skill = MarketplaceSkill {
+            name: if !name.is_empty() { name } else { slug },
+            description: description.to_string(),
+            repo: repo.clone(),
+            stars,
+            installs,
+            installed,
+            categories,
+            tags,
+            ..Default::default()
+        };
+
+        if installed {
+            if let Some(info) = get_installed_skill_info(&repo) {
+                skill.current_version = Some(info.version);
+                let parts: Vec<&str> = info.source_ref.split('/').collect();
+                if parts.len() == 2 {
+                    if let Some((latest_short, _)) =
+                        check_github_update(parts[0], parts[1], &info.commit).await
+                    {
+                        skill.has_update = Some(true);
+                        skill.latest_version = Some(latest_short);
+                    }
+                }
+            }
+        }
+
+        results.push(skill);
+    }
+
+    Ok(results)
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, String> {
+    let url = "https://skillshub.wtf/api/v1/categories";
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(url)
+        .header("User-Agent", "AxAgent")
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to get categories: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("skillhub API error: {}", response.status()));
+    }
+
+    let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let items = body["data"].as_array().cloned().unwrap_or_default();
+
+    let categories: Vec<MarketplaceCategory> = items
+        .iter()
+        .filter_map(|item| {
+            Some(MarketplaceCategory {
+                id: item["slug"].as_str()?.to_string(),
+                name: item["name"].as_str()?.to_string(),
+                description: item["description"].as_str().unwrap_or("").to_string(),
+                skill_count: item["skillCount"].as_i64().unwrap_or(0),
+            })
+        })
+        .collect();
+
+    Ok(categories)
 }
 
 #[tauri::command]
@@ -847,18 +1241,14 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
                 if let Ok(body) = resp.json::<serde_json::Value>().await {
                     if let Some(commits) = body.as_array() {
                         if let Some(latest) = commits.first() {
-                            let latest_sha =
-                                latest["sha"].as_str().unwrap_or("").to_string();
+                            let latest_sha = latest["sha"].as_str().unwrap_or("").to_string();
                             let short_latest = &latest_sha[..7.min(latest_sha.len())];
                             if !current_commit.is_empty()
                                 && !latest_sha.starts_with(&current_commit)
                                 && current_commit != short_latest
                             {
                                 updates.push(SkillUpdateInfo {
-                                    name: entry
-                                        .file_name()
-                                        .to_string_lossy()
-                                        .to_string(),
+                                    name: entry.file_name().to_string_lossy().to_string(),
                                     current_commit: current_commit.clone(),
                                     latest_commit: short_latest.to_string(),
                                     source_ref: source_ref.clone(),
@@ -881,10 +1271,7 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
 
 /// Patch an existing skill by appending a note
 #[tauri::command]
-pub async fn skill_patch(
-    name: String,
-    content: String,
-) -> Result<String, String> {
+pub async fn skill_patch(name: String, content: String) -> Result<String, String> {
     let path = skills_dir().join(&name).join("SKILL.md");
     if !path.exists() {
         return Err(format!("Skill '{}' not found", name));
@@ -904,10 +1291,7 @@ pub async fn skill_patch(
 
 /// Edit an existing skill by replacing the body (preserving frontmatter)
 #[tauri::command]
-pub async fn skill_edit(
-    name: String,
-    content: String,
-) -> Result<String, String> {
+pub async fn skill_edit(name: String, content: String) -> Result<String, String> {
     let path = skills_dir().join(&name).join("SKILL.md");
     if !path.exists() {
         return Err(format!("Skill '{}' not found", name));
@@ -933,7 +1317,11 @@ fn find_frontmatter_end(content: &str) -> Option<usize> {
         if line.trim() == "---" {
             count += 1;
             if count == 2 {
-                let pos = content.lines().take(i + 1).map(|l| l.len() + 1).sum::<usize>();
+                let pos = content
+                    .lines()
+                    .take(i + 1)
+                    .map(|l| l.len() + 1)
+                    .sum::<usize>();
                 return Some(pos);
             }
         }
@@ -945,7 +1333,10 @@ fn find_frontmatter_end(content: &str) -> Option<usize> {
 pub async fn get_skill_proposals(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_trajectory::SkillProposal>, String> {
-    let service = state.skill_proposal_service.read().map_err(|e| e.to_string())?;
+    let service = state
+        .skill_proposal_service
+        .read()
+        .map_err(|e| e.to_string())?;
     Ok(service.get_proposals())
 }
 
@@ -956,9 +1347,19 @@ pub async fn create_skill_from_proposal(
     description: String,
     content: String,
 ) -> Result<String, String> {
-    let result = skill_create(state.clone(), name.clone(), description.clone(), content, Some(false)).await?;
+    let result = skill_create(
+        state.clone(),
+        name.clone(),
+        description.clone(),
+        content,
+        Some(false),
+    )
+    .await?;
     if result.can_create {
-        let mut service = state.skill_proposal_service.write().map_err(|e| e.to_string())?;
+        let mut service = state
+            .skill_proposal_service
+            .write()
+            .map_err(|e| e.to_string())?;
         service.clear_proposal(&name);
         Ok(result.message)
     } else {
@@ -994,12 +1395,17 @@ pub async fn skill_check_similar(
     let closed_loop = state.closed_loop_service.clone();
 
     let check_topic = if let Some(ref desc) = description {
-        if !desc.is_empty() { desc.clone() } else { name.clone() }
+        if !desc.is_empty() {
+            desc.clone()
+        } else {
+            name.clone()
+        }
     } else {
         name.clone()
     };
 
-    let similar = closed_loop.find_similar_skills(&check_topic)
+    let similar = closed_loop
+        .find_similar_skills(&check_topic)
         .map_err(|e| e.to_string())?;
 
     if similar.is_empty() {
@@ -1011,8 +1417,9 @@ pub async fn skill_check_similar(
         });
     }
 
-    let similar_infos: Vec<SimilarSkillInfo> = similar.into_iter().map(|s| {
-        SimilarSkillInfo {
+    let similar_infos: Vec<SimilarSkillInfo> = similar
+        .into_iter()
+        .map(|s| SimilarSkillInfo {
             id: s.id,
             name: s.name,
             description: s.description,
@@ -1020,8 +1427,8 @@ pub async fn skill_check_similar(
             scenarios: s.scenarios,
             success_rate: s.success_rate,
             similarity_score: 0.7,
-        }
-    }).collect();
+        })
+        .collect();
 
     Ok(SkillCreateCheckResult {
         has_similar: true,
@@ -1045,7 +1452,8 @@ pub async fn skill_create(
     let check = check_similar.unwrap_or(true);
 
     if check {
-        let check_result = skill_check_similar(state.clone(), name.clone(), Some(description.clone())).await?;
+        let check_result =
+            skill_check_similar(state.clone(), name.clone(), Some(description.clone())).await?;
         if check_result.has_similar {
             return Ok(check_result);
         }
@@ -1063,7 +1471,11 @@ pub async fn skill_create(
 
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
-    let desc = if description.is_empty() { name.clone() } else { description };
+    let desc = if description.is_empty() {
+        name.clone()
+    } else {
+        description
+    };
     let skill_md = format!(
         "---\nname: {}\ndescription: {}\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
         name, desc, content
@@ -1115,7 +1527,11 @@ pub async fn skill_upgrade_or_create(
 
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
-    let desc = if description.is_empty() { name.clone() } else { description };
+    let desc = if description.is_empty() {
+        name.clone()
+    } else {
+        description
+    };
     let skill_md = format!(
         "---\nname: {}\ndescription: {}\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
         name, desc, content

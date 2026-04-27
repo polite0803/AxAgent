@@ -67,11 +67,7 @@ impl ToolResolver {
                             (ToolDependencyStatus::Satisfied, None, None)
                         } else {
                             // Local tools that aren't installed need generation
-                            (
-                                ToolDependencyStatus::NeedsGeneration,
-                                None,
-                                None,
-                            )
+                            (ToolDependencyStatus::NeedsGeneration, None, None)
                         }
                     }
                     "plugin" => {
@@ -91,11 +87,7 @@ impl ToolResolver {
                     }
                     _ => {
                         // Unknown tool type: needs generation
-                        (
-                            ToolDependencyStatus::NeedsGeneration,
-                            None,
-                            None,
-                        )
+                        (ToolDependencyStatus::NeedsGeneration, None, None)
                     }
                 };
 

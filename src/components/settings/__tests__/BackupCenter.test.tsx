@@ -1,8 +1,8 @@
-import { App } from 'antd';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
-import BackupCenter from '../BackupCenter';
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { App } from "antd";
+import { describe, expect, it, vi } from "vitest";
+import BackupCenter from "../BackupCenter";
 
 const backupStoreState = {
   backups: [],
@@ -13,7 +13,7 @@ const backupStoreState = {
     enabled: false,
     intervalHours: 24,
     maxCount: 10,
-    backupDir: '/Users/test/.axagent/backups',
+    backupDir: "/Users/test/.axagent/backups",
   },
   loadBackups: vi.fn(),
   createBackup: vi.fn(),
@@ -25,18 +25,18 @@ const backupStoreState = {
   updateBackupSettings: vi.fn(),
 };
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useBackupStore: () => backupStoreState,
 }));
 
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }));
 
-describe('BackupCenter', () => {
-  it('shows the effective backup directory in auto-backup settings', async () => {
+describe("BackupCenter", () => {
+  it("shows the effective backup directory in auto-backup settings", async () => {
     const user = userEvent.setup();
 
     render(
@@ -45,10 +45,10 @@ describe('BackupCenter', () => {
       </App>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'backup.autoBackup' }));
+    await user.click(screen.getByRole("button", { name: "backup.autoBackup" }));
 
-    expect(await screen.findByTestId('backup-effective-dir')).toHaveTextContent(
-      '/Users/test/.axagent/backups',
+    expect(await screen.findByTestId("backup-effective-dir")).toHaveTextContent(
+      "/Users/test/.axagent/backups",
     );
   });
 });

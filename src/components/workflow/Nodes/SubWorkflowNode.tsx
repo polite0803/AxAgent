@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
-import { Tag } from 'antd';
+import { Tag } from "antd";
+import React, { memo } from "react";
+import { Handle, type NodeProps, Position } from "reactflow";
 
 interface SubWorkflowNodeData {
   id: string;
@@ -17,8 +17,8 @@ interface SubWorkflowNodeData {
 }
 
 const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ data, selected }) => {
-  const color = '#eb2f96';
-  const subWorkflowId = data.subWorkflowId || '未选择';
+  const color = "#eb2f96";
+  const subWorkflowId = data.subWorkflowId || "未选择";
   const inputMapping = data.inputMapping || {};
   const outputVar = data.outputVar;
   const isAsync = data.isAsync ?? false;
@@ -35,25 +35,25 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
         minWidth: 180,
         maxWidth: 220,
         opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? 'none' : 'grayscale(100%)',
+        filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: '#1e1e1e',
-          border: `2px solid ${selected ? '#1890ff' : color}`,
+          background: "#1e1e1e",
+          border: `2px solid ${selected ? "#1890ff" : color}`,
           borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: selected ? `0 0 0 2px ${color}40` : 'none',
-          transition: 'all 0.2s',
+          overflow: "hidden",
+          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
+          transition: "all 0.2s",
         }}
       >
         <div
           style={{
-            padding: '8px 12px',
+            padding: "8px 12px",
             borderBottom: `1px solid ${color}30`,
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 8,
             background: `${color}15`,
           }}
@@ -73,10 +73,10 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
               style={{
                 margin: 0,
                 fontSize: 9,
-                padding: '0 4px',
+                padding: "0 4px",
                 background: `${color}30`,
-                border: 'none',
-                color: '#fff',
+                border: "none",
+                color: "#fff",
               }}
             >
               异步
@@ -84,16 +84,16 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
           )}
         </div>
 
-        <div style={{ padding: '10px 12px' }}>
+        <div style={{ padding: "10px 12px" }}>
           <div
             style={{
               fontSize: 13,
-              color: '#fff',
+              color: "#fff",
               fontWeight: 500,
               marginBottom: 6,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {data.title}
@@ -104,28 +104,28 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
               fontSize: 10,
               color: color,
               marginBottom: 6,
-              padding: '4px 6px',
+              padding: "4px 6px",
               background: `${color}15`,
               borderRadius: 4,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
               fontWeight: 500,
             }}
           >
             📁 {displayName}
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {inputCount > 0 && (
               <Tag
                 style={{
                   margin: 0,
                   fontSize: 9,
-                  padding: '0 4px',
-                  background: '#252525',
-                  border: '1px solid #444',
-                  color: '#aaa',
+                  padding: "0 4px",
+                  background: "#252525",
+                  border: "1px solid #444",
+                  color: "#aaa",
                 }}
               >
                 📥 {inputCount}
@@ -137,10 +137,10 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
                 style={{
                   margin: 0,
                   fontSize: 9,
-                  padding: '0 4px',
-                  background: '#1890ff20',
-                  border: '1px solid #1890ff50',
-                  color: '#1890ff',
+                  padding: "0 4px",
+                  background: "#1890ff20",
+                  border: "1px solid #1890ff50",
+                  color: "#1890ff",
                 }}
               >
                 📤 {outputVar}
@@ -155,7 +155,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
         position={Position.Top}
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
@@ -166,7 +166,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
         position={Position.Bottom}
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}

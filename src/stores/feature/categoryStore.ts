@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { ConversationCategory } from '@/types';
+import { invoke } from "@/lib/invoke";
+import type { ConversationCategory } from "@/types";
+import { create } from "zustand";
 
 interface CategoryState {
   categories: ConversationCategory[];
@@ -46,7 +46,7 @@ export const useCategoryStore = create<CategoryState>((set) => ({
     set({ loading: true });
     try {
       const categories = await invoke<ConversationCategory[]>(
-        'list_conversation_categories',
+        "list_conversation_categories",
       );
       set({ categories, loading: false });
     } catch {
@@ -56,7 +56,7 @@ export const useCategoryStore = create<CategoryState>((set) => ({
 
   createCategory: async (input) => {
     const category = await invoke<ConversationCategory>(
-      'create_conversation_category',
+      "create_conversation_category",
       { input },
     );
     set((s) => ({ categories: [...s.categories, category] }));
@@ -65,7 +65,7 @@ export const useCategoryStore = create<CategoryState>((set) => ({
 
   updateCategory: async (id, input) => {
     const updated = await invoke<ConversationCategory>(
-      'update_conversation_category',
+      "update_conversation_category",
       { id, input },
     );
     set((s) => ({
@@ -74,14 +74,14 @@ export const useCategoryStore = create<CategoryState>((set) => ({
   },
 
   deleteCategory: async (id) => {
-    await invoke('delete_conversation_category', { id });
+    await invoke("delete_conversation_category", { id });
     set((s) => ({
       categories: s.categories.filter((c) => c.id !== id),
     }));
   },
 
   reorderCategories: async (categoryIds) => {
-    await invoke('reorder_conversation_categories', { categoryIds });
+    await invoke("reorder_conversation_categories", { categoryIds });
     set((s) => {
       const ordered = categoryIds
         .map((id, i) => {
@@ -95,10 +95,8 @@ export const useCategoryStore = create<CategoryState>((set) => ({
 
   setCollapsed: async (id, collapsed) => {
     set((s) => ({
-      categories: s.categories.map((c) =>
-        c.id === id ? { ...c, is_collapsed: collapsed } : c,
-      ),
+      categories: s.categories.map((c) => c.id === id ? { ...c, is_collapsed: collapsed } : c),
     }));
-    await invoke('set_conversation_category_collapsed', { id, collapsed });
+    await invoke("set_conversation_category_collapsed", { id, collapsed });
   },
 }));

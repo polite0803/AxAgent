@@ -71,11 +71,10 @@ impl ParallelTask {
     }
 
     pub fn duration_ms(&self) -> Option<u64> {
-        self.completed_at
-            .and_then(|completed| {
-                self.started_at
-                    .map(|started| (completed - started).num_milliseconds() as u64)
-            })
+        self.completed_at.and_then(|completed| {
+            self.started_at
+                .map(|started| (completed - started).num_milliseconds() as u64)
+        })
     }
 }
 
@@ -106,7 +105,12 @@ pub struct ParallelExecution {
 }
 
 impl ParallelExecution {
-    pub fn new(name: String, description: String, strategy: ExecutionStrategy, max_parallel: usize) -> Self {
+    pub fn new(
+        name: String,
+        description: String,
+        strategy: ExecutionStrategy,
+        max_parallel: usize,
+    ) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             name,
@@ -145,19 +149,31 @@ impl ParallelExecution {
     }
 
     pub fn completed_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count()
+        self.tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Completed)
+            .count()
     }
 
     pub fn failed_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Failed).count()
+        self.tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Failed)
+            .count()
     }
 
     pub fn running_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Running).count()
+        self.tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Running)
+            .count()
     }
 
     pub fn pending_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Pending).count()
+        self.tasks
+            .iter()
+            .filter(|t| t.status == TaskStatus::Pending)
+            .count()
     }
 
     pub fn overall_progress(&self) -> f32 {
@@ -172,13 +188,22 @@ impl ParallelExecution {
         let mut lines = vec![
             format!("# {} - 执行汇总\n", self.name),
             format!("总任务数: {}\n", self.tasks.len()),
-            format!("成功: {}, 失败: {}\n", self.completed_count(), self.failed_count()),
+            format!(
+                "成功: {}, 失败: {}\n",
+                self.completed_count(),
+                self.failed_count()
+            ),
             format!("执行时间: {} ms\n", self.duration_ms().unwrap_or(0)),
             "\n## 任务结果:\n".to_string(),
         ];
 
         for (i, task) in self.tasks.iter().enumerate() {
-            lines.push(format!("\n### {}. {} [{}]", i + 1, task.name, format_status(&task.status)));
+            lines.push(format!(
+                "\n### {}. {} [{}]",
+                i + 1,
+                task.name,
+                format_status(&task.status)
+            ));
 
             if let Some(ref result) = task.result {
                 lines.push(format!("\n结果:\n{}\n", result));
@@ -198,7 +223,8 @@ impl ParallelExecution {
 
     pub fn duration_ms(&self) -> Option<u64> {
         self.completed_at.and_then(|completed| {
-            self.started_at.map(|started| (completed - started).num_milliseconds() as u64)
+            self.started_at
+                .map(|started| (completed - started).num_milliseconds() as u64)
         })
     }
 }
@@ -233,7 +259,6 @@ pub enum ExecutionStrategy {
     Parallel,
     PriorityBased,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionResult {
@@ -352,28 +377,39 @@ impl ParallelExecutionService {
         }
 
         match strategy {
-            ExecutionStrategy::Sequential => {
-                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
+            ExecutionStrategy::Sequential => execution
+                .tasks
+                .iter_mut()
+                .find(|t| t.status == TaskStatus::Pending)
+                .map(|t| {
                     t.start(Uuid::new_v4().to_string());
                     t.clone()
-                })
-            }
-            ExecutionStrategy::Parallel => {
-                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
+                }),
+            ExecutionStrategy::Parallel => execution
+                .tasks
+                .iter_mut()
+                .find(|t| t.status == TaskStatus::Pending)
+                .map(|t| {
                     t.start(Uuid::new_v4().to_string());
                     t.clone()
-                })
-            }
-            ExecutionStrategy::PriorityBased => {
-                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
+                }),
+            ExecutionStrategy::PriorityBased => execution
+                .tasks
+                .iter_mut()
+                .find(|t| t.status == TaskStatus::Pending)
+                .map(|t| {
                     t.start(Uuid::new_v4().to_string());
                     t.clone()
-                })
-            }
+                }),
         }
     }
 
-    pub async fn update_task_result(&self, execution_id: &str, task_id: &str, result: String) -> Option<()> {
+    pub async fn update_task_result(
+        &self,
+        execution_id: &str,
+        task_id: &str,
+        result: String,
+    ) -> Option<()> {
         let mut executions = self.executions.write().unwrap();
         let execution = executions.get_mut(execution_id)?;
 
@@ -393,7 +429,12 @@ impl ParallelExecutionService {
         Some(())
     }
 
-    pub async fn update_task_error(&self, execution_id: &str, task_id: &str, error: String) -> Option<()> {
+    pub async fn update_task_error(
+        &self,
+        execution_id: &str,
+        task_id: &str,
+        error: String,
+    ) -> Option<()> {
         let mut executions = self.executions.write().unwrap();
         let execution = executions.get_mut(execution_id)?;
 
@@ -439,7 +480,11 @@ impl ParallelExecutionService {
             failed: execution.failed_count(),
             duration_ms: execution.duration_ms().unwrap_or(0),
             aggregated_summary: execution.aggregated_result.clone().unwrap_or_default(),
-            task_results: execution.tasks.iter().map(TaskResultSummary::from).collect(),
+            task_results: execution
+                .tasks
+                .iter()
+                .map(TaskResultSummary::from)
+                .collect(),
         })
     }
 

@@ -17,6 +17,8 @@ pub struct Model {
     pub duration_ms: Option<i64>,
     pub created_at: String,
     pub approval_status: Option<String>,
+    pub skill_steps_json: Option<String>,
+    pub depends_on: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

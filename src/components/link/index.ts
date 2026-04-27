@@ -1,7 +1,7 @@
-export { GatewayLinkList } from './GatewayLinkList';
-export { GatewayLinkDetail } from './GatewayLinkDetail';
-export { LinkOverview } from './LinkOverview';
-export { LinkModels } from './LinkModels';
-export { LinkSkills } from './LinkSkills';
-export { LinkPolicies } from './LinkPolicies';
-export { AddGatewayLinkModal } from './AddGatewayLinkModal';
+export { AddGatewayLinkModal } from "./AddGatewayLinkModal";
+export { GatewayLinkDetail } from "./GatewayLinkDetail";
+export { GatewayLinkList } from "./GatewayLinkList";
+export { LinkModels } from "./LinkModels";
+export { LinkOverview } from "./LinkOverview";
+export { LinkPolicies } from "./LinkPolicies";
+export { LinkSkills } from "./LinkSkills";

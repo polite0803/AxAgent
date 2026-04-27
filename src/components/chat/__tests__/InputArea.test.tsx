@@ -1,8 +1,8 @@
-import { App } from 'antd';
-import { fireEvent, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { InputArea } from '../InputArea';
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { App } from "antd";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { InputArea } from "../InputArea";
 
 const sendMessage = vi.fn();
 const createConversation = vi.fn();
@@ -16,26 +16,26 @@ const insertContextClear = vi.fn();
 const setSettingsSection = vi.fn();
 const mockNavigate = vi.fn();
 
-vi.mock('react-router-dom', () => ({
+vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));
 
 const conversationState = {
   streaming: false,
-  activeConversationId: 'conv-1',
+  activeConversationId: "conv-1",
   sendMessage,
   createConversation,
   messages: [],
   conversations: [
     {
-      id: 'conv-1',
-      title: 'Test',
-      provider_id: 'provider-1',
-      model_id: 'model-1',
+      id: "conv-1",
+      title: "Test",
+      provider_id: "provider-1",
+      model_id: "model-1",
     },
   ],
   searchEnabled: true,
-  searchProviderId: 'search-1',
+  searchProviderId: "search-1",
   setSearchEnabled,
   setSearchProviderId,
   enabledMcpServerIds: [] as string[],
@@ -48,11 +48,11 @@ const conversationState = {
 const providerState = {
   providers: [
     {
-      id: 'provider-1',
+      id: "provider-1",
       enabled: true,
       models: [
         {
-          model_id: 'model-1',
+          model_id: "model-1",
           enabled: true,
           capabilities: [],
         },
@@ -71,9 +71,9 @@ const settingsState = {
 const searchState = {
   providers: [
     {
-      id: 'search-1',
-      name: 'Test Search',
-      providerType: 'tavily',
+      id: "search-1",
+      name: "Test Search",
+      providerType: "tavily",
     },
   ],
   loadProviders: loadSearchProviders,
@@ -84,13 +84,13 @@ const mcpState = {
   loadServers: loadMcpServers,
 };
 
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: string) => fallback ?? _key,
   }),
 }));
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useConversationStore: (selector: (state: typeof conversationState) => unknown) => selector(conversationState),
   useProviderStore: (selector: (state: typeof providerState) => unknown) => selector(providerState),
   useSettingsStore: (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
@@ -98,40 +98,40 @@ vi.mock('@/stores', () => ({
   useMcpStore: (selector: (state: typeof mcpState) => unknown) => selector(mcpState),
 }));
 
-vi.mock('@/stores/uiStore', () => ({
+vi.mock("@/stores/uiStore", () => ({
   useUIStore: (selector: (state: { setSettingsSection: typeof setSettingsSection }) => unknown) =>
     selector({ setSettingsSection }),
 }));
 
-vi.mock('@/lib/modelCapabilities', () => ({
+vi.mock("@/lib/modelCapabilities", () => ({
   findModelByIds: () => ({
-    model_id: 'model-1',
+    model_id: "model-1",
     capabilities: [],
   }),
   supportsReasoning: () => false,
 }));
 
-vi.mock('@/components/shared/SearchProviderIcon', () => ({
+vi.mock("@/components/shared/SearchProviderIcon", () => ({
   SearchProviderTypeIcon: () => null,
   PROVIDER_TYPE_LABELS: {
-    tavily: 'Tavily',
+    tavily: "Tavily",
   },
 }));
 
-vi.mock('../VoiceCall', () => ({
+vi.mock("../VoiceCall", () => ({
   VoiceCall: () => null,
 }));
 
-vi.mock('../ConversationSettingsModal', () => ({
+vi.mock("../ConversationSettingsModal", () => ({
   ConversationSettingsModal: () => null,
 }));
 
-describe('InputArea', () => {
+describe("InputArea", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('clears the textarea immediately after sending even while search-backed send is still pending', async () => {
+  it("clears the textarea immediately after sending even while search-backed send is still pending", async () => {
     let resolveSend!: () => void;
     sendMessage.mockImplementationOnce(
       () =>
@@ -146,15 +146,15 @@ describe('InputArea', () => {
       </App>,
     );
 
-    const textarea = screen.getByPlaceholderText('chat.inputPlaceholder') as HTMLTextAreaElement;
-    await userEvent.type(textarea, 'search me');
+    const textarea = screen.getByPlaceholderText("chat.inputPlaceholder") as HTMLTextAreaElement;
+    await userEvent.type(textarea, "search me");
 
-    expect(textarea.value).toBe('search me');
+    expect(textarea.value).toBe("search me");
 
-    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' });
+    fireEvent.keyDown(textarea, { key: "Enter", code: "Enter" });
 
-    expect(sendMessage).toHaveBeenCalledWith('search me', undefined, 'search-1');
-    expect(textarea.value).toBe('');
+    expect(sendMessage).toHaveBeenCalledWith("search me", undefined, "search-1");
+    expect(textarea.value).toBe("");
 
     resolveSend();
   });

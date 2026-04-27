@@ -27,8 +27,7 @@ pub fn load_window_state(axagent_home: &Path) -> Option<PersistedWindowState> {
 
 pub fn save_window_state(axagent_home: &Path, state: PersistedWindowState) -> io::Result<()> {
     std::fs::create_dir_all(axagent_home)?;
-    let json = serde_json::to_vec_pretty(&state)
-        .map_err(io::Error::other)?;
+    let json = serde_json::to_vec_pretty(&state).map_err(io::Error::other)?;
     std::fs::write(window_state_path(axagent_home), json)
 }
 

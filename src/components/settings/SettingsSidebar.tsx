@@ -1,10 +1,28 @@
-import { Menu, theme } from 'antd';
-import { Cloud, Settings, Palette, Globe, Zap, Database, Info, Search, CloudUpload, Bot, HardDrive, MessageSquare, ArrowLeft, Clock, Wrench, GitBranch } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useUIStore } from '@/stores';
-import type { SettingsSection } from '@/types';
-import { SETTINGS_ICON_COLORS } from '@/lib/iconColors';
+import { SETTINGS_ICON_COLORS } from "@/lib/iconColors";
+import { useUIStore } from "@/stores";
+import type { SettingsSection } from "@/types";
+import { Menu, theme } from "antd";
+import {
+  ArrowLeft,
+  Bot,
+  Clock,
+  Cloud,
+  CloudUpload,
+  Database,
+  GitBranch,
+  Globe,
+  HardDrive,
+  Info,
+  MessageSquare,
+  Palette,
+  Search,
+  Settings,
+  User,
+  Wrench,
+  Zap,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   providers: <Cloud size={16} color={SETTINGS_ICON_COLORS.Cloud} />,
@@ -22,24 +40,26 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   scheduler: <Clock size={16} color={SETTINGS_ICON_COLORS.Clock} />,
   backup: <CloudUpload size={16} color={SETTINGS_ICON_COLORS.CloudUpload} />,
   workflow: <GitBranch size={16} color={SETTINGS_ICON_COLORS.Workflow} />,
+  userProfile: <User size={16} color={SETTINGS_ICON_COLORS.User} />,
 };
 
 const SECTION_KEYS: SettingsSection[] = [
-  'general',
-  'display',
-  'providers',
-  'conversationSettings',
-  'defaultModel',
-  'searchProviders',
-  'tools',
-  'proxy',
-  'shortcuts',
-  'data',
-  'storage',
-  'scheduler',
-  'backup',
-  'workflow',
-  'about',
+  "general",
+  "display",
+  "providers",
+  "conversationSettings",
+  "defaultModel",
+  "searchProviders",
+  "tools",
+  "proxy",
+  "shortcuts",
+  "data",
+  "storage",
+  "scheduler",
+  "backup",
+  "workflow",
+  "userProfile",
+  "about",
 ];
 
 export function SettingsSidebar() {
@@ -56,7 +76,11 @@ export function SettingsSidebar() {
   }));
 
   return (
-    <div className="h-full flex flex-col" data-os-scrollbar style={{ backgroundColor: token.colorBgContainer, overflowY: 'auto' }}>
+    <div
+      className="h-full flex flex-col"
+      data-os-scrollbar
+      style={{ backgroundColor: token.colorBgContainer, overflowY: "auto" }}
+    >
       {/* Back button */}
       <div
         className="flex items-center gap-2 cursor-pointer"
@@ -69,38 +93,38 @@ export function SettingsSidebar() {
           paddingTop: 12,
           paddingBottom: 12,
         }}
-        onClick={() => navigate('/')}
+        onClick={() => navigate("/")}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = token.colorText;
           e.currentTarget.style.backgroundColor = token.colorFillSecondary;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.color = token.colorTextSecondary;
-          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.backgroundColor = "transparent";
         }}
       >
         <ArrowLeft size={16} />
-        <span style={{ fontSize: 14 }}>{t('common.back')}</span>
+        <span style={{ fontSize: 14 }}>{t("common.back")}</span>
         <span
           style={{
             fontSize: 11,
             color: token.colorTextQuaternary,
             border: `1px solid ${token.colorBorderSecondary}`,
             borderRadius: 4,
-            padding: '1px 6px',
+            padding: "1px 6px",
             marginLeft: 4,
-            lineHeight: '16px',
+            lineHeight: "16px",
           }}
         >
           Esc
         </span>
       </div>
-      <div className="flex-1 pt-1" style={{ overflowY: 'auto' }}>
+      <div className="flex-1 pt-1" style={{ overflowY: "auto" }}>
         <Menu
           mode="inline"
           selectedKeys={[settingsSection]}
           items={items}
-          style={{ borderInlineEnd: 'none' }}
+          style={{ borderInlineEnd: "none" }}
           onClick={({ key }) => setSettingsSection(key as SettingsSection)}
         />
       </div>

@@ -1,8 +1,8 @@
-import { Button, Card, Typography } from 'antd';
-import { GitBranch, Plus } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { TemplateList } from '@/components/workflow/Templates';
-import type { WorkflowTemplateResponse } from '@/components/workflow/types';
+import { TemplateList } from "@/components/workflow/Templates";
+import type { WorkflowTemplateResponse } from "@/components/workflow/types";
+import { Button, Card, Typography } from "antd";
+import { GitBranch, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const { Title, Paragraph } = Typography;
 
@@ -30,7 +30,7 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
     if (onCreateNew) {
       onCreateNew();
     } else {
-      console.log('Create new template');
+      console.log("Create new template");
       if (onOpenEditor) {
         onOpenEditor();
       }
@@ -41,11 +41,11 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <Title level={4} className="mb-1">{t('settings.workflow.title')}</Title>
-          <Paragraph type="secondary">{t('settings.workflow.description')}</Paragraph>
+          <Title level={4} className="mb-1">{t("settings.workflow.title")}</Title>
+          <Paragraph type="secondary">{t("settings.workflow.description")}</Paragraph>
         </div>
         <Button type="primary" icon={<Plus size={16} />} onClick={handleCreateNew}>
-          {t('settings.workflow.createNew')}
+          {t("settings.workflow.createNew")}
         </Button>
       </div>
 
@@ -55,12 +55,12 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
             <GitBranch size={24} className="text-purple-600" />
           </div>
           <div className="flex-1">
-            <Title level={5} className="mb-1">{t('settings.workflow.visualEditor')}</Title>
+            <Title level={5} className="mb-1">{t("settings.workflow.visualEditor")}</Title>
             <Paragraph type="secondary" className="mb-0">
-              {t('settings.workflow.visualEditorDesc')}
+              {t("settings.workflow.visualEditorDesc")}
             </Paragraph>
           </div>
-          <Button onClick={() => onOpenEditor?.()}>{t('settings.workflow.openEditor')}</Button>
+          <Button onClick={() => onOpenEditor?.()}>{t("settings.workflow.openEditor")}</Button>
         </div>
       </Card>
 

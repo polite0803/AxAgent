@@ -12,8 +12,18 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(AtomicSkills::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(AtomicSkills::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(AtomicSkills::Name).string().not_null().unique_key())
+                    .col(
+                        ColumnDef::new(AtomicSkills::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(AtomicSkills::Name)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
                     .col(
                         ColumnDef::new(AtomicSkills::Description)
                             .string()
@@ -82,21 +92,13 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(SkillReferences::SkillId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(SkillReferences::SkillId).string().not_null())
                     .col(
                         ColumnDef::new(SkillReferences::WorkflowId)
                             .string()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(SkillReferences::NodeId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(SkillReferences::NodeId).string().not_null())
                     .col(
                         ColumnDef::new(SkillReferences::CreatedAt)
                             .integer()

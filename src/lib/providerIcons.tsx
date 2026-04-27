@@ -1,22 +1,22 @@
-import { memo } from 'react';
-import type { ProviderConfig } from '@/types';
-import { ProviderIcon, ModelIcon, providerMappings, modelMappings } from '@lobehub/icons';
-import { DynamicLobeIcon } from '@/components/shared/DynamicLobeIcon';
+import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
+import type { ProviderConfig } from "@/types";
+import { ModelIcon, modelMappings, ProviderIcon, providerMappings } from "@lobehub/icons";
+import { memo } from "react";
 
 const TYPE_TO_PROVIDER: Record<string, string> = {
-  openai: 'openai',
-  openai_responses: 'openai',
-  anthropic: 'anthropic',
-  gemini: 'google',
-  ollama: 'ollama',
-  custom: 'openai',
+  openai: "openai",
+  openai_responses: "openai",
+  anthropic: "anthropic",
+  gemini: "google",
+  ollama: "ollama",
+  custom: "openai",
 };
 
 /**
  * Check if a name matches any providerMappings keyword (exact, lowercased).
  */
 function findProviderKey(name: string): string | null {
-  const lower = name.toLowerCase().replace(/\s+/g, '');
+  const lower = name.toLowerCase().replace(/\s+/g, "");
   for (const mapping of providerMappings) {
     if (mapping.keywords.some((kw: string) => lower.includes(kw.toLowerCase()))) {
       return mapping.keywords[0];
@@ -29,15 +29,17 @@ function findProviderKey(name: string): string | null {
  * Check if a name matches any modelMappings keyword using regex (same as ModelIcon internals).
  */
 function findModelKey(name: string): string | null {
-  const lower = name.toLowerCase().replace(/\s+/g, '');
+  const lower = name.toLowerCase().replace(/\s+/g, "");
   for (const mapping of modelMappings) {
-    if (mapping.keywords.some((kw: string) => {
-      try {
-        return new RegExp(kw, 'i').test(lower);
-      } catch {
-        return lower.includes(kw.toLowerCase());
-      }
-    })) {
+    if (
+      mapping.keywords.some((kw: string) => {
+        try {
+          return new RegExp(kw, "i").test(lower);
+        } catch {
+          return lower.includes(kw.toLowerCase());
+        }
+      })
+    ) {
       return mapping.keywords[0];
     }
   }
@@ -45,17 +47,17 @@ function findModelKey(name: string): string | null {
 }
 
 export type IconResult = {
-  type: 'provider';
+  type: "provider";
   key: string;
 } | {
-  type: 'model';
+  type: "model";
   key: string;
 };
 
 // Explicit name-to-provider fallback for names that don't match
 // either providerMappings or modelMappings keywords.
 const NAME_TO_PROVIDER: Record<string, string> = {
-  glm: 'zhipu',
+  glm: "zhipu",
 };
 
 /**
@@ -67,17 +69,17 @@ const NAME_TO_PROVIDER: Record<string, string> = {
  */
 export function resolveProviderIcon(provider: ProviderConfig): IconResult {
   const providerKey = findProviderKey(provider.name);
-  if (providerKey) return { type: 'provider', key: providerKey };
+  if (providerKey) { return { type: "provider", key: providerKey }; }
 
   const modelKey = findModelKey(provider.name);
-  if (modelKey) return { type: 'model', key: modelKey };
+  if (modelKey) { return { type: "model", key: modelKey }; }
 
-  const nameLower = provider.name.toLowerCase().replace(/\s+/g, '');
+  const nameLower = provider.name.toLowerCase().replace(/\s+/g, "");
   for (const [keyword, icon] of Object.entries(NAME_TO_PROVIDER)) {
-    if (nameLower.includes(keyword)) return { type: 'provider', key: icon };
+    if (nameLower.includes(keyword)) { return { type: "provider", key: icon }; }
   }
 
-  return { type: 'provider', key: TYPE_TO_PROVIDER[provider.provider_type] || 'openai' };
+  return { type: "provider", key: TYPE_TO_PROVIDER[provider.provider_type] || "openai" };
 }
 
 /**
@@ -95,23 +97,23 @@ export function getProviderIconKey(provider: ProviderConfig): string {
 export const SmartProviderIcon = memo(function SmartProviderIcon({
   provider,
   size = 22,
-  type = 'color',
+  type = "color",
   shape,
 }: {
   provider: ProviderConfig;
   size?: number;
-  type?: 'avatar' | 'color' | 'mono';
-  shape?: 'circle' | 'square';
+  type?: "avatar" | "color" | "mono";
+  shape?: "circle" | "square";
 }) {
   if (provider.icon) {
-    const [, key] = provider.icon.includes(':')
-      ? (provider.icon.split(':', 2) as [string, string])
-      : ['model' as const, provider.icon];
+    const [, key] = provider.icon.includes(":")
+      ? (provider.icon.split(":", 2) as [string, string])
+      : ["model" as const, provider.icon];
     // key is a toc `id` (e.g., "Ai302", "OpenAI") — use DynamicLobeIcon for reliable rendering
     return <DynamicLobeIcon iconId={key} size={size} type={type} />;
   }
   const result = resolveProviderIcon(provider);
-  if (result.type === 'model') {
+  if (result.type === "model") {
     return <ModelIcon model={result.key} size={size} type={type} />;
   }
   return <ProviderIcon provider={result.key} size={size} type={type} shape={shape} />;
@@ -121,5 +123,4 @@ export const SmartProviderIcon = memo(function SmartProviderIcon({
   && prev.provider.provider_type === next.provider.provider_type
   && prev.size === next.size
   && prev.type === next.type
-  && prev.shape === next.shape
-);
+  && prev.shape === next.shape);

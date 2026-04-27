@@ -136,8 +136,18 @@ impl PlatformIntegrationService {
         None
     }
 
-    pub async fn create_session(&self, platform: MessagePlatform, user_id: String, username: Option<String>) -> String {
-        let session_id = format!("{}_{}_{}", platform.as_str(), user_id, chrono::Utc::now().timestamp_millis());
+    pub async fn create_session(
+        &self,
+        platform: MessagePlatform,
+        user_id: String,
+        username: Option<String>,
+    ) -> String {
+        let session_id = format!(
+            "{}_{}_{}",
+            platform.as_str(),
+            user_id,
+            chrono::Utc::now().timestamp_millis()
+        );
         let session = PlatformSession {
             session_id: session_id.clone(),
             platform,
@@ -194,7 +204,8 @@ impl TelegramHandler {
         });
 
         let client = reqwest::Client::new();
-        client.post(&url)
+        client
+            .post(&url)
             .json(&body)
             .send()
             .await?
@@ -234,7 +245,10 @@ pub struct DiscordHandler {
 
 impl DiscordHandler {
     pub fn new(bot_token: String, webhook_url: Option<String>) -> Self {
-        Self { bot_token, webhook_url }
+        Self {
+            bot_token,
+            webhook_url,
+        }
     }
 
     pub async fn send_message(&self, _channel_id: &str, content: &str) -> anyhow::Result<()> {
@@ -244,7 +258,8 @@ impl DiscordHandler {
             });
 
             let client = reqwest::Client::new();
-            client.post(webhook_url)
+            client
+                .post(webhook_url)
                 .json(&body)
                 .send()
                 .await?
@@ -278,32 +293,12 @@ impl PlatformMessageHandler for DiscordHandler {
 
 pub mod routes {
     use super::*;
-    use axum::{
-        extract::Path,
-        http::StatusCode,
-        response::Json,
-        routing::post,
-        Router,
-    };
 
-    pub async fn telegram_webhook(
-        Path(_token): Path<String>,
-        Json(payload): Json<TelegramMessage>,
-    ) -> StatusCode {
+    pub async fn telegram_webhook(_token: String, payload: TelegramMessage) {
         tracing::info!("Telegram webhook received: {:?}", payload);
-        StatusCode::OK
     }
 
-    pub async fn discord_webhook(
-        Json(payload): Json<DiscordMessage>,
-    ) -> StatusCode {
+    pub async fn discord_webhook(payload: DiscordMessage) {
         tracing::info!("Discord webhook received: {:?}", payload);
-        StatusCode::OK
-    }
-
-    pub fn create_router() -> Router {
-        Router::new()
-            .route("/telegram/:token", post(telegram_webhook))
-            .route("/discord/webhook", post(discord_webhook))
     }
 }

@@ -23,16 +23,44 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(KnowledgeEntities::Name).string().not_null())
-                    .col(ColumnDef::new(KnowledgeEntities::EntityType).string().not_null())
-                    .col(ColumnDef::new(KnowledgeEntities::Description).string().null())
-                    .col(ColumnDef::new(KnowledgeEntities::SourcePath).string().not_null())
-                    .col(ColumnDef::new(KnowledgeEntities::SourceLanguage).string().null())
-                    .col(ColumnDef::new(KnowledgeEntities::Properties).json().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeEntities::EntityType)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeEntities::Description)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeEntities::SourcePath)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeEntities::SourceLanguage)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeEntities::Properties)
+                            .json()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(KnowledgeEntities::Lifecycle).json().null())
                     .col(ColumnDef::new(KnowledgeEntities::Behaviors).json().null())
                     .col(ColumnDef::new(KnowledgeEntities::Metadata).json().null())
-                    .col(ColumnDef::new(KnowledgeEntities::CreatedAt).integer().not_null())
-                    .col(ColumnDef::new(KnowledgeEntities::UpdatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeEntities::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeEntities::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -53,22 +81,62 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(KnowledgeAttributes::EntityId).string().not_null())
-                    .col(ColumnDef::new(KnowledgeAttributes::Name).string().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::EntityId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::Name)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(KnowledgeAttributes::AttributeType)
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(KnowledgeAttributes::DataType).string().not_null())
-                    .col(ColumnDef::new(KnowledgeAttributes::Description).string().null())
-                    .col(ColumnDef::new(KnowledgeAttributes::IsRequired).boolean().not_null())
-                    .col(ColumnDef::new(KnowledgeAttributes::DefaultValue).string().null())
-                    .col(ColumnDef::new(KnowledgeAttributes::Constraints).json().null())
-                    .col(ColumnDef::new(KnowledgeAttributes::ValidationRules).json().null())
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::DataType)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::Description)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::IsRequired)
+                            .boolean()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::DefaultValue)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::Constraints)
+                            .json()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::ValidationRules)
+                            .json()
+                            .null(),
+                    )
                     .col(ColumnDef::new(KnowledgeAttributes::Metadata).json().null())
-                    .col(ColumnDef::new(KnowledgeAttributes::CreatedAt).integer().not_null())
-                    .col(ColumnDef::new(KnowledgeAttributes::UpdatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeAttributes::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -104,11 +172,23 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(KnowledgeRelations::Description).string().null())
+                    .col(
+                        ColumnDef::new(KnowledgeRelations::Description)
+                            .string()
+                            .null(),
+                    )
                     .col(ColumnDef::new(KnowledgeRelations::Properties).json().null())
                     .col(ColumnDef::new(KnowledgeRelations::Metadata).json().null())
-                    .col(ColumnDef::new(KnowledgeRelations::CreatedAt).integer().not_null())
-                    .col(ColumnDef::new(KnowledgeRelations::UpdatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeRelations::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeRelations::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -132,15 +212,27 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(KnowledgeFlows::Name).string().not_null())
                     .col(ColumnDef::new(KnowledgeFlows::FlowType).string().not_null())
                     .col(ColumnDef::new(KnowledgeFlows::Description).string().null())
-                    .col(ColumnDef::new(KnowledgeFlows::SourcePath).string().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeFlows::SourcePath)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(KnowledgeFlows::Steps).json().not_null())
                     .col(ColumnDef::new(KnowledgeFlows::DecisionPoints).json().null())
                     .col(ColumnDef::new(KnowledgeFlows::ErrorHandling).json().null())
                     .col(ColumnDef::new(KnowledgeFlows::Preconditions).json().null())
                     .col(ColumnDef::new(KnowledgeFlows::Postconditions).json().null())
                     .col(ColumnDef::new(KnowledgeFlows::Metadata).json().null())
-                    .col(ColumnDef::new(KnowledgeFlows::CreatedAt).integer().not_null())
-                    .col(ColumnDef::new(KnowledgeFlows::UpdatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeFlows::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeFlows::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -161,17 +253,41 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(KnowledgeInterfaces::Name).string().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::Name)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(KnowledgeInterfaces::InterfaceType)
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(KnowledgeInterfaces::Description).string().null())
-                    .col(ColumnDef::new(KnowledgeInterfaces::SourcePath).string().not_null())
-                    .col(ColumnDef::new(KnowledgeInterfaces::InputSchema).json().not_null())
-                    .col(ColumnDef::new(KnowledgeInterfaces::OutputSchema).json().not_null())
-                    .col(ColumnDef::new(KnowledgeInterfaces::ErrorCodes).json().null())
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::Description)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::SourcePath)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::InputSchema)
+                            .json()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::OutputSchema)
+                            .json()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::ErrorCodes)
+                            .json()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(KnowledgeInterfaces::CommunicationPattern)
                             .string()
@@ -179,8 +295,16 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(KnowledgeInterfaces::Version).string().null())
                     .col(ColumnDef::new(KnowledgeInterfaces::Metadata).json().null())
-                    .col(ColumnDef::new(KnowledgeInterfaces::CreatedAt).integer().not_null())
-                    .col(ColumnDef::new(KnowledgeInterfaces::UpdatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeInterfaces::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;

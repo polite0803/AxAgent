@@ -6,7 +6,16 @@ use axum::{
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::auth::auth_middleware;
-use crate::handlers::{cancel_run, chat_completions, create_job, delete_job, delete_response, detailed_health_check, disable_job, enable_job, get_job, get_response, get_run, get_run_logs, health_check, list_jobs, list_models, list_runs, pause_job, resume_job, retry_run, trigger_job, trigger_run, update_job, update_job_schedule, get_job_schedule};
+use crate::handlers::{
+    cancel_run, chat_completions, create_job, delete_job, delete_response, detailed_health_check,
+    disable_job, enable_job, get_job, get_job_schedule, get_response, get_run, get_run_logs,
+    health_check, list_jobs, list_models, list_runs, pause_job, resume_job, retry_run, trigger_job,
+    trigger_run, update_job, update_job_schedule,
+};
+use crate::marketplace_handlers::{
+    create_review, delete_review, get_marketplace_stats, get_my_review, get_reviews, update_review,
+};
+use crate::metrics::metrics_handler;
 use crate::native::{
     anthropic_count_tokens, anthropic_messages, gemini_list_models, gemini_model_operation,
     openai_responses,
@@ -52,6 +61,25 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route("/api/jobs/{job_id}/runs/{run_id}/cancel", post(cancel_run))
         .route("/api/jobs/{job_id}/runs/{run_id}/retry", post(retry_run))
         .route("/api/jobs/{job_id}/runs/{run_id}/logs", get(get_run_logs))
+        // Marketplace reviews
+        .route(
+            "/api/marketplace/{marketplace_id}/reviews",
+            get(get_reviews),
+        )
+        .route(
+            "/api/marketplace/{marketplace_id}/reviews",
+            post(create_review),
+        )
+        .route(
+            "/api/marketplace/{marketplace_id}/reviews/me",
+            get(get_my_review),
+        )
+        .route(
+            "/api/marketplace/{marketplace_id}/stats",
+            get(get_marketplace_stats),
+        )
+        .route("/api/reviews/{review_id}", patch(update_review))
+        .route("/api/reviews/{review_id}", delete(delete_review))
         .layer(middleware::from_fn_with_state(
             state.db.clone(),
             auth_middleware,
@@ -61,7 +89,8 @@ pub fn create_router(state: GatewayAppState) -> Router {
     let public = Router::new()
         .route("/health", get(health_check))
         .route("/health/detailed", get(detailed_health_check))
-        .route("/v1/realtime", get(realtime_handler));
+        .route("/v1/realtime", get(realtime_handler))
+        .route("/metrics", get(metrics_handler));
 
     Router::new()
         .merge(protected)

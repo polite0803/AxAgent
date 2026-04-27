@@ -134,15 +134,13 @@ pub struct Model {
     pub param_overrides: Option<ModelParamOverrides>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum ModelType {
     #[default]
     Chat,
     Voice,
     Embedding,
 }
-
 
 impl ModelType {
     /// Auto-detect model type from model_id string
@@ -1165,6 +1163,8 @@ pub struct ToolExecution {
     pub duration_ms: Option<i64>,
     pub created_at: String,
     pub approval_status: Option<String>,
+    pub skill_steps_json: Option<String>,
+    pub depends_on: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1214,8 +1214,9 @@ pub struct KnowledgeDocument {
     pub mime_type: String,
     pub size_bytes: i64,
     pub indexing_status: String, // pending | indexing | ready | failed
-    pub doc_type: String,        // file | url | text | ...
+    pub doc_type: String,        // file | url | text | conversation | ...
     pub index_error: Option<String>,
+    pub source_conversation_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1419,7 +1420,7 @@ pub struct MemoryItem {
     pub namespace_id: String,
     pub title: String,
     pub content: String,
-    pub source: String,      // manual | auto_extract
+    pub source: String,       // manual | auto_extract
     pub index_status: String, // pending | indexing | ready | failed | skipped
     pub index_error: Option<String>,
     pub updated_at: String,
@@ -1841,4 +1842,17 @@ pub struct MarketplaceSkill {
     pub current_version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub latest_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub categories: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketplaceCategory {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub skill_count: i64,
 }

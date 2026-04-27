@@ -1,26 +1,26 @@
-import { Button, Divider, Typography, InputNumber } from 'antd';
-import { GitFork, Globe, RefreshCw, Terminal } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useCallback } from 'react';
-import { isTauri, invoke } from '@/lib/invoke';
-import logoUrl from '@/assets/image/logo.png';
-import { useSettingsStore } from '@/stores';
-import { useUpdateChecker } from '@/hooks/useUpdateChecker';
-import { SettingsGroup } from './SettingsGroup';
+import logoUrl from "@/assets/image/logo.png";
+import { useUpdateChecker } from "@/hooks/useUpdateChecker";
+import { invoke, isTauri } from "@/lib/invoke";
+import { useSettingsStore } from "@/stores";
+import { Button, Divider, InputNumber, Typography } from "antd";
+import { GitFork, Globe, RefreshCw, Terminal } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
 
 export function AboutPage() {
   const { t } = useTranslation();
   const [checking, setChecking] = useState(false);
-  const [appVersion, setAppVersion] = useState('...');
+  const [appVersion, setAppVersion] = useState("...");
   const { checkForUpdate } = useUpdateChecker();
   const updateCheckInterval = useSettingsStore((s) => s.settings.update_check_interval ?? 60);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
 
   useEffect(() => {
     if (isTauri()) {
-      import('@tauri-apps/api/app').then(({ getVersion }) => {
+      import("@tauri-apps/api/app").then(({ getVersion }) => {
         getVersion().then(v => setAppVersion(v));
       });
     }
@@ -35,12 +35,12 @@ export function AboutPage() {
     }
   }, [checkForUpdate]);
 
-  const rowStyle = { padding: '4px 0' };
+  const rowStyle = { padding: "4px 0" };
 
   const handleOpenDevTools = useCallback(async () => {
     if (isTauri()) {
       try {
-        await invoke('open_devtools');
+        await invoke("open_devtools");
       } catch { /* ignore */ }
     }
   }, []);
@@ -48,12 +48,14 @@ export function AboutPage() {
   return (
     <div className="p-6 pb-12">
       {/* Logo + App Name (macOS-style) */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '32px 0 24px',
-      }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "32px 0 24px",
+        }}
+      >
         <img
           src={logoUrl}
           alt="AxAgent"
@@ -62,34 +64,34 @@ export function AboutPage() {
         />
         <div style={{ fontSize: 22, fontWeight: 600 }}>AxAgent</div>
         <Text type="secondary" style={{ marginTop: 4 }}>
-          {t('settings.version')} {appVersion}
+          {t("settings.version")} {appVersion}
         </Text>
       </div>
 
-      <SettingsGroup title={t('settings.groupAppInfo')}>
+      <SettingsGroup title={t("settings.groupAppInfo")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.version')}</span>
+          <span>{t("settings.version")}</span>
           <Text type="secondary">{appVersion}</Text>
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.openSource')}</span>
+          <span>{t("settings.openSource")}</span>
           <Text type="secondary">AGPL-3.0</Text>
         </div>
       </SettingsGroup>
-      <SettingsGroup title={t('settings.groupLinks')}>
+      <SettingsGroup title={t("settings.groupLinks")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.website')}</span>
+          <span>{t("settings.website")}</span>
           <Button
             icon={<Globe size={16} />}
             href="https://app.axagent.top"
             target="_blank"
             type="link"
           >
-            {t('settings.website')}
+            {t("settings.website")}
           </Button>
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
           <span>GitHub</span>
           <Button
@@ -98,42 +100,42 @@ export function AboutPage() {
             target="_blank"
             type="link"
           >
-            {t('settings.github')}
+            {t("settings.github")}
           </Button>
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.checkUpdate')}</span>
+          <span>{t("settings.checkUpdate")}</span>
           <Button
-            icon={<RefreshCw size={16} className={checking ? 'animate-spin' : ''} />}
+            icon={<RefreshCw size={16} className={checking ? "animate-spin" : ""} />}
             onClick={handleCheckUpdate}
             loading={checking}
           >
-            {t('settings.checkUpdate')}
+            {t("settings.checkUpdate")}
           </Button>
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.updateCheckInterval')}</span>
+          <span>{t("settings.updateCheckInterval")}</span>
           <InputNumber
             min={1}
             max={1440}
             value={updateCheckInterval}
             onChange={(val) => val != null && saveSettings({ update_check_interval: val })}
             style={{ width: 100 }}
-            addonAfter={t('settings.minutes')}
+            addonAfter={t("settings.minutes")}
           />
         </div>
         {isTauri() && (
           <>
-            <Divider style={{ margin: '4px 0' }} />
+            <Divider style={{ margin: "4px 0" }} />
             <div style={rowStyle} className="flex items-center justify-between">
-              <span>{t('settings.developerTools')}</span>
+              <span>{t("settings.developerTools")}</span>
               <Button
                 icon={<Terminal size={16} />}
                 onClick={handleOpenDevTools}
               >
-                {t('settings.openDevTools')}
+                {t("settings.openDevTools")}
               </Button>
             </div>
           </>

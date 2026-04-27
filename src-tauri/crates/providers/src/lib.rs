@@ -4,16 +4,22 @@ pub mod adapter;
 pub mod anthropic;
 pub mod gemini;
 pub mod hermes;
+pub mod image_gen;
 pub mod ollama;
 pub mod openai;
 pub mod openai_responses;
 pub mod openclaw;
-pub mod registry;
 pub mod realtime_client;
+pub mod registry;
 
+pub use image_gen::{
+    DallEProvider, FluxProvider, GeneratedImage, ImageGenModelInfo, ImageGenProvider,
+    ImageGenRequest, ImageGenResponse,
+};
+
+use async_trait::async_trait;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
-use async_trait::async_trait;
 use futures::Stream;
 use std::pin::Pin;
 
@@ -39,19 +45,19 @@ pub fn diagnose_reqwest_error(e: &reqwest::Error) -> String {
             Try again or check your proxy settings."
         )
     } else if e.is_redirect() {
-        format!(
-            "{base}. Too many HTTP redirects. Check your API host URL and proxy configuration."
-        )
+        format!("{base}. Too many HTTP redirects. Check your API host URL and proxy configuration.")
     } else {
-        format!(
-            "{base}. Check your network connection, proxy settings, and API host URL."
-        )
+        format!("{base}. Check your network connection, proxy settings, and API host URL.")
     }
 }
 
 /// Provide a human-readable diagnostic hint for a non-2xx HTTP status code.
 /// Returns a formatted error message with actionable guidance.
-pub fn diagnose_http_status(provider_name: &str, status: reqwest::StatusCode, body: &str) -> String {
+pub fn diagnose_http_status(
+    provider_name: &str,
+    status: reqwest::StatusCode,
+    body: &str,
+) -> String {
     let code = status.as_u16();
     let base = format!("{provider_name} API error {code}: {body}");
     match code {
@@ -130,13 +136,21 @@ pub trait ProviderAdapter: Send + Sync {
         self.list_models(ctx).await.map(|_| true)
     }
 
-    async fn get_response(&self, _ctx: &ProviderRequestContext, _response_id: &str) -> Result<String> {
+    async fn get_response(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _response_id: &str,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "get_response is not supported by this provider".to_string(),
         ))
     }
 
-    async fn delete_response(&self, _ctx: &ProviderRequestContext, _response_id: &str) -> Result<()> {
+    async fn delete_response(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _response_id: &str,
+    ) -> Result<()> {
         Err(AxAgentError::Provider(
             "delete_response is not supported by this provider".to_string(),
         ))
@@ -160,7 +174,12 @@ pub trait ProviderAdapter: Send + Sync {
         ))
     }
 
-    async fn update_job(&self, _ctx: &ProviderRequestContext, _job_id: &str, _job_data: &str) -> Result<String> {
+    async fn update_job(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+        _job_data: &str,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "update_job is not supported by this provider".to_string(),
         ))
@@ -196,43 +215,77 @@ pub trait ProviderAdapter: Send + Sync {
         ))
     }
 
-    async fn get_run(&self, _ctx: &ProviderRequestContext, _job_id: &str, _run_id: &str) -> Result<String> {
+    async fn get_run(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+        _run_id: &str,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "get_run is not supported by this provider".to_string(),
         ))
     }
 
-    async fn cancel_run(&self, _ctx: &ProviderRequestContext, _job_id: &str, _run_id: &str) -> Result<()> {
+    async fn cancel_run(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+        _run_id: &str,
+    ) -> Result<()> {
         Err(AxAgentError::Provider(
             "cancel_run is not supported by this provider".to_string(),
         ))
     }
 
-    async fn get_run_logs(&self, _ctx: &ProviderRequestContext, _job_id: &str, _run_id: &str) -> Result<String> {
+    async fn get_run_logs(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+        _run_id: &str,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "get_run_logs is not supported by this provider".to_string(),
         ))
     }
 
-    async fn trigger_run(&self, _ctx: &ProviderRequestContext, _job_id: &str, _params: Option<&str>) -> Result<String> {
+    async fn trigger_run(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+        _params: Option<&str>,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "trigger_run is not supported by this provider".to_string(),
         ))
     }
 
-    async fn retry_run(&self, _ctx: &ProviderRequestContext, _job_id: &str, _run_id: &str) -> Result<String> {
+    async fn retry_run(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+        _run_id: &str,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "retry_run is not supported by this provider".to_string(),
         ))
     }
 
-    async fn get_job_schedule(&self, _ctx: &ProviderRequestContext, _job_id: &str) -> Result<String> {
+    async fn get_job_schedule(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "get_job_schedule is not supported by this provider".to_string(),
         ))
     }
 
-    async fn update_job_schedule(&self, _ctx: &ProviderRequestContext, _job_id: &str, _schedule: &str) -> Result<String> {
+    async fn update_job_schedule(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _job_id: &str,
+        _schedule: &str,
+    ) -> Result<String> {
         Err(AxAgentError::Provider(
             "update_job_schedule is not supported by this provider".to_string(),
         ))
@@ -406,8 +459,9 @@ pub fn build_http_client(proxy_config: Option<&ProviderProxyConfig>) -> Result<r
                             "http"
                         };
                         let proxy_url = format!("{}://{}:{}", scheme, addr, port);
-                        let proxy = reqwest::Proxy::all(&proxy_url)
-                            .map_err(|e| AxAgentError::Provider(format!("Invalid proxy URL: {}", e)))?;
+                        let proxy = reqwest::Proxy::all(&proxy_url).map_err(|e| {
+                            AxAgentError::Provider(format!("Invalid proxy URL: {}", e))
+                        })?;
                         builder = builder.proxy(proxy);
                     } else {
                         builder = builder.no_proxy();

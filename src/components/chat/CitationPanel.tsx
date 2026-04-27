@@ -1,30 +1,30 @@
-import { List, Typography, Tag, Empty } from 'antd';
-import { Link } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Empty, List, Tag, Typography } from "antd";
+import { Link } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Citation {
   id: string;
   title: string;
   url?: string;
   snippet: string;
-  source: 'search' | 'knowledge' | 'memory';
+  source: "search" | "knowledge" | "memory";
 }
 
 interface CitationPanelProps {
   citations: Citation[];
 }
 
-const sourceColorMap: Record<Citation['source'], string> = {
-  search: 'blue',
-  knowledge: 'green',
-  memory: 'purple',
+const sourceColorMap: Record<Citation["source"], string> = {
+  search: "blue",
+  knowledge: "green",
+  memory: "purple",
 };
 
 export function CitationPanel({ citations }: CitationPanelProps) {
   const { t } = useTranslation();
 
   if (citations.length === 0) {
-    return <Empty description={t('common.noData')} style={{ marginTop: 32 }} />;
+    return <Empty description={t("common.noData")} style={{ marginTop: 32 }} />;
   }
 
   return (
@@ -32,8 +32,8 @@ export function CitationPanel({ citations }: CitationPanelProps) {
       dataSource={citations}
       renderItem={(item) => (
         <List.Item key={item.id}>
-          <div style={{ width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div style={{ width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <Typography.Text>{item.title}</Typography.Text>
               <Tag color={sourceColorMap[item.source]}>{item.source}</Tag>
             </div>

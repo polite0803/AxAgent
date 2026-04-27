@@ -7,7 +7,8 @@ pub async fn insight_list(
 ) -> Result<Vec<serde_json::Value>, String> {
     let is = app_state.insight_system.read().unwrap();
     let insights = is.get_insights();
-    Ok(insights.iter()
+    Ok(insights
+        .iter()
         .filter_map(|i| serde_json::to_value(i).ok())
         .collect())
 }
@@ -26,7 +27,8 @@ pub async fn insight_get_by_category(
     };
     let is = app_state.insight_system.read().unwrap();
     let insights = is.get_insights_by_category(cat);
-    Ok(insights.iter()
+    Ok(insights
+        .iter()
         .filter_map(|i| serde_json::to_value(i).ok())
         .collect())
 }
@@ -38,10 +40,6 @@ pub async fn insight_report(
     message_count: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     let mut is = app_state.insight_system.write().unwrap();
-    let report = is.generate_session_report(
-        &session_id,
-        message_count.unwrap_or(0),
-        vec![],
-    );
+    let report = is.generate_session_report(&session_id, message_count.unwrap_or(0), vec![]);
     serde_json::to_value(report).map_err(|e| e.to_string())
 }

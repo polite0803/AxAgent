@@ -1,3 +1,4 @@
+use crate::commands::proactive::ProactiveService;
 use sea_orm::DatabaseConnection;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -17,10 +18,14 @@ pub struct AppState {
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,
     pub indexing_semaphore: Arc<tokio::sync::Semaphore>,
     pub stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
-    pub agent_permission_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_ask_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_always_allowed: Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
-    pub agent_prompters: Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
+    pub agent_permission_senders:
+        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_ask_senders:
+        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_always_allowed:
+        Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
+    pub agent_prompters:
+        Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
     pub agent_session_manager: axagent_agent::SessionManager,
     pub agent_cancel_tokens: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
@@ -41,11 +46,14 @@ pub struct AppState {
     pub skill_evolution_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
     pub skill_proposal_service: Arc<std::sync::RwLock<axagent_trajectory::SkillProposalService>>,
     pub auto_memory_extractor: Arc<std::sync::RwLock<axagent_trajectory::AutoMemoryExtractor>>,
-    pub parallel_execution_service: Arc<tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>>,
+    pub parallel_execution_service:
+        Arc<tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>>,
     pub scheduled_task_service: Arc<tokio::sync::RwLock<axagent_trajectory::ScheduledTaskService>>,
-    pub platform_integration_service: Arc<tokio::sync::RwLock<axagent_trajectory::PlatformIntegrationService>>,
+    pub platform_integration_service:
+        Arc<tokio::sync::RwLock<axagent_trajectory::PlatformIntegrationService>>,
     pub user_profile: Arc<std::sync::RwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_agent::LocalToolRegistry>>,
     pub work_engine: Arc<tokio::sync::RwLock<axagent_runtime::work_engine::WorkEngine>>,
     pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
+    pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
 }

@@ -15,9 +15,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 #[allow(unused_imports)]
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
-use std::sync::Arc;
 use tracing::info;
 
 /// Result of a tool call via MCP.
@@ -181,9 +181,7 @@ fn resolve_login_shell_path() -> Option<String> {
     let mut seen = std::collections::HashSet::new();
     let deduped: Vec<&str> = combined
         .split(';')
-        .filter(|s| {
-            !s.is_empty() && seen.insert(s.to_lowercase())
-        })
+        .filter(|s| !s.is_empty() && seen.insert(s.to_lowercase()))
         .collect();
     Some(deduped.join(";"))
 }
@@ -240,7 +238,11 @@ fn configure_stdio_env(cmd: &mut tokio::process::Command, env: &HashMap<String, 
 /// wraps the command through `cmd.exe /C` on Windows so that `.cmd` scripts
 /// (npx, npm, etc.) can be found and executed correctly.
 #[cfg(target_os = "windows")]
-fn build_stdio_command(command: &str, args: &[String], env: &HashMap<String, String>) -> tokio::process::Command {
+fn build_stdio_command(
+    command: &str,
+    args: &[String],
+    env: &HashMap<String, String>,
+) -> tokio::process::Command {
     let mut cmd = tokio::process::Command::new("cmd.exe");
     let mut all_args: Vec<String> = vec!["/C".to_string(), command.to_string()];
     all_args.extend_from_slice(args);
@@ -250,7 +252,11 @@ fn build_stdio_command(command: &str, args: &[String], env: &HashMap<String, Str
 }
 
 #[cfg(not(target_os = "windows"))]
-fn build_stdio_command(command: &str, args: &[String], env: &HashMap<String, String>) -> tokio::process::Command {
+fn build_stdio_command(
+    command: &str,
+    args: &[String],
+    env: &HashMap<String, String>,
+) -> tokio::process::Command {
     let mut cmd = tokio::process::Command::new(command);
     cmd.args(args);
     configure_stdio_env(&mut cmd, env);
@@ -348,10 +354,7 @@ impl McpConnectionPool {
 
     /// Get an existing connection or create a new one for the given server config.
     /// Stale connections (idle > idle_timeout) are evicted before returning.
-    pub async fn get_or_connect(
-        &self,
-        key: &StdioServerKey,
-    ) -> Result<McpPeer> {
+    pub async fn get_or_connect(&self, key: &StdioServerKey) -> Result<McpPeer> {
         let mut conns = self.connections.lock().await;
 
         // Evict stale entries
@@ -368,7 +371,10 @@ impl McpConnectionPool {
         }
 
         // No cached connection — spawn a new one
-        info!("[McpPool] No cached connection for '{}', spawning new process", key.command);
+        info!(
+            "[McpPool] No cached connection for '{}', spawning new process",
+            key.command
+        );
         let args: Vec<String> = serde_json::from_str(&key.args_json).unwrap_or_default();
         let env: HashMap<String, String> = serde_json::from_str(&key.env_json).unwrap_or_default();
 
@@ -423,7 +429,11 @@ impl McpConnectionPool {
             // Evict all connections — conservative but safe for hot-reload
             conns.retain(|_, _| false);
             if conns.len() < before {
-                info!("[McpPool] Evicted {} connections for hot-reload of server '{}'", before - conns.len(), server_id);
+                info!(
+                    "[McpPool] Evicted {} connections for hot-reload of server '{}'",
+                    before - conns.len(),
+                    server_id
+                );
             }
         }
     }
@@ -447,11 +457,9 @@ async fn spawn_stdio_client(
     env: &HashMap<String, String>,
 ) -> Result<(McpPeer, rmcp::service::RunningServiceCancellationToken)> {
     let cmd = build_stdio_command(command, args, env);
-    let transport =
-        TokioChildProcess::new(cmd)
-        .map_err(|e| {
-            AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
-        })?;
+    let transport = TokioChildProcess::new(cmd).map_err(|e| {
+        AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
+    })?;
 
     let service = ()
         .serve(transport)
@@ -487,9 +495,7 @@ static MCP_POOL: OnceLock<Arc<McpConnectionPool>> = OnceLock::new();
 /// Idle timeout is 5 minutes — connections not used for 5 min are evicted.
 pub fn global_mcp_pool() -> Arc<McpConnectionPool> {
     MCP_POOL
-        .get_or_init(|| {
-            Arc::new(McpConnectionPool::new(std::time::Duration::from_secs(300)))
-        })
+        .get_or_init(|| Arc::new(McpConnectionPool::new(std::time::Duration::from_secs(300))))
         .clone()
 }
 
@@ -527,10 +533,16 @@ pub async fn call_tool_stdio_pooled(
                 || err_lower.contains("closed")
                 || err_lower.contains("transport")
             {
-                info!("[McpPool] Evicting stale connection for '{}' due to: {}", command, err_str);
+                info!(
+                    "[McpPool] Evicting stale connection for '{}' due to: {}",
+                    command, err_str
+                );
                 pool.evict(&key).await;
             }
-            Err(AxAgentError::Gateway(format!("MCP tool call failed: {}", err_str)))
+            Err(AxAgentError::Gateway(format!(
+                "MCP tool call failed: {}",
+                err_str
+            )))
         }
     }
 }
@@ -545,31 +557,26 @@ pub async fn call_tool_stdio(
     tool_arguments: Value,
 ) -> Result<McpToolResult> {
     let cmd = build_stdio_command(command, args, env);
-    let transport =
-        TokioChildProcess::new(cmd)
-        .map_err(|e| {
-            AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
-        })?;
+    let transport = TokioChildProcess::new(cmd).map_err(|e| {
+        AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
+    })?;
 
-    let client = ()
-        .serve(transport)
-        .await
-        .map_err(|e| {
-            let err_str = e.to_string();
-            let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof") {
-                format!(
-                    "{}\n\nThe MCP server process exited unexpectedly during initialization. \
+    let client = ().serve(transport).await.map_err(|e| {
+        let err_str = e.to_string();
+        let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof") {
+            format!(
+                "{}\n\nThe MCP server process exited unexpectedly during initialization. \
                     Possible causes:\n\
                     - The command or package may not be installed\n\
                     - Node.js / Python / runtime may not be in PATH\n\
                     - The server package version may be incompatible",
-                    err_str
-                )
-            } else {
                 err_str
-            };
-            AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
-        })?;
+            )
+        } else {
+            err_str
+        };
+        AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
+    })?;
 
     let params = CallToolRequestParams::new(tool_name.to_string())
         .with_arguments(value_to_map(tool_arguments));
@@ -591,11 +598,9 @@ pub async fn discover_tools_stdio(
     env: &HashMap<String, String>,
 ) -> Result<Vec<DiscoveredTool>> {
     let cmd = build_stdio_command(command, args, env);
-    let transport =
-        TokioChildProcess::new(cmd)
-        .map_err(|e| {
-            AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
-        })?;
+    let transport = TokioChildProcess::new(cmd).map_err(|e| {
+        AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
+    })?;
 
     let client = ()
         .serve(transport)
@@ -942,7 +947,9 @@ where
                     "SSE stream ended before response".into(),
                 ))
             }
-            Ok(Some(Err(e))) => return Err(AxAgentError::Gateway(format!("SSE read error: {}", e))),
+            Ok(Some(Err(e))) => {
+                return Err(AxAgentError::Gateway(format!("SSE read error: {}", e)))
+            }
             Ok(Some(Ok(chunk))) => {
                 let text = String::from_utf8_lossy(chunk.as_ref())
                     .replace("\r\n", "\n")
@@ -1026,10 +1033,7 @@ mod tests {
             env_map.get("TAVILY_API_KEY"),
             Some(&Some("secret-key".to_string()))
         );
-        assert_eq!(
-            env_map.get("PATH"),
-            Some(&Some("/custom/bin".to_string()))
-        );
+        assert_eq!(env_map.get("PATH"), Some(&Some("/custom/bin".to_string())));
     }
 
     #[tokio::test]

@@ -199,7 +199,11 @@ fn chunk_by_separator(text: &str, chunk_size: usize, overlap: usize, sep: &str) 
 
     for segment in &segments {
         let seg_len = segment.len();
-        let sep_len = if current_parts.is_empty() { 0 } else { sep.len() };
+        let sep_len = if current_parts.is_empty() {
+            0
+        } else {
+            sep.len()
+        };
 
         // If a single segment exceeds chunk_size, split it further with smart chunking
         if seg_len > chunk_size {

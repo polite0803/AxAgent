@@ -1,10 +1,10 @@
-import { Button, Divider, Popconfirm, Typography, App } from 'antd';
-import { Share2, Upload, Trash2, AlertTriangle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useConversationStore, useSettingsStore } from '@/stores';
-import { isTauri } from '@/lib/invoke';
-import { open, save } from '@tauri-apps/plugin-dialog';
-import { SettingsGroup } from './SettingsGroup';
+import { isTauri } from "@/lib/invoke";
+import { useConversationStore, useSettingsStore } from "@/stores";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { App, Button, Divider, Popconfirm, Typography } from "antd";
+import { AlertTriangle, Share2, Trash2, Upload } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
 
@@ -18,7 +18,7 @@ export function DataManager() {
       const settings = useSettingsStore.getState().settings;
 
       const exportData = {
-        version: '1.0.0',
+        version: "1.0.0",
         exportedAt: new Date().toISOString(),
         conversations,
         settings,
@@ -27,28 +27,28 @@ export function DataManager() {
       const jsonStr = JSON.stringify(exportData, null, 2);
 
       if (isTauri()) {
-        const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
         const filePath = await save({
           defaultPath: `axagent-export-${new Date().toISOString().slice(0, 10)}.json`,
-          filters: [{ name: 'JSON', extensions: ['json'] }],
+          filters: [{ name: "JSON", extensions: ["json"] }],
         });
         if (filePath) {
           await writeTextFile(filePath, jsonStr);
-          message.success(t('settings.exportSuccess') || '导出成功');
+          message.success(t("settings.exportSuccess") || "导出成功");
         }
       } else {
-        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const blob = new Blob([jsonStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
         a.download = `axagent-export-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        message.success(t('settings.exportSuccess') || '导出成功');
+        message.success(t("settings.exportSuccess") || "导出成功");
       }
     } catch (e) {
-      console.error('Export failed:', e);
-      message.error(t('error.unknown') || '导出失败');
+      console.error("Export failed:", e);
+      message.error(t("error.unknown") || "导出失败");
     }
   };
 
@@ -57,9 +57,9 @@ export function DataManager() {
       let jsonStr: string | null = null;
 
       if (isTauri()) {
-        const { readTextFile } = await import('@tauri-apps/plugin-fs');
+        const { readTextFile } = await import("@tauri-apps/plugin-fs");
         const filePath = await open({
-          filters: [{ name: 'JSON', extensions: ['json'] }],
+          filters: [{ name: "JSON", extensions: ["json"] }],
           multiple: false,
         });
         if (filePath) {
@@ -67,12 +67,12 @@ export function DataManager() {
         }
       } else {
         jsonStr = await new Promise<string | null>((resolve) => {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = '.json';
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = ".json";
           input.onchange = () => {
             const file = input.files?.[0];
-            if (!file) return resolve(null);
+            if (!file) { return resolve(null); }
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
             reader.readAsText(file);
@@ -81,11 +81,11 @@ export function DataManager() {
         });
       }
 
-      if (!jsonStr) return;
+      if (!jsonStr) { return; }
 
       const data = JSON.parse(jsonStr);
       if (!data.version) {
-        message.error(t('error.invalidFormat') || '无效的导入文件格式');
+        message.error(t("error.invalidFormat") || "无效的导入文件格式");
         return;
       }
 
@@ -93,10 +93,10 @@ export function DataManager() {
         await useSettingsStore.getState().saveSettings(data.settings);
       }
 
-      message.success(t('settings.importSuccess') || '导入成功，部分数据需要重启生效');
+      message.success(t("settings.importSuccess") || "导入成功，部分数据需要重启生效");
     } catch (e) {
-      console.error('Import failed:', e);
-      message.error(t('error.unknown') || '导入失败');
+      console.error("Import failed:", e);
+      message.error(t("error.unknown") || "导入失败");
     }
   };
 
@@ -106,29 +106,29 @@ export function DataManager() {
       for (const conv of conversations) {
         await useConversationStore.getState().deleteConversation(conv.id);
       }
-      message.success(t('settings.clearSuccess') || '数据已清除');
+      message.success(t("settings.clearSuccess") || "数据已清除");
     } catch (e) {
-      console.error('Clear failed:', e);
-      message.error(t('error.unknown') || '清除失败');
+      console.error("Clear failed:", e);
+      message.error(t("error.unknown") || "清除失败");
     }
   };
 
-  const rowStyle = { padding: '4px 0' };
+  const rowStyle = { padding: "4px 0" };
 
   return (
     <div className="p-6 pb-12">
-      <SettingsGroup title={t('settings.groupData')}>
+      <SettingsGroup title={t("settings.groupData")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.exportData')}</span>
+          <span>{t("settings.exportData")}</span>
           <Button icon={<Share2 size={16} />} onClick={handleExport}>
-            {t('settings.exportData')}
+            {t("settings.exportData")}
           </Button>
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.importData')}</span>
+          <span>{t("settings.importData")}</span>
           <Button icon={<Upload size={16} />} onClick={handleImport}>
-            {t('settings.importData')}
+            {t("settings.importData")}
           </Button>
         </div>
       </SettingsGroup>
@@ -136,21 +136,21 @@ export function DataManager() {
         title={
           <Text type="danger">
             <AlertTriangle size={14} className="mr-2" />
-            {t('settings.dangerZone')}
+            {t("settings.dangerZone")}
           </Text>
         }
       >
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.clearData')}</span>
+          <span>{t("settings.clearData")}</span>
           <Popconfirm
-            title={t('settings.clearConfirm')}
+            title={t("settings.clearConfirm")}
             onConfirm={handleClear}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
+            okText={t("common.confirm")}
+            cancelText={t("common.cancel")}
             okButtonProps={{ danger: true }}
           >
             <Button danger icon={<Trash2 size={16} />}>
-              {t('settings.clearData')}
+              {t("settings.clearData")}
             </Button>
           </Popconfirm>
         </div>

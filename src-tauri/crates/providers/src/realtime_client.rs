@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::{SinkExt, StreamExt};
 use futures::stream::SplitStream;
+use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
 use tokio::sync::{mpsc, RwLock};
@@ -90,8 +90,7 @@ impl Default for RealtimeClientConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum RealtimeConnectionState {
     #[default]
     Disconnected,
@@ -100,7 +99,6 @@ pub enum RealtimeConnectionState {
     Reconnecting,
     Failed(String),
 }
-
 
 pub struct RealtimeClient {
     config: RealtimeClientConfig,
@@ -160,7 +158,11 @@ impl RealtimeClient {
         let (mut write, mut read) = ws_stream.split();
 
         let session_msg = RealtimeClientMessage::SessionCreate {
-            model: self.config.model.clone().unwrap_or_else(|| "gpt-4o-realtime".to_string()),
+            model: self
+                .config
+                .model
+                .clone()
+                .unwrap_or_else(|| "gpt-4o-realtime".to_string()),
         };
         let msg_json = serde_json::to_string(&session_msg)
             .map_err(|e| RealtimeClientError::SerializationError(e.to_string()))?;
@@ -241,7 +243,10 @@ impl RealtimeClient {
                                 return Ok((session_id, Ok(())));
                             }
                             RealtimeServerMessage::Error { error } => {
-                                return Ok((String::new(), Err(RealtimeClientError::ProviderError(error.message))));
+                                return Ok((
+                                    String::new(),
+                                    Err(RealtimeClientError::ProviderError(error.message)),
+                                ));
                             }
                             _ => continue,
                         }
@@ -296,7 +301,9 @@ impl RealtimeClient {
 
         let sender = self.sender.read().await;
         if let Some(tx) = sender.as_ref() {
-            tx.send(msg).await.map_err(|_| RealtimeClientError::SendError("Channel closed".to_string()))?;
+            tx.send(msg)
+                .await
+                .map_err(|_| RealtimeClientError::SendError("Channel closed".to_string()))?;
         }
 
         Ok(())
@@ -380,8 +387,12 @@ impl RealtimeStreamHandler {
                         break;
                     }
                     let delay = self.client.calculate_backoff_delay(attempts);
-                    tracing::info!("Reconnecting in {:?} (attempt {}/{})",
-                        delay, attempts + 1, self.client.config.max_reconnect_attempts);
+                    tracing::info!(
+                        "Reconnecting in {:?} (attempt {}/{})",
+                        delay,
+                        attempts + 1,
+                        self.client.config.max_reconnect_attempts
+                    );
                     tokio::time::sleep(delay).await;
                     if let Err(e) = self.client.connect().await {
                         tracing::warn!("Reconnect failed: {}", e);
@@ -398,9 +409,15 @@ impl RealtimeStreamHandler {
                         tracing::error!("Max reconnect attempts reached for RealtimeClient");
                         break;
                     }
-                    let delay = self.client.calculate_backoff_delay(attempts.saturating_sub(1));
-                    tracing::info!("Connection lost, attempting reconnect in {:?} (attempt {}/{})",
-                        delay, attempts, self.client.config.max_reconnect_attempts);
+                    let delay = self
+                        .client
+                        .calculate_backoff_delay(attempts.saturating_sub(1));
+                    tracing::info!(
+                        "Connection lost, attempting reconnect in {:?} (attempt {}/{})",
+                        delay,
+                        attempts,
+                        self.client.config.max_reconnect_attempts
+                    );
                     {
                         let mut state = self.client.state.write().await;
                         *state = RealtimeConnectionState::Reconnecting;

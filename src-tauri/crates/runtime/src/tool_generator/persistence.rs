@@ -4,10 +4,7 @@ use super::types::GeneratedTool;
 use axagent_core::error::Result;
 
 /// Persist a generated tool to the database
-pub async fn persist_to_db(
-    tool: &GeneratedTool,
-    db: &DatabaseConnection,
-) -> Result<()> {
+pub async fn persist_to_db(tool: &GeneratedTool, db: &DatabaseConnection) -> Result<()> {
     let id = uuid::Uuid::new_v4().to_string();
     let input_schema = serde_json::to_string(&tool.input_schema)
         .map_err(|e| axagent_core::error::AxAgentError::Validation(e.to_string()))?;

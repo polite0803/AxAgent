@@ -1,6 +1,6 @@
-import 'markstream-react';
+import "markstream-react";
 
-declare module 'markstream-react' {
+declare module "markstream-react" {
   // Extend MermaidBlockNodeProps to include custom render props
   interface MermaidBlockNodeProps {
     renderHeaderActions?: (ctx: MermaidBlockActionContext) => React.ReactNode;

@@ -1,6 +1,6 @@
-export type IndexingStatus = 'pending' | 'indexing' | 'ready' | 'failed';
-export type MemoryScope = 'global' | 'project';
-export type MemorySource = 'manual' | 'auto_extract';
+export type IndexingStatus = "pending" | "indexing" | "ready" | "failed";
+export type MemoryScope = "global" | "project";
+export type MemorySource = "manual" | "auto_extract";
 
 export type KnowledgeBase = {
   id: string;
@@ -29,6 +29,7 @@ export type KnowledgeDocument = {
   indexingStatus: IndexingStatus;
   docType: string;
   indexError?: string;
+  sourceConversationId?: string;
 };
 
 export type RetrievalHit = {

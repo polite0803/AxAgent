@@ -75,7 +75,9 @@ impl SharedMemoryPool {
         }
 
         // Determine version: increment if overwriting existing entry
-        let next_version = self.entries.get(&full_key)
+        let next_version = self
+            .entries
+            .get(&full_key)
             .map(|e| e.version + 1)
             .unwrap_or(1);
 
@@ -147,7 +149,12 @@ impl SharedMemoryPool {
         Ok(self.entries.get(&full_key).unwrap().clone())
     }
 
-    pub fn get(&self, key: &str, namespace: &str, reader_agent: Option<&str>) -> Result<MemoryEntry, MemoryError> {
+    pub fn get(
+        &self,
+        key: &str,
+        namespace: &str,
+        reader_agent: Option<&str>,
+    ) -> Result<MemoryEntry, MemoryError> {
         let full_key = format!("{}:{}", namespace, key);
 
         let entry = self
@@ -343,7 +350,11 @@ impl std::fmt::Display for MemoryError {
             Self::PermissionDenied => write!(f, "Permission denied"),
             Self::InvalidKey => write!(f, "Invalid key"),
             Self::VersionConflict { expected, actual } => {
-                write!(f, "Version conflict: expected {}, actual {}", expected, actual)
+                write!(
+                    f,
+                    "Version conflict: expected {}, actual {}",
+                    expected, actual
+                )
             }
         }
     }
@@ -401,9 +412,7 @@ impl SharedMemory {
         let notified = pool.notify_subscribers(key, namespace);
         if !notified.is_empty() {
             let event = if let Some(old) = old_value {
-                MemoryEvent::Updated {
-                    old_value: old,
-                }
+                MemoryEvent::Updated { old_value: old }
             } else {
                 MemoryEvent::Created
             };
@@ -424,7 +433,12 @@ impl SharedMemory {
         pool.get(key, namespace, None)
     }
 
-    pub fn get_with_agent(&self, key: &str, namespace: &str, agent_id: &str) -> Result<MemoryEntry, MemoryError> {
+    pub fn get_with_agent(
+        &self,
+        key: &str,
+        namespace: &str,
+        agent_id: &str,
+    ) -> Result<MemoryEntry, MemoryError> {
         let pool = self.pool.read().unwrap();
         pool.get(key, namespace, Some(agent_id))
     }
@@ -521,9 +535,8 @@ impl SharedMemory {
     pub fn save_snapshot(&self, path: &std::path::Path) -> Result<(), String> {
         let pool = self.pool.read().unwrap();
         // Clean up expired entries first
-        let snapshot: Vec<&MemoryEntry> = pool.entries.values()
-            .filter(|e| !e.is_expired())
-            .collect();
+        let snapshot: Vec<&MemoryEntry> =
+            pool.entries.values().filter(|e| !e.is_expired()).collect();
         let json = serde_json::to_string_pretty(&snapshot)
             .map_err(|e| format!("Failed to serialize shared memory: {}", e))?;
         std::fs::write(path, json)

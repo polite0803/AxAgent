@@ -26,11 +26,8 @@ impl WorkEngine {
         input: serde_json::Value,
     ) -> Result<String, WorkEngineError> {
         let execution_id = uuid::Uuid::new_v4().to_string();
-        let state = ExecutionState::new(
-            execution_id.clone(),
-            workflow_id.to_string(),
-            input.clone(),
-        );
+        let state =
+            ExecutionState::new(execution_id.clone(), workflow_id.to_string(), input.clone());
 
         // Persist to database
         let input_params = serde_json::to_string(&input).ok();
@@ -105,10 +102,7 @@ impl WorkEngine {
     }
 
     /// Get execution status
-    pub async fn get_status(
-        &self,
-        execution_id: &str,
-    ) -> Result<ExecutionState, WorkEngineError> {
+    pub async fn get_status(&self, execution_id: &str) -> Result<ExecutionState, WorkEngineError> {
         let executions = self.executions.lock().await;
         executions
             .get(execution_id)

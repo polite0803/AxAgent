@@ -1,8 +1,8 @@
-import { App } from 'antd';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GatewayTemplates } from '../GatewayTemplates';
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { App } from "antd";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GatewayTemplates } from "../GatewayTemplates";
 
 const fetchStatus = vi.fn();
 const fetchCliToolStatuses = vi.fn();
@@ -12,13 +12,13 @@ const disconnectCliTool = vi.fn();
 
 let storeState: Record<string, unknown>;
 
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock('@lobehub/icons', () => {
+vi.mock("@lobehub/icons", () => {
   const avatar = {
     Avatar: ({ size }: { size: number }) => <span data-size={size}>avatar</span>,
   };
@@ -32,7 +32,7 @@ vi.mock('@lobehub/icons', () => {
   };
 });
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useGatewayStore: () => storeState,
 }));
 
@@ -40,7 +40,7 @@ function buildStoreState(overrides: Record<string, unknown> = {}) {
   return {
     status: {
       is_running: true,
-      listen_address: '127.1.0.0',
+      listen_address: "127.1.0.0",
       port: 8000,
       ssl_enabled: true,
       started_at: null,
@@ -49,33 +49,33 @@ function buildStoreState(overrides: Record<string, unknown> = {}) {
     },
     cliTools: [
       {
-        id: 'claude_code',
-        name: 'Claude Code',
-        status: 'not_connected',
-        configPath: '/configs/claude.json',
+        id: "claude_code",
+        name: "Claude Code",
+        status: "not_connected",
+        configPath: "/configs/claude.json",
         hasBackup: false,
         connectedProtocol: null,
       },
       {
-        id: 'codex',
-        name: 'Codex',
-        status: 'connected',
-        configPath: '/configs/codex.json',
+        id: "codex",
+        name: "Codex",
+        status: "connected",
+        configPath: "/configs/codex.json",
         hasBackup: true,
-        connectedProtocol: 'http',
+        connectedProtocol: "http",
       },
       {
-        id: 'opencode',
-        name: 'OpenCode',
-        status: 'connected',
-        configPath: '/configs/opencode.json',
+        id: "opencode",
+        name: "OpenCode",
+        status: "connected",
+        configPath: "/configs/opencode.json",
         hasBackup: true,
-        connectedProtocol: 'https',
+        connectedProtocol: "https",
       },
       {
-        id: 'gemini',
-        name: 'Gemini CLI',
-        status: 'not_installed',
+        id: "gemini",
+        name: "Gemini CLI",
+        status: "not_installed",
         configPath: null,
         hasBackup: false,
         connectedProtocol: null,
@@ -84,10 +84,10 @@ function buildStoreState(overrides: Record<string, unknown> = {}) {
     cliToolsLoading: false,
     keys: [
       {
-        id: 'key-1',
-        name: 'Primary Gateway Key',
-        key_hash: 'hash',
-        key_prefix: 'aqb_123',
+        id: "key-1",
+        name: "Primary Gateway Key",
+        key_hash: "hash",
+        key_prefix: "aqb_123",
         enabled: true,
         created_at: 1,
         last_used_at: null,
@@ -112,26 +112,26 @@ function renderWithApp() {
 }
 
 async function selectProtocol(protocolLabel: string) {
-  const protocolSelect = screen.getByTestId('gateway-protocol-select');
-  fireEvent.mouseDown(within(protocolSelect).getByRole('combobox'));
+  const protocolSelect = screen.getByTestId("gateway-protocol-select");
+  fireEvent.mouseDown(within(protocolSelect).getByRole("combobox"));
   await userEvent.click(await screen.findByText(protocolLabel));
 }
 
 function getToolCard(name: string) {
-  const heading = screen.getByRole('heading', { name, level: 5 });
-  const card = heading.closest('.ant-card');
+  const heading = screen.getByRole("heading", { name, level: 5 });
+  const card = heading.closest(".ant-card");
   expect(card).not.toBeNull();
   return card as HTMLElement;
 }
 
-describe('GatewayTemplates', () => {
+describe("GatewayTemplates", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     connectCliTool.mockResolvedValue(undefined);
     disconnectCliTool.mockResolvedValue(undefined);
     storeState = buildStoreState();
 
-    Object.defineProperty(window, 'matchMedia', {
+    Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
         matches: false,
@@ -146,7 +146,7 @@ describe('GatewayTemplates', () => {
     });
   });
 
-  it('fetches fresh status, lets users switch protocols, and passes the selected protocol to quick connect', async () => {
+  it("fetches fresh status, lets users switch protocols, and passes the selected protocol to quick connect", async () => {
     renderWithApp();
 
     await waitFor(() => {
@@ -155,34 +155,34 @@ describe('GatewayTemplates', () => {
       expect(fetchKeys).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText('gateway.cliConnectedHttp')).toBeInTheDocument();
-    expect(screen.getByText('gateway.cliConnectedHttps')).toBeInTheDocument();
-    expect(screen.getByText('gateway.cliNotConnected')).toBeInTheDocument();
-    expect(screen.getAllByText('gateway.cliNotInstalled').length).toBeGreaterThan(0);
+    expect(screen.getByText("gateway.cliConnectedHttp")).toBeInTheDocument();
+    expect(screen.getByText("gateway.cliConnectedHttps")).toBeInTheDocument();
+    expect(screen.getByText("gateway.cliNotConnected")).toBeInTheDocument();
+    expect(screen.getAllByText("gateway.cliNotInstalled").length).toBeGreaterThan(0);
 
-    await selectProtocol('gateway.cliProtocolHttps');
+    await selectProtocol("gateway.cliProtocolHttps");
 
-    const codexCard = getToolCard('Codex');
-    expect(within(codexCard).getByRole('button', { name: 'gateway.cliSwitchProtocolReconnect' })).toBeInTheDocument();
+    const codexCard = getToolCard("Codex");
+    expect(within(codexCard).getByRole("button", { name: "gateway.cliSwitchProtocolReconnect" })).toBeInTheDocument();
 
-    const openCodeCard = getToolCard('OpenCode');
-    expect(within(openCodeCard).getByRole('button', { name: 'gateway.cliDisconnect' })).toBeInTheDocument();
+    const openCodeCard = getToolCard("OpenCode");
+    expect(within(openCodeCard).getByRole("button", { name: "gateway.cliDisconnect" })).toBeInTheDocument();
 
-    const claudeCard = getToolCard('Claude Code');
-    const quickConnectButton = within(claudeCard).getByRole('button', { name: 'gateway.quickConnect' });
+    const claudeCard = getToolCard("Claude Code");
+    const quickConnectButton = within(claudeCard).getByRole("button", { name: "gateway.quickConnect" });
     await waitFor(() => expect(quickConnectButton).toBeEnabled());
     await userEvent.click(quickConnectButton);
 
     await waitFor(() => {
-      expect(connectCliTool).toHaveBeenCalledWith('claude_code', 'key-1', 'https');
+      expect(connectCliTool).toHaveBeenCalledWith("claude_code", "key-1", "https");
     });
   });
 
-  it('auto-selects the only available http protocol and disables switching when https is unavailable', async () => {
+  it("auto-selects the only available http protocol and disables switching when https is unavailable", async () => {
     storeState = buildStoreState({
       status: {
         is_running: true,
-        listen_address: '127.1.0.0',
+        listen_address: "127.1.0.0",
         port: 8000,
         ssl_enabled: false,
         started_at: null,
@@ -191,10 +191,10 @@ describe('GatewayTemplates', () => {
       },
       cliTools: [
         {
-          id: 'claude_code',
-          name: 'Claude Code',
-          status: 'not_connected',
-          configPath: '/configs/claude.json',
+          id: "claude_code",
+          name: "Claude Code",
+          status: "not_connected",
+          configPath: "/configs/claude.json",
           hasBackup: false,
           connectedProtocol: null,
         },
@@ -203,25 +203,25 @@ describe('GatewayTemplates', () => {
 
     renderWithApp();
 
-    const protocolSelect = await screen.findByTestId('gateway-protocol-select');
-    expect(protocolSelect).toHaveClass('ant-select-disabled');
-    expect(within(protocolSelect).getByText('gateway.cliProtocolHttp')).toBeInTheDocument();
+    const protocolSelect = await screen.findByTestId("gateway-protocol-select");
+    expect(protocolSelect).toHaveClass("ant-select-disabled");
+    expect(within(protocolSelect).getByText("gateway.cliProtocolHttp")).toBeInTheDocument();
 
-    const claudeCard = getToolCard('Claude Code');
-    const quickConnectButton = within(claudeCard).getByRole('button', { name: 'gateway.quickConnect' });
+    const claudeCard = getToolCard("Claude Code");
+    const quickConnectButton = within(claudeCard).getByRole("button", { name: "gateway.quickConnect" });
     await waitFor(() => expect(quickConnectButton).toBeEnabled());
     await userEvent.click(quickConnectButton);
 
     await waitFor(() => {
-      expect(connectCliTool).toHaveBeenCalledWith('claude_code', 'key-1', 'http');
+      expect(connectCliTool).toHaveBeenCalledWith("claude_code", "key-1", "http");
     });
   });
 
-  it('treats force ssl as https-only and offers reconnect when a tool is connected over http', async () => {
+  it("treats force ssl as https-only and offers reconnect when a tool is connected over http", async () => {
     storeState = buildStoreState({
       status: {
         is_running: true,
-        listen_address: '127.1.0.0',
+        listen_address: "127.1.0.0",
         port: 8000,
         ssl_enabled: true,
         started_at: null,
@@ -232,29 +232,29 @@ describe('GatewayTemplates', () => {
 
     renderWithApp();
 
-    const protocolSelect = await screen.findByTestId('gateway-protocol-select');
-    expect(protocolSelect).toHaveClass('ant-select-disabled');
-    expect(within(protocolSelect).getByText('gateway.cliProtocolHttps')).toBeInTheDocument();
+    const protocolSelect = await screen.findByTestId("gateway-protocol-select");
+    expect(protocolSelect).toHaveClass("ant-select-disabled");
+    expect(within(protocolSelect).getByText("gateway.cliProtocolHttps")).toBeInTheDocument();
 
-    const codexCard = getToolCard('Codex');
-    expect(within(codexCard).getByText('gateway.cliConnectedHttp')).toBeInTheDocument();
-    const reconnectButton = within(codexCard).getByRole('button', { name: 'gateway.cliSwitchProtocolReconnect' });
+    const codexCard = getToolCard("Codex");
+    expect(within(codexCard).getByText("gateway.cliConnectedHttp")).toBeInTheDocument();
+    const reconnectButton = within(codexCard).getByRole("button", { name: "gateway.cliSwitchProtocolReconnect" });
     await waitFor(() => expect(reconnectButton).toBeEnabled());
     await userEvent.click(reconnectButton);
 
     await waitFor(() => {
-      expect(connectCliTool).toHaveBeenCalledWith('codex', 'key-1', 'https');
+      expect(connectCliTool).toHaveBeenCalledWith("codex", "key-1", "https");
     });
   });
 
-  it('treats connected tools without a reported protocol as not connected in the UI', async () => {
+  it("treats connected tools without a reported protocol as not connected in the UI", async () => {
     storeState = buildStoreState({
       cliTools: [
         {
-          id: 'codex',
-          name: 'Codex',
-          status: 'connected',
-          configPath: '/configs/codex.json',
+          id: "codex",
+          name: "Codex",
+          status: "connected",
+          configPath: "/configs/codex.json",
           hasBackup: true,
           connectedProtocol: null,
         },
@@ -263,18 +263,18 @@ describe('GatewayTemplates', () => {
 
     renderWithApp();
 
-    const codexCard = getToolCard('Codex');
-    expect(within(codexCard).getByText('gateway.cliNotConnected')).toBeInTheDocument();
-    expect(within(codexCard).queryByText('gateway.cliConnected')).not.toBeInTheDocument();
-    expect(within(codexCard).getByRole('button', { name: 'gateway.quickConnect' })).toBeInTheDocument();
-    expect(within(codexCard).queryByRole('button', { name: 'gateway.cliDisconnect' })).not.toBeInTheDocument();
+    const codexCard = getToolCard("Codex");
+    expect(within(codexCard).getByText("gateway.cliNotConnected")).toBeInTheDocument();
+    expect(within(codexCard).queryByText("gateway.cliConnected")).not.toBeInTheDocument();
+    expect(within(codexCard).getByRole("button", { name: "gateway.quickConnect" })).toBeInTheDocument();
+    expect(within(codexCard).queryByRole("button", { name: "gateway.cliDisconnect" })).not.toBeInTheDocument();
   });
 
-  it('shows a warning and disables quick connect actions while the gateway is stopped', async () => {
+  it("shows a warning and disables quick connect actions while the gateway is stopped", async () => {
     storeState = buildStoreState({
       status: {
         is_running: false,
-        listen_address: '127.1.0.0',
+        listen_address: "127.1.0.0",
         port: 8000,
         ssl_enabled: true,
         started_at: null,
@@ -285,22 +285,22 @@ describe('GatewayTemplates', () => {
 
     renderWithApp();
 
-    expect(screen.getByText('gateway.cliStartGatewayFirst')).toBeInTheDocument();
+    expect(screen.getByText("gateway.cliStartGatewayFirst")).toBeInTheDocument();
 
-    const claudeCard = getToolCard('Claude Code');
+    const claudeCard = getToolCard("Claude Code");
     await waitFor(() => {
-      expect(within(claudeCard).getByRole('button', { name: 'gateway.quickConnect' })).toBeDisabled();
+      expect(within(claudeCard).getByRole("button", { name: "gateway.quickConnect" })).toBeDisabled();
     });
 
-    await selectProtocol('gateway.cliProtocolHttps');
+    await selectProtocol("gateway.cliProtocolHttps");
 
-    const codexCard = getToolCard('Codex');
+    const codexCard = getToolCard("Codex");
     await waitFor(() => {
-      expect(within(codexCard).getByRole('button', { name: 'gateway.cliSwitchProtocolReconnect' })).toBeDisabled();
+      expect(within(codexCard).getByRole("button", { name: "gateway.cliSwitchProtocolReconnect" })).toBeDisabled();
     });
 
-    const protocolSelect = screen.getByTestId('gateway-protocol-select');
-    expect(protocolSelect).not.toHaveClass('ant-select-disabled');
-    expect(screen.getByText('Primary Gateway Key (aqb_123)')).toBeInTheDocument();
+    const protocolSelect = screen.getByTestId("gateway-protocol-select");
+    expect(protocolSelect).not.toHaveClass("ant-select-disabled");
+    expect(screen.getByText("Primary Gateway Key (aqb_123)")).toBeInTheDocument();
   });
 });

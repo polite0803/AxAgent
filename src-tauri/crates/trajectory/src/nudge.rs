@@ -338,11 +338,7 @@ impl NudgeService {
         false
     }
 
-    pub fn take_nudge_action(
-        &mut self,
-        nudge_id: &str,
-        action: NudgeAction,
-    ) -> bool {
+    pub fn take_nudge_action(&mut self, nudge_id: &str, action: NudgeAction) -> bool {
         let dismiss_time = if action == NudgeAction::Dismissed {
             Some(chrono::Utc::now().timestamp_millis())
         } else {

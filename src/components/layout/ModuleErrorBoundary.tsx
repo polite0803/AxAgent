@@ -1,6 +1,6 @@
-import React from 'react';
-import { Button, Typography, theme, Tooltip } from 'antd';
-import { ReloadOutlined, WarningOutlined } from '@ant-design/icons';
+import { ReloadOutlined, WarningOutlined } from "@ant-design/icons";
+import { Button, theme, Tooltip, Typography } from "antd";
+import React from "react";
 
 const { Text } = Typography;
 
@@ -56,7 +56,9 @@ class ModuleErrorBoundary extends React.Component<
         return fallback;
       }
 
-      return <DefaultModuleFallback moduleName={moduleName} error={showDetails ? error : null} onRetry={this.handleRetry} />;
+      return (
+        <DefaultModuleFallback moduleName={moduleName} error={showDetails ? error : null} onRetry={this.handleRetry} />
+      );
     }
 
     return children;
@@ -75,11 +77,11 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
   return (
     <div
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
         backgroundColor: token.colorBgContainer,
         border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: token.borderRadius,
@@ -87,7 +89,7 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
       }}
     >
       <WarningOutlined style={{ fontSize: 24, color: token.colorWarning, marginBottom: 8 }} />
-      <Text type="secondary" style={{ marginBottom: 12, textAlign: 'center' }}>
+      <Text type="secondary" style={{ marginBottom: 12, textAlign: "center" }}>
         {moduleName} encountered an error
       </Text>
       {error && (
@@ -97,8 +99,8 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
             fontSize: 12,
             marginBottom: 12,
             maxWidth: 300,
-            textAlign: 'center',
-            wordBreak: 'break-word',
+            textAlign: "center",
+            wordBreak: "break-word",
           }}
         >
           {error.message}

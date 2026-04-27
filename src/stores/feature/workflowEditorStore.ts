@@ -1,20 +1,38 @@
-import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
-import { invoke } from '@/lib/invoke';
 import type {
-  WorkflowNode,
-  WorkflowEdge,
-  WorkflowTemplateResponse,
-  WorkflowTemplateInput,
-  TemplateFilter,
-  ValidationResult,
-  Variable,
-  TriggerConfig,
-  JsonSchema,
   ErrorConfig,
+  JsonSchema,
   SemanticCheckResult,
   SkillReplacementAction,
-} from '@/components/workflow/types';
+  TemplateFilter,
+  TriggerConfig,
+  ValidationResult,
+  Variable,
+  WorkflowEdge,
+  WorkflowNode,
+  WorkflowTemplateInput,
+  WorkflowTemplateResponse,
+} from "@/components/workflow/types";
+import { invoke } from "@/lib/invoke";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+export interface SimilarWorkflow {
+  workflow_id: string;
+  name: string;
+  skill_ids: string[];
+  similarity: number;
+}
+
+export interface SaveSkillWorkflowResponse {
+  needs_review: boolean;
+  workflow_id: string | null;
+  similar_workflows: SimilarWorkflow[];
+}
+
+interface PendingWorkflowData {
+  workflowName: string;
+  workflowDescription?: string;
+}
 
 interface WorkflowEditorState {
   currentTemplate: WorkflowTemplateResponse | null;
@@ -27,6 +45,12 @@ interface WorkflowEditorState {
   validationResult: ValidationResult | null;
   filter: TemplateFilter;
   error: string | null;
+  past: Array<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }>;
+  future: Array<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }>;
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
   importedWorkflowData: {
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
@@ -47,6 +71,8 @@ interface WorkflowEditorState {
     version?: string;
     content: string;
   } | null;
+  similarWorkflowsForReview: SimilarWorkflow[];
+  pendingWorkflowData: PendingWorkflowData | null;
 
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
@@ -107,7 +133,21 @@ interface WorkflowEditorState {
     };
   }) => void;
   clearImportedWorkflowData: () => void;
-  saveDecompositionWorkflow: (workflowName: string, workflowDescription?: string) => Promise<{ workflow_id: string; saved_skills: number }>;
+  saveDecompositionWorkflow: (
+    workflowName: string,
+    workflowDescription?: string,
+  ) => Promise<{ workflow_id: string; saved_skills: number }>;
+  saveSkillWorkflowFromLlm: (
+    workflowName: string,
+    workflowDescription?: string,
+  ) => Promise<SaveSkillWorkflowResponse>;
+  forceSaveSkillWorkflow: (
+    targetWorkflowId: string,
+    workflowName: string,
+    workflowDescription?: string,
+  ) => Promise<string>;
+  setSimilarWorkflowsForReview: (workflows: SimilarWorkflow[], pendingData: PendingWorkflowData) => void;
+  clearSimilarWorkflowsForReview: () => void;
 
   generateWorkflowFromPrompt: (prompt: string) => Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] } | null>;
   optimizeAgentPrompt: (prompt: string) => Promise<string | null>;
@@ -117,20 +157,29 @@ interface WorkflowEditorState {
   pendingReplacements: Map<string, { existingSkillId: string; action: SkillReplacementAction }>;
   checkSkillSemanticMatches: (nodes: WorkflowNode[]) => Promise<SemanticCheckResult | null>;
   applySkillReplacement: (nodeId: string, existingSkillId: string, action: SkillReplacementAction) => void;
-  applySemanticAction: (nodeId: string, action: 'replace' | 'keep' | 'upgrade_existing') => void;
+  applySemanticAction: (nodeId: string, action: "replace" | "keep" | "upgrade_existing") => void;
   clearSemanticCheckResult: () => void;
+
+  loadConversationWorkflowPreview: (conversationId: string) => Promise<void>;
 }
 
-const createEmptyTemplate = (): Omit<WorkflowTemplateResponse, 'id' | 'created_at' | 'updated_at'> => ({
-  name: '未命名工作流',
-  description: '',
-  icon: 'Bot',
+interface ConversationWorkflowPreviewResponse {
+  nodes: unknown[];
+  edges: unknown[];
+  skill_execution_order: string[];
+  skill_count: number;
+}
+
+const createEmptyTemplate = (): Omit<WorkflowTemplateResponse, "id" | "created_at" | "updated_at"> => ({
+  name: "未命名工作流",
+  description: "",
+  icon: "Bot",
   tags: [],
   version: 1,
   is_preset: false,
   is_editable: true,
   is_public: false,
-  trigger_config: { type: 'manual', config: {} },
+  trigger_config: { type: "manual", config: {} },
   nodes: [],
   edges: [],
   input_schema: undefined,
@@ -154,8 +203,43 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     importedWorkflowData: null,
     isDecompositionTemplate: false,
     pendingDecompositionSource: null,
+    similarWorkflowsForReview: [],
+    pendingWorkflowData: null,
     nodes: [],
     edges: [],
+    past: [],
+    future: [],
+
+    undo: () => {
+      const { past } = get();
+      if (past.length === 0) return;
+
+      const previous = past[past.length - 1];
+      set((state) => {
+        state.future.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.nodes = previous.nodes;
+        state.edges = previous.edges;
+        state.past = state.past.slice(0, -1);
+        state.isDirty = true;
+      });
+    },
+
+    redo: () => {
+      const { future } = get();
+      if (future.length === 0) return;
+
+      const next = future[future.length - 1];
+      set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.nodes = next.nodes;
+        state.edges = next.edges;
+        state.future = state.future.slice(0, -1);
+        state.isDirty = true;
+      });
+    },
+
+    canUndo: () => get().past.length > 0,
+    canRedo: () => get().future.length > 0,
 
     loadTemplates: async () => {
       set((state) => {
@@ -166,7 +250,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const filter = get().filter;
         const is_preset = filter.is_preset;
         const params = is_preset !== undefined ? { is_preset } : {};
-        const templates = await invoke<WorkflowTemplateResponse[]>('list_workflow_templates', params);
+        const templates = await invoke<WorkflowTemplateResponse[]>("list_workflow_templates", params);
         set((state) => {
           state.templates = Array.isArray(templates) ? templates : [];
           state.isLoading = false;
@@ -185,13 +269,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const template = await invoke<WorkflowTemplateResponse>('get_workflow_template', { id });
+        const template = await invoke<WorkflowTemplateResponse>("get_workflow_template", { id });
         set((state) => {
           state.currentTemplate = template;
           state.nodes = template.nodes;
           state.edges = template.edges;
           state.isLoading = false;
           state.isDirty = false;
+          state.past = [];
+          state.future = [];
         });
       } catch (error) {
         set((state) => {
@@ -207,7 +293,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const id = await invoke<string>('create_workflow_template', { input });
+        const id = await invoke<string>("create_workflow_template", { input });
         await get().loadTemplates();
         set((state) => {
           state.isSaving = false;
@@ -228,7 +314,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        await invoke<boolean>('update_workflow_template', { id, input });
+        await invoke<boolean>("update_workflow_template", { id, input });
         await get().loadTemplates();
         await get().loadTemplate(id);
         set((state) => {
@@ -251,7 +337,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        await invoke<void>('delete_workflow_template', { id });
+        await invoke<void>("delete_workflow_template", { id });
         set((state) => {
           if (state.currentTemplate?.id === id) {
             state.currentTemplate = null;
@@ -277,7 +363,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const newId = await invoke<string>('duplicate_workflow_template', { id });
+        const newId = await invoke<string>("duplicate_workflow_template", { id });
         await get().loadTemplates();
         set((state) => {
           state.isSaving = false;
@@ -293,8 +379,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     validateTemplate: async () => {
-      const { currentTemplate } = get();
-      if (!currentTemplate) return null;
+      const { currentTemplate, nodes, edges } = get();
+      if (!currentTemplate) { return null; }
 
       const input: WorkflowTemplateInput = {
         name: currentTemplate.name,
@@ -302,8 +388,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         icon: currentTemplate.icon,
         tags: currentTemplate.tags,
         trigger_config: currentTemplate.trigger_config,
-        nodes: currentTemplate.nodes,
-        edges: currentTemplate.edges,
+        nodes,
+        edges,
         input_schema: currentTemplate.input_schema,
         output_schema: currentTemplate.output_schema,
         variables: currentTemplate.variables,
@@ -311,7 +397,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       };
 
       try {
-        const result = await invoke<ValidationResult>('validate_workflow_template', { input });
+        const result = await invoke<ValidationResult>("validate_workflow_template", { input });
         set((state) => {
           state.validationResult = result;
         });
@@ -326,7 +412,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     exportTemplate: async (id: string) => {
       try {
-        const json = await invoke<string>('export_workflow_template', { id });
+        const json = await invoke<string>("export_workflow_template", { id });
         return json;
       } catch (error) {
         set((state) => {
@@ -342,7 +428,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const id = await invoke<string>('import_workflow_template', { jsonData });
+        const id = await invoke<string>("import_workflow_template", { jsonData });
         await get().loadTemplates();
         set((state) => {
           state.isSaving = false;
@@ -359,7 +445,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     loadTemplateVersions: async (id: string) => {
       try {
-        const versions = await invoke<number[]>('get_template_versions', { id });
+        const versions = await invoke<number[]>("get_template_versions", { id });
         return versions;
       } catch (error) {
         set((state) => {
@@ -375,7 +461,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const template = await invoke<WorkflowTemplateResponse | null>('get_template_by_version', { id, version });
+        const template = await invoke<WorkflowTemplateResponse | null>("get_template_by_version", { id, version });
         if (template) {
           set((state) => {
             state.currentTemplate = template;
@@ -386,7 +472,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           });
         } else {
           set((state) => {
-            state.error = 'Version not found';
+            state.error = "Version not found";
             state.isLoading = false;
           });
         }
@@ -420,6 +506,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     addNode: (node: WorkflowNode) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         state.nodes.push(node);
         state.isDirty = true;
       });
@@ -427,6 +518,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     updateNode: (nodeId: string, updates: Partial<WorkflowNode>) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         const index = state.nodes.findIndex((n) => n.id === nodeId);
         if (index !== -1) {
           state.nodes[index] = { ...state.nodes[index], ...updates } as WorkflowNode;
@@ -437,6 +533,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     deleteNode: (nodeId: string) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         state.nodes = state.nodes.filter((n) => n.id !== nodeId);
         state.edges = state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId);
         if (state.selectedNodeId === nodeId) {
@@ -448,6 +549,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     addEdge: (edge: WorkflowEdge) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         state.edges.push(edge);
         state.isDirty = true;
       });
@@ -455,6 +561,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     updateEdge: (edgeId: string, updates: Partial<WorkflowEdge>) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         const index = state.edges.findIndex((e) => e.id === edgeId);
         if (index !== -1) {
           state.edges[index] = { ...state.edges[index], ...updates };
@@ -465,6 +576,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     deleteEdge: (edgeId: string) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         state.edges = state.edges.filter((e) => e.id !== edgeId);
         if (state.selectedEdgeId === edgeId) {
           state.selectedEdgeId = null;
@@ -475,6 +591,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     setNodes: (nodes: WorkflowNode[]) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         state.nodes = nodes;
         state.isDirty = true;
       });
@@ -482,6 +603,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     setEdges: (edges: WorkflowEdge[]) => {
       set((state) => {
+        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         state.edges = edges;
         state.isDirty = true;
       });
@@ -490,15 +616,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     updateTemplateMetadata: (metadata) => {
       set((state) => {
         if (state.currentTemplate) {
-          if (metadata.name !== undefined) state.currentTemplate.name = metadata.name;
-          if (metadata.description !== undefined) state.currentTemplate.description = metadata.description;
-          if (metadata.icon !== undefined) state.currentTemplate.icon = metadata.icon;
-          if (metadata.tags !== undefined) state.currentTemplate.tags = metadata.tags;
-          if (metadata.triggerConfig !== undefined) state.currentTemplate.trigger_config = metadata.triggerConfig;
-          if (metadata.inputSchema !== undefined) state.currentTemplate.input_schema = metadata.inputSchema;
-          if (metadata.outputSchema !== undefined) state.currentTemplate.output_schema = metadata.outputSchema;
-          if (metadata.variables !== undefined) state.currentTemplate.variables = metadata.variables;
-          if (metadata.errorConfig !== undefined) state.currentTemplate.error_config = metadata.errorConfig;
+          if (metadata.name !== undefined) { state.currentTemplate.name = metadata.name; }
+          if (metadata.description !== undefined) { state.currentTemplate.description = metadata.description; }
+          if (metadata.icon !== undefined) { state.currentTemplate.icon = metadata.icon; }
+          if (metadata.tags !== undefined) { state.currentTemplate.tags = metadata.tags; }
+          if (metadata.triggerConfig !== undefined) { state.currentTemplate.trigger_config = metadata.triggerConfig; }
+          if (metadata.inputSchema !== undefined) { state.currentTemplate.input_schema = metadata.inputSchema; }
+          if (metadata.outputSchema !== undefined) { state.currentTemplate.output_schema = metadata.outputSchema; }
+          if (metadata.variables !== undefined) { state.currentTemplate.variables = metadata.variables; }
+          if (metadata.errorConfig !== undefined) { state.currentTemplate.error_config = metadata.errorConfig; }
           state.isDirty = true;
         }
       });
@@ -512,7 +638,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           ...empty,
           ...(importedData?.name && { name: importedData.name }),
           ...(importedData?.description && { description: importedData.description }),
-          id: '',
+          id: "",
           created_at: Date.now(),
           updated_at: Date.now(),
         } as WorkflowTemplateResponse;
@@ -524,6 +650,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.selectedNodeId = null;
         state.selectedEdgeId = null;
         state.importedWorkflowData = null;
+        state.past = [];
+        state.future = [];
       });
     },
 
@@ -547,7 +675,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     saveDecompositionWorkflow: async (workflowName: string, workflowDescription?: string) => {
       const { isDecompositionTemplate, pendingDecompositionSource } = get();
       if (!isDecompositionTemplate || !pendingDecompositionSource) {
-        throw new Error('Not a decomposition workflow or missing source data');
+        throw new Error("Not a decomposition workflow or missing source data");
       }
 
       set((state) => {
@@ -556,11 +684,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
 
       try {
-        const result = await invoke<{ workflow_id: string; saved_skills: number }>('confirm_decomposition', {
+        const result = await invoke<{ workflow_id: string; saved_skills: number }>("confirm_decomposition", {
           request: {
             preview: {
               name: pendingDecompositionSource.market,
-              description: workflowDescription || '',
+              description: workflowDescription || "",
               content: pendingDecompositionSource.content,
               source: pendingDecompositionSource.market,
               version: pendingDecompositionSource.version,
@@ -589,6 +717,116 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       }
     },
 
+    saveSkillWorkflowFromLlm: async (workflowName: string, workflowDescription?: string) => {
+      const { isDecompositionTemplate, pendingDecompositionSource, nodes, edges } = get();
+      if (!isDecompositionTemplate || !pendingDecompositionSource) {
+        throw new Error("Not a decomposition workflow or missing source data");
+      }
+
+      set((state) => {
+        state.isSaving = true;
+        state.error = null;
+      });
+
+      try {
+        const response = await invoke<SaveSkillWorkflowResponse>("save_skill_workflow_from_llm", {
+          request: {
+            skill_id: pendingDecompositionSource.market,
+            skill_name: pendingDecompositionSource.repo || pendingDecompositionSource.market,
+            workflow_name: workflowName,
+            description: workflowDescription,
+            nodes,
+            edges,
+          },
+        });
+
+        set((state) => {
+          state.isSaving = false;
+        });
+
+        if (response.needs_review) {
+          set((state) => {
+            state.similarWorkflowsForReview = response.similar_workflows;
+            state.pendingWorkflowData = { workflowName, workflowDescription };
+          });
+          return response;
+        }
+
+        set((state) => {
+          state.isDirty = false;
+          state.isDecompositionTemplate = false;
+          state.pendingDecompositionSource = null;
+        });
+
+        await get().loadTemplates();
+        return response;
+      } catch (error) {
+        set((state) => {
+          state.error = String(error);
+          state.isSaving = false;
+        });
+        throw error;
+      }
+    },
+
+    forceSaveSkillWorkflow: async (targetWorkflowId: string, workflowName: string, workflowDescription?: string) => {
+      const { isDecompositionTemplate, pendingDecompositionSource, nodes, edges } = get();
+      if (!isDecompositionTemplate || !pendingDecompositionSource) {
+        throw new Error("Not a decomposition workflow or missing source data");
+      }
+
+      set((state) => {
+        state.isSaving = true;
+        state.error = null;
+      });
+
+      try {
+        const workflowId = await invoke<string>("force_save_skill_workflow", {
+          request: {
+            skill_id: pendingDecompositionSource.market,
+            skill_name: pendingDecompositionSource.repo || pendingDecompositionSource.market,
+            workflow_name: workflowName,
+            description: workflowDescription,
+            nodes,
+            edges,
+            target_workflow_id: targetWorkflowId,
+          },
+        });
+
+        set((state) => {
+          state.isSaving = false;
+          state.isDirty = false;
+          state.isDecompositionTemplate = false;
+          state.pendingDecompositionSource = null;
+          state.similarWorkflowsForReview = [];
+          state.pendingWorkflowData = null;
+        });
+
+        await get().loadTemplates();
+        return workflowId;
+      } catch (error) {
+        set((state) => {
+          state.error = String(error);
+          state.isSaving = false;
+        });
+        throw error;
+      }
+    },
+
+    setSimilarWorkflowsForReview: (workflows, pendingData) => {
+      set((state) => {
+        state.similarWorkflowsForReview = workflows;
+        state.pendingWorkflowData = pendingData;
+      });
+    },
+
+    clearSimilarWorkflowsForReview: () => {
+      set((state) => {
+        state.similarWorkflowsForReview = [];
+        state.pendingWorkflowData = null;
+      });
+    },
+
     markClean: () => {
       set((state) => {
         state.isDirty = false;
@@ -608,8 +846,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
       try {
         const result = await invoke<{ nodes: WorkflowNode[]; edges: WorkflowEdge[]; explanation?: string }>(
-          'generate_workflow_from_prompt',
-          { prompt }
+          "generate_workflow_from_prompt",
+          { prompt },
         );
         if (result) {
           set((state) => {
@@ -635,7 +873,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const result = await invoke<string>('optimize_agent_prompt', { prompt });
+        const result = await invoke<string>("optimize_agent_prompt", { prompt });
         set((state) => {
           state.isLoading = false;
         });
@@ -655,9 +893,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const result = await invoke<Array<{ node_type: string; label: string; description: string; confidence: number }>>(
-          'recommend_nodes',
-          { context }
+        const result = await invoke<
+          Array<{ node_type: string; label: string; description: string; confidence: number }>
+        >(
+          "recommend_nodes",
+          { context },
         );
         set((state) => {
           state.isLoading = false;
@@ -677,24 +917,29 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     checkSkillSemanticMatches: async (nodes: WorkflowNode[]) => {
       const atomicSkillNodes = nodes
-        .filter((n) => n.type === 'atomicSkill' && (n as any).config?.skill_name)
-        .map((n) => n as WorkflowNode & { type: 'atomicSkill'; config: { skill_name?: string; entry_type?: string; entry_ref?: string; category?: string } });
+        .filter((n) => n.type === "atomicSkill" && (n as any).config?.skill_name)
+        .map((n) =>
+          n as WorkflowNode & {
+            type: "atomicSkill";
+            config: { skill_name?: string; entry_type?: string; entry_ref?: string; category?: string };
+          }
+        );
 
       if (atomicSkillNodes.length === 0) {
         return null;
       }
 
       const skillsToCheck = atomicSkillNodes.map((node) => ({
-        name: node.config.skill_name || '',
-        description: node.title || '',
-        entry_type: node.config.entry_type || 'local',
-        entry_ref: node.config.entry_ref || '',
-        category: node.config.category || 'other',
+        name: node.config.skill_name || "",
+        description: node.title || "",
+        entry_type: node.config.entry_type || "local",
+        entry_ref: node.config.entry_ref || "",
+        category: node.config.category || "other",
         node_id: node.id,
       }));
 
       try {
-        const result = await invoke<SemanticCheckResult>('check_skill_semantic_matches', {
+        const result = await invoke<SemanticCheckResult>("check_skill_semantic_matches", {
           request: { skills: skillsToCheck },
           minSimilarity: 0.5,
         });
@@ -705,20 +950,20 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
         return result;
       } catch (error) {
-        console.error('Failed to check semantic matches:', error);
+        console.error("Failed to check semantic matches:", error);
         return null;
       }
     },
 
     applySkillReplacement: (nodeId: string, existingSkillId: string, action: SkillReplacementAction) => {
       const { semanticCheckResult } = get();
-      if (!semanticCheckResult) return;
+      if (!semanticCheckResult) { return; }
 
       const match = semanticCheckResult.matches.find((m) => m.node_id === nodeId);
-      if (!match) return;
+      if (!match) { return; }
 
       const replacement = match.matches.find((m) => m.existing_skill.id === existingSkillId);
-      if (!replacement) return;
+      if (!replacement) { return; }
 
       set((state) => {
         state.pendingReplacements.set(nodeId, {
@@ -726,7 +971,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           action,
         });
 
-        if (action === 'replace' || action === 'upgrade_existing') {
+        if (action === "replace" || action === "upgrade_existing") {
           const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
           if (nodeIndex !== -1) {
             const node = state.nodes[nodeIndex] as any;
@@ -737,12 +982,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
     },
 
-    applySemanticAction: (nodeId: string, action: 'replace' | 'keep' | 'upgrade_existing') => {
+    applySemanticAction: (nodeId: string, action: "replace" | "keep" | "upgrade_existing") => {
       const { semanticCheckResult } = get();
-      if (!semanticCheckResult) return;
+      if (!semanticCheckResult) { return; }
 
       const match = semanticCheckResult.matches.find((m) => m.node_id === nodeId);
-      if (!match || !match.matches || match.matches.length === 0) return;
+      if (!match || !match.matches || match.matches.length === 0) { return; }
 
       const bestMatch = match.matches[0];
 
@@ -752,7 +997,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           action,
         });
 
-        if (action === 'replace' || action === 'upgrade_existing') {
+        if (action === "replace" || action === "upgrade_existing") {
           const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
           if (nodeIndex !== -1) {
             const node = state.nodes[nodeIndex] as any;
@@ -766,7 +1011,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           }
         }
 
-        if (action === 'keep') {
+        if (action === "keep") {
           const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
           if (nodeIndex !== -1) {
             const node = state.nodes[nodeIndex] as any;
@@ -789,5 +1034,39 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.pendingReplacements = new Map();
       });
     },
-  }))
+
+    loadConversationWorkflowPreview: async (conversationId: string) => {
+      try {
+        const response = await invoke<ConversationWorkflowPreviewResponse>(
+          "get_conversation_workflow_preview",
+          { conversation_id: conversationId },
+        );
+
+        if (response.skill_count === 0) {
+          throw new Error("No skill executions found in this conversation");
+        }
+
+        set((state) => {
+          state.importedWorkflowData = {
+            nodes: response.nodes as WorkflowNode[],
+            edges: response.edges as WorkflowEdge[],
+            name: `Workflow from Conversation`,
+            description: `Converted from conversation with ${response.skill_count} skill(s)`,
+            isDecompositionWorkflow: true,
+            decompositionSource: {
+              market: conversationId,
+              repo: response.skill_execution_order.join(", "),
+              content: "",
+            },
+          };
+          state.isDecompositionTemplate = true;
+        });
+      } catch (error) {
+        set((state) => {
+          state.error = String(error);
+        });
+        throw error;
+      }
+    },
+  })),
 );

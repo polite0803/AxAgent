@@ -1,29 +1,58 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { Tag, Modal, Input, theme, Tooltip, Button, Checkbox } from 'antd';
-import { Search, Settings, Pin, PinOff, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Eye, Wrench, Lightbulb, Mic, MessageSquare, Check, GitCompareArrows } from 'lucide-react';
-import { ModelIcon } from '@lobehub/icons';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useProviderStore, useConversationStore, useSettingsStore, useUIStore } from '@/stores';
-import { SmartProviderIcon } from '@/lib/providerIcons';
-import { getShortcutBinding, formatShortcutForDisplay } from '@/lib/shortcuts';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { getVisibleModelCapabilities } from '@/lib/modelCapabilities';
-import type { ModelCapability, Model } from '@/types';
+import { getVisibleModelCapabilities } from "@/lib/modelCapabilities";
+import { SmartProviderIcon } from "@/lib/providerIcons";
+import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
+import { useConversationStore, useProviderStore, useSettingsStore, useUIStore } from "@/stores";
+import type { Model, ModelCapability } from "@/types";
+import { ModelIcon } from "@lobehub/icons";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { Button, Checkbox, Input, Modal, Tag, theme, Tooltip } from "antd";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Eye,
+  GitCompareArrows,
+  Lightbulb,
+  MessageSquare,
+  Mic,
+  Pin,
+  PinOff,
+  Search,
+  Settings,
+  Wrench,
+} from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
-const PINNED_MODELS_KEY = 'axagent_pinned_models';
+const PINNED_MODELS_KEY = "axagent_pinned_models";
 
 const CAPABILITY_COLORS: Record<ModelCapability, string> = {
-  TextChat: 'blue', Vision: 'green', FunctionCalling: 'purple', Reasoning: 'orange', RealtimeVoice: 'red',
+  TextChat: "blue",
+  Vision: "green",
+  FunctionCalling: "purple",
+  Reasoning: "orange",
+  RealtimeVoice: "red",
 };
 const CAPABILITY_ICONS: Record<ModelCapability, React.ReactNode> = {
-  TextChat: <MessageSquare size={11} />, Vision: <Eye size={11} />, FunctionCalling: <Wrench size={11} />,
-  Reasoning: <Lightbulb size={11} />, RealtimeVoice: <Mic size={11} />,
+  TextChat: <MessageSquare size={11} />,
+  Vision: <Eye size={11} />,
+  FunctionCalling: <Wrench size={11} />,
+  Reasoning: <Lightbulb size={11} />,
+  RealtimeVoice: <Mic size={11} />,
 };
 
 function formatTokenCount(tokens: number): string {
-  if (tokens >= 1000000) { const m = tokens / 1000000; return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`; }
-  if (tokens >= 1000) { const k = tokens / 1000; return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`; }
+  if (tokens >= 1000000) {
+    const m = tokens / 1000000;
+    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
+  }
+  if (tokens >= 1000) {
+    const k = tokens / 1000;
+    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
+  }
   return `${tokens}`;
 }
 
@@ -31,7 +60,9 @@ function loadPinnedModels(): string[] {
   try {
     const raw = localStorage.getItem(PINNED_MODELS_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function savePinnedModels(ids: string[]) {
@@ -60,12 +91,24 @@ interface ModelSelectorProps {
   excludeModelKeys?: string[];
 }
 
-export function ModelSelector({ style, onSelect, overrideCurrentModel, children, open: controlledOpen, onOpenChange, multiSelect, onMultiSelect, defaultSelectedModels, excludeModelKeys }: ModelSelectorProps) {
+export function ModelSelector(
+  {
+    style,
+    onSelect,
+    overrideCurrentModel,
+    children,
+    open: controlledOpen,
+    onOpenChange,
+    multiSelect,
+    onMultiSelect,
+    defaultSelectedModels,
+    excludeModelKeys,
+  }: ModelSelectorProps,
+) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { providers } = useProviderStore();
-  const { activeConversationId, conversations, updateConversation } =
-    useConversationStore();
+  const { activeConversationId, conversations, updateConversation } = useConversationStore();
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
 
@@ -73,10 +116,10 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = useCallback((v: boolean) => {
-    if (onOpenChange) onOpenChange(v);
-    if (!isControlled) setInternalOpen(v);
+    if (onOpenChange) { onOpenChange(v); }
+    if (!isControlled) { setInternalOpen(v); }
   }, [isControlled, onOpenChange]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [pinnedModels, setPinnedModels] = useState<string[]>(loadPinnedModels);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
@@ -115,30 +158,36 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
       mid = settings.default_model_id;
     } else {
       for (const p of providers) {
-        if (!p.enabled) continue;
+        if (!p.enabled) { continue; }
         const m = p.models.find((m) => m.enabled);
-        if (m) { pid = p.id; mid = m.model_id; break; }
+        if (m) {
+          pid = p.id;
+          mid = m.model_id;
+          break;
+        }
       }
     }
-    if (!pid || !mid) return null;
+    if (!pid || !mid) { return null; }
     const provider = providers.find((p) => p.id === pid);
     const model = provider?.models.find((m) => m.model_id === mid);
-    return { pid, mid, name: model?.name ?? mid, providerName: provider?.name ?? '' };
+    return { pid, mid, name: model?.name ?? mid, providerName: provider?.name ?? "" };
   }, [activeConversation, settings.default_provider_id, settings.default_model_id, providers]);
 
   const currentValue = overrideCurrentModel
     ? `${overrideCurrentModel.providerId}::${overrideCurrentModel.model_id}`
-    : currentModel ? `${currentModel.pid}::${currentModel.mid}` : undefined;
+    : currentModel
+    ? `${currentModel.pid}::${currentModel.mid}`
+    : undefined;
 
   // All enabled models flat list (for pinned section)
   const allEnabledModels = useMemo(() => {
     const result: { pid: string; mid: string; name: string; providerName: string; model: Model }[] = [];
     for (const p of providers) {
-      if (!p.enabled) continue;
+      if (!p.enabled) { continue; }
       for (const m of p.models) {
-        if (!m.enabled) continue;
+        if (!m.enabled) { continue; }
         const key = `${p.id}::${m.model_id}`;
-        if (excludeModelKeys?.includes(key)) continue;
+        if (excludeModelKeys?.includes(key)) { continue; }
         result.push({ pid: p.id, mid: m.model_id, name: m.name, providerName: p.name, model: m });
       }
     }
@@ -154,7 +203,7 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
         return model ? { ...model, key } : null;
       })
       .filter((item): item is NonNullable<typeof item> =>
-        item !== null && (!q || item.name.toLowerCase().includes(q) || item.mid.toLowerCase().includes(q)),
+        item !== null && (!q || item.name.toLowerCase().includes(q) || item.mid.toLowerCase().includes(q))
       );
   }, [pinnedModels, allEnabledModels, search]);
 
@@ -167,10 +216,11 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
         ...p,
         models: p.models.filter(
           (m) => {
-            if (!m.enabled) return false;
-            if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) return false;
-            if (!q) return true;
-            return m.name.toLowerCase().includes(q) || m.model_id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+            if (!m.enabled) { return false; }
+            if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) { return false; }
+            if (!q) { return true; }
+            return m.name.toLowerCase().includes(q) || m.model_id.toLowerCase().includes(q)
+              || p.name.toLowerCase().includes(q);
           },
         ),
       }))
@@ -183,8 +233,8 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
         const key = `${providerId}::${model_id}`;
         setMultiSelectedKeys((prev) => {
           const next = new Set(prev);
-          if (next.has(key)) next.delete(key);
-          else next.add(key);
+          if (next.has(key)) { next.delete(key); }
+          else { next.add(key); }
           return next;
         });
         return;
@@ -198,7 +248,7 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
             model_id: model_id,
           });
         } catch (e) {
-          if (String(e).includes('Conversation') && String(e).includes('not found')) {
+          if (String(e).includes("Conversation") && String(e).includes("not found")) {
             useConversationStore.getState().setActiveConversation(null);
           } else {
             throw e;
@@ -208,20 +258,20 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
         saveSettings({ default_provider_id: providerId, default_model_id: model_id });
       }
       setOpen(false);
-      setSearch('');
+      setSearch("");
     },
     [activeConversationId, updateConversation, saveSettings, onSelect, setOpen, multiSelect],
   );
 
   const handleMultiConfirm = useCallback(() => {
-    if (!onMultiSelect) return;
+    if (!onMultiSelect) { return; }
     const models = Array.from(multiSelectedKeys).map((key) => {
-      const [providerId, model_id] = key.split('::');
+      const [providerId, model_id] = key.split("::");
       return { providerId, model_id };
     });
     onMultiSelect(models);
     setOpen(false);
-    setSearch('');
+    setSearch("");
   }, [multiSelectedKeys, onMultiSelect, setOpen]);
 
   const togglePin = useCallback((key: string) => {
@@ -235,25 +285,25 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
   useEffect(() => {
     // Only the standalone header ModelSelector responds to the shortcut.
     // Bubble-action instances (onSelect) and multi-select (multiSelect) should not.
-    if (multiSelect || onSelect) return;
+    if (multiSelect || onSelect) { return; }
     const onToggle = () => setOpen(!open);
-    window.addEventListener('axagent:toggle-model-selector', onToggle);
+    window.addEventListener("axagent:toggle-model-selector", onToggle);
     return () => {
-      window.removeEventListener('axagent:toggle-model-selector', onToggle);
+      window.removeEventListener("axagent:toggle-model-selector", onToggle);
     };
   }, [open, setOpen, multiSelect, onSelect]);
 
   // Auto-expand all groups when providers change or modal opens
   const providerIds = useMemo(() => filteredProviders.map((p) => p.id), [filteredProviders]);
   useEffect(() => {
-    if (open) setExpandedGroups(providerIds);
+    if (open) { setExpandedGroups(providerIds); }
   }, [open, providerIds]);
 
   const allGroupsExpanded = expandedGroups.length >= providerIds.length;
 
   const toggleGroupExpand = useCallback((providerId: string) => {
     setExpandedGroups((prev) =>
-      prev.includes(providerId) ? prev.filter((id) => id !== providerId) : [...prev, providerId],
+      prev.includes(providerId) ? prev.filter((id) => id !== providerId) : [...prev, providerId]
     );
   }, []);
 
@@ -264,28 +314,33 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
 
   // Flatten into virtualizable rows
   type ListRow =
-    | { type: 'pinned-header' }
-    | { type: 'pinned-model'; pid: string; mid: string; name: string; providerName: string; key: string; model: Model }
-    | { type: 'pinned-divider' }
-    | { type: 'group'; provider: typeof filteredProviders[number] }
-    | { type: 'model'; providerId: string; model: typeof filteredProviders[number]['models'][number]; providerName: string };
+    | { type: "pinned-header" }
+    | { type: "pinned-model"; pid: string; mid: string; name: string; providerName: string; key: string; model: Model }
+    | { type: "pinned-divider" }
+    | { type: "group"; provider: typeof filteredProviders[number] }
+    | {
+      type: "model";
+      providerId: string;
+      model: typeof filteredProviders[number]["models"][number];
+      providerName: string;
+    };
 
   const hasSearchQuery = search.trim().length > 0;
   const flatRows = useMemo<ListRow[]>(() => {
     const rows: ListRow[] = [];
     if (pinnedItems.length > 0) {
-      rows.push({ type: 'pinned-header' });
+      rows.push({ type: "pinned-header" });
       for (const item of pinnedItems) {
-        rows.push({ type: 'pinned-model', ...item });
+        rows.push({ type: "pinned-model", ...item });
       }
-      rows.push({ type: 'pinned-divider' });
+      rows.push({ type: "pinned-divider" });
     }
     for (const provider of filteredProviders) {
-      rows.push({ type: 'group', provider });
+      rows.push({ type: "group", provider });
       // When searching, always expand all groups to avoid timing issues with expandedGroups state
       if (hasSearchQuery || expandedGroups.includes(provider.id)) {
         for (const model of provider.models) {
-          rows.push({ type: 'model', providerId: provider.id, model, providerName: provider.name });
+          rows.push({ type: "model", providerId: provider.id, model, providerName: provider.name });
         }
       }
     }
@@ -297,19 +352,24 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
     getScrollElement: () => listParentRef.current,
     estimateSize: (index) => {
       const row = flatRows[index];
-      if (row.type === 'pinned-divider') return 12;
-      if (row.type === 'pinned-header') return 32;
-      if (row.type === 'group') return 40;
+      if (row.type === "pinned-divider") { return 12; }
+      if (row.type === "pinned-header") { return 32; }
+      if (row.type === "group") { return 40; }
       return 36;
     },
     getItemKey: (index) => {
       const row = flatRows[index];
       switch (row.type) {
-        case 'pinned-header': return 'ph';
-        case 'pinned-divider': return 'pd';
-        case 'pinned-model': return `pm-${row.key}`;
-        case 'group': return `g-${row.provider.id}`;
-        case 'model': return `m-${row.providerId}::${row.model.model_id}`;
+        case "pinned-header":
+          return "ph";
+        case "pinned-divider":
+          return "pd";
+        case "pinned-model":
+          return `pm-${row.key}`;
+        case "group":
+          return `g-${row.provider.id}`;
+        case "model":
+          return `m-${row.providerId}::${row.model.model_id}`;
       }
     },
     overscan: 10,
@@ -324,10 +384,11 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
 
   // Indices of selectable (model/pinned-model) rows for keyboard navigation
   const selectableIndices = useMemo(
-    () => flatRows.reduce<number[]>((acc, row, i) => {
-      if (row.type === 'model' || row.type === 'pinned-model') acc.push(i);
-      return acc;
-    }, []),
+    () =>
+      flatRows.reduce<number[]>((acc, row, i) => {
+        if (row.type === "model" || row.type === "pinned-model") { acc.push(i); }
+        return acc;
+      }, []),
     [flatRows],
   );
 
@@ -338,25 +399,25 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (selectableIndices.length === 0) return;
+      if (selectableIndices.length === 0) { return; }
       const curPos = selectableIndices.indexOf(activeIndex);
 
-      if (e.key === 'ArrowDown') {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
         const next = curPos < selectableIndices.length - 1 ? selectableIndices[curPos + 1] : selectableIndices[0];
         setActiveIndex(next);
-        virtualizer.scrollToIndex(next, { align: 'auto' });
-      } else if (e.key === 'ArrowUp') {
+        virtualizer.scrollToIndex(next, { align: "auto" });
+      } else if (e.key === "ArrowUp") {
         e.preventDefault();
         const prev = curPos > 0 ? selectableIndices[curPos - 1] : selectableIndices[selectableIndices.length - 1];
         setActiveIndex(prev);
-        virtualizer.scrollToIndex(prev, { align: 'auto' });
-      } else if (e.key === 'Enter') {
+        virtualizer.scrollToIndex(prev, { align: "auto" });
+      } else if (e.key === "Enter") {
         e.preventDefault();
         if (activeIndex >= 0 && activeIndex < flatRows.length) {
           const row = flatRows[activeIndex];
-          if (row.type === 'model') handleSelect(row.providerId, row.model.model_id);
-          else if (row.type === 'pinned-model') handleSelect(row.pid, row.mid);
+          if (row.type === "model") { handleSelect(row.providerId, row.model.model_id); }
+          else if (row.type === "pinned-model") { handleSelect(row.pid, row.mid); }
         }
       }
     },
@@ -383,123 +444,187 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
         style={{
           backgroundColor: isActive ? token.colorPrimaryBg : isHovered ? token.colorFillSecondary : undefined,
           borderRadius: 6,
-          margin: '0 6px',
-          padding: '5px 10px',
-          transition: 'background-color 0.15s',
+          margin: "0 6px",
+          padding: "5px 10px",
+          transition: "background-color 0.15s",
         }}
         onClick={() => handleSelect(providerId, model_id)}
-        onMouseEnter={() => { setHoveredKey(key); setActiveIndex(-1); }}
+        onMouseEnter={() => {
+          setHoveredKey(key);
+          setActiveIndex(-1);
+        }}
         onMouseLeave={() => setHoveredKey(null)}
       >
         {multiSelect && (
           <Checkbox
             checked={isActive}
-            style={{ pointerEvents: 'none' }}
+            style={{ pointerEvents: "none" }}
           />
         )}
         <ModelIcon model={model_id} size={20} type="avatar" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 flex-wrap">
             {showProviderTag && providerName && (
-              <Tag style={{ fontSize: 11, margin: 0, padding: '0 4px', lineHeight: '18px', flexShrink: 0, color: token.colorPrimary, backgroundColor: token.colorPrimaryBg, border: 'none' }}>{providerName}</Tag>
+              <Tag
+                style={{
+                  fontSize: 11,
+                  margin: 0,
+                  padding: "0 4px",
+                  lineHeight: "18px",
+                  flexShrink: 0,
+                  color: token.colorPrimary,
+                  backgroundColor: token.colorPrimaryBg,
+                  border: "none",
+                }}
+              >
+                {providerName}
+              </Tag>
             )}
-            <span style={{ fontSize: 13, color: isActive ? token.colorPrimary : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{modelName}</span>
+            <span
+              style={{
+                fontSize: 13,
+                color: isActive ? token.colorPrimary : undefined,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {modelName}
+            </span>
             {visibleCaps.map((cap) => (
               <Tooltip key={cap} title={t(`settings.capability.${cap}`, cap)}>
-                <Tag color={CAPABILITY_COLORS[cap]} variant="filled" style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+                <Tag
+                  color={CAPABILITY_COLORS[cap]}
+                  variant="filled"
+                  style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+                >
                   {CAPABILITY_ICONS[cap]}
                 </Tag>
               </Tooltip>
             ))}
             {model?.max_tokens != null && model.max_tokens > 0 && (
-              <Tag variant="filled" color="default" style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+              <Tag
+                variant="filled"
+                color="default"
+                style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+              >
                 {formatTokenCount(model.max_tokens)}
               </Tag>
             )}
           </div>
         </div>
         {!multiSelect && (
-          <div className="flex items-center gap-1" style={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center gap-1"
+            style={{ flexShrink: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <span
-              style={{ cursor: 'pointer', color: isPinned ? token.colorPrimary : token.colorTextQuaternary, fontSize: 14 }}
+              style={{
+                cursor: "pointer",
+                color: isPinned ? token.colorPrimary : token.colorTextQuaternary,
+                fontSize: 14,
+              }}
               onClick={() => togglePin(key)}
             >
               {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
             </span>
           </div>
         )}
-        {multiSelect && isActive && (
-          <Check size={14} style={{ color: token.colorPrimary, flexShrink: 0 }} />
-        )}
+        {multiSelect && isActive && <Check size={14} style={{ color: token.colorPrimary, flexShrink: 0 }} />}
       </div>
     );
   };
 
   return (
     <>
-      {children ? (
-        <span onClick={() => setOpen(true)}>{children}</span>
-      ) : (
-        <Tooltip title={`${t('chat.switchModel')} (${formatShortcutForDisplay(getShortcutBinding(settings, 'toggleModelSelector'))})`} placement="bottom">
-        <Tag
-          onClick={() => setOpen(true)}
-          style={{
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '2px 10px',
-            fontSize: 13,
-            borderRadius: 6,
-            ...style,
-          }}
-        >
-          {currentModel && (
-            <>
-              <ModelIcon model={currentModel.mid} size={16} type="avatar" />
-              {currentModel.providerName && (
-                <Tag style={{ fontSize: 11, margin: 0, padding: '0 4px', lineHeight: '16px', color: token.colorPrimary, backgroundColor: token.colorPrimaryBg, border: 'none' }}>{currentModel.providerName}</Tag>
+      {children
+        ? <span onClick={() => setOpen(true)}>{children}</span>
+        : (
+          <Tooltip
+            title={`${t("chat.switchModel")} (${
+              formatShortcutForDisplay(getShortcutBinding(settings, "toggleModelSelector"))
+            })`}
+            placement="bottom"
+          >
+            <Tag
+              onClick={() => setOpen(true)}
+              style={{
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "2px 10px",
+                fontSize: 13,
+                borderRadius: 6,
+                ...style,
+              }}
+            >
+              {currentModel && (
+                <>
+                  <ModelIcon model={currentModel.mid} size={16} type="avatar" />
+                  {currentModel.providerName && (
+                    <Tag
+                      style={{
+                        fontSize: 11,
+                        margin: 0,
+                        padding: "0 4px",
+                        lineHeight: "16px",
+                        color: token.colorPrimary,
+                        backgroundColor: token.colorPrimaryBg,
+                        border: "none",
+                      }}
+                    >
+                      {currentModel.providerName}
+                    </Tag>
+                  )}
+                  <span>{currentModel.name}</span>
+                </>
               )}
-              <span>{currentModel.name}</span>
-            </>
-          )}
-        </Tag>
-        </Tooltip>
-      )}
+            </Tag>
+          </Tooltip>
+        )}
 
       <Modal
         open={open}
-        onCancel={() => { setOpen(false); setSearch(''); }}
+        onCancel={() => {
+          setOpen(false);
+          setSearch("");
+        }}
         mask={{ enabled: true, blur: true }}
-        footer={multiSelect ? (
-          <div className="flex items-center justify-between" style={{ padding: '8px 12px' }}>
-            <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
-              {t('chat.multiModel.selectedCount').replace('{{count}}', String(multiSelectedKeys.size))}
+        footer={multiSelect
+          ? (
+            <div className="flex items-center justify-between" style={{ padding: "8px 12px" }}>
+              <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
+                {t("chat.multiModel.selectedCount").replace("{{count}}", String(multiSelectedKeys.size))}
+              </span>
+              <Button type="primary" size="small" onClick={handleMultiConfirm}>
+                {t("common.confirm")}
+              </Button>
+            </div>
+          )
+          : null}
+        title={multiSelect
+          ? (
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, paddingLeft: 4 }}>
+              <GitCompareArrows size={16} />
+              {t("chat.multiModel.selectTitle")}
             </span>
-            <Button type="primary" size="small" onClick={handleMultiConfirm}>
-              {t('common.confirm')}
-            </Button>
-          </div>
-        ) : null}
-        title={multiSelect ? (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, paddingLeft: 4 }}>
-            <GitCompareArrows size={16} />
-            {t('chat.multiModel.selectTitle')}
-          </span>
-        ) : null}
+          )
+          : null}
         closable={false}
         width={420}
         styles={{
-          body: { padding: 0, maxHeight: '60vh', display: 'flex', flexDirection: 'column' },
+          body: { padding: 0, maxHeight: "60vh", display: "flex", flexDirection: "column" },
         }}
         rootClassName="model-selector-modal"
         style={{ borderRadius: 12 }}
       >
         {/* Search + Expand/Collapse */}
-        <div className="flex items-center gap-2" style={{ padding: '8px 8px 4px' }}>
+        <div className="flex items-center gap-2" style={{ padding: "8px 8px 4px" }}>
           <Input
             prefix={<Search size={14} style={{ color: token.colorTextSecondary }} />}
-            placeholder={t('chat.searchModelOrProvider')}
+            placeholder={t("chat.searchModelOrProvider")}
             variant="borderless"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -511,9 +636,16 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
               backgroundColor: token.colorFillTertiary,
             }}
           />
-          <Tooltip title={allGroupsExpanded ? t('common.collapseAll') : t('common.expandAll')}>
+          <Tooltip title={allGroupsExpanded ? t("common.collapseAll") : t("common.expandAll")}>
             <span
-              style={{ cursor: 'pointer', color: token.colorTextSecondary, flexShrink: 0, display: 'flex', alignItems: 'center', padding: 4 }}
+              style={{
+                cursor: "pointer",
+                color: token.colorTextSecondary,
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                padding: 4,
+              }}
               onClick={toggleAllGroups}
             >
               {allGroupsExpanded ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
@@ -525,13 +657,13 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
         <div
           ref={listParentRef}
           data-os-scrollbar
-          style={{ overflowY: 'auto', flex: 1, padding: '2px 0 4px' }}
+          style={{ overflowY: "auto", flex: 1, padding: "2px 0 4px" }}
         >
-          <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+          <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const row = flatRows[virtualRow.index];
 
-              if (row.type === 'pinned-header') {
+              if (row.type === "pinned-header") {
                 return (
                   <div
                     key={virtualRow.key}
@@ -539,43 +671,63 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
                     ref={virtualizer.measureElement}
                     className="flex items-center px-3 pt-2 pb-0.5"
                     style={{
-                      position: 'absolute', top: 0, left: 0, width: '100%',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
-                      color: token.colorTextSecondary, fontSize: 12, fontWeight: 500,
+                      color: token.colorTextSecondary,
+                      fontSize: 12,
+                      fontWeight: 500,
                     }}
                   >
                     <PinOff size={11} style={{ marginRight: 4 }} />
-                    <span>{t('chat.pinnedModels')}</span>
+                    <span>{t("chat.pinnedModels")}</span>
                   </div>
                 );
               }
 
-              if (row.type === 'pinned-model') {
+              if (row.type === "pinned-model") {
                 return (
                   <div
                     key={virtualRow.key}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
                     style={{
-                      position: 'absolute', top: 0, left: 0, width: '100%',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    {renderModelItem(row.pid, row.mid, row.name, row.providerName, true, true, row.model, virtualRow.index === activeIndex)}
+                    {renderModelItem(
+                      row.pid,
+                      row.mid,
+                      row.name,
+                      row.providerName,
+                      true,
+                      true,
+                      row.model,
+                      virtualRow.index === activeIndex,
+                    )}
                   </div>
                 );
               }
 
-              if (row.type === 'pinned-divider') {
+              if (row.type === "pinned-divider") {
                 return (
                   <div
                     key={virtualRow.key}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
                     style={{
-                      position: 'absolute', top: 0, left: 0, width: '100%',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
-                      padding: '4px 14px',
+                      padding: "4px 14px",
                     }}
                   >
                     <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }} />
@@ -583,7 +735,7 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
                 );
               }
 
-              if (row.type === 'group') {
+              if (row.type === "group") {
                 const isExpanded = hasSearchQuery || expandedGroups.includes(row.provider.id);
                 return (
                   <div
@@ -591,30 +743,35 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
                     style={{
-                      position: 'absolute', top: 0, left: 0, width: '100%',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
-                      padding: '2px 8px',
+                      padding: "2px 8px",
                     }}
                   >
                     <div
                       className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer"
-                      style={{ userSelect: 'none', background: 'var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))' }}
+                      style={{ userSelect: "none", background: "var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))" }}
                       onClick={() => toggleGroupExpand(row.provider.id)}
                     >
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       <SmartProviderIcon provider={row.provider} size={20} type="avatar" />
                       <span style={{ fontWeight: 600, fontSize: 13 }}>{row.provider.name}</span>
-                      <Tag style={{ fontSize: 11, lineHeight: '18px', padding: '0 6px', margin: 0 }}>{row.provider.models.length}</Tag>
+                      <Tag style={{ fontSize: 11, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                        {row.provider.models.length}
+                      </Tag>
                       <div style={{ flex: 1 }} />
                       <Settings
                         size={14}
-                        style={{ cursor: 'pointer', color: token.colorTextQuaternary }}
+                        style={{ cursor: "pointer", color: token.colorTextQuaternary }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpen(false);
-                          setSearch('');
-                          navigate('/settings');
-                          setSettingsSection('providers');
+                          setSearch("");
+                          navigate("/settings");
+                          setSettingsSection("providers");
                           setSelectedProviderId(row.provider.id);
                         }}
                       />
@@ -631,11 +788,23 @@ export function ModelSelector({ style, onSelect, overrideCurrentModel, children,
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
                   style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  {renderModelItem(row.providerId, row.model.model_id, row.model.name, row.providerName, isPinned, false, row.model, virtualRow.index === activeIndex)}
+                  {renderModelItem(
+                    row.providerId,
+                    row.model.model_id,
+                    row.model.name,
+                    row.providerName,
+                    isPinned,
+                    false,
+                    row.model,
+                    virtualRow.index === activeIndex,
+                  )}
                 </div>
               );
             })}

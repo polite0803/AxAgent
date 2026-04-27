@@ -122,7 +122,13 @@ pub async fn search<S: RAGSource + ?Sized>(
     let cid = collection_id(source.collection_prefix(), container_id);
 
     let embed_response = embed_fn
-        .generate(db, master_key, &embedding_provider, vec![query.to_string()], dimensions)
+        .generate(
+            db,
+            master_key,
+            &embedding_provider,
+            vec![query.to_string()],
+            dimensions,
+        )
         .await?;
 
     let query_embedding = embed_response
@@ -149,6 +155,13 @@ pub enum ChunkStrategy {
     },
     /// Embed the content directly as a single vector.
     Direct,
+    /// Chunk a raw text string (e.g. extracted from a conversation archive).
+    FromText {
+        text: String,
+        chunk_size: usize,
+        overlap: usize,
+        separator: Option<String>,
+    },
 }
 
 /// Index content into a RAG source's vector collection.
@@ -227,13 +240,7 @@ pub fn prepare_chunks(
 
             Ok(chunks
                 .into_iter()
-                .map(|c| {
-                    (
-                        format!("{}_{}", item_id, c.index),
-                        c.content,
-                        c.index,
-                    )
-                })
+                .map(|c| (format!("{}_{}", item_id, c.index), c.content, c.index))
                 .collect())
         }
         ChunkStrategy::Direct => {
@@ -241,6 +248,29 @@ pub fn prepare_chunks(
             // The actual content is passed to `index()` separately.
             // Return a placeholder that the caller fills in.
             Ok(vec![])
+        }
+        ChunkStrategy::FromText {
+            text,
+            chunk_size,
+            overlap,
+            separator,
+        } => {
+            if text.trim().is_empty() {
+                return Ok(vec![]);
+            }
+
+            let chunks = text_chunker::chunk_text_with_separator_and_markdown(
+                text,
+                *chunk_size,
+                *overlap,
+                separator.as_deref(),
+                true, // conversation archives are markdown-formatted
+            );
+
+            Ok(chunks
+                .into_iter()
+                .map(|c| (format!("{}_{}", item_id, c.index), c.content, c.index))
+                .collect())
         }
     }
 }
@@ -355,8 +385,15 @@ pub async fn collect_rag_context(
                 // When threshold == 0 (default), apply a reasonable default threshold
                 // to filter out completely irrelevant results.
                 let default_max_distance = 2.0; // L2 distance threshold for relevance
-                let effective_threshold = if threshold > 0.0 { threshold } else { default_max_distance };
-                let results: Vec<_> = raw_results.into_iter().filter(|r| r.score <= effective_threshold).collect();
+                let effective_threshold = if threshold > 0.0 {
+                    threshold
+                } else {
+                    default_max_distance
+                };
+                let results: Vec<_> = raw_results
+                    .into_iter()
+                    .filter(|r| r.score <= effective_threshold)
+                    .collect();
                 if results.is_empty() {
                     continue;
                 }
@@ -420,7 +457,10 @@ pub async fn collect_rag_context(
         if !kb_doc_ids.is_empty() {
             match crate::repo::knowledge::get_document_titles(db, &kb_doc_ids).await {
                 Ok(titles) => {
-                    for src in source_results.iter_mut().filter(|s| s.source_type == "knowledge") {
+                    for src in source_results
+                        .iter_mut()
+                        .filter(|s| s.source_type == "knowledge")
+                    {
                         for item in &mut src.items {
                             item.document_name = titles.get(&item.document_id).cloned();
                         }

@@ -9,6 +9,21 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+pub mod collector;
+pub mod event;
+pub mod exporter;
+pub mod metrics;
+pub mod span;
+pub mod storage;
+pub mod tracer;
+
+pub use collector::*;
+pub use exporter::*;
+pub use metrics::*;
+pub use span::*;
+pub use storage::*;
+pub use tracer::*;
+
 pub const DEFAULT_ANTHROPIC_VERSION: &str = "2023-06-01";
 pub const DEFAULT_APP_NAME: &str = "claude-code";
 pub const DEFAULT_RUNTIME: &str = "rust";

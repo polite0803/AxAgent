@@ -37,7 +37,17 @@ pub async fn record_hits(
     hits: &[(String, String, String, f64, String)], // (kb_id, doc_id, chunk_ref, score, preview)
 ) -> Result<(), DbErr> {
     for (kb_id, doc_id, chunk_ref, score, preview) in hits {
-        let _ = record_hit(db, conversation_id, message_id, kb_id, doc_id, chunk_ref, *score, preview).await;
+        let _ = record_hit(
+            db,
+            conversation_id,
+            message_id,
+            kb_id,
+            doc_id,
+            chunk_ref,
+            *score,
+            preview,
+        )
+        .await;
     }
     Ok(())
 }

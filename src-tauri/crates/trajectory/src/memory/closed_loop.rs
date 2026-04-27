@@ -4,8 +4,8 @@
 //! Replaces TypeScript `ClosedLoopLearning.ts` with Rust implementation.
 //! Leverages existing `skill_evolution` module for genetic algorithm-based skill optimization.
 
-use crate::TrajectoryStorage;
 use crate::skill::Skill;
+use crate::TrajectoryStorage;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
@@ -152,8 +152,11 @@ impl ClosedLoopService {
 
     pub async fn execute_upgrade_action(&self, auto_action: &AutoAction) {
         if auto_action.action_type == "upgrade_skill" {
-            if let Ok(proposal) = serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target) {
-                if let Ok(Some(mut existing_skill)) = self.storage.get_skill(&proposal.target_skill_id) {
+            if let Ok(proposal) = serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target)
+            {
+                if let Ok(Some(mut existing_skill)) =
+                    self.storage.get_skill(&proposal.target_skill_id)
+                {
                     let now = chrono::Utc::now();
 
                     let mut updated_content = existing_skill.content.clone();
@@ -184,8 +187,12 @@ impl ClosedLoopService {
                     if let Err(e) = self.storage.save_skill(&existing_skill) {
                         tracing::warn!("Failed to upgrade skill in storage: {}", e);
                     } else {
-                        tracing::info!("Upgraded skill in storage: {} from {} to {}",
-                            existing_skill.name, old_version, new_version);
+                        tracing::info!(
+                            "Upgraded skill in storage: {} from {} to {}",
+                            existing_skill.name,
+                            old_version,
+                            new_version
+                        );
                     }
 
                     if let Some(ref skills_dir) = self.skills_dir {
@@ -208,7 +215,10 @@ impl ClosedLoopService {
                         }
                     }
                 } else {
-                    tracing::warn!("Target skill not found for upgrade: {}", proposal.target_skill_id);
+                    tracing::warn!(
+                        "Target skill not found for upgrade: {}",
+                        proposal.target_skill_id
+                    );
                 }
             }
         }
@@ -235,17 +245,18 @@ impl ClosedLoopService {
     async fn evaluate_memory_consolidation(&self) -> Result<Vec<PeriodicNudge>, anyhow::Error> {
         let mut nudges = Vec::new();
 
-        let recent_trajectories = self.storage
-            .query_trajectories(&crate::trajectory::TrajectoryQuery {
-                session_id: None,
-                user_id: None,
-                topic: None,
-                min_quality: Some(0.5),
-                min_value_score: None,
-                outcome: None,
-                time_range: None,
-                limit: Some(10),
-            })?;
+        let recent_trajectories =
+            self.storage
+                .query_trajectories(&crate::trajectory::TrajectoryQuery {
+                    session_id: None,
+                    user_id: None,
+                    topic: None,
+                    min_quality: Some(0.5),
+                    min_value_score: None,
+                    outcome: None,
+                    time_range: None,
+                    limit: Some(10),
+                })?;
 
         if recent_trajectories.len() < 2 {
             return Ok(nudges);
@@ -291,17 +302,18 @@ impl ClosedLoopService {
     async fn evaluate_skill_creation(&self) -> Result<Vec<PeriodicNudge>, anyhow::Error> {
         let mut nudges = Vec::new();
 
-        let recent_trajectories = self.storage
-            .query_trajectories(&crate::trajectory::TrajectoryQuery {
-                session_id: None,
-                user_id: None,
-                topic: None,
-                min_quality: None,
-                min_value_score: None,
-                outcome: None,
-                time_range: None,
-                limit: Some(20),
-            })?;
+        let recent_trajectories =
+            self.storage
+                .query_trajectories(&crate::trajectory::TrajectoryQuery {
+                    session_id: None,
+                    user_id: None,
+                    topic: None,
+                    min_quality: None,
+                    min_value_score: None,
+                    outcome: None,
+                    time_range: None,
+                    limit: Some(20),
+                })?;
 
         let complex_tasks: Vec<_> = recent_trajectories
             .iter()
@@ -311,19 +323,35 @@ impl ClosedLoopService {
         for task in complex_tasks.iter().take(5) {
             if let Ok(similar_skills) = self.find_similar_skills(&task.topic) {
                 if let Some(similar) = similar_skills.first() {
-                    if let Some((upgrade_proposal, _creation_proposal)) = self.propose_skill_improvement(similar, task) {
+                    if let Some((upgrade_proposal, _creation_proposal)) =
+                        self.propose_skill_improvement(similar, task)
+                    {
                         if upgrade_proposal.confidence >= self.config.skill_creation_threshold {
                             nudges.push(PeriodicNudge {
-                                id: format!("nudge_sc_{}_{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4()),
+                                id: format!(
+                                    "nudge_sc_{}_{}",
+                                    chrono::Utc::now().timestamp_millis(),
+                                    uuid::Uuid::new_v4()
+                                ),
                                 nudge_type: NudgeType::SkillCreation,
                                 title: "Skill Upgrade Suggestion".to_string(),
-                                description: format!("Consider upgrading skill \"{}\" with new scenarios and steps", similar.name),
+                                description: format!(
+                                    "Consider upgrading skill \"{}\" with new scenarios and steps",
+                                    similar.name
+                                ),
                                 suggested_action: upgrade_proposal.suggested_improvements.clone(),
-                                urgency: if upgrade_proposal.confidence >= 0.9 { "high".to_string() } else { "medium".to_string() },
-                                auto_action: if upgrade_proposal.confidence >= self.config.min_confidence_for_auto_action {
+                                urgency: if upgrade_proposal.confidence >= 0.9 {
+                                    "high".to_string()
+                                } else {
+                                    "medium".to_string()
+                                },
+                                auto_action: if upgrade_proposal.confidence
+                                    >= self.config.min_confidence_for_auto_action
+                                {
                                     Some(AutoAction {
                                         action_type: "upgrade_skill".to_string(),
-                                        target: serde_json::to_string(&upgrade_proposal).unwrap_or_default(),
+                                        target: serde_json::to_string(&upgrade_proposal)
+                                            .unwrap_or_default(),
                                     })
                                 } else {
                                     None
@@ -345,10 +373,17 @@ impl ClosedLoopService {
                     };
 
                     nudges.push(PeriodicNudge {
-                        id: format!("nudge_ns_{}_{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4()),
+                        id: format!(
+                            "nudge_ns_{}_{}",
+                            chrono::Utc::now().timestamp_millis(),
+                            uuid::Uuid::new_v4()
+                        ),
                         nudge_type: NudgeType::SkillCreation,
                         title: "New Skill Suggestion".to_string(),
-                        description: format!("Consider creating skill \"{}\" to handle similar tasks", new_skill_proposal.suggested_name),
+                        description: format!(
+                            "Consider creating skill \"{}\" to handle similar tasks",
+                            new_skill_proposal.suggested_name
+                        ),
                         suggested_action: new_skill_proposal.suggested_content.clone(),
                         urgency: "medium".to_string(),
                         auto_action: None,
@@ -373,12 +408,23 @@ impl ClosedLoopService {
 
         for pattern in high_failure_patterns.iter().take(3) {
             nudges.push(PeriodicNudge {
-                id: format!("nudge_pl_{}_{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4()),
+                id: format!(
+                    "nudge_pl_{}_{}",
+                    chrono::Utc::now().timestamp_millis(),
+                    uuid::Uuid::new_v4()
+                ),
                 nudge_type: NudgeType::PatternLearn,
                 title: "模式学习建议".to_string(),
                 description: format!("检测到失败模式\"{}\"，建议调整学习策略", pattern.name),
-                suggested_action: format!("用户倾向于忽略以\"{}\"开头的建议，考虑换一种表达方式", pattern.name),
-                urgency: if pattern.frequency > 5 { "high".to_string() } else { "low".to_string() },
+                suggested_action: format!(
+                    "用户倾向于忽略以\"{}\"开头的建议，考虑换一种表达方式",
+                    pattern.name
+                ),
+                urgency: if pattern.frequency > 5 {
+                    "high".to_string()
+                } else {
+                    "low".to_string()
+                },
                 auto_action: None,
                 created_at: chrono::Utc::now().timestamp(),
                 acknowledged: false,
@@ -402,11 +448,16 @@ impl ClosedLoopService {
                         if let Err(e) = self.storage.save_memory(&entry) {
                             tracing::warn!("Failed to auto-save memory: {}", e);
                         } else {
-                            tracing::info!("Auto-saved consolidated memory: {:?}", &auto_action.target[..auto_action.target.len().min(50)]);
+                            tracing::info!(
+                                "Auto-saved consolidated memory: {:?}",
+                                &auto_action.target[..auto_action.target.len().min(50)]
+                            );
                         }
                     }
                     "create_skill" => {
-                        if let Ok(proposal) = serde_json::from_str::<SkillCreationProposal>(&auto_action.target) {
+                        if let Ok(proposal) =
+                            serde_json::from_str::<SkillCreationProposal>(&auto_action.target)
+                        {
                             let now = chrono::Utc::now();
                             let skill = Skill {
                                 id: uuid::Uuid::new_v4().to_string(),
@@ -442,7 +493,10 @@ impl ClosedLoopService {
                             if let Err(e) = self.storage.save_skill(&skill) {
                                 tracing::warn!("Failed to save skill to storage: {}", e);
                             } else {
-                                tracing::info!("Saved skill to storage: {}", proposal.suggested_name);
+                                tracing::info!(
+                                    "Saved skill to storage: {}",
+                                    proposal.suggested_name
+                                );
                             }
 
                             if let Some(ref skills_dir) = self.skills_dir {
@@ -457,9 +511,13 @@ impl ClosedLoopService {
                                             skill.scenarios.iter().map(|s| format!("  - {}", s)).collect::<Vec<_>>().join("\n"),
                                             skill.content
                                         );
-                                        match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {
+                                        match std::fs::write(skill_dir.join("SKILL.md"), &skill_md)
+                                        {
                                             Ok(_) => {
-                                                tracing::info!("Created skill file at {}", skill_dir.display());
+                                                tracing::info!(
+                                                    "Created skill file at {}",
+                                                    skill_dir.display()
+                                                );
                                             }
                                             Err(e) => {
                                                 tracing::warn!("Failed to write skill file: {}", e);
@@ -474,8 +532,12 @@ impl ClosedLoopService {
                         }
                     }
                     "upgrade_skill" => {
-                        if let Ok(proposal) = serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target) {
-                            if let Ok(Some(mut existing_skill)) = self.storage.get_skill(&proposal.target_skill_id) {
+                        if let Ok(proposal) =
+                            serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target)
+                        {
+                            if let Ok(Some(mut existing_skill)) =
+                                self.storage.get_skill(&proposal.target_skill_id)
+                            {
                                 let now = chrono::Utc::now();
 
                                 let mut updated_content = existing_skill.content.clone();
@@ -506,8 +568,12 @@ impl ClosedLoopService {
                                 if let Err(e) = self.storage.save_skill(&existing_skill) {
                                     tracing::warn!("Failed to upgrade skill in storage: {}", e);
                                 } else {
-                                    tracing::info!("Upgraded skill in storage: {} from {} to {}",
-                                        existing_skill.name, old_version, new_version);
+                                    tracing::info!(
+                                        "Upgraded skill in storage: {} from {} to {}",
+                                        existing_skill.name,
+                                        old_version,
+                                        new_version
+                                    );
                                 }
 
                                 if let Some(ref skills_dir) = self.skills_dir {
@@ -522,7 +588,10 @@ impl ClosedLoopService {
                                     );
                                     match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {
                                         Ok(_) => {
-                                            tracing::info!("Updated skill file at {}", skill_dir.display());
+                                            tracing::info!(
+                                                "Updated skill file at {}",
+                                                skill_dir.display()
+                                            );
                                         }
                                         Err(e) => {
                                             tracing::warn!("Failed to update skill file: {}", e);
@@ -530,7 +599,10 @@ impl ClosedLoopService {
                                     }
                                 }
                             } else {
-                                tracing::warn!("Target skill not found for upgrade: {}", proposal.target_skill_id);
+                                tracing::warn!(
+                                    "Target skill not found for upgrade: {}",
+                                    proposal.target_skill_id
+                                );
                             }
                         }
                     }
@@ -542,8 +614,12 @@ impl ClosedLoopService {
         }
     }
 
-    fn detect_common_theme(&self, trajectories: &[crate::trajectory::Trajectory]) -> Option<String> {
-        let mut topic_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    fn detect_common_theme(
+        &self,
+        trajectories: &[crate::trajectory::Trajectory],
+    ) -> Option<String> {
+        let mut topic_counts: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
 
         for traj in trajectories {
             let words: Vec<&str> = traj.topic.split_whitespace().collect();
@@ -559,14 +635,23 @@ impl ClosedLoopService {
             .map(|(topic, _)| topic)
     }
 
-    fn collect_entities_from_trajectories(&self, trajectories: &[crate::trajectory::Trajectory]) -> Vec<EntityRef> {
+    fn collect_entities_from_trajectories(
+        &self,
+        trajectories: &[crate::trajectory::Trajectory],
+    ) -> Vec<EntityRef> {
         let mut entities: std::collections::HashSet<String> = std::collections::HashSet::new();
 
         for traj in trajectories {
             for step in &traj.steps {
                 let words: Vec<&str> = step.content.split_whitespace().collect();
                 for word in words.iter().take(5) {
-                    if word.len() > 4 && word.chars().next().map(|c| c.is_uppercase()).unwrap_or(false) {
+                    if word.len() > 4
+                        && word
+                            .chars()
+                            .next()
+                            .map(|c| c.is_uppercase())
+                            .unwrap_or(false)
+                    {
                         entities.insert(word.to_string());
                     }
                 }
@@ -580,11 +665,15 @@ impl ClosedLoopService {
             .collect()
     }
 
-    fn propose_memory_consolidation(&self, theme: &str, entities: &[EntityRef]) -> MemoryConsolidationTask {
+    fn propose_memory_consolidation(
+        &self,
+        theme: &str,
+        entities: &[EntityRef],
+    ) -> MemoryConsolidationTask {
         // Calculate confidence based on entity count and theme specificity
         // More entities and longer themes indicate stronger patterns
         let entity_factor = (entities.len() as f64 / 5.0).min(1.0); // normalize to max 1.0 at 5+ entities
-        let theme_factor = (theme.len() as f64 / 10.0).min(1.0);   // normalize to max 1.0 at 10+ chars
+        let theme_factor = (theme.len() as f64 / 10.0).min(1.0); // normalize to max 1.0 at 10+ chars
         let confidence = 0.5 + 0.3 * entity_factor + 0.2 * theme_factor; // range: 0.5 - 1.0
 
         MemoryConsolidationTask {
@@ -595,7 +684,11 @@ impl ClosedLoopService {
             memory_content: format!(
                 "用户经常处理与 {} 相关的主题。关键实体包括: {}",
                 theme,
-                entities.iter().map(|e| e.name.as_str()).collect::<Vec<_>>().join(", ")
+                entities
+                    .iter()
+                    .map(|e| e.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ),
             confidence,
         }
@@ -614,8 +707,14 @@ impl ClosedLoopService {
 
                 let name_contains = name_lower.contains(&topic_lower);
                 let desc_contains = desc_lower.contains(&topic_lower);
-                let name_similarity = self.calculate_keyword_similarity(&topic_keywords, &self.extract_keywords(&name_lower));
-                let desc_similarity = self.calculate_keyword_similarity(&topic_keywords, &self.extract_keywords(&desc_lower));
+                let name_similarity = self.calculate_keyword_similarity(
+                    &topic_keywords,
+                    &self.extract_keywords(&name_lower),
+                );
+                let desc_similarity = self.calculate_keyword_similarity(
+                    &topic_keywords,
+                    &self.extract_keywords(&desc_lower),
+                );
 
                 let max_similarity = if name_contains || desc_contains {
                     1.0
@@ -636,7 +735,10 @@ impl ClosedLoopService {
     }
 
     fn extract_keywords(&self, text: &str) -> Vec<String> {
-        let stop_words = ["the", "a", "an", "is", "are", "was", "were", "to", "for", "of", "and", "or", "in", "on", "at", "with", "by"];
+        let stop_words = [
+            "the", "a", "an", "is", "are", "was", "were", "to", "for", "of", "and", "or", "in",
+            "on", "at", "with", "by",
+        ];
         text.split(|c: char| !c.is_alphanumeric())
             .filter(|w| w.len() > 2 && !stop_words.contains(w))
             .map(|w| w.to_lowercase())
@@ -648,9 +750,7 @@ impl ClosedLoopService {
             return 0.0;
         }
 
-        let intersection = keywords1.iter()
-            .filter(|k1| keywords2.contains(k1))
-            .count();
+        let intersection = keywords1.iter().filter(|k1| keywords2.contains(k1)).count();
 
         let union = keywords1.len() + keywords2.len() - intersection;
 
@@ -695,7 +795,11 @@ impl ClosedLoopService {
         scenarios
     }
 
-    fn propose_skill_improvement(&self, existing_skill: &Skill, task: &crate::trajectory::Trajectory) -> Option<(SkillUpgradeProposal, SkillCreationProposal)> {
+    fn propose_skill_improvement(
+        &self,
+        existing_skill: &Skill,
+        task: &crate::trajectory::Trajectory,
+    ) -> Option<(SkillUpgradeProposal, SkillCreationProposal)> {
         let skill_factor = existing_skill.success_rate;
         let complexity_factor = (task.steps.len() as f64 / 15.0).min(1.0);
         let confidence = 0.4 + 0.3 * skill_factor + 0.3 * complexity_factor;
@@ -729,10 +833,17 @@ impl ClosedLoopService {
         }
     }
 
-    fn generate_improvements(&self, existing_skill: &Skill, task: &crate::trajectory::Trajectory) -> String {
+    fn generate_improvements(
+        &self,
+        existing_skill: &Skill,
+        task: &crate::trajectory::Trajectory,
+    ) -> String {
         let mut improvements = String::new();
 
-        improvements.push_str(&format!("# Improvement suggestions for skill {}\n\n", existing_skill.name));
+        improvements.push_str(&format!(
+            "# Improvement suggestions for skill {}\n\n",
+            existing_skill.name
+        ));
 
         if existing_skill.success_rate < 0.5 {
             improvements.push_str("## Success Rate Issues\n");
@@ -740,7 +851,9 @@ impl ClosedLoopService {
             improvements.push_str("- Add more error handling guidance\n\n");
         }
 
-        let tool_steps: Vec<_> = task.steps.iter()
+        let tool_steps: Vec<_> = task
+            .steps
+            .iter()
             .filter(|s| s.tool_calls.is_some())
             .collect();
 
@@ -749,8 +862,12 @@ impl ClosedLoopService {
             for (i, step) in tool_steps.iter().take(5).enumerate() {
                 if let Some(ref calls) = step.tool_calls {
                     for call in calls {
-                        improvements.push_str(&format!("{}. Use `{}` with args: {}\n",
-                            i + 1, call.name, call.arguments));
+                        improvements.push_str(&format!(
+                            "{}. Use `{}` with args: {}\n",
+                            i + 1,
+                            call.name,
+                            call.arguments
+                        ));
                     }
                 }
             }
@@ -764,8 +881,14 @@ impl ClosedLoopService {
         }
 
         improvements.push_str("## Quality Metrics\n");
-        improvements.push_str(&format!("- Task completion: {:.1}%\n", task.quality.task_completion * 100.0));
-        improvements.push_str(&format!("- Tool efficiency: {:.1}%\n", task.quality.tool_efficiency * 100.0));
+        improvements.push_str(&format!(
+            "- Task completion: {:.1}%\n",
+            task.quality.task_completion * 100.0
+        ));
+        improvements.push_str(&format!(
+            "- Tool efficiency: {:.1}%\n",
+            task.quality.tool_efficiency * 100.0
+        ));
 
         improvements
     }
@@ -781,15 +904,26 @@ impl ClosedLoopService {
         }
     }
 
-    fn generate_skill_content_from_trajectory(&self, trajectory: &crate::trajectory::Trajectory) -> String {
+    fn generate_skill_content_from_trajectory(
+        &self,
+        trajectory: &crate::trajectory::Trajectory,
+    ) -> String {
         let mut content = format!("# {}\n\n", trajectory.topic);
-        content += &format!("slug: {}\n\n", self.generate_skill_name_from_topic(&trajectory.topic));
+        content += &format!(
+            "slug: {}\n\n",
+            self.generate_skill_name_from_topic(&trajectory.topic)
+        );
 
         content += "## Overview\n";
         content += &format!("This skill handles: {}. ", trajectory.topic);
-        content += &format!("Outcome: {:?}, Duration: {}ms\n\n", trajectory.outcome, trajectory.duration_ms);
+        content += &format!(
+            "Outcome: {:?}, Duration: {}ms\n\n",
+            trajectory.outcome, trajectory.duration_ms
+        );
 
-        let tool_steps: Vec<_> = trajectory.steps.iter()
+        let tool_steps: Vec<_> = trajectory
+            .steps
+            .iter()
             .filter(|s| s.tool_calls.is_some())
             .collect();
 
@@ -798,7 +932,12 @@ impl ClosedLoopService {
             for (i, step) in tool_steps.iter().enumerate() {
                 if let Some(ref calls) = step.tool_calls {
                     for call in calls {
-                        content += &format!("{}. Use `{}` with args: {}\n", i + 1, call.name, call.arguments);
+                        content += &format!(
+                            "{}. Use `{}` with args: {}\n",
+                            i + 1,
+                            call.name,
+                            call.arguments
+                        );
                     }
                 }
             }
@@ -806,12 +945,21 @@ impl ClosedLoopService {
         }
 
         if !trajectory.patterns.is_empty() {
-            content += &format!("## Patterns\n{}\n\n", trajectory.patterns.first().unwrap_or(&String::new()));
+            content += &format!(
+                "## Patterns\n{}\n\n",
+                trajectory.patterns.first().unwrap_or(&String::new())
+            );
         }
 
         content += "## Quality\n";
-        content += &format!("- Task completion: {:.1}%\n", trajectory.quality.task_completion * 100.0);
-        content += &format!("- Tool efficiency: {:.1}%\n", trajectory.quality.tool_efficiency * 100.0);
+        content += &format!(
+            "- Task completion: {:.1}%\n",
+            trajectory.quality.task_completion * 100.0
+        );
+        content += &format!(
+            "- Tool efficiency: {:.1}%\n",
+            trajectory.quality.tool_efficiency * 100.0
+        );
 
         content
     }

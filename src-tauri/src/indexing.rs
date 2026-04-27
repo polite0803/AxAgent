@@ -85,7 +85,10 @@ pub async fn build_embed_context(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: None,
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -229,12 +232,37 @@ pub async fn index_knowledge_document(
 ) -> Result<()> {
     axagent_core::repo::knowledge::update_document_status(db, document_id, "indexing").await?;
 
-    let strategy = ChunkStrategy::ParseAndChunk {
-        source_path: source_path.to_string(),
-        mime_type: mime_type.to_string(),
-        chunk_size: chunk_size.map(|v| v as usize).unwrap_or(axagent_core::text_chunker::DEFAULT_CHUNK_SIZE),
-        overlap: chunk_overlap.map(|v| v as usize).unwrap_or(axagent_core::text_chunker::DEFAULT_OVERLAP),
-        separator,
+    // Determine chunking strategy based on document type
+    let is_conversation = source_path.starts_with("conversation://");
+
+    let strategy = if is_conversation {
+        // For conversation archives, extract text from the database
+        let conv_id = source_path.strip_prefix("conversation://").unwrap_or("");
+        let text =
+            axagent_core::repo::conversation::get_conversation_archive_text(db, conv_id).await?;
+
+        ChunkStrategy::FromText {
+            text,
+            chunk_size: chunk_size
+                .map(|v| v as usize)
+                .unwrap_or(axagent_core::text_chunker::DEFAULT_CHUNK_SIZE),
+            overlap: chunk_overlap
+                .map(|v| v as usize)
+                .unwrap_or(axagent_core::text_chunker::DEFAULT_OVERLAP),
+            separator,
+        }
+    } else {
+        ChunkStrategy::ParseAndChunk {
+            source_path: source_path.to_string(),
+            mime_type: mime_type.to_string(),
+            chunk_size: chunk_size
+                .map(|v| v as usize)
+                .unwrap_or(axagent_core::text_chunker::DEFAULT_CHUNK_SIZE),
+            overlap: chunk_overlap
+                .map(|v| v as usize)
+                .unwrap_or(axagent_core::text_chunker::DEFAULT_OVERLAP),
+            separator,
+        }
     };
 
     let chunks = rag::prepare_chunks(document_id, &strategy)?;

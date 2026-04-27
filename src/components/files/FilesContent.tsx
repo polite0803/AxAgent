@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Alert, Button, Input, App, Popconfirm, Space } from 'antd';
-import { Search, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { FILE_CATEGORIES, type FileCategory } from './fileCategories';
-import { FileList } from './FileList';
-import { useFileStore } from '@/stores';
+import { useFileStore } from "@/stores";
+import { Alert, App, Button, Input, Popconfirm, Space } from "antd";
+import { Search, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { FILE_CATEGORIES, type FileCategory } from "./fileCategories";
+import { FileList } from "./FileList";
 
 interface FilesContentProps {
   activeCategory: FileCategory;
@@ -24,8 +24,8 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   useEffect(() => {
-    setSearch('');
-    setSortKey('createdAt');
+    setSearch("");
+    setSortKey("createdAt");
     setSelectedRowKeys([]);
     void loadCategory(activeCategory);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,13 +37,13 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   };
 
   const handleBatchDelete = useCallback(async () => {
-    if (selectedRowKeys.length === 0) return;
+    if (selectedRowKeys.length === 0) { return; }
     try {
       for (const key of selectedRowKeys) {
         await cleanupMissingEntry(key);
       }
       setSelectedRowKeys([]);
-      message.success(t('files.batchDeleteSuccess', { count: selectedRowKeys.length }));
+      message.success(t("files.batchDeleteSuccess", { count: selectedRowKeys.length }));
       void loadCategory(activeCategory);
     } catch (e) {
       message.error(String(e));
@@ -54,7 +54,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     try {
       await cleanupMissingEntry(id);
       setSelectedRowKeys((prev) => prev.filter((k) => k !== id));
-      message.success(t('files.deleteSuccess'));
+      message.success(t("files.deleteSuccess"));
       void loadCategory(activeCategory);
     } catch (e) {
       message.error(String(e));
@@ -81,10 +81,10 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
       <div className="flex items-center justify-between gap-4">
         <Space>
           <Popconfirm
-            title={t('files.batchDeleteConfirm', { count: selectedRowKeys.length })}
+            title={t("files.batchDeleteConfirm", { count: selectedRowKeys.length })}
             onConfirm={() => void handleBatchDelete()}
-            okText={t('files.confirmYes')}
-            cancelText={t('files.confirmNo')}
+            okText={t("files.confirmYes")}
+            cancelText={t("files.confirmNo")}
             disabled={selectedRowKeys.length === 0}
           >
             <Button
@@ -92,14 +92,14 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
               icon={<Trash2 size={14} />}
               disabled={selectedRowKeys.length === 0}
             >
-              {t('files.batchDelete', { count: selectedRowKeys.length })}
+              {t("files.batchDelete", { count: selectedRowKeys.length })}
             </Button>
           </Popconfirm>
         </Space>
         <div data-testid="category-search" data-category={activeCategory} style={{ maxWidth: 300 }}>
           <Input
             prefix={<Search size={14} />}
-            placeholder={t('files.searchPlaceholder', { category: t(meta.labelKey) })}
+            placeholder={t("files.searchPlaceholder", { category: t(meta.labelKey) })}
             value={search}
             onChange={(e) => {
               handleSearchChange(e.target.value);

@@ -232,8 +232,9 @@ fn backup_file(path: &Path, tool: CliTool) -> Result<()> {
         std::fs::create_dir_all(parent)
             .map_err(|e| AxAgentError::Gateway(format!("Failed to create backup dir: {}", e)))?;
     }
-    std::fs::copy(path, &dest)
-        .map_err(|e| AxAgentError::Gateway(format!("Failed to backup {}: {}", path.display(), e)))?;
+    std::fs::copy(path, &dest).map_err(|e| {
+        AxAgentError::Gateway(format!("Failed to backup {}: {}", path.display(), e))
+    })?;
     Ok(())
 }
 
@@ -822,8 +823,9 @@ fn disconnect_remove_fields(tool: CliTool, gateway_url: &str) -> Result<()> {
         CliTool::Codex => {
             // Two-file operation: remove auth.json then clean config.toml.
             let auth_result = if paths[0].exists() {
-                std::fs::remove_file(&paths[0])
-                    .map_err(|e| AxAgentError::Gateway(format!("Failed to remove auth.json: {}", e)))
+                std::fs::remove_file(&paths[0]).map_err(|e| {
+                    AxAgentError::Gateway(format!("Failed to remove auth.json: {}", e))
+                })
             } else {
                 Ok(())
             };

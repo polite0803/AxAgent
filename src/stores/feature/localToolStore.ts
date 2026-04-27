@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { LocalToolGroupInfo } from '@/types/localTool';
+import { invoke } from "@/lib/invoke";
+import type { LocalToolGroupInfo } from "@/types/localTool";
+import { create } from "zustand";
 
 interface LocalToolState {
   groups: LocalToolGroupInfo[];
@@ -19,7 +19,7 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
   loadGroups: async () => {
     set({ loading: true });
     try {
-      const groups = await invoke<LocalToolGroupInfo[]>('list_local_tools');
+      const groups = await invoke<LocalToolGroupInfo[]>("list_local_tools");
       set({ groups, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -28,11 +28,9 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
 
   toggleGroup: async (groupId: string) => {
     try {
-      const updatedGroup = await invoke<LocalToolGroupInfo>('toggle_local_tool', { groupId });
+      const updatedGroup = await invoke<LocalToolGroupInfo>("toggle_local_tool", { groupId });
       set((s) => ({
-        groups: s.groups.map((g) =>
-          g.groupId === groupId ? updatedGroup : g
-        ),
+        groups: s.groups.map((g) => g.groupId === groupId ? updatedGroup : g),
         error: null,
       }));
     } catch (e) {

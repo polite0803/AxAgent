@@ -40,10 +40,7 @@ pub async fn list_generated_tools(
 }
 
 #[tauri::command]
-pub async fn delete_generated_tool(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<bool, String> {
+pub async fn delete_generated_tool(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let db: &DatabaseConnection = &state.sea_db;
     axagent_core::repo::generated_tool::delete_generated_tool(db, &id)
         .await

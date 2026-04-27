@@ -47,11 +47,12 @@ pub async fn session_search(
 
     let mut results = Vec::with_capacity(rows.len());
     for row in rows {
-        let title = axagent_core::repo::conversation::get_conversation(&state.sea_db, &row.conversation_id)
-            .await
-            .ok()
-            .map(|c| c.title)
-            .unwrap_or_else(|| "Unknown".to_string());
+        let title =
+            axagent_core::repo::conversation::get_conversation(&state.sea_db, &row.conversation_id)
+                .await
+                .ok()
+                .map(|c| c.title)
+                .unwrap_or_else(|| "Unknown".to_string());
 
         results.push(SessionSearchResult {
             conversation_id: row.conversation_id,

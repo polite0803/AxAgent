@@ -1,11 +1,11 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
+import { invoke } from "@/lib/invoke";
 import type {
-  SearchProvider,
   CreateSearchProviderInput,
-  UpdateSearchProviderInput,
   SearchExecuteResponse,
-} from '@/types';
+  SearchProvider,
+  UpdateSearchProviderInput,
+} from "@/types";
+import { create } from "zustand";
 
 interface SearchState {
   providers: SearchProvider[];
@@ -32,7 +32,7 @@ export const useSearchStore = create<SearchState>((set) => ({
   loadProviders: async () => {
     set({ loading: true });
     try {
-      const providers = await invoke<SearchProvider[]>('list_search_providers');
+      const providers = await invoke<SearchProvider[]>("list_search_providers");
       set({ providers, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -41,7 +41,7 @@ export const useSearchStore = create<SearchState>((set) => ({
 
   createProvider: async (input) => {
     try {
-      const provider = await invoke<SearchProvider>('create_search_provider', { input });
+      const provider = await invoke<SearchProvider>("create_search_provider", { input });
       set((s) => ({ providers: [...s.providers, provider], error: null }));
       return provider;
     } catch (e) {
@@ -52,7 +52,7 @@ export const useSearchStore = create<SearchState>((set) => ({
 
   updateProvider: async (id, input) => {
     try {
-      const updated = await invoke<SearchProvider>('update_search_provider', { id, input });
+      const updated = await invoke<SearchProvider>("update_search_provider", { id, input });
       set((s) => ({
         providers: s.providers.map((p) => (p.id === id ? updated : p)),
         error: null,
@@ -65,7 +65,7 @@ export const useSearchStore = create<SearchState>((set) => ({
 
   deleteProvider: async (id) => {
     try {
-      await invoke('delete_search_provider', { id });
+      await invoke("delete_search_provider", { id });
       set((s) => ({ providers: s.providers.filter((p) => p.id !== id), error: null }));
     } catch (e) {
       set({ error: String(e) });
@@ -76,7 +76,7 @@ export const useSearchStore = create<SearchState>((set) => ({
   testProvider: async (id) => {
     try {
       const result = await invoke<{ ok: boolean; latency_ms?: number; error?: string }>(
-        'test_search_provider',
+        "test_search_provider",
         { id },
       );
       return result;
@@ -87,14 +87,14 @@ export const useSearchStore = create<SearchState>((set) => ({
 
   executeSearch: async (providerId, query, maxResults) => {
     try {
-      const result = await invoke<SearchExecuteResponse>('execute_search', {
+      const result = await invoke<SearchExecuteResponse>("execute_search", {
         providerId,
         query,
         maxResults: maxResults ?? null,
       });
       return result;
     } catch (e) {
-      console.error('[executeSearch] error:', e);
+      console.error("[executeSearch] error:", e);
       return null;
     }
   },

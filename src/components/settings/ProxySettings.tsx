@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Button, Divider, Input, InputNumber, App } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { useSettingsStore } from '@/stores';
-import { invoke } from '@/lib/invoke';
-import { SettingsGroup } from './SettingsGroup';
-import { SettingsSelect } from './SettingsSelect';
+import { invoke } from "@/lib/invoke";
+import { useSettingsStore } from "@/stores";
+import { App, Button, Divider, Input, InputNumber } from "antd";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { SettingsGroup } from "./SettingsGroup";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function ProxySettings() {
   const { t } = useTranslation();
@@ -17,71 +17,67 @@ export function ProxySettings() {
     const { proxy_type, proxy_address, proxy_port } = settings;
 
     if (!proxy_address) {
-      message.warning(t('settings.proxyAddressRequired') || '请先填写代理地址');
+      message.warning(t("settings.proxyAddressRequired") || "请先填写代理地址");
       return;
     }
 
     setTesting(true);
     try {
-      const result = await invoke<{ ok: boolean; latency_ms?: number; error?: string }>('test_proxy', {
-        proxyType: proxy_type || 'http',
+      const result = await invoke<{ ok: boolean; latency_ms?: number; error?: string }>("test_proxy", {
+        proxyType: proxy_type || "http",
         proxyAddress: proxy_address,
         proxyPort: proxy_port || 7890,
       });
 
       if (result.ok) {
         message.success(
-          `${t('settings.proxyTestSuccess') || '代理连接成功'}${result.latency_ms ? ` (${result.latency_ms}ms)` : ''}`
+          `${t("settings.proxyTestSuccess") || "代理连接成功"}${result.latency_ms ? ` (${result.latency_ms}ms)` : ""}`,
         );
       } else {
-        message.error(result.error || t('settings.proxyTestFailed') || '代理连接失败');
+        message.error(result.error || t("settings.proxyTestFailed") || "代理连接失败");
       }
     } catch {
-      message.error(t('settings.proxyTestFailed') || '代理连接失败');
+      message.error(t("settings.proxyTestFailed") || "代理连接失败");
     } finally {
       setTesting(false);
     }
   };
 
-  const rowStyle = { padding: '4px 0' };
+  const rowStyle = { padding: "4px 0" };
 
-  const isSystemProxy = settings.proxy_type === 'system';
+  const isSystemProxy = settings.proxy_type === "system";
   const needsAddress = !!settings.proxy_type && !isSystemProxy;
 
   return (
     <div className="p-6 pb-12">
-      <SettingsGroup title={t('settings.groupProxy')}>
+      <SettingsGroup title={t("settings.groupProxy")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.proxyType')}</span>
+          <span>{t("settings.proxyType")}</span>
           <SettingsSelect
-            value={settings.proxy_type ?? 'none'}
-            onChange={(val) =>
-              saveSettings({ proxy_type: val === 'none' ? null : val })
-            }
+            value={settings.proxy_type ?? "none"}
+            onChange={(val) => saveSettings({ proxy_type: val === "none" ? null : val })}
             options={[
-              { label: t('settings.proxyNone'), value: 'none' },
-              { label: t('settings.proxySystem'), value: 'system' },
-              { label: t('settings.proxyHttp'), value: 'http' },
-              { label: t('settings.proxySocks5'), value: 'socks5' },
+              { label: t("settings.proxyNone"), value: "none" },
+              { label: t("settings.proxySystem"), value: "system" },
+              { label: t("settings.proxyHttp"), value: "http" },
+              { label: t("settings.proxySocks5"), value: "socks5" },
             ]}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.proxyAddress')}</span>
+          <span>{t("settings.proxyAddress")}</span>
           <Input
-            value={settings.proxy_address ?? ''}
-            onChange={(e) =>
-              saveSettings({ proxy_address: e.target.value || null })
-            }
+            value={settings.proxy_address ?? ""}
+            onChange={(e) => saveSettings({ proxy_address: e.target.value || null })}
             placeholder="127.1.0.0"
             disabled={!needsAddress}
             style={{ width: 280 }}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t('settings.proxyPort')}</span>
+          <span>{t("settings.proxyPort")}</span>
           <InputNumber
             value={settings.proxy_port}
             onChange={(val) => saveSettings({ proxy_port: val ?? null })}
@@ -92,10 +88,10 @@ export function ProxySettings() {
             style={{ width: 150 }}
           />
         </div>
-        <Divider style={{ margin: '4px 0' }} />
-        <div style={{ padding: '4px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={{ padding: "4px 0", display: "flex", justifyContent: "flex-end" }}>
           <Button onClick={handleTestProxy} disabled={!needsAddress} loading={testing}>
-            {t('settings.testProxy')}
+            {t("settings.testProxy")}
           </Button>
         </div>
       </SettingsGroup>

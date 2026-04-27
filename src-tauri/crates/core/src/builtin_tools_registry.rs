@@ -1,13 +1,14 @@
+use crate::error::{AxAgentError, Result};
+use crate::mcp_client::McpToolResult;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::LazyLock;
-use crate::error::{AxAgentError, Result};
-use crate::mcp_client::McpToolResult;
 
-pub type BoxedToolHandlerInner = dyn Fn(Value) -> Pin<Box<dyn Future<Output = Result<McpToolResult>> + Send>> + Send + Sync;
+pub type BoxedToolHandlerInner =
+    dyn Fn(Value) -> Pin<Box<dyn Future<Output = Result<McpToolResult>> + Send>> + Send + Sync;
 pub type BoxedToolHandler = Arc<BoxedToolHandlerInner>;
 
 pub struct BuiltinToolDefinition {
@@ -61,18 +62,16 @@ pub fn get_global_db_path() -> Option<String> {
     db_path.clone()
 }
 
-pub fn register_builtin_handler(
-    server_name: &str,
-    tool_name: &str,
-    handler: BoxedToolHandler,
-) {
+pub fn register_builtin_handler(server_name: &str, tool_name: &str, handler: BoxedToolHandler) {
     let mut handlers = BUILTIN_HANDLERS.write().unwrap();
     handlers.insert((server_name.to_string(), tool_name.to_string()), handler);
 }
 
 pub fn get_handler(server_name: &str, tool_name: &str) -> Option<BoxedToolHandler> {
     let handlers = BUILTIN_HANDLERS.read().unwrap();
-    handlers.get(&(server_name.to_string(), tool_name.to_string())).cloned()
+    handlers
+        .get(&(server_name.to_string(), tool_name.to_string()))
+        .cloned()
 }
 
 pub fn list_all_builtin_handlers() -> Vec<(String, String)> {
@@ -501,6 +500,278 @@ pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
                 },
             ],
         },
+        BuiltinServerDefinition {
+            server_id: "builtin-computer-control".to_string(),
+            server_name: "@axagent/computer-control".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "screen_capture".to_string(),
+                    description: "Capture a screenshot of the screen, a specific region, or a window. Returns a base64-encoded PNG image.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "monitor": {
+                                "type": "integer",
+                                "description": "Monitor index (default: 0)"
+                            },
+                            "region": {
+                                "type": "object",
+                                "description": "Capture region (optional)",
+                                "properties": {
+                                    "x": { "type": "integer" },
+                                    "y": { "type": "integer" },
+                                    "width": { "type": "integer" },
+                                    "height": { "type": "integer" }
+                                }
+                            },
+                            "window_title": {
+                                "type": "string",
+                                "description": "Capture specific window by title (optional)"
+                            }
+                        }
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "find_ui_elements".to_string(),
+                    description: "Find accessible UI elements on screen using accessibility APIs. Returns element role, name, bounds, and interactivity.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "role": {
+                                "type": "string",
+                                "description": "Element role filter (button, text, link, input, etc.)"
+                            },
+                            "name_contains": {
+                                "type": "string",
+                                "description": "Filter by element name"
+                            },
+                            "application": {
+                                "type": "string",
+                                "description": "Filter by application name"
+                            },
+                            "window_title": {
+                                "type": "string",
+                                "description": "Filter by window title"
+                            }
+                        }
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "mouse_click".to_string(),
+                    description: "Click at specified screen coordinates.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "x": { "type": "number", "description": "X coordinate" },
+                            "y": { "type": "number", "description": "Y coordinate" },
+                            "button": {
+                                "type": "string",
+                                "enum": ["left", "right", "middle"],
+                                "description": "Mouse button (default: left)"
+                            }
+                        },
+                        "required": ["x", "y"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "type_text".to_string(),
+                    description: "Type text at the current cursor position or at specified coordinates.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "text": { "type": "string", "description": "Text to type" },
+                            "x": { "type": "number", "description": "Click at X before typing (optional)" },
+                            "y": { "type": "number", "description": "Click at Y before typing (optional)" }
+                        },
+                        "required": ["text"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "press_key".to_string(),
+                    description: "Press a keyboard key with optional modifiers (Ctrl, Alt, Shift).".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "key": { "type": "string", "description": "Key to press (e.g., 'Enter', 'Tab', 'a', 'F1')" },
+                            "modifiers": {
+                                "type": "array",
+                                "items": { "type": "string", "enum": ["alt", "control", "shift", "super"] },
+                                "description": "Key modifiers"
+                            }
+                        },
+                        "required": ["key"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "mouse_scroll".to_string(),
+                    description: "Scroll at specified screen coordinates.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "x": { "type": "number", "description": "X coordinate" },
+                            "y": { "type": "number", "description": "Y coordinate" },
+                            "delta": { "type": "integer", "description": "Scroll amount (positive=up, negative=down)" }
+                        },
+                        "required": ["x", "y", "delta"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-browser".to_string(),
+            server_name: "@axagent/browser".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "browser_navigate".to_string(),
+                    description: "Navigate to a URL in the browser. Returns current URL and page title.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "description": "URL to navigate to"
+                            }
+                        },
+                        "required": ["url"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_screenshot".to_string(),
+                    description: "Take a screenshot of the current browser page. Returns base64-encoded PNG.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "full_page": {
+                                "type": "boolean",
+                                "description": "Capture full page (default: false)"
+                            }
+                        }
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_click".to_string(),
+                    description: "Click an element identified by CSS selector.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector for the element"
+                            }
+                        },
+                        "required": ["selector"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_fill".to_string(),
+                    description: "Fill an input field with text.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector for the input field"
+                            },
+                            "value": {
+                                "type": "string",
+                                "description": "Text to fill"
+                            }
+                        },
+                        "required": ["selector", "value"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_type".to_string(),
+                    description: "Type text into an element character by character.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector for the element"
+                            },
+                            "text": {
+                                "type": "string",
+                                "description": "Text to type"
+                            }
+                        },
+                        "required": ["selector", "text"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_extract_text".to_string(),
+                    description: "Extract text content from an element.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector for the element"
+                            }
+                        },
+                        "required": ["selector"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_extract_all".to_string(),
+                    description: "Extract all elements matching a selector with their attributes.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector"
+                            }
+                        },
+                        "required": ["selector"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_get_content".to_string(),
+                    description: "Get the full HTML content of the current page.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {}
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_select".to_string(),
+                    description: "Select an option in a dropdown/select element.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector for the select element"
+                            },
+                            "value": {
+                                "type": "string",
+                                "description": "Option value to select"
+                            }
+                        },
+                        "required": ["selector", "value"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "browser_wait_for".to_string(),
+                    description: "Wait for an element to appear on the page.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector to wait for"
+                            },
+                            "timeout": {
+                                "type": "integer",
+                                "description": "Timeout in milliseconds (default: 10000)"
+                            }
+                        },
+                        "required": ["selector"]
+                    }),
+                },
+            ],
+        },
     ]
 }
 
@@ -631,6 +902,102 @@ pub fn get_dynamic_builtin_tools() -> std::collections::BTreeMap<String, Builtin
                     }
                 },
                 "required": ["query"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "generate_image".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-image-gen".to_string(),
+            server_name: "@axagent/image-gen".to_string(),
+            tool_name: "generate_image".to_string(),
+            description:
+                "Generate an image from a text prompt using AI. Supports Flux and DALL-E providers."
+                    .to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "description": "Text description of the image to generate"
+                    },
+                    "negative_prompt": {
+                        "type": "string",
+                        "description": "What to avoid in the image"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "enum": ["flux", "dall-e"],
+                        "description": "Image generation provider (default: flux)"
+                    },
+                    "width": {
+                        "type": "integer",
+                        "description": "Image width"
+                    },
+                    "height": {
+                        "type": "integer",
+                        "description": "Image height"
+                    },
+                    "steps": {
+                        "type": "integer",
+                        "description": "Number of diffusion steps (Flux only)"
+                    },
+                    "seed": {
+                        "type": "integer",
+                        "description": "Random seed for reproducibility"
+                    },
+                    "api_key": {
+                        "type": "string",
+                        "description": "API key for the provider"
+                    }
+                },
+                "required": ["prompt"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "generate_chart_config".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-chart-gen".to_string(),
+            server_name: "@axagent/chart-gen".to_string(),
+            tool_name: "generate_chart_config".to_string(),
+            description: "Generate an ECharts configuration from a natural language description.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "Natural language description of the chart"
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "Optional data to visualize"
+                    },
+                    "chart_type": {
+                        "type": "string",
+                        "enum": ["line", "bar", "pie", "scatter", "heatmap", "radar", "treemap", "sankey", "funnel", "gauge"],
+                        "description": "Desired chart type"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Chart title"
+                    },
+                    "api_key": {
+                        "type": "string",
+                        "description": "API key for the LLM"
+                    },
+                    "base_url": {
+                        "type": "string",
+                        "description": "Base URL for the LLM API"
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model to use"
+                    }
+                },
+                "required": ["description"]
             }),
         },
     );

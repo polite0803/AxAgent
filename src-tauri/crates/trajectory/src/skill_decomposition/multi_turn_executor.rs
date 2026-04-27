@@ -3,13 +3,14 @@ use super::package_parser::SkillPackageParser;
 use super::prompt_templates::PromptTemplates;
 use super::workflow_validator::WorkflowValidator;
 use crate::skill_decomposition::DecompositionResult;
-use async_trait::async_trait;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
 
-#[async_trait]
 pub trait LlmClient: Send + Sync {
-    async fn chat(&self, messages: Vec<ChatMessageInput>) -> Result<String, String>;
+    fn chat(
+        &self,
+        messages: Vec<ChatMessageInput>,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send + '_>>;
 }
 
 #[derive(Debug, Clone)]
@@ -106,8 +107,7 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
                     .map_err(|e| e.to_string())?;
             }
 
-            let parsed_metadata =
-                serde_json::from_str::<serde_json::Value>(&full_response).ok();
+            let parsed_metadata = serde_json::from_str::<serde_json::Value>(&full_response).ok();
 
             tx.send(DecompositionEvent::message_complete(
                 turn_id,
@@ -132,8 +132,7 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
         }
 
         let final_result = Self::build_final_result(&results);
-        let final_json: serde_json::Value =
-            serde_json::from_str(&final_result).unwrap_or_default();
+        let final_json: serde_json::Value = serde_json::from_str(&final_result).unwrap_or_default();
 
         tx.send(DecompositionEvent::final_result(final_json.clone()))
             .await
@@ -197,7 +196,8 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
     }
 
     fn detect_primary_language(files: &[super::multi_turn::SkillFile]) -> String {
-        let mut language_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        let mut language_counts: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
 
         for f in files {
             let lang = f.file_type.language_name();

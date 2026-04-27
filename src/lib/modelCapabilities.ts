@@ -1,13 +1,13 @@
-import type { Model, ModelCapability, ModelType, ProviderConfig } from '@/types';
+import type { Model, ModelCapability, ModelType, ProviderConfig } from "@/types";
 
 const CHAT_MODEL_CAPABILITIES: ModelCapability[] = [
-  'Vision',
-  'FunctionCalling',
-  'Reasoning',
+  "Vision",
+  "FunctionCalling",
+  "Reasoning",
 ];
 
 export function getEditableCapabilities(modelType: ModelType | null | undefined): ModelCapability[] {
-  return modelType === 'Chat' || !modelType ? CHAT_MODEL_CAPABILITIES : [];
+  return modelType === "Chat" || !modelType ? CHAT_MODEL_CAPABILITIES : [];
 }
 
 export function sanitizeModelCapabilities(
@@ -19,20 +19,20 @@ export function sanitizeModelCapabilities(
 }
 
 export function getVisibleModelCapabilities(
-  model: Pick<Model, 'model_type' | 'capabilities'>,
+  model: Pick<Model, "model_type" | "capabilities">,
 ): ModelCapability[] {
   return sanitizeModelCapabilities(model.model_type, model.capabilities);
 }
 
 export function modelHasCapability(
-  model: Pick<Model, 'capabilities'> | null | undefined,
+  model: Pick<Model, "capabilities"> | null | undefined,
   capability: ModelCapability,
 ): boolean {
   return model?.capabilities.includes(capability) ?? false;
 }
 
-export function supportsReasoning(model: Pick<Model, 'capabilities'> | null | undefined): boolean {
-  return modelHasCapability(model, 'Reasoning');
+export function supportsReasoning(model: Pick<Model, "capabilities"> | null | undefined): boolean {
+  return modelHasCapability(model, "Reasoning");
 }
 
 export function findModelByIds(
@@ -40,7 +40,7 @@ export function findModelByIds(
   providerId: string | null | undefined,
   model_id: string | null | undefined,
 ): Model | null {
-  if (!providerId || !model_id) return null;
+  if (!providerId || !model_id) { return null; }
   const provider = providers.find((item) => item.id === providerId);
   return provider?.models.find((item) => item.model_id === model_id) ?? null;
 }

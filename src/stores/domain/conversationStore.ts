@@ -1,57 +1,82 @@
-import { create } from 'zustand';
-import { invoke, listen, type UnlistenFn, isTauri } from '@/lib/invoke';
-import { formatSearchContent, buildSearchTag } from '@/lib/searchUtils';
-import { buildKnowledgeTag, buildMemoryTag, type RagContextRetrievedEvent } from '@/lib/memoryUtils';
-import { useSearchStore } from '@/stores';
-import { useCategoryStore } from '../feature/categoryStore';
-import { usePreferenceStore, getEffectiveThinkingBudget, conversationPreferenceStateFromConversation, conversationPreferenceUpdateFromState, categoryTemplateUpdateFromCategory, mergeConversationCollections } from './preferenceStore';
-import {
-  useStreamStore,
-  appendStreamChunk,
-  flushPendingStreamChunk,
-  startConversationStream,
-  stopConversationStream,
-  getStreamingMessageId,
-  isConversationStreaming as isConvStreaming,
-  // Module-level variable accessors
-  _unlisten, _listenerGen, _streamBuffer, _streamPrefix,
-  _pendingConversationRefresh, STREAM_UI_FLUSH_INTERVAL_MS,
-  _pendingUiChunk, _streamUiFlushTimer, _activeMessageLoadSeq,
-  _multiModelTotalRemaining, _multiModelDoneResolve, _isMultiModelActive,
-  _multiModelFirstModelId, _multiModelFirstMessageId, _userManuallySelectedVersion,
-  // Setter functions
-  setUnlisten, incrementListenerGen, setStreamBuffer, setStreamPrefix,
-  clearPendingConversationRefresh, deletePendingConversationRefresh,
-  addPendingConversationRefresh,
-  setPendingUiChunk, setStreamUiFlushTimer, incrementActiveMessageLoadSeq,
-  setMultiModelTotalRemaining, decrementMultiModelTotalRemaining,
-  setMultiModelDoneResolve, setIsMultiModelActive,
-  setMultiModelFirstModelId, setMultiModelFirstMessageId,
-  setUserManuallySelectedVersion, resetMultiModelState,
-  registerConversationStoreRef,
-} from './streamStore';
-import {
-  mergePreservedMessages,
-  mergeOlderPages,
-  MESSAGE_PAGE_SIZE,
-} from './messageStore';
+import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
+import { buildKnowledgeTag, buildMemoryTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
+import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
+import { useSearchStore } from "@/stores";
 import type {
-  Conversation,
-  Message,
-  MessagePage,
-  AttachmentInput,
-  ConversationSearchResult,
-  UpdateConversationInput,
-  ChatStreamEvent,
-  ChatStreamErrorEvent,
-  ConversationWorkspaceSnapshot,
-  ConversationBranch,
-  CompareResponsesResult,
   AgentDoneEvent,
   AgentErrorEvent,
   AgentStreamTextEvent,
   AgentStreamThinkingEvent,
-} from '@/types';
+  AttachmentInput,
+  ChatStreamErrorEvent,
+  ChatStreamEvent,
+  CompareResponsesResult,
+  Conversation,
+  ConversationBranch,
+  ConversationSearchResult,
+  ConversationWorkspaceSnapshot,
+  Message,
+  MessagePage,
+  UpdateConversationInput,
+  WorkflowEvent,
+  WorkflowCompleteEvent,
+} from "@/types";
+import { create } from "zustand";
+import { useCategoryStore } from "../feature/categoryStore";
+import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "./messageStore";
+import {
+  categoryTemplateUpdateFromCategory,
+  conversationPreferenceStateFromConversation,
+  conversationPreferenceUpdateFromState,
+  getEffectiveThinkingBudget,
+  mergeConversationCollections,
+  usePreferenceStore,
+} from "./preferenceStore";
+import {
+  _activeMessageLoadSeq,
+  _isMultiModelActive,
+  _listenerGen,
+  _multiModelDoneResolve,
+  _multiModelFirstMessageId,
+  _multiModelFirstModelId,
+  _multiModelTotalRemaining,
+  _pendingConversationRefresh,
+  _pendingUiChunk,
+  _streamBuffer,
+  _streamPrefix,
+  _streamUiFlushTimer,
+  // Module-level variable accessors
+  _unlisten,
+  _userManuallySelectedVersion,
+  addPendingConversationRefresh,
+  appendStreamChunk,
+  clearPendingConversationRefresh,
+  decrementMultiModelTotalRemaining,
+  deletePendingConversationRefresh,
+  flushPendingStreamChunk,
+  getStreamingMessageId,
+  incrementActiveMessageLoadSeq,
+  incrementListenerGen,
+  isConversationStreaming as isConvStreaming,
+  registerConversationStoreRef,
+  resetMultiModelState,
+  setIsMultiModelActive,
+  setMultiModelDoneResolve,
+  setMultiModelFirstMessageId,
+  setMultiModelFirstModelId,
+  setMultiModelTotalRemaining,
+  setPendingUiChunk,
+  setStreamBuffer,
+  setStreamPrefix,
+  setStreamUiFlushTimer,
+  // Setter functions
+  setUnlisten,
+  setUserManuallySelectedVersion,
+  startConversationStream,
+  stopConversationStream,
+  STREAM_UI_FLUSH_INTERVAL_MS,
+  useStreamStore,
+} from "./streamStore";
 
 interface ConversationState {
   conversations: Conversation[];
@@ -82,9 +107,15 @@ interface ConversationState {
   updateConversation: (id: string, input: UpdateConversationInput) => Promise<void>;
   renameConversation: (id: string, title: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
-  branchConversation: (conversationId: string, untilMessageId: string, asChild: boolean, title?: string) => Promise<Conversation>;
+  branchConversation: (
+    conversationId: string,
+    untilMessageId: string,
+    asChild: boolean,
+    title?: string,
+  ) => Promise<Conversation>;
   togglePin: (id: string) => Promise<void>;
   toggleArchive: (id: string) => Promise<void>;
+  archiveToKnowledgeBase: (id: string, knowledgeBaseId: string) => Promise<void>;
   archivedConversations: Conversation[];
   fetchArchivedConversations: () => Promise<void>;
   batchDelete: (ids: string[]) => Promise<void>;
@@ -202,22 +233,22 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
   insertContextClear: async () => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) return;
+    if (!conversationId) { return; }
     try {
-      const msg = await invoke<Message>('send_system_message', {
+      const msg = await invoke<Message>("send_system_message", {
         conversationId,
-        content: '<!-- context-clear -->',
+        content: "<!-- context-clear -->",
       });
       set((s) => ({ messages: [...s.messages, msg] }));
       // Backup and clear agent SDK context (no-op if no agent session exists)
-      await invoke('agent_backup_and_clear_sdk_context', { conversationId }).catch(() => {});
+      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch(() => {});
     } catch {
       // If backend command doesn't exist yet, add optimistic local message
       const localMsg: Message = {
         id: `ctx-clear-${Date.now()}`,
         conversation_id: conversationId,
-        role: 'system',
-        content: '<!-- context-clear -->',
+        role: "system",
+        content: "<!-- context-clear -->",
         provider_id: null,
         model_id: null,
         token_count: null,
@@ -229,24 +260,24 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         parent_message_id: null,
         version_index: 0,
         is_active: true,
-        status: 'complete',
+        status: "complete",
       };
       set((s) => ({ messages: [...s.messages, localMsg] }));
     }
   },
   removeContextClear: async (messageId) => {
     const conversationId = get().activeConversationId;
-    if (messageId.startsWith('ctx-clear-') || messageId.startsWith('temp-')) {
+    if (messageId.startsWith("ctx-clear-") || messageId.startsWith("temp-")) {
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       return;
     }
 
     try {
-      await invoke('delete_message', { id: messageId });
+      await invoke("delete_message", { id: messageId });
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       // Restore agent SDK context from backup (no-op if no agent session or no backup)
       if (conversationId) {
-        await invoke('agent_restore_sdk_context_from_backup', { conversationId }).catch(() => {});
+        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch(() => {});
       }
     } catch (e) {
       set({ error: String(e) });
@@ -256,19 +287,25 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   clearAllMessages: async () => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) return;
+    if (!conversationId) { return; }
     try {
-      await invoke('clear_conversation_messages', { conversationId });
-      set({ messages: [], hasOlderMessages: false, totalActiveCount: 0, oldestLoadedMessageId: null, loadingOlder: false });
+      await invoke("clear_conversation_messages", { conversationId });
+      set({
+        messages: [],
+        hasOlderMessages: false,
+        totalActiveCount: 0,
+        oldestLoadedMessageId: null,
+        loadingOlder: false,
+      });
     } catch (e) {
-      console.error('Failed to clear messages:', e);
+      console.error("Failed to clear messages:", e);
     }
   },
 
   fetchConversations: async () => {
     set({ loading: true });
     try {
-      const conversations = await invoke<Conversation[]>('list_conversations');
+      const conversations = await invoke<Conversation[]>("list_conversations");
       set({ conversations, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -281,7 +318,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
     incrementActiveMessageLoadSeq();
     if (!id) {
-      if (get().activeConversationId === null) return;
+      if (get().activeConversationId === null) { return; }
       set({
         activeConversationId: null,
         messages: [],
@@ -328,7 +365,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
       // If there's an active stream for this conversation, inject buffered content
-      if (_streamBuffer && _streamBuffer.conversationId === id && isConvStreaming(useStreamStore.getState().activeStreams, id)) {
+      if (
+        _streamBuffer && _streamBuffer.conversationId === id
+        && isConvStreaming(useStreamStore.getState().activeStreams, id)
+      ) {
         const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
         set((s) => {
           const exists = s.messages.some((m) => m.id === realId);
@@ -339,7 +379,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               messages: s.messages.map((m) =>
                 m.id === realId
                   ? { ...m, content: _streamBuffer!.content, thinking: _streamBuffer!.thinking || null }
-                  : m,
+                  : m
               ),
             };
           }
@@ -347,7 +387,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           const newMessage: Message = {
             id: realId,
             conversation_id: id,
-            role: 'assistant',
+            role: "assistant",
             content: _streamBuffer!.content,
             provider_id: null,
             model_id: null,
@@ -360,7 +400,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             parent_message_id: null,
             version_index: 0,
             is_active: true,
-            status: 'partial',
+            status: "partial",
           };
           useStreamStore.setState({ streamingMessageId: realId });
           return {
@@ -379,7 +419,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               messages: s.messages.map((m) =>
                 m.id === realId
                   ? { ...m, content: _streamBuffer!.content, thinking: _streamBuffer!.thinking || null }
-                  : m,
+                  : m
               ),
             };
           }
@@ -403,9 +443,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const templateProviderId = category?.default_provider_id ?? providerId;
       const templateModelId = category?.default_model_id ?? model_id;
       if (!templateModelId || !templateProviderId) {
-        throw new Error('Cannot create conversation: model_id and provider_id are required. Please configure a provider and model first.');
+        throw new Error(
+          "Cannot create conversation: model_id and provider_id are required. Please configure a provider and model first.",
+        );
       }
-      const createdConversation = await invoke<Conversation>('create_conversation', {
+      const createdConversation = await invoke<Conversation>("create_conversation", {
         title,
         modelId: templateModelId,
         providerId: templateProviderId,
@@ -413,7 +455,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
       let conversation = createdConversation;
       try {
-        conversation = await invoke<Conversation>('update_conversation', {
+        conversation = await invoke<Conversation>("update_conversation", {
           id: createdConversation.id,
           input: {
             ...categoryTemplateUpdateFromCategory(category),
@@ -441,7 +483,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   updateConversation: async (id, input) => {
     try {
-      const updated = await invoke<Conversation>('update_conversation', { id, input });
+      const updated = await invoke<Conversation>("update_conversation", { id, input });
       set((s) => ({
         ...mergeConversationCollections(s.conversations, s.archivedConversations, updated),
         error: null,
@@ -462,7 +504,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   regenerateTitle: async (conversationId) => {
     try {
-      await invoke('regenerate_conversation_title', { conversationId });
+      await invoke("regenerate_conversation_title", { conversationId });
     } catch (e) {
       set({ error: String(e) });
     }
@@ -470,7 +512,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   deleteConversation: async (id) => {
     try {
-      await invoke('delete_conversation', { id });
+      await invoke("delete_conversation", { id });
       const state = get();
       set({
         conversations: state.conversations.filter((c) => c.id !== id),
@@ -486,7 +528,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   branchConversation: async (conversationId, untilMessageId, asChild, title) => {
     try {
-      const newConv = await invoke<Conversation>('branch_conversation', {
+      const newConv = await invoke<Conversation>("branch_conversation", {
         conversationId,
         untilMessageId,
         asChild,
@@ -499,7 +541,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         error: null,
       }));
       // Load the branched messages
-      const msgs = await invoke<Message[]>('list_messages', { conversationId: newConv.id });
+      const msgs = await invoke<Message[]>("list_messages", { conversationId: newConv.id });
       set({ messages: msgs });
       return newConv;
     } catch (e) {
@@ -510,7 +552,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   togglePin: async (id) => {
     try {
-      const updated = await invoke<Conversation>('toggle_pin_conversation', { id });
+      const updated = await invoke<Conversation>("toggle_pin_conversation", { id });
       set((s) => ({
         conversations: s.conversations.map((c) => (c.id === id ? updated : c)),
         error: null,
@@ -525,7 +567,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   toggleArchive: async (id) => {
     try {
-      const updated = await invoke<Conversation>('toggle_archive_conversation', { id });
+      const updated = await invoke<Conversation>("toggle_archive_conversation", { id });
       if (updated.is_archived) {
         // Moved to archive — remove from active list, add to archived
         set((s) => ({
@@ -549,9 +591,29 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
   },
 
+  archiveToKnowledgeBase: async (id, knowledgeBaseId) => {
+    try {
+      const updated = await invoke<Conversation>("archive_conversation_to_knowledge_base", {
+        id,
+        knowledgeBaseId,
+      });
+      // Archive succeeded — move from active list to archived list
+      set((s) => ({
+        conversations: s.conversations.filter((c) => c.id !== id),
+        archivedConversations: [updated, ...s.archivedConversations],
+        activeConversationId: s.activeConversationId === id ? null : s.activeConversationId,
+        messages: s.activeConversationId === id ? [] : s.messages,
+        error: null,
+      }));
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
   fetchArchivedConversations: async () => {
     try {
-      const archived = await invoke<Conversation[]>('list_archived_conversations');
+      const archived = await invoke<Conversation[]>("list_archived_conversations");
       set({ archivedConversations: archived, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -562,16 +624,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const errors: string[] = [];
     for (const id of ids) {
       try {
-        await invoke('delete_conversation', { id });
+        await invoke("delete_conversation", { id });
       } catch (e) {
         errors.push(String(e));
       }
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
-      activeConversationId: ids.includes(s.activeConversationId ?? '') ? null : s.activeConversationId,
-      messages: ids.includes(s.activeConversationId ?? '') ? [] : s.messages,
-      error: errors.length ? errors.join('; ') : null,
+      activeConversationId: ids.includes(s.activeConversationId ?? "") ? null : s.activeConversationId,
+      messages: ids.includes(s.activeConversationId ?? "") ? [] : s.messages,
+      error: errors.length ? errors.join("; ") : null,
     }));
   },
 
@@ -579,28 +641,34 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const archived: Conversation[] = [];
     for (const id of ids) {
       try {
-        const updated = await invoke<Conversation>('toggle_archive_conversation', { id });
-        if (updated.is_archived) archived.push(updated);
+        const updated = await invoke<Conversation>("toggle_archive_conversation", { id });
+        if (updated.is_archived) { archived.push(updated); }
       } catch (_) { /* skip */ }
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
       archivedConversations: [...archived, ...s.archivedConversations],
-      activeConversationId: ids.includes(s.activeConversationId ?? '') ? null : s.activeConversationId,
-      messages: ids.includes(s.activeConversationId ?? '') ? [] : s.messages,
+      activeConversationId: ids.includes(s.activeConversationId ?? "") ? null : s.activeConversationId,
+      messages: ids.includes(s.activeConversationId ?? "") ? [] : s.messages,
       error: null,
     }));
   },
 
   sendMessage: async (content, attachments = [], searchProviderId = null) => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) throw new Error('No active conversation');
+    if (!conversationId) { throw new Error("No active conversation"); }
+
+    // Guard: prevent duplicate sends while a stream is already active for this conversation
+    if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+      console.warn("[sendMessage] Ignoring duplicate send — stream already active for", conversationId);
+      return;
+    }
 
     // Optimistically add user message BEFORE backend call
     const optimisticUserMsg: Message = {
       id: `temp-user-${Date.now()}`,
       conversation_id: conversationId,
-      role: 'user',
+      role: "user",
       content,
       provider_id: null,
       model_id: null,
@@ -609,7 +677,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         id: `temp-att-${Date.now()}`,
         file_name: a.file_name,
         file_type: a.file_type,
-        file_path: '',
+        file_path: "",
         file_size: a.file_size,
         data: a.data,
       })),
@@ -620,7 +688,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       parent_message_id: null,
       version_index: 0,
       is_active: true,
-      status: 'complete',
+      status: "complete",
     };
 
     // Create assistant placeholder upfront (for search status or streaming)
@@ -630,14 +698,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const hasKnowledgeRag = kbIds.length > 0;
     const hasMemoryRag = memIds.length > 0;
     const hasAnyRag = hasKnowledgeRag || hasMemoryRag;
-    let placeholderContent = '';
-    if (searchProviderId) placeholderContent += buildSearchTag('searching');
-    if (hasKnowledgeRag) placeholderContent += buildKnowledgeTag('searching');
-    if (hasMemoryRag) placeholderContent += buildMemoryTag('searching');
+    let placeholderContent = "";
+    if (searchProviderId) { placeholderContent += buildSearchTag("searching"); }
+    if (hasKnowledgeRag) { placeholderContent += buildKnowledgeTag("searching"); }
+    if (hasMemoryRag) { placeholderContent += buildMemoryTag("searching"); }
     const placeholderAssistant: Message = {
       id: tempAssistantId,
       conversation_id: conversationId,
-      role: 'assistant',
+      role: "assistant",
       content: placeholderContent,
       provider_id: null,
       model_id: null,
@@ -650,7 +718,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       parent_message_id: optimisticUserMsg.id,
       version_index: 0,
       is_active: true,
-      status: 'partial',
+      status: "partial",
     };
 
     set((s) => ({
@@ -671,19 +739,19 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // If web search is enabled, execute search before sending to backend
       let finalContent = content;
       if (searchProviderId) {
-        let searchResultTag = '';
+        let searchResultTag = "";
         try {
           const searchResult = await useSearchStore.getState().executeSearch(searchProviderId, content);
           if (searchResult?.ok && searchResult.results.length > 0) {
             finalContent = formatSearchContent(searchResult.results, content);
-            searchResultTag = buildSearchTag('done', searchResult.results);
+            searchResultTag = buildSearchTag("done", searchResult.results);
           }
         } catch (e) {
           // Search failed, continue without search results
         }
         // Replace searching tag with results, keep RAG searching tags if present
-        const kbPart = hasKnowledgeRag ? buildKnowledgeTag('searching') : '';
-        const memPart = hasMemoryRag ? buildMemoryTag('searching') : '';
+        const kbPart = hasKnowledgeRag ? buildKnowledgeTag("searching") : "";
+        const memPart = hasMemoryRag ? buildMemoryTag("searching") : "";
         setStreamPrefix(searchResultTag + kbPart + memPart);
         set((s) => ({
           messages: s.messages.map(m =>
@@ -692,8 +760,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }));
       } else if (hasAnyRag) {
         // RAG only — set prefix so searching tags flow into stream buffer
-        const kbPart = hasKnowledgeRag ? buildKnowledgeTag('searching') : '';
-        const memPart = hasMemoryRag ? buildMemoryTag('searching') : '';
+        const kbPart = hasKnowledgeRag ? buildKnowledgeTag("searching") : "";
+        const memPart = hasMemoryRag ? buildMemoryTag("searching") : "";
         setStreamPrefix(kbPart + memPart);
       }
 
@@ -701,7 +769,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const thinkingBudget = getEffectiveThinkingBudget(conversationId);
       const kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
       const memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
-      const userMessage = await invoke<Message>('send_message', {
+      const userMessage = await invoke<Message>("send_message", {
         conversationId,
         content: finalContent,
         attachments,
@@ -714,8 +782,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Replace optimistic user msg with real one, update placeholder parent
       set((s) => ({
         messages: s.messages.map(m => {
-          if (m.id === optimisticUserMsg.id) return userMessage;
-          if (m.id === tempAssistantId) return { ...m, parent_message_id: userMessage.id };
+          if (m.id === optimisticUserMsg.id) { return userMessage; }
+          if (m.id === tempAssistantId) { return { ...m, parent_message_id: userMessage.id }; }
           return m;
         }),
       }));
@@ -725,45 +793,53 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         await new Promise((r) => setTimeout(r, 600));
         useStreamStore.setState((s) => ({
           ...stopConversationStream(s.activeStreams, conversationId),
-          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+          streamingStartTimestamps: (() => {
+            const t = { ...s.streamingStartTimestamps };
+            delete t[conversationId];
+            return t;
+          })(),
           thinkingActiveMessageIds: new Set<string>(),
         }));
         get().fetchMessages(conversationId);
       }
     } catch (e) {
-      console.error('[sendMessage] error:', e);
+      console.error("[sendMessage] error:", e);
       const errMsg = String(e);
       const currentStreamingMessageId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
       useStreamStore.setState((s) => ({
         ...stopConversationStream(s.activeStreams, conversationId),
-        streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+        streamingStartTimestamps: (() => {
+          const t = { ...s.streamingStartTimestamps };
+          delete t[conversationId];
+          return t;
+        })(),
         thinkingActiveMessageIds: new Set<string>(),
       }));
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
-              m.id === currentStreamingMessageId
-                ? { ...m, content: errMsg, status: 'error' as const }
-                : m
-            )
+            m.id === currentStreamingMessageId
+              ? { ...m, content: errMsg, status: "error" as const }
+              : m
+          )
           : [...s.messages, {
-              id: `temp-error-${Date.now()}`,
-              conversation_id: conversationId,
-              role: 'assistant' as const,
-              content: errMsg,
-              provider_id: null,
-              model_id: null,
-              token_count: null,
-              attachments: [],
-              thinking: null,
-              tool_calls_json: null,
-              tool_call_id: null,
-              created_at: Date.now(),
-              parent_message_id: null,
-              version_index: 0,
-              is_active: true,
-              status: 'error' as const,
-            }],
+            id: `temp-error-${Date.now()}`,
+            conversation_id: conversationId,
+            role: "assistant" as const,
+            content: errMsg,
+            provider_id: null,
+            model_id: null,
+            token_count: null,
+            attachments: [],
+            thinking: null,
+            tool_calls_json: null,
+            tool_call_id: null,
+            created_at: Date.now(),
+            parent_message_id: null,
+            version_index: 0,
+            is_active: true,
+            status: "error" as const,
+          }],
       }));
       // Sync messages from DB so temp- prefixed user messages get replaced
       // with real backend IDs, enabling regenerate after a send failure.
@@ -775,10 +851,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   sendAgentMessage: async (content, attachments = []) => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) throw new Error('No active conversation');
+    if (!conversationId) { throw new Error("No active conversation"); }
 
     const conversation = get().conversations.find((c) => c.id === conversationId);
-    if (!conversation) throw new Error('Conversation not found');
+    if (!conversation) { throw new Error("Conversation not found"); }
+
+    // Guard: prevent duplicate sends while a stream is already active for this conversation
+    if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+      console.warn("[sendAgentMessage] Ignoring duplicate send — stream already active for", conversationId);
+      return;
+    }
 
     const providerId = conversation.provider_id;
     const model_id = conversation.model_id;
@@ -787,7 +869,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const optimisticUserMsg: Message = {
       id: `temp-user-${Date.now()}`,
       conversation_id: conversationId,
-      role: 'user',
+      role: "user",
       content,
       provider_id: null,
       model_id: null,
@@ -796,7 +878,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         id: `temp-att-${Date.now()}`,
         file_name: a.file_name,
         file_type: a.file_type,
-        file_path: '',
+        file_path: "",
         file_size: a.file_size,
         data: a.data,
       })),
@@ -807,7 +889,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       parent_message_id: null,
       version_index: 0,
       is_active: true,
-      status: 'complete',
+      status: "complete",
     };
 
     // Placeholder assistant message
@@ -815,8 +897,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const placeholderAssistant: Message = {
       id: currentMsgId,
       conversation_id: conversationId,
-      role: 'assistant',
-      content: '',
+      role: "assistant",
+      content: "",
       provider_id: providerId,
       model_id: model_id,
       token_count: null,
@@ -828,7 +910,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       parent_message_id: optimisticUserMsg.id,
       version_index: 0,
       is_active: true,
-      status: 'partial',
+      status: "partial",
     };
 
     set((s) => ({
@@ -844,10 +926,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     let unlistenStreamText: UnlistenFn | null = null;
     let unlistenStreamThinking: UnlistenFn | null = null;
     let unlistenMessageId: UnlistenFn | null = null;
+    let unlistenWorkflowComplete: UnlistenFn | null = null;
 
     // ── Agent stream buffering (same pattern as Q&A _pendingUiChunk) ──
-    let _agentPendingText = '';
-    let _agentPendingThinking = '';
+    let _agentPendingText = "";
+    let _agentPendingThinking = "";
     let _agentFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
     const flushAgentStreamChunks = () => {
@@ -857,19 +940,19 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       const textChunk = _agentPendingText;
       const thinkingChunk = _agentPendingThinking;
-      _agentPendingText = '';
-      _agentPendingThinking = '';
-      if (!textChunk && !thinkingChunk) return;
+      _agentPendingText = "";
+      _agentPendingThinking = "";
+      if (!textChunk && !thinkingChunk) { return; }
 
       set((s) => {
         const wasThinking = useStreamStore.getState().thinkingActiveMessageIds.has(currentMsgId);
         let nextThinkingIds = useStreamStore.getState().thinkingActiveMessageIds;
 
         const updatedMessages = s.messages.map((m) => {
-          if (m.id !== currentMsgId) return m;
+          if (m.id !== currentMsgId) { return m; }
 
-          let content = m.content || '';
-          let thinking = m.thinking || '';
+          let content = m.content || "";
+          let thinking = m.thinking || "";
 
           // 1. Process buffered thinking chunks first
           if (thinkingChunk) {
@@ -885,7 +968,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           if (textChunk) {
             const isCurrentlyThinking = thinkingChunk ? true : wasThinking;
             if (isCurrentlyThinking) {
-              content += '\n</think>\n\n';
+              content += "\n</think>\n\n";
               const n = new Set(nextThinkingIds);
               n.delete(currentMsgId);
               nextThinkingIds = n;
@@ -909,13 +992,36 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
     };
 
+    const handleWorkflowEvent = (event: WorkflowEvent) => {
+      const text = formatWorkflowEventAsText(event);
+      if (text) {
+        _agentPendingText += text;
+        scheduleAgentFlush();
+      }
+    };
+
+    const formatWorkflowEventAsText = (event: WorkflowEvent): string => {
+      switch (event.type) {
+        case "workflow_start":
+          return `\n[Workflow Started: ${event.workflowId}]\n`;
+        case "workflow_step_start":
+          return `\n[Step Start] ${event.agentRole}: ${event.stepGoal}\n`;
+        case "workflow_step_complete":
+          return `[Step Complete] ${event.stepGoal}: ${event.result}\n`;
+        case "workflow_step_error":
+          return `[Step Error] ${event.stepId}: ${event.error}\n`;
+        default:
+          return "";
+      }
+    };
+
     const clearAgentStreamBuffer = () => {
       if (_agentFlushTimer !== null) {
         clearTimeout(_agentFlushTimer);
         _agentFlushTimer = null;
       }
-      _agentPendingText = '';
-      _agentPendingThinking = '';
+      _agentPendingText = "";
+      _agentPendingThinking = "";
     };
 
     const cleanup = () => {
@@ -925,19 +1031,21 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       unlistenDone?.();
       unlistenError?.();
       unlistenMessageId?.();
+      unlistenWorkflowComplete?.();
       unlistenStreamText = null;
       unlistenStreamThinking = null;
       unlistenDone = null;
       unlistenError = null;
       unlistenMessageId = null;
+      unlistenWorkflowComplete = null;
     };
 
     try {
       const eventPromise = new Promise<void>((resolve, reject) => {
         // Listen for the real assistant message ID from the backend
         // This replaces the temp ID so tool call events can be matched
-        listen<{ conversationId: string; assistantMessageId: string }>('agent-message-id', (event) => {
-          if (event.payload.conversationId !== conversationId) return;
+        listen<{ conversationId: string; assistantMessageId: string }>("agent-message-id", (event) => {
+          if (event.payload.conversationId !== conversationId) { return; }
           // Flush pending buffer before switching IDs
           flushAgentStreamChunks();
           const realId = event.payload.assistantMessageId;
@@ -948,29 +1056,41 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             streamingMessageId: realId,
           }));
           set((s) => ({
-            messages: s.messages.map((m) =>
-              m.id === oldId ? { ...m, id: realId } : m
-            ),
+            messages: s.messages.map((m) => m.id === oldId ? { ...m, id: realId } : m),
           }));
-        }).then((fn) => { unlistenMessageId = fn; });
+        }).then((fn) => {
+          unlistenMessageId = fn;
+        });
 
         // Listen for incremental text chunks — buffer and flush periodically
-        listen<AgentStreamTextEvent>('agent-stream-text', (event) => {
-          if (event.payload.conversationId !== conversationId) return;
+        listen<AgentStreamTextEvent | WorkflowEvent>("agent-stream-text", (event) => {
+          if (event.payload.conversationId !== conversationId) { return; }
+
+          // Check if this is a workflow event
+          if ("type" in event.payload) {
+            handleWorkflowEvent(event.payload as WorkflowEvent);
+            return;
+          }
+
+          // Regular text event
           _agentPendingText += event.payload.text;
           scheduleAgentFlush();
-        }).then((fn) => { unlistenStreamText = fn; });
+        }).then((fn) => {
+          unlistenStreamText = fn;
+        });
 
         // Listen for incremental thinking chunks — buffer and flush periodically
-        listen<AgentStreamThinkingEvent>('agent-stream-thinking', (event) => {
-          if (event.payload.conversationId !== conversationId) return;
+        listen<AgentStreamThinkingEvent>("agent-stream-thinking", (event) => {
+          if (event.payload.conversationId !== conversationId) { return; }
           _agentPendingThinking += event.payload.thinking;
           scheduleAgentFlush();
-        }).then((fn) => { unlistenStreamThinking = fn; });
+        }).then((fn) => {
+          unlistenStreamThinking = fn;
+        });
 
         // Listen for agent-done — correction overwrite with final content
-        listen<AgentDoneEvent>('agent-done', (event) => {
-          if (event.payload.conversationId !== conversationId) return;
+        listen<AgentDoneEvent>("agent-done", (event) => {
+          if (event.payload.conversationId !== conversationId) { return; }
           // Clear pending buffer (done event overwrites with final content)
           clearAgentStreamBuffer();
           // Skip if streaming was already cancelled (avoid stale fetchMessages re-render)
@@ -983,7 +1103,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
           useStreamStore.setState((s) => ({
             ...stopConversationStream(s.activeStreams, conversationId),
-            streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+            streamingStartTimestamps: (() => {
+              const t = { ...s.streamingStartTimestamps };
+              delete t[conversationId];
+              return t;
+            })(),
             thinkingActiveMessageIds: (() => {
               const next = new Set(s.thinkingActiveMessageIds);
               next.delete(currentMsgId);
@@ -993,11 +1117,21 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           set((s) => ({
             messages: s.messages.map((m) => {
               if (m.id === currentMsgId) {
+                // Reconstruct content with thinking wrapped in <think> tags,
+                // matching the format used during streaming (flushAgentStreamChunks).
+                let finalContent = "";
+                const thinkingText = event.payload.thinking;
+                if (thinkingText) {
+                  finalContent = `<think data-axagent="1">\n${thinkingText}\n</think>\n\n`;
+                }
+                finalContent += event.payload.text;
+
                 return {
                   ...m,
                   id: event.payload.assistantMessageId || m.id,
-                  content: event.payload.text,
-                  status: 'complete' as const,
+                  content: finalContent,
+                  thinking: thinkingText || m.thinking,
+                  status: "complete" as const,
                   prompt_tokens: event.payload.usage?.input_tokens ?? null,
                   completion_tokens: event.payload.usage?.output_tokens ?? null,
                 };
@@ -1010,11 +1144,25 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           // Fetch messages to fully sync with backend (real user message ID, etc.)
           get().fetchMessages(conversationId);
           resolve();
-        }).then((fn) => { unlistenDone = fn; });
+        }).then((fn) => {
+          unlistenDone = fn;
+        });
+
+        // Listen for workflow-complete
+        listen<WorkflowCompleteEvent>("workflow-complete", (event) => {
+          if (event.payload.conversationId !== conversationId) { return; }
+          const text = event.payload.success
+            ? `\n[Workflow Complete: ${event.payload.workflowId}]\n`
+            : `\n[Workflow Failed: ${event.payload.workflowId}]\n`;
+          _agentPendingText += text;
+          scheduleAgentFlush();
+        }).then((fn) => {
+          unlistenWorkflowComplete = fn;
+        });
 
         // Listen for agent-error
-        listen<AgentErrorEvent>('agent-error', (event) => {
-          if (event.payload.conversationId !== conversationId) return;
+        listen<AgentErrorEvent>("agent-error", (event) => {
+          if (event.payload.conversationId !== conversationId) { return; }
           // Clear pending buffer (error event overwrites content)
           clearAgentStreamBuffer();
           // Skip if streaming was already cancelled
@@ -1027,7 +1175,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
           useStreamStore.setState((s) => ({
             ...stopConversationStream(s.activeStreams, conversationId),
-            streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+            streamingStartTimestamps: (() => {
+              const t = { ...s.streamingStartTimestamps };
+              delete t[conversationId];
+              return t;
+            })(),
             thinkingActiveMessageIds: (() => {
               const next = new Set(s.thinkingActiveMessageIds);
               next.delete(currentMsgId);
@@ -1040,7 +1192,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 return {
                   ...m,
                   content: event.payload.message,
-                  status: 'error' as const,
+                  status: "error" as const,
                 };
               }
               return m;
@@ -1052,37 +1204,49 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           get().fetchMessages(conversationId);
           cleanup();
           reject(new Error(event.payload.message));
-        }).then((fn) => { unlistenError = fn; });
+        }).then((fn) => {
+          unlistenError = fn;
+        });
       });
 
       // Invoke the backend command (this creates the real user message in DB)
-      await invoke('agent_query', {
+      // agent_query can run for a very long time (10+ minutes for complex tasks).
+      // We must NOT use the default 5-minute invoke timeout — the backend continues
+      // running and we rely on agent-done/agent-error events for completion.
+      // Setting timeoutMs=0 disables the invoke-level timeout entirely.
+      await invoke("agent_query", {
         request: {
           conversationId,
           input: content,
           providerId,
           model_id,
         },
-      });
+      }, 0);
 
       // Wait for agent-done or agent-error event
       await eventPromise;
     } catch (e) {
       // Safeguard: ensure listeners are always cleaned up, even if cleanup() itself throws
-      try { cleanup(); } catch (_) { /* ignore cleanup errors */ }
+      try {
+        cleanup();
+      } catch (_) { /* ignore cleanup errors */ }
       const errMsg = String(e);
-      console.error('[sendAgentMessage] error:', errMsg);
+      console.error("[sendAgentMessage] error:", errMsg);
 
       // If streaming is still true, the error came from invoke itself (not an event)
       if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
         useStreamStore.setState((s) => ({
           ...stopConversationStream(s.activeStreams, conversationId),
-          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+          streamingStartTimestamps: (() => {
+            const t = { ...s.streamingStartTimestamps };
+            delete t[conversationId];
+            return t;
+          })(),
         }));
         set((s) => ({
           messages: s.messages.map((m) =>
             m.id === currentMsgId
-              ? { ...m, content: errMsg, status: 'error' as const }
+              ? { ...m, content: errMsg, status: "error" as const }
               : m
           ),
         }));
@@ -1097,7 +1261,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   regenerateMessage: async (targetMessageId?: string) => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) throw new Error('No active conversation');
+    if (!conversationId) { throw new Error("No active conversation"); }
+
+    // Guard: prevent duplicate sends while a stream is already active for this conversation
+    if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+      console.warn("[regenerateMessage] Ignoring duplicate send — stream already active for", conversationId);
+      return;
+    }
 
     const msgs = get().messages;
     // Find the user message (either specific or last one)
@@ -1111,14 +1281,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
     if (!userMsg) {
       for (let i = msgs.length - 1; i >= 0; i--) {
-        if (msgs[i].role === 'user') { userMsg = msgs[i]; break; }
+        if (msgs[i].role === "user") {
+          userMsg = msgs[i];
+          break;
+        }
       }
     }
-    if (!userMsg) throw new Error('No user message found');
+    if (!userMsg) { throw new Error("No user message found"); }
 
     // Guard: reject temp IDs that haven't been persisted to the backend yet
-    if (userMsg.id.startsWith('temp-')) {
-      throw new Error('Message is still being sent. Please wait and try again.');
+    if (userMsg.id.startsWith("temp-")) {
+      throw new Error("Message is still being sent. Please wait and try again.");
     }
 
     // Create placeholder for new version, preserving original created_at for position
@@ -1130,8 +1303,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const placeholderAssistant: Message = {
       id: tempAssistantId,
       conversation_id: conversationId,
-      role: 'assistant',
-      content: '',
+      role: "assistant",
+      content: "",
       provider_id: originalAiMsg?.provider_id ?? null,
       model_id: originalAiMsg?.model_id ?? null,
       token_count: null,
@@ -1143,7 +1316,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       parent_message_id: userMsg.id,
       version_index: 0,
       is_active: true,
-      status: 'partial',
+      status: "partial",
     };
 
     // Replace the active AI message in-place with placeholder (preserve position)
@@ -1184,7 +1357,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const rThinkingBudget = getEffectiveThinkingBudget(conversationId);
       const rKbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
       const rMemIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
-      await invoke('regenerate_message', {
+      await invoke("regenerate_message", {
         conversationId,
         userMessageId: userMsg.id,
         enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
@@ -1198,27 +1371,35 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         await new Promise((r) => setTimeout(r, 600));
         useStreamStore.setState((s) => ({
           ...stopConversationStream(s.activeStreams, conversationId),
-          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+          streamingStartTimestamps: (() => {
+            const t = { ...s.streamingStartTimestamps };
+            delete t[conversationId];
+            return t;
+          })(),
           thinkingActiveMessageIds: new Set<string>(),
         }));
         get().fetchMessages(conversationId);
       }
     } catch (e) {
-      console.error('[regenerateMessage] error:', e);
+      console.error("[regenerateMessage] error:", e);
       const errMsg = String(e);
       const currentStreamingMessageId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
       useStreamStore.setState((s) => ({
         ...stopConversationStream(s.activeStreams, conversationId),
-        streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+        streamingStartTimestamps: (() => {
+          const t = { ...s.streamingStartTimestamps };
+          delete t[conversationId];
+          return t;
+        })(),
         thinkingActiveMessageIds: new Set<string>(),
       }));
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
-              m.id === currentStreamingMessageId
-                ? { ...m, content: errMsg, status: 'error' as const }
-                : m
-            )
+            m.id === currentStreamingMessageId
+              ? { ...m, content: errMsg, status: "error" as const }
+              : m
+          )
           : s.messages,
       }));
     }
@@ -1226,14 +1407,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   regenerateWithModel: async (targetMessageId: string, providerId: string, model_id: string) => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) throw new Error('No active conversation');
+    if (!conversationId) { throw new Error("No active conversation"); }
 
     const msgs = get().messages;
     // Find the AI message, then its parent user message
     const aiMsg = msgs.find(m => m.id === targetMessageId);
-    if (!aiMsg?.parent_message_id) throw new Error('Cannot find parent user message');
+    if (!aiMsg?.parent_message_id) { throw new Error("Cannot find parent user message"); }
     const userMsg = msgs.find(m => m.id === aiMsg.parent_message_id);
-    if (!userMsg) throw new Error('User message not found');
+    if (!userMsg) { throw new Error("User message not found"); }
 
     const parentId = userMsg.id;
     const originalAiMsg = msgs.find(m => m.parent_message_id === parentId && m.is_active);
@@ -1243,8 +1424,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const placeholderAssistant: Message = {
       id: tempAssistantId,
       conversation_id: conversationId,
-      role: 'assistant',
-      content: '',
+      role: "assistant",
+      content: "",
       provider_id: providerId,
       model_id: model_id,
       token_count: null,
@@ -1256,7 +1437,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       parent_message_id: userMsg.id,
       version_index: 0,
       is_active: true,
-      status: 'partial',
+      status: "partial",
     };
 
     // Replace the active AI message in-place with placeholder
@@ -1297,7 +1478,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const rThinkingBudget = getEffectiveThinkingBudget(conversationId);
       const rKbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
       const rMemIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
-      await invoke('regenerate_with_model', {
+      await invoke("regenerate_with_model", {
         conversationId,
         userMessageId: userMsg.id,
         targetProviderId: providerId,
@@ -1312,27 +1493,35 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         await new Promise((r) => setTimeout(r, 600));
         useStreamStore.setState((s) => ({
           ...stopConversationStream(s.activeStreams, conversationId),
-          streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+          streamingStartTimestamps: (() => {
+            const t = { ...s.streamingStartTimestamps };
+            delete t[conversationId];
+            return t;
+          })(),
           thinkingActiveMessageIds: new Set<string>(),
         }));
         get().fetchMessages(conversationId);
       }
     } catch (e) {
-      console.error('[regenerateWithModel] error:', e);
+      console.error("[regenerateWithModel] error:", e);
       const errMsg = String(e);
       const currentStreamingMessageId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
       useStreamStore.setState((s) => ({
         ...stopConversationStream(s.activeStreams, conversationId),
-        streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+        streamingStartTimestamps: (() => {
+          const t = { ...s.streamingStartTimestamps };
+          delete t[conversationId];
+          return t;
+        })(),
         thinkingActiveMessageIds: new Set<string>(),
       }));
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
-              m.id === currentStreamingMessageId
-                ? { ...m, content: errMsg, status: 'error' as const }
-                : m
-            )
+            m.id === currentStreamingMessageId
+              ? { ...m, content: errMsg, status: "error" as const }
+              : m
+          )
           : s.messages,
       }));
     }
@@ -1340,7 +1529,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   sendMultiModelMessage: async (content, companionModels, attachments = [], searchProviderId = null) => {
     const conversationId = get().activeConversationId;
-    if (!conversationId || companionModels.length === 0) return;
+    if (!conversationId || companionModels.length === 0) { return; }
+
+    // Guard: prevent duplicate sends while a stream is already active for this conversation
+    if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+      console.warn("[sendMultiModelMessage] Ignoring duplicate send — stream already active for", conversationId);
+      return;
+    }
 
     // Save original conversation model to restore later
     const conv = get().conversations.find((c) => c.id === conversationId);
@@ -1361,7 +1556,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         model_id: firstModel.model_id,
       });
     } catch (e) {
-      console.error('[sendMultiModelMessage] failed to switch model:', e);
+      console.error("[sendMultiModelMessage] failed to switch model:", e);
       resetMultiModelState();
       set({ pendingCompanionModels: [], multiModelParentId: null, multiModelDoneMessageIds: [] });
       return;
@@ -1372,7 +1567,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     // Find the user message that was just created
     const msgs = get().messages;
-    const lastUserMsg = [...msgs].reverse().find((m) => m.role === 'user');
+    const lastUserMsg = [...msgs].reverse().find((m) => m.role === "user");
     if (!lastUserMsg) {
       resetMultiModelState();
       set({ pendingCompanionModels: [], multiModelParentId: null, multiModelDoneMessageIds: [] });
@@ -1387,16 +1582,19 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set((s) => ({
       multiModelParentId: lastUserMsg.id,
       messages: s.messages.map((m) =>
-        m.id === useStreamStore.getState().streamingMessageId && m.role === 'assistant'
+        m.id === useStreamStore.getState().streamingMessageId && m.role === "assistant"
           ? { ...m, parent_message_id: lastUserMsg.id }
-          : m,
+          : m
       ),
     }));
 
     // Create a unified promise for ALL models (first model stream already running)
     const allDone = new Promise<void>((resolve) => {
       // If first model already finished before we set up the promise, check immediately
-      if (_multiModelTotalRemaining === 0) { resolve(); return; }
+      if (_multiModelTotalRemaining === 0) {
+        resolve();
+        return;
+      }
       setMultiModelDoneResolve(resolve);
     });
 
@@ -1411,7 +1609,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
 
       const invocations = remaining.map((model) =>
-        invoke('regenerate_with_model', {
+        invoke("regenerate_with_model", {
           conversationId,
           userMessageId: lastUserMsg.id,
           targetProviderId: model.providerId,
@@ -1424,7 +1622,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }).then(async () => {
           // Each invoke returns after message creation — immediately enrich the store
           // so ModelTags can render this companion as clickable right away.
-          if (!_isMultiModelActive) return;
+          if (!_isMultiModelActive) { return; }
           try {
             const versions = await get().listMessageVersions(conversationId, lastUserMsg.id);
             if (versions.length > 0 && _isMultiModelActive) {
@@ -1434,7 +1632,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
                 const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
                 let resolvedFirstModelId: string | null = null;
-                if (currentStreamingMessageId?.startsWith('temp-') && _multiModelFirstModelId) {
+                if (currentStreamingMessageId?.startsWith("temp-") && _multiModelFirstModelId) {
                   const firstDbVersion = versions.find(
                     (v) => v.model_id === _multiModelFirstModelId && !existingIds.has(v.id),
                   );
@@ -1468,12 +1666,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                   }
                   return m;
                 });
-                if (newVersions.length === 0 && !enriched && resolvedFirstModelId === null) return {};
+                if (newVersions.length === 0 && !enriched && resolvedFirstModelId === null) { return {}; }
                 return { messages: [...updatedMessages, ...newVersions] };
               });
             }
           } catch (e) {
-            console.warn('[sendMultiModelMessage] failed to enrich companion:', e);
+            console.warn("[sendMultiModelMessage] failed to enrich companion:", e);
           }
         }).catch((e) => {
           console.error(`[sendMultiModelMessage] companion ${model.model_id} invoke failed:`, e);
@@ -1482,7 +1680,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           if (_multiModelTotalRemaining <= 0 && _multiModelDoneResolve) {
             const r = _multiModelDoneResolve;
             setMultiModelDoneResolve(null);
-            useStreamStore.setState({ streaming: false, streamingMessageId: null, streamingConversationId: null, thinkingActiveMessageIds: new Set<string>() });
+            useStreamStore.setState({
+              streaming: false,
+              streamingMessageId: null,
+              streamingConversationId: null,
+              thinkingActiveMessageIds: new Set<string>(),
+            });
             r();
           }
         })
@@ -1509,7 +1712,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           model_id: originalModelId,
         });
       } catch (e) {
-        console.error('[sendMultiModelMessage] failed to restore model:', e);
+        console.error("[sendMultiModelMessage] failed to restore model:", e);
       }
     }
 
@@ -1520,8 +1723,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Determine which version to show: if user manually selected a version, respect that choice
       const userSelectedMessageId = _userManuallySelectedVersion
         ? get().messages.find(
-            (m) => m.parent_message_id === parentId && m.role === 'assistant' && m.is_active,
-          )?.id ?? null
+          (m) => m.parent_message_id === parentId && m.role === "assistant" && m.is_active,
+        )?.id ?? null
         : null;
 
       if (parentId && !_userManuallySelectedVersion) {
@@ -1530,12 +1733,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         let targetMessageId = _multiModelFirstMessageId;
         if (!targetMessageId) {
           const localMatch = get().messages.find(
-            (m) => m.parent_message_id === parentId && m.role === 'assistant' && m.model_id === firstModelId,
+            (m) => m.parent_message_id === parentId && m.role === "assistant" && m.model_id === firstModelId,
           );
           targetMessageId = localMatch?.id ?? null;
         }
         if (targetMessageId) {
-          await invoke('switch_message_version', {
+          await invoke("switch_message_version", {
             conversationId,
             parentMessageId: parentId,
             messageId: targetMessageId,
@@ -1543,7 +1746,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }
       } else if (parentId && userSelectedMessageId) {
         // User manually selected a version — sync that to backend
-        await invoke('switch_message_version', {
+        await invoke("switch_message_version", {
           conversationId,
           parentMessageId: parentId,
           messageId: userSelectedMessageId,
@@ -1568,7 +1771,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             : null;
           if (!displayVersion) {
             displayVersion = refreshedMsgs.find(
-              (m) => m.parent_message_id === parentId && m.role === 'assistant' && m.model_id === firstModelId,
+              (m) => m.parent_message_id === parentId && m.role === "assistant" && m.model_id === firstModelId,
             ) ?? null;
           }
         }
@@ -1578,7 +1781,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             let kept = false;
             return {
               messages: s.messages.reduce<Message[]>((acc, m) => {
-                if (m.parent_message_id === parentId && m.role === 'assistant') {
+                if (m.parent_message_id === parentId && m.role === "assistant") {
                   if (!kept) {
                     acc.push({ ...displayVersion, is_active: true });
                     kept = true;
@@ -1601,16 +1804,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   deleteMessage: async (messageId) => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) return;
+    if (!conversationId) { return; }
     // Client-only messages (temp IDs) — just remove locally
-    if (messageId.startsWith('temp-')) {
+    if (messageId.startsWith("temp-")) {
       set((s) => ({
         messages: s.messages.filter((m) => m.id !== messageId),
       }));
       return;
     }
     try {
-      await invoke('delete_message', { id: messageId });
+      await invoke("delete_message", { id: messageId });
       set((s) => ({
         messages: s.messages.filter((m) => m.id !== messageId),
       }));
@@ -1623,7 +1826,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const requestSeq = _activeMessageLoadSeq;
     set({ loading: true });
     try {
-      const page = await invoke<MessagePage>('list_messages_page', {
+      const page = await invoke<MessagePage>("list_messages_page", {
         conversationId,
         limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: null,
@@ -1649,8 +1852,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
       const errorMessage = String(e);
-      if (errorMessage.includes('Not found: Conversation')) {
-        console.warn('Conversation no longer exists on backend, clearing active selection:', conversationId);
+      if (errorMessage.includes("Not found: Conversation")) {
+        console.warn("Conversation no longer exists on backend, clearing active selection:", conversationId);
         await get().fetchConversations().catch(() => {});
         const nextConversation = get().conversations[0] ?? get().archivedConversations[0] ?? null;
         if (nextConversation) {
@@ -1682,7 +1885,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const requestSeq = _activeMessageLoadSeq;
     set({ loadingOlder: true, error: null });
     try {
-      const page = await invoke<MessagePage>('list_messages_page', {
+      const page = await invoke<MessagePage>("list_messages_page", {
         conversationId: activeConversationId,
         limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: oldestLoadedMessageId,
@@ -1709,7 +1912,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   searchConversations: async (query) => {
     try {
-      return await invoke<ConversationSearchResult[]>('search_conversations', { query });
+      return await invoke<ConversationSearchResult[]>("search_conversations", { query });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -1724,10 +1927,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       setUnlisten(null);
     }
 
-    const chunkUnsub = await listen<ChatStreamEvent>('chat-stream-chunk', (event) => {
-      if (_listenerGen !== gen) return; // stale listener
-      if (!useStreamStore.getState().streaming) return; // cancelled
-      const { conversation_id, message_id, chunk, model_id: evt_model_id, provider_id: evt_provider_id } = event.payload;
+    const chunkUnsub = await listen<ChatStreamEvent>("chat-stream-chunk", (event) => {
+      if (_listenerGen !== gen) { return; // stale listener
+       }
+      if (!useStreamStore.getState().streaming) { return; // cancelled
+       }
+      const { conversation_id, message_id, chunk, model_id: evt_model_id, provider_id: evt_provider_id } =
+        event.payload;
 
       if (chunk.done) {
         if (chunk.is_final === false) {
@@ -1774,12 +1980,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           set((s) => {
             const updated: Partial<ConversationState> = {};
             updated.conversations = s.conversations.map((c) =>
-              c.id === conversation_id ? { ...c, message_count: c.message_count + 1 } : c,
+              c.id === conversation_id ? { ...c, message_count: c.message_count + 1 } : c
             );
             // Update completed message status to prevent "主动停止" tag
-            updated.messages = s.messages.map((m) =>
-              m.id === message_id ? { ...m, status: 'complete' } : m,
-            );
+            updated.messages = s.messages.map((m) => m.id === message_id ? { ...m, status: "complete" } : m);
             // Track per-model completion for individual loading indicators
             updated.multiModelDoneMessageIds = [...s.multiModelDoneMessageIds, message_id];
             return updated;
@@ -1812,7 +2016,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         const preserveMessageIds = Array.from(
           new Set(
             [placeholderMessageId, flushedMessageId, message_id].filter(
-              (value): value is string => typeof value === 'string' && value.length > 0 && !value.startsWith('temp-'),
+              (value): value is string => typeof value === "string" && value.length > 0 && !value.startsWith("temp-"),
             ),
           ),
         );
@@ -1826,11 +2030,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           conversations: s.conversations.map((c) =>
             c.id === conversation_id
               ? { ...c, message_count: c.message_count + 1 }
-              : c,
+              : c
           ),
           // Update completed message status immediately to prevent "主动停止" tag flash
           messages: s.messages.map((m) =>
-            preserveMessageIds.includes(m.id) ? { ...m, status: 'complete' as const } : m,
+            preserveMessageIds.includes(m.id) ? { ...m, status: "complete" as const } : m
           ),
         }));
         if (get().activeConversationId === conversation_id) {
@@ -1851,10 +2055,18 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
 
-      if (chunk.thinking !== undefined && chunk.thinking !== null && !useStreamStore.getState().thinkingActiveMessageIds.has(message_id)) {
-        useStreamStore.setState((s) => ({ thinkingActiveMessageIds: new Set([...s.thinkingActiveMessageIds, message_id]) }));
+      if (
+        chunk.thinking !== undefined && chunk.thinking !== null
+        && !useStreamStore.getState().thinkingActiveMessageIds.has(message_id)
+      ) {
+        useStreamStore.setState((s) => ({
+          thinkingActiveMessageIds: new Set([...s.thinkingActiveMessageIds, message_id]),
+        }));
       }
-      if (chunk.content && useStreamStore.getState().thinkingActiveMessageIds.has(message_id) && (chunk.thinking === undefined || chunk.thinking === null)) {
+      if (
+        chunk.content && useStreamStore.getState().thinkingActiveMessageIds.has(message_id)
+        && (chunk.thinking === undefined || chunk.thinking === null)
+      ) {
         useStreamStore.setState((s) => {
           const next = new Set(s.thinkingActiveMessageIds);
           next.delete(message_id);
@@ -1865,9 +2077,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       appendStreamChunk(set, get, message_id, chunk.content, conversation_id, evt_model_id, evt_provider_id);
     });
 
-    const errorUnsub = await listen<ChatStreamErrorEvent>('chat-stream-error', (event) => {
-      if (_listenerGen !== gen) return; // stale listener
-      if (!useStreamStore.getState().streaming) return; // cancelled
+    const errorUnsub = await listen<ChatStreamErrorEvent>("chat-stream-error", (event) => {
+      if (_listenerGen !== gen) { return; // stale listener
+       }
+      if (!useStreamStore.getState().streaming) { return; // cancelled
+       }
       const { conversation_id, message_id, error: errMsg } = event.payload;
 
       flushPendingStreamChunk(set, get);
@@ -1880,20 +2094,32 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         // Mark this model as done so ModelTags stops showing loading indicator
         set((s) => ({
           multiModelDoneMessageIds: [...s.multiModelDoneMessageIds, message_id],
-          messages: s.messages.map((m) =>
-            m.id === message_id ? { ...m, status: 'error' as const } : m,
-          ),
+          messages: s.messages.map((m) => m.id === message_id ? { ...m, status: "error" as const } : m),
         }));
         if (_multiModelTotalRemaining <= 0) {
-          useStreamStore.setState({ streaming: false, streamingMessageId: null, streamingConversationId: null, thinkingActiveMessageIds: new Set<string>() });
-          if (_multiModelDoneResolve) { const r = _multiModelDoneResolve; setMultiModelDoneResolve(null); r(); }
+          useStreamStore.setState({
+            streaming: false,
+            streamingMessageId: null,
+            streamingConversationId: null,
+            thinkingActiveMessageIds: new Set<string>(),
+          });
+          if (_multiModelDoneResolve) {
+            const r = _multiModelDoneResolve;
+            setMultiModelDoneResolve(null);
+            r();
+          }
         }
         return;
       }
 
       // Only show error if still on the same conversation
       if (get().activeConversationId !== conversation_id) {
-        useStreamStore.setState({ streaming: false, streamingMessageId: null, streamingConversationId: null, thinkingActiveMessageIds: new Set<string>() });
+        useStreamStore.setState({
+          streaming: false,
+          streamingMessageId: null,
+          streamingConversationId: null,
+          thinkingActiveMessageIds: new Set<string>(),
+        });
         return;
       }
 
@@ -1908,7 +2134,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set((s) => ({
         messages: s.messages.map(m =>
           m.id === message_id || m.id === currentStreamingMessageId
-            ? { ...m, content: errMsg, status: 'error' as const }
+            ? { ...m, content: errMsg, status: "error" as const }
             : m
         ),
       }));
@@ -1921,50 +2147,57 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
     });
 
-    const titleUnsub = await listen<{ conversation_id: string; title: string }>('conversation-title-updated', (event) => {
-      if (_listenerGen !== gen) return;
-      const { conversation_id, title } = event.payload;
-      set((s) => ({
-        conversations: s.conversations.map((c) =>
-          c.id === conversation_id ? { ...c, title } : c,
-        ),
-      }));
-    });
+    const titleUnsub = await listen<{ conversation_id: string; title: string }>(
+      "conversation-title-updated",
+      (event) => {
+        if (_listenerGen !== gen) { return; }
+        const { conversation_id, title } = event.payload;
+        set((s) => ({
+          conversations: s.conversations.map((c) => c.id === conversation_id ? { ...c, title } : c),
+        }));
+      },
+    );
 
-    const titleGenUnsub = await listen<{ conversation_id: string; generating: boolean; error: string | null }>('conversation-title-generating', (event) => {
-      if (_listenerGen !== gen) return;
-      const { conversation_id, generating, error } = event.payload;
-      set({ titleGeneratingConversationId: generating ? conversation_id : null });
-      if (!generating && error) {
-        console.error('[title-gen] AI title generation failed:', error);
-        set({ error });
-      }
-    });
+    const titleGenUnsub = await listen<{ conversation_id: string; generating: boolean; error: string | null }>(
+      "conversation-title-generating",
+      (event) => {
+        if (_listenerGen !== gen) { return; }
+        const { conversation_id, generating, error } = event.payload;
+        set({ titleGeneratingConversationId: generating ? conversation_id : null });
+        if (!generating && error) {
+          console.error("[title-gen] AI title generation failed:", error);
+          set({ error });
+        }
+      },
+    );
 
-    const ragUnsub = await listen<RagContextRetrievedEvent>('rag-context-retrieved', (event) => {
-      if (_listenerGen !== gen) return;
-      if (!useStreamStore.getState().streaming) return;
+    const ragUnsub = await listen<RagContextRetrievedEvent>("rag-context-retrieved", (event) => {
+      if (_listenerGen !== gen) { return; }
+      if (!useStreamStore.getState().streaming) { return; }
       const { conversation_id, sources } = event.payload;
 
       // Split sources by type and build separate tags
-      const knowledgeSources = sources.filter(s => s.source_type === 'knowledge');
-      const memorySources = sources.filter(s => s.source_type === 'memory');
+      const knowledgeSources = sources.filter(s => s.source_type === "knowledge");
+      const memorySources = sources.filter(s => s.source_type === "memory");
 
-      const kbSearching = buildKnowledgeTag('searching');
-      const memSearching = buildMemoryTag('searching');
-      const kbDone = knowledgeSources.length > 0 ? buildKnowledgeTag('done', knowledgeSources) : '';
-      const memDone = memorySources.length > 0 ? buildMemoryTag('done', memorySources) : '';
+      const kbSearching = buildKnowledgeTag("searching");
+      const memSearching = buildMemoryTag("searching");
+      const kbDone = knowledgeSources.length > 0 ? buildKnowledgeTag("done", knowledgeSources) : "";
+      const memDone = memorySources.length > 0 ? buildMemoryTag("done", memorySources) : "";
 
       // Replace each searching tag with its done counterpart (or remove if empty)
       const replaceTag = (content: string, searching: string, done: string) => {
-        if (content.includes(searching)) return content.replace(searching, done);
-        if (done) return done + content;
+        if (content.includes(searching)) { return content.replace(searching, done); }
+        if (done) { return done + content; }
         return content;
       };
 
       if (_streamBuffer && _streamBuffer.conversationId === conversation_id) {
         const buf = _streamBuffer;
-        setStreamBuffer({ ...buf, content: replaceTag(replaceTag(buf.content, kbSearching, kbDone), memSearching, memDone) });
+        setStreamBuffer({
+          ...buf,
+          content: replaceTag(replaceTag(buf.content, kbSearching, kbDone), memSearching, memDone),
+        });
       } else {
         setStreamPrefix(replaceTag(replaceTag(_streamPrefix, kbSearching, kbDone), memSearching, memDone));
       }
@@ -1975,7 +2208,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         if (msgId) {
           set((s) => ({
             messages: s.messages.map(m => {
-              if (m.id !== msgId) return m;
+              if (m.id !== msgId) { return m; }
               let updated = m.content;
               updated = replaceTag(updated, kbSearching, kbDone);
               updated = replaceTag(updated, memSearching, memDone);
@@ -2036,24 +2269,28 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const streamState = useStreamStore.getState();
     const conversationId = streamState.streamingConversationId ?? get().activeConversationId;
     if (conversationId && isTauri()) {
-      invoke('cancel_stream', { conversationId }).catch(() => {});
+      invoke("cancel_stream", { conversationId }).catch(() => {});
       // Also cancel the agent if in agent mode
       const conv = get().conversations.find((c) => c.id === conversationId);
-      if (conv?.mode === 'agent') {
-        invoke('agent_cancel', { request: { conversationId } }).catch(() => {});
+      if (conv?.mode === "agent") {
+        invoke("agent_cancel", { request: { conversationId } }).catch(() => {});
       }
     }
-    if (!conversationId) return;
+    if (!conversationId) { return; }
     // Mark the current streaming message as partial
     const streamMsgId = getStreamingMessageId(streamState.activeStreams, conversationId);
     useStreamStore.setState((s) => ({
       ...stopConversationStream(s.activeStreams, conversationId),
-      streamingStartTimestamps: (() => { const t = { ...s.streamingStartTimestamps }; delete t[conversationId]; return t; })(),
+      streamingStartTimestamps: (() => {
+        const t = { ...s.streamingStartTimestamps };
+        delete t[conversationId];
+        return t;
+      })(),
       thinkingActiveMessageIds: new Set<string>(),
     }));
     if (streamMsgId) {
       set((s) => ({
-        messages: s.messages.map(m => m.id === streamMsgId ? { ...m, status: 'partial' as const } : m),
+        messages: s.messages.map(m => m.id === streamMsgId ? { ...m, status: "partial" as const } : m),
       }));
     }
   },
@@ -2069,12 +2306,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         setUserManuallySelectedVersion(true);
         set((s) => {
           const targetExists = s.messages.some(
-            (m) => m.id === messageId && m.parent_message_id === parentMessageId && m.role === 'assistant',
+            (m) => m.id === messageId && m.parent_message_id === parentMessageId && m.role === "assistant",
           );
-          if (!targetExists) return {}; // Target not in memory yet, no-op
+          if (!targetExists) { return {}; // Target not in memory yet, no-op
+           }
           return {
             messages: s.messages.map((m) => {
-              if (m.parent_message_id !== parentMessageId || m.role !== 'assistant') return m;
+              if (m.parent_message_id !== parentMessageId || m.role !== "assistant") { return m; }
               return m.id === messageId
                 ? { ...m, is_active: true }
                 : { ...m, is_active: false };
@@ -2084,7 +2322,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
 
-      await invoke('switch_message_version', { conversationId, parentMessageId, messageId });
+      await invoke("switch_message_version", { conversationId, parentMessageId, messageId });
 
       // Normal path: fetch all versions from DB and keep them all in store
       // with correct is_active flags. This preserves multi-model detection
@@ -2095,12 +2333,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           const versionMap = new Map(versions.map(v => [v.id, v]));
           const existingIds = new Set(
             s.messages
-              .filter(m => m.parent_message_id === parentMessageId && m.role === 'assistant')
+              .filter(m => m.parent_message_id === parentMessageId && m.role === "assistant")
               .map(m => m.id),
           );
           // Update existing versions in-place
           const updatedMessages = s.messages.map((m) => {
-            if (m.parent_message_id !== parentMessageId || m.role !== 'assistant') return m;
+            if (m.parent_message_id !== parentMessageId || m.role !== "assistant") { return m; }
             const dbVersion = versionMap.get(m.id);
             if (dbVersion) {
               return { ...dbVersion, is_active: m.id === messageId };
@@ -2124,7 +2362,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   listMessageVersions: async (conversationId, parentMessageId) => {
     try {
-      return await invoke<Message[]>('list_message_versions', { conversationId, parentMessageId });
+      return await invoke<Message[]>("list_message_versions", { conversationId, parentMessageId });
     } catch (e) {
       set({ error: String(e) });
       return [];
@@ -2133,7 +2371,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   updateMessageContent: async (messageId, content) => {
     try {
-      const updated = await invoke<Message>('update_message_content', { id: messageId, content });
+      const updated = await invoke<Message>("update_message_content", { id: messageId, content });
       set((s) => ({
         messages: s.messages.map((m) => (m.id === messageId ? { ...m, content: updated.content } : m)),
       }));
@@ -2145,20 +2383,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   deleteMessageGroup: async (conversationId, userMessageId) => {
     // Client-only messages (temp IDs) — just remove locally
-    if (userMessageId.startsWith('temp-')) {
+    if (userMessageId.startsWith("temp-")) {
       set((s) => ({
-        messages: s.messages.filter(m =>
-          m.id !== userMessageId && m.parent_message_id !== userMessageId
-        ),
+        messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));
       return;
     }
     try {
-      await invoke('delete_message_group', { conversationId, userMessageId });
+      await invoke("delete_message_group", { conversationId, userMessageId });
       set((s) => ({
-        messages: s.messages.filter(m =>
-          m.id !== userMessageId && m.parent_message_id !== userMessageId
-        ),
+        messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));
     } catch (e) {
       set({ error: String(e) });
@@ -2169,7 +2403,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   loadWorkspaceSnapshot: async (conversationId) => {
     try {
-      const snapshot = await invoke<ConversationWorkspaceSnapshot>('get_workspace_snapshot', {
+      const snapshot = await invoke<ConversationWorkspaceSnapshot>("get_workspace_snapshot", {
         conversationId: conversationId,
       });
       set({ workspaceSnapshot: snapshot });
@@ -2182,7 +2416,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   updateWorkspaceSnapshot: async (conversationId, snapshot) => {
     try {
-      await invoke('update_workspace_snapshot', {
+      await invoke("update_workspace_snapshot", {
         conversation_id: conversationId,
         ...snapshot,
       });
@@ -2192,13 +2426,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           : null,
       }));
     } catch (e) {
-      console.error('Failed to update workspace snapshot:', e);
+      console.error("Failed to update workspace snapshot:", e);
     }
   },
 
   forkConversation: async (conversationId, fromMessageId?) => {
     try {
-      const branch = await invoke<ConversationBranch>('fork_conversation', {
+      const branch = await invoke<ConversationBranch>("fork_conversation", {
         conversationId: conversationId,
         messageId: fromMessageId,
       });
@@ -2213,7 +2447,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   compareResponses: async (leftMessageId, rightMessageId) => {
     try {
-      return await invoke<CompareResponsesResult>('compare_branches', {
+      return await invoke<CompareResponsesResult>("compare_branches", {
         branchA: leftMessageId,
         branchB: rightMessageId,
       });

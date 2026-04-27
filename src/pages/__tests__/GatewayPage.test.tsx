@@ -1,23 +1,23 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GatewayPage } from '../GatewayPage';
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GatewayPage } from "../GatewayPage";
 
 const fetchRequestLogs = vi.fn();
 
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useGatewayStore: () => ({
     fetchRequestLogs,
   }),
 }));
 
-vi.mock('@/components/gateway', () => ({
+vi.mock("@/components/gateway", () => ({
   GatewayOverview: ({ onViewMoreLogs }: { onViewMoreLogs?: () => void }) => (
     <button type="button" onClick={onViewMoreLogs}>
       gateway.viewMoreLogs
@@ -31,20 +31,20 @@ vi.mock('@/components/gateway', () => ({
   QuickConnectCycleIcon: () => null,
 }));
 
-describe('GatewayPage', () => {
+describe("GatewayPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('switches to the logs tab and refreshes logs when overview view more is clicked', async () => {
+  it("switches to the logs tab and refreshes logs when overview view more is clicked", async () => {
     render(<GatewayPage />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'gateway.viewMoreLogs' }));
+    await userEvent.click(screen.getByRole("button", { name: "gateway.viewMoreLogs" }));
 
     await waitFor(() => {
       expect(fetchRequestLogs).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText('gateway-diagnostics-content')).toBeInTheDocument();
+    expect(screen.getByText("gateway-diagnostics-content")).toBeInTheDocument();
   });
 });

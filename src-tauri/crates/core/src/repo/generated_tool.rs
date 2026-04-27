@@ -3,9 +3,7 @@ use sea_orm::*;
 use crate::entity::generated_tools;
 use crate::error::Result;
 
-pub async fn list_generated_tools(
-    db: &DatabaseConnection,
-) -> Result<Vec<generated_tools::Model>> {
+pub async fn list_generated_tools(db: &DatabaseConnection) -> Result<Vec<generated_tools::Model>> {
     let tools = generated_tools::Entity::find()
         .order_by(generated_tools::Column::CreatedAt, Order::Desc)
         .all(db)

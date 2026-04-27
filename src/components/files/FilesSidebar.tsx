@@ -1,6 +1,6 @@
-import { Menu, theme } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { FILE_CATEGORIES, type FileCategory } from './fileCategories';
+import { Menu, theme } from "antd";
+import { useTranslation } from "react-i18next";
+import { FILE_CATEGORIES, type FileCategory } from "./fileCategories";
 
 interface FilesSidebarProps {
   activeCategory: FileCategory;

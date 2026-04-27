@@ -1,12 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { message } from 'antd';
-import { GatewayOverview } from '../GatewayOverview';
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { message } from "antd";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GatewayOverview } from "../GatewayOverview";
 
 let status = {
   is_running: false,
-  listen_address: '127.1.0.0',
+  listen_address: "127.1.0.0",
   port: 8000,
   ssl_enabled: true,
   started_at: null,
@@ -23,13 +23,13 @@ let metrics: Record<string, unknown> | null = null;
 let requestLogs: Array<Record<string, unknown>> = [];
 let recentLogsResponse: Array<Record<string, unknown>> = [];
 
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useGatewayStore: () => ({
     status,
     metrics,
@@ -44,12 +44,12 @@ vi.mock('@/stores', () => ({
   }),
 }));
 
-describe('GatewayOverview', () => {
+describe("GatewayOverview", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     status = {
       is_running: false,
-      listen_address: '127.1.0.0',
+      listen_address: "127.1.0.0",
       port: 8000,
       ssl_enabled: true,
       started_at: null,
@@ -60,7 +60,7 @@ describe('GatewayOverview', () => {
     requestLogs = [];
     recentLogsResponse = [];
     listRequestLogs.mockImplementation(() => Promise.resolve(recentLogsResponse));
-    Object.defineProperty(window, 'matchMedia', {
+    Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
         matches: false,
@@ -75,9 +75,9 @@ describe('GatewayOverview', () => {
     });
   });
 
-  it('shows an error message when starting the gateway fails', async () => {
-    startGateway.mockRejectedValueOnce(new Error('TLS cert missing'));
-    const errorSpy = vi.spyOn(message, 'error').mockImplementation(() => {
+  it("shows an error message when starting the gateway fails", async () => {
+    startGateway.mockRejectedValueOnce(new Error("TLS cert missing"));
+    const errorSpy = vi.spyOn(message, "error").mockImplementation(() => {
       const noop = () => {};
       return {
         then: undefined as never,
@@ -88,14 +88,14 @@ describe('GatewayOverview', () => {
 
     render(<GatewayOverview />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'gateway.start' }));
+    await userEvent.click(screen.getByRole("button", { name: "gateway.start" }));
 
     await waitFor(() => {
       expect(errorSpy).toHaveBeenCalled();
     });
   });
 
-  it('shows split request and response tokens in overview cards and recent logs', async () => {
+  it("shows split request and response tokens in overview cards and recent logs", async () => {
     metrics = {
       total_requests: 12,
       total_tokens: 3500,
@@ -109,13 +109,13 @@ describe('GatewayOverview', () => {
     };
     requestLogs = [
       {
-        id: 'log-1',
-        keyId: 'key-1',
-        keyName: 'Gateway Key',
-        method: 'POST',
-        path: '/v1/chat/completions',
-        model: 'deepseek-chat',
-        providerId: 'provider-1',
+        id: "log-1",
+        keyId: "key-1",
+        keyName: "Gateway Key",
+        method: "POST",
+        path: "/v1/chat/completions",
+        model: "deepseek-chat",
+        providerId: "provider-1",
         statusCode: 200,
         durationMs: 123,
         requestTokens: 900,
@@ -128,24 +128,24 @@ describe('GatewayOverview', () => {
 
     render(<GatewayOverview />);
 
-    await screen.findByText('/v1/chat/completions');
+    await screen.findByText("/v1/chat/completions");
 
-    expect(screen.getAllByText('1.5k').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('900').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('600').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('3.5k').length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1.5k").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("900").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("600").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("3.5k").length).toBeGreaterThan(0);
   });
 
-  it('shows only the latest 10 overview logs and exposes a view more action', async () => {
+  it("shows only the latest 10 overview logs and exposes a view more action", async () => {
     const onViewMoreLogs = vi.fn();
     recentLogsResponse = Array.from({ length: 12 }, (_, index) => ({
       id: `log-${index + 1}`,
       keyId: `key-${index + 1}`,
       keyName: `Gateway Key ${index + 1}`,
-      method: 'POST',
+      method: "POST",
       path: `/v1/test/${index + 1}`,
-      model: 'deepseek-chat',
-      providerId: 'provider-1',
+      model: "deepseek-chat",
+      providerId: "provider-1",
       statusCode: 200,
       durationMs: 100 + index,
       requestTokens: 10 + index,
@@ -156,27 +156,27 @@ describe('GatewayOverview', () => {
 
     render(<GatewayOverview onViewMoreLogs={onViewMoreLogs} />);
 
-    expect(await screen.findByText('/v1/test/1')).toBeInTheDocument();
-    expect(screen.getByText('/v1/test/10')).toBeInTheDocument();
-    expect(screen.queryByText('/v1/test/11')).not.toBeInTheDocument();
-    expect(screen.queryByText('/v1/test/12')).not.toBeInTheDocument();
+    expect(await screen.findByText("/v1/test/1")).toBeInTheDocument();
+    expect(screen.getByText("/v1/test/10")).toBeInTheDocument();
+    expect(screen.queryByText("/v1/test/11")).not.toBeInTheDocument();
+    expect(screen.queryByText("/v1/test/12")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'gateway.viewMoreLogs' }));
+    await userEvent.click(screen.getByRole("button", { name: "gateway.viewMoreLogs" }));
 
     expect(onViewMoreLogs).toHaveBeenCalledTimes(1);
   });
 
-  it('does not auto-refresh recent logs while the gateway is stopped but still allows manual refresh', async () => {
-    const setIntervalSpy = vi.spyOn(global, 'setInterval');
+  it("does not auto-refresh recent logs while the gateway is stopped but still allows manual refresh", async () => {
+    const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
     recentLogsResponse = [
       {
-        id: 'log-1',
-        keyId: 'key-1',
-        keyName: 'Gateway Key',
-        method: 'POST',
-        path: '/v1/chat/completions',
-        model: 'deepseek-chat',
-        providerId: 'provider-1',
+        id: "log-1",
+        keyId: "key-1",
+        keyName: "Gateway Key",
+        method: "POST",
+        path: "/v1/chat/completions",
+        model: "deepseek-chat",
+        providerId: "provider-1",
         statusCode: 200,
         durationMs: 123,
         requestTokens: 900,
@@ -193,7 +193,7 @@ describe('GatewayOverview', () => {
     });
     expect(setIntervalSpy.mock.calls.filter(([, delay]) => delay === 5000)).toHaveLength(1);
 
-    await userEvent.click(screen.getByRole('button', { name: 'common.refresh' }));
+    await userEvent.click(screen.getByRole("button", { name: "common.refresh" }));
     expect(listRequestLogs).toHaveBeenCalledTimes(2);
     setIntervalSpy.mockRestore();
   });

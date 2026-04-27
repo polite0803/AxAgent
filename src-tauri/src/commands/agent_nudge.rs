@@ -8,7 +8,8 @@ pub async fn nudge_list(
 ) -> Result<Vec<serde_json::Value>, String> {
     let ns = app_state.nudge_service.lock().await;
     let pending = ns.get_pending_nudges(&session_id);
-    Ok(pending.iter()
+    Ok(pending
+        .iter()
         .filter_map(|n| serde_json::to_value(n).ok())
         .collect())
 }
@@ -42,9 +43,7 @@ pub async fn nudge_execute(
 }
 
 #[tauri::command]
-pub async fn nudge_stats(
-    app_state: State<'_, AppState>,
-) -> Result<serde_json::Value, String> {
+pub async fn nudge_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let ns = app_state.nudge_service.lock().await;
     let stats = ns.get_nudge_stats();
     serde_json::to_value(stats).map_err(|e| e.to_string())
@@ -55,7 +54,8 @@ pub async fn nudge_closed_loop_list(
     app_state: State<'_, AppState>,
 ) -> Result<Vec<serde_json::Value>, String> {
     let nudges = app_state.closed_loop_service.get_nudges();
-    Ok(nudges.iter()
+    Ok(nudges
+        .iter()
         .filter_map(|n| serde_json::to_value(n).ok())
         .collect())
 }
@@ -75,9 +75,11 @@ pub async fn skill_find_similar(
     topic: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let closed_loop = app_state.closed_loop_service.clone();
-    let similar = closed_loop.find_similar_skills(&topic)
+    let similar = closed_loop
+        .find_similar_skills(&topic)
         .map_err(|e| e.to_string())?;
-    Ok(similar.iter()
+    Ok(similar
+        .iter()
         .filter_map(|s| serde_json::to_value(s).ok())
         .collect())
 }
@@ -102,7 +104,9 @@ pub async fn skill_upgrade_propose(
             trigger_event: "manual_proposal".to_string(),
         };
 
-        return Ok(Some(serde_json::to_value(upgrade_proposal).map_err(|e| e.to_string())?));
+        return Ok(Some(
+            serde_json::to_value(upgrade_proposal).map_err(|e| e.to_string())?,
+        ));
     }
     Ok(None)
 }

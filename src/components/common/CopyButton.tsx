@@ -1,7 +1,7 @@
-import React, { useCallback } from 'react';
-import { Check, Copy } from 'lucide-react';
-import { Button, message, theme } from 'antd';
-import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { Button, message, theme } from "antd";
+import { Check, Copy } from "lucide-react";
+import React, { useCallback } from "react";
 
 export interface CopyButtonProps {
   /** Text to copy, or async function returning text to copy */
@@ -32,10 +32,10 @@ export const CopyButton = React.forwardRef<HTMLElement, CopyButtonProps>(
 
     const handleClick = useCallback(async () => {
       try {
-        const value = typeof text === 'function' ? await text() : text;
+        const value = typeof text === "function" ? await text() : text;
         const ok = await copy(value);
         if (ok) {
-          if (successMessage) message.success(successMessage);
+          if (successMessage) { message.success(successMessage); }
           onSuccess?.();
         }
       } catch (e) {

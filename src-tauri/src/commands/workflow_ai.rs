@@ -45,11 +45,15 @@ fn get_node_type_and_position(index: usize, total: usize) -> (String, Position) 
     (node_type, Position { x, y })
 }
 
-fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGenerationResult, String> {
+fn parse_llm_response(
+    prompt: &str,
+    response_content: &str,
+) -> Result<WorkflowGenerationResult, String> {
     let trimmed = response_content.trim();
 
     let json_str = if trimmed.contains("```json") {
-        trimmed.split("```json")
+        trimmed
+            .split("```json")
             .nth(1)
             .and_then(|s| s.split("```").next())
             .map(|s| s.trim())
@@ -57,7 +61,13 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
         Some(trimmed)
     } else {
         None
-    }.ok_or_else(|| format!("Failed to parse LLM response as JSON: {}", &response_content[..response_content.len().min(200)]))?;
+    }
+    .ok_or_else(|| {
+        format!(
+            "Failed to parse LLM response as JSON: {}",
+            &response_content[..response_content.len().min(200)]
+        )
+    })?;
 
     #[derive(Deserialize)]
     struct LlmWorkflowResponse {
@@ -116,20 +126,21 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
         };
 
         let node = match llm_node.node_type.as_str() {
-            "trigger" => {
-                WorkflowNode::Trigger(TriggerNode {
-                    base,
-                    config: TriggerConfig {
-                        trigger_type: TriggerType::Manual,
-                        config: llm_node.config.clone(),
-                    },
-                })
-            },
+            "trigger" => WorkflowNode::Trigger(TriggerNode {
+                base,
+                config: TriggerConfig {
+                    trigger_type: TriggerType::Manual,
+                    config: llm_node.config.clone(),
+                },
+            }),
             "agent" => {
                 let agent_config: AgentNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(AgentNodeConfig {
                         role: AgentRole::Researcher,
-                        system_prompt: format!("You are an AI assistant. {}", llm_node.description.clone().unwrap_or_default()),
+                        system_prompt: format!(
+                            "You are an AI assistant. {}",
+                            llm_node.description.clone().unwrap_or_default()
+                        ),
                         model: Some("gpt-4".to_string()),
                         temperature: Some(0.7),
                         max_tokens: Some(2048),
@@ -138,8 +149,11 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
                         tools: vec![],
                         context_sources: vec![],
                     });
-                WorkflowNode::Agent(AgentNode { base, config: agent_config })
-            },
+                WorkflowNode::Agent(AgentNode {
+                    base,
+                    config: agent_config,
+                })
+            }
             "llm" => {
                 let llm_config: LLMNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(LLMNodeConfig {
@@ -151,25 +165,36 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
                         functions: None,
                         messages: None,
                     });
-                WorkflowNode::Llm(LLMNode { base, config: llm_config })
-            },
+                WorkflowNode::Llm(LLMNode {
+                    base,
+                    config: llm_config,
+                })
+            }
             "condition" => {
-                let cond_config: ConditionNodeConfig = serde_json::from_value(llm_node.config.clone())
-                    .unwrap_or(ConditionNodeConfig {
-                        conditions: vec![],
-                        logical_op: LogicalOperator::And,
-                    });
-                WorkflowNode::Condition(ConditionNode { base, config: cond_config })
-            },
+                let cond_config: ConditionNodeConfig = serde_json::from_value(
+                    llm_node.config.clone(),
+                )
+                .unwrap_or(ConditionNodeConfig {
+                    conditions: vec![],
+                    logical_op: LogicalOperator::And,
+                });
+                WorkflowNode::Condition(ConditionNode {
+                    base,
+                    config: cond_config,
+                })
+            }
             "parallel" => {
-                let para_config: ParallelNodeConfig = serde_json::from_value(llm_node.config.clone())
-                    .unwrap_or(ParallelNodeConfig {
+                let para_config: ParallelNodeConfig =
+                    serde_json::from_value(llm_node.config.clone()).unwrap_or(ParallelNodeConfig {
                         branches: vec![],
                         wait_for_all: true,
                         timeout: None,
                     });
-                WorkflowNode::Parallel(ParallelNode { base, config: para_config })
-            },
+                WorkflowNode::Parallel(ParallelNode {
+                    base,
+                    config: para_config,
+                })
+            }
             "loop" => {
                 let loop_config: LoopNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(LoopNodeConfig {
@@ -181,8 +206,11 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
                         iteratee_var: None,
                         continue_condition: None,
                     });
-                WorkflowNode::Loop(LoopNode { base, config: loop_config })
-            },
+                WorkflowNode::Loop(LoopNode {
+                    base,
+                    config: loop_config,
+                })
+            }
             "tool" => {
                 let tool_config: ToolNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(ToolNodeConfig {
@@ -190,8 +218,11 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
                         input_mapping: std::collections::HashMap::new(),
                         output_var: "".to_string(),
                     });
-                WorkflowNode::Tool(ToolNode { base, config: tool_config })
-            },
+                WorkflowNode::Tool(ToolNode {
+                    base,
+                    config: tool_config,
+                })
+            }
             "code" => {
                 let code_config: CodeNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(CodeNodeConfig {
@@ -199,37 +230,47 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
                         code: "".to_string(),
                         output_var: "".to_string(),
                     });
-                WorkflowNode::Code(CodeNode { base, config: code_config })
-            },
+                WorkflowNode::Code(CodeNode {
+                    base,
+                    config: code_config,
+                })
+            }
             "end" => {
                 let end_config: EndNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(EndNodeConfig { output_var: None });
-                WorkflowNode::End(EndNode { base, config: end_config })
-            },
-            _ => {
-                WorkflowNode::Agent(AgentNode {
+                WorkflowNode::End(EndNode {
                     base,
-                    config: AgentNodeConfig {
-                        role: AgentRole::Researcher,
-                        system_prompt: llm_node.description.clone().unwrap_or_default(),
-                        model: Some("gpt-4".to_string()),
-                        temperature: Some(0.7),
-                        max_tokens: Some(2048),
-                        output_mode: OutputMode::Text,
-                        output_var: "result".to_string(),
-                        tools: vec![],
-                        context_sources: vec![],
-                    },
+                    config: end_config,
                 })
-            },
+            }
+            _ => WorkflowNode::Agent(AgentNode {
+                base,
+                config: AgentNodeConfig {
+                    role: AgentRole::Researcher,
+                    system_prompt: llm_node.description.clone().unwrap_or_default(),
+                    model: Some("gpt-4".to_string()),
+                    temperature: Some(0.7),
+                    max_tokens: Some(2048),
+                    output_mode: OutputMode::Text,
+                    output_var: "result".to_string(),
+                    tools: vec![],
+                    context_sources: vec![],
+                },
+            }),
         };
         nodes.push(node);
     }
 
     let mut edges = Vec::new();
     for (i, llm_edge) in parsed.edges.iter().enumerate() {
-        let source_id = id_to_node_id.get(&llm_edge.source).cloned().unwrap_or(llm_edge.source.clone());
-        let target_id = id_to_node_id.get(&llm_edge.target).cloned().unwrap_or(llm_edge.target.clone());
+        let source_id = id_to_node_id
+            .get(&llm_edge.source)
+            .cloned()
+            .unwrap_or(llm_edge.source.clone());
+        let target_id = id_to_node_id
+            .get(&llm_edge.target)
+            .cloned()
+            .unwrap_or(llm_edge.target.clone());
 
         let edge_type = match llm_edge.edge_type.as_deref() {
             Some("conditionTrue") => EdgeType::ConditionTrue,
@@ -257,7 +298,9 @@ fn parse_llm_response(prompt: &str, response_content: &str) -> Result<WorkflowGe
     Ok(WorkflowGenerationResult {
         nodes,
         edges,
-        explanation: parsed.explanation.or_else(|| Some(format!("基于您的描述 '{}' 生成了工作流", prompt))),
+        explanation: parsed
+            .explanation
+            .or_else(|| Some(format!("基于您的描述 '{}' 生成了工作流", prompt))),
     })
 }
 
@@ -270,9 +313,9 @@ pub async fn generate_workflow_from_prompt(
         .await
         .map_err(|e| format!("Failed to list providers: {}", e))?;
 
-    let provider = providers.iter()
-        .find(|p| p.enabled)
-        .ok_or_else(|| "No enabled provider found. Please configure a provider in settings.".to_string())?;
+    let provider = providers.iter().find(|p| p.enabled).ok_or_else(|| {
+        "No enabled provider found. Please configure a provider in settings.".to_string()
+    })?;
 
     let provider_key = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider.id)
         .await
@@ -283,7 +326,8 @@ pub async fn generate_workflow_from_prompt(
 
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = registry.get(registry_key)
+    let adapter = registry
+        .get(registry_key)
         .ok_or_else(|| format!("Provider adapter not found for type: {}", registry_key))?;
 
     let base_url = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
@@ -334,7 +378,9 @@ Rules:
 5. Include at least one agent or llm node for processing
 6. Node IDs should be unique and match in edges"#;
 
-    let model_id = provider.models.iter()
+    let model_id = provider
+        .models
+        .iter()
         .find(|m| m.enabled)
         .map(|m| m.model_id.clone())
         .unwrap_or_else(|| "gpt-4".to_string());
@@ -370,7 +416,8 @@ Rules:
         store: None,
     };
 
-    let response = adapter.chat(&ctx, request)
+    let response = adapter
+        .chat(&ctx, request)
         .await
         .map_err(|e| format!("LLM API error: {}", e))?;
 
@@ -417,7 +464,10 @@ pub async fn recommend_nodes(
 
     let mut recommendations = Vec::new();
 
-    if context_lower.contains("代码") || context_lower.contains("code") || context_lower.contains("审查") {
+    if context_lower.contains("代码")
+        || context_lower.contains("code")
+        || context_lower.contains("审查")
+    {
         recommendations.push(NodeRecommendation {
             node_type: "llm".to_string(),
             label: "LLM 节点".to_string(),
@@ -447,7 +497,10 @@ pub async fn recommend_nodes(
         });
     }
 
-    if context_lower.contains("并行") || context_lower.contains("parallel") || context_lower.contains("并发") {
+    if context_lower.contains("并行")
+        || context_lower.contains("parallel")
+        || context_lower.contains("并发")
+    {
         recommendations.push(NodeRecommendation {
             node_type: "parallel".to_string(),
             label: "并行节点".to_string(),
@@ -456,7 +509,10 @@ pub async fn recommend_nodes(
         });
     }
 
-    if context_lower.contains("循环") || context_lower.contains("loop") || context_lower.contains("迭代") {
+    if context_lower.contains("循环")
+        || context_lower.contains("loop")
+        || context_lower.contains("迭代")
+    {
         recommendations.push(NodeRecommendation {
             node_type: "loop".to_string(),
             label: "循环节点".to_string(),
@@ -465,7 +521,10 @@ pub async fn recommend_nodes(
         });
     }
 
-    if context_lower.contains("延迟") || context_lower.contains("delay") || context_lower.contains("等待") {
+    if context_lower.contains("延迟")
+        || context_lower.contains("delay")
+        || context_lower.contains("等待")
+    {
         recommendations.push(NodeRecommendation {
             node_type: "delay".to_string(),
             label: "延迟节点".to_string(),
@@ -474,7 +533,10 @@ pub async fn recommend_nodes(
         });
     }
 
-    if context_lower.contains("文档") || context_lower.contains("document") || context_lower.contains("解析") {
+    if context_lower.contains("文档")
+        || context_lower.contains("document")
+        || context_lower.contains("解析")
+    {
         recommendations.push(NodeRecommendation {
             node_type: "documentParser".to_string(),
             label: "文档解析节点".to_string(),
@@ -483,7 +545,10 @@ pub async fn recommend_nodes(
         });
     }
 
-    if context_lower.contains("搜索") || context_lower.contains("search") || context_lower.contains("检索") {
+    if context_lower.contains("搜索")
+        || context_lower.contains("search")
+        || context_lower.contains("检索")
+    {
         recommendations.push(NodeRecommendation {
             node_type: "vectorRetrieve".to_string(),
             label: "向量检索节点".to_string(),

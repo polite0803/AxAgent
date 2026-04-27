@@ -1,6 +1,6 @@
 use crate::AppState;
 use axagent_core::types::*;
-use tauri::{State, Emitter};
+use tauri::{Emitter, State};
 
 #[tauri::command]
 pub async fn list_mcp_servers(state: State<'_, AppState>) -> Result<Vec<McpServer>, String> {
@@ -73,7 +73,10 @@ pub async fn discover_mcp_tools(
 
     // Builtin tools are now managed by LocalToolRegistry, not MCP
     if server.source == "builtin" {
-        return Err("Builtin tools are managed by Local Tools, not MCP. Use list_local_tools instead.".to_string());
+        return Err(
+            "Builtin tools are managed by Local Tools, not MCP. Use list_local_tools instead."
+                .to_string(),
+        );
     }
 
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
@@ -173,11 +176,14 @@ pub async fn hot_reload_mcp_server(
 
     // 4. Emit event so frontend can update its tool list
     let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
-    let _ = app.emit("mcp-server-hot-reloaded", serde_json::json!({
-        "serverId": id,
-        "toolCount": tools.len(),
-        "toolNames": tool_names,
-    }));
+    let _ = app.emit(
+        "mcp-server-hot-reloaded",
+        serde_json::json!({
+            "serverId": id,
+            "toolCount": tools.len(),
+            "toolNames": tool_names,
+        }),
+    );
 
     Ok(serde_json::json!({
         "ok": true,
@@ -197,7 +203,10 @@ async fn discover_mcp_tools_inner(
 
     // Builtin tools are now managed by LocalToolRegistry, not MCP
     if server.source == "builtin" {
-        return Err("Builtin tools are managed by Local Tools, not MCP. Use list_local_tools instead.".to_string());
+        return Err(
+            "Builtin tools are managed by Local Tools, not MCP. Use list_local_tools instead."
+                .to_string(),
+        );
     }
 
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;

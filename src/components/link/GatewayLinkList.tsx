@@ -1,23 +1,23 @@
-import { Button, Input, Switch, theme, App, Popconfirm } from 'antd';
-import { Plus, Search, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useGatewayLinkStore } from '@/stores';
-import type { GatewayLink, GatewayLinkStatus } from '@/types';
+import { useGatewayLinkStore } from "@/stores";
+import type { GatewayLink, GatewayLinkStatus } from "@/types";
+import { App, Button, Input, Popconfirm, Switch, theme } from "antd";
+import { Plus, Search, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const STATUS_INDICATOR: Record<GatewayLinkStatus, { color: string; labelKey: string }> = {
-  connected: { color: '#52c41a', labelKey: 'link.statusConnected' },
-  disconnected: { color: '#d9d9d9', labelKey: 'link.statusDisconnected' },
-  connecting: { color: '#faad14', labelKey: 'link.statusConnecting' },
-  error: { color: '#ff4d4f', labelKey: 'link.statusError' },
+  connected: { color: "#52c41a", labelKey: "link.statusConnected" },
+  disconnected: { color: "#d9d9d9", labelKey: "link.statusDisconnected" },
+  connecting: { color: "#faad14", labelKey: "link.statusConnecting" },
+  error: { color: "#ff4d4f", labelKey: "link.statusError" },
 };
 
 function LinkTypeBadge({ type }: { type: string }) {
   const { t } = useTranslation();
   const labelMap: Record<string, string> = {
-    openclaw: 'OpenClaw',
-    hermes: 'Hermes',
-    custom: t('link.typeCustom'),
+    openclaw: "OpenClaw",
+    hermes: "Hermes",
+    custom: t("link.typeCustom"),
   };
   return (
     <span style={{ fontSize: 11, opacity: 0.6 }}>
@@ -37,7 +37,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
   const deleteLink = useGatewayLinkStore((s) => s.deleteLink);
   const fetchLinks = useGatewayLinkStore((s) => s.fetchLinks);
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   const filteredLinks = useMemo(
     () => links.filter((l) => l.name.toLowerCase().includes(search.toLowerCase())),
@@ -49,16 +49,16 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
       await toggleLink(link.id, checked);
       void fetchLinks();
     } catch {
-      message.error(t('link.addFailed'));
+      message.error(t("link.addFailed"));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteLink(id);
-      message.success(t('link.deleteSuccess'));
+      message.success(t("link.deleteSuccess"));
     } catch {
-      message.error(t('link.deleteFailed'));
+      message.error(t("link.deleteFailed"));
     }
   };
 
@@ -67,7 +67,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
       <div className="p-3 flex items-center gap-2">
         <Input
           prefix={<Search size={14} />}
-          placeholder={t('link.searchGateways')}
+          placeholder={t("link.searchGateways")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           allowClear
@@ -86,7 +86,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
             className="flex items-center justify-center"
             style={{ color: token.colorTextSecondary, fontSize: 13, padding: 24 }}
           >
-            {t('link.noGateways')}
+            {t("link.noGateways")}
           </div>
         )}
         {filteredLinks.map((link) => {
@@ -109,7 +109,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
               }}
               onMouseLeave={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.backgroundColor = '';
+                  e.currentTarget.style.backgroundColor = "";
                 }
               }}
             >
@@ -119,7 +119,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
                     style={{
                       width: 8,
                       height: 8,
-                      borderRadius: '50%',
+                      borderRadius: "50%",
                       backgroundColor: indicator.color,
                       flexShrink: 0,
                     }}
@@ -141,9 +141,9 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
                     color: token.colorTextTertiary,
                     marginTop: 2,
                     paddingLeft: 16,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {link.endpoint}
@@ -156,10 +156,10 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
                 onChange={(checked) => handleToggle(link, checked)}
               />
               <Popconfirm
-                title={t('link.deleteConfirm')}
+                title={t("link.deleteConfirm")}
                 onConfirm={() => handleDelete(link.id)}
-                okText={t('common.confirm')}
-                cancelText={t('common.cancel')}
+                okText={t("common.confirm")}
+                cancelText={t("common.cancel")}
               >
                 <Button
                   type="text"

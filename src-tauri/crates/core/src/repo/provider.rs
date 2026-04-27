@@ -588,10 +588,7 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
 /// Materialize a virtual built-in provider into the database.
 /// Called when a user first modifies a built-in provider that has no DB record.
 /// Returns the new real provider ID.
-pub async fn ensure_builtin_provider(
-    db: &DatabaseConnection,
-    builtin_id: &str,
-) -> Result<String> {
+pub async fn ensure_builtin_provider(db: &DatabaseConnection, builtin_id: &str) -> Result<String> {
     let existing = providers::Entity::find()
         .filter(providers::Column::BuiltinId.eq(builtin_id))
         .one(db)

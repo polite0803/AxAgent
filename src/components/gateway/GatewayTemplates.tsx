@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Card, Button, Typography, App, Tag, Select } from 'antd';
-import { Zap, ZapOff, RefreshCw, AlertCircle } from 'lucide-react';
-import { ClaudeCode } from '@lobehub/icons';
-import { Codex } from '@lobehub/icons';
-import { OpenCode } from '@lobehub/icons';
-import { Gemini } from '@lobehub/icons';
-import { Cursor } from '@lobehub/icons';
-import { useGatewayStore } from '@/stores';
-import type { CliToolInfo, QuickConnectProtocol } from '@/types';
+import { useGatewayStore } from "@/stores";
+import type { CliToolInfo, QuickConnectProtocol } from "@/types";
+import { ClaudeCode } from "@lobehub/icons";
+import { Codex } from "@lobehub/icons";
+import { OpenCode } from "@lobehub/icons";
+import { Gemini } from "@lobehub/icons";
+import { Cursor } from "@lobehub/icons";
+import { App, Button, Card, Select, Tag, Typography } from "antd";
+import { AlertCircle, RefreshCw, Zap, ZapOff } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -21,34 +21,34 @@ interface QuickConnectItem {
 
 const CONNECT_ITEMS: QuickConnectItem[] = [
   {
-    key: 'claude_code',
-    name: 'Claude Code',
+    key: "claude_code",
+    name: "Claude Code",
     avatar: (size) => <ClaudeCode.Avatar size={size} />,
-    description: 'gateway.templateDescClaude',
+    description: "gateway.templateDescClaude",
   },
   {
-    key: 'codex',
-    name: 'Codex',
+    key: "codex",
+    name: "Codex",
     avatar: (size) => <Codex.Avatar size={size} />,
-    description: 'gateway.templateDescCodex',
+    description: "gateway.templateDescCodex",
   },
   {
-    key: 'opencode',
-    name: 'OpenCode',
+    key: "opencode",
+    name: "OpenCode",
     avatar: (size) => <OpenCode.Avatar size={size} />,
-    description: 'gateway.templateDescOpencode',
+    description: "gateway.templateDescOpencode",
   },
   {
-    key: 'gemini',
-    name: 'Gemini CLI',
+    key: "gemini",
+    name: "Gemini CLI",
     avatar: (size) => <Gemini.Avatar size={size} />,
-    description: 'gateway.templateDescGemini',
+    description: "gateway.templateDescGemini",
   },
   {
-    key: 'cursor',
-    name: 'Cursor',
+    key: "cursor",
+    name: "Cursor",
     avatar: (size) => <Cursor.Avatar size={size} />,
-    description: 'gateway.templateDescCursor',
+    description: "gateway.templateDescCursor",
   },
 ];
 
@@ -64,15 +64,17 @@ export function QuickConnectCycleIcon({ size = 16 }: { size?: number }) {
   }, []);
 
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: size,
-      height: size,
-      verticalAlign: '-0.125em',
-      overflow: 'hidden',
-    }}>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: size,
+        height: size,
+        verticalAlign: "-0.125em",
+        overflow: "hidden",
+      }}
+    >
       {CONNECT_ITEMS[index].avatar(size)}
     </span>
   );
@@ -86,22 +88,22 @@ function StatusTag({
   connectedProtocol?: QuickConnectProtocol | null;
 }) {
   const { t } = useTranslation();
-  const displayStatus = status === 'connected' && connectedProtocol == null ? 'not_connected' : status;
+  const displayStatus = status === "connected" && connectedProtocol == null ? "not_connected" : status;
   switch (displayStatus) {
-    case 'connected':
+    case "connected":
       return (
         <Tag color="success">
-          {connectedProtocol === 'https'
-            ? t('gateway.cliConnectedHttps')
-            : connectedProtocol === 'http'
-              ? t('gateway.cliConnectedHttp')
-              : t('gateway.cliNotConnected')}
+          {connectedProtocol === "https"
+            ? t("gateway.cliConnectedHttps")
+            : connectedProtocol === "http"
+            ? t("gateway.cliConnectedHttp")
+            : t("gateway.cliNotConnected")}
         </Tag>
       );
-    case 'not_connected':
-      return <Tag color="default">{t('gateway.cliNotConnected')}</Tag>;
-    case 'not_installed':
-      return <Tag color="error">{t('gateway.cliNotInstalled')}</Tag>;
+    case "not_connected":
+      return <Tag color="default">{t("gateway.cliNotConnected")}</Tag>;
+    case "not_installed":
+      return <Tag color="error">{t("gateway.cliNotInstalled")}</Tag>;
     default:
       return null;
   }
@@ -129,25 +131,24 @@ function ToolCard({
   const { t } = useTranslation();
   const { modal } = App.useApp();
 
-  const status = toolInfo?.status ?? 'not_installed';
+  const status = toolInfo?.status ?? "not_installed";
   const connectedProtocol = toolInfo?.connectedProtocol ?? null;
-  const displayStatus = status === 'connected' && connectedProtocol == null ? 'not_connected' : status;
+  const displayStatus = status === "connected" && connectedProtocol == null ? "not_connected" : status;
   const isConnecting = connecting === item.key;
-  const isNotInstalled = displayStatus === 'not_installed';
-  const isConnected = displayStatus === 'connected';
-  const needsReconnect =
-    isConnected &&
-    connectedProtocol != null &&
-    selectedProtocol != null &&
-    connectedProtocol !== selectedProtocol;
+  const isNotInstalled = displayStatus === "not_installed";
+  const isConnected = displayStatus === "connected";
+  const needsReconnect = isConnected
+    && connectedProtocol != null
+    && selectedProtocol != null
+    && connectedProtocol !== selectedProtocol;
 
   const handleConnect = useCallback(() => {
     if (isNotInstalled) {
       modal.confirm({
-        title: t('gateway.cliNotInstalledConfirmTitle'),
-        content: t('gateway.cliNotInstalledConfirmContent'),
-        okText: t('gateway.cliNotInstalledConfirmOk'),
-        cancelText: t('gateway.cliNotInstalledConfirmCancel'),
+        title: t("gateway.cliNotInstalledConfirmTitle"),
+        content: t("gateway.cliNotInstalledConfirmContent"),
+        okText: t("gateway.cliNotInstalledConfirmOk"),
+        cancelText: t("gateway.cliNotInstalledConfirmCancel"),
         onOk: () => onConnect(item.key),
       });
     } else {
@@ -159,10 +160,10 @@ function ToolCard({
     const hasBackup = toolInfo?.hasBackup ?? false;
     if (hasBackup) {
       modal.confirm({
-        title: t('gateway.cliDisconnectTitle'),
-        content: t('gateway.cliDisconnectContent'),
-        okText: t('gateway.cliRestoreBackup'),
-        cancelText: t('gateway.cliRemoveFieldsOnly'),
+        title: t("gateway.cliDisconnectTitle"),
+        content: t("gateway.cliDisconnectContent"),
+        okText: t("gateway.cliRestoreBackup"),
+        cancelText: t("gateway.cliRemoveFieldsOnly"),
         onOk: () => onDisconnect(item.key, true),
         onCancel: () => onDisconnect(item.key, false),
       });
@@ -173,15 +174,15 @@ function ToolCard({
 
   return (
     <Card key={item.key} size="small" hoverable className="gateway-quick-connect-card">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flexShrink: 0 }}>
           {item.avatar(40)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Title level={5} style={{ margin: 0 }}>{item.name}</Title>
             {toolInfo?.version && !isNotInstalled && (
-              <Text type="secondary" style={{ fontSize: 12 }}>v{toolInfo.version.replace(/^[^\d]*/, '')}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>v{toolInfo.version.replace(/^[^\d]*/, "")}</Text>
             )}
             <StatusTag status={status} connectedProtocol={connectedProtocol} />
           </div>
@@ -199,26 +200,28 @@ function ToolCard({
           )}
         </div>
         <div style={{ flexShrink: 0 }}>
-          {isConnected && !needsReconnect ? (
-            <Button
-              danger
-              icon={<ZapOff size={14} />}
-              onClick={handleDisconnect}
-              loading={isConnecting}
-            >
-              {t('gateway.cliDisconnect')}
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              icon={<Zap size={14} />}
-              onClick={handleConnect}
-              disabled={quickConnectBlocked || !selectedKeyId || !selectedProtocol}
-              loading={isConnecting}
-            >
-              {needsReconnect ? t('gateway.cliSwitchProtocolReconnect') : t('gateway.quickConnect')}
-            </Button>
-          )}
+          {isConnected && !needsReconnect
+            ? (
+              <Button
+                danger
+                icon={<ZapOff size={14} />}
+                onClick={handleDisconnect}
+                loading={isConnecting}
+              >
+                {t("gateway.cliDisconnect")}
+              </Button>
+            )
+            : (
+              <Button
+                type="primary"
+                icon={<Zap size={14} />}
+                onClick={handleConnect}
+                disabled={quickConnectBlocked || !selectedKeyId || !selectedProtocol}
+                loading={isConnecting}
+              >
+                {needsReconnect ? t("gateway.cliSwitchProtocolReconnect") : t("gateway.quickConnect")}
+              </Button>
+            )}
         </div>
       </div>
     </Card>
@@ -247,17 +250,17 @@ export function GatewayTemplates() {
     const protocols: QuickConnectProtocol[] = [];
 
     if (!status.force_ssl) {
-      protocols.push('http');
+      protocols.push("http");
     }
     if (status.https_port != null) {
-      protocols.push('https');
+      protocols.push("https");
     }
 
     if (protocols.length > 0) {
       return protocols;
     }
 
-    return status.force_ssl ? ['https'] : ['http'];
+    return status.force_ssl ? ["https"] : ["http"];
   }, [status.force_ssl, status.https_port]);
   const [selectedProtocol, setSelectedProtocol] = useState<QuickConnectProtocol | undefined>(undefined);
 
@@ -292,14 +295,14 @@ export function GatewayTemplates() {
 
   const handleConnect = useCallback(
     async (toolId: string) => {
-      if (!selectedKeyId || !selectedProtocol) return;
+      if (!selectedKeyId || !selectedProtocol) { return; }
       setConnecting(toolId);
       try {
         await connectCliTool(toolId, selectedKeyId, selectedProtocol);
         const name = CONNECT_ITEMS.find((i) => i.key === toolId)?.name;
-        message.success(t('gateway.cliConnectSuccess', { name }));
+        message.success(t("gateway.cliConnectSuccess", { name }));
       } catch (e) {
-        message.error(t('gateway.cliConnectError', { error: String(e) }));
+        message.error(t("gateway.cliConnectError", { error: String(e) }));
       } finally {
         setConnecting(null);
       }
@@ -313,9 +316,9 @@ export function GatewayTemplates() {
       try {
         await disconnectCliTool(toolId, restoreBackup);
         const name = CONNECT_ITEMS.find((i) => i.key === toolId)?.name;
-        message.success(t('gateway.cliDisconnectSuccess', { name }));
+        message.success(t("gateway.cliDisconnectSuccess", { name }));
       } catch (e) {
-        message.error(t('gateway.cliDisconnectError', { error: String(e) }));
+        message.error(t("gateway.cliDisconnectError", { error: String(e) }));
       } finally {
         setConnecting(null);
       }
@@ -324,21 +327,21 @@ export function GatewayTemplates() {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <Button
           icon={<RefreshCw size={14} />}
           onClick={handleRefresh}
           loading={cliToolsLoading}
         >
-          {t('gateway.cliRefresh')}
+          {t("gateway.cliRefresh")}
         </Button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Select
             style={{ width: 200 }}
             value={selectedKeyId}
             onChange={setSelectedKeyId}
-            placeholder={t('gateway.cliSelectKey')}
+            placeholder={t("gateway.cliSelectKey")}
             options={enabledKeys.map((k) => ({
               value: k.id,
               label: `${k.name} (${k.key_prefix})`,
@@ -349,28 +352,48 @@ export function GatewayTemplates() {
             style={{ width: 140 }}
             value={selectedProtocol}
             onChange={setSelectedProtocol}
-            placeholder={t('gateway.cliSelectProtocol')}
+            placeholder={t("gateway.cliSelectProtocol")}
             disabled={availableProtocols.length <= 1}
             options={availableProtocols.map((protocol) => ({
               value: protocol,
-              label: protocol === 'https' ? t('gateway.cliProtocolHttps') : t('gateway.cliProtocolHttp'),
+              label: protocol === "https" ? t("gateway.cliProtocolHttps") : t("gateway.cliProtocolHttp"),
             }))}
           />
         </div>
       </div>
       {quickConnectBlocked && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--ant-color-warning-bg)', borderRadius: 6, marginBottom: 4 }}>
-          <AlertCircle size={16} style={{ color: 'var(--ant-color-warning)' }} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 12px",
+            background: "var(--ant-color-warning-bg)",
+            borderRadius: 6,
+            marginBottom: 4,
+          }}
+        >
+          <AlertCircle size={16} style={{ color: "var(--ant-color-warning)" }} />
           <Text type="secondary" style={{ fontSize: 13 }}>
-            {t('gateway.cliStartGatewayFirst')}
+            {t("gateway.cliStartGatewayFirst")}
           </Text>
         </div>
       )}
       {enabledKeys.length === 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--ant-color-warning-bg)', borderRadius: 6, marginBottom: 4 }}>
-          <AlertCircle size={16} style={{ color: 'var(--ant-color-warning)' }} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 12px",
+            background: "var(--ant-color-warning-bg)",
+            borderRadius: 6,
+            marginBottom: 4,
+          }}
+        >
+          <AlertCircle size={16} style={{ color: "var(--ant-color-warning)" }} />
           <Text type="secondary" style={{ fontSize: 13 }}>
-            {t('gateway.cliNoKeys')}
+            {t("gateway.cliNoKeys")}
           </Text>
         </div>
       )}

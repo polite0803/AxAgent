@@ -1,9 +1,9 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { Modal, theme } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { useSettingsStore } from '@/stores';
-import { useResolvedDarkMode } from '@/hooks/useResolvedDarkMode';
-import 'emoji-picker-element';
+import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
+import { useSettingsStore } from "@/stores";
+import { Modal, theme } from "antd";
+import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import "emoji-picker-element";
 
 interface EmojiPickerProps {
   open: boolean;
@@ -35,31 +35,31 @@ export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) 
   const setPickerRef = useCallback((node: HTMLElement | null) => {
     // Detach from old node
     if (pickerRef.current) {
-      pickerRef.current.removeEventListener('emoji-click', handleClick);
+      pickerRef.current.removeEventListener("emoji-click", handleClick);
     }
     pickerRef.current = node;
     // Attach to new node
     if (node) {
-      node.addEventListener('emoji-click', handleClick);
+      node.addEventListener("emoji-click", handleClick);
     }
   }, [handleClick]);
 
   // Sync locale + i18n translations
   useEffect(() => {
     const picker = pickerRef.current as any;
-    if (!picker) return;
+    if (!picker) { return; }
     const lang = i18n.language;
-    if (lang.startsWith('zh')) {
-      import('emoji-picker-element/i18n/zh_CN').then((mod) => {
-        picker.locale = 'zh';
+    if (lang.startsWith("zh")) {
+      import("emoji-picker-element/i18n/zh_CN").then((mod) => {
+        picker.locale = "zh";
         picker.i18n = mod.default;
-        picker.dataSource = 'https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/zh/emojibase/data.json';
+        picker.dataSource = "https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/zh/emojibase/data.json";
       });
     } else {
-      import('emoji-picker-element/i18n/en').then((mod) => {
-        picker.locale = 'en';
+      import("emoji-picker-element/i18n/en").then((mod) => {
+        picker.locale = "en";
         picker.i18n = mod.default;
-        picker.dataSource = 'https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/en/emojibase/data.json';
+        picker.dataSource = "https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/en/emojibase/data.json";
       });
     }
   }, [i18n.language, open]);
@@ -69,33 +69,35 @@ export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) 
       open={open}
       onCancel={onClose}
       footer={null}
-      title={t('common.selectEmoji')}
+      title={t("common.selectEmoji")}
       width={400}
       centered
       destroyOnHidden
     >
-      <div style={{
-        borderRadius: token.borderRadius,
-        overflow: 'hidden',
-      }}>
+      <div
+        style={{
+          borderRadius: token.borderRadius,
+          overflow: "hidden",
+        }}
+      >
         {/* @ts-ignore - web component */}
         <emoji-picker
           ref={setPickerRef}
-          class={isDark ? 'dark' : 'light'}
+          class={isDark ? "dark" : "light"}
           style={{
-            '--num-columns': '8',
-            '--emoji-padding': '0.25rem',
-            '--border-radius': `${token.borderRadius}px`,
-            '--background': isDark ? token.colorBgElevated : token.colorBgContainer,
-            '--border-color': 'transparent',
-            '--indicator-color': token.colorPrimary,
-            '--input-border-color': token.colorBorder,
-            '--input-font-size': '14px',
-            '--input-padding': '0.4rem',
-            '--button-hover-background': token.colorFillSecondary,
-            '--button-active-background': token.colorFillTertiary,
-            '--outline-color': token.colorPrimary,
-            width: '100%',
+            "--num-columns": "8",
+            "--emoji-padding": "0.25rem",
+            "--border-radius": `${token.borderRadius}px`,
+            "--background": isDark ? token.colorBgElevated : token.colorBgContainer,
+            "--border-color": "transparent",
+            "--indicator-color": token.colorPrimary,
+            "--input-border-color": token.colorBorder,
+            "--input-font-size": "14px",
+            "--input-padding": "0.4rem",
+            "--button-hover-background": token.colorFillSecondary,
+            "--button-active-background": token.colorFillTertiary,
+            "--outline-color": token.colorPrimary,
+            width: "100%",
           } as React.CSSProperties}
         />
       </div>

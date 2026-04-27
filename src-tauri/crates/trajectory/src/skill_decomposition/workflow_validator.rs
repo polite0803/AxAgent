@@ -42,8 +42,19 @@ const VALID_CATEGORIES: &[&str] = &[
 const VALID_LOOP_TYPES: &[&str] = &["forEach", "while", "doWhile", "until"];
 
 const VALID_COMPARE_OPERATORS: &[&str] = &[
-    "eq", "ne", "gt", "lt", "gte", "lte", "contains", "notContains",
-    "startsWith", "endsWith", "regexMatch", "isEmpty", "isNotEmpty",
+    "eq",
+    "ne",
+    "gt",
+    "lt",
+    "gte",
+    "lte",
+    "contains",
+    "notContains",
+    "startsWith",
+    "endsWith",
+    "regexMatch",
+    "isEmpty",
+    "isNotEmpty",
 ];
 
 const VALID_LOGICAL_OPERATORS: &[&str] = &["and", "or"];
@@ -51,7 +62,12 @@ const VALID_LOGICAL_OPERATORS: &[&str] = &["and", "or"];
 const VALID_TRIGGER_TYPES: &[&str] = &["manual", "schedule", "webhook", "event"];
 
 const VALID_AGENT_ROLES: &[&str] = &[
-    "researcher", "planner", "developer", "reviewer", "synthesizer", "executor",
+    "researcher",
+    "planner",
+    "developer",
+    "reviewer",
+    "synthesizer",
+    "executor",
 ];
 
 const VALID_OUTPUT_MODES: &[&str] = &["json", "text", "artifact"];
@@ -101,7 +117,10 @@ impl WorkflowValidator {
             }
         }
 
-        if let Some(skills) = corrected.get_mut("atomic_skills").and_then(|s| s.as_array_mut()) {
+        if let Some(skills) = corrected
+            .get_mut("atomic_skills")
+            .and_then(|s| s.as_array_mut())
+        {
             for skill in skills.iter_mut() {
                 let skill_issues = Self::validate_atomic_skill(skill);
                 issues.extend(skill_issues);
@@ -125,8 +144,14 @@ impl WorkflowValidator {
     fn validate_node(node: &mut serde_json::Value) -> Vec<ValidationIssue> {
         let mut issues = Vec::new();
 
-        let node_id = node.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let node_type_opt = node.get("type").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let node_id = node
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let node_type_opt = node
+            .get("type")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
         let has_title = node.get("title").and_then(|v| v.as_str()).is_some();
 
         if let Some(node_type) = node_type_opt {
@@ -141,14 +166,21 @@ impl WorkflowValidator {
                     corrected_value: Some(correction.to_string()),
                 });
                 if let Some(map) = node.as_object_mut() {
-                    map.insert("type".to_string(), serde_json::Value::String(correction.to_string()));
+                    map.insert(
+                        "type".to_string(),
+                        serde_json::Value::String(correction.to_string()),
+                    );
                 }
             }
 
             if let Some(map) = node.as_object_mut() {
                 if let Some(config) = map.get_mut("config") {
                     if let Some(config_obj) = config.as_object_mut() {
-                        issues.extend(Self::validate_node_config(&node_type, config_obj, node_id.as_deref()));
+                        issues.extend(Self::validate_node_config(
+                            &node_type,
+                            config_obj,
+                            node_id.as_deref(),
+                        ));
                     }
                 }
             }
@@ -185,14 +217,21 @@ impl WorkflowValidator {
                 corrected_value: Some(default_title.clone()),
             });
             if let Some(map) = node.as_object_mut() {
-                map.insert("title".to_string(), serde_json::Value::String(default_title));
+                map.insert(
+                    "title".to_string(),
+                    serde_json::Value::String(default_title),
+                );
             }
         }
 
         issues
     }
 
-    fn validate_node_config(node_type: &str, config: &mut serde_json::Map<String, serde_json::Value>, node_id: Option<&str>) -> Vec<ValidationIssue> {
+    fn validate_node_config(
+        node_type: &str,
+        config: &mut serde_json::Map<String, serde_json::Value>,
+        node_id: Option<&str>,
+    ) -> Vec<ValidationIssue> {
         let mut issues = Vec::new();
 
         match node_type {
@@ -207,7 +246,10 @@ impl WorkflowValidator {
                             original_value: Some(trigger_type.to_string()),
                             corrected_value: Some("manual".to_string()),
                         });
-                        config.insert("type".to_string(), serde_json::Value::String("manual".to_string()));
+                        config.insert(
+                            "type".to_string(),
+                            serde_json::Value::String("manual".to_string()),
+                        );
                     }
                 }
             }
@@ -222,7 +264,10 @@ impl WorkflowValidator {
                             original_value: Some(role.to_string()),
                             corrected_value: Some("developer".to_string()),
                         });
-                        config.insert("role".to_string(), serde_json::Value::String("developer".to_string()));
+                        config.insert(
+                            "role".to_string(),
+                            serde_json::Value::String("developer".to_string()),
+                        );
                     }
                 }
                 if let Some(output_mode) = config.get("output_mode").and_then(|v| v.as_str()) {
@@ -235,7 +280,10 @@ impl WorkflowValidator {
                             original_value: Some(output_mode.to_string()),
                             corrected_value: Some("text".to_string()),
                         });
-                        config.insert("output_mode".to_string(), serde_json::Value::String("text".to_string()));
+                        config.insert(
+                            "output_mode".to_string(),
+                            serde_json::Value::String("text".to_string()),
+                        );
                     }
                 }
             }
@@ -244,17 +292,25 @@ impl WorkflowValidator {
                     if let Some(conditions_arr) = conditions.as_array_mut() {
                         for cond in conditions_arr.iter_mut() {
                             if let Some(cond_obj) = cond.as_object_mut() {
-                                if let Some(operator) = cond_obj.get("operator").and_then(|v| v.as_str()) {
+                                if let Some(operator) =
+                                    cond_obj.get("operator").and_then(|v| v.as_str())
+                                {
                                     if !VALID_COMPARE_OPERATORS.contains(&operator) {
                                         issues.push(ValidationIssue {
                                             severity: IssueSeverity::Warning,
                                             node_id: node_id.map(|s| s.to_string()),
                                             field: Some("config.conditions[].operator".to_string()),
-                                            message: format!("无效比较操作符 '{}'，降级为 'isNotEmpty'", operator),
+                                            message: format!(
+                                                "无效比较操作符 '{}'，降级为 'isNotEmpty'",
+                                                operator
+                                            ),
                                             original_value: Some(operator.to_string()),
                                             corrected_value: Some("isNotEmpty".to_string()),
                                         });
-                                        cond_obj.insert("operator".to_string(), serde_json::Value::String("isNotEmpty".to_string()));
+                                        cond_obj.insert(
+                                            "operator".to_string(),
+                                            serde_json::Value::String("isNotEmpty".to_string()),
+                                        );
                                     }
                                 }
                             }
@@ -271,7 +327,10 @@ impl WorkflowValidator {
                             original_value: Some(logical_op.to_string()),
                             corrected_value: Some("and".to_string()),
                         });
-                        config.insert("logical_op".to_string(), serde_json::Value::String("and".to_string()));
+                        config.insert(
+                            "logical_op".to_string(),
+                            serde_json::Value::String("and".to_string()),
+                        );
                     }
                 }
             }
@@ -286,7 +345,10 @@ impl WorkflowValidator {
                             original_value: Some(loop_type.to_string()),
                             corrected_value: Some("forEach".to_string()),
                         });
-                        config.insert("loop_type".to_string(), serde_json::Value::String("forEach".to_string()));
+                        config.insert(
+                            "loop_type".to_string(),
+                            serde_json::Value::String("forEach".to_string()),
+                        );
                     }
                 }
             }
@@ -298,7 +360,10 @@ impl WorkflowValidator {
 
     fn validate_edge(edge: &mut serde_json::Value) -> Vec<ValidationIssue> {
         let mut issues = Vec::new();
-        let edge_id = edge.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let edge_id = edge
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
         let edge_type = edge.get("edge_type").and_then(|v| v.as_str());
 
         if let Some(edge_type) = edge_type {
@@ -312,12 +377,15 @@ impl WorkflowValidator {
                     corrected_value: Some("direct".to_string()),
                 });
                 if let Some(map) = edge.as_object_mut() {
-                    map.insert("edge_type".to_string(), serde_json::Value::String("direct".to_string()));
+                    map.insert(
+                        "edge_type".to_string(),
+                        serde_json::Value::String("direct".to_string()),
+                    );
                 }
             }
         }
 
-        if !edge.get("source").and_then(|v| v.as_str()).is_some() {
+        if edge.get("source").and_then(|v| v.as_str()).is_none() {
             issues.push(ValidationIssue {
                 severity: IssueSeverity::Error,
                 node_id: edge_id.clone(),
@@ -328,7 +396,7 @@ impl WorkflowValidator {
             });
         }
 
-        if !edge.get("target").and_then(|v| v.as_str()).is_some() {
+        if edge.get("target").and_then(|v| v.as_str()).is_none() {
             issues.push(ValidationIssue {
                 severity: IssueSeverity::Error,
                 node_id: edge_id.clone(),
@@ -344,7 +412,10 @@ impl WorkflowValidator {
 
     fn validate_atomic_skill(skill: &mut serde_json::Value) -> Vec<ValidationIssue> {
         let mut issues = Vec::new();
-        let skill_name = skill.get("name").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let skill_name = skill
+            .get("name")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         if let Some(entry_type) = skill.get("entry_type").and_then(|v| v.as_str()) {
             if !VALID_ENTRY_TYPES.contains(&entry_type) {
@@ -357,7 +428,10 @@ impl WorkflowValidator {
                     corrected_value: Some("local".to_string()),
                 });
                 if let Some(map) = skill.as_object_mut() {
-                    map.insert("entry_type".to_string(), serde_json::Value::String("local".to_string()));
+                    map.insert(
+                        "entry_type".to_string(),
+                        serde_json::Value::String("local".to_string()),
+                    );
                 }
             }
         }
@@ -373,7 +447,10 @@ impl WorkflowValidator {
                     corrected_value: Some("other".to_string()),
                 });
                 if let Some(map) = skill.as_object_mut() {
-                    map.insert("category".to_string(), serde_json::Value::String("other".to_string()));
+                    map.insert(
+                        "category".to_string(),
+                        serde_json::Value::String("other".to_string()),
+                    );
                 }
             }
         }
@@ -389,7 +466,7 @@ impl WorkflowValidator {
             });
         }
 
-        if !skill.get("entry_ref").and_then(|v| v.as_str()).is_some() {
+        if skill.get("entry_ref").and_then(|v| v.as_str()).is_none() {
             if let Some(name) = &skill_name {
                 issues.push(ValidationIssue {
                     severity: IssueSeverity::Warning,
@@ -400,7 +477,10 @@ impl WorkflowValidator {
                     corrected_value: Some(name.clone()),
                 });
                 if let Some(map) = skill.as_object_mut() {
-                    map.insert("entry_ref".to_string(), serde_json::Value::String(name.clone()));
+                    map.insert(
+                        "entry_ref".to_string(),
+                        serde_json::Value::String(name.clone()),
+                    );
                 }
             }
         }
@@ -413,25 +493,53 @@ impl WorkflowValidator {
 
         if input_lower.contains("trigger") || input_lower.contains("start") {
             "trigger"
-        } else if input_lower.contains("end") || input_lower.contains("finish") || input_lower.contains("output") {
+        } else if input_lower.contains("end")
+            || input_lower.contains("finish")
+            || input_lower.contains("output")
+        {
             "end"
-        } else if input_lower.contains("condition") || input_lower.contains("branch") || input_lower.contains("if") {
+        } else if input_lower.contains("condition")
+            || input_lower.contains("branch")
+            || input_lower.contains("if")
+        {
             "condition"
-        } else if input_lower.contains("parallel") || input_lower.contains("concurrent") || input_lower.contains("branch") {
+        } else if input_lower.contains("parallel")
+            || input_lower.contains("concurrent")
+            || input_lower.contains("branch")
+        {
             "parallel"
-        } else if input_lower.contains("loop") || input_lower.contains("repeat") || input_lower.contains("iterate") {
+        } else if input_lower.contains("loop")
+            || input_lower.contains("repeat")
+            || input_lower.contains("iterate")
+        {
             "loop"
-        } else if input_lower.contains("merge") || input_lower.contains("join") || input_lower.contains("combine") {
+        } else if input_lower.contains("merge")
+            || input_lower.contains("join")
+            || input_lower.contains("combine")
+        {
             "merge"
-        } else if input_lower.contains("delay") || input_lower.contains("wait") || input_lower.contains("sleep") {
+        } else if input_lower.contains("delay")
+            || input_lower.contains("wait")
+            || input_lower.contains("sleep")
+        {
             "delay"
         } else if input_lower.contains("agent") {
             "agent"
-        } else if input_lower.contains("llm") || input_lower.contains("model") || input_lower.contains("ai") {
+        } else if input_lower.contains("llm")
+            || input_lower.contains("model")
+            || input_lower.contains("ai")
+        {
             "llm"
-        } else if input_lower.contains("tool") || input_lower.contains("action") || input_lower.contains("function") {
+        } else if input_lower.contains("tool")
+            || input_lower.contains("action")
+            || input_lower.contains("function")
+        {
             "tool"
-        } else if input_lower.contains("code") || input_lower.contains("script") || input_lower.contains("python") || input_lower.contains("javascript") {
+        } else if input_lower.contains("code")
+            || input_lower.contains("script")
+            || input_lower.contains("python")
+            || input_lower.contains("javascript")
+        {
             "code"
         } else if input_lower.contains("skill") || input_lower.contains("atomic") {
             "atomicSkill"
@@ -440,7 +548,9 @@ impl WorkflowValidator {
         }
     }
 
-    pub fn apply_corrections(workflow_json: serde_json::Value) -> (serde_json::Value, Vec<ValidationIssue>) {
+    pub fn apply_corrections(
+        workflow_json: serde_json::Value,
+    ) -> (serde_json::Value, Vec<ValidationIssue>) {
         let result = Self::validate(&workflow_json);
         (
             result.corrected_workflow.unwrap_or(workflow_json),

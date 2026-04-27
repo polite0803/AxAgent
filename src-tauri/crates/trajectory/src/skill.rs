@@ -3,6 +3,7 @@
 //! Provides skill creation, improvement, and management capabilities
 
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
+use axagent_core::types::{ChatTool, ChatToolFunction};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -48,6 +49,22 @@ pub struct HermesMetadata {
     pub source_ref: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub commit: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_dependencies: Option<Vec<SkillDependency>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillDependency {
+    pub name: String,
+    pub version_constraint: Option<String>,
+    pub required: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DependencyValidationResult {
+    pub satisfied: bool,
+    pub missing_dependencies: Vec<SkillDependency>,
+    pub satisfied_dependencies: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +108,7 @@ impl Default for HermesMetadata {
             source_kind: None,
             source_ref: None,
             commit: None,
+            skill_dependencies: None,
         }
     }
 }
@@ -121,8 +139,22 @@ pub struct SkillExecution {
     pub outcome: SkillOutcome,
     pub execution_time_ms: u64,
     pub context: SkillContext,
+    pub input_args: Option<serde_json::Value>,
+    pub output_result: Option<serde_json::Value>,
     pub feedback: Option<String>,
     pub error_message: Option<String>,
+}
+
+impl SkillExecution {
+    pub fn with_args(mut self, args: serde_json::Value) -> Self {
+        self.input_args = Some(args);
+        self
+    }
+
+    pub fn with_result(mut self, result: serde_json::Value) -> Self {
+        self.output_result = Some(result);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -312,6 +344,123 @@ impl Skill {
         let minor: u32 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
         self.version = format!("{}.{}.0", major, minor + 1);
         self.updated_at = Utc::now();
+    }
+
+    pub fn to_tool_definition(&self) -> ChatTool {
+        let parameters = self.generate_tool_parameters();
+        ChatTool {
+            r#type: "function".to_string(),
+            function: ChatToolFunction {
+                name: format!("skill_{}", self.name.replace(' ', "_").to_lowercase()),
+                description: Some(self.description.clone()),
+                parameters: Some(parameters),
+            },
+        }
+    }
+
+    fn generate_tool_parameters(&self) -> serde_json::Value {
+        let mut props = serde_json::Map::new();
+        props.insert(
+            "input".to_string(),
+            serde_json::json!({
+                "type": "object",
+                "description": "The input task or query for this skill",
+                "properties": {
+                    "task": {
+                        "type": "string",
+                        "description": "The specific task to execute"
+                    },
+                    "context": {
+                        "type": "object",
+                        "description": "Additional context for the task",
+                        "properties": {
+                            "goal": {
+                                "type": "string",
+                                "description": "The overall goal to achieve"
+                            },
+                            "constraints": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Any constraints or requirements"
+                            }
+                        }
+                    }
+                },
+                "required": vec!["task"]
+            }),
+        );
+        if !self.metadata.hermes.config.is_empty() {
+            if let Some(input_obj) = props.get_mut("input").and_then(|v| v.as_object_mut()) {
+                if let Some(props_obj) = input_obj
+                    .get_mut("properties")
+                    .and_then(|v| v.as_object_mut())
+                {
+                    for config in &self.metadata.hermes.config {
+                        props_obj.insert(
+                            config.key.clone(),
+                            serde_json::json!({
+                                "type": "string",
+                                "description": config.description,
+                                "default": config.default
+                            }),
+                        );
+                    }
+                }
+            }
+        }
+        serde_json::json!({
+            "type": "object",
+            "properties": props,
+            "required": vec!["input"]
+        })
+    }
+
+    pub fn extract_scenarios_from_content(&self) -> Vec<String> {
+        let mut scenarios = Vec::new();
+        for line in self.content.lines() {
+            let lower = line.to_lowercase();
+            if lower.starts_with("when:") || lower.starts_with("scenario:") {
+                let scenario = line.split(':').nth(1).map(|s| s.trim().to_string());
+                if let Some(s) = scenario {
+                    scenarios.push(s);
+                }
+            }
+        }
+        if scenarios.is_empty() && !self.scenarios.is_empty() {
+            return self.scenarios.clone();
+        }
+        scenarios
+    }
+
+    pub fn validate_dependencies(&self, installed_skills: &[String]) -> DependencyValidationResult {
+        let dependencies = self.metadata.hermes.skill_dependencies.as_ref();
+        let deps = match dependencies {
+            Some(d) => d,
+            None => {
+                return DependencyValidationResult {
+                    satisfied: true,
+                    missing_dependencies: Vec::new(),
+                    satisfied_dependencies: Vec::new(),
+                }
+            }
+        };
+
+        let mut missing = Vec::new();
+        let mut satisfied = Vec::new();
+
+        for dep in deps {
+            if installed_skills.iter().any(|s| s == &dep.name) {
+                satisfied.push(dep.name.clone());
+            } else if dep.required {
+                missing.push(dep.clone());
+            }
+        }
+
+        DependencyValidationResult {
+            satisfied: missing.is_empty(),
+            missing_dependencies: missing,
+            satisfied_dependencies: satisfied,
+        }
     }
 }
 
@@ -657,6 +806,8 @@ mod tests {
                 complexity: TaskComplexity::Low,
                 entities: Vec::new(),
             },
+            input_args: None,
+            output_result: None,
             feedback: None,
             error_message: None,
         };

@@ -326,16 +326,11 @@ impl DecompositionSession {
     }
 
     pub fn init_turns(&mut self) {
-        let turn_names = vec![
-            "文件理解",
-            "内容分类",
-            "功能分析",
-            "工作流设计",
-            "生成输出",
-        ];
+        let turn_names = vec!["文件理解", "内容分类", "功能分析", "工作流设计", "生成输出"];
 
         for (idx, name) in turn_names.into_iter().enumerate() {
-            self.turns.insert(idx as u32 + 1, TurnContext::new(idx as u32 + 1, name));
+            self.turns
+                .insert(idx as u32 + 1, TurnContext::new(idx as u32 + 1, name));
         }
     }
 
@@ -406,7 +401,12 @@ impl DecompositionEvent {
         }
     }
 
-    pub fn message_complete(turn: u32, msg_id: &str, content: &str, metadata: Option<serde_json::Value>) -> Self {
+    pub fn message_complete(
+        turn: u32,
+        msg_id: &str,
+        content: &str,
+        metadata: Option<serde_json::Value>,
+    ) -> Self {
         Self {
             event_type: EventType::MessageComplete,
             turn,

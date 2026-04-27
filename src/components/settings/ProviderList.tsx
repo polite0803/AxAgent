@@ -1,42 +1,31 @@
-import { Button, Input, Modal, Form, Select, Switch, App, theme, Divider } from 'antd';
-import { Plus, Search, GripVertical } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { useProviderStore, useUIStore } from '@/stores';
-import { SmartProviderIcon } from '@/lib/providerIcons';
-import type { ProviderConfig, ProviderType } from '@/types';
+import { SmartProviderIcon } from "@/lib/providerIcons";
+import { useProviderStore, useUIStore } from "@/stores";
+import type { ProviderConfig, ProviderType } from "@/types";
+import { closestCenter, DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { App, Button, Divider, Form, Input, Modal, Select, Switch, theme } from "antd";
+import { GripVertical, Plus, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import React from "react";
+import { useTranslation } from "react-i18next";
 
 const PROVIDER_TYPE_OPTIONS: { label: string; value: ProviderType }[] = [
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'OpenAI Responses', value: 'openai_responses' },
-  { label: 'Anthropic', value: 'anthropic' },
-  { label: 'Gemini', value: 'gemini' },
-  { label: 'Ollama', value: 'ollama' },
+  { label: "OpenAI", value: "openai" },
+  { label: "OpenAI Responses", value: "openai_responses" },
+  { label: "Anthropic", value: "anthropic" },
+  { label: "Gemini", value: "gemini" },
+  { label: "Ollama", value: "ollama" },
 ];
 
 const DEFAULT_HOSTS: Record<ProviderType, string> = {
-  openai: 'https://api.openai.com',
-  openai_responses: 'https://api.openai.com',
-  anthropic: 'https://api.anthropic.com',
-  gemini: 'https://generativelanguage.googleapis.com',
-  openclaw: '',
-  hermes: '',
-  ollama: 'http://localhost:11434',
+  openai: "https://api.openai.com",
+  openai_responses: "https://api.openai.com",
+  anthropic: "https://api.anthropic.com",
+  gemini: "https://generativelanguage.googleapis.com",
+  openclaw: "",
+  hermes: "",
+  ollama: "http://localhost:11434",
 };
 
 function SortableProviderItem({
@@ -84,7 +73,7 @@ function SortableProviderItem({
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.backgroundColor = '';
+          e.currentTarget.style.backgroundColor = "";
         }
       }}
     >
@@ -136,15 +125,12 @@ export function ProviderList() {
     }
   }, [selectedProviderId, providers, setSelectedProviderId]);
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
 
   const filteredProviders = useMemo(
-    () =>
-      providers.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase()),
-      ),
+    () => providers.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())),
     [providers, search],
   );
 
@@ -171,13 +157,13 @@ export function ProviderList() {
       setModalOpen(false);
       form.resetFields();
     } catch (e) {
-      if (e && typeof e === 'object' && 'errorFields' in e) return;
-      message.error(t('error.saveFailed'));
+      if (e && typeof e === "object" && "errorFields" in e) { return; }
+      message.error(t("error.saveFailed"));
     }
   };
 
   const handleTypeChange = (type: ProviderType) => {
-    form.setFieldValue('api_host', DEFAULT_HOSTS[type]);
+    form.setFieldValue("api_host", DEFAULT_HOSTS[type]);
   };
 
   const handleDragEnd = (sectionProviders: ProviderConfig[]) => (event: DragEndEvent) => {
@@ -191,7 +177,9 @@ export function ProviderList() {
         newIds.splice(oldIndex, 1);
         newIds.splice(newIndex, 0, String(active.id));
         // Build full reorder: reordered section + other section
-        const otherIds = (sectionProviders === enabledProviders ? disabledProviders : enabledProviders).map((p) => p.id);
+        const otherIds = (sectionProviders === enabledProviders ? disabledProviders : enabledProviders).map((p) =>
+          p.id
+        );
         const fullIds = sectionProviders === enabledProviders
           ? [...newIds, ...otherIds]
           : [...otherIds, ...newIds];
@@ -204,9 +192,9 @@ export function ProviderList() {
     fontSize: 11,
     fontWeight: 600,
     color: token.colorTextTertiary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
-    padding: '4px 12px 2px',
+    padding: "4px 12px 2px",
   };
 
   return (
@@ -214,7 +202,7 @@ export function ProviderList() {
       <div className="p-3 flex items-center gap-2">
         <Input
           prefix={<Search size={14} />}
-          placeholder={t('settings.filterProviders')}
+          placeholder={t("settings.filterProviders")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           allowClear
@@ -230,7 +218,7 @@ export function ProviderList() {
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-0">
         {enabledProviders.length > 0 && (
           <>
-            <div style={sectionHeaderStyle}>{t('settings.enabledProviders', '已启用')}</div>
+            <div style={sectionHeaderStyle}>{t("settings.enabledProviders", "已启用")}</div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -257,13 +245,11 @@ export function ProviderList() {
           </>
         )}
 
-        {enabledProviders.length > 0 && disabledProviders.length > 0 && (
-          <Divider style={{ margin: '8px 0' }} />
-        )}
+        {enabledProviders.length > 0 && disabledProviders.length > 0 && <Divider style={{ margin: "8px 0" }} />}
 
         {disabledProviders.length > 0 && (
           <>
-            <div style={sectionHeaderStyle}>{t('settings.disabledProviders', '未启用')}</div>
+            <div style={sectionHeaderStyle}>{t("settings.disabledProviders", "未启用")}</div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -292,7 +278,7 @@ export function ProviderList() {
       </div>
 
       <Modal
-        title={t('settings.addProvider')}
+        title={t("settings.addProvider")}
         open={modalOpen}
         mask={{ enabled: true, blur: true }}
         onOk={handleAddProvider}
@@ -300,25 +286,25 @@ export function ProviderList() {
           setModalOpen(false);
           form.resetFields();
         }}
-        okText={t('common.confirm')}
-        cancelText={t('common.cancel')}
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label={t('settings.providerName')}
+            label={t("settings.providerName")}
             rules={[{ required: true }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
             name="provider_type"
-            label={t('settings.providerType')}
+            label={t("settings.providerType")}
             rules={[{ required: true }]}
           >
             <Select options={PROVIDER_TYPE_OPTIONS} onChange={handleTypeChange} />
           </Form.Item>
-          <Form.Item name="api_host" label={t('settings.apiHost')}>
+          <Form.Item name="api_host" label={t("settings.apiHost")}>
             <Input placeholder="https://api.openai.com" />
           </Form.Item>
         </Form>

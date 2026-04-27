@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, memo } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Lightweight, non-interactive scroll position indicator for the chat
@@ -18,7 +18,7 @@ function ChatScrollIndicatorInner() {
 
   const handleScroll = useCallback(() => {
     const el = elRef.current;
-    if (!el) return;
+    if (!el) { return; }
 
     const { scrollTop, scrollHeight, clientHeight } = el;
     if (scrollHeight <= clientHeight + 1) {
@@ -30,7 +30,7 @@ function ChatScrollIndicatorInner() {
     const ratio = clientHeight / scrollHeight;
     const thumbH = Math.max(ratio * clientHeight, 24);
 
-    const isReversed = getComputedStyle(el).flexDirection === 'column-reverse';
+    const isReversed = getComputedStyle(el).flexDirection === "column-reverse";
 
     // Normalise to 0 = top-of-content, 1 = bottom-of-content.
     // In column-reverse scrollTop is 0 at the bottom and goes negative upward.
@@ -53,11 +53,11 @@ function ChatScrollIndicatorInner() {
 
   useEffect(() => {
     const attach = () => {
-      const el = document.querySelector<HTMLElement>('.ant-bubble-list-scroll-box');
-      if (!el || el === elRef.current) return;
-      elRef.current?.removeEventListener('scroll', handleScroll);
+      const el = document.querySelector<HTMLElement>(".ant-bubble-list-scroll-box");
+      if (!el || el === elRef.current) { return; }
+      elRef.current?.removeEventListener("scroll", handleScroll);
       elRef.current = el;
-      el.addEventListener('scroll', handleScroll, { passive: true });
+      el.addEventListener("scroll", handleScroll, { passive: true });
       // Calculate initial position immediately (Bubble.List's auto-scroll
       // may have already fired before our listener was attached)
       handleScroll();
@@ -73,7 +73,7 @@ function ChatScrollIndicatorInner() {
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
-      elRef.current?.removeEventListener('scroll', handleScroll);
+      elRef.current?.removeEventListener("scroll", handleScroll);
       clearTimeout(hideTimer.current);
     };
   }, [handleScroll]);
@@ -82,15 +82,15 @@ function ChatScrollIndicatorInner() {
     <div
       className="chat-scroll-indicator"
       style={{
-        position: 'absolute',
+        position: "absolute",
         right: 2,
         top: thumb.top,
         width: 5,
         height: thumb.height,
         borderRadius: 3,
         opacity: thumb.opacity,
-        transition: 'opacity 0.3s ease',
-        pointerEvents: 'none',
+        transition: "opacity 0.3s ease",
+        pointerEvents: "none",
         zIndex: 1,
       }}
     />

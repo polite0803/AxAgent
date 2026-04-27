@@ -1,10 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Space, Tag, Tooltip, Popconfirm } from 'antd';
 import {
-  PlayCircleOutlined, PauseCircleOutlined, ReloadOutlined,
-  StopOutlined, HistoryOutlined,
-} from '@ant-design/icons';
-import { useWorkEngineStore } from '../../stores/feature/workEngineStore';
+  HistoryOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  ReloadOutlined,
+  StopOutlined,
+} from "@ant-design/icons";
+import { Button, Popconfirm, Space, Tag, Tooltip, message } from "antd";
+import React, { useEffect, useState } from "react";
+import { invoke } from "../../lib/invoke";
+import { useWorkEngineStore } from "../../stores/feature/workEngineStore";
+import { useSettingsStore } from "../../stores";
 
 interface ExecutionControlBarProps {
   workflowId: string;
@@ -12,8 +17,15 @@ interface ExecutionControlBarProps {
 
 export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workflowId }) => {
   const {
-    executionId, status, startExecution, pause, resume, cancel, loadHistory, setupEventListeners,
+    executionId,
+    status,
+    pause,
+    resume,
+    cancel,
+    loadHistory,
+    setupEventListeners,
   } = useWorkEngineStore();
+  const defaultProviderId = useSettingsStore((s) => s.settings.default_provider_id);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
@@ -23,14 +35,24 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
     };
   }, [setupEventListeners]);
 
-  const isRunning = status?.status === 'running';
-  const isPaused = status?.status === 'paused';
-  const isCompleted = status?.status === 'completed' || status?.status === 'failed' || status?.status === 'cancelled';
+  const isRunning = status?.status === "running";
+  const isPaused = status?.status === "paused";
+  const isCompleted = status?.status === "completed" || status?.status === "failed" || status?.status === "cancelled";
 
   const handleStart = async () => {
+    if (!defaultProviderId) {
+      message.error("请先在设置中配置默认 AI Provider");
+      return;
+    }
     setStarting(true);
     try {
-      await startExecution(workflowId, {});
+      await invoke<string>("workflow_execute", {
+        workflow_id: workflowId,
+        provider_id: defaultProviderId,
+      });
+      message.success("工作流已开始执行");
+    } catch (e) {
+      message.error(`启动失败: ${e}`);
     } finally {
       setStarting(false);
     }
@@ -38,19 +60,21 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
 
   return (
     <Space>
-      {!executionId || isCompleted ? (
-        <Tooltip title="启动执行">
-          <Button
-            type="primary"
-            icon={<PlayCircleOutlined />}
-            loading={starting}
-            onClick={handleStart}
-            size="small"
-          >
-            启动
-          </Button>
-        </Tooltip>
-      ) : null}
+      {!executionId || isCompleted
+        ? (
+          <Tooltip title="启动执行">
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              loading={starting}
+              onClick={handleStart}
+              size="small"
+            >
+              启动
+            </Button>
+          </Tooltip>
+        )
+        : null}
 
       {isRunning && (
         <Tooltip title="暂停执行">
@@ -73,22 +97,33 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
       )}
 
       {status && (
-        <Tag color={
-          isRunning ? 'processing' :
-          isPaused ? 'warning' :
-          status.status === 'completed' ? 'success' :
-          status.status === 'failed' ? 'error' : 'default'
-        }>
-          {status.status === 'running' ? '运行中' :
-           status.status === 'paused' ? '已暂停' :
-           status.status === 'completed' ? '已完成' :
-           status.status === 'failed' ? '已失败' :
-           status.status === 'cancelled' ? '已取消' : status.status}
+        <Tag
+          color={isRunning
+            ? "processing"
+            : isPaused
+            ? "warning"
+            : status.status === "completed"
+            ? "success"
+            : status.status === "failed"
+            ? "error"
+            : "default"}
+        >
+          {status.status === "running"
+            ? "运行中"
+            : status.status === "paused"
+            ? "已暂停"
+            : status.status === "completed"
+            ? "已完成"
+            : status.status === "failed"
+            ? "已失败"
+            : status.status === "cancelled"
+            ? "已取消"
+            : status.status}
         </Tag>
       )}
 
       {status && status.total_time_ms > 0 && (
-        <span style={{ fontSize: 12, color: '#999' }}>{status.total_time_ms}ms</span>
+        <span style={{ fontSize: 12, color: "#999" }}>{status.total_time_ms}ms</span>
       )}
 
       <Tooltip title="执行历史">

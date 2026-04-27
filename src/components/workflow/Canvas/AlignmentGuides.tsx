@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { type Node, useReactFlow } from 'reactflow';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { type Node, useReactFlow } from "reactflow";
 
 interface AlignmentLine {
   position: number;
-  orientation: 'horizontal' | 'vertical';
+  orientation: "horizontal" | "vertical";
   start: number;
   end: number;
 }
@@ -24,7 +24,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
   const calculateAlignmentLines = useCallback(
     (draggingNodeId: string, position: { x: number; y: number }) => {
       const draggingNode = nodes.find((n) => n.id === draggingNodeId);
-      if (!draggingNode) return;
+      if (!draggingNode) { return; }
 
       const newLines: AlignmentLine[] = [];
       const draggingBounds = {
@@ -37,7 +37,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
       };
 
       nodes.forEach((node) => {
-        if (node.id === draggingNodeId) return;
+        if (node.id === draggingNodeId) { return; }
 
         const nodeBounds = {
           left: node.position.x,
@@ -53,7 +53,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           const screenEnd = flowToScreenPosition({ x: nodeBounds.bottom, y: 0 });
           newLines.push({
             position: screenStart.x,
-            orientation: 'vertical',
+            orientation: "vertical",
             start: screenStart.y,
             end: screenEnd.y,
           });
@@ -64,7 +64,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           const screenEnd = flowToScreenPosition({ x: nodeBounds.bottom, y: 0 });
           newLines.push({
             position: screenStart.x,
-            orientation: 'vertical',
+            orientation: "vertical",
             start: screenStart.y,
             end: screenEnd.y,
           });
@@ -75,7 +75,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           const screenEnd = flowToScreenPosition({ x: nodeBounds.bottom, y: 0 });
           newLines.push({
             position: screenStart.x,
-            orientation: 'vertical',
+            orientation: "vertical",
             start: screenStart.y,
             end: screenEnd.y,
           });
@@ -86,7 +86,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           const screenEnd = flowToScreenPosition({ x: nodeBounds.right, y: 0 });
           newLines.push({
             position: screenStart.y,
-            orientation: 'horizontal',
+            orientation: "horizontal",
             start: screenStart.x,
             end: screenEnd.x,
           });
@@ -97,7 +97,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           const screenEnd = flowToScreenPosition({ x: nodeBounds.right, y: 0 });
           newLines.push({
             position: screenStart.y,
-            orientation: 'horizontal',
+            orientation: "horizontal",
             start: screenStart.x,
             end: screenEnd.x,
           });
@@ -108,7 +108,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           const screenEnd = flowToScreenPosition({ x: nodeBounds.right, y: 0 });
           newLines.push({
             position: screenStart.y,
-            orientation: 'horizontal',
+            orientation: "horizontal",
             start: screenStart.x,
             end: screenEnd.x,
           });
@@ -117,15 +117,15 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
 
       setLines(newLines);
     },
-    [nodes, flowToScreenPosition]
+    [nodes, flowToScreenPosition],
   );
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!draggedNode) return;
+      if (!draggedNode) { return; }
 
       const bounds = containerRef.current?.getBoundingClientRect();
-      if (!bounds) return;
+      if (!bounds) { return; }
 
       const position = screenToFlowPosition({
         x: e.clientX - bounds.left,
@@ -141,13 +141,13 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
     };
 
     if (draggedNode) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [draggedNode, screenToFlowPosition, calculateAlignmentLines]);
 
@@ -163,30 +163,30 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
 
     const container = containerRef.current;
     if (container) {
-      container.addEventListener('nodeDragStart', handleNodeDragStart as any);
-      container.addEventListener('pane-click', handlePaneClick);
+      container.addEventListener("nodeDragStart", handleNodeDragStart as any);
+      container.addEventListener("pane-click", handlePaneClick);
     }
 
     return () => {
       if (container) {
-        container.removeEventListener('nodeDragStart', handleNodeDragStart as any);
-        container.removeEventListener('pane-click', handlePaneClick);
+        container.removeEventListener("nodeDragStart", handleNodeDragStart as any);
+        container.removeEventListener("pane-click", handlePaneClick);
       }
     };
   }, [nodes]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%" }}>
       {children}
 
       <svg
         style={{
-          position: 'absolute',
+          position: "absolute",
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
           zIndex: 1000,
         }}
       >
@@ -197,31 +197,33 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
         </defs>
 
         {lines.map((line, index) =>
-          line.orientation === 'vertical' ? (
-            <line
-              key={`v-${index}`}
-              x1={line.position}
-              y1={line.start}
-              x2={line.position}
-              y2={line.end}
-              stroke="#1890ff"
-              strokeWidth={1}
-              strokeDasharray="4,4"
-              opacity={0.8}
-            />
-          ) : (
-            <line
-              key={`h-${index}`}
-              x1={line.start}
-              y1={line.position}
-              x2={line.end}
-              y2={line.position}
-              stroke="#1890ff"
-              strokeWidth={1}
-              strokeDasharray="4,4"
-              opacity={0.8}
-            />
-          )
+          line.orientation === "vertical"
+            ? (
+              <line
+                key={`v-${index}`}
+                x1={line.position}
+                y1={line.start}
+                x2={line.position}
+                y2={line.end}
+                stroke="#1890ff"
+                strokeWidth={1}
+                strokeDasharray="4,4"
+                opacity={0.8}
+              />
+            )
+            : (
+              <line
+                key={`h-${index}`}
+                x1={line.start}
+                y1={line.position}
+                x2={line.end}
+                y2={line.position}
+                stroke="#1890ff"
+                strokeWidth={1}
+                strokeDasharray="4,4"
+                opacity={0.8}
+              />
+            )
         )}
       </svg>
     </div>

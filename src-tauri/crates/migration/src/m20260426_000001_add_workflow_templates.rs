@@ -18,21 +18,62 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(WorkflowTemplates::Name).string().not_null())
                     .col(ColumnDef::new(WorkflowTemplates::Description).text().null())
-                    .col(ColumnDef::new(WorkflowTemplates::Icon).string().not_null().default("Bot"))
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::Icon)
+                            .string()
+                            .not_null()
+                            .default("Bot"),
+                    )
                     .col(ColumnDef::new(WorkflowTemplates::Tags).text().null())
-                    .col(ColumnDef::new(WorkflowTemplates::Version).integer().not_null().default(1))
-                    .col(ColumnDef::new(WorkflowTemplates::IsPreset).boolean().not_null().default(false))
-                    .col(ColumnDef::new(WorkflowTemplates::IsEditable).boolean().not_null().default(true))
-                    .col(ColumnDef::new(WorkflowTemplates::IsPublic).boolean().not_null().default(false))
-                    .col(ColumnDef::new(WorkflowTemplates::TriggerConfig).text().null())
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::Version)
+                            .integer()
+                            .not_null()
+                            .default(1),
+                    )
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::IsPreset)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::IsEditable)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::IsPublic)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::TriggerConfig)
+                            .text()
+                            .null(),
+                    )
                     .col(ColumnDef::new(WorkflowTemplates::Nodes).text().not_null())
                     .col(ColumnDef::new(WorkflowTemplates::Edges).text().not_null())
                     .col(ColumnDef::new(WorkflowTemplates::InputSchema).text().null())
-                    .col(ColumnDef::new(WorkflowTemplates::OutputSchema).text().null())
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::OutputSchema)
+                            .text()
+                            .null(),
+                    )
                     .col(ColumnDef::new(WorkflowTemplates::Variables).text().null())
                     .col(ColumnDef::new(WorkflowTemplates::ErrorConfig).text().null())
-                    .col(ColumnDef::new(WorkflowTemplates::CreatedAt).big_integer().not_null())
-                    .col(ColumnDef::new(WorkflowTemplates::UpdatedAt).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;

@@ -1,5 +1,5 @@
-import { render } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const enableD2 = vi.fn();
 const preloadChatRenderers = vi.fn();
@@ -7,27 +7,27 @@ const setDefaultI18nMap = vi.fn();
 
 const settingsState = {
   settings: {
-    theme_mode: 'dark',
-    primary_color: '#17A93D',
+    theme_mode: "dark",
+    primary_color: "#17A93D",
     font_size: 14,
     border_radius: 8,
-    language: 'zh-CN',
+    language: "zh-CN",
     always_on_top: false,
     close_to_tray: true,
     auto_start: false,
     global_shortcuts_enabled: false,
     shortcut_registration_logs_enabled: false,
     shortcut_trigger_toast_enabled: false,
-    global_shortcut: '',
+    global_shortcut: "",
   },
   fetchSettings: vi.fn().mockResolvedValue(undefined),
 };
 
 const uiState = {
-  activePage: 'chat',
+  activePage: "chat",
 };
 
-vi.mock('antd', () => ({
+vi.mock("antd", () => ({
   ConfigProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   App: Object.assign(
     ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -49,59 +49,59 @@ vi.mock('antd', () => ({
   theme: {
     useToken: () => ({
       token: {
-        colorBorderSecondary: '#444',
-        colorBgContainer: '#111',
-        colorBgElevated: '#1a1a1a',
-        colorText: '#f5f5f5',
-        colorTextSecondary: '#999',
-        colorPrimary: '#1677ff',
+        colorBorderSecondary: "#444",
+        colorBgContainer: "#111",
+        colorBgElevated: "#1a1a1a",
+        colorText: "#f5f5f5",
+        colorTextSecondary: "#999",
+        colorPrimary: "#1677ff",
       },
     }),
   },
 }));
 
-vi.mock('antd/locale/zh_CN', () => ({
+vi.mock("antd/locale/zh_CN", () => ({
   default: {},
 }));
 
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   initReactI18next: {
-    type: '3rdParty',
+    type: "3rdParty",
     init: () => {},
   },
   useTranslation: () => ({
     i18n: {
-      language: 'zh-CN',
+      language: "zh-CN",
       getFixedT: () => (_key: string) => _key,
       changeLanguage: vi.fn(),
     },
   }),
 }));
 
-vi.mock('@/components/layout/Sidebar', () => ({
+vi.mock("@/components/layout/Sidebar", () => ({
   Sidebar: () => <div>sidebar</div>,
 }));
 
-vi.mock('@/components/layout/TitleBar', () => ({
+vi.mock("@/components/layout/TitleBar", () => ({
   TitleBar: () => <div>titlebar</div>,
 }));
 
-vi.mock('@/components/layout/ContentArea', () => ({
+vi.mock("@/components/layout/ContentArea", () => ({
   ContentArea: () => <div>content</div>,
 }));
 
-vi.mock('@/components/layout/CommandPalette', () => ({
+vi.mock("@/components/layout/CommandPalette", () => ({
   default: () => null,
 }));
 
-vi.mock('@/hooks/useCommandPalette', () => ({
+vi.mock("@/hooks/useCommandPalette", () => ({
   useCommandPalette: () => ({
     open: false,
     setOpen: vi.fn(),
   }),
 }));
 
-vi.mock('@/stores', () => ({
+vi.mock("@/stores", () => ({
   useUIStore: (selector: (state: typeof uiState) => unknown) => selector(uiState),
   useSettingsStore: Object.assign(
     (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
@@ -109,40 +109,42 @@ vi.mock('@/stores', () => ({
       getState: () => settingsState,
     },
   ),
-  useConversationStore: (selector: (state: unknown) => unknown) => selector({
-    startStreamListening: vi.fn(),
-  }),
-  useStreamStore: (selector: (state: unknown) => unknown) => selector({
-    stopStreamListening: vi.fn(),
-  }),
+  useConversationStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      startStreamListening: vi.fn(),
+    }),
+  useStreamStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      stopStreamListening: vi.fn(),
+    }),
 }));
 
-vi.mock('@/hooks/useKeyboardShortcuts', () => ({
+vi.mock("@/hooks/useKeyboardShortcuts", () => ({
   useKeyboardShortcuts: vi.fn(),
 }));
 
-vi.mock('@/hooks/useResolvedDarkMode', () => ({
+vi.mock("@/hooks/useResolvedDarkMode", () => ({
   useResolvedDarkMode: () => true,
 }));
 
-vi.mock('@/theme/shadcnTheme', () => ({
+vi.mock("@/theme/shadcnTheme", () => ({
   useShadcnTheme: () => ({}),
 }));
 
-vi.mock('@/lib/invoke', () => ({
+vi.mock("@/lib/invoke", () => ({
   isTauri: () => false,
 }));
 
-vi.mock('@/lib/preloadChatRenderers', () => ({
+vi.mock("@/lib/preloadChatRenderers", () => ({
   preloadChatRenderers,
 }));
 
-vi.mock('markstream-react', () => ({
+vi.mock("markstream-react", () => ({
   enableD2,
   setDefaultI18nMap,
 }));
 
-vi.mock('@/hooks/useGlobalShortcutManager', () => ({
+vi.mock("@/hooks/useGlobalShortcutManager", () => ({
   useGlobalShortcutManager: () => ({
     register: vi.fn(),
     unregister: vi.fn(),
@@ -150,13 +152,13 @@ vi.mock('@/hooks/useGlobalShortcutManager', () => ({
   }),
 }));
 
-describe('AppRoot D2 setup', () => {
+describe("AppRoot D2 setup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('enables the markstream D2 loader during startup', async () => {
-    const { default: AppRoot } = await import('../App');
+  it("enables the markstream D2 loader during startup", async () => {
+    const { default: AppRoot } = await import("../App");
 
     render(<AppRoot />);
 

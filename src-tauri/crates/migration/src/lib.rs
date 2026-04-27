@@ -26,18 +26,24 @@ mod m20250717_000001_add_agent_support;
 mod m20250718_000001_add_sdk_context_backup;
 mod m20250719_000001_add_skill_states;
 mod m20250720_000001_add_provider_builtin_id;
-mod m20260417_000001_add_category_default_templates;
 mod m20250801_000001_add_performance_indexes;
+mod m20260417_000001_add_category_default_templates;
 mod m20260422_000001_add_gateway_links;
 mod m20260423_000001_add_knowledge_graph_tables;
 mod m20260424_000001_add_conversation_scenario_and_skill_filter;
 mod m20260424_000002_add_scheduled_tasks;
+mod m20260425_000001_add_workflow_id_to_scheduled_tasks;
 mod m20260426_000001_add_workflow_templates;
 mod m20260427_000001_add_atomic_skills;
 mod m20260427_000002_add_generated_tools;
 mod m20260427_000003_add_workflow_executions;
 mod m20260427_000004_add_composite_source;
 mod m20260428_000001_add_workspace_locked_to_agent_sessions;
+mod m20260429_000001_add_workflow_template_versions;
+mod m20260501_000001_add_workflow_version_fields;
+mod m20261015_000001_add_user_profiles;
+mod m20261016_000001_add_knowledge_document_source_conversation;
+mod m20261017_000001_add_skill_steps_json_to_tool_executions;
 
 pub struct Migrator;
 
@@ -77,12 +83,18 @@ impl MigratorTrait for Migrator {
             Box::new(m20260423_000001_add_knowledge_graph_tables::Migration),
             Box::new(m20260424_000001_add_conversation_scenario_and_skill_filter::Migration),
             Box::new(m20260424_000002_add_scheduled_tasks::Migration),
+            Box::new(m20260425_000001_add_workflow_id_to_scheduled_tasks::Migration),
             Box::new(m20260426_000001_add_workflow_templates::Migration),
             Box::new(m20260427_000001_add_atomic_skills::Migration),
             Box::new(m20260427_000002_add_generated_tools::Migration),
             Box::new(m20260427_000003_add_workflow_executions::Migration),
             Box::new(m20260427_000004_add_composite_source::Migration),
             Box::new(m20260428_000001_add_workspace_locked_to_agent_sessions::Migration),
+            Box::new(m20260429_000001_add_workflow_template_versions::Migration),
+            Box::new(m20260501_000001_add_workflow_version_fields::Migration),
+            Box::new(m20261015_000001_add_user_profiles::Migration),
+            Box::new(m20261016_000001_add_knowledge_document_source_conversation::Migration),
+            Box::new(m20261017_000001_add_skill_steps_json_to_tool_executions::Migration),
         ]
     }
 }
@@ -94,7 +106,9 @@ mod tests {
 
     async fn sqlite_test_db() -> DatabaseConnection {
         let mut opts = ConnectOptions::new("sqlite::memory:");
-        opts.max_connections(1).min_connections(1).sqlx_logging(false);
+        opts.max_connections(1)
+            .min_connections(1)
+            .sqlx_logging(false);
         Database::connect(opts)
             .await
             .expect("connect sqlite test db")

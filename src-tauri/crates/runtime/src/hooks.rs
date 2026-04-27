@@ -274,7 +274,9 @@ impl HookRunner {
         tool_input: &str,
         tool_error: &str,
     ) -> HookRunResult {
-        self.run_post_tool_use_failure_with_context(tool_name, tool_input, tool_error, None, None, None)
+        self.run_post_tool_use_failure_with_context(
+            tool_name, tool_input, tool_error, None, None, None,
+        )
     }
 
     #[must_use]

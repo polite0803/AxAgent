@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
-import { Tag } from 'antd';
+import { Tag } from "antd";
+import React, { memo } from "react";
+import { Handle, type NodeProps, Position } from "reactflow";
 
 interface MergeNodeData {
   id: string;
@@ -15,15 +15,15 @@ interface MergeNodeData {
 }
 
 const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected }) => {
-  const color = '#fa8c16';
-  const mergeType = data.mergeType || 'all';
+  const color = "#fa8c16";
+  const mergeType = data.mergeType || "all";
   const inputs = data.inputs || [];
 
   const getMergeTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      all: '全部',
-      first: '首个',
-      last: '最后一个',
+      all: "全部",
+      first: "首个",
+      last: "最后一个",
     };
     return labels[type] || type;
   };
@@ -34,25 +34,25 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
         minWidth: 160,
         maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? 'none' : 'grayscale(100%)',
+        filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: '#1e1e1e',
-          border: `2px solid ${selected ? '#1890ff' : color}`,
+          background: "#1e1e1e",
+          border: `2px solid ${selected ? "#1890ff" : color}`,
           borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: selected ? `0 0 0 2px ${color}40` : 'none',
-          transition: 'all 0.2s',
+          overflow: "hidden",
+          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
+          transition: "all 0.2s",
         }}
       >
         <div
           style={{
-            padding: '8px 12px',
+            padding: "8px 12px",
             borderBottom: `1px solid ${color}30`,
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 8,
             background: `${color}15`,
           }}
@@ -71,26 +71,26 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
             style={{
               margin: 0,
               fontSize: 9,
-              padding: '0 4px',
+              padding: "0 4px",
               background: `${color}30`,
-              border: 'none',
-              color: '#fff',
+              border: "none",
+              color: "#fff",
             }}
           >
             {getMergeTypeLabel(mergeType)}
           </Tag>
         </div>
 
-        <div style={{ padding: '10px 12px' }}>
+        <div style={{ padding: "10px 12px" }}>
           <div
             style={{
               fontSize: 13,
-              color: '#fff',
+              color: "#fff",
               fontWeight: 500,
               marginBottom: 6,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {data.title}
@@ -100,10 +100,10 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
             style={{
               margin: 0,
               fontSize: 10,
-              padding: '0 6px',
-              background: '#252525',
-              border: '1px solid #444',
-              color: '#aaa',
+              padding: "0 6px",
+              background: "#252525",
+              border: "1px solid #444",
+              color: "#aaa",
             }}
           >
             {inputs.length} 个输入
@@ -116,7 +116,7 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
         position={Position.Top}
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
@@ -127,7 +127,7 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
         position={Position.Bottom}
         style={{
           background: color,
-          border: 'none',
+          border: "none",
           width: 8,
           height: 8,
         }}
@@ -135,14 +135,14 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
 
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           left: -10,
-          top: '50%',
-          transform: 'translateY(-50%)',
+          top: "50%",
+          transform: "translateY(-50%)",
           width: 0,
           height: 0,
-          borderTop: '6px solid transparent',
-          borderBottom: '6px solid transparent',
+          borderTop: "6px solid transparent",
+          borderBottom: "6px solid transparent",
           borderRight: `8px solid ${color}`,
         }}
       />

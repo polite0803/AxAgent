@@ -1,26 +1,26 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { ConfigProvider, App as AntdApp, Layout, theme } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import { useTranslation } from 'react-i18next';
-import { BrowserRouter, useLocation } from 'react-router-dom';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { TitleBar } from '@/components/layout/TitleBar';
-import { ContentArea } from '@/components/layout/ContentArea';
-import CommandPalette from '@/components/layout/CommandPalette';
-import { GlobalCopyMenu } from '@/components/layout/GlobalCopyMenu';
-import GlobalErrorBoundary from '@/components/layout/GlobalErrorBoundary';
-import { useCommandPalette } from '@/hooks/useCommandPalette';
-import { useSettingsStore, useConversationStore, useStreamStore } from '@/stores';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useGlobalShortcutManager } from '@/hooks/useGlobalShortcutManager';
-import { useResolvedDarkMode } from '@/hooks/useResolvedDarkMode';
-import { useGlobalOverlayScrollbars } from '@/hooks/useGlobalOverlayScrollbars';
-import { useUpdateChecker } from '@/hooks/useUpdateChecker';
-import { useShadcnTheme } from '@/theme/shadcnTheme';
-import { isTauri, invoke, listen } from '@/lib/invoke';
-import { preloadChatRenderers } from '@/lib/preloadChatRenderers';
-import { enableD2, setDefaultI18nMap } from 'markstream-react';
-import './i18n';
+import CommandPalette from "@/components/layout/CommandPalette";
+import { ContentArea } from "@/components/layout/ContentArea";
+import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
+import GlobalErrorBoundary from "@/components/layout/GlobalErrorBoundary";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { TitleBar } from "@/components/layout/TitleBar";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
+import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
+import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
+import { useUpdateChecker } from "@/hooks/useUpdateChecker";
+import { invoke, isTauri, listen } from "@/lib/invoke";
+import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
+import { useConversationStore, useSettingsStore, useStreamStore } from "@/stores";
+import { useShadcnTheme } from "@/theme/shadcnTheme";
+import { App as AntdApp, ConfigProvider, Layout, theme } from "antd";
+import zhCN from "antd/locale/zh_CN";
+import { enableD2, setDefaultI18nMap } from "markstream-react";
+import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { BrowserRouter, useLocation } from "react-router-dom";
+import "./i18n";
 
 const { Sider, Content } = Layout;
 const { useToken } = theme;
@@ -28,10 +28,10 @@ const { useToken } = theme;
 /** Show the main window (it starts hidden to avoid white flash). */
 async function showWindow() {
   try {
-    const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+    const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
     await getCurrentWebviewWindow().show();
   } catch (e) {
-    console.warn('Failed to show window:', e);
+    console.warn("Failed to show window:", e);
   }
 }
 
@@ -41,7 +41,7 @@ function AppInner() {
   const { modal } = AntdApp.useApp();
   const location = useLocation();
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
-  const isInSettings = location.pathname === '/settings' || location.pathname.startsWith('/settings/');
+  const isInSettings = location.pathname === "/settings" || location.pathname.startsWith("/settings/");
 
   // These hooks use useNavigate() and must be inside BrowserRouter
   useKeyboardShortcuts();
@@ -51,35 +51,37 @@ function AppInner() {
   // Handle app close confirmation from backend
   const handleCloseRequested = useCallback(() => {
     modal.confirm({
-      title: t('desktop.closeConfirmTitle'),
-      content: t('desktop.closeConfirmContent'),
-      okText: t('desktop.closeConfirmOk'),
-      cancelText: t('desktop.closeConfirmCancel'),
+      title: t("desktop.closeConfirmTitle"),
+      content: t("desktop.closeConfirmContent"),
+      okText: t("desktop.closeConfirmOk"),
+      cancelText: t("desktop.closeConfirmCancel"),
       okButtonProps: { danger: true },
-      onOk: () => invoke('force_quit'),
+      onOk: () => invoke("force_quit"),
     });
   }, [modal, t]);
 
   useEffect(() => {
-    if (!isTauri()) return;
-    const unlisten = listen('app-close-requested', handleCloseRequested);
-    return () => { unlisten.then((fn) => fn()); };
+    if (!isTauri()) { return; }
+    const unlisten = listen("app-close-requested", handleCloseRequested);
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, [handleCloseRequested]);
 
   // Sync Ant Design tokens to CSS custom properties for global usage
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--border-color', token.colorBorderSecondary);
-    root.style.setProperty('--color-bg-container', token.colorBgContainer);
-    root.style.setProperty('--color-bg-elevated', token.colorBgElevated);
-    root.style.setProperty('--color-text', token.colorText);
-    root.style.setProperty('--color-text-secondary', token.colorTextSecondary);
-    root.style.setProperty('--color-primary', token.colorPrimary);
-    root.style.setProperty('--color-fill-alter', token.colorFillAlter);
+    root.style.setProperty("--border-color", token.colorBorderSecondary);
+    root.style.setProperty("--color-bg-container", token.colorBgContainer);
+    root.style.setProperty("--color-bg-elevated", token.colorBgElevated);
+    root.style.setProperty("--color-text", token.colorText);
+    root.style.setProperty("--color-text-secondary", token.colorTextSecondary);
+    root.style.setProperty("--color-primary", token.colorPrimary);
+    root.style.setProperty("--color-fill-alter", token.colorFillAlter);
     // Markdown renderer (markstream-react) CSS variables
-    root.style.setProperty('--table-border', token.colorBorderSecondary);
-    root.style.setProperty('--hr-border-color', token.colorBorderSecondary);
-    root.style.setProperty('--blockquote-border-color', token.colorBorderSecondary);
+    root.style.setProperty("--table-border", token.colorBorderSecondary);
+    root.style.setProperty("--hr-border-color", token.colorBorderSecondary);
+    root.style.setProperty("--blockquote-border-color", token.colorBorderSecondary);
   }, [token]);
 
   // Global stream event listeners — persist across page navigation
@@ -96,20 +98,20 @@ function AppInner() {
   const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!isTauri()) return;
+    if (!isTauri()) { return; }
     // Initial check after 3s delay
     const timer = setTimeout(() => checkForUpdate({ silent: true }), 3000);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!isTauri() || !updateCheckInterval) return;
-    if (updateIntervalRef.current) clearInterval(updateIntervalRef.current);
+    if (!isTauri() || !updateCheckInterval) { return; }
+    if (updateIntervalRef.current) { clearInterval(updateIntervalRef.current); }
     const intervalMs = Math.max(updateCheckInterval, 1) * 60 * 1000;
     updateIntervalRef.current = setInterval(() => checkForUpdate({ silent: true }), intervalMs);
     return () => {
-      if (updateIntervalRef.current) clearInterval(updateIntervalRef.current);
+      if (updateIntervalRef.current) { clearInterval(updateIntervalRef.current); }
     };
   }, [updateCheckInterval, checkForUpdate]);
 
@@ -118,13 +120,13 @@ function AppInner() {
       <TitleBar />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
       <GlobalCopyMenu />
-      <Layout className="flex-1 overflow-hidden" style={{ backgroundColor: 'transparent' }}>
+      <Layout className="flex-1 overflow-hidden" style={{ backgroundColor: "transparent" }}>
         {!isInSettings && (
           <Sider
             width={48}
             style={{
-              backgroundColor: 'transparent',
-              borderRight: '1px solid var(--border-color)',
+              backgroundColor: "transparent",
+              borderRight: "1px solid var(--border-color)",
             }}
           >
             <Sidebar />
@@ -151,11 +153,11 @@ function AppRoot() {
   const isDark = useResolvedDarkMode(themeMode);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+    document.documentElement.dataset.theme = isDark ? "dark" : "light";
   }, [isDark]);
 
   useEffect(() => {
-    enableD2(() => import('@terrastruct/d2'));
+    enableD2(() => import("@terrastruct/d2"));
     void preloadChatRenderers();
   }, []);
 
@@ -165,42 +167,47 @@ function AppRoot() {
       try {
         await useSettingsStore.getState().fetchSettings();
       } catch (e) {
-        console.warn('Failed to fetch settings:', e);
+        console.warn("Failed to fetch settings:", e);
       }
 
       // Seed preset workflow templates
       try {
-        await invoke('seed_preset_templates');
-        console.log('Seeded preset workflow templates');
+        await invoke("seed_preset_templates");
+        console.log("Seeded preset workflow templates");
       } catch (e) {
-        console.warn('Failed to seed preset templates:', e);
+        console.warn("Failed to seed preset templates:", e);
       }
 
-      if (!isTauri()) return;
+      if (!isTauri()) { return; }
       const settings = useSettingsStore.getState().settings;
 
       // Apply native window settings
       try {
-        const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
-        await tauriInvoke('apply_startup_settings', {
+        const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
+        await tauriInvoke("apply_startup_settings", {
           alwaysOnTop: settings.always_on_top ?? false,
           closeToTray: settings.minimize_to_tray ?? false,
         });
       } catch (e) {
-        console.warn('Failed to apply native settings:', e);
+        console.warn("Failed to apply native settings:", e);
       }
 
       // Autostart (skip in dev mode — exe path doesn't exist)
       if (!import.meta.env.DEV) {
         try {
-          const { enable, disable } = await import('@tauri-apps/plugin-autostart');
+          const { enable, disable } = await import("@tauri-apps/plugin-autostart");
           if (settings.auto_start) {
             await enable();
           } else {
             await disable();
           }
         } catch (e) {
-          console.warn('Failed to set autostart:', e);
+          const errorStr = String(e);
+          if (errorStr.includes("os error 2") || errorStr.includes("系统找不到指定的文件")) {
+            console.debug("Autostart skipped: executable path not found (may occur in portable mode)");
+          } else {
+            console.warn("Failed to set autostart:", e);
+          }
         }
       }
 
@@ -220,54 +227,61 @@ function AppRoot() {
   useEffect(() => {
     const t = i18n.getFixedT(i18n.language);
     setDefaultI18nMap({
-      'common.close': t('common.close'),
-      'common.collapse': t('common.collapse'),
-      'common.copied': t('common.copied'),
-      'common.copy': t('common.copy'),
-      'common.decrease': t('common.decrease'),
-      'common.expand': t('common.expand'),
-      'common.export': t('common.export'),
-      'common.increase': t('common.increase'),
-      'common.minimize': t('common.minimize'),
-      'common.open': t('common.open'),
-      'common.preview': t('common.preview'),
-      'common.reset': t('common.reset'),
-      'common.resetZoom': t('common.resetZoom'),
-      'common.source': t('common.source'),
-      'common.zoomIn': t('common.zoomIn'),
-      'common.zoomOut': t('common.zoomOut'),
-      'image.loadError': t('image.loadError'),
-      'image.loading': t('image.loading'),
+      "common.close": t("common.close"),
+      "common.collapse": t("common.collapse"),
+      "common.copied": t("common.copied"),
+      "common.copy": t("common.copy"),
+      "common.decrease": t("common.decrease"),
+      "common.expand": t("common.expand"),
+      "common.export": t("common.export"),
+      "common.increase": t("common.increase"),
+      "common.minimize": t("common.minimize"),
+      "common.open": t("common.open"),
+      "common.preview": t("common.preview"),
+      "common.reset": t("common.reset"),
+      "common.resetZoom": t("common.resetZoom"),
+      "common.source": t("common.source"),
+      "common.zoomIn": t("common.zoomIn"),
+      "common.zoomOut": t("common.zoomOut"),
+      "image.loadError": t("image.loadError"),
+      "image.loading": t("image.loading"),
     });
   }, [i18n, i18n.language]);
 
   // Sync font settings to CSS custom properties
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--font-weight', String(fontWeight));
+    root.style.setProperty("--font-weight", String(fontWeight));
     if (fontFamily) {
-      root.style.setProperty('--font-family', fontFamily);
+      root.style.setProperty("--font-family", fontFamily);
       document.body.style.fontFamily = fontFamily;
     } else {
-      root.style.removeProperty('--font-family');
-      document.body.style.removeProperty('font-family');
+      root.style.removeProperty("--font-family");
+      document.body.style.removeProperty("font-family");
     }
     if (codeFontFamily) {
-      root.style.setProperty('--code-font-family', codeFontFamily);
+      root.style.setProperty("--code-font-family", codeFontFamily);
     } else {
-      root.style.removeProperty('--code-font-family');
+      root.style.removeProperty("--code-font-family");
     }
   }, [fontWeight, fontFamily, codeFontFamily]);
 
-  const themeConfig = useShadcnTheme(isDark, primaryColor, fontSize, borderRadius, fontFamily || undefined, codeFontFamily || undefined);
+  const themeConfig = useShadcnTheme(
+    isDark,
+    primaryColor,
+    fontSize,
+    borderRadius,
+    fontFamily || undefined,
+    codeFontFamily || undefined,
+  );
 
   return (
     <GlobalErrorBoundary>
       <BrowserRouter>
         <ConfigProvider
-          locale={i18n.language === 'zh-CN' ? zhCN : undefined}
+          locale={i18n.language === "zh-CN" ? zhCN : undefined}
           theme={themeConfig}
-          modal={{ centered: true, styles: { mask: { backdropFilter: 'blur(4px)' } } }}
+          modal={{ centered: true, styles: { mask: { backdropFilter: "blur(4px)" } } }}
         >
           <AntdApp>
             <AppInner />

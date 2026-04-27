@@ -1,6 +1,10 @@
+#[allow(unused_imports)]
+use crate::commands::proactive::ProactiveService;
 use crate::AppState;
 use axagent_core::types::*;
-use axagent_providers::{registry::ProviderRegistry, resolve_base_url_for_type, ProviderRequestContext};
+use axagent_providers::{
+    registry::ProviderRegistry, resolve_base_url_for_type, ProviderRequestContext,
+};
 use base64::Engine;
 use sea_orm::*;
 use std::sync::atomic::AtomicBool;
@@ -164,10 +168,7 @@ fn strip_disabled_thinking_content(content: &str) -> String {
     strip_think_tags(content)
 }
 
-fn strip_disabled_thinking_delta(
-    delta: &str,
-    state: &mut DisabledThinkingStripState,
-) -> String {
+fn strip_disabled_thinking_delta(delta: &str, state: &mut DisabledThinkingStripState) -> String {
     if delta.is_empty() && state.trailing_fragment.is_empty() {
         return String::new();
     }
@@ -246,7 +247,12 @@ fn strip_display_tags(content: &str) -> String {
     // Also strip <memory-item> and <retrieved-context> boundary tags (injected into LLM context)
     let content = {
         let mut s = content.to_string();
-        for tag_name in &["knowledge-retrieval", "memory-retrieval", "memory-item", "retrieved-context"] {
+        for tag_name in &[
+            "knowledge-retrieval",
+            "memory-retrieval",
+            "memory-item",
+            "retrieved-context",
+        ] {
             let tag_start = format!("<{} ", tag_name);
             let tag_start_bare = format!("<{}>", tag_name);
             let tag_end = format!("</{}>", tag_name);
@@ -262,7 +268,11 @@ fn strip_display_tags(content: &str) -> String {
                     if let Some(end_offset) = s[start_pos..].find(&tag_end) {
                         let after = &s[start_pos + end_offset + tag_end.len()..];
                         let before = &s[..start_pos];
-                        s = format!("{}{}", before.trim_end_matches('\n'), after.trim_start_matches('\n'));
+                        s = format!(
+                            "{}{}",
+                            before.trim_end_matches('\n'),
+                            after.trim_start_matches('\n')
+                        );
                         continue;
                     }
                 }
@@ -507,6 +517,87 @@ pub async fn toggle_archive_conversation(
 }
 
 #[tauri::command]
+pub async fn archive_conversation_to_knowledge_base(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    knowledge_base_id: String,
+) -> Result<Conversation, String> {
+    let (updated_conv, doc) = axagent_core::repo::conversation::archive_to_knowledge_base(
+        &state.sea_db,
+        &id,
+        &knowledge_base_id,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Trigger async indexing for the newly created document
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &knowledge_base_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if let Some(ref embedding_provider) = kb.embedding_provider {
+        let db = state.sea_db.clone();
+        let master_key = state.master_key;
+        let vector_store = state.vector_store.clone();
+        let doc_id = doc.id.clone();
+        let src_path = doc.source_path.clone();
+        let mime = doc.mime_type.clone();
+        let ep = embedding_provider.clone();
+        let chunk_sz = kb.chunk_size;
+        let chunk_ov = kb.chunk_overlap;
+        let kb_id = knowledge_base_id.clone();
+        let semaphore = state.indexing_semaphore.clone();
+        let separator = kb.separator.clone();
+
+        tokio::spawn(async move {
+            let _permit = semaphore.acquire().await;
+            let result = crate::indexing::index_knowledge_document(
+                &db,
+                &master_key,
+                &vector_store,
+                &kb_id,
+                &doc_id,
+                &src_path,
+                &mime,
+                &ep,
+                chunk_sz,
+                chunk_ov,
+                separator,
+            )
+            .await;
+
+            if let Err(e) = &result {
+                let err_msg = e.to_string();
+                tracing::error!(
+                    "Indexing failed for archived conversation doc {}: {}",
+                    doc_id,
+                    err_msg
+                );
+                let _ = axagent_core::repo::knowledge::update_document_status_with_error(
+                    &db,
+                    &doc_id,
+                    "failed",
+                    Some(&err_msg),
+                )
+                .await;
+            }
+
+            let _ = app.emit(
+                "knowledge-document-indexed",
+                serde_json::json!({
+                    "documentId": doc_id,
+                    "success": result.is_ok(),
+                    "error": result.err().map(|e| e.to_string()),
+                }),
+            );
+        });
+    }
+
+    Ok(updated_conv)
+}
+
+#[tauri::command]
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
 ) -> Result<Vec<Conversation>, String> {
@@ -528,12 +619,12 @@ async fn consume_stream(
     cancel_flag: &AtomicBool,
     suppress_thinking: bool,
 ) -> (
-    String,              // full_content (includes <think> blocks)
+    String, // full_content (includes <think> blocks)
     Option<TokenUsage>,
     Option<Vec<ToolCall>>,
-    Option<String>,      // stream_error
-    Option<f64>,         // tokens_per_second
-    Option<i64>,         // first_token_latency_ms
+    Option<String>, // stream_error
+    Option<f64>,    // tokens_per_second
+    Option<i64>,    // first_token_latency_ms
 ) {
     use futures::StreamExt;
     let mut full_content = String::new();
@@ -561,10 +652,7 @@ async fn consume_stream(
                 let is_done = chunk.done;
                 let content_delta = chunk.content.as_deref().map(|content| {
                     if suppress_thinking {
-                        strip_disabled_thinking_delta(
-                            content,
-                            &mut disabled_thinking_strip_state,
-                        )
+                        strip_disabled_thinking_delta(content, &mut disabled_thinking_strip_state)
                     } else {
                         content.to_string()
                     }
@@ -660,7 +748,11 @@ async fn consume_stream(
                 }
 
                 let mut emitted_chunk = ChatStreamChunk {
-                    content: if emit_content.is_empty() { None } else { Some(emit_content) },
+                    content: if emit_content.is_empty() {
+                        None
+                    } else {
+                        Some(emit_content)
+                    },
                     thinking: emit_thinking_signal,
                     done: is_done,
                     is_final: None,
@@ -732,11 +824,11 @@ async fn consume_stream(
     }
 
     // Compute timing metrics
-    let first_token_latency_ms = first_token_time
-        .map(|t| (t - stream_start).as_millis() as i64);
+    let first_token_latency_ms = first_token_time.map(|t| (t - stream_start).as_millis() as i64);
     let tokens_per_second = match (final_usage.as_ref(), first_token_time) {
         (Some(usage), Some(ft)) if usage.completion_tokens > 0 => {
-            let gen_duration = stream_start.elapsed().as_secs_f64() - (ft - stream_start).as_secs_f64();
+            let gen_duration =
+                stream_start.elapsed().as_secs_f64() - (ft - stream_start).as_secs_f64();
             if gen_duration > 0.0 {
                 Some(usage.completion_tokens as f64 / gen_duration)
             } else {
@@ -1016,7 +1108,10 @@ pub async fn generate_ai_title(
             api_key: dk,
             key_id: key_row.id.clone(),
             provider_id: provider.id.clone(),
-            base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+            base_url: Some(resolve_base_url_for_type(
+                &provider.api_host,
+                &provider.provider_type,
+            )),
             api_path: provider.api_path.clone(),
             proxy_config: proxy,
             custom_headers: provider
@@ -1202,7 +1297,10 @@ pub async fn regenerate_conversation_title(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -1244,9 +1342,10 @@ pub async fn regenerate_conversation_title(
 
         match ai_title {
             Ok(title) => {
-                if let Err(e) =
-                    axagent_core::repo::conversation::update_conversation_title(&db, &conv_id, &title)
-                        .await
+                if let Err(e) = axagent_core::repo::conversation::update_conversation_title(
+                    &db, &conv_id, &title,
+                )
+                .await
                 {
                     tracing::error!("Failed to save regenerated title: {}", e);
                     let _ = app_clone.emit(
@@ -1314,8 +1413,14 @@ fn build_memory_retrieval_tag(sources: &[RagSourceResult]) -> String {
     if sources.is_empty() {
         return String::new();
     }
-    let knowledge: Vec<&RagSourceResult> = sources.iter().filter(|s| s.source_type == "knowledge").collect();
-    let memory: Vec<&RagSourceResult> = sources.iter().filter(|s| s.source_type != "knowledge").collect();
+    let knowledge: Vec<&RagSourceResult> = sources
+        .iter()
+        .filter(|s| s.source_type == "knowledge")
+        .collect();
+    let memory: Vec<&RagSourceResult> = sources
+        .iter()
+        .filter(|s| s.source_type != "knowledge")
+        .collect();
     let mut result = String::new();
     if !knowledge.is_empty() {
         let json = serde_json::to_string(&knowledge).unwrap_or_default();
@@ -1323,7 +1428,10 @@ fn build_memory_retrieval_tag(sources: &[RagSourceResult]) -> String {
     }
     if !memory.is_empty() {
         let json = serde_json::to_string(&memory).unwrap_or_default();
-        result.push_str(&format!("<memory-retrieval status=\"done\" data-axagent=\"1\">\n{}\n</memory-retrieval>\n\n", json));
+        result.push_str(&format!(
+            "<memory-retrieval status=\"done\" data-axagent=\"1\">\n{}\n</memory-retrieval>\n\n",
+            json
+        ));
     }
     result
 }
@@ -1393,34 +1501,34 @@ fn spawn_stream_task(
         // Early create: persist a placeholder message so it survives crash/refresh
         // Skip if the caller already created the placeholder before spawning.
         if !skip_placeholder_create {
-        if let Err(e) = (axagent_core::entity::messages::ActiveModel {
-            id: Set(assistant_message_id.clone()),
-            conversation_id: Set(conversation_id.clone()),
-            role: Set("assistant".to_string()),
-            content: Set(String::new()),
-            provider_id: Set(Some(provider.id.clone())),
-            model_id: Set(Some(model_id.clone())),
-            token_count: Set(None),
-            prompt_tokens: Set(None),
-            completion_tokens: Set(None),
-            attachments: Set("[]".to_string()),
-            thinking: Set(None),
-            created_at: Set(override_created_at.unwrap_or_else(axagent_core::utils::now_ts)),
-            branch_id: Set(None),
-            parent_message_id: Set(Some(parent_message_id.clone())),
-            version_index: Set(version_index),
-            is_active: Set(if create_inactive { 0 } else { 1 }),
-            tool_calls_json: Set(None),
-            tool_call_id: Set(None),
-            status: Set("partial".to_string()),
-            tokens_per_second: Set(None),
-            first_token_latency_ms: Set(None),
-        })
-        .insert(&db)
-        .await
-        {
-            tracing::error!("Failed to create placeholder assistant message: {}", e);
-        }
+            if let Err(e) = (axagent_core::entity::messages::ActiveModel {
+                id: Set(assistant_message_id.clone()),
+                conversation_id: Set(conversation_id.clone()),
+                role: Set("assistant".to_string()),
+                content: Set(String::new()),
+                provider_id: Set(Some(provider.id.clone())),
+                model_id: Set(Some(model_id.clone())),
+                token_count: Set(None),
+                prompt_tokens: Set(None),
+                completion_tokens: Set(None),
+                attachments: Set("[]".to_string()),
+                thinking: Set(None),
+                created_at: Set(override_created_at.unwrap_or_else(axagent_core::utils::now_ts)),
+                branch_id: Set(None),
+                parent_message_id: Set(Some(parent_message_id.clone())),
+                version_index: Set(version_index),
+                is_active: Set(if create_inactive { 0 } else { 1 }),
+                tool_calls_json: Set(None),
+                tool_call_id: Set(None),
+                status: Set("partial".to_string()),
+                tokens_per_second: Set(None),
+                first_token_latency_ms: Set(None),
+            })
+            .insert(&db)
+            .await
+            {
+                tracing::error!("Failed to create placeholder assistant message: {}", e);
+            }
         }
 
         loop {
@@ -1883,8 +1991,9 @@ pub async fn send_message(
         axagent_core::repo::provider::get_active_key(&state.sea_db, &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+            .map_err(|e| e.to_string())?;
 
     // Get model info for param overrides and token budget
     let resolved_model = axagent_core::repo::provider::get_model(
@@ -1974,14 +2083,20 @@ pub async fn send_message(
 
     // Record retrieval hits for analytics
     {
-        let hits: Vec<(String, String, String, f64, String)> = rag_result.source_results.iter()
-            .flat_map(|src| src.items.iter().map(|item| (
-                src.container_id.clone(),
-                item.document_id.clone(),
-                item.id.clone(),
-                item.score as f64,
-                item.content.chars().take(200).collect(),
-            )))
+        let hits: Vec<(String, String, String, f64, String)> = rag_result
+            .source_results
+            .iter()
+            .flat_map(|src| {
+                src.items.iter().map(|item| {
+                    (
+                        src.container_id.clone(),
+                        item.document_id.clone(),
+                        item.id.clone(),
+                        item.score as f64,
+                        item.content.chars().take(200).collect(),
+                    )
+                })
+            })
             .collect();
         if !hits.is_empty() {
             let _ = axagent_core::repo::retrieval_hit::record_hits(
@@ -1989,7 +2104,8 @@ pub async fn send_message(
                 &conversation_id,
                 &user_message.id,
                 &hits,
-            ).await;
+            )
+            .await;
         }
     }
 
@@ -2005,7 +2121,10 @@ pub async fn send_message(
             if rag_tokens + item_tokens > rag_budget {
                 tracing::warn!(
                     "RAG context budget exceeded: {}+{} > {}, truncating at item {}",
-                    rag_tokens, item_tokens, rag_budget, i
+                    rag_tokens,
+                    item_tokens,
+                    rag_budget,
+                    i
                 );
                 break;
             }
@@ -2033,10 +2152,7 @@ pub async fn send_message(
         if !wm.is_empty() {
             chat_messages.push(ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(format!(
-                    "<working-memory>\n{}\n</working-memory>",
-                    wm
-                )),
+                content: ChatContent::Text(format!("<working-memory>\n{}\n</working-memory>", wm)),
                 tool_calls: None,
                 tool_call_id: None,
             });
@@ -2171,7 +2287,10 @@ pub async fn send_message(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -2192,7 +2311,8 @@ pub async fn send_message(
         let mut all_tools = Vec::new();
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id).await
+                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
+                    .await
             {
                 for td in descriptors {
                     let parameters: Option<serde_json::Value> = td
@@ -2352,8 +2472,9 @@ pub async fn regenerate_message(
         axagent_core::repo::provider::get_active_key(&state.sea_db, &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+            .map_err(|e| e.to_string())?;
 
     // 6. Rebuild chat messages (active messages only — old inactive versions excluded)
     let remaining_messages =
@@ -2497,7 +2618,10 @@ pub async fn regenerate_message(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -2518,7 +2642,8 @@ pub async fn regenerate_message(
         let mut all_tools = Vec::new();
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id).await
+                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
+                    .await
             {
                 for td in descriptors {
                     let parameters: Option<serde_json::Value> = td
@@ -2678,8 +2803,9 @@ pub async fn regenerate_with_model(
     let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &target_provider_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+            .map_err(|e| e.to_string())?;
 
     // Build context messages (same logic as regenerate_message)
     let remaining_messages =
@@ -2827,7 +2953,10 @@ pub async fn regenerate_with_model(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -2847,7 +2976,8 @@ pub async fn regenerate_with_model(
         let mut all_tools = Vec::new();
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id).await
+                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
+                    .await
             {
                 for td in descriptors {
                     let parameters: Option<serde_json::Value> = td
@@ -2946,7 +3076,10 @@ pub async fn regenerate_with_model(
         "[regenerate_with_model] spawning stream: model={} total_messages={} has_system_prompt={}",
         &conversation.model_id,
         chat_messages.len(),
-        chat_messages.first().map(|m| m.role == "system").unwrap_or(false)
+        chat_messages
+            .first()
+            .map(|m| m.role == "system")
+            .unwrap_or(false)
     );
     spawn_stream_task(
         app,
@@ -2975,7 +3108,8 @@ pub async fn regenerate_with_model(
         memory_tag,
         companion,
         true,
-    );    Ok(())
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -3016,9 +3150,10 @@ pub async fn delete_message_group(
     conversation_id: String,
     user_message_id: String,
 ) -> Result<(), String> {
-    let deleted = axagent_core::repo::message::delete_message_group(&state.sea_db, &user_message_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let deleted =
+        axagent_core::repo::message::delete_message_group(&state.sea_db, &user_message_id)
+            .await
+            .map_err(|e| e.to_string())?;
     // Decrement message count by deleted count
     for _ in 0..deleted {
         axagent_core::repo::conversation::decrement_message_count(&state.sea_db, &conversation_id)
@@ -3142,7 +3277,10 @@ async fn do_compress(
         api_key: comp_key,
         key_id: comp_key_id,
         provider_id: comp_provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&comp_provider.api_host, &comp_provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &comp_provider.api_host,
+            &comp_provider.provider_type,
+        )),
         api_path: comp_provider.api_path.clone(),
         proxy_config: comp_proxy,
         custom_headers: comp_provider
@@ -3209,8 +3347,9 @@ pub async fn compress_context(
         .keys
         .first()
         .ok_or_else(|| "No API key configured".to_string())?;
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+            .map_err(|e| e.to_string())?;
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
         .await
@@ -3395,8 +3534,10 @@ mod tests {
 
     #[test]
     fn build_message_content_turns_images_into_multipart_data_urls() {
-        let temp_dir =
-            std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+        let temp_dir = std::env::temp_dir().join(format!(
+            "axagent-vision-test-{}",
+            axagent_core::utils::gen_id()
+        ));
         fs::create_dir_all(&temp_dir).unwrap();
 
         let result = (|| {
@@ -3454,8 +3595,10 @@ mod tests {
 
     #[test]
     fn build_message_content_uses_inline_attachment_data_when_file_path_is_missing() {
-        let temp_dir =
-            std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+        let temp_dir = std::env::temp_dir().join(format!(
+            "axagent-vision-test-{}",
+            axagent_core::utils::gen_id()
+        ));
         fs::create_dir_all(&temp_dir).unwrap();
 
         let result = (|| {
@@ -3561,10 +3704,13 @@ mod tests {
             "conversation must be deleted"
         );
         assert!(
-            axagent_core::repo::stored_file::list_stored_files_by_conversation(&db, &conversation.id)
-                .await
-                .unwrap()
-                .is_empty(),
+            axagent_core::repo::stored_file::list_stored_files_by_conversation(
+                &db,
+                &conversation.id
+            )
+            .await
+            .unwrap()
+            .is_empty(),
             "conversation attachments must be removed from the database"
         );
         assert!(
@@ -3599,7 +3745,10 @@ mod tests {
         let vector_store = Arc::new(axagent_core::vector_store::VectorStore::new(db.clone()));
         let memory_service = {
             let storage = axagent_trajectory::TrajectoryStorage::new().unwrap_or_else(|e| {
-                panic!("Failed to create TrajectoryStorage for MemoryService: {}", e)
+                panic!(
+                    "Failed to create TrajectoryStorage for MemoryService: {}",
+                    e
+                )
             });
             let ms = axagent_trajectory::MemoryService::new(std::sync::Arc::new(storage))
                 .unwrap_or_else(|e| panic!("Failed to create MemoryService: {}", e));
@@ -3609,11 +3758,12 @@ mod tests {
             Arc::new(std::sync::RwLock::new(ms))
         };
         let pattern_learner = Arc::new(std::sync::RwLock::new(
-            axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default())
+            axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default()),
         ));
-        let trajectory_storage = Arc::new(axagent_trajectory::TrajectoryStorage::new().unwrap_or_else(|e| {
-            panic!("Failed to create TrajectoryStorage: {}", e)
-        }));
+        let trajectory_storage = Arc::new(
+            axagent_trajectory::TrajectoryStorage::new()
+                .unwrap_or_else(|e| panic!("Failed to create TrajectoryStorage: {}", e)),
+        );
         let state = crate::AppState {
             sea_db: db.clone(),
             master_key: [0; 32],
@@ -3635,53 +3785,91 @@ mod tests {
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
-            shared_memory: Arc::new(std::sync::RwLock::new(axagent_runtime::shared_memory::SharedMemory::new())),
-            sub_agent_registry: Arc::new(std::sync::RwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default())),
+            shared_memory: Arc::new(std::sync::RwLock::new(
+                axagent_runtime::shared_memory::SharedMemory::new(),
+            )),
+            sub_agent_registry: Arc::new(std::sync::RwLock::new(
+                axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+            )),
             trajectory_storage,
             memory_service: memory_service.clone(),
-            nudge_service: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),
+            nudge_service: Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::NudgeService::new(),
+            )),
             closed_loop_service: {
                 let storage = axagent_trajectory::TrajectoryStorage::new().unwrap_or_else(|e| {
-                    panic!("Failed to create TrajectoryStorage for ClosedLoopService: {}", e)
+                    panic!(
+                        "Failed to create TrajectoryStorage for ClosedLoopService: {}",
+                        e
+                    )
                 });
-                Arc::new(axagent_trajectory::ClosedLoopService::new(std::sync::Arc::new(storage)))
+                Arc::new(axagent_trajectory::ClosedLoopService::new(
+                    std::sync::Arc::new(storage),
+                ))
             },
             insight_system: Arc::new(std::sync::RwLock::new(
-                axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30)
+                axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
             )),
-            realtime_learning: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::RealTimeLearning::new())),
+            realtime_learning: Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::RealTimeLearning::new(),
+            )),
             pattern_learner: pattern_learner.clone(),
             cross_session_learner: Arc::new(std::sync::RwLock::new(
-                axagent_trajectory::CrossSessionLearner::new()
+                axagent_trajectory::CrossSessionLearner::new(),
             )),
-            rl_engine: Arc::new(std::sync::RwLock::new(
-                axagent_trajectory::RLEngine::new(axagent_trajectory::RLConfig::default(), axagent_trajectory::RewardWeights::default())
-            )),
+            rl_engine: Arc::new(std::sync::RwLock::new(axagent_trajectory::RLEngine::new(
+                axagent_trajectory::RLConfig::default(),
+                axagent_trajectory::RewardWeights::default(),
+            ))),
             batch_processor: {
                 let storage = axagent_trajectory::TrajectoryStorage::new().unwrap_or_else(|e| {
-                    panic!("Failed to create TrajectoryStorage for BatchProcessor: {}", e)
+                    panic!(
+                        "Failed to create TrajectoryStorage for BatchProcessor: {}",
+                        e
+                    )
                 });
                 Arc::new(axagent_trajectory::BatchProcessor::new(
                     std::sync::Arc::new(storage),
-                    axagent_trajectory::BatchConfig::default()
+                    axagent_trajectory::BatchConfig::default(),
                 ))
             },
-            skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::SkillEvolutionEngine::new())),
-            skill_proposal_service: Arc::new(std::sync::RwLock::new(axagent_trajectory::SkillProposalService::new(
-                Arc::new(axagent_trajectory::TrajectoryStorage::new().unwrap())
-            ))),
-            auto_memory_extractor: Arc::new(std::sync::RwLock::new(axagent_trajectory::AutoMemoryExtractor::new(
-                Arc::new(axagent_trajectory::TrajectoryStorage::new().unwrap()),
-                memory_service.clone(),
-                pattern_learner.clone()
-            ))),
-            parallel_execution_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ParallelExecutionService::new(10))),
-            scheduled_task_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ScheduledTaskService::new(100))),
-            platform_integration_service: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PlatformIntegrationService::new())),
-            user_profile: Arc::new(std::sync::RwLock::new(axagent_trajectory::UserProfile::new())),
-            local_tool_registry: Arc::new(tokio::sync::Mutex::new(axagent_agent::LocalToolRegistry::init_from_registry())),
-            work_engine: Arc::new(tokio::sync::RwLock::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(db.clone())))),
-            skill_decomposer: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new())),
+            skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::SkillEvolutionEngine::new(),
+            )),
+            skill_proposal_service: Arc::new(std::sync::RwLock::new(
+                axagent_trajectory::SkillProposalService::new(Arc::new(
+                    axagent_trajectory::TrajectoryStorage::new().unwrap(),
+                )),
+            )),
+            auto_memory_extractor: Arc::new(std::sync::RwLock::new(
+                axagent_trajectory::AutoMemoryExtractor::new(
+                    Arc::new(axagent_trajectory::TrajectoryStorage::new().unwrap()),
+                    memory_service.clone(),
+                    pattern_learner.clone(),
+                ),
+            )),
+            parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
+                axagent_trajectory::ParallelExecutionService::new(10),
+            )),
+            scheduled_task_service: Arc::new(tokio::sync::RwLock::new(
+                axagent_trajectory::ScheduledTaskService::new(100),
+            )),
+            platform_integration_service: Arc::new(tokio::sync::RwLock::new(
+                axagent_trajectory::PlatformIntegrationService::new(),
+            )),
+            user_profile: Arc::new(std::sync::RwLock::new(
+                axagent_trajectory::UserProfile::new(),
+            )),
+            local_tool_registry: Arc::new(tokio::sync::Mutex::new(
+                axagent_agent::LocalToolRegistry::init_from_registry(),
+            )),
+            work_engine: Arc::new(tokio::sync::RwLock::new(
+                axagent_runtime::work_engine::WorkEngine::new(Arc::new(db.clone())),
+            )),
+            skill_decomposer: Arc::new(tokio::sync::RwLock::new(
+                axagent_trajectory::SkillDecomposer::new(),
+            )),
+            proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         };
 
         let attachments = vec![AttachmentInput {

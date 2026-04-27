@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { theme } from 'antd';
-import { Search, ChevronDown, ChevronRight, ExternalLink, AlertCircle } from 'lucide-react';
-import type { NodeComponentProps } from 'markstream-react';
-import { useTranslation } from 'react-i18next';
+import { theme } from "antd";
+import { AlertCircle, ChevronDown, ChevronRight, ExternalLink, Search } from "lucide-react";
+import type { NodeComponentProps } from "markstream-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SearchResult {
   title: string;
@@ -11,17 +11,17 @@ interface SearchResult {
 }
 
 type WebSearchNodeData = {
-  type: 'web-search';
+  type: "web-search";
   content?: string;
   attrs?: Record<string, string> | [string, string][];
   loading?: boolean;
 };
 
 function getAttrValue(
-  attrs: WebSearchNodeData['attrs'],
+  attrs: WebSearchNodeData["attrs"],
   key: string,
 ): string | undefined {
-  if (!attrs) return undefined;
+  if (!attrs) { return undefined; }
   if (Array.isArray(attrs)) {
     const entry = attrs.find(([name]) => name === key);
     return entry?.[1];
@@ -34,7 +34,7 @@ function getFavicon(url: string) {
     const u = new URL(url);
     return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=16`;
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -44,28 +44,28 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
-  const status = getAttrValue(node.attrs, 'status') ?? (node.loading ? 'searching' : 'done');
+  const status = getAttrValue(node.attrs, "status") ?? (node.loading ? "searching" : "done");
 
   // Parse results from node content
   let results: SearchResult[] = [];
   if (node.content) {
     try {
       const parsed = JSON.parse(node.content);
-      if (Array.isArray(parsed)) results = parsed;
+      if (Array.isArray(parsed)) { results = parsed; }
     } catch {
       // invalid JSON
     }
   }
 
   // Searching state
-  if (status === 'searching') {
+  if (status === "searching") {
     return (
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           gap: 8,
-          padding: '8px 12px',
+          padding: "8px 12px",
           marginBottom: 8,
           borderRadius: 8,
           backgroundColor: token.colorFillQuaternary,
@@ -73,26 +73,26 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
       >
         <span
           className="animate-spin"
-          style={{ display: 'inline-flex', width: 16, height: 16 }}
+          style={{ display: "inline-flex", width: 16, height: 16 }}
         >
           <Search size={16} style={{ color: token.colorPrimary }} />
         </span>
         <span style={{ color: token.colorTextSecondary, fontSize: 13 }}>
-          {t('chat.search.searching')}
+          {t("chat.search.searching")}
         </span>
       </div>
     );
   }
 
   // Error state
-  if (status === 'error') {
+  if (status === "error") {
     return (
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           gap: 8,
-          padding: '8px 12px',
+          padding: "8px 12px",
           marginBottom: 8,
           borderRadius: 8,
           backgroundColor: token.colorErrorBg,
@@ -101,13 +101,13 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
         }}
       >
         <AlertCircle size={16} />
-        <span>{node.content || t('chat.search.error')}</span>
+        <span>{node.content || t("chat.search.error")}</span>
       </div>
     );
   }
 
   // Done state — show results
-  if (results.length === 0) return null;
+  if (results.length === 0) { return null; }
 
   return (
     <div
@@ -115,27 +115,27 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
         marginBottom: 8,
         borderRadius: 8,
         border: `1px solid ${token.colorBorderSecondary}`,
-        overflow: 'hidden',
+        overflow: "hidden",
       }}
     >
       {/* Header */}
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           gap: 8,
-          padding: '8px 12px',
-          cursor: 'pointer',
+          padding: "8px 12px",
+          cursor: "pointer",
           backgroundColor: token.colorFillQuaternary,
-          userSelect: 'none',
+          userSelect: "none",
         }}
       >
         <Search size={14} style={{ color: token.colorPrimary }} />
         <span style={{ fontSize: 13, fontWeight: 500 }}>
-          {t('chat.search.resultsCount', { count: results.length })}
+          {t("chat.search.resultsCount", { count: results.length })}
         </span>
-        <span style={{ marginLeft: 'auto', color: token.colorTextTertiary }}>
+        <span style={{ marginLeft: "auto", color: token.colorTextTertiary }}>
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
       </div>
@@ -143,10 +143,10 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
       {/* Source icons row (always visible) */}
       <div
         style={{
-          display: 'flex',
+          display: "flex",
           gap: 6,
-          padding: '6px 12px',
-          flexWrap: 'wrap',
+          padding: "6px 12px",
+          flexWrap: "wrap",
           borderTop: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
@@ -158,19 +158,19 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
             rel="noopener noreferrer"
             title={r.title}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
+              display: "inline-flex",
+              alignItems: "center",
               gap: 4,
-              padding: '2px 8px',
+              padding: "2px 8px",
               fontSize: 11,
               borderRadius: 4,
               backgroundColor: token.colorFillSecondary,
               color: token.colorTextSecondary,
-              textDecoration: 'none',
+              textDecoration: "none",
               maxWidth: 160,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             <img
@@ -179,7 +179,9 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
               height={12}
               alt=""
               style={{ flexShrink: 0 }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
             {r.title}
           </a>
@@ -190,7 +192,7 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
       {expanded && (
         <div
           style={{
-            padding: '8px 12px',
+            padding: "8px 12px",
             borderTop: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
@@ -207,12 +209,12 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
+                  display: "inline-flex",
+                  alignItems: "center",
                   gap: 4,
                   color: token.colorPrimary,
                   fontWeight: 500,
-                  textDecoration: 'none',
+                  textDecoration: "none",
                   marginBottom: 2,
                 }}
               >
@@ -221,7 +223,9 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
                   width={14}
                   height={14}
                   alt=""
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
                 {r.title}
                 <ExternalLink size={10} style={{ opacity: 0.5 }} />
@@ -229,13 +233,13 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
               {r.content && (
                 <p
                   style={{
-                    margin: '2px 0 0 0',
+                    margin: "2px 0 0 0",
                     color: token.colorTextSecondary,
                     lineHeight: 1.5,
-                    display: '-webkit-box',
+                    display: "-webkit-box",
                     WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
                   }}
                 >
                   {r.content}

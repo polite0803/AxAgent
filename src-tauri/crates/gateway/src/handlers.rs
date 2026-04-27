@@ -73,7 +73,15 @@ pub async fn get_response(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenAI | ProviderType::OpenClaw | ProviderType::Hermes | ProviderType::OpenAIResponses))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenAI
+                            | ProviderType::OpenClaw
+                            | ProviderType::Hermes
+                            | ProviderType::OpenAIResponses
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -90,16 +98,16 @@ pub async fn get_response(
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
-            );
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -118,7 +126,10 @@ pub async fn get_response(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -162,7 +173,12 @@ pub async fn get_response(
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
@@ -182,7 +198,10 @@ pub async fn get_response(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get response: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to get response: {}", e),
+            )
         }
     }
 }
@@ -200,7 +219,15 @@ pub async fn delete_response(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenAI | ProviderType::OpenClaw | ProviderType::Hermes | ProviderType::OpenAIResponses))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenAI
+                            | ProviderType::OpenClaw
+                            | ProviderType::Hermes
+                            | ProviderType::OpenAIResponses
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -217,16 +244,16 @@ pub async fn delete_response(
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
-            );
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -245,7 +272,10 @@ pub async fn delete_response(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -305,7 +335,10 @@ pub async fn delete_response(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete response: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to delete response: {}", e),
+            )
         }
     }
 }
@@ -322,7 +355,12 @@ pub async fn list_jobs(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -332,20 +370,23 @@ pub async fn list_jobs(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -364,7 +405,10 @@ pub async fn list_jobs(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -405,7 +449,12 @@ pub async fn list_jobs(
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
@@ -425,7 +474,10 @@ pub async fn list_jobs(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list jobs: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to list jobs: {}", e),
+            )
         }
     }
 }
@@ -443,7 +495,12 @@ pub async fn create_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -453,20 +510,23 @@ pub async fn create_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -485,7 +545,10 @@ pub async fn create_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -528,7 +591,12 @@ pub async fn create_job(
                 .status(StatusCode::CREATED)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
@@ -548,7 +616,10 @@ pub async fn create_job(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to create job: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to create job: {}", e),
+            )
         }
     }
 }
@@ -566,7 +637,12 @@ pub async fn get_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -576,20 +652,23 @@ pub async fn get_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -608,7 +687,10 @@ pub async fn get_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -649,7 +731,12 @@ pub async fn get_job(
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
@@ -669,7 +756,10 @@ pub async fn get_job(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to get job: {}", e),
+            )
         }
     }
 }
@@ -688,7 +778,12 @@ pub async fn update_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -698,20 +793,23 @@ pub async fn update_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -730,7 +828,10 @@ pub async fn update_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -773,7 +874,12 @@ pub async fn update_job(
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
@@ -793,7 +899,10 @@ pub async fn update_job(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to update job: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to update job: {}", e),
+            )
         }
     }
 }
@@ -811,7 +920,12 @@ pub async fn delete_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -821,20 +935,23 @@ pub async fn delete_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -853,7 +970,10 @@ pub async fn delete_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -910,7 +1030,10 @@ pub async fn delete_job(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete job: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to delete job: {}", e),
+            )
         }
     }
 }
@@ -928,7 +1051,12 @@ pub async fn pause_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -938,20 +1066,23 @@ pub async fn pause_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -970,7 +1101,10 @@ pub async fn pause_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1027,7 +1161,10 @@ pub async fn pause_job(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to pause job: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to pause job: {}", e),
+            )
         }
     }
 }
@@ -1045,7 +1182,12 @@ pub async fn resume_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1055,20 +1197,23 @@ pub async fn resume_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1087,7 +1232,10 @@ pub async fn resume_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1144,7 +1292,10 @@ pub async fn resume_job(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to resume job: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to resume job: {}", e),
+            )
         }
     }
 }
@@ -1162,7 +1313,12 @@ pub async fn trigger_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1172,20 +1328,23 @@ pub async fn trigger_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
-        }
-    };
-
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
             return error_response(
                 StatusCode::BAD_GATEWAY,
-                &format!("No active API key for provider '{}'", provider.name),
+                "No Hermes/OpenClaw provider configured",
             );
         }
     };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1204,7 +1363,10 @@ pub async fn trigger_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1261,7 +1423,10 @@ pub async fn trigger_job(
             )
             .await;
 
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger job: {}", e))
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to trigger job: {}", e),
+            )
         }
     }
 }
@@ -1279,7 +1444,12 @@ pub async fn list_runs(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1289,17 +1459,23 @@ pub async fn list_runs(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1309,14 +1485,19 @@ pub async fn list_runs(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1338,25 +1519,53 @@ pub async fn list_runs(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/runs", job_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/runs", job_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/runs", job_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list runs: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/runs", job_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to list runs: {}", e),
+            )
         }
     }
 }
@@ -1375,7 +1584,12 @@ pub async fn trigger_run(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1385,17 +1599,23 @@ pub async fn trigger_run(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1405,14 +1625,19 @@ pub async fn trigger_run(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1436,25 +1661,53 @@ pub async fn trigger_run(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/runs", job_id), None, Some(&provider.id),
-                201, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/runs", job_id),
+                None,
+                Some(&provider.id),
+                201,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
 
             axum::response::Response::builder()
                 .status(StatusCode::CREATED)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/runs", job_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger run: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/runs", job_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to trigger run: {}", e),
+            )
         }
     }
 }
@@ -1472,7 +1725,12 @@ pub async fn get_run(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1482,17 +1740,23 @@ pub async fn get_run(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1502,14 +1766,19 @@ pub async fn get_run(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1531,25 +1800,53 @@ pub async fn get_run(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/runs/{}", job_id, run_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/runs/{}", job_id, run_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/runs/{}", job_id, run_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/runs/{}", job_id, run_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to get run: {}", e),
+            )
         }
     }
 }
@@ -1567,7 +1864,12 @@ pub async fn cancel_run(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1577,17 +1879,23 @@ pub async fn cancel_run(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1597,14 +1905,19 @@ pub async fn cancel_run(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1626,20 +1939,43 @@ pub async fn cancel_run(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
             Json(json!({ "cancelled": true, "job_id": job_id, "run_id": run_id })).into_response()
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to cancel run: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to cancel run: {}", e),
+            )
         }
     }
 }
@@ -1657,7 +1993,12 @@ pub async fn get_run_logs(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1667,17 +2008,23 @@ pub async fn get_run_logs(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1687,14 +2034,19 @@ pub async fn get_run_logs(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1716,25 +2068,53 @@ pub async fn get_run_logs(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run logs: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to get run logs: {}", e),
+            )
         }
     }
 }
@@ -1752,7 +2132,12 @@ pub async fn retry_run(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1762,17 +2147,23 @@ pub async fn retry_run(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1782,14 +2173,19 @@ pub async fn retry_run(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1811,25 +2207,53 @@ pub async fn retry_run(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to retry run: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to retry run: {}", e),
+            )
         }
     }
 }
@@ -1847,7 +2271,12 @@ pub async fn get_job_schedule(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1857,17 +2286,23 @@ pub async fn get_job_schedule(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1877,14 +2312,19 @@ pub async fn get_job_schedule(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1906,25 +2346,53 @@ pub async fn get_job_schedule(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/schedule", job_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/schedule", job_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "GET",
-                &format!("/api/jobs/{}/schedule", job_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job schedule: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "GET",
+                &format!("/api/jobs/{}/schedule", job_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to get job schedule: {}", e),
+            )
         }
     }
 }
@@ -1943,7 +2411,12 @@ pub async fn update_job_schedule(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -1953,17 +2426,23 @@ pub async fn update_job_schedule(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -1973,14 +2452,19 @@ pub async fn update_job_schedule(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2000,29 +2484,60 @@ pub async fn update_job_schedule(
 
     let schedule_str = serde_json::to_string(&schedule).unwrap_or_default();
 
-    match adapter.update_job_schedule(&ctx, &job_id, &schedule_str).await {
+    match adapter
+        .update_job_schedule(&ctx, &job_id, &schedule_str)
+        .await
+    {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "PUT",
-                &format!("/api/jobs/{}/schedule", job_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "PUT",
+                &format!("/api/jobs/{}/schedule", job_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap_or_else(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response"))
+                .unwrap_or_else(|_| {
+                    error_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to build response",
+                    )
+                })
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "PUT",
-                &format!("/api/jobs/{}/schedule", job_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to update job schedule: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "PUT",
+                &format!("/api/jobs/{}/schedule", job_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to update job schedule: {}", e),
+            )
         }
     }
 }
@@ -2040,7 +2555,12 @@ pub async fn enable_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -2050,17 +2570,23 @@ pub async fn enable_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -2070,14 +2596,19 @@ pub async fn enable_job(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2099,20 +2630,43 @@ pub async fn enable_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/enable", job_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/enable", job_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
             Json(json!({ "enabled": true, "id": job_id })).into_response()
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/enable", job_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to enable job: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/enable", job_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to enable job: {}", e),
+            )
         }
     }
 }
@@ -2130,7 +2684,12 @@ pub async fn disable_job(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenClaw | ProviderType::Hermes
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -2140,17 +2699,23 @@ pub async fn disable_job(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(StatusCode::BAD_GATEWAY, "No Hermes/OpenClaw provider configured");
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            );
         }
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await
-    {
-        Ok(k) => k,
-        Err(_) => {
-            return error_response(StatusCode::BAD_GATEWAY, &format!("No active API key for provider '{}'", provider.name));
-        }
-    };
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                );
+            }
+        };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
         Ok(k) => k,
@@ -2160,14 +2725,19 @@ pub async fn disable_job(
         }
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db).await.unwrap_or_default();
+    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+        .await
+        .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2189,20 +2759,43 @@ pub async fn disable_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/disable", job_id), None, Some(&provider.id),
-                200, elapsed, 0, 0, None,
-            ).await;
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/disable", job_id),
+                None,
+                Some(&provider.id),
+                200,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
             Json(json!({ "disabled": true, "id": job_id })).into_response()
         }
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
-                &state.db, &gateway_key.id, &gateway_key.name, "POST",
-                &format!("/api/jobs/{}/disable", job_id), None, Some(&provider.id),
-                500, elapsed, 0, 0, None,
-            ).await;
-            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to disable job: {}", e))
+                &state.db,
+                &gateway_key.id,
+                &gateway_key.name,
+                "POST",
+                &format!("/api/jobs/{}/disable", job_id),
+                None,
+                Some(&provider.id),
+                500,
+                elapsed,
+                0,
+                0,
+                None,
+            )
+            .await;
+            error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("Failed to disable job: {}", e),
+            )
         }
     }
 }
@@ -2279,7 +2872,15 @@ pub async fn chat_completions(
         match axagent_core::repo::provider::list_providers(&state.db).await {
             Ok(p) => p
                 .into_iter()
-                .filter(|p| matches!(p.provider_type, ProviderType::OpenAI | ProviderType::OpenClaw | ProviderType::Hermes | ProviderType::Ollama))
+                .filter(|p| {
+                    matches!(
+                        p.provider_type,
+                        ProviderType::OpenAI
+                            | ProviderType::OpenClaw
+                            | ProviderType::Hermes
+                            | ProviderType::Ollama
+                    )
+                })
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
@@ -2330,7 +2931,10 @@ pub async fn chat_completions(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider

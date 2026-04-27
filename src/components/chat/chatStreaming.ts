@@ -2,7 +2,7 @@ export function getStreamingLoadingState(
   isStreaming: boolean,
   content: unknown,
 ): { bubbleLoading: boolean; footerLoading: boolean } {
-  const hasContent = typeof content === 'string'
+  const hasContent = typeof content === "string"
     ? content.trim().length > 0
     : Boolean(content);
 

@@ -109,7 +109,7 @@ fn make_preset_server(def: &PresetDef) -> McpServer {
         name: def.name.to_string(),
         transport: def.transport.to_string(),
         command: Some("npx".to_string()),
-        args_json: Some(serde_json::json!([ "-y", def.package ]).to_string()),
+        args_json: Some(serde_json::json!(["-y", def.package]).to_string()),
         endpoint: None,
         env_json: None,
         enabled: def.default_enabled,
@@ -119,15 +119,18 @@ fn make_preset_server(def: &PresetDef) -> McpServer {
         execute_timeout_secs: Some(30),
         headers_json: None,
         icon_type: Some("emoji".to_string()),
-        icon_value: Some(match def.id {
-            "preset-filesystem" => "📁",
-            "preset-bash" => "💻",
-            "preset-git" => "🔀",
-            "preset-github" => "🐙",
-            "preset-memory" => "🧠",
-            "preset-puppeteer" => "🌐",
-            _ => "🔧",
-        }.to_string()),
+        icon_value: Some(
+            match def.id {
+                "preset-filesystem" => "📁",
+                "preset-bash" => "💻",
+                "preset-git" => "🔀",
+                "preset-github" => "🐙",
+                "preset-memory" => "🧠",
+                "preset-puppeteer" => "🌐",
+                _ => "🔧",
+            }
+            .to_string(),
+        ),
     }
 }
 
@@ -233,9 +236,7 @@ fn model_to_mcp_server(m: mcp_servers::Model) -> McpServer {
 pub async fn ensure_preset_servers(db: &DatabaseConnection) -> Result<()> {
     for preset in PRESET_DEFS {
         // Check if this preset already exists
-        let existing = mcp_servers::Entity::find_by_id(preset.id)
-            .one(db)
-            .await?;
+        let existing = mcp_servers::Entity::find_by_id(preset.id).one(db).await?;
 
         if existing.is_none() {
             // Create the preset server

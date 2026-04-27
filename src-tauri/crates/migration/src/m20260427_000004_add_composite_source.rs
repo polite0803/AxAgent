@@ -10,7 +10,11 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(WorkflowTemplates::Table)
-                    .add_column(ColumnDef::new(WorkflowTemplates::CompositeSource).string().null())
+                    .add_column(
+                        ColumnDef::new(WorkflowTemplates::CompositeSource)
+                            .string()
+                            .null(),
+                    )
                     .to_owned(),
             )
             .await

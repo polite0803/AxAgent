@@ -103,7 +103,11 @@ fn generate_session_id() -> String {
     let timestamp = chrono::Utc::now().timestamp_millis();
     let random: String = (0..11)
         .map(|_| {
-            let idx = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0).unsigned_abs() as usize) % 36;
+            let idx = (chrono::Utc::now()
+                .timestamp_nanos_opt()
+                .unwrap_or(0)
+                .unsigned_abs() as usize)
+                % 36;
             let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
             chars[idx] as char
         })
@@ -115,7 +119,11 @@ fn generate_message_id() -> String {
     let timestamp = chrono::Utc::now().timestamp_millis();
     let random: String = (0..11)
         .map(|_| {
-            let idx = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0).unsigned_abs() as usize) % 36;
+            let idx = (chrono::Utc::now()
+                .timestamp_nanos_opt()
+                .unwrap_or(0)
+                .unsigned_abs() as usize)
+                % 36;
             let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
             chars[idx] as char
         })
@@ -168,9 +176,9 @@ impl ChatMemory {
         let session_id = generate_session_id();
         let now = chrono::Utc::now().timestamp_millis();
 
-        let title = params.title.unwrap_or_else(|| {
-            format!("会话 {}", chrono::Utc::now().format("%Y-%m-%d"))
-        });
+        let title = params
+            .title
+            .unwrap_or_else(|| format!("会话 {}", chrono::Utc::now().format("%Y-%m-%d")));
 
         let platform = params.platform.unwrap_or_else(|| "web".to_string());
 
@@ -190,7 +198,10 @@ impl ChatMemory {
             created_at: now,
             updated_at: now,
             parent_session_id: params.parent_session_id,
-            token_count: TokenCount { input: 0, output: 0 },
+            token_count: TokenCount {
+                input: 0,
+                output: 0,
+            },
         };
 
         self.sessions.insert(session_id.clone(), record);
@@ -225,9 +236,10 @@ impl ChatMemory {
         let session_id = self.get_or_create_session();
         let message_id = generate_message_id();
 
-        let usage_json = params.usage.as_ref().map(|u| {
-            serde_json::to_string(u).unwrap_or_default()
-        });
+        let usage_json = params
+            .usage
+            .as_ref()
+            .map(|u| serde_json::to_string(u).unwrap_or_default());
 
         let record = MessageRecord {
             id: message_id.clone(),
@@ -264,7 +276,10 @@ impl ChatMemory {
     }
 
     pub fn get_session_messages(&self, session_id: &str) -> Vec<&MessageRecord> {
-        self.messages.get(session_id).map(|msgs| msgs.iter().collect()).unwrap_or_default()
+        self.messages
+            .get(session_id)
+            .map(|msgs| msgs.iter().collect())
+            .unwrap_or_default()
     }
 
     pub fn flush_message_buffer(&mut self) -> usize {

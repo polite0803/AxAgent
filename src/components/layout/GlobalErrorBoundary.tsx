@@ -1,6 +1,6 @@
-import React from 'react';
-import { Button, Typography, Space, theme } from 'antd';
-import { ReloadOutlined, CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { CheckOutlined, CopyOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button, Space, theme, Typography } from "antd";
+import React from "react";
 
 const { Text, Paragraph } = Typography;
 
@@ -15,7 +15,7 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
   const [copied, setCopied] = React.useState(false);
 
   const errorDetails = React.useMemo(() => {
-    const stack = errorInfo?.componentStack || error.stack || '';
+    const stack = errorInfo?.componentStack || error.stack || "";
     return `Error: ${error.message}\n\nStack Trace:\n${stack}`;
   }, [error, errorInfo]);
 
@@ -25,27 +25,27 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
-      console.error('Failed to copy error details:', e);
+      console.error("Failed to copy error details:", e);
     }
   };
 
   return (
     <div
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '48px 24px',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100vh",
+        padding: "48px 24px",
         backgroundColor: token.colorBgContainer,
       }}
     >
       <div
         style={{
           maxWidth: 600,
-          width: '100%',
-          textAlign: 'center',
+          width: "100%",
+          textAlign: "center",
         }}
       >
         <div style={{ marginBottom: 24 }}>
@@ -57,7 +57,7 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
           >
             💥
           </div>
-          <Text strong style={{ fontSize: 24, display: 'block', marginBottom: 8 }}>
+          <Text strong style={{ fontSize: 24, display: "block", marginBottom: 8 }}>
             Something went wrong
           </Text>
           <Text type="secondary">
@@ -74,7 +74,7 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
             onClick={handleCopy}
             size="large"
           >
-            {copied ? 'Copied!' : 'Copy Error'}
+            {copied ? "Copied!" : "Copy Error"}
           </Button>
         </Space>
 
@@ -84,10 +84,10 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
             border: `1px solid ${token.colorBorderSecondary}`,
             borderRadius: token.borderRadius,
             padding: 16,
-            textAlign: 'left',
+            textAlign: "left",
           }}
         >
-          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+          <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
             Error Details
           </Text>
           <Paragraph
@@ -96,9 +96,9 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
               margin: 0,
               fontSize: 12,
               maxHeight: 200,
-              overflow: 'auto',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
+              overflow: "auto",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
             }}
           >
             {error.message}
@@ -139,10 +139,10 @@ class GlobalErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
-    
+
     // Log error to console in development
     if (import.meta.env.DEV) {
-      console.error('GlobalErrorBoundary caught an error:', error, errorInfo);
+      console.error("GlobalErrorBoundary caught an error:", error, errorInfo);
     }
 
     // TODO: Send error to error reporting service

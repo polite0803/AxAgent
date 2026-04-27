@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::atomic_skill::types::AtomicSkill;
 use super::tool_resolver::ToolDependency;
+use crate::atomic_skill::types::AtomicSkill;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeBlock {
@@ -23,7 +23,13 @@ pub enum SkillContentType {
 }
 
 impl CodeBlock {
-    pub fn new(id: String, language: Option<String>, content: String, start_line: usize, end_line: usize) -> Self {
+    pub fn new(
+        id: String,
+        language: Option<String>,
+        content: String,
+        start_line: usize,
+        end_line: usize,
+    ) -> Self {
         Self {
             id,
             language,
@@ -41,11 +47,17 @@ impl CodeBlock {
                 for line in self.content.lines() {
                     let trimmed = line.trim();
                     if trimmed.starts_with("import ") {
-                        if let Some(module) = trimmed.strip_prefix("import ").and_then(|s| s.split_whitespace().next()) {
+                        if let Some(module) = trimmed
+                            .strip_prefix("import ")
+                            .and_then(|s| s.split_whitespace().next())
+                        {
                             deps.push(module.to_string());
                         }
                     } else if trimmed.starts_with("from ") {
-                        if let Some(module) = trimmed.strip_prefix("from ").and_then(|s| s.split_whitespace().next()) {
+                        if let Some(module) = trimmed
+                            .strip_prefix("from ")
+                            .and_then(|s| s.split_whitespace().next())
+                        {
                             if module != "typing" && module != "collections" {
                                 deps.push(module.to_string());
                             }
@@ -56,17 +68,27 @@ impl CodeBlock {
             Some("javascript") | Some("js") | Some("typescript") | Some("ts") => {
                 for line in self.content.lines() {
                     let trimmed = line.trim();
-                    if trimmed.starts_with("const ") || trimmed.starts_with("let ") || trimmed.starts_with("var ") {
-                        if trimmed.contains("require(") {
-                            if let Some(module) = trimmed.split("require(").nth(1).and_then(|s| s.split(')').next()) {
-                                let module = module.trim().trim_matches(|c| c == '\'' || c == '"');
-                                deps.push(module.to_string());
-                            }
+                    if (trimmed.starts_with("const ")
+                        || trimmed.starts_with("let ")
+                        || trimmed.starts_with("var "))
+                        && trimmed.contains("require(")
+                    {
+                        if let Some(module) = trimmed
+                            .split("require(")
+                            .nth(1)
+                            .and_then(|s| s.split(')').next())
+                        {
+                            let module = module.trim().trim_matches(|c| c == '\'' || c == '"');
+                            deps.push(module.to_string());
                         }
                     }
                     if trimmed.starts_with("import ") {
-                        if let Some(module) = trimmed.strip_prefix("import ").and_then(|s| s.split_whitespace().next()) {
-                            if !module.starts_with('.') && module != "react" && module != "node:fs" {
+                        if let Some(module) = trimmed
+                            .strip_prefix("import ")
+                            .and_then(|s| s.split_whitespace().next())
+                        {
+                            if !module.starts_with('.') && module != "react" && module != "node:fs"
+                            {
                                 deps.push(module.to_string());
                             }
                         }
@@ -107,11 +129,17 @@ impl CodeBlock {
     pub fn is_script(&self) -> bool {
         matches!(
             self.language.as_deref(),
-            Some("python") | Some("py")
-                | Some("javascript") | Some("js")
-                | Some("typescript") | Some("ts")
-                | Some("bash") | Some("sh") | Some("shell")
-                | Some("ruby") | Some("rb")
+            Some("python")
+                | Some("py")
+                | Some("javascript")
+                | Some("js")
+                | Some("typescript")
+                | Some("ts")
+                | Some("bash")
+                | Some("sh")
+                | Some("shell")
+                | Some("ruby")
+                | Some("rb")
                 | Some("go")
                 | Some("rust")
         )
@@ -120,8 +148,7 @@ impl CodeBlock {
     pub fn is_config(&self) -> bool {
         matches!(
             self.language.as_deref(),
-            Some("json") | Some("yaml") | Some("yml")
-                | Some("toml") | Some("ini") | Some("conf")
+            Some("json") | Some("yaml") | Some("yml") | Some("toml") | Some("ini") | Some("conf")
         )
     }
 }
@@ -142,7 +169,11 @@ impl ContentPreprocessor {
 
             if line.trim().starts_with("```") {
                 let language = line.trim().trim_start_matches("```").trim();
-                let lang = if language.is_empty() { None } else { Some(language.to_string()) };
+                let lang = if language.is_empty() {
+                    None
+                } else {
+                    Some(language.to_string())
+                };
 
                 let start_idx = i;
                 let mut end_idx = start_idx + 1;
@@ -150,8 +181,8 @@ impl ContentPreprocessor {
                     end_idx += 1;
                 }
 
-                let block_content: String = lines[start_idx + 1..end_idx.min(lines.len())]
-                    .join("\n");
+                let block_content: String =
+                    lines[start_idx + 1..end_idx.min(lines.len())].join("\n");
 
                 let block_id = format!("cb_{}", block_counter);
                 let placeholder = format!("__CODE_BLOCK_{}__", block_counter);
@@ -283,7 +314,11 @@ impl ParsedStep {
         self
     }
 
-    pub fn with_branches(mut self, then_branch: Option<String>, else_branch: Option<String>) -> Self {
+    pub fn with_branches(
+        mut self,
+        then_branch: Option<String>,
+        else_branch: Option<String>,
+    ) -> Self {
         self.then_branch = then_branch;
         self.else_branch = else_branch;
         self
@@ -308,7 +343,11 @@ impl ParsedStep {
         self
     }
 
-    pub fn with_schema(mut self, input: Option<serde_json::Value>, output: Option<serde_json::Value>) -> Self {
+    pub fn with_schema(
+        mut self,
+        input: Option<serde_json::Value>,
+        output: Option<serde_json::Value>,
+    ) -> Self {
         self.input_schema = input;
         self.output_schema = output;
         self
@@ -378,7 +417,8 @@ impl SkillDecomposer {
     }
 
     pub fn parse(composite: &CompositeSkillData) -> Result<ParsedComposite, DecompositionError> {
-        let (clean_content, code_blocks) = ContentPreprocessor::extract_code_blocks(&composite.content);
+        let (clean_content, code_blocks) =
+            ContentPreprocessor::extract_code_blocks(&composite.content);
         let content = &clean_content;
         let lines: Vec<&str> = content.lines().collect();
         let mut steps = Vec::new();
@@ -403,58 +443,69 @@ impl SkillDecomposer {
 
         fn is_step_heading(line: &str) -> bool {
             let trimmed = line.trim();
-            trimmed.starts_with("## ") || trimmed.starts_with("### ") ||
-            trimmed.starts_with("**") && trimmed.contains("**Step")
+            trimmed.starts_with("## ")
+                || trimmed.starts_with("### ")
+                || trimmed.starts_with("**") && trimmed.contains("**Step")
         }
 
         fn is_condition_heading(line: &str) -> bool {
             let lower = line.to_lowercase();
-            lower.contains("if ") || lower.contains("check ") ||
-            lower.contains("condition") || lower.contains("branch")
+            lower.contains("if ")
+                || lower.contains("check ")
+                || lower.contains("condition")
+                || lower.contains("branch")
         }
 
         fn is_loop_heading(line: &str) -> bool {
             let lower = line.to_lowercase();
-            lower.contains("loop") || lower.contains("repeat") ||
-            lower.contains("for each") || lower.contains("while")
+            lower.contains("loop")
+                || lower.contains("repeat")
+                || lower.contains("for each")
+                || lower.contains("while")
         }
 
-        fn parse_step_from_lines(title: &str, lines: &[String], composite_name: &str) -> ParsedStep {
-             let description = lines.join("\n").trim().to_string();
-             let mut step = ParsedStep::new(title.to_string())
-                 .with_raw_content(lines.join("\n"));
+        fn parse_step_from_lines(
+            title: &str,
+            lines: &[String],
+            composite_name: &str,
+        ) -> ParsedStep {
+            let description = lines.join("\n").trim().to_string();
+            let mut step = ParsedStep::new(title.to_string()).with_raw_content(lines.join("\n"));
 
-             if let Some(tool_name) = SkillDecomposer::extract_tool_name(title) {
-                 step = step.with_tool(tool_name, SkillDecomposer::extract_tool_type(title));
-             }
+            if let Some(tool_name) = SkillDecomposer::extract_tool_name(title) {
+                step = step.with_tool(tool_name, SkillDecomposer::extract_tool_type(title));
+            }
 
-             if is_condition_heading(title) {
-                 let condition_expr = SkillDecomposer::extract_condition_expression(title, &description)
-                     .unwrap_or_else(|| title.to_string());
-                 step = step.with_condition(condition_expr);
+            if is_condition_heading(title) {
+                let condition_expr =
+                    SkillDecomposer::extract_condition_expression(title, &description)
+                        .unwrap_or_else(|| title.to_string());
+                step = step.with_condition(condition_expr);
 
-                 let (then_br, else_br) = SkillDecomposer::extract_condition_branches(&description);
-                 step = step.with_branches(then_br, else_br);
-             } else if is_loop_heading(title) {
-                 let (items_var, max_iter) = SkillDecomposer::extract_loop_info(&description);
-                 step = step.with_loop(items_var, max_iter);
+                let (then_br, else_br) = SkillDecomposer::extract_condition_branches(&description);
+                step = step.with_branches(then_br, else_br);
+            } else if is_loop_heading(title) {
+                let (items_var, max_iter) = SkillDecomposer::extract_loop_info(&description);
+                step = step.with_loop(items_var, max_iter);
 
-                 let (body_raw, body_steps) = SkillDecomposer::extract_loop_body(title, &description, composite_name);
-                 step = step.with_loop_body(body_raw, body_steps);
-             }
+                let (body_raw, body_steps) =
+                    SkillDecomposer::extract_loop_body(title, &description, composite_name);
+                step = step.with_loop_body(body_raw, body_steps);
+            }
 
-             if step.is_parallel {
-                 let branches = SkillDecomposer::extract_parallel_branches(&description);
-                 step = step.with_parallel(branches);
-             }
+            if step.is_parallel {
+                let branches = SkillDecomposer::extract_parallel_branches(&description);
+                step = step.with_parallel(branches);
+            }
 
-             let (input_schema, output_schema) = SkillDecomposer::infer_schema_from_description(&description);
-             step = step.with_schema(input_schema, output_schema);
+            let (input_schema, output_schema) =
+                SkillDecomposer::infer_schema_from_description(&description);
+            step = step.with_schema(input_schema, output_schema);
 
-             step
-         }
+            step
+        }
 
-        for (_idx, line) in lines.iter().enumerate() {
+        for line in lines.iter() {
             let trimmed = line.trim();
 
             if is_step_heading(line) {
@@ -462,7 +513,7 @@ impl SkillDecomposer {
                     let step_lines = if current_step_lines.is_empty() {
                         current_raw.clone()
                     } else {
-                        std::mem::replace(&mut current_step_lines, Vec::new())
+                        std::mem::take(&mut current_step_lines)
                     };
                     let step = parse_step_from_lines(&title, &step_lines, &composite.name);
                     steps.push(step);
@@ -534,14 +585,22 @@ impl SkillDecomposer {
             let step_lines = if current_step_lines.is_empty() {
                 current_raw.clone()
             } else {
-                std::mem::replace(&mut current_step_lines, Vec::new())
+                std::mem::take(&mut current_step_lines)
             };
             let mut step = parse_step_from_lines(&title, &step_lines, &composite.name);
 
             if in_then || in_else || !then_lines.is_empty() || !else_lines.is_empty() {
                 step = step.with_branches(
-                    if then_lines.is_empty() { None } else { Some(then_lines.join("\n")) },
-                    if else_lines.is_empty() { None } else { Some(else_lines.join("\n")) },
+                    if then_lines.is_empty() {
+                        None
+                    } else {
+                        Some(then_lines.join("\n"))
+                    },
+                    if else_lines.is_empty() {
+                        None
+                    } else {
+                        Some(else_lines.join("\n"))
+                    },
                 );
             }
 
@@ -561,10 +620,13 @@ impl SkillDecomposer {
 
         if steps.is_empty() {
             is_fully_parsed = false;
-            let (input_schema, output_schema) = Self::infer_schema_from_description(&composite.description);
-            steps.push(ParsedStep::new(composite.name.clone())
-                .with_schema(input_schema, output_schema)
-                .with_raw_content(composite.content.clone()));
+            let (input_schema, output_schema) =
+                Self::infer_schema_from_description(&composite.description);
+            steps.push(
+                ParsedStep::new(composite.name.clone())
+                    .with_schema(input_schema, output_schema)
+                    .with_raw_content(composite.content.clone()),
+            );
         }
 
         Ok(ParsedComposite {
@@ -601,7 +663,10 @@ impl SkillDecomposer {
                         let deps = block.infer_dependencies();
                         let deps_for_node = deps.clone();
                         for dep in &deps {
-                            if !tool_dependencies.iter().any(|t: &ToolDependency| t.name == *dep) {
+                            if !tool_dependencies
+                                .iter()
+                                .any(|t: &ToolDependency| t.name == *dep)
+                            {
                                 tool_dependencies.push(ToolDependency {
                                     name: dep.clone(),
                                     tool_type: "script_dependency".to_string(),
@@ -615,14 +680,30 @@ impl SkillDecomposer {
 
                         let skill = AtomicSkill {
                             id: uuid::Uuid::new_v4().to_string(),
-                            name: format!("script_{}_{}_{}", slugify(&step.title), block_idx, block.language.clone().unwrap_or_else(|| "code".to_string())),
-                            description: format!("Script from step '{}' (language: {:?})\n\n```{}...\n```", step.title, block.language, &block.content.chars().take(50).collect::<String>()),
+                            name: format!(
+                                "script_{}_{}_{}",
+                                slugify(&step.title),
+                                block_idx,
+                                block.language.clone().unwrap_or_else(|| "code".to_string())
+                            ),
+                            description: format!(
+                                "Script from step '{}' (language: {:?})\n\n```{}...\n```",
+                                step.title,
+                                block.language,
+                                &block.content.chars().take(50).collect::<String>()
+                            ),
                             input_schema,
                             output_schema: None,
                             entry_type: crate::atomic_skill::types::EntryType::Builtin,
                             entry_ref: format!("inline_script_{}", block_idx),
                             category: "inline_script".to_string(),
-                            tags: vec!["inline_script".to_string(), block.language.clone().unwrap_or_else(|| "unknown".to_string())],
+                            tags: vec![
+                                "inline_script".to_string(),
+                                block
+                                    .language
+                                    .clone()
+                                    .unwrap_or_else(|| "unknown".to_string()),
+                            ],
                             version: "1.0.0".to_string(),
                             enabled: true,
                             source: "inline".to_string(),
@@ -753,7 +834,9 @@ impl SkillDecomposer {
                     "data": { "skill_id": skill_id }
                 }));
             } else if step.is_condition {
-                let _condition_expr = step.condition_expression.clone()
+                let _condition_expr = step
+                    .condition_expression
+                    .clone()
                     .unwrap_or_else(|| step.title.clone());
 
                 workflow_nodes.push(serde_json::json!({
@@ -792,8 +875,13 @@ impl SkillDecomposer {
                     }));
                 }
             } else if step.is_loop {
-                let loop_type = if step.loop_items_var.is_some() { "forEach" } else { "while" };
-                let iteratee_var: Option<String> = step.loop_items_var.as_ref().map(|_| "item".to_string());
+                let loop_type = if step.loop_items_var.is_some() {
+                    "forEach"
+                } else {
+                    "while"
+                };
+                let iteratee_var: Option<String> =
+                    step.loop_items_var.as_ref().map(|_| "item".to_string());
 
                 let loop_config = serde_json::json!({
                     "loop_type": loop_type,
@@ -821,13 +909,17 @@ impl SkillDecomposer {
                     "edge_type": "loopBack"
                 }));
             } else if step.is_parallel {
-                let branches: Vec<serde_json::Value> = step.parallel_branches.iter().map(|b| {
-                    serde_json::json!({
-                        "id": format!("{}_{}", node_id, slugify(&b.name)),
-                        "title": b.name,
-                        "steps": b.steps
+                let branches: Vec<serde_json::Value> = step
+                    .parallel_branches
+                    .iter()
+                    .map(|b| {
+                        serde_json::json!({
+                            "id": format!("{}_{}", node_id, slugify(&b.name)),
+                            "title": b.name,
+                            "steps": b.steps
+                        })
                     })
-                }).collect();
+                    .collect();
 
                 let parallel_config = serde_json::json!({
                     "branches": branches,
@@ -893,16 +985,26 @@ impl SkillDecomposer {
         Ok(DecompositionResult {
             atomic_skills,
             tool_dependencies,
-            workflow_nodes: serde_json::to_value(&workflow_nodes).unwrap_or(serde_json::Value::Null),
-            workflow_edges: serde_json::to_value(&workflow_edges).unwrap_or(serde_json::Value::Null),
+            workflow_nodes: serde_json::to_value(&workflow_nodes)
+                .unwrap_or(serde_json::Value::Null),
+            workflow_edges: serde_json::to_value(&workflow_edges)
+                .unwrap_or(serde_json::Value::Null),
             original_source: CompositeSourceInfo {
                 market: parsed.source.clone(),
                 repo: parsed.repo.clone(),
                 version: parsed.version.clone(),
             },
-            original_content: parsed.steps.iter().map(|s| s.raw_content.clone()).collect::<Vec<_>>().join("\n\n"),
-            parsed_steps_metadata: parsed.steps.iter().enumerate().map(|(i, s)| {
-                StepMetadata {
+            original_content: parsed
+                .steps
+                .iter()
+                .map(|s| s.raw_content.clone())
+                .collect::<Vec<_>>()
+                .join("\n\n"),
+            parsed_steps_metadata: parsed
+                .steps
+                .iter()
+                .enumerate()
+                .map(|(i, s)| StepMetadata {
                     index: i,
                     title: s.title.clone(),
                     raw_content: s.raw_content.clone(),
@@ -911,8 +1013,8 @@ impl SkillDecomposer {
                     loop_body_steps_count: s.loop_body_steps.len(),
                     input_schema_inferred: s.input_schema.is_some(),
                     output_schema_inferred: s.output_schema.is_some(),
-                }
-            }).collect(),
+                })
+                .collect(),
             code_blocks: parsed.code_blocks.clone(),
         })
     }
@@ -953,7 +1055,8 @@ impl SkillDecomposer {
             return Some(caps.get(1)?.as_str().trim().to_string());
         }
 
-        let check_regex = regex::Regex::new(r"(?i)check\s+(?:whether\s+)?(.+?)(?:\s+and|\s*[:.])").ok()?;
+        let check_regex =
+            regex::Regex::new(r"(?i)check\s+(?:whether\s+)?(.+?)(?:\s+and|\s*[:.])").ok()?;
         if let Some(caps) = check_regex.captures(&combined) {
             return Some(caps.get(1)?.as_str().trim().to_string());
         }
@@ -988,12 +1091,15 @@ impl SkillDecomposer {
     }
 
     fn extract_max_iterations(description: &str) -> Option<u32> {
-        let max_iter_regex = regex::Regex::new(r"(?i)max(?:imum)?\s*iterations?\s*[:=]?\s*(\d+)").ok()?;
+        let max_iter_regex =
+            regex::Regex::new(r"(?i)max(?:imum)?\s*iterations?\s*[:=]?\s*(\d+)").ok()?;
         let caps = max_iter_regex.captures(description)?;
         caps.get(1).and_then(|m| m.as_str().parse().ok())
     }
 
-    fn infer_schema_from_description(description: &str) -> (Option<serde_json::Value>, Option<serde_json::Value>) {
+    fn infer_schema_from_description(
+        description: &str,
+    ) -> (Option<serde_json::Value>, Option<serde_json::Value>) {
         let input_schema = Self::extract_schema_from_text(description, "input");
         let output_schema = Self::extract_schema_from_text(description, "output");
         (input_schema, output_schema)
@@ -1032,7 +1138,9 @@ impl SkillDecomposer {
     }
 
     fn extract_parallel_branches(description: &str) -> Vec<ParallelBranch> {
-        let Ok(branch_regex) = regex::Regex::new(r"(?i)branch\s+(\w+)\s*[:]?\s*(.+?)(?=\n\n|\nbranch|\Z)") else {
+        let Ok(branch_regex) =
+            regex::Regex::new(r"(?i)branch\s+(\w+)\s*[:]?\s*([\s\S]*?)(?:\n\n|\nbranch|$)")
+        else {
             return Vec::new();
         };
         let mut branches = Vec::new();
@@ -1047,13 +1155,17 @@ impl SkillDecomposer {
                 None => continue,
             };
             let steps: Vec<String> = steps_str
-                .split(|c| c == ',' || c == '\n')
+                .split([',', '\n'])
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect();
 
             if !steps.is_empty() {
-                branches.push(ParallelBranch { name, steps, raw_content: None });
+                branches.push(ParallelBranch {
+                    name,
+                    steps,
+                    raw_content: None,
+                });
             }
         }
 
@@ -1061,52 +1173,63 @@ impl SkillDecomposer {
     }
 
     fn extract_condition_branches(description: &str) -> (Option<String>, Option<String>) {
-        let then_regex = match regex::Regex::new(r"(?i)then\s*[:.]?\s*(.+?)(?=\s*else\s*[:.]|\Z)") {
-            Ok(r) => r,
-            Err(_) => return (None, None),
-        };
-        let else_regex = match regex::Regex::new(r"(?i)else\s*[:.]?\s*(.+?)(?=\s*(?:endif|end\s+if)\s*|\Z)") {
-            Ok(r) => r,
-            Err(_) => return (None, None),
-        };
+        let then_regex =
+            match regex::Regex::new(r"(?i)then\s*[:.]?\s*([\s\S]*?)(?:\s*else\s*[:.]|$)") {
+                Ok(r) => r,
+                Err(_) => return (None, None),
+            };
+        let else_regex =
+            match regex::Regex::new(r"(?i)else\s*[:.]?\s*([\s\S]*?)(?:\s*(?:endif|end\s+if)\s*|$)")
+            {
+                Ok(r) => r,
+                Err(_) => return (None, None),
+            };
 
-        let then_content = then_regex.captures(description)
-            .map(|caps| caps.get(1).map(|m| m.as_str().trim().to_string()))
-            .flatten();
+        let then_content = then_regex
+            .captures(description)
+            .and_then(|caps| caps.get(1).map(|m| m.as_str().trim().to_string()));
 
-        let else_content = else_regex.captures(description)
-            .map(|caps| caps.get(1).map(|m| m.as_str().trim().to_string()))
-            .flatten();
+        let else_content = else_regex
+            .captures(description)
+            .and_then(|caps| caps.get(1).map(|m| m.as_str().trim().to_string()));
 
         (then_content, else_content)
     }
 
-    fn extract_loop_body(title: &str, description: &str, _composite_name: &str) -> (String, Vec<ParsedStep>) {
-        let for_each_body_regex = regex::Regex::new(
-            r"(?i)for\s+each\s+\w+\s+in\s+.+?\s*[:.]\s*(.+?)(?=\n\n|\Z)"
-        ).ok();
+    fn extract_loop_body(
+        title: &str,
+        description: &str,
+        _composite_name: &str,
+    ) -> (String, Vec<ParsedStep>) {
+        let for_each_body_regex =
+            regex::Regex::new(r"(?i)for\s+each\s+\w+\s+in\s+.+?\s*[:.]\s*([\s\S]*?)(?:\n\n|$)")
+                .ok();
 
-        let while_body_regex = regex::Regex::new(
-            r"(?i)while\s+.+?\s*[:.]\s*(.+?)(?=\n\n|\Z)"
-        ).ok();
+        let while_body_regex =
+            regex::Regex::new(r"(?i)while\s+.+?\s*[:.]\s*([\s\S]*?)(?:\n\n|$)").ok();
 
-        let loop_start_regex = regex::Regex::new(
-            r"(?i)(?:do|repeat|loop)\s*[:.]\s*(.+?)(?=\n\n|\Z)"
-        ).ok();
+        let loop_start_regex =
+            regex::Regex::new(r"(?i)(?:do|repeat|loop)\s*[:.]\s*([\s\S]*?)(?:\n\n|$)").ok();
 
         let body_text = for_each_body_regex
             .and_then(|r| r.captures(description))
             .or_else(|| while_body_regex.and_then(|r| r.captures(description)))
             .or_else(|| loop_start_regex.and_then(|r| r.captures(description)))
-            .map(|caps| caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default())
+            .map(|caps| {
+                caps.get(1)
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default()
+            })
             .unwrap_or_default();
 
         let body_lines: Vec<String> = description
             .lines()
             .skip_while(|line| {
                 let lower = line.to_lowercase();
-                !lower.contains("do:") && !lower.contains("repeat:") &&
-                !lower.contains("loop:") && !lower.contains(":")
+                !lower.contains("do:")
+                    && !lower.contains("repeat:")
+                    && !lower.contains("loop:")
+                    && !lower.contains(":")
             })
             .skip(1)
             .map(|l| l.to_string())
@@ -1132,12 +1255,18 @@ impl SkillDecomposer {
         for line in lines {
             let trimmed = line.trim();
 
-            if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("• ") {
-                let item_text = trimmed.trim_start_matches('-').trim_start_matches('*').trim_start_matches('•').trim();
+            if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("• ")
+            {
+                let item_text = trimmed
+                    .trim_start_matches('-')
+                    .trim_start_matches('*')
+                    .trim_start_matches('•')
+                    .trim();
 
-                if item_text.to_lowercase().contains("use ") ||
-                   item_text.to_lowercase().contains("call ") ||
-                   item_text.to_lowercase().contains("run ") {
+                if item_text.to_lowercase().contains("use ")
+                    || item_text.to_lowercase().contains("call ")
+                    || item_text.to_lowercase().contains("run ")
+                {
                     if let Some(title) = current_subtitle.take() {
                         let step = ParsedStep::new(title)
                             .with_raw_content(current_lines.join("\n"))
@@ -1148,16 +1277,10 @@ impl SkillDecomposer {
                     current_subtitle = Some(format!("{} - {}", parent_title, item_text));
                     current_lines.push(item_text.to_string());
                 } else {
-                    if current_lines.is_empty() {
-                        current_lines.push(item_text.to_string());
-                    } else {
-                        current_lines.push(item_text.to_string());
-                    }
+                    current_lines.push(item_text.to_string());
                 }
-            } else if !trimmed.is_empty() {
-                if !current_lines.is_empty() {
-                    current_lines.push(trimmed.to_string());
-                }
+            } else if !trimmed.is_empty() && !current_lines.is_empty() {
+                current_lines.push(trimmed.to_string());
             }
         }
 
@@ -1178,7 +1301,9 @@ impl SkillDecomposer {
     ) -> Result<ParsedComposite, DecompositionError> {
         let mut parsed = Self::parse(composite)?;
 
-        let steps_needing_augmentation: Vec<usize> = parsed.steps.iter()
+        let steps_needing_augmentation: Vec<usize> = parsed
+            .steps
+            .iter()
             .enumerate()
             .filter(|(_, step)| Self::step_needs_llm_augmentation(step))
             .map(|(i, _)| i)
@@ -1189,18 +1314,30 @@ impl SkillDecomposer {
         }
 
         if let (Some(parser), Some(request)) = (llm_parser, llm_request) {
-            let rt = tokio::runtime::Runtime::new()
-                .map_err(|e| DecompositionError { message: e.to_string() })?;
-            let llm_response = rt.block_on(parser.parse_with_llm(request))
+            let rt = tokio::runtime::Runtime::new().map_err(|e| DecompositionError {
+                message: e.to_string(),
+            })?;
+            let llm_response = rt
+                .block_on(parser.parse_with_llm(request))
                 .map_err(|e| DecompositionError { message: e })?;
 
-            for (llm_step, &original_idx) in llm_response.steps.iter()
+            for (llm_step, &original_idx) in llm_response
+                .steps
+                .iter()
                 .zip(steps_needing_augmentation.iter())
-                .take(llm_response.steps.len().min(steps_needing_augmentation.len()))
+                .take(
+                    llm_response
+                        .steps
+                        .len()
+                        .min(steps_needing_augmentation.len()),
+                )
             {
                 if original_idx < parsed.steps.len() {
                     parsed.steps[original_idx] = Self::merge_llm_step(
-                        std::mem::replace(&mut parsed.steps[original_idx], ParsedStep::new(llm_step.title.clone())),
+                        std::mem::replace(
+                            &mut parsed.steps[original_idx],
+                            ParsedStep::new(llm_step.title.clone()),
+                        ),
                         llm_step,
                     );
                 }
@@ -1218,8 +1355,8 @@ impl SkillDecomposer {
         }
 
         if step.is_condition {
-            return step.condition_expression.is_none() ||
-                   (step.then_branch.is_none() && step.else_branch.is_none());
+            return step.condition_expression.is_none()
+                || (step.then_branch.is_none() && step.else_branch.is_none());
         }
 
         if step.is_loop {
@@ -1255,38 +1392,50 @@ impl SkillDecomposer {
             StepType::Condition => {
                 let expr = llm_step.condition_expression.clone().unwrap_or_default();
                 step = step.with_condition(expr);
-                step = step.with_branches(llm_step.then_branch.clone(), llm_step.else_branch.clone());
+                step =
+                    step.with_branches(llm_step.then_branch.clone(), llm_step.else_branch.clone());
             }
             StepType::Loop => {
                 step = step.with_loop(llm_step.loop_items_var.clone(), llm_step.max_iterations);
                 if let Some(body) = &llm_step.loop_body {
-                    let body_steps: Vec<ParsedStep> = body.iter().map(|bs| {
-                        ParsedStep::new(bs.title.clone())
-                            .with_description(bs.description.clone())
-                            .with_raw_content(bs.raw_content.clone())
-                    }).collect();
+                    let body_steps: Vec<ParsedStep> = body
+                        .iter()
+                        .map(|bs| {
+                            ParsedStep::new(bs.title.clone())
+                                .with_description(bs.description.clone())
+                                .with_raw_content(bs.raw_content.clone())
+                        })
+                        .collect();
                     step = step.with_loop_body(
-                        body_steps.iter().map(|s| s.raw_content.clone()).collect::<Vec<_>>().join("\n"),
                         body_steps
+                            .iter()
+                            .map(|s| s.raw_content.clone())
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        body_steps,
                     );
                 }
             }
             StepType::Parallel => {
                 if let Some(branches) = &llm_step.parallel_branches {
-                    let pb: Vec<ParallelBranch> = branches.iter().map(|b| {
-                        ParallelBranch {
+                    let pb: Vec<ParallelBranch> = branches
+                        .iter()
+                        .map(|b| ParallelBranch {
                             name: b.name.clone(),
                             steps: b.steps.clone(),
                             raw_content: b.raw_content.clone(),
-                        }
-                    }).collect();
+                        })
+                        .collect();
                     step = step.with_parallel(pb);
                 }
             }
             StepType::Atomic | StepType::Generic => {}
         }
 
-        step = step.with_schema(llm_step.input_schema.clone(), llm_step.output_schema.clone());
+        step = step.with_schema(
+            llm_step.input_schema.clone(),
+            llm_step.output_schema.clone(),
+        );
 
         if original.description.is_empty() && !step.description.is_empty() {
             step.description = original.description;

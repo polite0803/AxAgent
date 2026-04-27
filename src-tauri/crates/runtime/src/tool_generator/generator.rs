@@ -46,9 +46,7 @@ Generate the Prompt template:"#,
     ) -> Result<GeneratedTool, String> {
         // Validate that the response contains the {{input}} placeholder
         if !response.contains("{{input}}") {
-            return Err(
-                "Generated template does not contain {{input}} placeholder".to_string()
-            );
+            return Err("Generated template does not contain {{input}} placeholder".to_string());
         }
 
         let tool_name = format!("generated_{}", slugify(&input.name));

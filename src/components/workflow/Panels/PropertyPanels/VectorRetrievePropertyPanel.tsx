@@ -1,7 +1,8 @@
-import React from 'react';
-import { Input, Select, InputNumber, Divider } from 'antd';
-import type { WorkflowNode, VectorRetrieveNode } from '../../types';
-import { BasePropertyPanel } from './BasePropertyPanel';
+import { Divider, Input, InputNumber, Select } from "antd";
+import React, { useEffect, useMemo } from "react";
+import { useKnowledgeStore } from "@/stores";
+import type { VectorRetrieveNode, WorkflowNode } from "../../types";
+import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface VectorRetrievePropertyPanelProps {
   node: WorkflowNode;
@@ -9,27 +10,45 @@ interface VectorRetrievePropertyPanelProps {
   onDelete: () => void;
 }
 
-export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelProps> = (
+  { node, onUpdate, onDelete },
+) => {
   const vectorRetrieveNode = node as VectorRetrieveNode;
   const config = vectorRetrieveNode.config || {
-    query: '',
-    knowledge_base_id: '',
+    query: "",
+    knowledge_base_id: "",
     top_k: 5,
     similarity_threshold: 0.7,
-    output_var: '',
+    output_var: "",
   };
+
+  const { bases, loadBases } = useKnowledgeStore();
+
+  useEffect(() => {
+    if (bases.length === 0) {
+      loadBases();
+    }
+  }, [bases.length, loadBases]);
+
+  const knowledgeBaseOptions = useMemo(
+    () =>
+      bases
+        .filter((b) => b.enabled)
+        .map((b) => ({ value: b.id, label: b.name })),
+    [bases],
+  );
 
   const handleConfigChange = (key: string, value: unknown) => {
     onUpdate({ config: { ...config, [key]: value } });
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>查询</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>查询</label>
         <Input.TextArea
-          value={config.query || ''}
-          onChange={(e) => handleConfigChange('query', e.target.value)}
+          value={config.query || ""}
+          onChange={(e) => handleConfigChange("query", e.target.value)}
           rows={2}
           size="small"
           placeholder="输入检索查询..."
@@ -37,63 +56,59 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>知识库</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>知识库</label>
         <Select
           value={config.knowledge_base_id || undefined}
-          onChange={(value) => handleConfigChange('knowledge_base_id', value)}
+          onChange={(value) => handleConfigChange("knowledge_base_id", value)}
           size="small"
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
           placeholder="选择知识库..."
           showSearch
-          options={[
-            { value: 'kb-001', label: '📚 产品文档' },
-            { value: 'kb-002', label: '📚 技术文档' },
-            { value: 'kb-003', label: '📚 FAQ' },
-            { value: 'kb-004', label: '📚 用户指南' },
-          ]}
+          optionFilterProp="label"
+          options={knowledgeBaseOptions}
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>返回数量</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>返回数量</label>
           <InputNumber
             value={config.top_k ?? 5}
-            onChange={(value) => handleConfigChange('top_k', value)}
+            onChange={(value) => handleConfigChange("top_k", value)}
             min={1}
             max={100}
             size="small"
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>相似度阈值</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>相似度阈值</label>
           <InputNumber
             value={config.similarity_threshold !== undefined ? Math.round(config.similarity_threshold * 100) : 70}
-            onChange={(value) => handleConfigChange('similarity_threshold', (value != null ? value : 70) / 100)}
+            onChange={(value) => handleConfigChange("similarity_threshold", (value != null ? value : 70) / 100)}
             min={0}
             max={100}
             size="small"
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
             formatter={(value) => `${value}%`}
-            parser={(value) => Number(value?.replace('%', ''))}
+            parser={(value) => Number(value?.replace("%", ""))}
           />
         </div>
       </div>
 
       <div>
-        <label style={{ display: 'block', color: '#999', fontSize: 11, marginBottom: 4 }}>输出变量</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出变量</label>
         <Input
-          value={config.output_var || ''}
-          onChange={(e) => handleConfigChange('output_var', e.target.value)}
+          value={config.output_var || ""}
+          onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
           placeholder="retrieved_content"
         />
       </div>
 
-      <Divider style={{ margin: '8px 0', borderColor: '#333' }} />
+      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: '1px solid #333', paddingTop: 12, marginTop: 4 }}>
+      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
         <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
       </div>
     </div>

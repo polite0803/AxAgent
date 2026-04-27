@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { invoke } from '@/lib/invoke';
-import type { MemoryNamespace, MemoryItem, UpdateMemoryNamespaceInput, UpdateMemoryItemInput } from '@/types';
+import { invoke } from "@/lib/invoke";
+import type { MemoryItem, MemoryNamespace, UpdateMemoryItemInput, UpdateMemoryNamespaceInput } from "@/types";
+import { create } from "zustand";
 
 interface MemoryState {
   namespaces: MemoryNamespace[];
@@ -31,7 +31,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   loadNamespaces: async () => {
     set({ loading: true });
     try {
-      const namespaces = await invoke<MemoryNamespace[]>('list_memory_namespaces');
+      const namespaces = await invoke<MemoryNamespace[]>("list_memory_namespaces");
       set({ namespaces, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -40,7 +40,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
   createNamespace: async (name, scope, embeddingProvider) => {
     try {
-      const ns = await invoke<MemoryNamespace>('create_memory_namespace', {
+      const ns = await invoke<MemoryNamespace>("create_memory_namespace", {
         input: { name, scope, embeddingProvider },
       });
       set((s) => ({ namespaces: [...s.namespaces, ns], error: null }));
@@ -53,7 +53,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
   deleteNamespace: async (id) => {
     try {
-      await invoke('delete_memory_namespace', { id });
+      await invoke("delete_memory_namespace", { id });
       set((s) => ({ namespaces: s.namespaces.filter((n) => n.id !== id), error: null }));
     } catch (e) {
       set({ error: String(e) });
@@ -63,7 +63,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
   updateNamespace: async (id, input) => {
     try {
-      const updated = await invoke<MemoryNamespace>('update_memory_namespace', { id, input });
+      const updated = await invoke<MemoryNamespace>("update_memory_namespace", { id, input });
       set((s) => ({
         namespaces: s.namespaces.map((n) => (n.id === id ? updated : n)),
         error: null,
@@ -77,7 +77,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   loadItems: async (namespaceId) => {
     set({ loading: true });
     try {
-      const items = await invoke<MemoryItem[]>('list_memory_items', { namespaceId: namespaceId });
+      const items = await invoke<MemoryItem[]>("list_memory_items", { namespaceId: namespaceId });
       set({ items, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -86,7 +86,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
   addItem: async (namespaceId, title, content) => {
     try {
-      await invoke('add_memory_item', { input: { namespace_id: namespaceId, title, content } });
+      await invoke("add_memory_item", { input: { namespace_id: namespaceId, title, content } });
       await get().loadItems(namespaceId);
     } catch (e) {
       set({ error: String(e) });
@@ -96,7 +96,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
   deleteItem: async (namespaceId, itemId) => {
     try {
-      await invoke('delete_memory_item', { namespaceId, id: itemId });
+      await invoke("delete_memory_item", { namespaceId, id: itemId });
       await get().loadItems(namespaceId);
     } catch (e) {
       set({ error: String(e) });
@@ -106,7 +106,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
   updateItem: async (namespaceId, itemId, input) => {
     try {
-      await invoke<MemoryItem>('update_memory_item', { namespaceId, id: itemId, input });
+      await invoke<MemoryItem>("update_memory_item", { namespaceId, id: itemId, input });
       await get().loadItems(namespaceId);
     } catch (e) {
       set({ error: String(e) });
@@ -119,7 +119,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   },
 
   reorderNamespaces: async (namespaceIds) => {
-    await invoke('reorder_memory_namespaces', { namespaceIds });
+    await invoke("reorder_memory_namespaces", { namespaceIds });
     set((s) => {
       const ordered = namespaceIds
         .map((id, i) => {

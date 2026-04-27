@@ -2,8 +2,8 @@
 
 use axagent_core::repo::tool_execution;
 use axagent_runtime::{
-    PermissionPolicy, PermissionOutcome, PermissionMode,
-    ToolExecutor, ToolError as RuntimeToolError,
+    PermissionMode, PermissionOutcome, PermissionPolicy, ToolError as RuntimeToolError,
+    ToolExecutor,
 };
 use sea_orm::DatabaseConnection;
 use serde_json::Value;
@@ -134,6 +134,86 @@ pub struct McpServerConfig {
     pub execute_timeout_secs: Option<i32>,
 }
 
+/// Lightweight MCP registry for skill execution - only holds MCP config without closures.
+/// This can be stored in global statics since it contains only Send + Sync types.
+#[derive(Clone)]
+pub struct McpRegistry {
+    mcp_tools: BTreeMap<String, McpToolConfig>,
+    mcp_servers: BTreeMap<String, McpServerConfig>,
+}
+
+unsafe impl Send for McpRegistry {}
+unsafe impl Sync for McpRegistry {}
+
+impl McpRegistry {
+    pub fn new() -> Self {
+        Self {
+            mcp_tools: BTreeMap::new(),
+            mcp_servers: BTreeMap::new(),
+        }
+    }
+
+    pub fn with_tools_and_servers(
+        mcp_tools: BTreeMap<String, McpToolConfig>,
+        mcp_servers: BTreeMap<String, McpServerConfig>,
+    ) -> Self {
+        Self {
+            mcp_tools,
+            mcp_servers,
+        }
+    }
+
+    pub fn execute_mcp_tool(&self, tool_name: &str, input: &str) -> Result<String, ToolError> {
+        let mcp_config = self
+            .mcp_tools
+            .values()
+            .find(|c| c.tool_name == tool_name)
+            .ok_or_else(|| ToolError::new(format!("MCP tool '{}' not found", tool_name)))?;
+
+        let server_config = self.mcp_servers.get(&mcp_config.server_id).ok_or_else(|| {
+            ToolError::new(format!(
+                "MCP server '{}' not found for tool '{}'",
+                mcp_config.server_id, tool_name
+            ))
+        })?;
+
+        let command = server_config.command.as_deref().unwrap_or("npx");
+        let args: Vec<String> = if let Some(ref args_json) = server_config.args_json {
+            serde_json::from_str(args_json).unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let env: std::collections::HashMap<String, String> =
+            if let Some(ref env_json) = server_config.env_json {
+                serde_json::from_str(env_json).unwrap_or_default()
+            } else {
+                std::collections::HashMap::new()
+            };
+
+        let arguments: serde_json::Value = serde_json::from_str(input)
+            .map_err(|e| ToolError::new(format!("Failed to parse tool arguments: {}", e)))?;
+
+        let rt = tokio::runtime::Handle::current();
+        let result = rt
+            .block_on(axagent_core::mcp_client::call_tool_stdio_pooled(
+                command,
+                &args,
+                &env,
+                &mcp_config.tool_name,
+                arguments,
+            ))
+            .map_err(|e| ToolError::new(format!("MCP call failed: {}", e)))?;
+
+        Ok(result.content)
+    }
+}
+
+impl Default for McpRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Tool Registry
 pub struct ToolRegistry {
     handlers: BTreeMap<String, ToolHandler>,
@@ -161,16 +241,14 @@ const CACHE_MAX_ENTRIES: usize = 200; // Maximum cached entries
 fn is_read_only_tool(tool_name: &str) -> bool {
     let name_lower = tool_name.to_lowercase();
     const READ_PATTERNS: &[&str] = &[
-        "read", "list", "get", "grep", "glob", "head", "cat",
-        "stat", "ls", "dir", "type", "peek", "view", "search",
-        "find", "query", "fetch", "info", "show", "describe",
-        "inspect", "check", "test", "validate", "health",
+        "read", "list", "get", "grep", "glob", "head", "cat", "stat", "ls", "dir", "type", "peek",
+        "view", "search", "find", "query", "fetch", "info", "show", "describe", "inspect", "check",
+        "test", "validate", "health",
     ];
     const WRITE_PATTERNS: &[&str] = &[
-        "write", "edit", "create", "delete", "remove", "move",
-        "rename", "patch", "mkdir", "save", "put", "post",
-        "upload", "install", "shell", "bash", "exec", "run",
-        "command", "terminal", "spawn",
+        "write", "edit", "create", "delete", "remove", "move", "rename", "patch", "mkdir", "save",
+        "put", "post", "upload", "install", "shell", "bash", "exec", "run", "command", "terminal",
+        "spawn",
     ];
     // If it matches a write pattern, it's NOT read-only
     if WRITE_PATTERNS.iter().any(|p| name_lower.contains(p)) {
@@ -245,7 +323,11 @@ impl ToolRegistry {
     }
 
     /// Set the conversation and message context for tool execution recording.
-    pub fn with_execution_context(mut self, conversation_id: String, message_id: Option<String>) -> Self {
+    pub fn with_execution_context(
+        mut self,
+        conversation_id: String,
+        message_id: Option<String>,
+    ) -> Self {
         self.conversation_id = Some(conversation_id);
         self.message_id = message_id;
         self
@@ -293,10 +375,8 @@ impl ToolRegistry {
     pub fn with_builtin_tools(self) -> Self {
         self.register("echo", |input| Ok(input.to_string()))
             .register("add", |input| {
-                let numbers: Result<Vec<i32>, _> = input
-                    .split(',')
-                    .map(|s| s.trim().parse())
-                    .collect();
+                let numbers: Result<Vec<i32>, _> =
+                    input.split(',').map(|s| s.trim().parse()).collect();
                 match numbers {
                     Ok(nums) => Ok(nums.iter().sum::<i32>().to_string()),
                     Err(e) => Err(ToolError::new(format!("Invalid input: {}", e))),
@@ -307,6 +387,18 @@ impl ToolRegistry {
     /// Set the local tool registry (replaces the default empty one).
     pub fn with_local_tools(mut self, local_tools: LocalToolRegistry) -> Self {
         self.local_tools = local_tools;
+        self
+    }
+
+    /// Register a skill tool handler.
+    /// Skill tools are executed when the LLM calls a skill via its tool definition.
+    /// The handler receives the input string and returns a JSON string result.
+    pub fn register_skill_tool(
+        mut self,
+        tool_name: impl Into<String>,
+        handler: Box<dyn FnMut(&str) -> Result<String, ToolError> + Send>,
+    ) -> Self {
+        self.handlers.insert(tool_name.into(), handler);
         self
     }
 
@@ -354,18 +446,30 @@ impl ToolRegistry {
         }
     }
 
+    /// Extract MCP registry (tools and servers) without closures.
+    /// Used for skill execution which needs MCP config but not handlers.
+    pub fn mcp_registry(&self) -> McpRegistry {
+        McpRegistry::with_tools_and_servers(self.mcp_tools.clone(), self.mcp_servers.clone())
+    }
+
     /// Execute an MCP tool by looking up the server config and calling it.
     /// Bridges async MCP calls from sync context using the existing tokio runtime
     /// via block_in_place + Handle::current(), avoiding the "Cannot start a runtime
     /// from within a runtime" panic that occurs when creating a new runtime.
-    fn execute_mcp_tool(&self, tool_name: &str, input: &str) -> Result<String, ToolError> {
+    pub fn execute_mcp_tool(&self, tool_name: &str, input: &str) -> Result<String, ToolError> {
         // Find the MCP tool config that matches by tool_name (last segment of key)
-        let mcp_config = self.mcp_tools.values()
+        let mcp_config = self
+            .mcp_tools
+            .values()
             .find(|tc| tc.tool_name == tool_name)
             .ok_or_else(|| ToolError::new(format!("Unknown MCP tool: {}", tool_name)))?;
 
-        let server_config = self.mcp_servers.get(&mcp_config.server_id)
-            .ok_or_else(|| ToolError::new(format!("MCP server not found: {}", mcp_config.server_id)))?
+        let server_config = self
+            .mcp_servers
+            .get(&mcp_config.server_id)
+            .ok_or_else(|| {
+                ToolError::new(format!("MCP server not found: {}", mcp_config.server_id))
+            })?
             .clone();
 
         let tool_name_owned = tool_name.to_string();
@@ -382,13 +486,16 @@ impl ToolRegistry {
 
                 let result = match server_config.transport.as_str() {
                     "stdio" => {
-                        let command = server_config.command
-                            .ok_or_else(|| ToolError::new("stdio server has no command configured"))?;
-                        let args: Vec<String> = server_config.args_json
+                        let command = server_config.command.ok_or_else(|| {
+                            ToolError::new("stdio server has no command configured")
+                        })?;
+                        let args: Vec<String> = server_config
+                            .args_json
                             .as_ref()
                             .and_then(|s| serde_json::from_str(s).ok())
                             .unwrap_or_default();
-                        let env: std::collections::HashMap<String, String> = server_config.env_json
+                        let env: std::collections::HashMap<String, String> = server_config
+                            .env_json
                             .as_ref()
                             .and_then(|s| serde_json::from_str(s).ok())
                             .unwrap_or_default();
@@ -405,12 +512,15 @@ impl ToolRegistry {
                             ),
                         )
                         .await
-                        .map_err(|_| ToolError::new(format!("Tool timed out after {}s", timeout_secs)))?
+                        .map_err(|_| {
+                            ToolError::new(format!("Tool timed out after {}s", timeout_secs))
+                        })?
                         .map_err(|e| ToolError::new(e.to_string()))?
                     }
                     "http" => {
-                        let endpoint = server_config.endpoint
-                            .ok_or_else(|| ToolError::new("HTTP server has no endpoint configured"))?;
+                        let endpoint = server_config.endpoint.ok_or_else(|| {
+                            ToolError::new("HTTP server has no endpoint configured")
+                        })?;
                         tokio::time::timeout(
                             timeout_duration,
                             axagent_core::mcp_client::call_tool_http(
@@ -420,12 +530,15 @@ impl ToolRegistry {
                             ),
                         )
                         .await
-                        .map_err(|_| ToolError::new(format!("Tool timed out after {}s", timeout_secs)))?
+                        .map_err(|_| {
+                            ToolError::new(format!("Tool timed out after {}s", timeout_secs))
+                        })?
                         .map_err(|e| ToolError::new(e.to_string()))?
                     }
                     "sse" => {
-                        let endpoint = server_config.endpoint
-                            .ok_or_else(|| ToolError::new("SSE server has no endpoint configured"))?;
+                        let endpoint = server_config.endpoint.ok_or_else(|| {
+                            ToolError::new("SSE server has no endpoint configured")
+                        })?;
                         tokio::time::timeout(
                             timeout_duration,
                             axagent_core::mcp_client::call_tool_sse(
@@ -435,10 +548,14 @@ impl ToolRegistry {
                             ),
                         )
                         .await
-                        .map_err(|_| ToolError::new(format!("Tool timed out after {}s", timeout_secs)))?
+                        .map_err(|_| {
+                            ToolError::new(format!("Tool timed out after {}s", timeout_secs))
+                        })?
                         .map_err(|e| ToolError::new(e.to_string()))?
                     }
-                    other => return Err(ToolError::new(format!("Unsupported transport '{}'", other))),
+                    other => {
+                        return Err(ToolError::new(format!("Unsupported transport '{}'", other)))
+                    }
                 };
 
                 if result.is_error {
@@ -473,10 +590,13 @@ impl ToolExecutor for ToolRegistry {
             if self.result_cache.len() > CACHE_MAX_ENTRIES {
                 let now = std::time::Instant::now();
                 let ttl = std::time::Duration::from_secs(CACHE_TTL_SECS);
-                self.result_cache.retain(|_, (_, ts)| now.duration_since(*ts) < ttl);
+                self.result_cache
+                    .retain(|_, (_, ts)| now.duration_since(*ts) < ttl);
                 // If still too large, remove oldest entries
                 if self.result_cache.len() > CACHE_MAX_ENTRIES {
-                    let mut entries: Vec<_> = self.result_cache.iter()
+                    let mut entries: Vec<_> = self
+                        .result_cache
+                        .iter()
                         .map(|(k, (_, ts))| (k.clone(), *ts))
                         .collect();
                     entries.sort_by_key(|(_, ts)| *ts);
@@ -490,7 +610,11 @@ impl ToolExecutor for ToolRegistry {
             if let Some((cached_result, timestamp)) = self.result_cache.get(&cache_key) {
                 let now = std::time::Instant::now();
                 if now.duration_since(*timestamp) < std::time::Duration::from_secs(CACHE_TTL_SECS) {
-                    tracing::debug!("[tool-cache] Cache hit for '{}' (age: {:?})", tool_name, now.duration_since(*timestamp));
+                    tracing::debug!(
+                        "[tool-cache] Cache hit for '{}' (age: {:?})",
+                        tool_name,
+                        now.duration_since(*timestamp)
+                    );
                     return Ok(cached_result.clone());
                 }
                 // Expired — remove
@@ -502,7 +626,8 @@ impl ToolExecutor for ToolRegistry {
         let server_id = if self.handlers.contains_key(tool_name) {
             "builtin".to_string()
         } else if self.local_tools.contains(tool_name) {
-            self.local_tools.get_group_id(tool_name)
+            self.local_tools
+                .get_group_id(tool_name)
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| "local".to_string())
         } else if let Some(tc) = self.mcp_tools.values().find(|tc| tc.tool_name == tool_name) {
@@ -521,8 +646,8 @@ impl ToolExecutor for ToolRegistry {
             handler(input).map_err(|e| RuntimeToolError::new(e.to_string()))
         } else if self.local_tools.contains(tool_name) {
             // Local tool: execute directly without MCP
-            let arguments: Value = serde_json::from_str(input)
-                .unwrap_or(Value::Object(serde_json::Map::new()));
+            let arguments: Value =
+                serde_json::from_str(input).unwrap_or(Value::Object(serde_json::Map::new()));
             let handle = tokio::runtime::Handle::current();
             let tool_name_owned = tool_name.to_string();
             tokio::task::block_in_place(|| {
@@ -530,14 +655,16 @@ impl ToolExecutor for ToolRegistry {
             })
             .map_err(RuntimeToolError::new)
         } else {
-            let is_mcp_tool = self.mcp_tools.values()
-                .any(|tc| tc.tool_name == tool_name);
+            let is_mcp_tool = self.mcp_tools.values().any(|tc| tc.tool_name == tool_name);
 
             if is_mcp_tool {
                 self.execute_mcp_tool(tool_name, input)
                     .map_err(|e| RuntimeToolError::new(e.to_string()))
             } else {
-                Err(RuntimeToolError::new(format!("Unknown tool: {}", tool_name)))
+                Err(RuntimeToolError::new(format!(
+                    "Unknown tool: {}",
+                    tool_name
+                )))
             }
         };
 
@@ -557,8 +684,13 @@ impl ToolExecutor for ToolRegistry {
                         hasher.finish()
                     };
                     let cache_key = (tool_name.to_string(), input_hash);
-                    self.result_cache.insert(cache_key, (output.clone(), std::time::Instant::now()));
-                    tracing::debug!("[tool-cache] Cached result for '{}' ({} bytes)", tool_name, output.len());
+                    self.result_cache
+                        .insert(cache_key, (output.clone(), std::time::Instant::now()));
+                    tracing::debug!(
+                        "[tool-cache] Cached result for '{}' ({} bytes)",
+                        tool_name,
+                        output.len()
+                    );
                 }
             }
             Err(e) => {
@@ -583,15 +715,23 @@ impl ToolRegistry {
             input: input.to_string(),
         };
         let handle = tokio::runtime::Handle::current();
-        tokio::task::block_in_place(|| {
-            handle.block_on(recorder.record_start(&ctx)).ok()
-        })
+        tokio::task::block_in_place(|| handle.block_on(recorder.record_start(&ctx)).ok())
     }
 
     /// Record execution result synchronously (bridges async recorder via existing tokio runtime)
-    fn record_result_sync(&self, execution_id: &Option<String>, is_success: bool, content: &str, duration_ms: i64) {
-        let Some(recorder) = self.recorder.as_ref() else { return };
-        let Some(exec_id) = execution_id.as_deref() else { return };
+    fn record_result_sync(
+        &self,
+        execution_id: &Option<String>,
+        is_success: bool,
+        content: &str,
+        duration_ms: i64,
+    ) {
+        let Some(recorder) = self.recorder.as_ref() else {
+            return;
+        };
+        let Some(exec_id) = execution_id.as_deref() else {
+            return;
+        };
         let recorder = recorder.clone();
         let exec_id = exec_id.to_string();
         let content = content.to_string();
@@ -599,9 +739,13 @@ impl ToolRegistry {
         tokio::task::block_in_place(|| {
             handle.block_on(async {
                 if is_success {
-                    let _ = recorder.record_success(&exec_id, &content, Some(duration_ms)).await;
+                    let _ = recorder
+                        .record_success(&exec_id, &content, Some(duration_ms))
+                        .await;
                 } else {
-                    let _ = recorder.record_error(&exec_id, &content, Some(duration_ms)).await;
+                    let _ = recorder
+                        .record_error(&exec_id, &content, Some(duration_ms))
+                        .await;
                 }
             });
         });

@@ -1,10 +1,16 @@
 //! AxAgent Provider Adapter for ClawCode Runtime
 
+use axagent_core::types::{
+    ChatContent, ChatMessage, ChatRequest, ChatTool, ContentPart, ImageUrl,
+    TokenUsage as AxAgentTokenUsage, ToolCall, ToolCallFunction,
+};
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
-use axagent_runtime::{ApiClient, AssistantEvent, RuntimeError, ContentBlock, MessageRole, ApiRequest, ConversationMessage, TokenUsage as RuntimeTokenUsage};
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ChatTool, ContentPart, ImageUrl, TokenUsage as AxAgentTokenUsage, ToolCall, ToolCallFunction};
-use std::sync::Arc;
+use axagent_runtime::{
+    ApiClient, ApiRequest, AssistantEvent, ContentBlock, ConversationMessage, MessageRole,
+    RuntimeError, TokenUsage as RuntimeTokenUsage,
+};
 use futures::StreamExt;
+use std::sync::Arc;
 
 /// Callback type invoked for each streamed event during `ApiClient::stream()`.
 /// Allows the caller to emit Tauri events in real-time as chunks arrive,
@@ -59,7 +65,11 @@ impl AxAgentApiClient {
     }
 
     /// Create a new AxAgentApiClient with tool definitions.
-    pub fn with_tools(adapter: Arc<dyn ProviderAdapter>, ctx: ProviderRequestContext, tools: Vec<ChatTool>) -> Self {
+    pub fn with_tools(
+        adapter: Arc<dyn ProviderAdapter>,
+        ctx: ProviderRequestContext,
+        tools: Vec<ChatTool>,
+    ) -> Self {
         Self {
             adapter,
             ctx,
@@ -107,7 +117,10 @@ impl AxAgentApiClient {
     }
 
     /// Set use_max_completion_tokens flag.
-    pub fn with_use_max_completion_tokens(mut self, use_max_completion_tokens: Option<bool>) -> Self {
+    pub fn with_use_max_completion_tokens(
+        mut self,
+        use_max_completion_tokens: Option<bool>,
+    ) -> Self {
         self.use_max_completion_tokens = use_max_completion_tokens;
         self
     }
@@ -141,7 +154,10 @@ impl AxAgentApiClient {
     /// `ToolUse` blocks. In the OpenAI-style wire format these map to:
     /// - assistant message with `tool_calls` + optional text content
     /// - `role: "tool"` messages for each `ToolResult`
-    fn convert_messages(messages: &[ConversationMessage], image_urls: &[String]) -> Vec<ChatMessage> {
+    fn convert_messages(
+        messages: &[ConversationMessage],
+        image_urls: &[String],
+    ) -> Vec<ChatMessage> {
         let mut result = Vec::new();
 
         // Find the index of the last user message so we can attach images to it
@@ -152,7 +168,12 @@ impl AxAgentApiClient {
                 MessageRole::Tool => {
                     // Tool result messages: one ChatMessage per ToolResult block
                     for block in &message.blocks {
-                        if let ContentBlock::ToolResult { tool_use_id, output, .. } = block {
+                        if let ContentBlock::ToolResult {
+                            tool_use_id,
+                            output,
+                            ..
+                        } = block
+                        {
                             result.push(ChatMessage {
                                 role: "tool".to_string(),
                                 content: ChatContent::Text(output.clone()),
@@ -163,7 +184,9 @@ impl AxAgentApiClient {
                     }
                 }
                 MessageRole::Assistant => {
-                    let text_parts: String = message.blocks.iter()
+                    let text_parts: String = message
+                        .blocks
+                        .iter()
                         .filter_map(|block| {
                             if let ContentBlock::Text { text } = block {
                                 Some(text.as_str())
@@ -174,7 +197,9 @@ impl AxAgentApiClient {
                         .collect::<Vec<_>>()
                         .join("");
 
-                    let tool_calls: Vec<ToolCall> = message.blocks.iter()
+                    let tool_calls: Vec<ToolCall> = message
+                        .blocks
+                        .iter()
                         .filter_map(|block| {
                             if let ContentBlock::ToolUse { id, name, input } = block {
                                 Some(ToolCall {
@@ -199,13 +224,19 @@ impl AxAgentApiClient {
                         } else {
                             ChatContent::Text(text_parts)
                         },
-                        tool_calls: if tool_calls.is_empty() { None } else { Some(tool_calls) },
+                        tool_calls: if tool_calls.is_empty() {
+                            None
+                        } else {
+                            Some(tool_calls)
+                        },
                         tool_call_id: None,
                     });
                 }
                 _ => {
                     // User / System messages: simple text conversion
-                    let content = message.blocks.iter()
+                    let content = message
+                        .blocks
+                        .iter()
                         .filter_map(|block| {
                             if let ContentBlock::Text { text } = block {
                                 Some(text.clone())
@@ -319,16 +350,22 @@ impl ApiClient for AxAgentApiClient {
                             if let Some(ref text) = chunk.content {
                                 if !text.is_empty() {
                                     let event = AssistantEvent::TextDelta(text.clone());
-                                    if let Some(ref cb) = on_event { cb(&event); }
+                                    if let Some(ref cb) = on_event {
+                                        cb(&event);
+                                    }
                                     events.push(event);
                                 }
                             }
 
                             if let Some(ref thinking) = chunk.thinking {
                                 if !thinking.is_empty() {
-                                    // Emit thinking as a separate event for real-time display
-                                    let event = AssistantEvent::TextDelta(thinking.clone());
-                                    if let Some(ref cb) = on_event { cb(&event); }
+                                    // Emit thinking as a distinct ThinkingDelta event so the
+                                    // caller (agent.rs on_event callback) can route it to
+                                    // "agent-stream-thinking" separately from text content.
+                                    let event = AssistantEvent::ThinkingDelta(thinking.clone());
+                                    if let Some(ref cb) = on_event {
+                                        cb(&event);
+                                    }
                                     events.push(event);
                                 }
                             }
@@ -337,12 +374,10 @@ impl ApiClient for AxAgentApiClient {
                                 for tool_call in tool_calls {
                                     let tool_use = Self::convert_tool_call(tool_call);
                                     if let ContentBlock::ToolUse { id, name, input } = tool_use {
-                                        let event = AssistantEvent::ToolUse {
-                                            id,
-                                            name,
-                                            input,
-                                        };
-                                        if let Some(ref cb) = on_event { cb(&event); }
+                                        let event = AssistantEvent::ToolUse { id, name, input };
+                                        if let Some(ref cb) = on_event {
+                                            cb(&event);
+                                        }
                                         events.push(event);
                                     }
                                 }
@@ -351,13 +386,17 @@ impl ApiClient for AxAgentApiClient {
                             if let Some(ref usage) = chunk.usage {
                                 let runtime_usage = Self::convert_usage(usage);
                                 let event = AssistantEvent::Usage(runtime_usage);
-                                if let Some(ref cb) = on_event { cb(&event); }
+                                if let Some(ref cb) = on_event {
+                                    cb(&event);
+                                }
                                 events.push(event);
                             }
 
                             if chunk.done {
                                 let event = AssistantEvent::MessageStop;
-                                if let Some(ref cb) = on_event { cb(&event); }
+                                if let Some(ref cb) = on_event {
+                                    cb(&event);
+                                }
                                 events.push(event);
                                 break;
                             }
