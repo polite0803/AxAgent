@@ -137,7 +137,7 @@ impl ScreenCapture {
         let windows = Window::all()?;
         let window = windows
             .iter()
-            .find(|w| w.title().contains(window_title))
+            .find(|w| w.title().map(|t| t.contains(window_title)).unwrap_or(false))
             .ok_or_else(|| anyhow::anyhow!("Window '{}' not found", window_title))?;
 
         let image = window.capture_image()?;
