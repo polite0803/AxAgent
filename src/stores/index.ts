@@ -19,6 +19,7 @@ export { useCategoryStore } from "./feature/categoryStore";
 export { useFileStore } from "./feature/fileStore";
 export { useGatewayLinkStore } from "./feature/gatewayLinkStore";
 export { useGatewayStore } from "./feature/gatewayStore";
+export { usePlatformStore } from "./feature/platformStore";
 export { useGeneratedToolStore } from "./feature/generatedToolStore";
 export { useKnowledgeStore } from "./feature/knowledgeStore";
 export { useLocalToolStore } from "./feature/localToolStore";

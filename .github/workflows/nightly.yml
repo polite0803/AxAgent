@@ -71,7 +71,8 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            libpipewire-0.3-dev
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -217,7 +218,8 @@ jobs:
             libayatana-appindicator3-dev:arm64 \
             librsvg2-dev:arm64 \
             libssl-dev:arm64 \
-            patchelf:arm64
+            patchelf:arm64 \
+            libpipewire-0.3-dev:arm64
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v3

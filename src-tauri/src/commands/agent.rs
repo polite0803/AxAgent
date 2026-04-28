@@ -2261,7 +2261,11 @@ fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
             }
         }
         if line_trimmed.starts_with("arguments:") || line_trimmed.starts_with("args:") {
-            let json_str = line_trimmed.split_once(':').map(|x| x.1).unwrap_or("{}").trim();
+            let json_str = line_trimmed
+                .split_once(':')
+                .map(|x| x.1)
+                .unwrap_or("{}")
+                .trim();
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
                 arguments = parsed;
             }

@@ -7,6 +7,10 @@
 //! - Connection state management
 //! - Heartbeat and keepalive
 
+pub mod platform_config;
+pub mod platforms;
+pub mod session_router;
+
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};

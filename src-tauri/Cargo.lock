@@ -719,6 +719,7 @@ dependencies = [
 name = "axagent-runtime"
 version = "1.2.5"
 dependencies = [
+ "anyhow",
  "async-trait",
  "axagent-core",
  "axagent-plugins",
@@ -736,6 +737,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "tokio-tungstenite 0.26.2",

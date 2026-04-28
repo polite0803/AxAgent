@@ -22,8 +22,11 @@ declare module "@xterm/addon-fit" {
 }
 
 declare module "@xterm/addon-web-links" {
+  import type { Terminal } from "@xterm/xterm";
   export class WebLinksAddon {
     constructor();
+    activate(terminal: Terminal): void;
+    dispose(): void;
   }
 }
 

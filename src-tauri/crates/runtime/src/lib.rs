@@ -10,6 +10,7 @@
 
 pub mod adversarial_debate;
 pub mod benchmarks;
+pub mod cache_guard;
 pub mod collaboration;
 pub mod agent_orchestrator;
 pub mod agent_roles;
@@ -42,6 +43,7 @@ mod oauth;
 pub mod permission_enforcer;
 mod permissions;
 pub mod plugin_lifecycle;
+pub mod prompt_cache;
 pub mod pty;
 mod policy_engine;
 mod prompt;
@@ -74,6 +76,7 @@ pub mod worker_boot;
 pub use bash::{execute_bash, BashCommandInput, BashCommandOutput};
 pub use bootstrap::{BootstrapPhase, BootstrapPlan};
 pub use branch_lock::{detect_branch_lock_collisions, BranchLockCollision, BranchLockIntent};
+pub use cache_guard::CacheGuard;
 pub use compact::{
     compact_session, estimate_session_tokens, format_compact_summary,
     get_compact_continuation_message, should_compact, CompactionConfig, CompactionResult,
@@ -145,6 +148,7 @@ pub use plugin_lifecycle::{
     DegradedMode, DiscoveryResult, PluginHealthcheck, PluginLifecycle, PluginLifecycleEvent,
     PluginState, ResourceInfo, ServerHealth, ServerStatus, ToolInfo,
 };
+pub use prompt_cache::{PendingChange, PromptCache, PromptCacheState};
 pub use policy_engine::{
     evaluate, DiffScope, GreenLevel, LaneBlocker, LaneContext, PolicyAction, PolicyCondition,
     PolicyEngine, PolicyRule, ReconcileReason, ReviewStatus,

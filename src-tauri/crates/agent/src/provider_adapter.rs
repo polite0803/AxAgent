@@ -43,6 +43,15 @@ pub struct AxAgentApiClient {
     /// The runtime's `ContentBlock` enum only supports text, so we inject images at the
     /// wire-format conversion layer in `convert_messages`.
     image_urls: Vec<String>,
+    /// When true, the provider respects prompt cache breakpoints and sends
+    /// cache-aware annotations (e.g., `cache_control: { "type": "ephemeral" }`) with
+    /// the system message to instruct the provider to cache the prefix and avoid
+    /// re-processing it on subsequent turns.
+    pub enable_cache_breakpoints: bool,
+    /// The hash of the system prompt that is being cached. When this changes,
+    /// the cache is invalidated and the next request will not include breakpoint
+    /// annotations until a new baseline is established.
+    pub system_prompt_cache_hash: Option<String>,
 }
 
 impl AxAgentApiClient {
@@ -61,6 +70,8 @@ impl AxAgentApiClient {
             thinking_param_style: None,
             on_event: None,
             image_urls: Vec::new(),
+            enable_cache_breakpoints: false,
+            system_prompt_cache_hash: None,
         }
     }
 
@@ -83,6 +94,8 @@ impl AxAgentApiClient {
             thinking_param_style: None,
             on_event: None,
             image_urls: Vec::new(),
+            enable_cache_breakpoints: false,
+            system_prompt_cache_hash: None,
         }
     }
 

@@ -1,5 +1,6 @@
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use async_trait::async_trait;
+use axagent_runtime::{prompt_cache::PromptCache, CacheGuard};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use thiserror::Error;
@@ -114,11 +115,14 @@ pub struct AgentCoordinator<T: AgentImpl> {
     implementation: Arc<tokio::sync::Mutex<T>>,
     event_bus: Arc<AgentEventBus>,
     correlation_counter: std::sync::atomic::AtomicU64,
+    pub prompt_cache: Arc<PromptCache>,
+    pub cache_guard: Arc<CacheGuard>,
 }
 
 impl<T: AgentImpl> AgentCoordinator<T> {
     pub fn new(implementation: Arc<tokio::sync::Mutex<T>>, event_bus: Option<Arc<AgentEventBus>>) -> Self {
         let event_bus = event_bus.unwrap_or_else(|| Arc::new(AgentEventBus::new("typed_coordinator")));
+        let prompt_cache = Arc::new(PromptCache::new());
 
         Self {
             status: Arc::new(RwLock::new(AgentStatus::Idle)),
@@ -126,6 +130,8 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             implementation,
             event_bus,
             correlation_counter: std::sync::atomic::AtomicU64::new(0),
+            prompt_cache: prompt_cache.clone(),
+            cache_guard: Arc::new(CacheGuard::new(prompt_cache)),
         }
     }
 
@@ -177,8 +183,11 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         *status = AgentStatus::Running;
         drop(status);
 
+        let cache_was_valid = self.prompt_cache.is_cache_valid().await;
         self.emit_event(AgentEventType::TurnStarted, serde_json::json!({
-            "input_preview": input.content.chars().take(100).collect::<String>()
+            "input_preview": input.content.chars().take(100).collect::<String>(),
+            "cache_valid": cache_was_valid,
+            "has_pending_changes": self.prompt_cache.has_pending_changes().await,
         })).await;
 
         let correlation_id = self.next_correlation_id();
@@ -194,19 +203,31 @@ impl<T: AgentImpl> AgentCoordinator<T> {
                 self.emit_event(AgentEventType::TurnCompleted, serde_json::json!({
                     "correlation_id": correlation_id,
                     "iterations": output.iterations,
-                    "status": output.status.to_string()
+                    "status": output.status.to_string(),
+                    "cache_was_valid": cache_was_valid,
                 })).await;
             }
             Err(e) => {
                 *status = AgentStatus::Failed(e.to_string());
                 self.emit_event(AgentEventType::Error, serde_json::json!({
                     "correlation_id": correlation_id,
-                    "error": e.to_string()
+                    "error": e.to_string(),
+                    "cache_was_valid": cache_was_valid,
                 })).await;
             }
         }
 
         result
+    }
+
+    pub async fn force_now(&self) {
+        self.cache_guard.set_force_immediate(true).await;
+        self.prompt_cache.invalidate("--now flag: immediate invalidation").await;
+    }
+
+    pub async fn prepare_for_new_session(&self) {
+        self.prompt_cache.invalidate_for_new_session().await;
+        self.cache_guard.set_force_immediate(false).await;
     }
 
     pub async fn pause(&self) -> Result<(), AgentError> {
