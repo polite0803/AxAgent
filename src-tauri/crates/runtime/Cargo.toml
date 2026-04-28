@@ -27,6 +27,7 @@ sea-orm = { workspace = true }
 axagent-core = { path = "../core" }
 axagent-trajectory = { path = "../trajectory" }
 itertools = "0.14"
+portable-pty = "0.8"
 
 [lints]
 # workspace = true

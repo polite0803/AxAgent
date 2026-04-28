@@ -158,7 +158,7 @@ impl From<TrajectoryPredictionResult> for PredictionResult {
             predictions: result
                 .predictions
                 .iter()
-                .map(|p| ContextPrediction::from(p))
+                .map(ContextPrediction::from)
                 .collect(),
         }
     }

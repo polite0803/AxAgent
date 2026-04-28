@@ -4,10 +4,14 @@ export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
 
 export { useCompressStore } from "./domain/compressStore";
+export { useConversationListStore } from "./domain/conversationListStore";
 export { useConversationStore } from "./domain/conversationStore";
+export { useMessageListStore } from "./domain/messageListStore";
 export { useMessageStore } from "./domain/messageStore";
+export { useMultiModelStore } from "./domain/multiModelStore";
 export { usePreferenceStore } from "./domain/preferenceStore";
 export { useStreamStore } from "./domain/streamStore";
+export { useWorkspaceStore } from "./domain/workspaceStore";
 
 export { setupAgentEventListeners, useAgentStore } from "./feature/agentStore";
 export { useBackupStore } from "./feature/backupStore";
@@ -37,3 +41,4 @@ export { useFineTuneStore } from "./devtools/fineTuneStore";
 export { useRLStore } from "./devtools/rlStore";
 export { useRecommendationStore } from "./devtools/recommendationStore";
 export { useScreenVisionStore } from "./feature/screenVisionStore";
+export { useTerminalStore } from "./feature/terminalStore";

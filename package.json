@@ -1,7 +1,7 @@
 {
   "name": "axagent",
   "private": true,
-  "version": "1.2.3",
+  "version": "1.2.5",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -59,6 +59,9 @@
     "react-i18next": "^17.0.3",
     "react-router-dom": "^7.14.2",
     "reactflow": "^11.11.4",
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
     "stream-markdown": "^0.0.15",
     "stream-markdown-parser": "^0.0.88",
     "stream-monaco": "^0.0.38",

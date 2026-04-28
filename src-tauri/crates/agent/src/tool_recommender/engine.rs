@@ -248,17 +248,14 @@ impl ToolRecommender {
         let mut score: f32 = 0.8;
 
         for constraint in &context.constraints {
-            match constraint.constraint_type.as_str() {
-                "speed" => {
-                    if constraint.value == "fast" && tool.id.0 == "browser" {
-                        score -= 0.3;
-                    }
+            if constraint.constraint_type.as_str() == "speed" {
+                if constraint.value == "fast" && tool.id.0 == "browser" {
+                    score -= 0.3;
                 }
-                _ => {}
             }
         }
 
-        score.max(0.0_f32).min(1.0_f32)
+        score.clamp(0.0_f32, 1.0_f32)
     }
 
     fn rank_tools(&self, mut scored: Vec<ToolScore>) -> Vec<ToolScore> {

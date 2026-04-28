@@ -146,7 +146,7 @@ impl MetricsCalculator {
     ) -> ComparisonResult {
         let score_delta = current.avg_score - baseline.avg_score;
         let pass_rate_delta = current.pass_rate - baseline.pass_rate;
-        let duration_delta = current.avg_duration_ms as f32 - baseline.avg_duration_ms as f32;
+        let duration_delta = current.avg_duration_ms - baseline.avg_duration_ms;
 
         ComparisonResult {
             score_delta,
@@ -188,9 +188,11 @@ pub fn levenshtein_distance(s1: &str, s2: &str) -> usize {
 
     let mut matrix = vec![vec![0usize; len2 + 1]; len1 + 1];
 
+    #[allow(clippy::needless_range_loop)]
     for i in 0..=len1 {
         matrix[i][0] = i;
     }
+    #[allow(clippy::needless_range_loop)]
     for j in 0..=len2 {
         matrix[0][j] = j;
     }

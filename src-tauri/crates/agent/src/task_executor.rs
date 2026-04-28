@@ -214,7 +214,7 @@ impl TaskExecutor {
         for (batch_idx, batch) in execution_order.iter().enumerate() {
             tracing::info!("Executing batch {} with {} tasks", batch_idx, batch.len());
 
-            let results = self.execute_batch(&batch, &graph).await?;
+            let results = self.execute_batch(batch, &graph).await?;
 
             for (task_id, result) in results {
                 self.update_task_state(&mut graph, &task_id, result);

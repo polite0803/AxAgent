@@ -1,3 +1,4 @@
+pub mod bridge;
 pub mod cache_layer;
 pub mod dispatcher;
 pub mod engine;
@@ -6,6 +7,7 @@ pub mod executors;
 pub mod node_executor;
 pub mod node_executor_trait;
 
+pub use bridge::{BridgeExecutionResult, WorkflowBridge};
 pub use cache_layer::{CacheError, CacheLayer, InMemoryCache};
 pub use dispatcher::NodeDispatcher;
 pub use engine::WorkEngine;

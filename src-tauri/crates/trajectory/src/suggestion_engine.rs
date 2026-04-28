@@ -344,8 +344,7 @@ impl SuggestionEngine {
         let is_peak_hour = context.time_of_day >= profile.work_habits.peak_hours_start
             && context.time_of_day <= profile.work_habits.peak_hours_end;
 
-        if is_peak_hour && profile.coding_style.test_creation {
-            if context.recent_actions.is_empty() {
+        if is_peak_hour && profile.coding_style.test_creation && context.recent_actions.is_empty() {
                 suggestions.push(ProactiveSuggestion::new(
                     SuggestionType::Test,
                     "Peak productivity time - Add tests".to_string(),
@@ -356,7 +355,6 @@ impl SuggestionEngine {
                     Priority::Medium,
                     self.config.suggestion_ttl_minutes,
                 ));
-            }
         }
 
         if profile.coding_style.documentation_level == DocumentationLevel::Comprehensive {

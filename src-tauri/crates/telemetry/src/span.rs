@@ -14,18 +14,13 @@ pub enum SpanType {
     Reasoning,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum SpanStatus {
+    #[default]
     Ok,
     Error,
     Cancelled,
-}
-
-impl Default for SpanStatus {
-    fn default() -> Self {
-        Self::Ok
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

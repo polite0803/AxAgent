@@ -210,5 +210,5 @@ async fn marketplace_id_for_review(
 
     review
         .map(|r| r.marketplace_id)
-        .ok_or_else(|| (StatusCode::NOT_FOUND, "Review not found"))
+        .ok_or((StatusCode::NOT_FOUND, "Review not found"))
 }

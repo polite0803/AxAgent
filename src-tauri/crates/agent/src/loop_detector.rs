@@ -148,12 +148,12 @@ impl LoopDetector {
             stats.error_count += 1;
         }
 
-        let inputs = self.input_hashes.entry(tool_name.to_string()).or_insert_with(std::collections::HashSet::new);
+        let inputs = self.input_hashes.entry(tool_name.to_string()).or_default();
         if inputs.insert(input_hash) {
             stats.unique_inputs = inputs.len();
         }
 
-        let outputs = self.output_hashes.entry(tool_name.to_string()).or_insert_with(std::collections::HashSet::new);
+        let outputs = self.output_hashes.entry(tool_name.to_string()).or_default();
         if outputs.insert(output_hash) {
             stats.unique_outputs = outputs.len();
         }

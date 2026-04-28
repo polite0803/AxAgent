@@ -95,25 +95,13 @@ impl TrainingProgress {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrainingMetrics {
     pub train_loss: Vec<f32>,
     pub val_loss: Vec<f32>,
     pub learning_rates: Vec<f32>,
     pub final_loss: Option<f32>,
     pub best_loss: Option<f32>,
-}
-
-impl Default for TrainingMetrics {
-    fn default() -> Self {
-        Self {
-            train_loss: Vec::new(),
-            val_loss: Vec::new(),
-            learning_rates: Vec::new(),
-            final_loss: None,
-            best_loss: None,
-        }
-    }
 }
 
 impl TrainingJob {

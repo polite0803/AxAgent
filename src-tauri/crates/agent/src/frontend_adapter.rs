@@ -24,16 +24,11 @@ impl From<UnifiedAgentEvent> for FrontendEventPayload {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum FrontendEventFilter {
+    #[default]
     All,
     Specific(Vec<AgentEventType>),
-}
-
-impl Default for FrontendEventFilter {
-    fn default() -> Self {
-        Self::All
-    }
 }
 
 pub struct FrontendEventAdapter {

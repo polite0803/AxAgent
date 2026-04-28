@@ -130,7 +130,7 @@ impl ReActConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ReasoningContext {
     pub original_input: String,
     pub current_goal: Option<String>,
@@ -139,20 +139,6 @@ pub struct ReasoningContext {
     pub resources: Vec<String>,
     pub iteration: usize,
     pub depth: usize,
-}
-
-impl Default for ReasoningContext {
-    fn default() -> Self {
-        Self {
-            original_input: String::new(),
-            current_goal: None,
-            sub_goals: Vec::new(),
-            constraints: Vec::new(),
-            resources: Vec::new(),
-            iteration: 0,
-            depth: 0,
-        }
-    }
 }
 
 impl ReasoningContext {

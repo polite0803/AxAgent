@@ -217,7 +217,7 @@ mod tests {
     #[tokio::test]
     async fn test_event_bus_basic() {
         let bus = AgentEventBus::new("test");
-        let receiver = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);
+        let mut receiver = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);
 
         let event = UnifiedAgentEvent::new(
             "test_source",
@@ -236,7 +236,7 @@ mod tests {
     async fn test_event_bus_multiple_subscribers() {
         let bus = AgentEventBus::new("test");
         let _receiver1 = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);
-        let receiver2 = bus.subscribe("sub2", vec![AgentEventType::TurnStarted, AgentEventType::Error]);
+        let _receiver2 = bus.subscribe("sub2", vec![AgentEventType::TurnStarted, AgentEventType::Error]);
 
         let event = UnifiedAgentEvent::new("source", AgentEventType::TurnStarted, serde_json::json!({}));
         bus.emit(event).unwrap();

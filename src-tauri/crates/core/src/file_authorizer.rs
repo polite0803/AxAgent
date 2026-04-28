@@ -172,14 +172,14 @@ impl FileAuthorizer {
     }
 
     fn has_required_level(&self, granted: &PermissionLevel, required: &PermissionLevel) -> bool {
-        match (granted, required) {
-            (PermissionLevel::ReadWrite, _) => true,
-            (PermissionLevel::Write, PermissionLevel::Write) => true,
-            (PermissionLevel::Write, PermissionLevel::Read) => true,
-            (PermissionLevel::Read, PermissionLevel::Read) => true,
-            (PermissionLevel::Temp, PermissionLevel::Read) => true,
-            _ => false,
-        }
+        matches!(
+            (granted, required),
+            (PermissionLevel::ReadWrite, _)
+                | (PermissionLevel::Write, PermissionLevel::Write)
+                | (PermissionLevel::Write, PermissionLevel::Read)
+                | (PermissionLevel::Read, PermissionLevel::Read)
+                | (PermissionLevel::Temp, PermissionLevel::Read)
+        )
     }
 
     fn is_path_safe(&self, path: &Path) -> bool {

@@ -321,7 +321,7 @@ impl HealthChecker {
     }
 
     pub async fn get_status(&self) -> HealthStatus {
-        self.status.read().await.clone()
+        *self.status.read().await
     }
 
     pub async fn get_check_count(&self) -> u64 {

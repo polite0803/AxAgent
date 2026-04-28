@@ -101,6 +101,7 @@ impl AgentRole {
             AgentRole::Developer => vec![
                 "write_file",
                 "edit_file",
+                "search_replace",
                 "read_file",
                 "list_directory",
                 "search_files",
@@ -118,6 +119,12 @@ impl AgentRole {
                 "upload_storage_file",
                 "download_storage_file",
                 "delete_storage_file",
+                "git_status",
+                "git_diff",
+                "git_commit",
+                "git_log",
+                "git_branch",
+                "git_review",
             ],
             AgentRole::Reviewer => vec![
                 "read_file",
@@ -129,6 +136,10 @@ impl AgentRole {
                 "get_file_info",
                 "get_system_info",
                 "list_processes",
+                "git_status",
+                "git_diff",
+                "git_log",
+                "git_review",
             ],
             AgentRole::Browser => vec!["fetch_url", "fetch_markdown", "web_search"],
             AgentRole::Synthesizer => vec![

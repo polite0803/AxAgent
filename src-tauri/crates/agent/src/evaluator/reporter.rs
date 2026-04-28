@@ -202,7 +202,7 @@ impl ReportGenerator {
         ));
 
         md.push_str("## 总体概览\n\n");
-        md.push_str(&format!("| 指标 | 值 |\n|:---|---|\n",));
+        md.push_str("| 指标 | 值 |\n|:---|---|\n");
         md.push_str(&format!("| 总任务数 | {} |\n", report.summary.total_tasks));
         md.push_str(&format!("| 通过数 | {} |\n", report.summary.passed_tasks));
         md.push_str(&format!("| 失败数 | {} |\n", report.summary.failed_tasks));
@@ -246,7 +246,7 @@ impl ReportGenerator {
                     if criteria.passed { "✅" } else { "❌" }
                 ));
             }
-            md.push_str("\n");
+            md.push('\n');
         }
 
         if !report.category_scores.is_empty() {
@@ -255,7 +255,7 @@ impl ReportGenerator {
             for (category, score) in &report.category_scores {
                 md.push_str(&format!("| {} | {} |\n", category, format_score(*score)));
             }
-            md.push_str("\n");
+            md.push('\n');
         }
 
         if !report.recommendations.is_empty() {

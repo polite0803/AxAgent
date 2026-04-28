@@ -578,6 +578,7 @@ impl ToolRegistry {
         self
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn register_skill_tool(
         mut self,
         tool_name: impl Into<String>,

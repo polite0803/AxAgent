@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UnifiedConfig {
     pub agent: AgentSettings,
     pub database: DatabaseSettings,
@@ -105,18 +105,6 @@ impl Default for LoggingSettings {
             level: "info".to_string(),
             enable_sql_logging: false,
             enable_performance_metrics: true,
-        }
-    }
-}
-
-impl Default for UnifiedConfig {
-    fn default() -> Self {
-        Self {
-            agent: AgentSettings::default(),
-            database: DatabaseSettings::default(),
-            cache: CacheSettings::default(),
-            security: SecuritySettings::default(),
-            logging: LoggingSettings::default(),
         }
     }
 }

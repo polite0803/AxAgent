@@ -158,9 +158,7 @@ impl TrajectoryRecorder {
     fn determine_outcome(&self, state: &TrajectoryRecorderState) -> TrajectoryOutcome {
         let has_errors = state.tool_results.iter().any(|r| r.is_error);
 
-        if has_errors {
-            TrajectoryOutcome::Failure
-        } else if state.steps.is_empty() {
+        if has_errors || state.steps.is_empty() {
             TrajectoryOutcome::Failure
         } else {
             TrajectoryOutcome::Success

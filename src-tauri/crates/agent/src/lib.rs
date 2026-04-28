@@ -21,7 +21,11 @@ pub mod fact_checker;
 pub mod fine_tune;
 pub mod frontend_adapter;
 pub mod health_checker;
+pub mod hierarchical_planner;
+pub mod checkpoint;
 pub mod insight_generator;
+pub mod project_memory;
+pub mod vision_pipeline;
 pub mod local_tool_registry;
 pub mod loop_detector;
 pub mod metrics;
@@ -69,7 +73,14 @@ pub use citation_tracker::{
 };
 pub use coordinator::{
     AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput,
-    UnifiedAgentCoordinator, TypedAgentCoordinator,
+    AgentCoordinator,
+};
+pub use checkpoint::{
+    Checkpoint, CheckpointBuilder, CheckpointManager,
+};
+pub use hierarchical_planner::{
+    HierarchicalPlanner, Plan, Phase, PlannedTask, PlanBuilder, TaskBuilder,
+    PlanStatus, PhaseStatus, TaskStatus, PlanProgress,
 };
 pub use content_synthesizer::{ContentFormatter, ContentSynthesizer};
 pub use credibility_evaluator::{
@@ -81,7 +92,7 @@ pub use error_recovery_engine::{
     ErrorRecoveryEngine, RecoveryConfig, RecoveryContext, RecoveryEvent,
 };
 pub use event_bus::{
-    AgentEventBus, AgentEventBusBuilder, AgentEventType, EventSubscription, UnifiedAgentEvent,
+    AgentEventBus, AgentEventBusBuilder, AgentEventType, AgentPermissionPayload, EventSubscription, UnifiedAgentEvent,
 };
 pub use evaluator::{
     Benchmark, BenchmarkCategory, BenchmarkMetadata, BenchmarkReport, BenchmarkResult,
@@ -89,14 +100,13 @@ pub use evaluator::{
     EvaluationMetric, EvaluationRunner, MetricsCalculator, ReportGenerator as BenchmarkReportGen,
     RunnerConfig, TaskInput, TaskOutput, TaskResult,
 };
-pub use event_emitter::AgentPermissionPayload;
-pub use fact_checker::{
-    Claim, ClaimExtractor, EvidenceType, FactCheckResult, FactCheckStatus, FactChecker,
-    SourceEvidence,
-};
 pub use frontend_adapter::{
     FrontendEventAdapter, FrontendEventFilter, FrontendEventPayload, FrontendEventType,
     TauriEventAdapter, TauriEventEnvelope,
+};
+pub use fact_checker::{
+    Claim, ClaimExtractor, EvidenceType, FactCheckResult, FactCheckStatus, FactChecker,
+    SourceEvidence,
 };
 pub use health_checker::{
     HealthCheckResult, HealthCheckRunner, HealthChecker, HealthMetric, HealthStatus, HealthThresholds,
@@ -144,7 +154,7 @@ pub use source_validator::{
     DomainInfo, IssueCode, IssueSeverity, SourceFilter, SourceValidationResult, ValidationIssue,
     ValidatorConfig,
 };
-pub use task::{TaskGraph, TaskNode, TaskStatus, TaskType};
+pub use task::{TaskGraph, TaskNode, TaskType};
 pub use task_decomposer::{DecompositionError, DecompositionResult, LlmClient, TaskDecomposer};
 pub use task_executor::{ExecutionError, ExecutionEvent, ExecutionProgress, TaskExecutor};
 pub use thought_chain::{

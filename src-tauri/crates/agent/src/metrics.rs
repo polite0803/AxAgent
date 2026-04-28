@@ -178,7 +178,7 @@ impl MetricsCollector {
         let min = sorted.first().copied().unwrap_or(0.0);
         let max = sorted.last().copied().unwrap_or(0.0);
 
-        let median = if sorted.len() % 2 == 0 {
+        let median = if sorted.len().is_multiple_of(2) {
             (sorted[sorted.len() / 2 - 1] + sorted[sorted.len() / 2]) / 2.0
         } else {
             sorted[sorted.len() / 2]
@@ -252,7 +252,7 @@ impl MetricsCollector {
         let min = sorted.first().copied().unwrap_or(0.0);
         let max = sorted.last().copied().unwrap_or(0.0);
 
-        let median = if sorted.len() % 2 == 0 {
+        let median = if sorted.len().is_multiple_of(2) {
             (sorted[sorted.len() / 2 - 1] + sorted[sorted.len() / 2]) / 2.0
         } else {
             sorted[sorted.len() / 2]

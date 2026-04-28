@@ -1,6 +1,6 @@
 //! Session Manager for AxAgent Agent
 
-use crate::event_emitter::AgentPermissionPayload;
+use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::tool_registry::ToolRegistry;
 use axagent_core::repo::agent_session;

@@ -177,9 +177,9 @@ impl SearchOrchestrator {
         source_type: SourceType,
         providers: &HashMap<SourceType, Arc<dyn SearchProvider>>,
     ) -> Result<Vec<SearchResult>, OrchestratorError> {
-        let provider = providers.get(&source_type).ok_or_else(|| {
+        let provider = providers.get(&source_type).ok_or(
             OrchestratorError::NoProviderForSource(source_type)
-        })?;
+        )?;
 
         provider
             .search(query)

@@ -747,7 +747,7 @@ pub async fn agent_query(
                 tool_name.clone(),
                 Box::new(move |input: &str| {
                     execute_skill_sync(&skill_id, &skill_name, &skill_content, input, &ctx)
-                        .map_err(|e| axagent_agent::ToolError::new(e).into())
+                        .map_err(axagent_agent::ToolError::new)
                 }),
             );
         }
@@ -1931,11 +1931,11 @@ impl SkillOutputTracker {
 static SKILL_OUTPUT_TRACKER: std::sync::OnceLock<SkillOutputTracker> = std::sync::OnceLock::new();
 
 fn get_skill_output_tracker() -> &'static SkillOutputTracker {
-    SKILL_OUTPUT_TRACKER.get_or_init(|| SkillOutputTracker::new())
+    SKILL_OUTPUT_TRACKER.get_or_init(SkillOutputTracker::new)
 }
 
 fn get_skill_mcp_registry() -> &'static axagent_agent::McpRegistry {
-    SKILL_MCP_REGISTRY.get_or_init(|| axagent_agent::McpRegistry::new())
+    SKILL_MCP_REGISTRY.get_or_init(axagent_agent::McpRegistry::new)
 }
 
 fn detect_inter_skill_dependencies(
@@ -2017,7 +2017,7 @@ fn create_llm_step_executor(
                     for (dep_id, result) in &deps_results {
                         user_message.push_str(&format!("- [{}]: {}\n", dep_id, result));
                     }
-                    user_message.push_str("\n");
+                    user_message.push('\n');
                 }
                 if let Some(context) = &step.context {
                     user_message.push_str(&format!("Additional context: {}\n", context));
@@ -2261,7 +2261,7 @@ fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
             }
         }
         if line_trimmed.starts_with("arguments:") || line_trimmed.starts_with("args:") {
-            let json_str = line_trimmed.splitn(2, ':').nth(1).unwrap_or("{}").trim();
+            let json_str = line_trimmed.split_once(':').map(|x| x.1).unwrap_or("{}").trim();
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
                 arguments = parsed;
             }
@@ -2578,7 +2578,7 @@ async fn execute_skill_async(
                     }
                 } else {
                     let workflow_steps = skill_steps_to_workflow_steps(skill_steps.clone());
-                    let (nodes, edges) = skill_steps_to_nodes_edges(&skill_steps);
+                    let (nodes, edges) = skill_steps_to_nodes_edges(skill_steps);
 
                     let _ = app_handle.emit(
                         "skill-workflow-parse",

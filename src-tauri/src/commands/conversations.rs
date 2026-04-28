@@ -3540,7 +3540,7 @@ mod tests {
         ));
         fs::create_dir_all(&temp_dir).unwrap();
 
-        let result = (|| {
+        let result = {
             let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
             let saved = file_store
                 .save_file(b"abc", "image.png", "image/png")
@@ -3576,7 +3576,7 @@ mod tests {
             };
 
             build_message_content(&file_store, &message).unwrap()
-        })();
+        };
 
         fs::remove_dir_all(&temp_dir).unwrap();
 
@@ -3601,7 +3601,7 @@ mod tests {
         ));
         fs::create_dir_all(&temp_dir).unwrap();
 
-        let result = (|| {
+        let result = {
             let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
             let message = Message {
                 id: "msg-1".into(),
@@ -3634,7 +3634,7 @@ mod tests {
             };
 
             build_message_content(&file_store, &message).unwrap()
-        })();
+        };
 
         fs::remove_dir_all(&temp_dir).unwrap();
 

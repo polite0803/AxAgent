@@ -115,7 +115,7 @@ impl MarketplaceService {
         req: UpdateReviewRequest,
     ) -> Result<ReviewResponse, String> {
         if let Some(rating) = req.rating {
-            if rating < 1 || rating > 5 {
+            if !(1..=5).contains(&rating) {
                 return Err("Rating must be between 1 and 5".to_string());
             }
         }

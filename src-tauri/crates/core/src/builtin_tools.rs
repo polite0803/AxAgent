@@ -1424,6 +1424,114 @@ Rules:
             })
         }),
     );
+
+    register_builtin_handler(
+        "@axagent/code-edit",
+        "search_replace",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let old_str = args
+                    .get("old_str")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let new_str = args
+                    .get("new_str")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let start_line = args
+                    .get("start_line")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                let end_line = args
+                    .get("end_line")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                let replace_all = args
+                    .get("replace_all")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+
+                search_replace_file(path, old_str, new_str, start_line, end_line, replace_all).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/git",
+        "git_status",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let repo_path = args.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+                git_status_tool(repo_path).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/git",
+        "git_diff",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let repo_path = args.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let base_branch = args.get("base_branch").and_then(|v| v.as_str()).map(|s| s.to_string());
+                git_diff_tool(repo_path, base_branch.as_deref()).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/git",
+        "git_commit",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let repo_path = args.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let message = args.get("message").and_then(|v| v.as_str()).unwrap_or_default();
+                let stage_all = args.get("stage_all").and_then(|v| v.as_bool()).unwrap_or(true);
+                git_commit_tool(repo_path, message, stage_all).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/git",
+        "git_log",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let repo_path = args.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let max_count = args.get("max_count").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+                git_log_tool(repo_path, max_count).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/git",
+        "git_branch",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let repo_path = args.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("list").to_string();
+                let name = args.get("name").and_then(|v| v.as_str()).map(|s| s.to_string());
+                git_branch_tool(repo_path, &action, name.as_deref()).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/git",
+        "git_review",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let repo_path = args.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let base_branch = args.get("base_branch").and_then(|v| v.as_str()).map(|s| s.to_string());
+                git_review_tool(repo_path, base_branch.as_deref()).await
+            })
+        }),
+    );
 }
 
 pub async fn dispatch(server_name: &str, tool_name: &str, args: Value) -> Result<McpToolResult> {
@@ -2723,6 +2831,114 @@ async fn edit_file(path: &str, old_str: &str, new_str: &str) -> Result<McpToolRe
     })
 }
 
+async fn search_replace_file(
+    path: &str,
+    old_str: &str,
+    new_str: &str,
+    start_line: Option<usize>,
+    end_line: Option<usize>,
+    replace_all: bool,
+) -> Result<McpToolResult> {
+    if path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: path parameter is required".into(),
+            is_error: true,
+        });
+    }
+    if old_str.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: old_str parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    let resolved_path = match validate_and_resolve_path(path, "workspace") {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let path_str = resolved_path.to_string_lossy();
+    let full_content = tokio::fs::read_to_string(&*path_str)
+        .await
+        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+
+    let lines: Vec<&str> = full_content.lines().collect();
+
+    let search_start = start_line
+        .map(|s| s.saturating_sub(1))
+        .unwrap_or(0);
+    let search_end = end_line
+        .map(|e| e.min(lines.len()))
+        .unwrap_or(lines.len());
+
+    if search_start >= lines.len() {
+        return Ok(McpToolResult {
+            content: format!(
+                "Error: start_line {} exceeds file length {}",
+                start_line.unwrap_or(0),
+                lines.len()
+            ),
+            is_error: true,
+        });
+    }
+
+    let search_region: String = lines[search_start..search_end].join("\n");
+
+    let (replacement_count, new_region) = if replace_all {
+        let count = search_region.matches(old_str).count();
+        if count == 0 {
+            return Ok(McpToolResult {
+                content: format!("String '{}' not found in file '{}' within lines {}-{}", old_str, path, search_start + 1, search_end),
+                is_error: true,
+            });
+        }
+        (count, search_region.replace(old_str, new_str))
+    } else {
+        if let Some(pos) = search_region.find(old_str) {
+            let mut result = String::with_capacity(search_region.len() - old_str.len() + new_str.len());
+            result.push_str(&search_region[..pos]);
+            result.push_str(new_str);
+            result.push_str(&search_region[pos + old_str.len()..]);
+            (1, result)
+        } else {
+            return Ok(McpToolResult {
+                content: format!("String '{}' not found in file '{}' within lines {}-{}", old_str, path, search_start + 1, search_end),
+                is_error: true,
+            });
+        }
+    };
+
+    let before = lines[..search_start].join("\n");
+    let after = if search_end < lines.len() {
+        format!("\n{}", lines[search_end..].join("\n"))
+    } else {
+        String::new()
+    };
+
+    let new_content = if search_start > 0 {
+        format!("{}\n{}{}", before, new_region, after)
+    } else {
+        format!("{}{}", new_region, after)
+    };
+
+    tokio::fs::write(&*path_str, new_content.as_bytes())
+        .await
+        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+
+    Ok(McpToolResult {
+        content: format!(
+            "File '{}' edited successfully: {} replacement(s) made",
+            path, replacement_count
+        ),
+        is_error: false,
+    })
+}
+
 async fn delete_file(path: &str) -> Result<McpToolResult> {
     if path.is_empty() {
         return Ok(McpToolResult {
@@ -3668,5 +3884,215 @@ async fn add_knowledge_document_tool(
                 is_error: true,
             })
         }
+    }
+}
+
+async fn git_status_tool(repo_path: &str) -> Result<McpToolResult> {
+    if repo_path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: repo_path parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    match crate::git_tools::GitTools::get_status(repo_path) {
+        Ok(entries) => {
+            let output: Vec<serde_json::Value> = entries
+                .iter()
+                .map(|e| {
+                    serde_json::json!({
+                        "path": e.path,
+                        "status": e.status,
+                        "staged": e.staged,
+                    })
+                })
+                .collect();
+            Ok(McpToolResult {
+                content: serde_json::to_string(&output).unwrap_or_default(),
+                is_error: false,
+            })
+        }
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error: {}", e),
+            is_error: true,
+        }),
+    }
+}
+
+async fn git_diff_tool(repo_path: &str, base_branch: Option<&str>) -> Result<McpToolResult> {
+    if repo_path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: repo_path parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    let result = match base_branch {
+        Some(branch) => {
+            crate::git_tools::GitTools::get_branch_diff(repo_path, branch)
+        }
+        None => crate::git_tools::GitTools::get_staged_diff(repo_path),
+    };
+
+    match result {
+        Ok(diff) => Ok(McpToolResult {
+            content: serde_json::to_string(&diff).unwrap_or_default(),
+            is_error: false,
+        }),
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error: {}", e),
+            is_error: true,
+        }),
+    }
+}
+
+async fn git_commit_tool(
+    repo_path: &str,
+    message: &str,
+    stage_all: bool,
+) -> Result<McpToolResult> {
+    if repo_path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: repo_path parameter is required".into(),
+            is_error: true,
+        });
+    }
+    if message.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: message parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    if stage_all {
+        if let Err(e) = crate::git_tools::GitTools::stage_all(repo_path) {
+            return Ok(McpToolResult {
+                content: format!("Error staging files: {}", e),
+                is_error: true,
+            });
+        }
+    }
+
+    match crate::git_tools::GitTools::commit(repo_path, message) {
+        Ok(output) => Ok(McpToolResult {
+            content: output,
+            is_error: false,
+        }),
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error: {}", e),
+            is_error: true,
+        }),
+    }
+}
+
+async fn git_log_tool(repo_path: &str, max_count: usize) -> Result<McpToolResult> {
+    if repo_path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: repo_path parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    match crate::git_tools::GitTools::get_log(repo_path, max_count) {
+        Ok(entries) => Ok(McpToolResult {
+            content: serde_json::to_string(&entries).unwrap_or_default(),
+            is_error: false,
+        }),
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error: {}", e),
+            is_error: true,
+        }),
+    }
+}
+
+async fn git_branch_tool(
+    repo_path: &str,
+    action: &str,
+    name: Option<&str>,
+) -> Result<McpToolResult> {
+    if repo_path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: repo_path parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    match action {
+        "list" => match crate::git_tools::GitTools::list_branches(repo_path) {
+            Ok(branches) => Ok(McpToolResult {
+                content: serde_json::to_string(&branches).unwrap_or_default(),
+                is_error: false,
+            }),
+            Err(e) => Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            }),
+        },
+        "create" => match name {
+            Some(n) => match crate::git_tools::GitTools::create_branch(repo_path, n) {
+                Ok(output) => Ok(McpToolResult {
+                    content: format!("Created and switched to branch '{}': {}", n, output),
+                    is_error: false,
+                }),
+                Err(e) => Ok(McpToolResult {
+                    content: format!("Error: {}", e),
+                    is_error: true,
+                }),
+            },
+            None => Ok(McpToolResult {
+                content: "Error: name parameter is required for create action".into(),
+                is_error: true,
+            }),
+        },
+        "switch" => match name {
+            Some(n) => match crate::git_tools::GitTools::switch_branch(repo_path, n) {
+                Ok(output) => Ok(McpToolResult {
+                    content: format!("Switched to branch '{}': {}", n, output),
+                    is_error: false,
+                }),
+                Err(e) => Ok(McpToolResult {
+                    content: format!("Error: {}", e),
+                    is_error: true,
+                }),
+            },
+            None => Ok(McpToolResult {
+                content: "Error: name parameter is required for switch action".into(),
+                is_error: true,
+            }),
+        },
+        _ => Ok(McpToolResult {
+            content: format!("Error: unknown action '{}'. Use 'list', 'create', or 'switch'.", action),
+            is_error: true,
+        }),
+    }
+}
+
+async fn git_review_tool(
+    repo_path: &str,
+    base_branch: Option<&str>,
+) -> Result<McpToolResult> {
+    if repo_path.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: repo_path parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    let context = match base_branch {
+        Some(branch) => {
+            crate::git_tools::GitTools::generate_pr_context(repo_path, branch)
+        }
+        None => crate::git_tools::GitTools::generate_commit_context(repo_path),
+    };
+
+    match context {
+        Ok(ctx) => Ok(McpToolResult {
+            content: ctx,
+            is_error: false,
+        }),
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error: {}", e),
+            is_error: true,
+        }),
     }
 }

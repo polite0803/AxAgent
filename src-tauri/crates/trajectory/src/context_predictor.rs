@@ -174,7 +174,7 @@ impl ContextPredictor {
                     predicted_intent: intent,
                     confidence,
                     reasoning,
-                    suggested_actions: self.generate_suggested_actions(&features, confidence),
+                    suggested_actions: self.generate_suggested_actions(features, confidence),
                     context_window: self.build_context_window(features),
                     created_at: chrono::Utc::now(),
                 };

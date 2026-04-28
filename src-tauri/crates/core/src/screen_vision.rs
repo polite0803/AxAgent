@@ -50,6 +50,7 @@ pub enum ActionType {
 }
 
 impl ActionType {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "click" => ActionType::Click,
@@ -74,17 +75,12 @@ pub struct ScreenVisionAnalyzer {
     provider: VisionProvider,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum VisionProvider {
+    #[default]
     Anthropic,
     OpenAI,
     Gemini,
-}
-
-impl Default for VisionProvider {
-    fn default() -> Self {
-        VisionProvider::Anthropic
-    }
 }
 
 impl ScreenVisionAnalyzer {
@@ -325,8 +321,8 @@ Return the analysis in this JSON format:
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .filter_map(|e| {
-                        Some(UIElementInfo {
+                    .map(|e| {
+                        UIElementInfo {
                             element_type: e["element_type"]
                                 .as_str()
                                 .unwrap_or("unknown")
@@ -342,7 +338,7 @@ Return the analysis in this JSON format:
                             clickable: e["clickable"].as_bool().unwrap_or(false),
                             editable: e["editable"].as_bool().unwrap_or(false),
                             confidence: e["confidence"].as_f64().unwrap_or(0.5) as f32,
-                        })
+                        }
                     })
                     .collect()
             })
@@ -352,15 +348,15 @@ Return the analysis in this JSON format:
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .filter_map(|a| {
-                        Some(SuggestedAction {
+                    .map(|a| {
+                        SuggestedAction {
                             action_type: ActionType::from_str(
                                 a["action_type"].as_str().unwrap_or("none"),
                             ),
                             target_element: a["target_element"].as_str().unwrap_or("").to_string(),
                             description: a["description"].as_str().unwrap_or("").to_string(),
                             reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
-                        })
+                        }
                     })
                     .collect()
             })
@@ -431,15 +427,15 @@ Return the analysis in this JSON format:
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .filter_map(|a| {
-                        Some(SuggestedAction {
+                    .map(|a| {
+                        SuggestedAction {
                             action_type: ActionType::from_str(
                                 a["action_type"].as_str().unwrap_or("none"),
                             ),
                             target_element: a["target_element"].as_str().unwrap_or("").to_string(),
                             description: a["description"].as_str().unwrap_or("").to_string(),
                             reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
-                        })
+                        }
                     })
                     .collect()
             })

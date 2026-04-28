@@ -17,6 +17,7 @@ pub mod entity;
 pub mod error;
 pub mod file_authorizer;
 pub mod file_store;
+pub mod git_tools;
 pub mod hybrid_search;
 pub mod marketplace;
 pub mod marketplace_service;

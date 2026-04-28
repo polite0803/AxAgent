@@ -155,8 +155,7 @@ impl Tracer {
             let spans = self.spans.read().unwrap();
             let current = spans
                 .iter()
-                .filter(|s| s.parent_span_id.as_deref() == Some(span_id))
-                .last()
+                .rfind(|s| s.parent_span_id.as_deref() == Some(span_id))
                 .map(|s| s.id.clone());
             drop(spans);
             self.current_span = current;

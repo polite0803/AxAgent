@@ -305,9 +305,9 @@ fn extract_text_from_pptx_xml(xml: &str) -> String {
 
         if !current_shape_text.trim().is_empty() {
             if !result.is_empty() && !result.ends_with('\n') {
-                result.push_str(" ");
+                result.push(' ');
             }
-            result.push_str(&current_shape_text.trim());
+            result.push_str(current_shape_text.trim());
         }
     }
 

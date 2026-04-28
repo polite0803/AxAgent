@@ -20,14 +20,13 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     };
 
     let mut opt = ConnectOptions::new(&url);
-    opt.max_connections(20)
-        .min_connections(5)
-        .acquire_timeout(std::time::Duration::from_secs(30))
+    opt.max_connections(8)
+        .min_connections(2)
+        .acquire_timeout(std::time::Duration::from_secs(15))
         .sqlx_logging(false);
 
     let conn = Database::connect(opt).await?;
 
-    // Enable WAL journal mode and foreign keys via PRAGMA
     conn.execute(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA journal_mode=WAL;",
@@ -36,6 +35,26 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     conn.execute(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA foreign_keys=ON;",
+    ))
+    .await?;
+    conn.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        "PRAGMA busy_timeout=5000;",
+    ))
+    .await?;
+    conn.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        "PRAGMA synchronous=NORMAL;",
+    ))
+    .await?;
+    conn.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        "PRAGMA cache_size=-64000;",
+    ))
+    .await?;
+    conn.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        "PRAGMA temp_store=MEMORY;",
     ))
     .await?;
 

@@ -17,6 +17,7 @@ mod adaptation;
 mod atomic_skill;
 mod auto_memory;
 mod batch;
+mod behavior_learner;
 mod behavior_tracker;
 #[allow(dead_code)]
 mod chat_memory;
@@ -60,6 +61,7 @@ pub use adaptation::*;
 pub use atomic_skill::*;
 pub use auto_memory::*;
 pub use batch::*;
+pub use behavior_learner::*;
 pub use behavior_tracker::*;
 pub use compactor::{
     verify_compression_integrity, IntegrityCheck, IntegrityCheckResult, MessageRecord,

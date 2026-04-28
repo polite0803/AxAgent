@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 
+#[allow(clippy::type_complexity)]
 pub struct InMemoryCache {
     store: Arc<RwLock<HashMap<String, (Vec<u8>, Instant)>>>,
     default_ttl: Duration,

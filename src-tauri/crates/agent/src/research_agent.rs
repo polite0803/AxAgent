@@ -545,8 +545,8 @@ impl ResearchAgent {
         if current_phase != new_phase {
             {
                 let mut state = self.state.write().await;
-                state.current_phase = new_phase.clone();
-                state.progress = progress.with_phase(new_phase.clone());
+                state.current_phase = new_phase;
+                state.progress = progress.with_phase(new_phase);
             }
 
             self.emit(ResearchEvent::PhaseChanged {
@@ -566,6 +566,12 @@ impl Default for ResearchAgent {
 pub struct DefaultLlmContentGenerator {
     llm_adapter: Option<Arc<dyn axagent_providers::ProviderAdapter>>,
     ctx: Option<axagent_providers::ProviderRequestContext>,
+}
+
+impl Default for DefaultLlmContentGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DefaultLlmContentGenerator {

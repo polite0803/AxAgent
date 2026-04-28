@@ -310,7 +310,7 @@ pub async fn archive_to_knowledge_base(
     doc_am.insert(db).await?;
 
     // 5. Mark conversation as archived
-    let new_archived = if conv.is_archived != 0 { 1 } else { 1 }; // ensure archived
+    let new_archived = 1; // ensure archived
     let mut am: conversations::ActiveModel = conv.into();
     am.is_archived = Set(new_archived);
     am.updated_at = Set(now);

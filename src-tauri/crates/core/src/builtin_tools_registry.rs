@@ -1002,6 +1002,199 @@ pub fn get_dynamic_builtin_tools() -> std::collections::BTreeMap<String, Builtin
         },
     );
 
+    tools.insert(
+        "search_replace".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-code-edit".to_string(),
+            server_name: "@axagent/code-edit".to_string(),
+            tool_name: "search_replace".to_string(),
+            description: "Perform precise search-and-replace edits on text files. Finds the first occurrence of old_str in the specified file and replaces it with new_str. Supports optional line range constraints for disambiguation. Use this for targeted code modifications instead of rewriting entire files.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Absolute path to the file to edit"
+                    },
+                    "old_str": {
+                        "type": "string",
+                        "description": "The exact text to search for. Must match exactly including whitespace and indentation."
+                    },
+                    "new_str": {
+                        "type": "string",
+                        "description": "The text to replace old_str with"
+                    },
+                    "start_line": {
+                        "type": "integer",
+                        "description": "Optional starting line number to constrain the search range (1-based)"
+                    },
+                    "end_line": {
+                        "type": "integer",
+                        "description": "Optional ending line number to constrain the search range (1-based, inclusive)"
+                    },
+                    "replace_all": {
+                        "type": "boolean",
+                        "description": "If true, replace all occurrences instead of just the first one",
+                        "default": false
+                    }
+                },
+                "required": ["path", "old_str", "new_str"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "git_status".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-git".to_string(),
+            server_name: "@axagent/git".to_string(),
+            tool_name: "git_status".to_string(),
+            description: "Get the current git status of a repository. Shows staged, unstaged, and untracked files.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Absolute path to the git repository"
+                    }
+                },
+                "required": ["repo_path"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "git_diff".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-git".to_string(),
+            server_name: "@axagent/git".to_string(),
+            tool_name: "git_diff".to_string(),
+            description: "Get a summary of staged or branch changes. Returns files changed, insertions, deletions, and hunk details.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Absolute path to the git repository"
+                    },
+                    "base_branch": {
+                        "type": "string",
+                        "description": "If provided, show diff between this branch and HEAD. Otherwise shows staged diff."
+                    }
+                },
+                "required": ["repo_path"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "git_commit".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-git".to_string(),
+            server_name: "@axagent/git".to_string(),
+            tool_name: "git_commit".to_string(),
+            description: "Stage all changes and commit them with the given message. Use this after reviewing changes to create a commit.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Absolute path to the git repository"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Commit message"
+                    },
+                    "stage_all": {
+                        "type": "boolean",
+                        "description": "If true, stage all changes before committing (git add -A). Default: true",
+                        "default": true
+                    }
+                },
+                "required": ["repo_path", "message"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "git_log".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-git".to_string(),
+            server_name: "@axagent/git".to_string(),
+            tool_name: "git_log".to_string(),
+            description: "Get recent git commit history. Returns commit hash, author, date, and subject.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Absolute path to the git repository"
+                    },
+                    "max_count": {
+                        "type": "integer",
+                        "description": "Maximum number of commits to return",
+                        "default": 10
+                    }
+                },
+                "required": ["repo_path"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "git_branch".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-git".to_string(),
+            server_name: "@axagent/git".to_string(),
+            tool_name: "git_branch".to_string(),
+            description: "List all branches in the repository, or create a new branch. Shows current branch, remote tracking, and last commit info.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Absolute path to the git repository"
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["list", "create", "switch"],
+                        "description": "Action to perform: list branches, create a new branch, or switch to an existing branch",
+                        "default": "list"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Branch name (required for create and switch actions)"
+                    }
+                },
+                "required": ["repo_path"]
+            }),
+        },
+    );
+
+    tools.insert(
+        "git_review".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-git".to_string(),
+            server_name: "@axagent/git".to_string(),
+            tool_name: "git_review".to_string(),
+            description: "Generate a context summary of staged changes for code review. Returns diff summary, file list, and change statistics to help the LLM provide review feedback.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Absolute path to the git repository"
+                    },
+                    "base_branch": {
+                        "type": "string",
+                        "description": "If provided, review changes between this branch and HEAD (for PR review). Otherwise reviews staged changes."
+                    }
+                },
+                "required": ["repo_path"]
+            }),
+        },
+    );
+
     tools
 }
 

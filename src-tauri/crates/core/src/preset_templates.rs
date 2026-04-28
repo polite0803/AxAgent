@@ -567,18 +567,21 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
         .flat_map(|g| g.iter().map(|s| s.id))
         .collect();
 
+    let mut node_index = 0;
     for (i, step) in steps.iter().enumerate() {
         if parallel_group_ids.contains(&step.id) {
             continue;
         }
 
-        let y = start_y + (i as f64 * 200.0);
+        let y = start_y + (node_index as f64 * 200.0);
         nodes.push(step_to_agent_node(step, i));
+        #[allow(clippy::collapsible_match)]
         if let Some(node) = nodes.last_mut() {
             if let WorkflowNode::Agent(agent) = node {
                 agent.base.position.y = y;
             }
         }
+        node_index += 1;
     }
 
     for (group_idx, group) in parallel_groups.iter().enumerate() {
