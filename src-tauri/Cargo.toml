@@ -3,7 +3,7 @@ members = [".", "crates/core", "crates/providers", "crates/gateway", "crates/mig
 resolver = "2"
 
 [workspace.package]
-version = "1.2.6"
+version = "1.2.7"
 edition = "2021"
 license = "AGPL-3.0-only"
 

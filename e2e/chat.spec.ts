@@ -15,11 +15,9 @@ test.describe("Chat Flow", () => {
   });
 
   test("should create a new conversation and send a message", async ({ page }) => {
-    // Click new conversation button
+    // Click new conversation button — always visible in the sidebar
     const newConvBtn = page.locator('[data-testid="new-conversation-btn"]');
-    if (await newConvBtn.isVisible()) {
-      await newConvBtn.click();
-    }
+    await newConvBtn.click();
 
     // Type a message
     const input = page.locator('[data-testid="message-input"]');
@@ -37,7 +35,7 @@ test.describe("Chat Flow", () => {
   });
 
   test("should navigate to settings page", async ({ page }) => {
-    // Click settings icon in sidebar
+    // Click settings toggle button in TitleBar
     const settingsBtn = page.locator('[data-testid="settings-nav-btn"]');
     await settingsBtn.click();
 
@@ -59,19 +57,11 @@ test.describe("Settings", () => {
   });
 
   test("should save theme preference", async ({ page }) => {
-    // Navigate to appearance settings
-    const appearanceBtn = page.locator("text=Appearance");
-    if (await appearanceBtn.isVisible()) {
-      await appearanceBtn.click();
-    }
+    // Navigate to display settings via the sidebar
+    const displayNav = page.locator('.ant-menu-item').filter({ hasText: /显示|display|appearance|theme/i }).first();
+    await displayNav.click();
 
-    // Toggle dark mode
-    const darkModeToggle = page.locator('[data-testid="dark-mode-toggle"]');
-    if (await darkModeToggle.isVisible()) {
-      await darkModeToggle.click();
-
-      // Wait for save
-      await page.waitForTimeout(1000);
-    }
+    // The dark mode segmented control should now be visible
+    await expect(page.locator('[data-testid="dark-mode-toggle"]')).toBeVisible({ timeout: 5000 });
   });
 });

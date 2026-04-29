@@ -1750,6 +1750,59 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return templates as T;
     }
 
+    // ── Gateway Links ─────────────────────────────────────────────────
+    case "list_gateway_links":
+      return getStore("gateway_links", []) as T;
+
+    // ── Workflow Templates ────────────────────────────────────────────
+    case "get_workflow_template": {
+      const id = (args as any)?.id as string;
+      const templates = getStore<any[]>("workflow_templates", []);
+      return (templates.find((t: any) => t.id === id) || null) as T;
+    }
+    case "create_workflow_template": {
+      const input = (args as any)?.input;
+      const newId = genId();
+      const now = nowTs();
+      const template = {
+        id: newId,
+        name: input?.name || "Unnamed Workflow",
+        description: input?.description || "",
+        icon: "Bot",
+        tags: input?.tags || [],
+        version: 1,
+        is_preset: false,
+        is_editable: true,
+        is_public: false,
+        trigger_config: { type: "manual", config: {} },
+        nodes: input?.nodes || [],
+        edges: input?.edges || [],
+        created_at: now,
+        updated_at: now,
+      };
+      const templates = getStore<any[]>("workflow_templates", []);
+      templates.push(template);
+      setStore("workflow_templates", templates);
+      return newId as T;
+    }
+    case "update_workflow_template": {
+      const updateId = (args as any)?.id as string;
+      const updateInput = (args as any)?.input;
+      const templates = getStore<any[]>("workflow_templates", []);
+      const idx = templates.findIndex((t: any) => t.id === updateId);
+      if (idx >= 0) {
+        templates[idx] = { ...templates[idx], ...updateInput, updated_at: nowTs() };
+        setStore("workflow_templates", templates);
+      }
+      return true as T;
+    }
+    case "delete_workflow_template": {
+      const deleteId = (args as any)?.id as string;
+      const templates = getStore<any[]>("workflow_templates", []);
+      setStore("workflow_templates", templates.filter((t: any) => t.id !== deleteId));
+      return undefined as T;
+    }
+
     default:
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       return undefined as T;

@@ -132,7 +132,7 @@ export function GatewayDiagnostics() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }} data-testid="gateway-diagnostics">
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
         <Popconfirm
           title={t("gateway.clearLogsConfirm")}

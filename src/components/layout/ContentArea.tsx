@@ -12,6 +12,7 @@ const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ defa
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
 const LazyWorkflowMarketplace = lazy(() => import("@/pages/WorkflowMarketplace").then((m) => ({ default: m.WorkflowMarketplace })));
+const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
 const LazyPromptTemplatesPage = lazy(() => import("@/pages/PromptTemplatesPage").then((m) => ({ default: m.PromptTemplatesPage })));
 const LazyTraceExplorer = lazy(() => import("@/pages/DevTools/TraceExplorer").then((m) => ({ default: m.TraceExplorer })));
 const LazyBenchmarkRunner = lazy(() => import("@/pages/DevTools/BenchmarkRunner").then((m) => ({ default: m.BenchmarkRunner })));
@@ -49,6 +50,7 @@ export function ContentArea() {
       <Route path="/settings/*" element={<SafeLazyPage Page={LazySettingsPage} />} />
       <Route path="/skills" element={<SafeLazyPage Page={LazySkillsPage} />} />
       <Route path="/marketplace" element={<SafeLazyPage Page={LazyWorkflowMarketplace} />} />
+      <Route path="/workflow" element={<SafeLazyPage Page={LazyWorkflowPage} />} />
       <Route path="/wiki" element={<SafeLazyPage Page={LazyWikiPage} />} />
       <Route path="/quickbar" element={<SafeLazyPage Page={LazyQuickBarPage} />} />
       <Route path="/prompts" element={<SafeLazyPage Page={LazyPromptTemplatesPage} />} />

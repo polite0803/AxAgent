@@ -123,6 +123,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           <Tooltip title={t("workflow.aiAssistant")}>
             <Button
               type="text"
+              data-testid="workflow-ai-panel-btn"
               icon={<Sparkles size={18} />}
               onClick={onToggleAIPanel}
               style={{ color: aiPanelVisible ? "#1890ff" : "#999" }}
@@ -145,6 +146,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           <Tooltip title={t("workflow.importExport")}>
             <Button
               type="text"
+              data-testid="workflow-import-export-btn"
               icon={<Download size={18} />}
               onClick={onOpenImportExport}
               style={{ color: "#999" }}

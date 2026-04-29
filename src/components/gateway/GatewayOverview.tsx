@@ -186,7 +186,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Server Status */}
-      <Card size="small">
+      <Card size="small" data-testid="gateway-status">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Router size={24} />
@@ -265,7 +265,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
       </Card>
 
       {/* Quick Metrics */}
-      <Row gutter={16}>
+      <Row gutter={16} data-testid="gateway-metrics">
         <Col span={6}>
           <Card size="small">
             <div style={metricCardContentStyle}>
