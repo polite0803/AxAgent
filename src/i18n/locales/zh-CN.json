@@ -1797,6 +1797,16 @@
     "searchConversations": "搜索对话",
     "goToSkills": "前往技能"
   },
+  "quickbar": {
+    "placeholder": "输入问题、粘贴链接、或输入 > 启动任务...",
+    "urlPlaceholder": "粘贴链接以获取内容...",
+    "agentPlaceholder": "描述 Agent 任务...",
+    "qaPlaceholder": "输入问题...",
+    "screenshot": "截图",
+    "saveToWiki": "保存到 Wiki",
+    "clear": "清除",
+    "fetching": "获取中..."
+  },
   "appLaunch": {
     "title": "启动配置",
     "searchPolicy": "搜索策略",

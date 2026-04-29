@@ -7,7 +7,7 @@ const QUICKBAR_HEIGHT: f64 = 400.0;
 fn quickbar_url(app: &AppHandle) -> WebviewUrl {
     match app.config().build.dev_url.as_ref() {
         Some(dev_url) => {
-            let base = dev_url.trim_end_matches('/');
+            let base = dev_url.as_str().trim_end_matches('/');
             WebviewUrl::External(
                 format!("{}/index.html?__route=quickbar", base)
                     .parse()

@@ -1,6 +1,5 @@
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
-import { useSettingsStore, useConversationStore } from "@/stores";
-import type { Conversation, Message } from "@/types";
+import { useSettingsStore } from "@/stores";
 import { Input, theme, Typography, Tooltip } from "antd";
 import {
   Camera,
@@ -9,11 +8,9 @@ import {
   Send,
   X,
   ArrowRight,
-  FileText,
   BookOpen,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 
 const QUICKBAR_CONV_KEY = "axagent_quickbar_conv_id";
 
@@ -22,7 +19,6 @@ function isUrl(text: string): boolean {
 }
 
 export function QuickBarPage() {
-  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,8 +31,8 @@ export function QuickBarPage() {
   const unlistenRef = useRef<UnlistenFn[]>([]);
 
   const settings = useSettingsStore((s) => s.settings);
-  const activeProviderId = settings.active_provider_id;
-  const activeModelId = settings.active_model_id;
+  const activeProviderId = settings.default_provider_id;
+  const activeModelId = settings.default_model_id;
 
   // Auto-detect mode from input
   useEffect(() => {
@@ -58,7 +54,7 @@ export function QuickBarPage() {
   const ensureConversation = useCallback(async (): Promise<string> => {
     if (convId) return convId;
 
-    const conversation = await invoke<Conversation>("create_conversation", {
+    const conversation = await invoke<{ id: string }>("create_conversation", {
       title: "QuickBar",
     });
     setConvId(conversation.id);

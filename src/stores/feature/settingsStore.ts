@@ -55,6 +55,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   shortcut_clear_conversation_messages: DEFAULT_SHORTCUT_BINDINGS.clearConversationMessages,
   shortcut_toggle_gateway: DEFAULT_SHORTCUT_BINDINGS.toggleGateway,
   shortcut_toggle_mode: DEFAULT_SHORTCUT_BINDINGS.toggleMode,
+  shortcut_show_quick_bar: DEFAULT_SHORTCUT_BINDINGS.showQuickBar,
   gateway_auto_start: false,
   gateway_listen_address: "127.1.0.0",
   gateway_port: 8080,
