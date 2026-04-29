@@ -67,7 +67,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useDeferredValue } from "react";
 
 import NodeRenderer, {
   type InfographicBlockActionContext,
@@ -2901,13 +2901,22 @@ function ChatViewInner() {
     return next;
   }, [activeMessages]);
 
+  // Defer rendering of chat bubbles during rapid streaming updates.
+  // React will keep showing the previous stable bubbleItems while the new
+  // ones are being computed, keeping the UI responsive (no jank during
+  // 50ms streaming flushes). The scroll position still uses the non-deferred
+  // messages.length so auto-scroll remains instantaneous.
+  const deferredActiveMessages = useDeferredValue(activeMessages);
+  const deferredThinkingIds = useDeferredValue(thinkingActiveMessageIds);
+  const deferredSearchContent = useDeferredValue(userSearchContentById);
+
   const bubbleItemCacheRef = useRef<Map<string, { signature: string; item: BubbleItemType }>>(new Map());
   const bubbleItems: BubbleItemType[] = useMemo(() => {
     const cache = bubbleItemCacheRef.current;
     const nextCache = new Map<string, { signature: string; item: BubbleItemType }>();
     const nextItems: BubbleItemType[] = [];
 
-    for (const msg of activeMessages) {
+    for (const msg of deferredActiveMessages) {
       // Skip tool result messages (displayed inline via :::mcp containers)
       if (msg.role === "tool") { continue; }
 
@@ -2956,11 +2965,11 @@ function ChatViewInner() {
       }
 
       let aiContent = msg.role === "assistant"
-        ? buildAssistantDisplayContent(msg, activeMessages)
+        ? buildAssistantDisplayContent(msg, deferredActiveMessages)
         : msg.content;
       if (shouldHideAssistantBubble(msg, aiContent)) { continue; }
       // Close unclosed think block during streaming
-      if (msg.role === "assistant" && thinkingActiveMessageIds.has(msg.id) && aiContent.includes("<think")) {
+      if (msg.role === "assistant" && deferredThinkingIds.has(msg.id) && aiContent.includes("<think")) {
         const lastOpen = aiContent.lastIndexOf("<think");
         const lastClose = aiContent.lastIndexOf("</think>");
         if (lastClose < lastOpen) {
@@ -2969,7 +2978,7 @@ function ChatViewInner() {
       }
       if (msg.role === "assistant" && !aiContent.includes('data-axagent="1"')) {
         const parentSearch = msg.parent_message_id
-          ? userSearchContentById.get(msg.parent_message_id)
+          ? deferredSearchContent.get(msg.parent_message_id)
           : undefined;
         if (parentSearch?.hasSearch && parentSearch.sources.length > 0) {
           const { sources } = parentSearch;
@@ -2996,7 +3005,7 @@ function ChatViewInner() {
 
     bubbleItemCacheRef.current = nextCache;
     return nextItems;
-  }, [activeMessages, thinkingActiveMessageIds, userSearchContentById]);
+  }, [deferredActiveMessages, deferredThinkingIds, deferredSearchContent]);
 
   // Append compressing placeholder when compression is in progress
   const finalBubbleItems = useMemo(() => {

@@ -140,15 +140,6 @@ function updateMessageIdInIndex(oldId: string, newId: string) {
   }
 }
 
-/** Bump index positions for all entries >= startIdx by delta. Used after insertions. */
-function shiftMessageIndexFrom(startIdx: number, delta: number) {
-  for (const [id, idx] of _messageIndex) {
-    if (idx >= startIdx) {
-      _messageIndex.set(id, idx + delta);
-    }
-  }
-}
-
 // ─── Multi-model parallel tracking (exported for conversationStore) ───
 
 /** Counts ALL models (including first) */

@@ -77,11 +77,7 @@ export function QualityScore({
       } else {
         const result = await invoke<LintResult[]>('llm_wiki_lint_vault', { wikiId });
         const allIssues = result?.flatMap(r => r.issues) || [];
-        const score = allIssues.length > 0
-          ? allIssues.reduce((acc, issues) => acc + issues.length, 0) > 0
-            ? Math.max(0, 1.0 - allIssues.length * 0.1)
-            : 1.0
-          : 1.0;
+        const score = calculateScore(allIssues);
         setDetails({
           score,
           issues: allIssues,

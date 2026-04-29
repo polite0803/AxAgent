@@ -3,7 +3,7 @@ import type { Conversation } from "@/types";
 
 interface BreadcrumbBarProps {
   conversations: Conversation[];
-  activeConversationId: string;
+  activeConversationId: string | null;
   setActiveConversation: (id: string) => void;
 }
 
@@ -34,7 +34,7 @@ export function BreadcrumbBar({
   setActiveConversation,
 }: BreadcrumbBarProps) {
   const active = conversations.find((c) => c.id === activeConversationId);
-  if (!active?.parent_conversation_id) return null;
+  if (!activeConversationId || !active?.parent_conversation_id) return null;
 
   const breadcrumbs = buildBreadcrumbs(conversations, activeConversationId);
   if (breadcrumbs.length <= 1) return null;

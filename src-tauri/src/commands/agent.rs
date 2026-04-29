@@ -16,69 +16,122 @@ use std::collections::{HashMap, HashSet};
 use tracing::info;
 
 /// Estimate cost in USD based on model_id and token usage.
-/// Prices are per million tokens (as of 2025-04). Returns None for completely
-/// unknown models; uses heuristic fallback for unrecognized model variants.
+/// Prices are loaded from `pricing.toml` at startup. Falls back to heuristic
+/// estimation for models not found in the configuration file.
 fn estimate_cost_usd(model_id: &str, input_tokens: u64, output_tokens: u64) -> Option<f64> {
-    // (input_price_per_m_tokens, output_price_per_m_tokens)
-    let pricing: Option<(f64, f64)> = match model_id {
-        // OpenAI
-        "gpt-4o" | "gpt-4o-2024-11-20" => Some((2.50, 10.00)),
-        "gpt-4o-mini" => Some((0.15, 0.60)),
-        "gpt-4.1" | "gpt-4.1-2025-04-14" => Some((2.00, 8.00)),
-        "gpt-4.1-mini" | "gpt-4.1-mini-2025-04-14" => Some((0.40, 1.60)),
-        "gpt-4.1-nano" | "gpt-4.1-nano-2025-04-14" => Some((0.10, 0.40)),
-        "gpt-4-turbo" | "gpt-4-turbo-2024-04-09" => Some((10.00, 30.00)),
-        "gpt-4" => Some((30.00, 60.00)),
-        "gpt-3.5-turbo" => Some((0.50, 1.50)),
-        "o1" | "o1-2024-12-17" => Some((15.00, 60.00)),
-        "o1-mini" => Some((3.00, 12.00)),
-        "o1-pro" => Some((150.00, 600.00)),
-        "o3" | "o3-2025-02-12" => Some((10.00, 40.00)),
-        "o3-mini" | "o3-mini-2025-01-31" => Some((1.10, 4.40)),
-        "o4-mini" | "o4-mini-2025-04-11" => Some((1.10, 4.40)),
-        // Anthropic
-        "claude-3-5-sonnet-20241022"
-        | "claude-3-5-sonnet-latest"
-        | "claude-3.5-sonnet"
-        | "claude-sonnet-4-20250514"
-        | "claude-sonnet-4" => Some((3.00, 15.00)),
-        "claude-3-5-haiku-20241022"
-        | "claude-3.5-haiku"
-        | "claude-haiku-4-20250414"
-        | "claude-haiku-4" => Some((0.80, 4.00)),
-        "claude-3-opus-20240229"
-        | "claude-3-opus-latest"
-        | "claude-opus-4-20250514"
-        | "claude-opus-4" => Some((15.00, 75.00)),
-        "claude-3-sonnet-20240229" => Some((3.00, 15.00)),
-        "claude-3-haiku-20240307" => Some((0.25, 1.25)),
-        // Gemini
-        "gemini-2.5-pro" | "gemini-2.5-pro-preview-03-25" => Some((1.25, 10.00)),
-        "gemini-2.5-flash" | "gemini-2.5-flash-preview-04-17" => Some((0.15, 0.60)),
-        "gemini-2.0-flash" | "gemini-2.0-flash-001" => Some((0.10, 0.40)),
-        "gemini-2.0-flash-lite" => Some((0.075, 0.30)),
-        "gemini-1.5-pro" => Some((1.25, 5.00)),
-        "gemini-1.5-flash" => Some((0.075, 0.30)),
-        // DeepSeek
-        "deepseek-chat" | "deepseek-v3" | "deepseek-v3-0324" => Some((0.27, 1.10)),
-        "deepseek-reasoner" | "deepseek-r1" | "deepseek-r1-0528" => Some((0.55, 2.19)),
-        // Qwen
-        "qwen-max" | "qwen-max-latest" => Some((2.40, 9.60)),
-        "qwen-plus" | "qwen-plus-latest" => Some((0.40, 1.60)),
-        "qwen-turbo" | "qwen-turbo-latest" => Some((0.05, 0.20)),
-        "qwen3-235b-a22b" => Some((0.40, 1.60)),
-        "qwen3-32b" => Some((0.05, 0.20)),
-        _ => None,
-    };
-
-    // If exact match found, use it; otherwise apply heuristic based on model name
-    let (inp, out) = if let Some(p) = pricing {
-        p
-    } else {
-        heuristic_pricing(model_id)?
-    };
-
+    // Try config-based pricing first
+    if let Some((inp, out)) = lookup_pricing_from_config(model_id) {
+        return Some((input_tokens as f64 * inp / 1_000_000.0) + (output_tokens as f64 * out / 1_000_000.0));
+    }
+    // Fallback to heuristic for unknown models
+    let (inp, out) = heuristic_pricing(model_id)?;
     Some((input_tokens as f64 * inp / 1_000_000.0) + (output_tokens as f64 * out / 1_000_000.0))
+}
+
+// ─── Pricing configuration (loaded from pricing.toml) ───
+
+use std::sync::OnceLock;
+
+#[derive(Debug, Clone, Deserialize)]
+struct PricingModel {
+    model_id: String,
+    #[serde(default)]
+    aliases: Vec<String>,
+    input_price: f64,
+    output_price: f64,
+    #[serde(default)]
+    tier: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct PricingConfigFile {
+    #[serde(default)]
+    budget: BudgetConfig,
+    models: Vec<PricingModel>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+struct BudgetConfig {
+    #[serde(default)]
+    max_tokens_per_turn: u64,
+    #[serde(default)]
+    max_cost_per_day_usd: f64,
+    #[serde(default)]
+    max_cost_per_session_usd: f64,
+}
+
+/// Cached pricing config loaded at startup.
+static PRICING_CONFIG: OnceLock<PricingConfigFile> = OnceLock::new();
+
+/// Initialize pricing from the config file. Called once during app startup.
+pub fn init_pricing_config(app_handle: &tauri::AppHandle) {
+    let config = load_pricing_from_disk(app_handle)
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to load pricing.toml, using heuristic fallback: {}", e);
+            PricingConfigFile {
+                budget: BudgetConfig::default(),
+                models: Vec::new(),
+            }
+        });
+    let _ = PRICING_CONFIG.set(config);
+}
+
+fn load_pricing_from_disk(app_handle: &tauri::AppHandle) -> Result<PricingConfigFile, String> {
+    use std::fs;
+    let resource_dir = app_handle
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Failed to get resource dir: {}", e))?;
+    let path = resource_dir.join("pricing.toml");
+    // Also check next to the executable
+    let path = if path.exists() {
+        path
+    } else {
+        let exe_dir = std::env::current_exe()
+            .map_err(|e| format!("Failed to get exe dir: {}", e))?
+            .parent()
+            .ok_or("No exe parent dir")?
+            .to_path_buf();
+        exe_dir.join("pricing.toml")
+    };
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+    let config: PricingConfigFile = toml::from_str(&content)
+        .map_err(|e| format!("Failed to parse pricing.toml: {}", e))?;
+    tracing::info!(
+        "Loaded pricing config with {} models, budget: tokens={}, daily=${}, session=${}",
+        config.models.len(),
+        config.budget.max_tokens_per_turn,
+        config.budget.max_cost_per_day_usd,
+        config.budget.max_cost_per_session_usd,
+    );
+    Ok(config)
+}
+
+/// Look up pricing from the loaded config. Returns (input_price, output_price) per million tokens.
+fn lookup_pricing_from_config(model_id: &str) -> Option<(f64, f64)> {
+    let config = PRICING_CONFIG.get()?;
+    for m in &config.models {
+        if m.model_id == model_id || m.aliases.iter().any(|a| a == model_id) {
+            return Some((m.input_price, m.output_price));
+        }
+    }
+    None
+}
+
+/// Check if a turn would exceed the per-turn token budget.
+/// Returns Ok(()) if within budget, Err(message) if exceeded.
+fn check_token_budget(input_tokens: u64) -> Result<(), String> {
+    let config = PRICING_CONFIG.get();
+    let max_tokens = config.map(|c| c.budget.max_tokens_per_turn).unwrap_or(0);
+    if max_tokens > 0 && input_tokens > max_tokens {
+        return Err(format!(
+            "Token budget exceeded: {} input tokens > {} max per turn. \
+             Consider reducing context, compressing history, or increasing the budget in pricing.toml.",
+            input_tokens, max_tokens
+        ));
+    }
+    Ok(())
 }
 
 /// Heuristic pricing for unrecognized model variants.

@@ -647,6 +647,9 @@ pub fn run() {
             let _ = rt.block_on(axagent_core::repo::agent_session::reset_running_sessions(&sea_db));
             let _ = rt.block_on(commands::scheduled_task::load_tasks_from_db_internal(&sea_db, &state.scheduled_task_service));
 
+            // Initialize pricing configuration from pricing.toml
+            commands::agent::init_pricing_config(app);
+
             if let Some(home) = dirs::home_dir() {
                 let user_md_path = home.join(".axagent").join("USER.md");
                 if user_md_path.exists() {

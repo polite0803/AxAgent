@@ -890,10 +890,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               }
 
               // Reset placeholder for retry
+              const currentStreamingMessageId = getStreamingMessageId(
+                useStreamStore.getState().activeStreams, conversationId
+              );
               set((s) => {
                 const filtered = s.messages.filter(m =>
                   m.id !== currentStreamingMessageId
-                  && m.id !== `temp-error-${Date.now()}`
                   && !(m.status === "error" && m.role === "assistant" && m.content === errMsg)
                 );
                 return { messages: filtered };
@@ -1040,18 +1042,32 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     // ── Agent stream buffering (same pattern as Q&A _pendingUiChunk) ──
     let _agentPendingText = "";
     let _agentPendingThinking = "";
-    let _agentFlushTimer: ReturnType<typeof setTimeout> | null = null;
+    // ── Agent stream buffer & flush (priority-tiered) ──
+    //
+    // Agent events produce text, thinking, and workflow updates concurrently.
+    // Rendering everything at the same 50ms cadence creates unnecessary re-renders
+    // for low-urgency content (thinking, workflow steps). We split into two timers:
+    //
+    //   P1 (text):     50ms flush — user-visible text must feel responsive
+    //   P2 (thinking): 200ms flush — thinking is background context, low urgency
+    //   P3 (workflow): piggybacks on text flush — no independent timer
+    //
+    // Tool-call events (P0) are handled by agentStore.ts separately; they trigger
+    // immediate UI updates without buffering.
 
-    const flushAgentStreamChunks = () => {
+    const AGENT_THINKING_FLUSH_MS = 200;
+
+    let _agentFlushTimer: ReturnType<typeof setTimeout> | null = null;
+    let _agentThinkingFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushAgentTextChunks = () => {
       if (_agentFlushTimer !== null) {
         clearTimeout(_agentFlushTimer);
         _agentFlushTimer = null;
       }
       const textChunk = _agentPendingText;
-      const thinkingChunk = _agentPendingThinking;
       _agentPendingText = "";
-      _agentPendingThinking = "";
-      if (!textChunk && !thinkingChunk) { return; }
+      if (!textChunk) { return; }
 
       set((s) => {
         const wasThinking = useStreamStore.getState().thinkingActiveMessageIds.has(currentMsgId);
@@ -1059,45 +1075,66 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
         const updatedMessages = s.messages.map((m) => {
           if (m.id !== currentMsgId) { return m; }
+          let content = m.content || "";
 
+          // Close thinking block if we were in thinking mode
+          if (wasThinking) {
+            content += "\n</think>\n\n";
+            const n = new Set(nextThinkingIds);
+            n.delete(currentMsgId);
+            nextThinkingIds = n;
+          }
+          content += textChunk;
+          return { ...m, content };
+        });
+
+        useStreamStore.setState({ thinkingActiveMessageIds: nextThinkingIds });
+        return { messages: updatedMessages };
+      });
+    };
+
+    const flushAgentThinkingChunks = () => {
+      if (_agentThinkingFlushTimer !== null) {
+        clearTimeout(_agentThinkingFlushTimer);
+        _agentThinkingFlushTimer = null;
+      }
+      const thinkingChunk = _agentPendingThinking;
+      _agentPendingThinking = "";
+      if (!thinkingChunk) { return; }
+
+      set((s) => {
+        const wasThinking = useStreamStore.getState().thinkingActiveMessageIds.has(currentMsgId);
+        let nextThinkingIds = useStreamStore.getState().thinkingActiveMessageIds;
+
+        const updatedMessages = s.messages.map((m) => {
+          if (m.id !== currentMsgId) { return m; }
           let content = m.content || "";
           let thinking = m.thinking || "";
 
-          // 1. Process buffered thinking chunks first
-          if (thinkingChunk) {
-            if (!wasThinking) {
-              content += '<think data-axagent="1">\n';
-            }
-            content += thinkingChunk;
-            thinking += thinkingChunk;
-            nextThinkingIds = new Set([...nextThinkingIds, currentMsgId]);
+          if (!wasThinking) {
+            content += '<think data-axagent="1">\n';
           }
-
-          // 2. Process buffered text chunks (closes thinking block if needed)
-          if (textChunk) {
-            const isCurrentlyThinking = thinkingChunk ? true : wasThinking;
-            if (isCurrentlyThinking) {
-              content += "\n</think>\n\n";
-              const n = new Set(nextThinkingIds);
-              n.delete(currentMsgId);
-              nextThinkingIds = n;
-            }
-            content += textChunk;
-          }
+          content += thinkingChunk;
+          thinking += thinkingChunk;
+          nextThinkingIds = new Set([...nextThinkingIds, currentMsgId]);
 
           return { ...m, content, thinking };
         });
 
         useStreamStore.setState({ thinkingActiveMessageIds: nextThinkingIds });
-        return {
-          messages: updatedMessages,
-        };
+        return { messages: updatedMessages };
       });
     };
 
     const scheduleAgentFlush = () => {
       if (_agentFlushTimer === null) {
-        _agentFlushTimer = setTimeout(flushAgentStreamChunks, STREAM_UI_FLUSH_INTERVAL_MS);
+        _agentFlushTimer = setTimeout(flushAgentTextChunks, STREAM_UI_FLUSH_INTERVAL_MS);
+      }
+    };
+
+    const scheduleAgentThinkingFlush = () => {
+      if (_agentThinkingFlushTimer === null) {
+        _agentThinkingFlushTimer = setTimeout(flushAgentThinkingChunks, AGENT_THINKING_FLUSH_MS);
       }
     };
 
@@ -1105,7 +1142,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const text = formatWorkflowEventAsText(event);
       if (text) {
         _agentPendingText += text;
-        scheduleAgentFlush();
+        // P3: Workflow events are lazy — they piggyback on the next text/thinking flush.
+        // No independent timer; they render when text content triggers a flush.
       }
     };
 
@@ -1128,6 +1166,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       if (_agentFlushTimer !== null) {
         clearTimeout(_agentFlushTimer);
         _agentFlushTimer = null;
+      }
+      if (_agentThinkingFlushTimer !== null) {
+        clearTimeout(_agentThinkingFlushTimer);
+        _agentThinkingFlushTimer = null;
       }
       _agentPendingText = "";
       _agentPendingThinking = "";
@@ -1155,8 +1197,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         // This replaces the temp ID so tool call events can be matched
         listen<{ conversationId: string; assistantMessageId: string }>("agent-message-id", (event) => {
           if (event.payload.conversationId !== conversationId) { return; }
-          // Flush pending buffer before switching IDs
-          flushAgentStreamChunks();
+          // Flush pending buffers before switching IDs (both text and thinking)
+          flushAgentTextChunks();
+          flushAgentThinkingChunks();
           const realId = event.payload.assistantMessageId;
           const oldId = currentMsgId;
           currentMsgId = realId;
@@ -1192,7 +1235,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         listen<AgentStreamThinkingEvent>("agent-stream-thinking", (event) => {
           if (event.payload.conversationId !== conversationId) { return; }
           _agentPendingThinking += event.payload.thinking;
-          scheduleAgentFlush();
+          scheduleAgentThinkingFlush();  // P2: 200ms cadence
         }).then((fn) => {
           unlistenStreamThinking = fn;
         });
@@ -1244,7 +1287,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                   prompt_tokens: event.payload.usage?.input_tokens ?? null,
                   completion_tokens: event.payload.usage?.output_tokens ?? null,
                   blocks: event.payload.blocks ?? m.blocks,
-                };
+                } as Message;
               }
               return m;
             }),
@@ -1265,7 +1308,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             ? `\n[Workflow Complete: ${event.payload.workflowId}]\n`
             : `\n[Workflow Failed: ${event.payload.workflowId}]\n`;
           _agentPendingText += text;
-          scheduleAgentFlush();
+          // P3: Lazy — piggybacks on next text flush, no independent timer
         }).then((fn) => {
           unlistenWorkflowComplete = fn;
         });
@@ -2574,13 +2617,12 @@ registerConversationStoreRef({
 });
 
 // Auto-rebuild message index on every messages replacement to keep O(1) streaming fast.
-// Uses shallow comparison (=== on the messages array reference), so it only fires
-// when the entire messages array is replaced — not on every streaming chunk flush,
-// since those create new arrays too. The rebuild is O(n) but n is typically <1000;
-// at 50ms flush intervals this adds negligible overhead (<1ms for 1000 messages).
-useConversationStore.subscribe(
-  (state) => state.messages,
-  (messages) => {
-    rebuildMessageIndex(messages);
-  },
-);
+// Subscribes to all state changes but only rebuilds when the messages array reference
+// changes (Zustand shallow merge creates new references on every set).
+// The rebuild is O(n) but n is typically <1000; at 50ms flush intervals this adds
+// negligible overhead (<1ms for 1000 messages).
+useConversationStore.subscribe((state, prev) => {
+  if (state.messages !== prev.messages) {
+    rebuildMessageIndex(state.messages);
+  }
+});

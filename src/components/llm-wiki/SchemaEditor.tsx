@@ -50,13 +50,13 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
     try {
       const content = await invoke<string>('llm_wiki_get_schema', { wikiId });
       setSchemas(content ? [{
+        id: 'temp',
+        wikiId,
         version: '1.0',
-        created_at: Date.now(),
-        content_hash: '',
-        note_count: 0,
+        createdAt: Date.now(),
         description: undefined,
         schema: parseSchemaContent(content),
-      } as SchemaVersion] : []);
+      }] : []);
     } catch (e) {
       message.error(String(e));
     }
