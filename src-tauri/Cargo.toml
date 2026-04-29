@@ -110,11 +110,3 @@ debug = true
 
 [profile.dev.package."*"]
 opt-level = 0
-
-[workspace.metadata]
-rustfmt.config.edition = "2021"
-clippy.config.edition = "2021"
-
-[workspace.metadata.format]
-rust = "dprint"
-typescript = "dprint"
