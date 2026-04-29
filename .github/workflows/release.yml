@@ -273,6 +273,8 @@ jobs:
 
       - name: Setup cross-compilation sources
         run: |
+          sudo rm -f /etc/apt/sources.list.d/*.list
+          sudo rm -f /etc/apt/sources.list.d/*.sources
           cat > /tmp/sources.list << 'EOF'
           deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu noble main multiverse universe restricted
           deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu noble-security main multiverse universe restricted
