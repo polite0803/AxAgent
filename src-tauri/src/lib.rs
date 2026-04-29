@@ -7,6 +7,7 @@ mod context_manager;
 mod indexing;
 mod init;
 mod paths;
+mod smart_router;
 mod tray;
 mod window_state;
 
@@ -287,6 +288,7 @@ pub fn run() {
             commands::agent::agent_update_session,
             commands::agent::agent_get_session,
             commands::agent::agent_ensure_workspace,
+            commands::agent::classify_route,
             commands::agent::agent_approve,
             commands::agent::agent_respond_ask,
             commands::agent::agent_backup_and_clear_sdk_context,
@@ -648,7 +650,7 @@ pub fn run() {
             let _ = rt.block_on(commands::scheduled_task::load_tasks_from_db_internal(&sea_db, &state.scheduled_task_service));
 
             // Initialize pricing configuration from pricing.toml
-            commands::agent::init_pricing_config(app);
+            commands::agent::init_pricing_config(app.handle());
 
             if let Some(home) = dirs::home_dir() {
                 let user_md_path = home.join(".axagent").join("USER.md");

@@ -28,6 +28,8 @@ export type { DiscoveredMcpServer } from "./feature/mcpStore";
 export { useMemoryStore } from "./feature/memoryStore";
 export { useNudgeStore } from "./feature/nudgeStore";
 export { useProviderStore } from "./feature/providerStore";
+export { useRouterStore } from "./feature/routerStore";
+export type { ModelTier, RouteDecision } from "./feature/routerStore";
 export { useSearchStore } from "./feature/searchStore";
 export { useSettingsStore } from "./feature/settingsStore";
 export type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "./feature/settingsStore";

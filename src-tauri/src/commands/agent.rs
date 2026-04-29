@@ -64,8 +64,8 @@ struct BudgetConfig {
 static PRICING_CONFIG: OnceLock<PricingConfigFile> = OnceLock::new();
 
 /// Initialize pricing from the config file. Called once during app startup.
-pub fn init_pricing_config(app_handle: &tauri::AppHandle) {
-    let config = load_pricing_from_disk(app_handle)
+pub fn init_pricing_config(app: &tauri::AppHandle) {
+    let config = load_pricing_from_disk(app)
         .unwrap_or_else(|e| {
             tracing::warn!("Failed to load pricing.toml, using heuristic fallback: {}", e);
             PricingConfigFile {
@@ -77,6 +77,7 @@ pub fn init_pricing_config(app_handle: &tauri::AppHandle) {
 }
 
 fn load_pricing_from_disk(app_handle: &tauri::AppHandle) -> Result<PricingConfigFile, String> {
+    use tauri::Manager;
     use std::fs;
     let resource_dir = app_handle
         .path()
@@ -1408,6 +1409,22 @@ pub async fn agent_query(
     {
         let mut prompters = app_state.agent_prompters.lock().await;
         prompters.insert(conversation_id.clone(), prompter.clone());
+    }
+
+    // Check token budget before expensive LLM call
+    let estimated_input_tokens = axagent_core::token_counter::estimate_tokens(&request.input) as u64;
+    if let Err(budget_err) = check_token_budget(estimated_input_tokens) {
+        tracing::warn!("[agent_query] Token budget check failed: {}", budget_err);
+        // Emit error to frontend
+        let _ = app.emit(
+            "agent-error",
+            AgentErrorPayload {
+                conversation_id: conversation_id.clone(),
+                assistant_message_id: None,
+                message: budget_err.clone(),
+            },
+        );
+        return Err(budget_err);
     }
 
     // Run turn via SessionManager (handles pre-compaction, runtime creation,
@@ -4885,4 +4902,19 @@ pub async fn adaptation_status(app_state: State<'_, AppState>) -> Result<Value, 
         "skill_suggestions": adaptation.skill_suggestions,
         "memory_priorities": adaptation.memory_priorities,
     }))
+}
+
+// ─── Smart Model Routing ───
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ClassifyRouteRequest {
+    pub prompt: String,
+}
+
+/// Classify a user prompt and return a model routing recommendation.
+/// This is a fast, heuristic-based classifier — no LLM call required.
+/// Used by the frontend to decide which model tier to use before sending.
+#[tauri::command]
+pub fn classify_route(request: ClassifyRouteRequest) -> crate::smart_router::RouteDecision {
+    crate::smart_router::classify_and_route(&request.prompt)
 }
