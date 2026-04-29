@@ -439,6 +439,64 @@ enum GatewayRequestLogs {
     CreatedAt,
 }
 
+#[derive(DeriveIden)]
+enum ConversationSummaries {
+    Table,
+    Id,
+    ConversationId,
+    SummaryText,
+    CompressedUntilMessageId,
+    TokenCount,
+    ModelUsed,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum ConversationCategories {
+    Table,
+    Id,
+    Name,
+    IconType,
+    IconValue,
+    SystemPrompt,
+    DefaultProviderId,
+    DefaultModelId,
+    DefaultTemperature,
+    DefaultMaxTokens,
+    DefaultTopP,
+    DefaultFrequencyPenalty,
+    SortOrder,
+    IsCollapsed,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum SkillStates {
+    Table,
+    Name,
+    Enabled,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum AgentSessions {
+    Table,
+    Id,
+    ConversationId,
+    Cwd,
+    WorkspaceLocked,
+    PermissionMode,
+    RuntimeStatus,
+    SdkContextJson,
+    SdkContextBackupJson,
+    TotalTokens,
+    TotalCostUsd,
+    CreatedAt,
+    UpdatedAt,
+}
+
 // ===========================================================================
 // Migration implementation
 // ===========================================================================
@@ -2300,6 +2358,272 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
+        // =================================================================
+        // 33. Conversation Summaries
+        // =================================================================
+        manager
+            .create_table(
+                Table::create()
+                    .table(ConversationSummaries::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(ConversationSummaries::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationSummaries::ConversationId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationSummaries::SummaryText)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationSummaries::CompressedUntilMessageId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationSummaries::TokenCount)
+                            .big_integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationSummaries::ModelUsed)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationSummaries::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationSummaries::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_conversation_summaries_conversation")
+                    .table(ConversationSummaries::Table)
+                    .col(ConversationSummaries::ConversationId)
+                    .to_owned(),
+            )
+            .await?;
+
+        // =================================================================
+        // 34. Conversation Categories
+        // =================================================================
+        manager
+            .create_table(
+                Table::create()
+                    .table(ConversationCategories::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(ConversationCategories::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::Name)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::IconType)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::IconValue)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::SystemPrompt)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::DefaultProviderId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::DefaultModelId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::DefaultTemperature)
+                            .double()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::DefaultMaxTokens)
+                            .big_integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::DefaultTopP)
+                            .double()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::DefaultFrequencyPenalty)
+                            .double()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::SortOrder)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::IsCollapsed)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConversationCategories::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // =================================================================
+        // 35. Skill States
+        // =================================================================
+        manager
+            .create_table(
+                Table::create()
+                    .table(SkillStates::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(SkillStates::Name)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(SkillStates::Enabled)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(SkillStates::UpdatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // =================================================================
+        // 36. Agent Sessions
+        // =================================================================
+        manager
+            .create_table(
+                Table::create()
+                    .table(AgentSessions::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(AgentSessions::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::ConversationId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(AgentSessions::Cwd).string().null())
+                    .col(
+                        ColumnDef::new(AgentSessions::WorkspaceLocked)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::PermissionMode)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::RuntimeStatus)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::SdkContextJson)
+                            .text()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::SdkContextBackupJson)
+                            .text()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::TotalTokens)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::TotalCostUsd)
+                            .double()
+                            .not_null()
+                            .default(0.0),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::CreatedAt)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentSessions::UpdatedAt)
+                            .string()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_agent_sessions_conversation")
+                    .table(AgentSessions::Table)
+                    .col(AgentSessions::ConversationId)
+                    .to_owned(),
+            )
+            .await?;
+
         db.execute_unprepared(
             "CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN \
                 INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); \
@@ -2346,6 +2670,10 @@ impl MigrationTrait for Migration {
             };
         }
         drop_tbl!(GatewayRequestLogs::Table);
+        drop_tbl!(AgentSessions::Table);
+        drop_tbl!(SkillStates::Table);
+        drop_tbl!(ConversationCategories::Table);
+        drop_tbl!(ConversationSummaries::Table);
         drop_tbl!(StoredFiles::Table);
         drop_tbl!(DesktopState::Table);
         drop_tbl!(GatewayDiagnostics::Table);

@@ -5,7 +5,8 @@
 //! logic without code duplication.
 
 use async_trait::async_trait;
-use sea_orm::DatabaseConnection;
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
+use serde::{Deserialize, Serialize};
 
 use crate::error::{AxAgentError, Result};
 use crate::types::{RagContextResult, RagRetrievedItem, RagSourceResult};
@@ -493,4 +494,134 @@ pub trait AsyncEmbedFn: Send + Sync + Clone {
         texts: Vec<String>,
         dimensions: Option<usize>,
     ) -> Result<crate::types::EmbedResponse>;
+}
+
+// ── WikiRAG ─────────────────────────────────────────────────────────────────
+
+/// RAG source backed by a wiki vault (notes → parsed → chunked → embedded).
+pub struct WikiRAG;
+
+#[async_trait]
+impl RAGSource for WikiRAG {
+    fn collection_prefix(&self) -> &'static str {
+        "wiki"
+    }
+
+    fn context_label(&self) -> &'static str {
+        "Wiki Reference"
+    }
+
+    async fn resolve_embedding_provider(
+        &self,
+        db: &DatabaseConnection,
+        container_id: &str,
+    ) -> Result<String> {
+        let wiki = crate::repo::wiki::get_wiki(db, container_id).await?;
+        let embedding_provider = wiki.embedding_provider.ok_or_else(|| {
+            AxAgentError::Provider("Wiki has no embedding provider configured".to_string())
+        })?;
+        Ok(embedding_provider)
+    }
+}
+
+// ── WikiVaultRAG Capacity Management ────────────────────────────────────────
+
+const VAULT_SOFT_LIMIT: usize = 20;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VaultCapacityInfo {
+    pub vault_id: String,
+    pub current_count: usize,
+    pub soft_limit: usize,
+    pub is_over_limit: bool,
+    pub oldest_item_timestamp: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CapacityCheckResult {
+    pub allowed: bool,
+    pub current_count: usize,
+    pub soft_limit: usize,
+    pub reason: Option<String>,
+}
+
+pub async fn check_vault_rag_capacity(
+    db: &DatabaseConnection,
+    vault_id: &str,
+) -> Result<CapacityCheckResult> {
+    let wiki = crate::repo::wiki::get_wiki(db, vault_id).await?;
+
+    let collection_name = collection_id("wiki", vault_id);
+    let current_count = count_collection_items(db, &collection_name).await?;
+
+    let is_over_limit = current_count >= VAULT_SOFT_LIMIT;
+
+    Ok(CapacityCheckResult {
+        allowed: !is_over_limit,
+        current_count,
+        soft_limit: VAULT_SOFT_LIMIT,
+        reason: if is_over_limit {
+            Some(format!(
+                "Vault '{}' has {} items, exceeding soft limit of {}",
+                wiki.name, current_count, VAULT_SOFT_LIMIT
+            ))
+        } else {
+            None
+        },
+    })
+}
+
+async fn count_collection_items(
+    db: &DatabaseConnection,
+    collection_name: &str,
+) -> Result<usize> {
+    let count: i64 = db
+        .query_one(Statement::from_string(
+            DbBackend::Sqlite,
+            format!(
+                "SELECT COUNT(*) as cnt FROM embeddings WHERE collection = '{}'",
+                collection_name
+            ),
+        ))
+        .await?
+        .and_then(|r| r.try_get::<i64>("", "cnt").ok())
+        .unwrap_or(0);
+
+    Ok(count as usize)
+}
+
+pub async fn get_vault_capacity_info(
+    db: &DatabaseConnection,
+    vault_id: &str,
+) -> Result<VaultCapacityInfo> {
+    let _wiki = crate::repo::wiki::get_wiki(db, vault_id).await?;
+    let collection_name = collection_id("wiki", vault_id);
+    let current_count = count_collection_items(db, &collection_name).await?;
+
+    let oldest_item_timestamp = get_oldest_item_timestamp(db, &collection_name).await?;
+
+    Ok(VaultCapacityInfo {
+        vault_id: vault_id.to_string(),
+        current_count,
+        soft_limit: VAULT_SOFT_LIMIT,
+        is_over_limit: current_count >= VAULT_SOFT_LIMIT,
+        oldest_item_timestamp,
+    })
+}
+
+async fn get_oldest_item_timestamp(
+    db: &DatabaseConnection,
+    collection_name: &str,
+) -> Result<Option<i64>> {
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Sqlite,
+            format!(
+                "SELECT created_at FROM embeddings WHERE collection = '{}' ORDER BY created_at ASC LIMIT 1",
+                collection_name
+            ),
+        ))
+        .await?;
+
+    Ok(result.and_then(|row| row.try_get::<i64>("", "created_at").ok()))
 }

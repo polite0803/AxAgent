@@ -1,49 +1,7 @@
 pub use sea_orm_migration::prelude::*;
 
 mod m20240101_000001_init;
-mod m20240102_000001_add_token_fields;
-mod m20240103_000001_add_mcp_timeout_headers;
-mod m20240104_000001_add_mcp_icon;
-mod m20250105_000001_context_compression;
-mod m20250106_000001_add_message_status;
-mod m20250107_000001_add_provider_custom_headers;
-mod m20250108_000001_add_provider_icon;
-mod m20250109_000001_add_conversation_categories;
-mod m20250110_000001_add_memory_item_index_status;
-mod m20250111_000001_add_memory_item_index_error;
-mod m20250113_000001_add_memory_namespace_settings;
-mod m20250114_000001_add_memory_namespace_icon_sort;
-mod m20250115_000001_add_knowledge_base_icon_sort;
-mod m20250116_000001_add_knowledge_base_retrieval_settings;
-mod m20250117_000001_add_knowledge_base_chunking_config;
-mod m20250118_000001_add_knowledge_document_type;
-mod m20250119_000001_add_knowledge_document_index_error;
-mod m20250120_000001_add_message_timing;
-mod m20250121_000001_add_conversation_parent_id;
-mod m20250122_000001_merge_thinking_to_content;
-mod m20250123_000001_add_category_system_prompt;
-mod m20250717_000001_add_agent_support;
-mod m20250718_000001_add_sdk_context_backup;
-mod m20250719_000001_add_skill_states;
-mod m20250720_000001_add_provider_builtin_id;
-mod m20250801_000001_add_performance_indexes;
-mod m20260417_000001_add_category_default_templates;
-mod m20260422_000001_add_gateway_links;
-mod m20260423_000001_add_knowledge_graph_tables;
-mod m20260424_000001_add_conversation_scenario_and_skill_filter;
-mod m20260424_000002_add_scheduled_tasks;
-mod m20260425_000001_add_workflow_id_to_scheduled_tasks;
-mod m20260426_000001_add_workflow_templates;
-mod m20260427_000001_add_atomic_skills;
-mod m20260427_000002_add_generated_tools;
-mod m20260427_000003_add_workflow_executions;
-mod m20260427_000004_add_composite_source;
-mod m20260428_000001_add_workspace_locked_to_agent_sessions;
-mod m20260429_000001_add_workflow_template_versions;
-mod m20260501_000001_add_workflow_version_fields;
-mod m20261015_000001_add_user_profiles;
-mod m20261016_000001_add_knowledge_document_source_conversation;
-mod m20261017_000001_add_skill_steps_json_to_tool_executions;
+mod m20260429_000001_add_wiki_tables;
 
 pub struct Migrator;
 
@@ -52,49 +10,7 @@ impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
             Box::new(m20240101_000001_init::Migration),
-            Box::new(m20240102_000001_add_token_fields::Migration),
-            Box::new(m20240103_000001_add_mcp_timeout_headers::Migration),
-            Box::new(m20240104_000001_add_mcp_icon::Migration),
-            Box::new(m20250105_000001_context_compression::Migration),
-            Box::new(m20250106_000001_add_message_status::Migration),
-            Box::new(m20250107_000001_add_provider_custom_headers::Migration),
-            Box::new(m20250108_000001_add_provider_icon::Migration),
-            Box::new(m20250109_000001_add_conversation_categories::Migration),
-            Box::new(m20250110_000001_add_memory_item_index_status::Migration),
-            Box::new(m20250111_000001_add_memory_item_index_error::Migration),
-            Box::new(m20250113_000001_add_memory_namespace_settings::Migration),
-            Box::new(m20250114_000001_add_memory_namespace_icon_sort::Migration),
-            Box::new(m20250115_000001_add_knowledge_base_icon_sort::Migration),
-            Box::new(m20250116_000001_add_knowledge_base_retrieval_settings::Migration),
-            Box::new(m20250117_000001_add_knowledge_base_chunking_config::Migration),
-            Box::new(m20250118_000001_add_knowledge_document_type::Migration),
-            Box::new(m20250119_000001_add_knowledge_document_index_error::Migration),
-            Box::new(m20250120_000001_add_message_timing::Migration),
-            Box::new(m20250121_000001_add_conversation_parent_id::Migration),
-            Box::new(m20250122_000001_merge_thinking_to_content::Migration),
-            Box::new(m20250123_000001_add_category_system_prompt::Migration),
-            Box::new(m20250717_000001_add_agent_support::Migration),
-            Box::new(m20250718_000001_add_sdk_context_backup::Migration),
-            Box::new(m20250719_000001_add_skill_states::Migration),
-            Box::new(m20250720_000001_add_provider_builtin_id::Migration),
-            Box::new(m20260417_000001_add_category_default_templates::Migration),
-            Box::new(m20250801_000001_add_performance_indexes::Migration),
-            Box::new(m20260422_000001_add_gateway_links::Migration),
-            Box::new(m20260423_000001_add_knowledge_graph_tables::Migration),
-            Box::new(m20260424_000001_add_conversation_scenario_and_skill_filter::Migration),
-            Box::new(m20260424_000002_add_scheduled_tasks::Migration),
-            Box::new(m20260425_000001_add_workflow_id_to_scheduled_tasks::Migration),
-            Box::new(m20260426_000001_add_workflow_templates::Migration),
-            Box::new(m20260427_000001_add_atomic_skills::Migration),
-            Box::new(m20260427_000002_add_generated_tools::Migration),
-            Box::new(m20260427_000003_add_workflow_executions::Migration),
-            Box::new(m20260427_000004_add_composite_source::Migration),
-            Box::new(m20260428_000001_add_workspace_locked_to_agent_sessions::Migration),
-            Box::new(m20260429_000001_add_workflow_template_versions::Migration),
-            Box::new(m20260501_000001_add_workflow_version_fields::Migration),
-            Box::new(m20261015_000001_add_user_profiles::Migration),
-            Box::new(m20261016_000001_add_knowledge_document_source_conversation::Migration),
-            Box::new(m20261017_000001_add_skill_steps_json_to_tool_executions::Migration),
+            Box::new(m20260429_000001_add_wiki_tables::Migration),
         ]
     }
 }

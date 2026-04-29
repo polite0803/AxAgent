@@ -22,6 +22,7 @@ interface ExtractedElement {
 }
 
 export function BrowserAutomationPanel() {
+  const { t } = useTranslation();
   const [url, setUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -32,7 +33,7 @@ export function BrowserAutomationPanel() {
 
   const handleNavigate = async () => {
     if (!url.trim()) {
-      message.warning("请输入 URL");
+      message.warning(t("browser.enterUrl"));
       return;
     }
     setLoading(true);
@@ -40,7 +41,7 @@ export function BrowserAutomationPanel() {
       const result = await invoke<NavigateResult>("browser_navigate", { url: url.trim() });
       setCurrentUrl(result.url);
       setTitle(result.title);
-      message.success("导航成功");
+      message.success(t("browser.navigateSuccess"));
     } catch (e) {
       message.error(String(e));
     } finally {
@@ -53,7 +54,7 @@ export function BrowserAutomationPanel() {
     try {
       const result = await invoke<ScreenshotResult>("browser_screenshot", { fullPage });
       setScreenshot(`data:image/png;base64,${result.image_base64}`);
-      message.success("截图成功");
+      message.success(t("browser.screenshotSuccess"));
     } catch (e) {
       message.error(String(e));
     } finally {
@@ -63,14 +64,14 @@ export function BrowserAutomationPanel() {
 
   const handleExtractElements = async () => {
     if (!selector.trim()) {
-      message.warning("请输入选择器");
+      message.warning(t("browser.pleaseEnterSelector"));
       return;
     }
     setLoading(true);
     try {
       const result = await invoke<ExtractedElement[]>("browser_extract_all", { selector });
       setElements(result);
-      message.success(`发现 ${result.length} 个元素`);
+      message.success(t("browser.elementsFound", { count: result.length }));
     } catch (e) {
       message.error(String(e));
     } finally {
@@ -81,7 +82,7 @@ export function BrowserAutomationPanel() {
   const handleClick = async (sel: string) => {
     try {
       await invoke("browser_click", { selector: sel });
-      message.success("点击成功");
+      message.success(t("browser.clickSuccess"));
       setTimeout(() => handleScreenshot(), 500);
     } catch (e) {
       message.error(String(e));
@@ -91,7 +92,7 @@ export function BrowserAutomationPanel() {
   const handleFill = async (sel: string, value: string) => {
     try {
       await invoke("browser_fill", { selector: sel, value });
-      message.success("填写成功");
+      message.success(t("browser.fillSuccess"));
     } catch (e) {
       message.error(String(e));
     }
@@ -104,26 +105,26 @@ export function BrowserAutomationPanel() {
       setCurrentUrl("");
       setTitle("");
       setElements([]);
-      message.success("浏览器已关闭");
+      message.success(t("browser.closed"));
     } catch (e) {
       message.error(String(e));
     }
   };
 
   const columns = [
-    { title: "Tag", dataIndex: "tag", key: "tag", width: 80 },
-    { title: "Text", dataIndex: "text", key: "text", ellipsis: true },
+    { title: t("common.tag"), dataIndex: "tag", key: "tag", width: 80 },
+    { title: t("common.text"), dataIndex: "text", key: "text", ellipsis: true },
     { title: "Href", dataIndex: "href", key: "href", ellipsis: true },
-    { title: "Type", dataIndex: "type", key: "type", width: 80 },
+    { title: t("common.type"), dataIndex: "type", key: "type", width: 80 },
   ];
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-      <Card size="small" title="浏览器控制">
+      <Card size="small" title={t("browser.control")}>
         <Space direction="vertical" style={{ width: "100%" }}>
           <Space>
             <Input
-              placeholder="输入 URL"
+              placeholder={t("browser.enterUrl")}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onPressEnter={handleNavigate}
@@ -135,13 +136,13 @@ export function BrowserAutomationPanel() {
               onClick={handleNavigate}
               loading={loading}
             >
-              导航
+              {t("browser.navigate")}
             </Button>
             <Button icon={<Image size={14} />} onClick={() => handleScreenshot()} loading={loading}>
-              截图
+              {t("browser.screenshot")}
             </Button>
             <Button icon={<X size={14} />} onClick={handleClose} danger>
-              关闭
+              {t("browser.close")}
             </Button>
           </Space>
 
@@ -159,17 +160,17 @@ export function BrowserAutomationPanel() {
         </Card>
       )}
 
-      <Card size="small" title="元素操作">
+      <Card size="small" title={t("browser.elementOperations")}>
         <Space direction="vertical" style={{ width: "100%" }}>
           <Space>
             <Input
-              placeholder="CSS 选择器 (如: a, button, input)"
+              placeholder={t("browser.cssSelectorPlaceholder")}
               value={selector}
               onChange={(e) => setSelector(e.target.value)}
               style={{ width: 250 }}
             />
             <Button icon={<Search size={14} />} onClick={handleExtractElements} loading={loading}>
-              提取元素
+              {t("browser.extractElements")}
             </Button>
           </Space>
 
@@ -189,13 +190,13 @@ export function BrowserAutomationPanel() {
         </Space>
       </Card>
 
-      <Card size="small" title="快捷操作">
+      <Card size="small" title={t("browser.quickActions")}>
         <Space wrap>
           <Button size="small" icon={<MousePointer size={12} />} onClick={() => handleClick("body")}>
-            点击 Body
+            {t("browser.clickBody")}
           </Button>
           <Button size="small" icon={<Keyboard size={12} />} onClick={() => handleFill("input[type='text']", "test")}>
-            填写文本
+            {t("browser.fillText")}
           </Button>
         </Space>
       </Card>

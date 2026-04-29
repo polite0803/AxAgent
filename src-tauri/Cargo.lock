@@ -603,10 +603,13 @@ dependencies = [
  "axagent-trajectory",
  "base64 0.22.1",
  "chrono",
+ "docx-rs",
  "fastrand",
  "futures",
  "futures-util",
+ "md5",
  "parking_lot",
+ "pdf-extract 0.8.2",
  "regex-lite",
  "reqwest 0.12.28",
  "scraper",
@@ -638,7 +641,7 @@ dependencies = [
  "hex",
  "image",
  "libsqlite3-sys",
- "pdf-extract",
+ "pdf-extract 0.7.12",
  "quick_cache",
  "regex",
  "reqwest 0.13.2",
@@ -1265,6 +1268,12 @@ dependencies = [
  "fnv",
  "uuid",
 ]
+
+[[package]]
+name = "cff-parser"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31f5b6e9141c036f3ff4ce7b2f7e432b0f00dee416ddcd4f17741d189ddc2e9d"
 
 [[package]]
 name = "cfg-expr"
@@ -4233,6 +4242,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "md5"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
+
+[[package]]
 name = "memchr"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5395,6 +5410,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbb3a5387b94b9053c1e69d8abfd4dd6dae7afda65a5c5279bc1f42ab39df575"
 dependencies = [
  "adobe-cmap-parser",
+ "encoding_rs",
+ "euclid",
+ "lopdf",
+ "postscript",
+ "type1-encoding-parser",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "pdf-extract"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87aa267a18864f2f75471f6d316ea430f13e78f0b5a882ce261ebbdfd389a76a"
+dependencies = [
+ "adobe-cmap-parser",
+ "cff-parser",
  "encoding_rs",
  "euclid",
  "lopdf",
@@ -10834,13 +10865,12 @@ dependencies = [
 
 [[package]]
 name = "xcap"
-version = "0.8.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bdf4c8d4c33dfab96fb585cdf991a7bd86d754ac35edd4b80477a9b739892b2"
+checksum = "03d20dc4057d755e2b78da287f9057065a89c507af69e1a5eac19e868c21cd8a"
 dependencies = [
  "dispatch2",
  "image",
- "lazy_static",
  "libwayshot-xcap",
  "log",
  "objc2 0.6.4",

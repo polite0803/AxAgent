@@ -17,6 +17,7 @@ interface AtomicSkillEditorProps {
 }
 
 export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, skill, onClose }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const { createSkill, updateSkill, checkSemanticUniqueness } = useAtomicSkillStore();
   const [semanticConflict, setSemanticConflict] = useState<AtomicSkill | null>(null);
@@ -69,7 +70,7 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
         };
         const success = await updateSkill(skill.id, params);
         if (success) {
-          message.success("原子Skill已更新");
+          message.success(t("atomicSkill.updated"));
           onClose();
         }
       } else {
@@ -95,7 +96,7 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
           enabled: values.enabled ?? true,
         };
         await createSkill(params);
-        message.success("原子Skill已创建");
+        message.success(t("atomicSkill.created"));
         onClose();
       }
     } catch {
@@ -107,14 +108,14 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
 
   return (
     <Drawer
-      title={isEdit ? "编辑原子Skill" : "新建原子Skill"}
+      title={isEdit ? t("atomicSkill.editTitle") : t("atomicSkill.createTitle")}
       open={visible}
       onClose={onClose}
       width={560}
       extra={
         <Space>
-          <Button onClick={onClose}>取消</Button>
-          <Button type="primary" loading={saving} onClick={handleSave}>保存</Button>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button type="primary" loading={saving} onClick={handleSave}>{t("common.save")}</Button>
         </Space>
       }
     >
@@ -124,15 +125,15 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
       />
 
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label="名称" rules={[{ required: true, message: "请输入名称" }]}>
+        <Form.Item name="name" label={t("common.name")} rules={[{ required: true, message: t("atomicSkill.nameRequired") }]}>
           <Input placeholder="atomic_my_skill" />
         </Form.Item>
 
-        <Form.Item name="description" label="描述" rules={[{ required: true, message: "请输入描述" }]}>
-          <TextArea rows={3} placeholder="描述此原子Skill的功能" />
+        <Form.Item name="description" label={t("common.description")} rules={[{ required: true, message: t("atomicSkill.descriptionRequired") }]}>
+          <TextArea rows={3} placeholder={t("atomicSkill.descriptionPlaceholder")} />
         </Form.Item>
 
-        <Form.Item name="entry_type" label="执行入口类型" rules={[{ required: true, message: "请选择入口类型" }]}>
+        <Form.Item name="entry_type" label={t("atomicSkill.entryType")} rules={[{ required: true, message: t("atomicSkill.entryTypeRequired") }]}>
           <EntryTypeSelector
             onChange={(v) => {
               setEntryType(v);
@@ -141,31 +142,31 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
           />
         </Form.Item>
 
-        <Form.Item name="entry_ref" label="执行入口引用" rules={[{ required: true, message: "请选择或输入入口引用" }]}>
+        <Form.Item name="entry_ref" label={t("atomicSkill.entryRef")} rules={[{ required: true, message: t("atomicSkill.entryRefRequired") }]}>
           <EntryRefSelector entryType={entryType} />
         </Form.Item>
 
-        <Form.Item name="input_schema" label="输入参数模式">
+        <Form.Item name="input_schema" label={t("atomicSkill.inputSchema")}>
           <JsonSchemaEditor />
         </Form.Item>
 
-        <Form.Item name="output_schema" label="输出参数模式">
+        <Form.Item name="output_schema" label={t("atomicSkill.outputSchema")}>
           <JsonSchemaEditor />
         </Form.Item>
 
-        <Form.Item name="category" label="分类">
+        <Form.Item name="category" label={t("common.category")}>
           <Input placeholder="general" />
         </Form.Item>
 
-        <Form.Item name="tags" label="标签（逗号分隔）">
+        <Form.Item name="tags" label={t("atomicSkill.tagsCommaSeparated")}>
           <Input placeholder="tag1, tag2" />
         </Form.Item>
 
-        <Form.Item name="version" label="版本">
+        <Form.Item name="version" label={t("common.version")}>
           <Input placeholder="1.0.0" />
         </Form.Item>
 
-        <Form.Item name="enabled" label="启用" valuePropName="checked">
+        <Form.Item name="enabled" label={t("common.enabled")} valuePropName="checked">
           <Switch />
         </Form.Item>
       </Form>

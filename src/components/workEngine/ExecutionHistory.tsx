@@ -18,17 +18,16 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "default",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "等待中",
-  running: "运行中",
-  paused: "已暂停",
-  completed: "已完成",
-  failed: "已失败",
-  cancelled: "已取消",
-};
-
 export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ workflowId }) => {
   const { t } = useTranslation();
+  const STATUS_LABELS: Record<string, string> = {
+    pending: t("workEngine.statusPending"),
+    running: t("workEngine.statusRunning"),
+    paused: t("workEngine.statusPaused"),
+    completed: t("workEngine.statusCompleted"),
+    failed: t("workEngine.statusFailed"),
+    cancelled: t("workEngine.statusCancelled"),
+  };
   const { executionHistory: history, loading, loadHistory } = useWorkEngineStore();
 
   useEffect(() => {
@@ -37,14 +36,14 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ workflowId }
 
   const columns = [
     {
-      title: "执行ID",
+      title: t("workEngine.executionId"),
       dataIndex: "id",
       key: "id",
       width: 120,
       render: (id: string) => <Text copyable={{ text: id }}>{id.slice(0, 8)}</Text>,
     },
     {
-      title: "状态",
+      title: t("workEngine.status"),
       dataIndex: "status",
       key: "status",
       width: 90,
@@ -55,14 +54,14 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ workflowId }
       ),
     },
     {
-      title: "开始时间",
+      title: t("workEngine.startTime"),
       dataIndex: "started_at",
       key: "started_at",
       width: 180,
       render: (t: string) => t ? new Date(t).toLocaleString() : "-",
     },
     {
-      title: "耗时",
+      title: t("workEngine.duration"),
       dataIndex: "total_time_ms",
       key: "total_time_ms",
       width: 80,

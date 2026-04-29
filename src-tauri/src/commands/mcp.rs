@@ -1,5 +1,6 @@
 use crate::AppState;
 use axagent_core::types::*;
+use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 
 #[tauri::command]
@@ -7,12 +8,77 @@ pub async fn list_mcp_servers(state: State<'_, AppState>) -> Result<Vec<McpServe
     let servers = axagent_core::repo::mcp_server::list_mcp_servers(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?;
-    // Filter out builtin servers — they are now managed by LocalToolRegistry
-    let remote_servers: Vec<McpServer> = servers
+
+    let builtin_servers = {
+        let registry = state.local_tool_registry.lock().await;
+        let groups = registry.get_tool_groups();
+        groups
+            .into_iter()
+            .map(|g| {
+                let transport = if g.group_id == "builtin-fetch"
+                    || g.group_id == "builtin-search-file"
+                    || g.group_id == "builtin-filesystem"
+                    || g.group_id == "builtin-system"
+                    || g.group_id == "builtin-knowledge"
+                    || g.group_id == "builtin-storage"
+                    || g.group_id == "builtin-computer-control"
+                    || g.group_id == "builtin-browser"
+                    || g.group_id == "builtin-brave-search"
+                    || g.group_id == "builtin-sequential-thinking"
+                    || g.group_id == "builtin-python"
+                    || g.group_id == "builtin-dify-knowledge"
+                    || g.group_id == "builtin-workspace-memory"
+                    || g.group_id == "builtin-file-utils"
+                    || g.group_id == "builtin-cache"
+                    || g.group_id == "builtin-ocr"
+                    || g.group_id == "builtin-obsidian"
+                    || g.group_id == "builtin-export"
+                    || g.group_id == "builtin-remotefile"
+                    || g.group_id == "builtin-agent-control"
+                    || g.group_id == "builtin-memory"
+                    || g.group_id == "builtin-image-gen"
+                    || g.group_id == "builtin-chart-gen"
+                    || g.group_id == "builtin-code-edit"
+                    || g.group_id == "builtin-git"
+                    || g.group_id == "builtin-cron"
+                    || g.group_id == "builtin-skills"
+                    || g.group_id == "builtin-session"
+                    || g.group_id == "builtin-search"
+                {
+                    "builtin".to_string()
+                } else {
+                    "builtin".to_string()
+                };
+
+                McpServer {
+                    id: g.group_id.clone(),
+                    name: g.group_name.clone(),
+                    transport,
+                    command: None,
+                    args_json: None,
+                    endpoint: None,
+                    env_json: None,
+                    enabled: g.enabled,
+                    permission_policy: "allow_all".to_string(),
+                    source: "builtin".to_string(),
+                    discover_timeout_secs: None,
+                    execute_timeout_secs: None,
+                    headers_json: None,
+                    icon_type: None,
+                    icon_value: None,
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let custom_servers: Vec<McpServer> = servers
         .into_iter()
         .filter(|s| s.source != "builtin")
         .collect();
-    Ok(remote_servers)
+
+    let mut all_servers = builtin_servers;
+    all_servers.extend(custom_servers);
+    Ok(all_servers)
 }
 
 #[tauri::command]
@@ -67,17 +133,29 @@ pub async fn discover_mcp_tools(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Vec<ToolDescriptor>, String> {
+    if id.starts_with("builtin-") {
+        let registry = state.local_tool_registry.lock().await;
+        let groups = registry.get_tool_groups();
+        if let Some(group) = groups.into_iter().find(|g| g.group_id == id) {
+            let tools: Vec<ToolDescriptor> = group
+                .tools
+                .into_iter()
+                .map(|t| ToolDescriptor {
+                    id: format!("{}-{}", id, t.tool_name),
+                    server_id: id.clone(),
+                    name: t.tool_name,
+                    description: Some(t.description),
+                    input_schema_json: Some(t.input_schema.to_string()),
+                })
+                .collect();
+            return Ok(tools);
+        }
+        return Err(format!("Builtin server '{}' not found", id));
+    }
+
     let server = axagent_core::repo::mcp_server::get_mcp_server(&state.sea_db, &id)
         .await
         .map_err(|e| e.to_string())?;
-
-    // Builtin tools are now managed by LocalToolRegistry, not MCP
-    if server.source == "builtin" {
-        return Err(
-            "Builtin tools are managed by Local Tools, not MCP. Use list_local_tools instead."
-                .to_string(),
-        );
-    }
 
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
     let timeout_duration = std::time::Duration::from_secs(timeout_secs);
@@ -197,17 +275,27 @@ async fn discover_mcp_tools_inner(
     state: &AppState,
     id: &str,
 ) -> Result<Vec<axagent_core::mcp_client::DiscoveredTool>, String> {
+    if id.starts_with("builtin-") {
+        let registry = state.local_tool_registry.lock().await;
+        let groups = registry.get_tool_groups();
+        if let Some(group) = groups.into_iter().find(|g| g.group_id == id) {
+            let tools: Vec<axagent_core::mcp_client::DiscoveredTool> = group
+                .tools
+                .into_iter()
+                .map(|t| axagent_core::mcp_client::DiscoveredTool {
+                    name: t.tool_name,
+                    description: Some(t.description),
+                    input_schema: Some(t.input_schema),
+                })
+                .collect();
+            return Ok(tools);
+        }
+        return Err(format!("Builtin server '{}' not found", id));
+    }
+
     let server = axagent_core::repo::mcp_server::get_mcp_server(&state.sea_db, id)
         .await
         .map_err(|e| e.to_string())?;
-
-    // Builtin tools are now managed by LocalToolRegistry, not MCP
-    if server.source == "builtin" {
-        return Err(
-            "Builtin tools are managed by Local Tools, not MCP. Use list_local_tools instead."
-                .to_string(),
-        );
-    }
 
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
     let timeout_duration = std::time::Duration::from_secs(timeout_secs);
@@ -266,4 +354,20 @@ async fn discover_mcp_tools_inner(
     };
 
     Ok(tools)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveredMcpServer {
+    pub name: String,
+    pub package_name: String,
+    pub description: Option<String>,
+    pub command: String,
+    pub args: Vec<String>,
+    pub transport: String,
+}
+
+#[tauri::command]
+pub async fn discover_available_mcp_servers() -> Result<Vec<DiscoveredMcpServer>, String> {
+    Ok(Vec::new())
 }

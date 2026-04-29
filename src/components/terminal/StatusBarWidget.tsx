@@ -58,6 +58,7 @@ export function StatusBarWidget({
   style,
   className,
 }: StatusBarWidgetProps) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<StatusBarInfo>({});
   const [elapsedTime, setElapsedTime] = useState(0);
   const [startTime] = useState(Date.now());
@@ -173,7 +174,7 @@ export function StatusBarWidget({
         <StatusBarItem
           key="network"
           icon={status.networkStatus === "connected" ? <Wifi size={12} /> : <WifiOff size={12} />}
-          label={status.networkStatus === "connected" ? "在线" : "离线"}
+          label={status.networkStatus === "connected" ? t("terminal.online") : t("terminal.offline")}
           color={status.networkStatus === "connected" ? "#a6e3a1" : "#f38ba8"}
         />
       );

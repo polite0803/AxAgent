@@ -970,7 +970,7 @@ export function InputArea() {
         const errorMsg = String(e);
         if (errorMsg.includes("Not found: Conversation")) {
           console.warn("[ModeSwitch] Conversation no longer exists, refreshing conversation list");
-          messageApi.warning("对话已不存在，请创建新对话");
+          messageApi.warning(t("chat.conversationNotFound"));
           await useConversationStore.getState().fetchConversations().catch(() => {});
           const { conversations } = useConversationStore.getState();
           if (conversations.length > 0) {
@@ -1768,7 +1768,7 @@ export function InputArea() {
                   selectedKeys: selectedScenario ? [selectedScenario] : [],
                 }}
               >
-                <Tooltip title={t("chat.scenarioTitle") || "使用场景"} open={undefined}>
+                <Tooltip title={t("chat.scenarioTitle")} open={undefined}>
                   <Button
                     type="text"
                     size="small"

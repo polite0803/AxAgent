@@ -278,11 +278,340 @@ raw/ (LLM 阅读素材)  ──►  LLM 理解/编译  ──►  notes/llm_*.md
 
 ---
 
+## 二、技术风险缓解方案
+
+### 2.6.1 多 Vault 向量库容量管理
+
+**问题**：每个 Vault 独立向量库，Vault 数量增长时向量库集合数线性增长，可能超出承载能力。
+
+**缓解方案**：
+
+```rust
+// src-tauri/crates/core/src/rag.rs
+
+pub struct WikiVaultRAG {
+    config: RAGConfig,
+}
+
+impl WikiVaultRAG {
+    const MAX_VAULTS_SOFT_LIMIT: usize = 20;
+    const VECTORS_PER_COLLECTION_ESTIMATE: usize = 1000;
+
+    pub async fn check_capacity(&self) -> Result<CapacityStatus> {
+        let vault_count = self.list_vaults().await?.len();
+        let total_collections = self.list_collections().await?.len();
+
+        if vault_count > Self::MAX_VAULTS_SOFT_LIMIT {
+            return Ok(CapacityStatus::Warning {
+                message: format!(
+                    "Vault 数量 ({}) 超过软上限 ({}), 请考虑合并或归档旧 Vault",
+                    vault_count, Self::MAX_VAULTS_SOFT_LIMIT
+                ),
+            });
+        }
+
+        Ok(CapacityStatus::OK)
+    }
+}
+```
+
+**向量库命名规范**：
+
+| 场景 | 命名格式 | 说明 |
+|------|----------|------|
+| 普通 Vault | `vec_wiki_{vault_id}` | 单 Vault |
+| 大型 Vault | `vec_wiki_{project}_{vault_id}` | 按项目分组 |
+
+### 2.6.2 LLM 编译质量控制
+
+**问题**：LLM 编译产出质量不可控，可能出现幻觉、格式不一、关键信息丢失。
+
+**缓解方案**：
+
+```rust
+// agent/src/wiki_compiler.rs
+
+pub struct WikiCompiler {
+    agent: Arc<AgentRuntime>,
+    quality_threshold: f64,  // 默认 0.7
+}
+
+impl WikiCompiler {
+    pub async fn compile_with_quality_check(
+        &self,
+        wiki: &LlmWiki,
+        source_ids: Vec<String>,
+    ) -> Result<CompileResult> {
+        let pages = self.llm_compile(&schema, &sources).await?;
+
+        let results: Vec<PageCompileResult> = pages
+            .into_iter()
+            .map(|page| {
+                let score = self.calculate_quality_score(&page);
+                PageCompileResult { page, score }
+            })
+            .collect();
+
+        let passed: Vec<_> = results.iter()
+            .filter(|r| r.score >= self.quality_threshold)
+            .collect();
+
+        let failed: Vec<_> = results.iter()
+            .filter(|r| r.score < self.quality_threshold)
+            .collect();
+
+        if !failed.is_empty() {
+            log::warn!(
+                "{} pages failed quality check: {:?}",
+                failed.len(),
+                failed.iter().map(|f| f.page.title.clone()).collect::<Vec<_>>()
+            );
+        }
+
+        Ok(CompileResult { passed, failed })
+    }
+}
+```
+
+**Schema 质量标准（SCHEMA.md 中定义）**：
+
+```markdown
+## 质量标准
+
+- 每个页面至少 3 句话
+- 概念页必须包含与其他概念的关系（至少 1 个 [[链接]]）
+- 源摘要必须标注来源 URL
+- 页面不得包含 "我不知道"、"根据提供的资料无法确定" 等模糊表述
+- factual claims 必须可溯源到 raw/ 中的具体素材
+```
+
+### 2.6.3 LLM 编译防覆盖机制
+
+**问题**：用户编辑 `author: llm` 的笔记后，LLM 重编译可能覆盖用户修改。
+
+**缓解方案**：
+
+```yaml
+# notes/llm_example.md
+---
+title: Transformer 论文摘要
+author: llm
+source: raw/papers/attention.pdf
+compiled_at: 2026-04-29T10:00:00Z
+compiled_source_hash: "sha256:abc123..."
+user_edited: false          # 关键字段：标记用户是否编辑过
+user_edited_at: null       # 用户编辑时间
+---
+```
+
+```rust
+// agent/src/wiki_compiler.rs
+
+impl WikiCompiler {
+    pub async fn should_overwrite(&self, page: &Note) -> Result<bool> {
+        if page.author != "llm" {
+            return Ok(false);  // user 笔记永远不覆盖
+        }
+
+        if page.user_edited {
+            let confirm = self.prompt_user_confirm(&format!(
+                "页面 '{}' 已被用户编辑过，是否仍要覆盖？",
+                page.title
+            )).await?;
+            if !confirm {
+                return Ok(false);
+            }
+        }
+
+        let source_changed = self.check_source_changed(page).await?;
+        if !source_changed {
+            return Ok(false);  // source 未变，无需重编译
+        }
+
+        Ok(true)
+    }
+}
+```
+
+### 2.6.4 文件系统 ↔ 向量库同步一致性
+
+**问题**：用户编辑笔记后写入成功但向量库更新失败，导致数据不一致。
+
+**缓解方案**：采用**事件溯源 + 补偿队列**模式。
+
+```rust
+// src-tauri/crates/core/src/entity/wiki_sync_queue.rs
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "wiki_sync_queue")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = true)]
+    pub id: i64,
+    pub vault_id: String,
+    pub note_id: String,
+    pub operation: String,       // "create" | "update" | "delete"
+    pub vector_synced: bool,     // 是否已同步到向量库
+    pub retry_count: i32,
+    pub last_error: Option<String>,
+    pub created_at: i64,
+    pub scheduled_at: i64,       // 定时同步时间
+}
+```
+
+**同步流程**：
+
+```
+用户编辑笔记
+    │
+    ▼
+写入文件系统 + 写入 sync_queue (vector_synced=false)
+    │
+    ├──► 同步 Worker 定时扫描 queue
+    │         │
+    │         ▼
+    │    更新向量库 ──► 标记 vector_synced=true
+    │         │
+    │         ├──► 失败：retry_count++，下次重试
+    │         └──► 重试超过 3 次：告警 + 人工介入
+    │
+    └──► 定期全量校验（每 24 小时）
+              │
+              ▼
+         比对文件系统 hash 与向量库版本
+              │
+              └──► 不一致：重新同步
+```
+
+### 2.6.5 图谱性能优化策略
+
+**问题**：500+ 节点时 D3.js 力导向布局可能卡顿。
+
+**缓解方案**：
+
+| 节点数量 | 渲染模式 | 策略 |
+|----------|----------|------|
+| < 100 | SVG | 直接渲染，完整交互 |
+| 100-500 | SVG + 视口裁剪 | 只渲染视口内节点 |
+| > 500 | Canvas | Canvas 渲染，WebWorker 计算布局 |
+| > 2000 | Canvas + LOD | 只显示一跳内节点，缩放时动态加载 |
+
+```tsx
+// components/wiki/GraphView.tsx
+
+const PERFORMANCE_THRESHOLDS = {
+  SVG_NODE_LIMIT: 100,
+  VIEWPORT_CULLING_NODE_LIMIT: 500,
+  CANVAS_NODE_LIMIT: 2000,
+};
+
+export function GraphView({ data }: GraphViewProps) {
+  const nodeCount = data.nodes.length;
+  const mode = nodeCount > PERFORMANCE_THRESHOLDS.CANVAS_NODE_LIMIT
+    ? 'canvas-lod'
+    : nodeCount > PERFORMANCE_THRESHOLDS.VIEWPORT_CULLING_NODE_LIMIT
+      ? 'svg-culled'
+      : 'svg-full';
+
+  return (
+    <div className="graph-container">
+      {mode === 'canvas-lod' && <CanvasGraphLOD data={data} />}
+      {mode === 'svg-culled' && <SVGraphWithCulling data={data} />}
+      {mode === 'svg-full' && <SVGGraphFull data={data} />}
+      <PerformanceIndicator nodeCount={nodeCount} mode={mode} />
+    </div>
+  );
+}
+```
+
+### 2.6.6 Schema 版本管理
+
+**问题**：`SCHEMA.md` 作为操作契约，但缺乏版本管理，变更后无法追踪。
+
+**缓解方案**：
+
+```markdown
+# LLM Wiki Schema
+
+- version: "1.0.0"
+- last_updated: "2026-04-29"
+- min_compatible_version: "1.0.0"
+```
+
+```rust
+// agent/src/schema_manager.rs
+
+pub struct SchemaManager {
+    current_version: Version,
+}
+
+impl SchemaManager {
+    pub async fn check_schema_compatibility(&self, wiki_path: &Path) -> Result<Compatibility> {
+        let schema = self.read_schema(wiki_path).await?;
+        let schema_version = Version::parse(&schema.version)?;
+
+        if schema_version < self.current_version.min_compatible_version {
+            return Ok(Compatibility::Incompatible {
+                message: format!(
+                    "Schema 版本 {} 低于最低兼容版本 {}，请先升级",
+                    schema_version, self.current_version.min_compatible_version
+                ),
+                migration_steps: self.get_migration_steps(&schema_version),
+            });
+        }
+
+        Ok(Compatibility::Compatible)
+    }
+
+    pub async fn upgrade_schema(&self, wiki_path: &Path) -> Result<()> {
+        let schema = self.read_schema(wiki_path).await?;
+        let steps = self.get_migration_steps(&schema.version)?;
+
+        for step in steps {
+            self.apply_migration(wiki_path, &step).await?;
+        }
+
+        self.update_schema_version(wiki_path, &self.current_version).await?;
+        Ok(())
+    }
+}
+```
+
+### 2.6.7 模块依赖方向规范
+
+**问题**：`WikiVaultRAG` → `Vault` → `NoteRepo` 存在隐式循环依赖风险。
+
+**依赖规则**（从底层到上层）：
+
+| 层级 | 模块 | 可依赖 |
+|------|------|--------|
+| L1（底层） | `entity/*` | 无 |
+| L2 | `repo/*` | entity |
+| L3 | `rag.rs` | entity, repo（只读） |
+| L4 | `markdown_parser.rs` | entity |
+| L5 | `agent/*` | L1-L4 |
+| L6（顶层） | commands | L1-L5 |
+
+**禁止反向依赖**：上层模块不得依赖下层模块。
+
+```rust
+// 错误示例：rag.rs 依赖 WikiVaultRAG
+// src-tauri/crates/core/src/rag.rs
+
+// 正确示例：WikiVaultRAG 组合 repo
+pub struct WikiVaultRAG {
+    note_repo: Arc<dyn NoteRepoTrait>,  // 通过 trait 抽象，不直接依赖实现
+}
+```
+
+---
+
 ## 三、数据模型
 
-### 3.1 Wiki 笔记实体（Obsidian 模式）
+### 3.1 统一笔记实体（合并 Obsidian + LLM Wiki）
 
-#### 3.1.1 notes 表
+> **设计决策**：原方案中 `notes` 表与 `wiki_pages` 表存在严重字段重叠（title、file_path、content），且 notes 缺少 `vault_id` 导致无法参与多 Vault 隔离。现将两张表合并为一张统一的 `notes` 表，通过 `author` 字段区分来源，通过 `page_type` 可空字段区分 LLM 编译页面的子类型。
+
+#### 3.1.1 notes 表（统一实体）
 
 ```rust
 // src-tauri/crates/core/src/entity/notes.rs
@@ -292,10 +621,19 @@ raw/ (LLM 阅读素材)  ──►  LLM 理解/编译  ──►  notes/llm_*.md
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub vault_id: String,              // 所属 Vault/Wiki，实现多 Vault 隔离
     pub title: String,
-    pub file_path: String,
-    pub content_hash: String,
-    pub doc_xml: Option<String>,
+    pub file_path: String,             // 相对路径 notes/
+    pub content: String,               // Markdown 正文（全文存储，支持搜索与同步）
+    pub content_hash: String,          // SHA256，用于变化检测和增量同步
+    pub author: String,                // "user" | "llm" —— 区分笔记来源
+    pub page_type: Option<String>,     // llm 编译页面的子类型：concept/entity/comparison/source_summary/index/log/overview；user 笔记为 NULL
+    pub source_refs: Option<Json>,     // llm 编译页面的原始资料 source_ids；user 笔记为 NULL
+    pub related_pages: Option<Json>,   // 关联页面 page_ids
+    pub quality_score: Option<f64>,    // Lint 评分（仅 llm 页面）
+    pub last_linted_at: Option<i64>,   // 上次 Lint 时间
+    pub last_compiled_at: Option<i64>, // llm 页面上次编译时间，用于判断是否需要重新编译
+    pub compiled_source_hash: Option<String>, // 编译时 source 内容的 hash，用于检测 source 是否已变更
     pub created_at: i64,
     pub updated_at: i64,
     pub is_deleted: i32,
@@ -310,6 +648,18 @@ pub enum Relation {
 }
 ```
 
+**字段设计说明**：
+
+| 字段 | user 笔记 (author="user") | llm 编译页面 (author="llm") |
+|------|--------------------------|---------------------------|
+| `page_type` | `NULL` | concept / entity / comparison / source_summary / index / log / overview |
+| `source_refs` | `NULL` | `["source_id_1", ...]` |
+| `quality_score` | `NULL` | 0.0 ~ 1.0 |
+| `last_linted_at` | `NULL` | Lint 检查时间戳 |
+| `last_compiled_at` | `NULL` | 编译时间戳 |
+| `compiled_source_hash` | `NULL` | 用于检测 source 是否变更需重编译 |
+| `related_pages` | 可选（用户可手动关联） | LLM 编译时自动填充 |
+
 #### 3.1.2 note_links 表
 
 ```rust
@@ -320,6 +670,7 @@ pub enum Relation {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub vault_id: String,              // 所属 Vault，隔离链接关系
     pub source_note_id: String,
     pub target_note_id: String,
     pub link_text: String,
@@ -327,54 +678,9 @@ pub struct Model {
 }
 ```
 
-### 3.2 LLM Wiki 实体（Karpathy 模式）
+### 3.2 LLM Wiki 专有实体（Karpathy 模式）
 
 #### 3.2.1 wiki_sources 表（原始资料）
-
-```rust
-// src-tauri/crates/core/src/entity/wiki_sources.rs
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "wiki_sources")]
-pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: String,
-    pub wiki_id: String,              // 所属 wiki 命名空间
-    pub source_path: String,           // 相对路径 raw/
-    pub source_type: String,          // "web_article", "paper", "book", "raw_markdown"
-    pub title: String,
-    pub url: Option<String>,           // 如果是网页
-    pub content_hash: String,         // SHA256，内容变化检测
-    pub last_ingested_at: Option<i64>,
-    pub created_at: i64,
-}
-```
-
-#### 3.2.2 wiki_pages 表（编译后的知识页面）
-
-```rust
-// src-tauri/crates/core/src/entity/wiki_pages.rs
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "wiki_pages")]
-pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: String,
-    pub wiki_id: String,
-    pub page_type: String,           // "concept", "entity", "comparison", "source_summary", "index", "log", "overview"
-    pub title: String,
-    pub file_path: String,            // 相对路径 notes/
-    pub content: String,
-    pub source_refs: Json,           // ["source_id_1", "source_id_2"]
-    pub related_pages: Json,        // ["page_id_1", "page_id_2"]
-    pub quality_score: f64,          // Lint 评分
-    pub last_linted_at: Option<i64>,
-    pub last_modified_at: i64,
-    pub created_at: i64,
-}
-```
-
-#### 3.2.3 wiki_operations 表（操作日志）
 
 ```rust
 // src-tauri/crates/core/src/entity/wiki_operations.rs
@@ -402,11 +708,20 @@ pub struct Model {
 
 export type Note = {
   id: string;
+  vaultId: string;                   // 所属 Vault
   title: string;
   filePath: string;
   content: string;
   contentHash: string;
   preview: string;
+  author: 'user' | 'llm';             // 区分笔记来源
+  pageType?: NotePageType;            // llm 编译页面的子类型，user 笔记为 undefined
+  sourceRefs?: string[];              // llm 编译来源 source_ids
+  relatedPages?: string[];
+  qualityScore?: number;              // Lint 评分，user 笔记为 undefined
+  lastLintedAt?: number;
+  lastCompiledAt?: number;
+  compiledSourceHash?: string;
   createdAt: number;
   updatedAt: number;
   tags: string[];
@@ -415,8 +730,19 @@ export type Note = {
   isDeleted: boolean;
 };
 
+export type NotePageType =
+  | 'concept'
+  | 'entity'
+  | 'comparison'
+  | 'source_summary'
+  | 'index'
+  | 'log'
+  | 'overview';
+
 export type NoteLink = {
   id: string;
+  vaultId: string;
+  sourceNoteId: string;
   targetNoteId: string;
   targetTitle: string;
   linkText: string;
@@ -441,20 +767,9 @@ export type WikiSource = {
   createdAt: number;
 };
 
-export type WikiPage = {
-  id: string;
-  wikiId: string;
-  pageType: 'concept' | 'entity' | 'comparison' | 'source_summary' | 'index' | 'log' | 'overview';
-  title: string;
-  filePath: string;
-  content: string;
-  sourceRefs: string[];
-  relatedPages: string[];
-  qualityScore: number;
-  lastLintedAt?: number;
-  lastModifiedAt: number;
-  createdAt: number;
-};
+// WikiPage 类型已合并到 Note 中（当 author === 'llm' 时即为编译页面）
+// 使用 type alias 保持向后兼容
+export type WikiPage = Note & { author: 'llm' };
 
 export type WikiOperation = {
   id: string;
@@ -1271,7 +1586,9 @@ export function UploadPanel() {
 
 ## 十一、实现计划
 
-### 9.1 Phase 1：Obsidian 核心（3 人天）
+> **时间估算说明**：原估算 12 人天偏乐观，本方案增加 25% buffer，并新增风险缓解任务。
+
+### 11.1 Phase 1：Obsidian 核心（4 人天）
 
 | 任务 | 文件变更 | 工作量 |
 |------|----------|--------|
@@ -1280,8 +1597,9 @@ export function UploadPanel() {
 | Tauri Commands | 新增 `wiki_notes_*` 命令 | 0.5 人天 |
 | 前端页面 | `WikiPage.tsx`, `NoteEditor.tsx` | 1 人天 |
 | 双链解析 | `markdown_parser.rs` | 0.5 人天 |
+| 模块依赖规范 | 明确 L1-L6 依赖层级，禁止循环依赖 | 0.5 人天 |
 
-### 9.2 Phase 2：LLM Wiki 核心（4 人天）
+### 11.2 Phase 2：LLM Wiki 核心（5 人天）
 
 | 任务 | 文件变更 | 工作量 |
 |------|----------|--------|
@@ -1291,8 +1609,9 @@ export function UploadPanel() {
 | QueryEngine | 新增 `agent/src/query_engine.rs` | 0.5 人天 |
 | LintChecker | 新增 `agent/src/lint_checker.rs` | 0.5 人天 |
 | LLM Wiki Commands | 新增 `llm_wiki_*` 命令 | 0.5 人天 |
+| **SchemaManager** | 新增 `agent/src/schema_manager.rs`（版本管理） | 0.5 人天 |
 
-### 9.3 Phase 3：LLM Wiki 前端（3 人天）
+### 11.3 Phase 3：LLM Wiki 前端（3.5 人天）
 
 | 任务 | 文件变更 | 工作量 |
 |------|----------|--------|
@@ -1302,15 +1621,38 @@ export function UploadPanel() {
 | Lint 报告 | `LintReport.tsx` | 0.5 人天 |
 | 操作日志 | `OperationTimeline.tsx` | 0.5 人天 |
 
-### 9.4 Phase 4：RAG 与同步（2 人天）
+### 11.4 Phase 4：RAG 与同步（3 人天）
 
 | 任务 | 文件变更 | 工作量 |
 |------|----------|--------|
 | WikiRAG | 扩展 `rag.rs`，新增 `WikiRAG` | 0.5 人天 |
-| 知识图谱 | `GraphView.tsx` (D3.js) | 1 人天 |
+| **WikiVaultRAG 容量管理** | `rag.rs` 新增 `check_capacity()`，Vault 软上限 20 | 0.5 人天 |
+| **同步队列** | 新增 `entity/wiki_sync_queue.rs`，事件溯源同步机制 | 1 人天 |
+| 知识图谱 | `GraphView.tsx` (D3.js + Canvas LOD) | 1 人天 |
 | 云同步 | 复用现有 S3/WebDAV | 0.5 人天 |
 
-### 9.5 文件变更清单
+### 11.5 Phase 5：风险缓解与集成（2.5 人天）
+
+| 任务 | 文件变更 | 工作量 |
+|------|----------|--------|
+| **LLM 编译质量检查** | `WikiCompiler` 集成 `quality_score` 计算 | 0.5 人天 |
+| **LLM 编译防覆盖** | `should_overwrite()` 逻辑 + `user_edited` 字段 | 0.5 人天 |
+| **全量校验 Worker** | 定时任务比对文件系统 hash 与向量库版本 | 0.5 人天 |
+| 集成测试 | Wiki ↔ RAG 同步一致性测试 | 0.5 人天 |
+| 性能测试 | 图谱 500+ 节点 Canvas 模式测试 | 0.5 人天 |
+
+### 11.6 时间汇总
+
+| Phase | 原估算 | 更新后估算 | 增量 |
+|-------|--------|------------|------|
+| Phase 1 | 3 人天 | 4 人天 | +1 |
+| Phase 2 | 4 人天 | 5 人天 | +1 |
+| Phase 3 | 3 人天 | 3.5 人天 | +0.5 |
+| Phase 4 | 2 人天 | 3 人天 | +1 |
+| Phase 5 | - | 2.5 人天 | +2.5 |
+| **总计** | **12 人天** | **18 人天** | **+6** |
+
+### 11.7 文件变更清单
 
 | 操作 | 文件路径 |
 |------|---------|
@@ -1319,6 +1661,7 @@ export function UploadPanel() {
 | **新增** | `src-tauri/crates/core/src/entity/wiki_sources.rs` |
 | **新增** | `src-tauri/crates/core/src/entity/wiki_pages.rs` |
 | **新增** | `src-tauri/crates/core/src/entity/wiki_operations.rs` |
+| **新增** | `src-tauri/crates/core/src/entity/wiki_sync_queue.rs` |
 | **新增** | `src-tauri/crates/core/src/repo/note.rs` |
 | **新增** | `src-tauri/crates/core/src/repo/wiki.rs` |
 | **新增** | `src-tauri/crates/core/src/markdown_parser.rs` |
@@ -1326,7 +1669,8 @@ export function UploadPanel() {
 | **新增** | `src-tauri/crates/agent/src/ingest_pipeline.rs` |
 | **新增** | `src-tauri/crates/agent/src/query_engine.rs` |
 | **新增** | `src-tauri/crates/agent/src/lint_checker.rs` |
-| **修改** | `src-tauri/crates/core/src/rag.rs` (新增 WikiRAG) |
+| **新增** | `src-tauri/crates/agent/src/schema_manager.rs` |
+| **修改** | `src-tauri/crates/core/src/rag.rs` (新增 WikiRAG + 容量管理) |
 | **修改** | `src-tauri/src/commands/mod.rs` (新增命令) |
 | **新增** | `src/pages/WikiPage.tsx` |
 | **新增** | `src/pages/WikiEditorPage.tsx` |

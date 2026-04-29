@@ -22,6 +22,7 @@ import {
   DownloadOutlined as DLOutlined,
 } from "@ant-design/icons";
 import { reviewApi, ReviewResponse, MarketplaceStats } from "@/lib/reviewApi";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -97,6 +98,7 @@ function formatDate(timestamp: number): string {
 }
 
 export function WorkflowMarketplace() {
+  const { t } = useTranslation();
   const [templates] = useState<MarketplaceTemplate[]>(mockTemplates);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -151,19 +153,19 @@ export function WorkflowMarketplace() {
     try {
       if (myReview) {
         await reviewApi.updateReview(myReview.id, values);
-        message.success("Review updated successfully");
+        message.success(t("review.updatedSuccess"));
       } else {
         await reviewApi.createReview({
           marketplace_id: selectedTemplate.id,
           rating: values.rating,
           comment: values.comment,
         });
-        message.success("Review submitted successfully");
+        message.success(t("review.submittedSuccess"));
       }
       loadReviews(selectedTemplate.id);
       reviewForm.resetFields();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "Failed to submit review");
+      message.error(error instanceof Error ? error.message : t("review.failedToSubmit"));
     } finally {
       setSubmittingReview(false);
     }
@@ -174,12 +176,12 @@ export function WorkflowMarketplace() {
 
     try {
       await reviewApi.deleteReview(myReview.id);
-      message.success("Review deleted successfully");
+      message.success(t("review.deletedSuccess"));
       if (selectedTemplate) {
         loadReviews(selectedTemplate.id);
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "Failed to delete review");
+      message.error(error instanceof Error ? error.message : t("review.failedToDelete"));
     }
   };
 
@@ -192,11 +194,11 @@ export function WorkflowMarketplace() {
   });
 
   const handleDownload = (template: MarketplaceTemplate) => {
-    message.success(`Downloading "${template.name}"...`);
+    message.success(t("marketplace.downloading", { name: template.name }));
   };
 
   const handleImport = () => {
-    message.info("Import functionality - select a workflow file to import");
+    message.info(t("marketplace.importInfo"));
   };
 
   const renderTemplateCard = (template: MarketplaceTemplate) => (
@@ -214,7 +216,7 @@ export function WorkflowMarketplace() {
         title={
           <Space>
             {template.name}
-            {template.isFeatured && <Tag color="gold">Featured</Tag>}
+            {template.isFeatured && <Tag color="gold">{t("marketplace.featured")}</Tag>}
           </Space>
         }
         description={
@@ -238,27 +240,27 @@ export function WorkflowMarketplace() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Title level={5} className="m-0">
-          Customer Reviews
+          {t("marketplace.customerReviews")}
         </Title>
         {stats && (
           <div className="flex items-center gap-2">
             <Rate disabled value={stats.rating_average} allowHalf />
             <Text>{stats.rating_average.toFixed(1)}</Text>
-            <Text type="secondary">({stats.total_reviews} reviews)</Text>
+            <Text type="secondary">({stats.total_reviews} {t("marketplace.reviews")})</Text>
           </div>
         )}
       </div>
 
       <div className="border p-4 rounded">
         <Title level={5} className="m-0 mb-4">
-          {myReview ? "Your Review" : "Write a Review"}
+          {myReview ? t("marketplace.yourReview") : t("marketplace.writeReview")}
         </Title>
         {myReview ? (
           <div className="space-y-2">
             <Rate disabled value={myReview.rating} />
             {myReview.comment && <p>{myReview.comment}</p>}
             <Text type="secondary" className="text-xs">
-              Posted on {formatDate(myReview.created_at)}
+              {t("common.postedOn")} {formatDate(myReview.created_at)}
             </Text>
             <div className="flex gap-2 mt-2">
               <Button
@@ -267,24 +269,24 @@ export function WorkflowMarketplace() {
                   reviewForm.setFieldsValue({ rating: myReview.rating, comment: myReview.comment || "" });
                 }}
               >
-                Edit
+                {t("common.edit")}
               </Button>
               <Button size="small" danger onClick={handleDeleteReview}>
-                Delete
+                {t("common.delete")}
               </Button>
             </div>
           </div>
         ) : (
           <Form form={reviewForm} onFinish={handleSubmitReview} layout="vertical">
-            <Form.Item name="rating" label="Rating" rules={[{ required: true, message: "Please select a rating" }]}>
+            <Form.Item name="rating" label={t("common.rating")} rules={[{ required: true, message: t("review.ratingRequired") }]}>
               <Rate />
             </Form.Item>
-            <Form.Item name="comment" label="Comment">
-              <Input.TextArea rows={3} placeholder="Share your experience..." />
+            <Form.Item name="comment" label={t("common.comment")}>
+              <Input.TextArea rows={3} placeholder={t("review.commentPlaceholder")} />
             </Form.Item>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={submittingReview}>
-                Submit Review
+                {t("marketplace.submitReview")}
               </Button>
             </Form.Item>
           </Form>
@@ -293,9 +295,9 @@ export function WorkflowMarketplace() {
 
       <Spin spinning={loadingReviews}>
         <List
-          header={<Title level={5}>All Reviews</Title>}
+          header={<Title level={5}>{t("marketplace.allReviews")}</Title>}
           dataSource={reviews}
-          locale={{ emptyText: "No reviews yet" }}
+          locale={{ emptyText: t("marketplace.noReviews") }}
           renderItem={(item) => (
             <List.Item>
               <List.Item.Meta
@@ -321,7 +323,7 @@ export function WorkflowMarketplace() {
     <div className="flex h-full">
       <aside className="w-56 border-r p-4 bg-white">
         <Title level={5} className="mb-4">
-          Categories
+          {t("marketplace.categories")}
         </Title>
         <div className="flex flex-col gap-1">
           {categories.map((cat) => (
@@ -338,11 +340,11 @@ export function WorkflowMarketplace() {
         </div>
 
         <Title level={5} className="mt-6 mb-4">
-          Quick Actions
+          {t("marketplace.quickActions")}
         </Title>
         <div className="flex flex-col gap-2">
           <Button icon={<UploadOutlined />} onClick={handleImport} block>
-            Import Workflow
+            {t("marketplace.importWorkflow")}
           </Button>
         </div>
       </aside>
@@ -350,11 +352,11 @@ export function WorkflowMarketplace() {
       <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
         <div className="flex items-center justify-between mb-6">
           <Title level={4} className="m-0">
-            Workflow Marketplace
+            {t("marketplace.title")}
           </Title>
           <Space>
             <Search
-              placeholder="Search workflows..."
+              placeholder={t("marketplace.searchWorkflows")}
               allowClear
               onSearch={setSearchText}
               onChange={(e) => setSearchText(e.target.value)}
@@ -369,7 +371,7 @@ export function WorkflowMarketplace() {
           items={[
             {
               key: "templates",
-              label: "Templates",
+              label: t("marketplace.templates"),
               children: (
                 <div className="grid grid-cols-3 gap-4">
                   {filteredTemplates.length > 0 ? (
@@ -389,14 +391,14 @@ export function WorkflowMarketplace() {
                       </div>
                     ))
                   ) : (
-                    <Empty description="No templates found" className="col-span-3" />
+                    <Empty description={t("marketplace.noTemplatesFound")} className="col-span-3" />
                   )}
                 </div>
               ),
             },
             {
               key: "featured",
-              label: "Featured",
+              label: t("marketplace.featured"),
               children: (
                 <div className="grid grid-cols-3 gap-4">
                   {templates
@@ -429,7 +431,7 @@ export function WorkflowMarketplace() {
         onCancel={handleCloseDetail}
         footer={[
           <Button key="close" onClick={handleCloseDetail}>
-            Close
+            {t("common.close")}
           </Button>,
           <Button
             key="download"
@@ -437,7 +439,7 @@ export function WorkflowMarketplace() {
             icon={<DownloadOutlined />}
             onClick={() => selectedTemplate && handleDownload(selectedTemplate)}
           >
-            Download
+            {t("common.download")}
           </Button>,
         ]}
         width={700}
@@ -448,31 +450,31 @@ export function WorkflowMarketplace() {
               items={[
                 {
                   key: "details",
-                  label: "Details",
+                  label: t("marketplace.details"),
                   children: (
                     <Space direction="vertical" className="w-full" size="large">
                       <div>
-                        <Text type="secondary">Description</Text>
+                        <Text type="secondary">{t("common.description")}</Text>
                         <div>{selectedTemplate.description}</div>
                       </div>
                       <div className="flex gap-8">
                         <div>
-                          <Text type="secondary">Category</Text>
+                          <Text type="secondary">{t("common.category")}</Text>
                           <div>
                             <Tag>{selectedTemplate.category}</Tag>
                           </div>
                         </div>
                         <div>
-                          <Text type="secondary">Author</Text>
+                          <Text type="secondary">{t("marketplace.author")}</Text>
                           <div>{selectedTemplate.author}</div>
                         </div>
                         <div>
-                          <Text type="secondary">Downloads</Text>
+                          <Text type="secondary">{t("marketplace.downloads")}</Text>
                           <div>{selectedTemplate.downloads}</div>
                         </div>
                       </div>
                       <div>
-                        <Text type="secondary">Rating</Text>
+                        <Text type="secondary">{t("common.rating")}</Text>
                         <div>
                           <Rate disabled defaultValue={selectedTemplate.rating} allowHalf />
                           <Text className="ml-2">({selectedTemplate.rating})</Text>
@@ -480,7 +482,7 @@ export function WorkflowMarketplace() {
                       </div>
                       {selectedTemplate.tags && (
                         <div>
-                          <Text type="secondary">Tags</Text>
+                          <Text type="secondary">{t("common.tags")}</Text>
                           <div className="flex gap-1 mt-1">
                             {selectedTemplate.tags.map((tag) => (
                               <Tag key={tag}>{tag}</Tag>
@@ -493,7 +495,7 @@ export function WorkflowMarketplace() {
                 },
                 {
                   key: "reviews",
-                  label: "Reviews",
+                  label: t("marketplace.reviews"),
                   children: renderReviewsTab(),
                 },
               ]}

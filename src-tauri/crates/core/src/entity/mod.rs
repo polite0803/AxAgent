@@ -63,4 +63,14 @@ pub mod workflow_executions;
 pub mod workflow_marketplace;
 pub mod workflow_marketplace_review;
 
+// Wiki / LLM Wiki entities
+pub mod notes;
+pub mod note_links;
+pub mod note_backlinks;
+pub mod wikis;
+pub mod wiki_sources;
+pub mod wiki_pages;
+pub mod wiki_operations;
+pub mod wiki_sync_queue;
+
 pub use sea_orm;

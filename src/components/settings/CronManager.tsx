@@ -1,7 +1,6 @@
 import { Button, Input, Modal, Popconfirm, Switch, Table, Tag, Typography, App } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;

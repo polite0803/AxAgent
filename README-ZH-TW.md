@@ -1,235 +1,434 @@
-[简体中文](./README.md) | **繁體中文** | [English](./README-EN.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
+[**English**](./README-EN.md) | [简体中文](./README.md) | **繁體中文** | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
 
 [![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
 
 <p align="center">
-    <a href="https://www.producthunt.com/products/axagent?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
+  <a href="https://www.producthunt.com/products/axagent?embed=true&amp&amp&utm_source=badge-featured&amp&amp;&amp;#10;&amp;amp&amp&amp;;utm_medium=badge&amp&amp;#10&amp&amp;;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
 </p>
 
-## 執行截圖
+<p align="center">
+  <strong>跨平台 AI 桌面客戶端 | 多智能體協作 | 本地優先</strong>
+</p>
 
-| 對話圖表渲染 | 服務商與模型 |
+<p align="center">
+  <a href="https://github.com/polite0803/AxAgent/releases" target="_blank">
+    <img src="https://img.shields.io/github/v/release/polite0803/AxAgent?style=flat-square" alt="Release">
+  </a>
+  <a href="https://github.com/polite0803/AxAgent/actions" target="_blank">
+    <img src="https://img.shields.io/github/actions/workflow/status/polite0803/AxAgent/release.yml?style=flat-square" alt="Build">
+  </a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square" alt="License">
+</p>
+
+---
+
+## 什麼是 AxAgent？
+
+AxAgent 是一款功能全面的跨平台 AI 桌面應用，整合了先進的 AI 智能體能力和豐富的開發者工具。它支援多模型提供商、自主管道執行、可視化工作流編排、本地知識管理以及內建 API 網關。
+
+---
+
+## 截圖預覽
+
+| 對話與模型選擇 | 多智能體儀表盤 |
 |:---:|:---:|
-| ![](.github/images/s1-0412.png) | ![](.github/images/s2-0412.png) |
+| ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| 知識庫 | 記憶 |
+| 知識庫 RAG | 記憶與上下文 |
 |:---:|:---:|
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| Agent-詢問 | API閘道一鍵接入 |
-|:---:|:---:|
-| ![](.github/images/s5-0412.png) | ![](.github/images/s6-0412.png) |
-
-| 對話模型選擇 | 對話導航 |
-|:---:|:---:|
-| ![](.github/images/s7-0412.png) | ![](.github/images/s8-0412.png) |
-
-| Agent-權限審批 | API閘道概覽 |
+| 工作流編輯器 | API 閘道 |
 |:---:|:---:|
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
-## 功能特性
+---
 
-### 對話與模型
+## 核心功能
 
-- **多供應商支援** — 相容 OpenAI、Anthropic Claude、Google Gemini 等所有 OpenAI 相容 API；支援 Ollama 本地模型、OpenClaw/Hermes 遠程網關接入
-- **模型管理** — 支援遠端拉取模型列表、自訂參數（溫度、最大 Token、Top-P 等）
-- **多金鑰輪詢** — 每個供應商可設定多個 API Key，自動輪換以分散限流壓力
-- **串流輸出** — 即時逐 Token 渲染，thinking 區塊可折疊展開
-- **訊息版本** — 每條回覆支援多版本切換，方便對比不同模型或參數的效果
-- **對話分支** — 從任意訊息節點派生新分支，支援分支間對比
-- **對話管理** — 支援置頂、封存、按時間分組、批次操作
-- **對話壓縮** — 自動壓縮冗長對話，保留關鍵資訊以節省上下文空間
-- **多模型同答案** — 同一問題同時向多個模型提問，支援答案間對比分析
-- **分類系統** — 自訂對話分類，支援按主題組織對話
+### 🤖 AI 模型支援
 
-### AI Agent
+- **多提供商支援** — 原生整合 OpenAI、Anthropic Claude、Google Gemini、Ollama、OpenClaw、Hermes 及所有 OpenAI 相容 API
+- **多 Key 輪換** — 為每個提供商配置多個 API Key，自動輪換分發限流
+- **本地模型支援** — 完整支援 Ollama 本地模型，包含 GGUF/GGML 檔案管理
+- **模型管理** — 遠端模型列表獲取，可自訂參數（temperature、max tokens、top-p 等）
+- **串流輸出** — 即時逐 Token 渲染，支援可折疊的思考塊（Claude 擴展思考）
+- **多模型對比** — 同時向多個模型提問，side-by-side 對比結果
+- **函數呼叫** — 跨所有支援提供商的結構化函數呼叫
 
-- **Agent 模式** — 切換至 Agent 模式，AI 可自主執行多步驟任務：讀寫檔案、執行命令、分析程式碼等
-- **三級權限** — 預設模式（寫入需審批）、接受編輯（自動批准修改）、完全存取（無提示），安全可控
-- **工作目錄沙箱** — Agent 操作嚴格限制在指定工作目錄內，防止越權存取
-- **工具審批面板** — 即時展示工具呼叫請求，支援逐條審核、一鍵始終允許或拒絕
-- **成本追蹤** — 每次對話即時統計 Token 用量與費用
-- **暫停/恢復** — 支援隨時暫停 Agent 任務，審閱後再恢復執行
-- **Bash 命令執行** — 支援在沙箱環境中執行 Shell 命令，自動風險驗證
+### 🔐 AI 智能體系統
 
-### 多智慧體系統
+智能體系統基於精密架構構建，具備以下特性：
 
-- **子 Agent 協調** — 支援建立多個子 Agent，形成主從協調架構
-- **並行執行** — 支援多 Agent 並行處理任務，提升複雜任務效率
-- **對抗辯論** — 支援多 Agent 對抗辯論模式，透過觀點碰撞產生更好的解決方案
-- **工作流引擎** — 強大的工作流編排能力，支援條件分支、循環、並行等複雜邏輯
-- **團隊角色** — 為不同 Agent 分配特定角色（程式碼審查、測試、文件等），協同完成開發任務
+- **ReAct 推理引擎** — 融合推理與行動，內建自驗證確保任務執行可靠
+- **層級規劃器** — 將複雜任務分解為具有階段和依賴關係的結構化計劃
+- **工具註冊表** — 動態工具註冊，支援語義版本控制和衝突檢測
+- **計算機控制** — AI 控制的滑鼠點擊、鍵盤輸入、螢幕滾動，配合視覺模型分析
+- **螢幕感知** — 截圖擷取和視覺模型分析，用於 UI 元素識別
+- **三級許可權模式** — 預設（需要審批）、接受編輯（自動批准）、完全訪問（無提示）
+- **沙箱隔離** — 智能體操作嚴格限制在指定工作目錄內
+- **工具審批面板** — 即時顯示工具呼叫請求，支援逐條審批
+- **成本追蹤** — 即時顯示每個對話的 token 使用量和成本統計
+- **暫停/恢復** — 隨時暫停智能體執行，稍後恢復
+- **檢查點系統** — 持久化檢查點用於崩潰恢復和對話重連
+- **錯誤恢復引擎** — 自動錯誤分類和恢復策略執行
 
-### 技能系統
+### 👥 多智能體協作
 
-- **技能市場** — 內建技能市場，瀏覽和安裝社區貢獻的技能
+- **子智能體協調** — 主從架構，支援多個協作智能體
+- **並行執行** — 多個智能體並行處理任務，支援依賴感知調度
+- **對抗性辯論** — Pro/Con 辯論輪次，支援論點強度評分和反駁追蹤
+- **智能體角色** — 預定義角色（研究員、規劃師、開發者、評審員、綜合員）用於團隊協作
+- **智能體編排器** — 多智能體團隊的中心化消息路由和狀態管理
+- **通訊圖譜** — 智能體互動和消息流的可視化展示
+
+### ⭐ 技能系統
+
+- **技能市場** — 內建市場，瀏覽和安裝社群貢獻的技能
 - **技能創建** — 從提案自動建立技能，支援 Markdown 編輯器
-- **技能進化** — AI 自動分析和改進現有技能，提升執行效果
-- **技能匹配** — 智慧推薦相關技能，自動應用到合適的對話場景
-- **本地技能註冊** — 支援自訂本地工具作為技能使用
-- **插件鉤子** — 支援 pre/post 鉤子，在技能執行前後注入自訂邏輯
-- **原子技能** — 細粒度技能組件，支援複雜工作流的建構
+- **技能進化** — 基於執行回饋的 AI 驅動的現有技能自動分析和改進
+- **技能匹配** — 語義匹配，推薦與對話上下文相關的技能
+- **原子技能** — 可組合成複雜工作流的細粒度技能元件
 - **技能分解** — 自動將複雜任務分解為可執行的原子技能
-- **生成工具** — AI 自動生成和註冊新工具，擴展 Agent 能力
+- **生成工具** — AI 自動產生並註冊新工具，擴展智能體能力
+- **技能中心** — 集中的技能發現和配置管理介面
+- **技能中心用戶端** — 與遠端技能中心整合，支援社群分享
 
-### 工作流系統
+### 🔄 工作流系統
 
-- **工作流編輯器** — 可視化拖放式工作流設計器，支援節點連接和配置
-- **工作流模板** — 內建多種預設模板，快速啟動常見任務
-- **版本管理** — 工作流模板支援版本控制，可回滾到歷史版本
-- **工作引擎** — 強大的工作流執行引擎，支援並行、條件和迴圈執行
-- **執行歷史** — 詳細記錄工作流執行歷史，支援狀態追蹤和除錯
-- **AI 輔助** — AI 輔助工作流設計，自動生成和優化工作流
+工作流引擎實現了基於 DAG 的任務編排系統：
 
-### 內容渲染
+- **可視化工作流編輯器** — 拖放式工作流設計器，支援節點連接和配置
+- **豐富節點類型** — 14 種節點類型：觸發器、智能體、LLM、條件、並行、循環、合併、延遲、工具、代碼、原子技能、向量檢索、文檔解析、驗證
+- **工作流模板** — 內建預設：代碼審查、Bug 修復、文檔、測試、重構、探索效能、安全、功能開發
+- **DAG 執行** — Kahn 演算法拓撲排序，支援循環檢測
+- **並行調度** — 流水線式執行，快速步驟不等慢速步驟
+- **重試策略** — 指數退避，每步可配置最大重試次數
+- **部分完成** — 失敗的步驟不會阻塞獨立的下游步驟
+- **版本管理** — 工作流模板版本控制，支援回滾
+- **執行歷史** — 詳細記錄，支援狀態追蹤和調試
+- **AI 輔助** — AI 輔助工作流設計和優化
 
-- **Markdown 渲染** — 完整支援程式碼高亮、LaTeX 數學公式、表格、任務清單
-- **Monaco 程式碼編輯器** — 程式碼區塊內嵌 Monaco Editor，支援語法高亮、複製、diff 預覽
-- **圖表渲染** — 內建 Mermaid 流程圖與 D2 架構圖渲染
-- **Artifact 面板** — 程式碼片段、HTML 草稿、Markdown 筆記、報告可在獨立面板中預覽
-- **對話檢視器** — 即時顯示對話結構樹狀圖，快速導航到任意訊息
+### 📚 知識與記憶
 
-### 搜尋與知識
+- **知識庫（RAG）** — 多知識庫支援，支援文檔上傳、自動解析、分塊和向量索引
+- **混合搜索** — 結合向量相似度搜索與 BM25 全文排名
+- **重排序** — Cross-encoder 重排序，提升檢索精度
+- **知識圖譜** — 知識關聯的實體關係可視化
+- **記憶系統** — 多命名空間記憶，支援手動錄入或 AI 自動提取
+- **閉環記憶** — 整合 Honcho 和 Mem0 持久化記憶提供商
+- **FTS5 全文搜索** — 跨對話、檔、記憶的快速檢索
+- **對話搜索** — 跨所有對話對話的高級搜索
+- **上下文管理** — 靈活附加檔、搜索結果、知識片段、記憶、工具輸出
 
-- **聯網搜尋** — 整合 Tavily、智譜 WebSearch、Bocha 等，搜尋結果附帶引用來源標注
-- **本地知識庫（RAG）** — 支援多知識庫，上傳文件後自動解析分段並建立向量索引，對話時語意檢索相關段落
-- **知識圖譜** — 支援知識實體關係圖譜，可視化展示知識點之間的關聯
-- **記憶系統** — 多命名空間記憶，可手動新增或由 AI 自動提取關鍵資訊
-- **全文搜尋** — FTS5 全文搜尋引擎，支援對話、檔案、記憶的快速檢索
-- **上下文管理** — 彈性掛載檔案附件、搜尋結果、知識庫片段、記憶條目、工具輸出
+### 🌐 API 網關
 
-### 工具與擴充
+- **本地 API 伺服器** — 內建 OpenAI 相容、Claude 和 Gemini 介面伺服器
+- **外部連結** — 一鍵整合 Claude CLI、OpenCode，自動同步 API Key
+- **Key 管理** — 產生、撤銷、啟用/停用存取 Key，支援描述
+- **用量分析** — 按 Key、提供商、日期的請求量和 token 使用量
+- **SSL/TLS 支援** — 內建自簽名憑證，支援自訂憑證
+- **請求日誌** — 完整記錄所有 API 請求和回應
+- **配置模板** — Claude、Codex、OpenCode、Gemini 的預建模板
+- **即時 API** — 相容 OpenAI 即時 API 的 WebSocket 事件推送
+- **平台整合** — 支援釘釘、飛書、QQ、Slack、微信、WhatsApp
 
-- **MCP 協議** — 完整實作 Model Context Protocol，支援 stdio 和 HTTP/WebSocket 兩種傳輸方式
-- **OAuth 認證** — 支援 MCP 伺服器 OAuth 認證流程
-- **內建工具** — 提供檔案操作、程式碼執行、搜尋等開箱即用的內建工具
-- **工具執行面板** — 可視化展示工具呼叫請求與回傳結果
-- **LSP 客戶端** — 內建 LSP 協議支援，程式碼智慧補完和診斷
+### 🔧 工具與擴展
 
-### API 閘道
+- **MCP 協定** — 完整的模型上下文協定實現，支援 stdio 和 HTTP/WebSocket 傳輸
+- **OAuth 認證** — MCP 伺服器的 OAuth 流程支援
+- **內建工具** — 全面的檔操作、程式碼執行、搜索等工具集
+- **LSP 用戶端** — 內建語言伺服器協定，支援程式碼補全和診斷
+- **終端後端** — 支援本地、Docker 和 SSH 終端連接
+- **瀏覽器自動化** — 通過 CDP 整合瀏覽器控制能力
+- **UI 自動化** — 跨平台 UI 元素識別和控制
+- **Git 工具** — Git 操作，支援分支檢測和衝突感知
 
-- **本地 API 閘道** — 內建 OpenAI 相容、Claude、Gemini 等原生介面的本地 API 伺服器
-- **外部連結** — 一鍵接入 Claude CLI、OpenCode 等外部工具，自動同步 API 金鑰
-- **API 金鑰管理** — 產生、撤銷、啟停存取金鑰，支援描述備注
-- **用量統計** — 依金鑰、供應商、日期維度的請求量與 Token 用量分析
-- **診斷工具** — 閘道健康檢查、連線測試、請求調試
-- **SSL/TLS 支援** — 內建自簽憑證產生，也支援掛載自訂憑證
-- **請求日誌** — 完整記錄所有經過閘道的 API 請求與回應
-- **設定範本** — 預置 Claude、Codex、OpenCode、Gemini 等常見 CLI 工具的接入設定範本
-- **即時通訊** — 支援 WebSocket 即時事件推送，相容 OpenAI Realtime API
+### 📊 內容渲染
 
-### 資料與安全
+- **Markdown 渲染** — 完整支援代碼高亮、LaTeX 數學公式、表格、任務列表
+- **Monaco 程式碼編輯器** — 內建編輯器，支援語法高亮、複製、差異預覽
+- **圖表渲染** — Mermaid 流程圖、D2 架構圖、ECharts 互動式圖表
+- **產物面板** — 程式碼片段、HTML 草稿、React 元件、Markdown 筆記，支援即時預覽
+- **三種預覽模式** — 代碼（編輯器）、分屏（並排）、預覽（僅渲染）
+- **對話檢查器** — 對話結構的樹形視圖，快速導航
+- **引用面板** — 追蹤和顯示來源引用，支援可信度評分
 
-- **AES-256 加密** — API Key 等敏感資料使用 AES-256-GCM 加密存儲於本地
-- **資料目錄隔離** — 應用程式狀態存儲於 `~/.axagent/`，使用者檔案存儲於 `~/Documents/axagent/`
-- **自動備份** — 支援定時自動備份到本地目錄、WebDAV 存儲
-- **備份還原** — 一鍵從歷史備份還原完整資料
-- **對話匯出** — 支援將對話匯出為 PNG 截圖、Markdown、純文字或 JSON 格式
-- **儲存空間管理** — 可視化展示磁碟使用情况，清理不需要的檔案
+### 🛡️ 資料與安全
 
-### 桌面體驗
+- **AES-256 加密** — API Key 和敏感資料使用 AES-256-GCM 加密
+- **隔離存儲** — 應用狀態存儲在 `~/.axagent/`，用戶檔存儲在 `~/Documents/axagent/`
+- **自動備份** — 計畫備份到本地目錄或 WebDAV 存儲
+- **備份恢復** — 一鍵從歷史備份恢復
+- **匯出選項** — PNG 截圖、Markdown、純文字、JSON 格式
+- **存儲管理** — 可視化磁碟使用顯示和清理工具
 
-- **主題切換** — 深色/淺色主題，可跟隨系統或手動指定
-- **介面語言** — 完整支援簡體中文、繁體中文、英文、日文、韓文、法文、德文、西班牙文、俄文、印地文與阿拉伯文
-- **系統托盤** — 關閉視窗時最小化到系統托盤，不中斷後台服務
-- **視窗置頂** — 可將主視窗常駐最頂層
-- **全局快捷鍵** — 自訂全局快捷鍵，隨時喚起主視窗
-- **開機自啟** — 可選擇隨系統自動啟動
-- **代理支援** — 支援 HTTP 和 SOCKS5 代理設定
-- **自動更新** — 啟動時自動偵測新版本並提示更新
-- **命令面板** — `Cmd/Ctrl+K` 快速訪問所有命令和設定
+### 🖥️ 桌面體驗
 
-## 平台支援
+- **主題引擎** — 深色/淺色主題，支援跟隨系統或手動偏好
+- **介面語言** — 12 種語言：簡體中文、繁體中文、英語、日語、韓語、法語、德語、西班牙語、俄語、印地語、阿拉伯語
+- **系統匣** — 最小化到系統匣，不中斷後台服務
+- **置頂視窗** — 視窗置頂於其他視窗之上
+- **全域快捷鍵** — 可自訂快捷鍵叫出主視窗
+- **開機自啟** — 可選在系統啟動時執行
+- **代理支援** — HTTP 和 SOCKS5 代理配置
+- **自動更新** — 自動檢查版本，有更新時提示
+- **命令面板** — `Cmd/Ctrl+K` 快速存取命令
+
+### 🔬 高級功能
+
+- **Cron 調度器** — 自動化任務調度，支援每日/每週/每月模板和自訂 cron 表達式
+- **Webhook 系統** — 事件訂閱，支援工具完成、智能體錯誤、對話結束通知
+- **用戶畫像** — 自動學習程式碼風格、命名規範、縮排、註釋風格、溝通偏好
+- **RL 優化器** — 強化學習優化工具選擇和任務策略
+- **LoRA 微調** — 使用 LoRA 進行本地訓練的自訂模型適配
+- **主動建議** — 基於對話內容和使用戶模式的上下文感知提示
+- **思維鏈** — 智能體決策推理的可視化，逐步分解
+- **錯誤恢復** — 自動錯誤分類、根因分析和恢復建議
+- **開發者工具** — Trace、Span、時間線可視化，用於調試和效能分析
+- **基準測試系統** — 任務效能評估和指標，帶評分卡
+- **風格遷移** — 將學習的程式碼風格偏好套用到生成的程式碼
+- **儀表盤插件** — 可擴展的儀表盤，支援自訂面板和小工具
+
+---
+
+## 技術架構
+
+### 技術堆疊
+
+| 層級 | 技術 |
+|------|------|
+| **框架** | Tauri 2 + React 19 + TypeScript |
+| **UI** | Ant Design 6 + TailwindCSS 4 |
+| **狀態管理** | Zustand 5 |
+| **國際化** | i18next + react-i18next |
+| **後端** | Rust + SeaORM + SQLite |
+| **向量資料庫** | sqlite-vec |
+| **程式碼編輯器** | Monaco Editor |
+| **圖表** | Mermaid + D2 + ECharts |
+| **終端** | xterm.js |
+| **構建** | Vite + npm |
+
+### Rust 後端架構
+
+後端組織為 Rust workspace，包含專業化的 crates：
+
+```
+src-tauri/crates/
+├── agent/         # AI 智能體核心
+│   ├── react_engine.rs       # ReAct 推理引擎
+│   ├── tool_registry.rs      # 動態工具註冊
+│   ├── coordinator.rs        # 智能體協調
+│   ├── hierarchical_planner.rs # 任務分解
+│   ├── self_verifier.rs      # 輸出驗證
+│   ├── error_recovery_engine.rs # 錯誤處理
+│   ├── vision_pipeline.rs    # 螢幕感知
+│   └── fine_tune/            # LoRA 微調
+│
+├── core/          # 核心工具
+│   ├── db.rs               # SeaORM 資料庫
+│   ├── vector_store.rs     # sqlite-vec 整合
+│   ├── rag.rs             # RAG 抽象層
+│   ├── hybrid_search.rs    # 向量 + FTS5 搜索
+│   ├── crypto.rs           # AES-256 加密
+│   └── mcp_client.rs       # MCP 協定用戶端
+│
+├── gateway/       # API 網關
+│   ├── server.rs          # HTTP 伺服器
+│   ├── handlers.rs         # API 處理器
+│   ├── auth.rs            # 認證
+│   └── realtime.rs        # WebSocket 支援
+│
+├── providers/     # 模型介面卡
+│   ├── openai.rs         # OpenAI API
+│   ├── anthropic.rs      # Claude API
+│   ├── gemini.rs         # Gemini API
+│   └── ollama.rs         # Ollama 本地
+│
+├── runtime/       # 執行時服務
+│   ├── session.rs        # 對話管理
+│   ├── workflow_engine.rs # DAG 編排
+│   ├── mcp.rs            # MCP 伺服器
+│   ├── cron/             # 任務調度
+│   ├── terminal/         # 終端後端
+│   ├── shell_hooks.rs    # Shell 整合
+│   └── message_gateway/  # 平台整合
+│
+└── trajectory/   # 學習系統
+    ├── memory.rs         # 記憶管理
+    ├── skill.rs          # 技能系統
+    ├── rl.rs             # RL 獎勵信號
+    ├── behavior_learner.rs # 模式學習
+    └── user_profile.rs   # 用戶畫像
+```
+
+### 前端架構
+
+```
+src/
+├── stores/                    # Zustand 狀態管理
+│   ├── domain/               # 核心業務狀態
+│   │   ├── conversationStore.ts
+│   │   ├── messageStore.ts
+│   │   └── streamStore.ts
+│   ├── feature/               # 功能模組狀態
+│   │   ├── agentStore.ts
+│   │   ├── gatewayStore.ts
+│   │   ├── workflowEditorStore.ts
+│   │   └── knowledgeStore.ts
+│   └── shared/                # 共享狀態
+│
+├── components/
+│   ├── chat/                # 對話介面（60+ 元件）
+│   ├── workflow/            # 工作流編輯器
+│   ├── gateway/             # API 網關 UI
+│   ├── settings/            # 設定面板
+│   └── terminal/            # 終端 UI
+│
+└── pages/                    # 頁面元件
+```
+
+### 平台支援
 
 | 平台 | 架構 |
 |------|------|
 | macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Windows 10/11 | x86_64, arm64 |
-| Linux | x86_64 (AppImage/deb/rpm), arm64 (AppImage/deb/rpm) |
+| Windows | x86_64, ARM64 |
+| Linux | x86_64, ARM64 (AppImage/deb/rpm) |
 
 ## 快速開始
 
-前往 [Releases](https://github.com/polite0803/AxAgent/releases) 頁面下載適合您平台的安裝包。
+### 下載預建構版本
 
-## 從原始碼建構
+訪問 [Releases](https://github.com/polite0803/AxAgent/releases) 頁面，下載適合您平台的安裝程式。
 
-### 前置需求
+### 從原始碼建構
+
+#### 環境要求
 
 - [Node.js](https://nodejs.org/) 20+
 - [Rust](https://www.rust-lang.org/) 1.75+
 - [npm](https://www.npmjs.com/) 10+
-- Windows 需要 [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 和 [Rust MSVC targets](https://doc.rust-lang.org/cargo/reference/config.html#cfgtarget)
+- Windows: [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) + Rust MSVC targets
 
-### 建構步驟
+#### 建構步驟
 
 ```bash
-# 複製儲存庫
+# 複製倉庫
 git clone https://github.com/polite0803/AxAgent.git
 cd AxAgent
 
 # 安裝依賴
 npm install
 
-# 在開發模式執行
+# 開發模式
 npm run tauri dev
 
 # 僅建構前端
 npm run build
 
-# 建構桌面應用程式
+# 建構桌面應用
 npm run tauri build
 ```
 
-建構產物位於 `src-tauri/target/release/` 目錄。
+建構產物位於 `src-tauri/target/release/`。
 
 ### 測試
 
 ```bash
-# 執行單元測試
-npm test
+# 單元測試
+npm run test
 
-# 執行端對端測試
+# E2E 測試
 npm run test:e2e
 
-# 型別檢查
+# 類型檢查
 npm run typecheck
 ```
 
+---
+
+## 專案結構
+
+```
+AxAgent/
+├── src/                         # 前端原始碼 (React + TypeScript)
+│   ├── components/              # React 元件
+│   │   ├── chat/               # 對話介面（60+ 元件）
+│   │   ├── workflow/           # 工作流編輯器元件
+│   │   ├── gateway/            # API 網關元件
+│   │   ├── settings/           # 設定面板
+│   │   └── terminal/          # 終端元件
+│   ├── pages/                   # 頁面元件
+│   ├── stores/                  # Zustand 狀態管理
+│   │   ├── domain/            # 核心業務狀態
+│   │   └── feature/           # 功能模組狀態
+│   ├── hooks/                   # React hooks
+│   ├── lib/                     # 工具函數
+│   ├── types/                   # TypeScript 類型定義
+│   └── i18n/                    # 12 種語言翻譯
+│
+├── src-tauri/                    # 後端原始碼 (Rust)
+│   ├── crates/                  # Rust workspace（9 個 crates）
+│   │   ├── agent/             # AI 智能體核心
+│   │   ├── core/              # 資料庫、加密、RAG
+│   │   ├── gateway/           # API 網關伺服器
+│   │   ├── providers/         # 模型提供商介面卡
+│   │   ├── runtime/           # 執行時服務
+│   │   ├── trajectory/       # 記憶與學習
+│   │   └── telemetry/        # 追蹤與指標
+│   └── src/                    # Tauri 入口點
+│
+├── e2e/                        # Playwright E2E 測試
+├── scripts/                    # 建構腳本
+└── docs/                       # 文檔
+```
+
+## 資料目錄
+
+```
+~/.axagent/                      # 設定目錄
+├── axagent.db                   # SQLite 資料庫
+├── master.key                   # AES-256 主密鑰
+├── vector_db/                   # 向量資料庫 (sqlite-vec)
+└── ssl/                         # SSL 憑證
+
+~/Documents/axagent/            # 用戶檔目錄
+├── images/                     # 圖片附件
+├── files/                      # 檔附件
+└── backups/                    # 備份檔
+```
+
+---
+
 ## 常見問題
 
-### macOS 提示「已損毀」或「無法驗證開發者」
+### macOS：提示「應用已損壞」或「無法驗證開發者」
 
-由於應用程式未經 Apple 簽名，macOS 可能會彈出以下提示之一：
+由於應用未經過 Apple 簽名：
 
-- 「AxAgent」已損毀，無法開啟
-- 無法開啟「AxAgent」，因為無法驗證開發者
-
-**解決步驟：**
-
-**1. 允許「任何來源」的應用程式執行**
-
+**1. 允許執行「任何來源」的應用**
 ```bash
 sudo spctl --master-disable
 ```
 
-執行後前往「系統設定 → 隱私權與安全性 → 安全性」，確認已勾選「任何來源」。
+然後前往 **系統設定 → 隱私與安全性 → 安全性**，選擇 **任何來源**。
 
-**2. 移除應用程式的安全隔離屬性**
-
+**2. 移除隔離屬性**
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```
 
-> 如果不確定路徑，可將應用程式圖示拖曳到 `sudo xattr -dr com.apple.quarantine ` 後面。
+**3. macOS Ventura+ 額外步驟**
+前往 **系統設定 → 隱私與安全性**，點擊 **仍要打開**。
 
-**3. macOS Ventura 及以上版本的額外步驟**
+---
 
-完成上述步驟後，首次開啟時仍可能被攔截。前往 **「系統設定 → 隱私權與安全性」**，在安全性區域點擊 **「仍要開啟」** 即可，後續無需重複操作。
+## 社群
 
-## 社群支援
 - [LinuxDO](https://linux.do)
 
-## 授權條款
+## 開源協定
 
-本專案採用 [AGPL-3.0](LICENSE) 授權條款。
+本專案基於 [AGPL-3.0](LICENSE) 協定開源。

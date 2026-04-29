@@ -21,6 +21,7 @@ pub mod git_tools;
 pub mod hybrid_search;
 pub mod marketplace;
 pub mod marketplace_service;
+pub mod markdown_parser;
 pub mod mcp_client;
 pub mod operation_audit;
 pub mod path_vars;

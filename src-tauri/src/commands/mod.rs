@@ -55,3 +55,5 @@ pub mod terminal;
 pub mod theme;
 pub mod work_engine;
 pub mod workflow_ai;
+pub mod wiki;
+pub mod llm_wiki;

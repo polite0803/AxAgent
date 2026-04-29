@@ -60,6 +60,11 @@ pub mod tool_recommender;
 pub mod tool_registry;
 pub mod trajectory_recorder;
 pub mod web_search;
+pub mod wiki_compiler;
+pub mod ingest_pipeline;
+pub mod query_engine;
+pub mod lint_checker;
+pub mod schema_manager;
 
 pub use academic_search::{
     AcademicSearchConfig, AcademicSearchProvider, AcademicSearchProviderBuilder,

@@ -1,6 +1,6 @@
 import { IconEditor } from "@/components/shared/IconEditor";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
-import { useMcpStore } from "@/stores";
+import { useMcpStore, DiscoveredMcpServer } from "@/stores";
 import type { CreateMcpServerInput, McpServer, ToolDescriptor } from "@/types";
 import {
   Button,
@@ -525,12 +525,14 @@ function McpServerDetail({
 
 export default function McpServerSettings() {
   const { t } = useTranslation();
-  const { servers, loadServers, createServer, updateServer, discoverTools } = useMcpStore();
+  const { servers, loadServers, createServer, updateServer, discoverTools, discoverAvailableServers } = useMcpStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<"form" | "import">("form");
+  const [modalTab, setModalTab] = useState<"form" | "import" | "discover">("form");
   const [importJson, setImportJson] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
+  const [discoveredServers, setDiscoveredServers] = useState<DiscoveredMcpServer[]>([]);
+  const [discovering, setDiscovering] = useState(false);
   const [form] = Form.useForm();
   const transport = Form.useWatch("transport", form);
 
@@ -574,7 +576,33 @@ export default function McpServerSettings() {
     setModalTab("form");
     setImportJson("");
     setImportError(null);
+    setDiscoveredServers([]);
     setModalOpen(true);
+  };
+
+  const handleDiscover = async () => {
+    setDiscovering(true);
+    try {
+      const servers = await discoverAvailableServers();
+      setDiscoveredServers(servers);
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
+  const handleAddDiscoveredServer = async (discovered: DiscoveredMcpServer) => {
+    const input: CreateMcpServerInput = {
+      name: discovered.name,
+      transport: discovered.transport as "stdio" | "http" | "sse",
+      command: discovered.command,
+      args: discovered.args,
+      enabled: false,
+    };
+    await createServer(input);
+    message.success(t("settings.mcpServers.addedFromDiscovery", { name: discovered.name }));
+    await loadServers();
   };
 
   const parseImportJson = (raw: string): CreateMcpServerInput[] => {
@@ -765,6 +793,52 @@ export default function McpServerSettings() {
                     style={{ fontFamily: "monospace" }}
                   />
                   {importError && <div style={{ color: "#d32029", fontSize: 12, marginTop: 4 }}>{importError}</div>}
+                </div>
+              ),
+            },
+            {
+              key: "discover",
+              label: t("settings.mcpServers.tabDiscover"),
+              children: (
+                <div style={{ maxHeight: 400, overflow: "auto" }}>
+                  {discoveredServers.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: 20 }}>
+                      <Button onClick={handleDiscover} loading={discovering} icon={<RefreshCw size={14} />}>
+                        {t("settings.mcpServers.discoverServers")}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ marginBottom: 8, fontSize: 12, color: "#666" }}>
+                        {t("settings.mcpServers.discoveredCount", { count: discoveredServers.length })}
+                      </div>
+                      {discoveredServers.map((s) => (
+                        <div
+                          key={s.packageName}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "8px 0",
+                            borderBottom: "1px solid #f0f0f0",
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 500 }}>{s.name}</div>
+                            <div style={{ fontSize: 12, color: "#666" }}>{s.packageName}</div>
+                            {s.description && <div style={{ fontSize: 12, color: "#999" }}>{s.description}</div>}
+                          </div>
+                          <Button
+                            size="small"
+                            onClick={() => handleAddDiscoveredServer(s)}
+                            icon={<Plus size={14} />}
+                          >
+                            {t("settings.mcpServers.add")}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ),
             },

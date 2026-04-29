@@ -32,3 +32,6 @@ pub mod stored_file;
 pub mod tool_execution;
 pub mod workflow_execution;
 pub mod workflow_template;
+
+pub mod note;
+pub mod wiki;

@@ -1877,3 +1877,11 @@ pub struct MarketplaceCategory {
     pub description: String,
     pub skill_count: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteSearchResult {
+    pub note: crate::repo::note::Note,
+    pub snippet: String,
+    pub score: f64,
+}

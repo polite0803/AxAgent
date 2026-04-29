@@ -16,6 +16,7 @@ const LazyPromptTemplatesPage = lazy(() => import("@/pages/PromptTemplatesPage")
 const LazyTraceExplorer = lazy(() => import("@/pages/DevTools/TraceExplorer").then((m) => ({ default: m.TraceExplorer })));
 const LazyBenchmarkRunner = lazy(() => import("@/pages/DevTools/BenchmarkRunner").then((m) => ({ default: m.BenchmarkRunner })));
 const LazyToolRecommender = lazy(() => import("@/pages/DevTools/ToolRecommender").then((m) => ({ default: m.ToolRecommender })));
+const LazyWikiPage = lazy(() => import("@/pages/WikiPage").then((m) => ({ default: m.WikiPage })));
 
 function PageLoader() {
   return (
@@ -47,6 +48,7 @@ export function ContentArea() {
       <Route path="/settings/*" element={<SafeLazyPage Page={LazySettingsPage} />} />
       <Route path="/skills" element={<SafeLazyPage Page={LazySkillsPage} />} />
       <Route path="/marketplace" element={<SafeLazyPage Page={LazyWorkflowMarketplace} />} />
+      <Route path="/wiki" element={<SafeLazyPage Page={LazyWikiPage} />} />
       <Route path="/prompts" element={<SafeLazyPage Page={LazyPromptTemplatesPage} />} />
       <Route path="/devtools/trace-explorer" element={<SafeLazyPage Page={LazyTraceExplorer} />} />
       <Route path="/devtools/benchmark" element={<SafeLazyPage Page={LazyBenchmarkRunner} />} />

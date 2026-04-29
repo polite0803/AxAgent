@@ -148,6 +148,102 @@
 | Windows 10/11 | x86_64, arm64 |
 | Linux | x86_64 (AppImage/deb/rpm), arm64 (AppImage/deb/rpm) |
 
+## तकनीकी आर्किटेक्चर
+
+### तकनीकी स्टैक
+
+| परत | तकनीक |
+|------|--------|
+| **फ्रेमवर्क** | Tauri 2 + React 19 + TypeScript |
+| **UI** | Ant Design 6 + TailwindCSS 4 |
+| **State** | Zustand 5 |
+| **i18n** | i18next + react-i18next |
+| **बैकएंड** | Rust + SeaORM + SQLite |
+| **Vector DB** | sqlite-vec |
+| **Code Editor** | Monaco Editor |
+| **डायग्राम** | Mermaid + D2 + ECharts |
+| **Terminal** | xterm.js |
+| **बिल्ड** | Vite + npm |
+
+### Rust बैकएंड आर्किटेक्चर
+
+बैकएंड विशेषज्ञ crates के साथ Rust workspace के रूप में व्यवस्थित है:
+
+```
+src-tauri/crates/
+├── agent/         # AI Agent कोर
+│   ├── react_engine.rs       # ReAct रीज़निंग इंजन
+│   ├── tool_registry.rs      # गतिशील टूल पंजीकरण
+│   ├── coordinator.rs        # Agent समन्वय
+│   ├── hierarchical_planner.rs # कार्य विघटन
+│   ├── self_verifier.rs      # आउटपुट सत्यापन
+│   ├── error_recovery_engine.rs # त्रुटि हैंडलिंग
+│   ├── vision_pipeline.rs    # विज़न परिस perception
+│   └── fine_tune/            # LoRA फाइन-ट्यूनिंग
+│
+├── core/          # कोर उपयोगिताएँ
+│   ├── db.rs               # SeaORM डेटाबेस
+│   ├── vector_store.rs      # sqlite-vec एकीकरण
+│   ├── rag.rs              # RAG अमूर्त परत
+│   ├── hybrid_search.rs    # हाइब्रिड सर्च वेक्टर + FTS5
+│   ├── crypto.rs           # AES-256 एन्क्रिप्शन
+│   └── mcp_client.rs       # MCP प्रोटोकॉल क्लाइंट
+│
+├── gateway/       # API गेटवे
+│   ├── server.rs           # HTTP सर्वर
+│   ├── handlers.rs         # API हैंडलर
+│   ├── auth.rs             # प्रमाणीकरण
+│   └── realtime.rs         # WebSocket समर्थन
+│
+├── providers/     # मॉडल एडाप्टर
+│   ├── openai.rs          # OpenAI API
+│   ├── anthropic.rs       # Claude API
+│   ├── gemini.rs          # Gemini API
+│   └── ollama.rs          # Ollama लोकल
+│
+├── runtime/       # रनटाइम सेवाएँ
+│   ├── session.rs         # सत्र प्रबंधन
+│   ├── workflow_engine.rs  # DAG ऑर्केस्ट्रेशन
+│   ├── mcp.rs             # MCP सर्वर
+│   ├── cron/              # कार्य शेड्यूलिंग
+│   ├── terminal/          # टर्मिनल बैकएंड
+│   ├── shell_hooks.rs     # Shell एकीकरण
+│   └── message_gateway/   # प्लेटफॉर्म एकीकरण
+│
+└── trajectory/   # लर्निंग सिस्टम
+    ├── memory.rs          # मेमोरी प्रबंधन
+    ├── skill.rs           # स्किल सिस्टम
+    ├── rl.rs              # RL रिवॉर्ड सिग्नल
+    ├── behavior_learner.rs # पैटर्न लर्निंग
+    └── user_profile.rs    # यूज़र प्रोफाइलिंग
+```
+
+### फ्रंटएंड आर्किटेक्चर
+
+```
+src/
+├── stores/                    # Zustand स्टेट मैनेजमेंट
+│   ├── domain/               # कोर बिज़नेस स्टेट
+│   │   ├── conversationStore.ts
+│   │   ├── messageStore.ts
+│   │   └── streamStore.ts
+│   ├── feature/              # फीचर मॉड्यूल स्टेट
+│   │   ├── agentStore.ts
+│   │   ├── gatewayStore.ts
+│   │   ├── workflowEditorStore.ts
+│   │   └── knowledgeStore.ts
+│   └── shared/               # शेयर्ड स्टेट
+│
+├── components/
+│   ├── chat/                # चैट इंटरफ़ेस (60+ कंपोनेंट्स)
+│   ├── workflow/            # वर्कफ़्लो एडिटर
+│   ├── gateway/             # API गेटवे UI
+│   ├── settings/            # सेटिंग्स पैनल
+│   └── terminal/            # टर्मिनल UI
+│
+└── pages/                   # पेज कंपोनेंट्स
+```
+
 ## शुरू करना
 
 [Releases](https://github.com/polite0803/AxAgent/releases) पेज पर जाएँ और अपने प्लेटफॉर्म के लिए इंस्टॉलर डाउनलोड करें।

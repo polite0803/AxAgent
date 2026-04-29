@@ -1,6 +1,7 @@
 import { List, Button, Space, Tag, Typography, Input, Modal, Form, message } from "antd";
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, HistoryOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Title } = Typography;
 
@@ -44,6 +45,7 @@ const mockTemplates: PromptTemplate[] = [
 ];
 
 export function PromptTemplatesPage() {
+  const { t } = useTranslation();
   const [templates] = useState<PromptTemplate[]>(mockTemplates);
   const [searchText, setSearchText] = useState("");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -73,19 +75,19 @@ export function PromptTemplatesPage() {
   const handleSave = () => {
     form.validateFields().then((values) => {
       console.log("Saving template:", values);
-      message.success(editingTemplate ? "Template updated" : "Template created");
+      message.success(editingTemplate ? t("promptTemplates.templateUpdated") : t("promptTemplates.templateCreated"));
       setIsEditorOpen(false);
     });
   };
 
   const handleDelete = (template: PromptTemplate) => {
     Modal.confirm({
-      title: "Delete Template",
-      content: `Are you sure you want to delete "${template.name}"?`,
-      okText: "Delete",
+      title: t("promptTemplates.deleteTemplate"),
+      content: t("promptTemplates.deleteTemplateConfirm", { name: template.name }),
+      okText: t("common.delete"),
       okType: "danger",
       onOk: () => {
-        message.success("Template deleted");
+        message.success(t("promptTemplates.templateDeleted"));
       },
     });
   };
@@ -99,16 +101,16 @@ export function PromptTemplatesPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <Title level={4} className="m-0">
-          Prompt Templates
+          {t("promptTemplates.title")}
         </Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          New Template
+          {t("promptTemplates.newTemplate")}
         </Button>
       </div>
 
       <div className="mb-4">
         <Input
-          placeholder="Search templates..."
+          placeholder={t("promptTemplates.searchPlaceholder")}
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -127,7 +129,7 @@ export function PromptTemplatesPage() {
                 icon={<HistoryOutlined />}
                 onClick={() => handleViewHistory(template)}
               >
-                History
+                {t("promptTemplates.history")}
               </Button>,
               <Button
                 key="edit"
@@ -135,7 +137,7 @@ export function PromptTemplatesPage() {
                 icon={<EditOutlined />}
                 onClick={() => handleEdit(template)}
               >
-                Edit
+                {t("common.edit")}
               </Button>,
               <Button
                 key="delete"
@@ -144,7 +146,7 @@ export function PromptTemplatesPage() {
                 icon={<DeleteOutlined />}
                 onClick={() => handleDelete(template)}
               >
-                Delete
+                {t("common.delete")}
               </Button>,
             ]}
           >
@@ -152,8 +154,8 @@ export function PromptTemplatesPage() {
               title={
                 <Space>
                   <span>{template.name}</span>
-                  {template.is_active && <Tag color="green">Active</Tag>}
-                  {template.ab_test_enabled && <Tag color="blue">A/B Test</Tag>}
+                  {template.is_active && <Tag color="green">{t("common.active")}</Tag>}
+                  {template.ab_test_enabled && <Tag color="blue">{t("promptTemplates.abTest")}</Tag>}
                   <Tag>v{template.version}</Tag>
                 </Space>
               }
@@ -164,7 +166,7 @@ export function PromptTemplatesPage() {
       />
 
       <Modal
-        title={editingTemplate ? "Edit Template" : "New Template"}
+        title={editingTemplate ? t("promptTemplates.editTemplate") : t("promptTemplates.newTemplate")}
         open={isEditorOpen}
         onOk={handleSave}
         onCancel={() => setIsEditorOpen(false)}
@@ -173,32 +175,32 @@ export function PromptTemplatesPage() {
         <Form form={form} layout="vertical" className="mt-4">
           <Form.Item
             name="name"
-            label="Name"
-            rules={[{ required: true, message: "Please enter a name" }]}
+            label={t("common.name")}
+            rules={[{ required: true, message: t("promptTemplates.nameRequired") }]}
           >
-            <Input placeholder="Template name" />
+            <Input placeholder={t("promptTemplates.namePlaceholder")} />
           </Form.Item>
-          <Form.Item name="description" label="Description">
-            <Input.TextArea placeholder="Template description" rows={2} />
+          <Form.Item name="description" label={t("common.description")}>
+            <Input.TextArea placeholder={t("promptTemplates.descriptionPlaceholder")} rows={2} />
           </Form.Item>
           <Form.Item
             name="content"
-            label="Content"
-            rules={[{ required: true, message: "Please enter template content" }]}
+            label={t("promptTemplates.content")}
+            rules={[{ required: true, message: t("promptTemplates.contentRequired") }]}
           >
             <Input.TextArea
-              placeholder="Template content with {variable} placeholders"
+              placeholder={t("promptTemplates.contentPlaceholder")}
               rows={6}
             />
           </Form.Item>
-          <Form.Item name="variables_schema" label="Variables Schema (JSON)">
+          <Form.Item name="variables_schema" label={t("promptTemplates.variablesSchema") + " (JSON)"}>
             <Input.TextArea placeholder='{"variable": "type"}' rows={3} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={`Version History: ${versionHistoryTemplate?.name}`}
+        title={t("promptTemplates.versionHistory", { name: versionHistoryTemplate?.name })}
         open={isVersionHistoryOpen}
         onCancel={() => setIsVersionHistoryOpen(false)}
         footer={null}
@@ -214,17 +216,17 @@ export function PromptTemplatesPage() {
               <List.Item
                 actions={[
                   <Button key="view" size="small" onClick={() => handleEdit(versionHistoryTemplate!)}>
-                    View
+                    {t("common.view")}
                   </Button>,
-                  <Button key="rollback" size="small" onClick={() => message.info("Rollback not implemented")}>
-                    Rollback
+                  <Button key="rollback" size="small" onClick={() => message.info(t("promptTemplates.rollbackNotImplemented"))}>
+                    {t("promptTemplates.rollback")}
                   </Button>,
                 ]}
               >
                 <List.Item.Meta
                   title={
                     <Space>
-                      <Tag>Version {item.version}</Tag>
+                      <Tag>{t("promptTemplates.version")} {item.version}</Tag>
                       <span className="text-gray-500 text-sm">
                         {new Date(item.created_at).toLocaleDateString()}
                       </span>

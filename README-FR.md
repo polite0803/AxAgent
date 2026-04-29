@@ -146,6 +146,102 @@
 | Windows 10/11 | x86_64, arm64 |
 | Linux | x86_64 (AppImage/deb/rpm), arm64 (AppImage/deb/rpm) |
 
+## Architecture Technique
+
+### Pile Technologique
+
+| Couche | Technologie |
+|--------|-------------|
+| **Framework** | Tauri 2 + React 19 + TypeScript |
+| **UI** | Ant Design 6 + TailwindCSS 4 |
+| **State** | Zustand 5 |
+| **i18n** | i18next + react-i18next |
+| **Backend** | Rust + SeaORM + SQLite |
+| **Vector DB** | sqlite-vec |
+| **Code Editor** | Monaco Editor |
+| **Diagrammes** | Mermaid + D2 + ECharts |
+| **Terminal** | xterm.js |
+| **Build** | Vite + npm |
+
+### Architecture Backend Rust
+
+Le backend est organisé comme un workspace Rust avec des crates spécialisées:
+
+```
+src-tauri/crates/
+├── agent/         # Cœur de l'Agent IA
+│   ├── react_engine.rs       # Moteur de raisonnement ReAct
+│   ├── tool_registry.rs      # Enregistrement dynamique des outils
+│   ├── coordinator.rs        # Coordination des agents
+│   ├── hierarchical_planner.rs # Décomposition des tâches
+│   ├── self_verifier.rs      # Vérification des sorties
+│   ├── error_recovery_engine.rs # Gestion des erreurs
+│   ├── vision_pipeline.rs    # Perception visuelle
+│   └── fine_tune/            # Ajustement LoRA
+│
+├── core/          # Utilitaires principaux
+│   ├── db.rs               # Base de données SeaORM
+│   ├── vector_store.rs      # Intégration sqlite-vec
+│   ├── rag.rs              # Couche d'abstraction RAG
+│   ├── hybrid_search.rs    # Recherche hybride vecteur + FTS5
+│   ├── crypto.rs           # Chiffrement AES-256
+│   └── mcp_client.rs       # Client protocole MCP
+│
+├── gateway/       # Passerelle API
+│   ├── server.rs           # Serveur HTTP
+│   ├── handlers.rs         # Gestionnaires API
+│   ├── auth.rs             # Authentification
+│   └── realtime.rs         # Support WebSocket
+│
+├── providers/     # Adaptateurs de modèles
+│   ├── openai.rs          # API OpenAI
+│   ├── anthropic.rs       # API Claude
+│   ├── gemini.rs          # API Gemini
+│   └── ollama.rs          # Ollama local
+│
+├── runtime/       # Services runtime
+│   ├── session.rs         # Gestion des sessions
+│   ├── workflow_engine.rs  # Orchestration DAG
+│   ├── mcp.rs             # Serveur MCP
+│   ├── cron/              # Planification des tâches
+│   ├── terminal/          # Terminaux backend
+│   ├── shell_hooks.rs     # Intégration Shell
+│   └── message_gateway/   # Intégrations plateforme
+│
+└── trajectory/   # Système d'apprentissage
+    ├── memory.rs          # Gestion de la mémoire
+    ├── skill.rs           # Système de compétences
+    ├── rl.rs              # Signaux de récompense RL
+    ├── behavior_learner.rs # Apprentissage des patterns
+    └── user_profile.rs    # Profilage utilisateur
+```
+
+### Architecture Frontend
+
+```
+src/
+├── stores/                    # Gestion d'état Zustand
+│   ├── domain/               # État métier principal
+│   │   ├── conversationStore.ts
+│   │   ├── messageStore.ts
+│   │   └── streamStore.ts
+│   ├── feature/              # État des modules fonctionnels
+│   │   ├── agentStore.ts
+│   │   ├── gatewayStore.ts
+│   │   ├── workflowEditorStore.ts
+│   │   └── knowledgeStore.ts
+│   └── shared/               # État partagé
+│
+├── components/
+│   ├── chat/                # Interface de chat (60+ composants)
+│   ├── workflow/            # Éditeur de workflow
+│   ├── gateway/             # UI Passerelle API
+│   ├── settings/            # Panneaux de paramètres
+│   └── terminal/            # UI Terminal
+│
+└── pages/                   # Composants de page
+```
+
 ## Démarrage rapide
 
 Rendez-vous sur la page [Releases](https://github.com/polite0803/AxAgent/releases) et téléchargez le programme d'installation pour votre plateforme.

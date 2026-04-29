@@ -1437,6 +1437,7 @@ function ModelTags({
     providerId?: string | null,
   ) => { modelName: string; providerName: string };
 }) {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const switchMessageVersion = useConversationStore((s) => s.switchMessageVersion);
   const pendingCompanionModels = useConversationStore((s) => s.pendingCompanionModels);
@@ -1522,7 +1523,7 @@ function ModelTags({
       {pendingModels.map((cm) => {
         const { modelName } = getModelDisplayInfo(cm.model_id, cm.providerId);
         return (
-          <Tooltip key={`pending-${cm.model_id}`} title={`${modelName} (waiting...)`} mouseEnterDelay={0.3}>
+          <Tooltip key={`pending-${cm.model_id}`} title={`${modelName} (${t("chat.waiting")})`} mouseEnterDelay={0.3}>
             <div
               className="model-tag-pending"
               style={{

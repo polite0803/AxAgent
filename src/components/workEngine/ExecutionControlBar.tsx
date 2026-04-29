@@ -64,7 +64,7 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
     <Space>
       {!executionId || isCompleted
         ? (
-          <Tooltip title="启动执行">
+          <Tooltip title={t("workEngine.startExecution")}>
             <Button
               type="primary"
               icon={<PlayCircleOutlined />}
@@ -72,28 +72,28 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
               onClick={handleStart}
               size="small"
             >
-              启动
+              {t("workEngine.start")}
             </Button>
           </Tooltip>
         )
         : null}
 
       {isRunning && (
-        <Tooltip title="暂停执行">
-          <Button icon={<PauseCircleOutlined />} onClick={pause} size="small">暂停</Button>
+        <Tooltip title={t("workEngine.pauseExecution")}>
+          <Button icon={<PauseCircleOutlined />} onClick={pause} size="small">{t("workEngine.pause")}</Button>
         </Tooltip>
       )}
 
       {isPaused && (
-        <Tooltip title="恢复执行">
-          <Button type="primary" icon={<ReloadOutlined />} onClick={resume} size="small">恢复</Button>
+        <Tooltip title={t("workEngine.resumeExecution")}>
+          <Button type="primary" icon={<ReloadOutlined />} onClick={resume} size="small">{t("workEngine.resume")}</Button>
         </Tooltip>
       )}
 
       {(isRunning || isPaused) && (
-        <Popconfirm title="确定取消执行？" onConfirm={cancel}>
-          <Tooltip title="取消执行">
-            <Button danger icon={<StopOutlined />} size="small">取消</Button>
+        <Popconfirm title={t("workEngine.confirmCancelExecution")} onConfirm={cancel}>
+          <Tooltip title={t("workEngine.cancelExecution")}>
+            <Button danger icon={<StopOutlined />} size="small">{t("workEngine.cancel")}</Button>
           </Tooltip>
         </Popconfirm>
       )}
@@ -111,15 +111,15 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
             : "default"}
         >
           {status.status === "running"
-            ? "运行中"
+            ? t("workEngine.statusRunning")
             : status.status === "paused"
-            ? "已暂停"
+            ? t("workEngine.statusPaused")
             : status.status === "completed"
-            ? "已完成"
+            ? t("workEngine.statusCompleted")
             : status.status === "failed"
-            ? "已失败"
+            ? t("workEngine.statusFailed")
             : status.status === "cancelled"
-            ? "已取消"
+            ? t("workEngine.statusCancelled")
             : status.status}
         </Tag>
       )}
@@ -128,7 +128,7 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
         <span style={{ fontSize: 12, color: "#999" }}>{status.total_time_ms}ms</span>
       )}
 
-      <Tooltip title="执行历史">
+      <Tooltip title={t("workEngine.executionHistory")}>
         <Button icon={<HistoryOutlined />} onClick={() => loadHistory(workflowId)} size="small" />
       </Tooltip>
     </Space>

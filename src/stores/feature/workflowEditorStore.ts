@@ -171,7 +171,7 @@ interface ConversationWorkflowPreviewResponse {
 }
 
 const createEmptyTemplate = (): Omit<WorkflowTemplateResponse, "id" | "created_at" | "updated_at"> => ({
-  name: "未命名工作流",
+  name: "Unnamed Workflow",
   description: "",
   icon: "Bot",
   tags: [],

@@ -18,6 +18,16 @@ interface McpState {
   discoverTools: (serverId: string) => Promise<ToolDescriptor[]>;
   loadToolExecutions: (conversationId: string) => Promise<void>;
   hotReloadServer: (serverId: string) => Promise<{ ok: boolean; toolCount: number }>;
+  discoverAvailableServers: () => Promise<DiscoveredMcpServer[]>;
+}
+
+export interface DiscoveredMcpServer {
+  name: string;
+  packageName: string;
+  description?: string;
+  command: string;
+  args: string[];
+  transport: string;
 }
 
 export const useMcpStore = create<McpState>((set, get) => ({
@@ -131,14 +141,22 @@ export const useMcpStore = create<McpState>((set, get) => ({
       const result = await invoke<{ ok: boolean; toolCount: number }>("hot_reload_mcp_server", {
         id: serverId,
       });
-      // Refresh tool descriptors for this server
       await get().discoverTools(serverId);
-      // Refresh server list to reflect any changes
       await get().loadServers();
       return result;
     } catch (e) {
       set({ error: String(e) });
       throw e;
+    }
+  },
+
+  discoverAvailableServers: async () => {
+    try {
+      const servers = await invoke<DiscoveredMcpServer[]>("discover_available_mcp_servers");
+      return servers;
+    } catch (e) {
+      set({ error: String(e) });
+      return [];
     }
   },
 }));

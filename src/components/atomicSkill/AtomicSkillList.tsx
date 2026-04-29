@@ -19,7 +19,6 @@ const ENTRY_TYPE_COLORS: Record<string, string> = {
   plugin: "orange",
 };
 
-const ENTRY_TYPE_LABELS: Record<string, string> = {};
 const getEntryTypeLabel = (entryType: string, t: (key: string) => string) => {
   switch (entryType) {
     case "builtin": return t("atomicSkill.entryTypeBuiltin");

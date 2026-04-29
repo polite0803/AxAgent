@@ -148,6 +148,102 @@
 | Windows 10/11 | x86_64, arm64 |
 | Linux | x86_64 (AppImage/deb/rpm), arm64 (AppImage/deb/rpm) |
 
+## Technische Architektur
+
+### Technologie-Stack
+
+| Schicht | Technologie |
+|---------|------------|
+| **Framework** | Tauri 2 + React 19 + TypeScript |
+| **UI** | Ant Design 6 + TailwindCSS 4 |
+| **State** | Zustand 5 |
+| **i18n** | i18next + react-i18next |
+| **Backend** | Rust + SeaORM + SQLite |
+| **Vector DB** | sqlite-vec |
+| **Code Editor** | Monaco Editor |
+| **Diagramme** | Mermaid + D2 + ECharts |
+| **Terminal** | xterm.js |
+| **Build** | Vite + npm |
+
+### Rust Backend Architektur
+
+Das Backend ist als Rust-Workspace mit spezialisierten Crates organisiert:
+
+```
+src-tauri/crates/
+├── agent/         # KI Agent Kern
+│   ├── react_engine.rs       # ReAct Reasoning Engine
+│   ├── tool_registry.rs      # Dynamische Tool-Registrierung
+│   ├── coordinator.rs        # Agent-Koordination
+│   ├── hierarchical_planner.rs # Aufgabenzerlegung
+│   ├── self_verifier.rs      # Ausgabeverifizierung
+│   ├── error_recovery_engine.rs # Fehlerbehandlung
+│   ├── vision_pipeline.rs    # Bildwahrnehmung
+│   └── fine_tune/            # LoRA Feinabstimmung
+│
+├── core/          # Kernprogramme
+│   ├── db.rs               # SeaORM Datenbank
+│   ├── vector_store.rs      # sqlite-vec Integration
+│   ├── rag.rs              # RAG Abstraktionsschicht
+│   ├── hybrid_search.rs    # Vektor + FTS5 Suche
+│   ├── crypto.rs           # AES-256 Verschlüsselung
+│   └── mcp_client.rs       # MCP Protokoll Client
+│
+├── gateway/       # API Gateway
+│   ├── server.rs           # HTTP Server
+│   ├── handlers.rs         # API Handler
+│   ├── auth.rs             # Authentifizierung
+│   └── realtime.rs         # WebSocket Support
+│
+├── providers/     # Modell-Adapter
+│   ├── openai.rs          # OpenAI API
+│   ├── anthropic.rs       # Claude API
+│   ├── gemini.rs          # Gemini API
+│   └── ollama.rs          # Ollama lokal
+│
+├── runtime/       # Laufzeitdienste
+│   ├── session.rs         # Sitzungsverwaltung
+│   ├── workflow_engine.rs  # DAG Orchestrierung
+│   ├── mcp.rs             # MCP Server
+│   ├── cron/              # Aufgabenplanung
+│   ├── terminal/          # Terminal Backends
+│   ├── shell_hooks.rs     # Shell Integration
+│   └── message_gateway/   # Plattform-Integrationen
+│
+└── trajectory/   # Lernsystem
+    ├── memory.rs          # Speicherverwaltung
+    ├── skill.rs           # Skill-System
+    ├── rl.rs              # RL Belohnungssignale
+    ├── behavior_learner.rs # Musterlernen
+    └── user_profile.rs    # Benutzerprofilierung
+```
+
+### Frontend Architektur
+
+```
+src/
+├── stores/                    # Zustand State Management
+│   ├── domain/               # Kerngeschäftslogik State
+│   │   ├── conversationStore.ts
+│   │   ├── messageStore.ts
+│   │   └── streamStore.ts
+│   ├── feature/              # Feature-Modul State
+│   │   ├── agentStore.ts
+│   │   ├── gatewayStore.ts
+│   │   ├── workflowEditorStore.ts
+│   │   └── knowledgeStore.ts
+│   └── shared/               # Geteilter State
+│
+├── components/
+│   ├── chat/                # Chat Interface (60+ Komponenten)
+│   ├── workflow/            # Workflow Editor
+│   ├── gateway/             # API Gateway UI
+│   ├── settings/            # Einstellungs-Panels
+│   └── terminal/            # Terminal UI
+│
+└── pages/                   # Seitenkomponenten
+```
+
 ## Erste Schritte
 
 Gehen Sie zur [Releases](https://github.com/polite0803/AxAgent/releases)-Seite und laden Sie das Installationsprogramm für Ihre Plattform herunter.

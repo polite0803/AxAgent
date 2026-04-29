@@ -146,6 +146,102 @@
 | Windows 10/11 | x86_64, arm64 |
 | Linux | x86_64 (AppImage/deb/rpm), arm64 (AppImage/deb/rpm) |
 
+## البنية التقنية
+
+### مجموعة التقنيات
+
+| الطبقة | التقنية |
+|--------|---------|
+| **الإطار** | Tauri 2 + React 19 + TypeScript |
+| **UI** | Ant Design 6 + TailwindCSS 4 |
+| **State** | Zustand 5 |
+| **i18n** | i18next + react-i18next |
+| **الواجهة الخلفية** | Rust + SeaORM + SQLite |
+| **Vector DB** | sqlite-vec |
+| **محرر الكود** | Monaco Editor |
+| **الرسوم البيانية** | Mermaid + D2 + ECharts |
+| **Terminal** | xterm.js |
+| **البناء** | Vite + npm |
+
+### البنية الخلفية لـ Rust
+
+الواجهة الخلفية منظّمة كمساحة عمل Rust مع crates متخصصة:
+
+```
+src-tauri/crates/
+├── agent/         # جوهر وكيل الذكاء الاصطناعي
+│   ├── react_engine.rs       # محرك الاستدلال ReAct
+│   ├── tool_registry.rs      # تسجيل الأدوات الديناميكي
+│   ├── coordinator.rs        # تنسيق الوكلاء
+│   ├── hierarchical_planner.rs # تفكيك المهام
+│   ├── self_verifier.rs      # التحقق من المخرجات
+│   ├── error_recovery_engine.rs # معالجة الأخطاء
+│   ├── vision_pipeline.rs    # إدراك الشاشة
+│   └── fine_tune/            # الضبط الدقيق LoRA
+│
+├── core/          # الأدوات الأساسية
+│   ├── db.rs               # قاعدة بيانات SeaORM
+│   ├── vector_store.rs      # تكامل sqlite-vec
+│   ├── rag.rs              # طبقة تجريد RAG
+│   ├── hybrid_search.rs    # البحث المختلط متجه + FTS5
+│   ├── crypto.rs           # تشفير AES-256
+│   └── mcp_client.rs       # عميل بروتوكول MCP
+│
+├── gateway/       # بوابة API
+│   ├── server.rs           # خادم HTTP
+│   ├── handlers.rs         # معالجو API
+│   ├── auth.rs             # المصادقة
+│   └── realtime.rs         # دعم WebSocket
+│
+├── providers/     # محولات النماذج
+│   ├── openai.rs          # API OpenAI
+│   ├── anthropic.rs       # API Claude
+│   ├── gemini.rs          # API Gemini
+│   └── ollama.rs          # Ollama محلي
+│
+├── runtime/       # خدمات وقت التشغيل
+│   ├── session.rs         # إدارة الجلسات
+│   ├── workflow_engine.rs  # تنظيم DAG
+│   ├── mcp.rs             # خادم MCP
+│   ├── cron/              # جدولة المهام
+│   ├── terminal/          # خلفيات الطرفية
+│   ├── shell_hooks.rs     # تكامل Shell
+│   └── message_gateway/   # تكاملات المنصة
+│
+└── trajectory/   # نظام التعلم
+    ├── memory.rs          # إدارة الذاكرة
+    ├── skill.rs           # نظام المهارات
+    ├── rl.rs              # إشارات المكافأة RL
+    ├── behavior_learner.rs # تعلم الأنماط
+    └── user_profile.rs    # تقييم المستخدم
+```
+
+### البنية الأمامية
+
+```
+src/
+├── stores/                    # إدارة حالة Zustand
+│   ├── domain/               # حالة الأعمال الأساسية
+│   │   ├── conversationStore.ts
+│   │   ├── messageStore.ts
+│   │   └── streamStore.ts
+│   ├── feature/              # حالة الوحدات الوظيفية
+│   │   ├── agentStore.ts
+│   │   ├── gatewayStore.ts
+│   │   ├── workflowEditorStore.ts
+│   │   └── knowledgeStore.ts
+│   └── shared/               # الحالة المشتركة
+│
+├── components/
+│   ├── chat/                # واجهة المحادثة (60+ مكون)
+│   ├── workflow/            # محرر سير العمل
+│   ├── gateway/             # UI بوابة API
+│   ├── settings/            # لوحات الإعدادات
+│   └── terminal/            # UI الطرفية
+│
+└── pages/                   # مكونات الصفحة
+```
+
 ## البدء
 
 توجه إلى صفحة [Releases](https://github.com/polite0803/AxAgent/releases) وقم بتنزيل المثبّت الخاص بمنصتك.

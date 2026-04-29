@@ -24,6 +24,7 @@ export { useGeneratedToolStore } from "./feature/generatedToolStore";
 export { useKnowledgeStore } from "./feature/knowledgeStore";
 export { useLocalToolStore } from "./feature/localToolStore";
 export { useMcpStore } from "./feature/mcpStore";
+export type { DiscoveredMcpServer } from "./feature/mcpStore";
 export { useMemoryStore } from "./feature/memoryStore";
 export { useNudgeStore } from "./feature/nudgeStore";
 export { useProviderStore } from "./feature/providerStore";

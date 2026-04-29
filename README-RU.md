@@ -146,6 +146,102 @@
 | Windows 10/11 | x86_64, arm64 |
 | Linux | x86_64 (AppImage/deb/rpm), arm64 (AppImage/deb/rpm) |
 
+## Техническая архитектура
+
+### Технологический стек
+
+| Уровень | Технология |
+|---------|------------|
+| **Framework** | Tauri 2 + React 19 + TypeScript |
+| **UI** | Ant Design 6 + TailwindCSS 4 |
+| **State** | Zustand 5 |
+| **i18n** | i18next + react-i18next |
+| **Backend** | Rust + SeaORM + SQLite |
+| **Vector DB** | sqlite-vec |
+| **Code Editor** | Monaco Editor |
+| **Диаграммы** | Mermaid + D2 + ECharts |
+| **Terminal** | xterm.js |
+| **Build** | Vite + npm |
+
+### Архитектура Rust бэкенда
+
+Бэкенд организован как Rust workspace со специализированными crates:
+
+```
+src-tauri/crates/
+├── agent/         # Ядро ИИ агента
+│   ├── react_engine.rs       # Движок рассуждений ReAct
+│   ├── tool_registry.rs      # Динамическая регистрация инструментов
+│   ├── coordinator.rs        # Координация агентов
+│   ├── hierarchical_planner.rs # Декомпозиция задач
+│   ├── self_verifier.rs      # Верификация выходных данных
+│   ├── error_recovery_engine.rs # Обработка ошибок
+│   ├── vision_pipeline.rs    # Визуальное восприятие
+│   └── fine_tune/            # Тонкая настройка LoRA
+│
+├── core/          # Основные утилиты
+│   ├── db.rs               # База данных SeaORM
+│   ├── vector_store.rs      # Интеграция sqlite-vec
+│   ├── rag.rs              # Абстракция RAG
+│   ├── hybrid_search.rs    # Гибридный поиск вектор + FTS5
+│   ├── crypto.rs           # Шифрование AES-256
+│   └── mcp_client.rs       # Клиент протокола MCP
+│
+├── gateway/       # API шлюз
+│   ├── server.rs           # HTTP сервер
+│   ├── handlers.rs         # Обработчики API
+│   ├── auth.rs             # Аутентификация
+│   └── realtime.rs         # Поддержка WebSocket
+│
+├── providers/     # Адаптеры моделей
+│   ├── openai.rs          # API OpenAI
+│   ├── anthropic.rs       # API Claude
+│   ├── gemini.rs          # API Gemini
+│   └── ollama.rs          # Ollama локальная
+│
+├── runtime/       # Runtime сервисы
+│   ├── session.rs         # Управление сессиями
+│   ├── workflow_engine.rs  # DAG оркестрация
+│   ├── mcp.rs             # MCP сервер
+│   ├── cron/              # Планирование задач
+│   ├── terminal/          # Terminal backends
+│   ├── shell_hooks.rs     # Интеграция Shell
+│   └── message_gateway/   # Интеграции платформ
+│
+└── trajectory/   # Система обучения
+    ├── memory.rs          # Управление памятью
+    ├── skill.rs           # Система навыков
+    ├── rl.rs              # Сигналы вознаграждения RL
+    ├── behavior_learner.rs # Обучение паттернам
+    └── user_profile.rs    # Профилирование пользователей
+```
+
+### Архитектура Frontend
+
+```
+src/
+├── stores/                    # Zustand управление состоянием
+│   ├── domain/               # Основное бизнес-состояние
+│   │   ├── conversationStore.ts
+│   │   ├── messageStore.ts
+│   │   └── streamStore.ts
+│   ├── feature/              # Состояние функциональных модулей
+│   │   ├── agentStore.ts
+│   │   ├── gatewayStore.ts
+│   │   ├── workflowEditorStore.ts
+│   │   └── knowledgeStore.ts
+│   └── shared/               # Общее состояние
+│
+├── components/
+│   ├── chat/                # Интерфейс чата (60+ компонентов)
+│   ├── workflow/            # Редактор workflow
+│   ├── gateway/             # UI API шлюза
+│   ├── settings/            # Панели настроек
+│   └── terminal/            # UI Terminal
+│
+└── pages/                   # Компоненты страниц
+```
+
 ## Начало работы
 
 Перейдите на страницу [Releases](https://github.com/polite0803/AxAgent/releases) и загрузите установщик для вашей платформы.
