@@ -12,12 +12,10 @@
 //! - complex: 1 hour
 
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, QueryFilter,
+    ConnectionTrait, DatabaseBackend, DatabaseConnection,
     Statement,
 };
 use sha2::{Digest, Sha256};
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 // ─── Config ───
 

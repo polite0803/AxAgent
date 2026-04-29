@@ -40,6 +40,7 @@ struct PricingModel {
     input_price: f64,
     output_price: f64,
     #[serde(default)]
+    #[allow(dead_code)]
     tier: String,
 }
 

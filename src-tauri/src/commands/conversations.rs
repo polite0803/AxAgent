@@ -3575,6 +3575,8 @@ mod tests {
                 status: "done".into(),
                 tokens_per_second: None,
                 first_token_latency_ms: None,
+                parts: None,
+                blocks: None,
             };
 
             build_message_content(&file_store, &message).unwrap()
@@ -3633,6 +3635,8 @@ mod tests {
                 status: "done".into(),
                 tokens_per_second: None,
                 first_token_latency_ms: None,
+                parts: None,
+                blocks: None,
             };
 
             build_message_content(&file_store, &message).unwrap()
@@ -3782,7 +3786,7 @@ mod tests {
             agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
-            agent_session_manager: axagent_agent::SessionManager::new(db.clone()),
+            agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
             agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
