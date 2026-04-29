@@ -2,6 +2,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { Divider, Input, InputNumber, Select, Switch, Tag } from "antd";
 import { X } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { LoopNode, LoopType, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -12,6 +13,7 @@ interface LoopPropertyPanelProps {
 }
 
 export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const loopNode = node as LoopNode;
   const config = loopNode.config || {
     loop_type: "forEach" as LoopType,
@@ -51,17 +53,17 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>循环类型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.loopType")}</label>
         <Select
           value={config.loop_type}
           onChange={(value) => handleConfigChange("loop_type", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "forEach", label: "🔁 遍历 (ForEach)" },
-            { value: "while", label: "⏳ 当...时 (While)" },
-            { value: "doWhile", label: "↻ 执行...直到 (DoWhile)" },
-            { value: "until", label: "🔚 直到... (Until)" },
+            { value: "forEach", label: t("workflow.props.loopForEach") },
+            { value: "while", label: t("workflow.props.loopWhile") },
+            { value: "doWhile", label: t("workflow.props.loopDoWhile") },
+            { value: "until", label: t("workflow.props.loopUntil") },
           ]}
         />
       </div>
@@ -69,21 +71,21 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       {config.loop_type === "forEach" && (
         <>
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>数组变量</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.arrayVar")}</label>
             <Input
               value={config.items_var || ""}
               onChange={(e) => handleConfigChange("items_var", e.target.value)}
               size="small"
-              placeholder="如: input.items"
+              placeholder={t("workflow.props.itemsVarExample")}
             />
           </div>
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>迭代变量名</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.iterateVar")}</label>
             <Input
               value={config.iteratee_var || ""}
               onChange={(e) => handleConfigChange("iteratee_var", e.target.value)}
               size="small"
-              placeholder="如: item"
+              placeholder={t("workflow.props.iterateVarExample")}
             />
           </div>
         </>
@@ -91,32 +93,32 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
 
       {config.loop_type === "while" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>继续条件</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.continueCondition")}</label>
           <Input.TextArea
             value={config.continue_condition || ""}
             onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
             rows={2}
             size="small"
-            placeholder="如: count < 10 && hasMore"
+            placeholder={t("workflow.props.continueConditionExample")}
           />
         </div>
       )}
 
       {config.loop_type === "until" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>停止条件</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.stopCondition")}</label>
           <Input.TextArea
             value={config.continue_condition || ""}
             onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
             rows={2}
             size="small"
-            placeholder="如: isComplete == true"
+            placeholder={t("workflow.props.stopConditionExample")}
           />
         </div>
       )}
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>最大迭代次数</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxIterations")}</label>
         <InputNumber
           value={config.max_iterations ?? 100}
           onChange={(value) => handleConfigChange("max_iterations", value)}

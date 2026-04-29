@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useWorkflowEditorStore } from "@/stores";
 import { Input, Tabs, Tag } from "antd";
 import { FileText, Search } from "lucide-react";
@@ -6,6 +7,7 @@ import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
 import { setDragPayload, type DragPayload } from "../dndState";
 
 export const LeftPanel: React.FC = () => {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const { templates, loadTemplate } = useWorkflowEditorStore();
   const [isDragging, setIsDragging] = useState(false);
@@ -75,7 +77,7 @@ export const LeftPanel: React.FC = () => {
   const filteredNodeTypes = Object.entries(NODE_TYPE_MAP)
     .filter(([_, info]) => info.label.toLowerCase().includes(search.toLowerCase()))
     .filter(([type, _]) => !type.startsWith("_"))
-    .filter(([_, info]) => !info.label.includes("(旧)"));
+    .filter(([_, info]) => !info.label.includes(t("workflow.leftPanel.legacySuffix")));
 
   const groupedNodeTypes = NODE_CATEGORIES.map((category) => ({
     ...category,
@@ -104,12 +106,12 @@ export const LeftPanel: React.FC = () => {
         items={[
           {
             key: "nodes",
-            label: "节点",
+            label: t("workflow.leftPanel.nodesTab"),
             children: (
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                 <Input
                   prefix={<Search size={14} style={{ color: "#666" }} />}
-                  placeholder="搜索节点..."
+                   placeholder={t("workflow.leftPanel.searchNodes")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   style={{ margin: "8px", width: "auto" }}
@@ -171,12 +173,12 @@ export const LeftPanel: React.FC = () => {
           },
           {
             key: "templates",
-            label: "模板",
+            label: t("workflow.leftPanel.templatesTab"),
             children: (
               <div style={{ padding: "8px" }}>
                 <Input
                   prefix={<Search size={14} style={{ color: "#666" }} />}
-                  placeholder="搜索模板..."
+                   placeholder={t("workflow.leftPanel.searchTemplates")}
                   style={{ marginBottom: 8 }}
                   size="small"
                 />
@@ -205,7 +207,7 @@ export const LeftPanel: React.FC = () => {
                         <span style={{ color: "#ccc", fontSize: 12 }}>{template.name}</span>
                         {template.is_preset && (
                           <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>
-                            预设
+                            {t("workflow.preset")}
                           </Tag>
                         )}
                       </div>

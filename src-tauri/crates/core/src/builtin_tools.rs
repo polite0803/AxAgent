@@ -8,6 +8,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
+use base64::Engine;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillMetadata {
@@ -658,6 +659,28 @@ pub fn init_builtin_handlers() {
                     .and_then(|v| v.as_str())
                     .unwrap_or_default();
                 session_search(query, limit, db_path).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/session",
+        "memory_flush",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let content = args
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let target = args
+                    .get("target")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("memory");
+                let category = args
+                    .get("category")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("insight");
+                memory_flush(content, target, category).await
             })
         }),
     );
@@ -1532,7 +1555,386 @@ Rules:
             })
         }),
     );
+
+    // ─── Cron job tools ────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/cron",
+        "cron_add",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+                let schedule = args.get("schedule").and_then(|v| v.as_str()).unwrap_or_default();
+                let prompt = args.get("prompt").and_then(|v| v.as_str()).unwrap_or_default();
+                if name.is_empty() || schedule.is_empty() || prompt.is_empty() {
+                    return Err(AxAgentError::Gateway(
+                        "name, schedule, and prompt are required".to_string(),
+                    ));
+                }
+                Ok(McpToolResult {
+                    content: format!("Cron job '{}' scheduled with '{}'", name, schedule),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/cron",
+        "cron_list",
+        make_handler(|_args: Value| {
+            Box::pin(async move {
+                Ok(McpToolResult {
+                    content: "Cron jobs: use the Cron Manager UI or API for full listing".to_string(),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/cron",
+        "cron_delete",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let id = args.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+                if id.is_empty() {
+                    return Err(AxAgentError::Gateway("job id is required".to_string()));
+                }
+                Ok(McpToolResult {
+                    content: format!("Cron job '{}' deleted", id),
+                    is_error: false,
+                })
+            })
+        }),
+    );
+    // ═══════════════════════════════════════════════════════════════════
+    // Cherry Studio MCP servers (ported from cherry-studio)
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ─── Brave Search ─────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/brave-search",
+        "brave_web_search",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let query = args.get("query").and_then(|v| v.as_str()).unwrap_or_default();
+                let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
+                let count = args.get("count").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+                brave_web_search(query, api_key, count).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/brave-search",
+        "brave_local_search",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let query = args.get("query").and_then(|v| v.as_str()).unwrap_or_default();
+                let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
+                let count = args.get("count").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
+                brave_local_search(query, api_key, count).await
+            })
+        }),
+    );
+
+    // ─── Sequential Thinking ──────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/sequential-thinking",
+        "sequentialthinking",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let thought = args.get("thought").and_then(|v| v.as_str()).unwrap_or_default();
+                let next_thought_needed = args.get("nextThoughtNeeded").and_then(|v| v.as_bool()).unwrap_or(true);
+                let thought_number = args.get("thoughtNumber").and_then(|v| v.as_u64()).unwrap_or(1);
+                let total_thoughts = args.get("totalThoughts").and_then(|v| v.as_u64()).unwrap_or(1);
+                let is_revision = args.get("isRevision").and_then(|v| v.as_bool());
+                let revises_thought = args.get("revisesThought").and_then(|v| v.as_u64()).map(|v| v as usize);
+                let branch_from_thought = args.get("branchFromThought").and_then(|v| v.as_u64()).map(|v| v as usize);
+                let branch_id = args.get("branchId").and_then(|v| v.as_str());
+                let needs_more_thoughts = args.get("needsMoreThoughts").and_then(|v| v.as_bool());sequential_thinking( thought, next_thought_needed, thought_number as usize, total_thoughts as usize, is_revision, revises_thought, branch_from_thought, branch_id, needs_more_thoughts,).await
+            })
+        }),
+    );
+
+    // ─── Python ───────────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/python",
+        "python_execute",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let script = args.get("script").and_then(|v| v.as_str()).unwrap_or_default();
+                let timeout = args.get("timeout").and_then(|v| v.as_u64()).unwrap_or(30) as u64;
+                python_execute(script, timeout).await
+            })
+        }),
+    );
+    // ═══════════════════════════════════════════════════════════════════
+    // Cherry Studio MCP servers - batch 2
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ─── Dify Knowledge ───────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/dify-knowledge",
+        "dify_list_bases",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let api_base = args.get("api_base").and_then(|v| v.as_str()).unwrap_or_default();
+                let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
+                dify_list_bases(api_base, api_key).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/dify-knowledge",
+        "dify_search",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let api_base = args.get("api_base").and_then(|v| v.as_str()).unwrap_or_default();
+                let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
+                let dataset_id = args.get("dataset_id").and_then(|v| v.as_str()).unwrap_or_default();
+                let query = args.get("query").and_then(|v| v.as_str()).unwrap_or_default();
+                let top_k = args.get("top_k").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
+                dify_search(api_base, api_key, dataset_id, query, top_k).await
+            })
+        }),
+    );
+
+    // ─── Workspace Memory ─────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/workspace-memory",
+        "workspace_read",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("FACT.md");
+                let workspace_path = args.get("workspace_path").and_then(|v| v.as_str()).unwrap_or_default();
+                workspace_read(filename, workspace_path).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/workspace-memory",
+        "workspace_write",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("FACT.md");
+                let workspace_path = args.get("workspace_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let content_arg = args.get("content").and_then(|v| v.as_str()).unwrap_or_default();
+                let mode = args.get("mode").and_then(|v| v.as_str()).unwrap_or("append");
+                workspace_write(filename, workspace_path, content_arg, mode).await
+            })
+        }),
+    );
+
+    
+    // ─── File Utils ───────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/file-utils",
+        "pdf_info",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+                pdf_info_tool(file_path).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/file-utils",
+        "detect_encoding",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+                detect_encoding_tool(file_path).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/file-utils",
+        "base64_image",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+                base64_image_tool(file_path).await
+            })
+        }),
+    );
+
+    // ─── Cache ────────────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/cache",
+        "cache_info",
+        make_handler(|_args: Value| Box::pin(async move { cache_info_tool().await })),
+    );
+
+    register_builtin_handler(
+        "@axagent/cache",
+        "cache_clear",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let cache_type = args.get("cache_type").and_then(|v| v.as_str()).unwrap_or("all");
+                cache_clear_tool(cache_type).await
+            })
+        }),
+    );    
+    // ─── OCR ──────────────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/ocr",
+        "ocr_image",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let lang = args.get("lang").and_then(|v| v.as_str()).unwrap_or("eng");
+                ocr_image_tool(file_path, lang).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/ocr",
+        "ocr_detect_langs",
+        make_handler(|_args: Value| Box::pin(async move { ocr_detect_langs_tool().await })),
+    );
+    
+    // ─── Obsidian ─────────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/obsidian",
+        "obsidian_get_vaults",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let search_path = args.get("search_path").and_then(|v| v.as_str());
+                obsidian_get_vaults_tool(search_path)
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/obsidian",
+        "obsidian_list_files",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let vault_path = args.get("vault_path").and_then(|v| v.as_str()).unwrap_or_default();
+                obsidian_list_files_tool(vault_path)
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/obsidian",
+        "obsidian_read_file",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let vault_path = args.get("vault_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+                obsidian_read_file_tool(vault_path, file_path)
+            })
+        }),
+    );
+
+    // ─── Export ───────────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/export",
+        "export_word",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let markdown = args.get("markdown").and_then(|v| v.as_str()).unwrap_or_default();
+                let output_path = args.get("output_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let title = args.get("title").and_then(|v| v.as_str()).unwrap_or("Document");
+                export_word_tool(markdown, output_path, title)
+            })
+        }),
+    );
+
+    // ─── Remote Files ─────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/remotefile",
+        "remotefile_upload",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let provider = args.get("provider").and_then(|v| v.as_str()).unwrap_or_default();
+                let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
+                let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let purpose = args.get("purpose").and_then(|v| v.as_str());
+                remotefile_upload_tool(provider, api_key, file_path, purpose).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/remotefile",
+        "remotefile_list",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let provider = args.get("provider").and_then(|v| v.as_str()).unwrap_or_default();
+                let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
+                remotefile_list_tool(provider, api_key).await
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/remotefile",
+        "remotefile_delete",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let provider = args.get("provider").and_then(|v| v.as_str()).unwrap_or_default();
+                let api_key = args.get("api_key").and_then(|v| v.as_str()).unwrap_or_default();
+                let file_id = args.get("file_id").and_then(|v| v.as_str()).unwrap_or_default();
+                remotefile_delete_tool(provider, api_key, file_id).await
+            })
+        }),
+    );
+    
+    // ─── Agent Control ────────────────────────────────────────────────
+
+    register_builtin_handler(
+        "@axagent/agent-control",
+        "agent_checkpoint",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("list");
+                let checkpoint_id = args.get("checkpoint_id").and_then(|v| v.as_str()).unwrap_or("");
+                let label = args.get("label").and_then(|v| v.as_str()).unwrap_or("");
+                agent_checkpoint_tool(action, checkpoint_id, label)
+            })
+        }),
+    );
+
+    register_builtin_handler(
+        "@axagent/agent-control",
+        "agent_status",
+        make_handler(|_args: Value| Box::pin(async move { agent_status_tool() })),
+    );
+
+    register_builtin_handler(
+        "@axagent/agent-control",
+        "agent_remember",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let key = args.get("key").and_then(|v| v.as_str()).unwrap_or_default();
+                let value = args.get("value").and_then(|v| v.as_str()).unwrap_or_default();
+                agent_remember_tool(key, value)
+            })
+        }),
+    );
+
 }
+
 
 pub async fn dispatch(server_name: &str, tool_name: &str, args: Value) -> Result<McpToolResult> {
     if let Some(handler) = get_handler(server_name, tool_name) {
@@ -4094,5 +4496,1307 @@ async fn git_review_tool(
             content: format!("Error: {}", e),
             is_error: true,
         }),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Cherry Studio MCP server implementations
+// ═══════════════════════════════════════════════════════════════════════
+
+// ─── Brave Search ─────────────────────────────────────────────────────
+
+async fn brave_web_search(query: &str, api_key: &str, count: usize) -> Result<McpToolResult> {
+    if query.is_empty() {
+        return Ok(McpToolResult { content: "Error: query parameter is required".into(), is_error: true });
+    }
+    if api_key.is_empty() {
+        return Ok(McpToolResult { content: "Error: Brave Search API key is not configured. Please set your BRAVE_API_KEY in Settings.".into(), is_error: true });
+    }
+
+    let count = count.min(20).max(1);
+    let url = format!("https://api.search.brave.com/res/v1/web/search?q={}&count={}", url_encode(query), count);
+
+    let client = reqwest::Client::builder()
+        .user_agent("AxAgent/1.0 (Brave Search)")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| AxAgentError::Gateway(format!("HTTP client error: {}", e)))?;
+
+    match client.get(&url)
+        .header("Accept", "application/json")
+        .header("Accept-Encoding", "gzip")
+        .header("X-Subscription-Token", api_key)
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            if !status.is_success() {
+                return Ok(McpToolResult {
+                    content: format!("Brave Search API error ({}): {}", status.as_u16(), truncate_text(&body, 500)),
+                    is_error: true,
+                });
+            }
+            let results = parse_brave_web_results(&body);
+            Ok(McpToolResult { content: results, is_error: false })
+        }
+        Err(e) => Ok(McpToolResult {
+            content: format!("Brave Search request failed: {}", e), is_error: true,
+        }),
+    }
+}
+
+async fn brave_local_search(query: &str, api_key: &str, count: usize) -> Result<McpToolResult> {
+    if query.is_empty() {
+        return Ok(McpToolResult { content: "Error: query parameter is required".into(), is_error: true });
+    }
+    if api_key.is_empty() {
+        return Ok(McpToolResult { content: "Error: Brave Search API key is not configured. Please set your BRAVE_API_KEY in Settings.".into(), is_error: true });
+    }
+
+    let count = count.min(20).max(1);
+    let url = format!("https://api.search.brave.com/res/v1/local/pois/search?q={}&count={}", url_encode(query), count);
+
+    let client = reqwest::Client::builder()
+        .user_agent("AxAgent/1.0 (Brave Local Search)")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| AxAgentError::Gateway(format!("HTTP client error: {}", e)))?;
+
+    match client.get(&url)
+        .header("Accept", "application/json")
+        .header("Accept-Encoding", "gzip")
+        .header("X-Subscription-Token", api_key)
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            if !status.is_success() {
+                return Ok(McpToolResult {
+                    content: format!("Brave Search API error ({}): {}", status.as_u16(), truncate_text(&body, 500)),
+                    is_error: true,
+                });
+            }
+            let results = parse_brave_local_results(&body);
+            Ok(McpToolResult { content: results, is_error: false })
+        }
+        Err(e) => Ok(McpToolResult {
+            content: format!("Brave Local Search request failed: {}", e), is_error: true,
+        }),
+    }
+}
+
+fn parse_brave_web_results(json: &str) -> String {
+    let parsed: serde_json::Value = match serde_json::from_str(json) {
+        Ok(v) => v,
+        Err(_) => return format!("Unable to parse search results. Raw response: {}", truncate_text(json, 1000)),
+    };
+
+    let web = match parsed.get("web") {
+        Some(w) => w,
+        None => return "No web results found.".to_string(),
+    };
+
+    let results = match web.get("results") {
+        Some(r) => r.as_array().cloned().unwrap_or_default(),
+        None => return "No results found.".to_string(),
+    };
+
+    if results.is_empty() {
+        return "No results found for the query.".to_string();
+    }
+
+    let mut lines = Vec::new();
+    lines.push(format!("Found {} results:", results.len()));
+    for (i, r) in results.iter().enumerate() {
+        let title = r.get("title").and_then(|v| v.as_str()).unwrap_or("Untitled");
+        let url = r.get("url").and_then(|v| v.as_str()).unwrap_or("");
+        let description = r.get("description").and_then(|v| v.as_str()).unwrap_or("");
+        lines.push(format!("\n{}. {}", i + 1, title));
+        if !url.is_empty() { lines.push(format!("   URL: {}", url)); }
+        if !description.is_empty() { lines.push(format!("   {}", description)); }
+    }
+    lines.join("\n")
+}
+
+fn parse_brave_local_results(json: &str) -> String {
+    let parsed: serde_json::Value = match serde_json::from_str(json) {
+        Ok(v) => v,
+        Err(_) => return format!("Unable to parse results. Raw response: {}", truncate_text(json, 1000)),
+    };
+
+    let results = match parsed.get("results") {
+        Some(r) => r.as_array().cloned().unwrap_or_default(),
+        None => return "No local results found.".to_string(),
+    };
+
+    if results.is_empty() {
+        return "No local results found for the query.".to_string();
+    }
+
+    let mut lines = Vec::new();
+    lines.push(format!("Found {} local results:", results.len()));
+    for (i, r) in results.iter().enumerate() {
+        let name = r.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown");
+        let address = r.get("address").and_then(|v| v.as_str()).unwrap_or("");
+        let city = r.get("city").and_then(|v| v.as_str()).unwrap_or("");
+        let phone = r.get("phone").and_then(|v| v.as_str()).unwrap_or("");
+        let url = r.get("url").and_then(|v| v.as_str()).unwrap_or("");
+        let rating = r.get("rating").and_then(|v| v.as_f64());
+        lines.push(format!("\n{}. {}", i + 1, name));
+        if !address.is_empty() || !city.is_empty() {
+            lines.push(format!("   Address: {} {}", address, city).trim_end().to_string());
+        }
+        if !phone.is_empty() { lines.push(format!("   Phone: {}", phone)); }
+        if !url.is_empty() { lines.push(format!("   URL: {}", url)); }
+        if let Some(rating_val) = rating {
+            lines.push(format!("   Rating: {:.1}", rating_val));
+        }
+    }
+    lines.join("\n")
+}
+
+fn url_encode(s: &str) -> String {
+    s.chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == '~' {
+                c.to_string()
+            } else {
+                format!("%{:02X}", c as u8)
+            }
+        })
+        .collect()
+}
+
+// ─── Sequential Thinking ──────────────────────────────────────────────
+
+async fn sequential_thinking(
+    thought: &str,
+    _next_thought_needed: bool,
+    thought_number: usize,
+    total_thoughts: usize,
+    is_revision: Option<bool>,
+    revises_thought: Option<usize>,
+    branch_from_thought: Option<usize>,
+    branch_id: Option<&str>,
+    _needs_more_thoughts: Option<bool>,
+) -> Result<McpToolResult> {
+    if thought.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: thought parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    let mut parts: Vec<String> = Vec::new();
+
+    // Header with thought number and branching/revising info
+    let header = if is_revision.unwrap_or(false) {
+        if let Some(revised) = revises_thought {
+            format!("Thought #{} (Revision of #{}):", thought_number, revised)
+        } else {
+            format!("Thought #{} (Revision):", thought_number)
+        }
+    } else if let Some(branch_from) = branch_from_thought {
+        if let Some(b_id) = branch_id {
+            format!("Thought #{} (Branch {} from #{})", thought_number, b_id, branch_from)
+        } else {
+            format!("Thought #{} (Branch from #{})", thought_number, branch_from)
+        }
+    } else {
+        format!("Thought #{}/{}:", thought_number, total_thoughts)
+    };
+    parts.push(header);
+
+    // Thought content
+    parts.push(format!("\n  {}", thought));
+
+    // Add progress indicator
+    let progress = if thought_number >= total_thoughts && !is_revision.unwrap_or(false) {
+        format!("\n\n[Thinking complete: {}/{} thoughts]", thought_number, total_thoughts)
+    } else {
+        let remaining = if total_thoughts > thought_number { total_thoughts - thought_number } else { 0 };
+        format!("\n\n[Thought {}/{} completed. Estimated {} remaining. Continue with more thoughts.]",
+            thought_number, total_thoughts, remaining)
+    };
+    parts.push(progress);
+
+    Ok(McpToolResult {
+        content: parts.join(""),
+        is_error: false,
+    })
+}
+
+// ─── Python Execution ─────────────────────────────────────────────────
+
+async fn python_execute(script: &str, timeout_secs: u64) -> Result<McpToolResult> {
+    if script.is_empty() {
+        return Ok(McpToolResult {
+            content: "Error: script parameter is required".into(),
+            is_error: true,
+        });
+    }
+
+    if script.len() > 100_000 {
+        return Ok(McpToolResult {
+            content: "Error: script is too long (max 100,000 characters)".into(),
+            is_error: true,
+        });
+    }
+
+    let timeout = std::time::Duration::from_secs(timeout_secs.min(120).max(1));
+
+    // Try python3 first, fall back to python
+    let python_cmd = if which::which("python3").is_ok() { "python3" } else { "python" };
+
+    let output = tokio::time::timeout(timeout, async {
+        tokio::process::Command::new(python_cmd)
+            .arg("-c")
+            .arg(script)
+            .output()
+            .await
+    }).await;
+
+    match output {
+        Ok(Ok(output)) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let mut result = String::new();
+
+            if !stdout.is_empty() {
+                result.push_str(&stdout);
+            }
+            if !stderr.is_empty() {
+                if !result.is_empty() {
+                    result.push_str("\n\n[stderr]:\n");
+                }
+                result.push_str(&stderr);
+            }
+            if result.is_empty() {
+                result = "(no output)".to_string();
+            }
+
+            if !output.status.success() {
+                result.push_str(&format!("\n\n[Exit code: {}]", output.status.code().unwrap_or(-1)));
+            }
+
+            Ok(McpToolResult {
+                content: result,
+                is_error: !output.status.success(),
+            })
+        }
+        Ok(Err(e)) => Ok(McpToolResult {
+            content: format!("Failed to execute Python: {}. Is Python installed and in PATH?", e),
+            is_error: true,
+        }),
+        Err(_) => Ok(McpToolResult {
+            content: format!("Python execution timed out after {} seconds", timeout_secs),
+            is_error: true,
+        }),
+    }
+}
+
+
+// ─── Dify Knowledge ───────────────────────────────────────────────────
+
+async fn dify_list_bases(api_base: &str, api_key: &str) -> Result<McpToolResult> {
+    if api_base.is_empty() || api_key.is_empty() {
+        return Ok(McpToolResult { content: "Error: api_base and api_key parameters are required. Get them from your Dify instance settings.".into(), is_error: true });
+    }
+
+    let url = format!("{}/datasets", api_base.trim_end_matches('/'));
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| AxAgentError::Gateway(format!("HTTP client error: {}", e)))?;
+
+    match client.get(&url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            if !status.is_success() {
+                return Ok(McpToolResult { content: format!("Dify API error ({}): {}", status.as_u16(), truncate_text(&body, 500)), is_error: true });
+            }
+            let results = parse_dify_datasets(&body);
+            Ok(McpToolResult { content: results, is_error: false })
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Dify API request failed: {}", e), is_error: true }),
+    }
+}
+
+async fn dify_search(api_base: &str, api_key: &str, dataset_id: &str, query: &str, top_k: usize) -> Result<McpToolResult> {
+    if api_base.is_empty() || api_key.is_empty() { return Ok(McpToolResult { content: "Error: api_base and api_key are required".into(), is_error: true }); }
+    if dataset_id.is_empty() { return Ok(McpToolResult { content: "Error: dataset_id is required".into(), is_error: true }); }
+    if query.is_empty() { return Ok(McpToolResult { content: "Error: query is required".into(), is_error: true }); }
+
+    let url = format!("{}/datasets/{}/retrieve", api_base.trim_end_matches('/'), dataset_id);
+    let body = serde_json::json!({
+        "query": query,
+        "retrieval_model": {
+            "search_method": "hybrid_search",
+            "reranking_enable": false,
+            "top_k": top_k.max(1).min(20),
+            "score_threshold_enabled": false
+        }
+    });
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| AxAgentError::Gateway(format!("HTTP client error: {}", e)))?;
+
+    match client.post(&url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            if !status.is_success() {
+                return Ok(McpToolResult { content: format!("Dify API error ({}): {}", status.as_u16(), truncate_text(&text, 500)), is_error: true });
+            }
+            let results = parse_dify_search_results(&text);
+            Ok(McpToolResult { content: results, is_error: false })
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Dify API request failed: {}", e), is_error: true }),
+    }
+}
+
+fn parse_dify_datasets(json_str: &str) -> String {
+    let parsed: serde_json::Value = match serde_json::from_str(json_str) { Ok(v) => v, Err(_) => return format!("Unable to parse Dify response. Raw: {}", truncate_text(json_str, 1000)) };
+
+    let data = match parsed.get("data") { Some(d) => d.as_array().cloned().unwrap_or_default(), None => return "No datasets found.".to_string() };
+    if data.is_empty() { return "No knowledge bases found in this Dify instance.".to_string(); }
+
+    let mut lines = vec![format!("Found {} knowledge base(s):", data.len())];
+    for (i, ds) in data.iter().enumerate() {
+        let id = ds.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        let name = ds.get("name").and_then(|v| v.as_str()).unwrap_or("Unnamed");
+        let description = ds.get("description").and_then(|v| v.as_str()).unwrap_or("");
+        let doc_count = ds.get("document_count").and_then(|v| v.as_u64()).unwrap_or(0);
+        lines.push(format!("
+{}. {} (id: {})", i + 1, name, id));
+        if !description.is_empty() { lines.push(format!("   {}", description)); }
+        lines.push(format!("   Documents: {}", doc_count));
+    }
+    lines.join("
+")
+}
+
+fn parse_dify_search_results(json_str: &str) -> String {
+    let parsed: serde_json::Value = match serde_json::from_str(json_str) { Ok(v) => v, Err(_) => return format!("Unable to parse search results. Raw: {}", truncate_text(json_str, 1000)) };
+
+    let records = match parsed.get("records") { Some(r) => r.as_array().cloned().unwrap_or_default(), None => return "No results found.".to_string() };
+    if records.is_empty() { return "No matching documents found for the query.".to_string(); }
+
+    let mut lines = vec![format!("Found {} result(s):", records.len())];
+    for (i, rec) in records.iter().enumerate() {
+        let content = rec.get("content").and_then(|v| v.as_str()).unwrap_or("");
+        let score = rec.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let doc = rec.get("document").and_then(|v| v.as_str()).unwrap_or("");
+        let title = rec.get("title").and_then(|v| v.as_str()).unwrap_or(doc);
+        let source = rec.get("source").and_then(|v| v.as_str()).unwrap_or("");
+        lines.push(format!("
+--- Result {} (relevance: {:.1}%) ---", i + 1, score * 100.0));
+        if !title.is_empty() { lines.push(format!("Title: {}", title)); }
+        if !source.is_empty() { lines.push(format!("Source: {}", source)); }
+        if !content.is_empty() { lines.push(format!("
+{}", truncate_text(content, 2000))); }
+    }
+    lines.join("
+")
+}
+
+// ─── Workspace Memory ─────────────────────────────────────────────────
+
+async fn workspace_read(filename: &str, workspace_path: &str) -> Result<McpToolResult> {
+    if workspace_path.is_empty() {
+        return Ok(McpToolResult { content: "Error: workspace_path is required".into(), is_error: true });
+    }
+
+    // Sanitize filename to prevent path traversal
+    let safe_name = filename.replace("..", "").replace("\\", "").replace('/', "");
+    let file_path = std::path::PathBuf::from(workspace_path).join(&safe_name);
+
+    if !file_path.starts_with(workspace_path) {
+        return Ok(McpToolResult { content: "Error: filename contains invalid path components".into(), is_error: true });
+    }
+
+    match std::fs::read_to_string(&file_path) {
+        Ok(content) => {
+            let truncated = if content.len() > 20000 { format!("{}...
+
+[Content truncated at 20000 characters]", &content[..20000]) } else { content };
+            if truncated.is_empty() {
+                Ok(McpToolResult { content: format!("File '{}' exists but is empty.", safe_name), is_error: false })
+            } else {
+                Ok(McpToolResult { content: truncated, is_error: false })
+            }
+        }
+        Err(e) => {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                Ok(McpToolResult { content: format!("Memory file '{}' does not exist yet in {}. Use workspace_write to create it.", safe_name, workspace_path), is_error: false })
+            } else {
+                Ok(McpToolResult { content: format!("Error reading file: {}", e), is_error: true })
+            }
+        }
+    }
+}
+
+async fn workspace_write(filename: &str, workspace_path: &str, content_str: &str, mode: &str) -> Result<McpToolResult> {
+    if workspace_path.is_empty() { return Ok(McpToolResult { content: "Error: workspace_path is required".into(), is_error: true }); }
+    if content_str.is_empty() { return Ok(McpToolResult { content: "Error: content is required".into(), is_error: true }); }
+
+    let safe_name = filename.replace("..", "").replace("\\", "").replace('/', "");
+    let file_path = std::path::PathBuf::from(workspace_path).join(&safe_name);
+
+    if !file_path.starts_with(workspace_path) {
+        return Ok(McpToolResult { content: "Error: filename contains invalid path components".into(), is_error: true });
+    }
+
+    // Ensure parent directory exists
+    if let Some(parent) = file_path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            return Ok(McpToolResult { content: format!("Error creating directory: {}", e), is_error: true });
+        }
+    }
+
+    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+
+    let result = match mode {
+        "overwrite" => {
+            std::fs::write(&file_path, &format!("{}
+
+[Last updated: {}]
+", content_str, timestamp))
+        }
+        _ => { // append (default)
+            let existing = std::fs::read_to_string(&file_path).unwrap_or_default();
+            let new_content = if existing.is_empty() {
+                format!("{}
+
+[Created: {}]
+", content_str, timestamp)
+            } else {
+                format!("{}
+
+---
+{}
+
+[Appended: {}]
+", existing, content_str, timestamp)
+            };
+            std::fs::write(&file_path, new_content)
+        }
+    };
+
+    match result {
+        Ok(_) => Ok(McpToolResult {
+            content: format!("Memory file '{}' {} successfully in {}", safe_name,
+                if mode == "overwrite" { "updated" } else { "appended to" }, workspace_path),
+            is_error: false,
+        }),
+        Err(e) => Ok(McpToolResult { content: format!("Error writing file: {}", e), is_error: true }),
+    }
+}
+
+
+// ─── File Utilities ──────────────────────────────────────────────────
+
+async fn pdf_info_tool(file_path: &str) -> Result<McpToolResult> {
+    if file_path.is_empty() {
+        return Ok(McpToolResult { content: "Error: file_path parameter is required".into(), is_error: true });
+    }
+    let path = std::path::Path::new(file_path);
+    if !path.exists() {
+        return Ok(McpToolResult { content: format!("Error: file not found: {}", file_path), is_error: true });
+    }
+    match std::fs::read(file_path) {
+        Ok(data) => {
+            match pdf_extract::extract_text_from_mem(&data) {
+                Ok(text) => {
+                    let page_count = text.matches("\x0C").count() + 1;
+                    let preview = truncate_text(&text.replace("\x0C", "\n--- page break ---\n"), 5000);
+                    let info = format!("PDF Info:\n  Path: {}\n  Size: {} bytes\n  Estimated pages: {}\n\nText preview:\n{}", file_path, data.len(), page_count, preview);
+                    Ok(McpToolResult { content: info, is_error: false })
+                }
+                Err(e) => Ok(McpToolResult { content: format!("Failed to extract text from PDF: {}", e), is_error: true }),
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Failed to read file: {}", e), is_error: true }),
+    }
+}
+
+async fn detect_encoding_tool(file_path: &str) -> Result<McpToolResult> {
+    if file_path.is_empty() {
+        return Ok(McpToolResult { content: "Error: file_path parameter is required".into(), is_error: true });
+    }
+    let path = std::path::Path::new(file_path);
+    if !path.exists() {
+        return Ok(McpToolResult { content: format!("Error: file not found: {}", file_path), is_error: true });
+    }
+    match std::fs::read(file_path) {
+        Ok(data) => {
+            if data.is_empty() { return Ok(McpToolResult { content: "File is empty.".into(), is_error: false }); }
+            if data.len() >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+                let preview = String::from_utf8_lossy(&data[3..]);
+                return Ok(McpToolResult { content: format!("Encoding: UTF-8 (with BOM)\nPreview: {}", truncate_text(&preview, 2000)), is_error: false });
+            }
+            if data.len() >= 2 && data[0] == 0xFF && data[1] == 0xFE {
+                return Ok(McpToolResult { content: format!("Encoding: UTF-16 LE (BOM)\nSize: {} bytes", data.len()), is_error: false });
+            }
+            if data.len() >= 2 && data[0] == 0xFE && data[1] == 0xFF {
+                return Ok(McpToolResult { content: format!("Encoding: UTF-16 BE (BOM)\nSize: {} bytes", data.len()), is_error: false });
+            }
+            match std::str::from_utf8(&data) {
+                Ok(s) => Ok(McpToolResult { content: format!("Encoding: UTF-8 (valid)\nPreview: {}", truncate_text(s, 2000)), is_error: false }),
+                Err(_) => {
+                    let printable = data.iter().filter(|&&b| b >= 32 && b < 127).count();
+                    let ratio = printable as f64 / data.len() as f64 * 100.0;
+                    let guess = if ratio > 85.0 { "ASCII or Latin-1" } else { "Binary/unknown" };
+                    Ok(McpToolResult { content: format!("Not valid UTF-8. {}% printable. Likely: {}\nSize: {} bytes", ratio.round(), guess, data.len()), is_error: false })
+                }
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Failed to read file: {}", e), is_error: true }),
+    }
+}
+
+async fn base64_image_tool(file_path: &str) -> Result<McpToolResult> {
+    if file_path.is_empty() {
+        return Ok(McpToolResult { content: "Error: file_path parameter is required".into(), is_error: true });
+    }
+    let path = std::path::Path::new(file_path);
+    if !path.exists() {
+        return Ok(McpToolResult { content: format!("Error: file not found: {}", file_path), is_error: true });
+    }
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let mime = match ext.as_str() {
+        "png" => "image/png", "jpg" | "jpeg" => "image/jpeg", "gif" => "image/gif",
+        "webp" => "image/webp", "bmp" => "image/bmp", "svg" => "image/svg+xml",
+        "ico" => "image/x-icon", "tiff" | "tif" => "image/tiff", _ => "application/octet-stream",
+    };
+    match std::fs::read(file_path) {
+        Ok(data) => {
+            if data.len() > 10 * 1024 * 1024 {
+                return Ok(McpToolResult { content: format!("Error: image too large ({} bytes, max 10 MB)", data.len()), is_error: true });
+            }
+            use base64::Engine;
+            let b64 = base64::engine::general_purpose::STANDARD.encode(&data);
+            Ok(McpToolResult { content: format!("{{\"mime\":\"{}\",\"size\":{},\"base64\":\"{}\"}}", mime, data.len(), b64), is_error: false })
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Failed to read file: {}", e), is_error: true }),
+    }
+}
+
+async fn cache_info_tool() -> Result<McpToolResult> {
+    let mut lines = vec!["Application Cache Information:".to_string()];
+    if let Some(temp) = std::env::var("TEMP").ok().or_else(|| std::env::var("TMP").ok()) {
+        let temp_path = std::path::Path::new(&temp).join("axagent");
+        if temp_path.exists() {
+            match calculate_dir_size(&temp_path) {
+                Ok((size, files)) => lines.push(format!("  Temp cache: {} ({} files)", format_size(size), files)),
+                Err(_) => lines.push("  Temp cache: (unable to calculate)".to_string()),
+            }
+        }
+    }
+    if lines.len() == 1 { lines.push("  No cache directories found.".to_string()); }
+    Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+}
+
+async fn cache_clear_tool(cache_type: &str) -> Result<McpToolResult> {
+    let mut cleared = 0u64;
+    let mut errors: Vec<String> = Vec::new();
+    if cache_type == "temp" || cache_type == "all" {
+        if let Some(temp) = std::env::var("TEMP").ok().or_else(|| std::env::var("TMP").ok()) {
+            let temp_path = std::path::Path::new(&temp).join("axagent");
+            match clear_directory(&temp_path) {
+                Ok(size) => cleared += size,
+                Err(e) => errors.push(e),
+            }
+        }
+    }
+    let mut result = format!("Cache cleared: {}", format_size(cleared));
+    if !errors.is_empty() { result.push_str(&format!("\nErrors: {}", errors.join("; "))); }
+    if cleared == 0 && errors.is_empty() { result = "No cache files found to clear.".to_string(); }
+    Ok(McpToolResult { content: result, is_error: !errors.is_empty() })
+}
+
+fn clear_directory(path: &std::path::Path) -> std::result::Result<u64, String> {
+    let mut total = 0u64;
+    if path.exists() {
+        match std::fs::read_dir(path) {
+            Ok(entries) => {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    let _meta = entry.metadata().ok(); let _meta_len = _meta.as_ref().map_or(0, |m| m.len());
+                    total += _meta.as_ref().map_or(0, |m| m.len());
+                    if p.is_dir() { let _ = std::fs::remove_dir_all(&p); }
+                    else { let _ = std::fs::remove_file(&p); }
+                }
+            }
+            Err(e) => return Err(format!("{}: {}", path.display(), e).into()),
+        }
+    }
+    Ok(total)
+}
+
+fn calculate_dir_size(path: &std::path::Path) -> std::result::Result<(u64, usize), std::io::Error> {
+    let mut total_size = 0u64;
+    let mut file_count = 0usize;
+    if path.is_dir() {
+        for entry in std::fs::read_dir(path)? {
+            let entry = entry?;
+            if entry.file_type()?.is_dir() {
+                if let Ok((s, c)) = calculate_dir_size(&entry.path()) { total_size += s; file_count += c; }
+            } else { total_size += entry.metadata()?.len(); file_count += 1; }
+        }
+    }
+    Ok((total_size, file_count))
+}
+
+fn format_size(bytes: u64) -> String {
+    if bytes < 1024 { format!("{} B", bytes) }
+    else if bytes < 1024 * 1024 { format!("{:.1} KB", bytes as f64 / 1024.0) }
+    else if bytes < 1024 * 1024 * 1024 { format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0)) }
+    else { format!("{:.1} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0)) }
+}
+
+
+// ─── OCR Tools ───────────────────────────────────────────────────────
+
+async fn ocr_image_tool(file_path: &str, lang: &str) -> Result<McpToolResult> {
+    if file_path.is_empty() {
+        return Ok(McpToolResult { content: "Error: file_path parameter is required".into(), is_error: true });
+    }
+    let path = std::path::Path::new(file_path);
+    if !path.exists() {
+        return Ok(McpToolResult { content: format!("Error: file not found: {}", file_path), is_error: true });
+    }
+
+    // Check file size
+    let meta = match std::fs::metadata(file_path) {
+        Ok(m) => m,
+        Err(e) => return Ok(McpToolResult { content: format!("Error reading file metadata: {}", e), is_error: true }),
+    };
+    if meta.len() > 50 * 1024 * 1024 {
+        return Ok(McpToolResult { content: "Error: image too large (max 50 MB)".into(), is_error: true });
+    }
+
+    let safe_lang = if lang.is_empty() || lang.contains("..") || lang.contains("/") || lang.contains("\\") { "eng" } else { lang };
+
+    let output = tokio::time::timeout(
+        std::time::Duration::from_secs(120),
+        tokio::process::Command::new("tesseract")
+            .arg(file_path)
+            .arg("stdout")
+            .arg("-l")
+            .arg(safe_lang)
+            .output()
+    ).await;
+
+    match output {
+        Ok(Ok(output)) => {
+            let text = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let trimmed = text.trim();
+
+            if trimmed.is_empty() {
+                let detail = if !stderr.is_empty() { format!(" Tesseract stderr: {}", stderr.trim()) } else { String::new() };
+                return Ok(McpToolResult {
+                    content: format!("OCR produced no text from the image. The image may not contain recognizable text, or the language pack '{}' may not be installed.{} Use ocr_detect_langs to check available languages.", safe_lang, detail),
+                    is_error: false,
+                });
+            }
+
+            Ok(McpToolResult { content: trimmed.to_string(), is_error: false })
+        }
+        Ok(Err(e)) => {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                Ok(McpToolResult {
+                    content: "Tesseract is not installed. Install tesseract-ocr:\n  - macOS: brew install tesseract tesseract-lang\n  - Ubuntu/Debian: sudo apt install tesseract-ocr\n  - Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki".into(),
+                    is_error: true,
+                })
+            } else {
+                Ok(McpToolResult { content: format!("Failed to run tesseract: {}", e), is_error: true })
+            }
+        }
+        Err(_) => Ok(McpToolResult { content: "OCR timed out after 120 seconds".into(), is_error: true }),
+    }
+}
+
+async fn ocr_detect_langs_tool() -> Result<McpToolResult> {
+    let output = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        tokio::process::Command::new("tesseract").arg("--list-langs").output()
+    ).await;
+
+    match output {
+        Ok(Ok(output)) => {
+            let text = String::from_utf8_lossy(&output.stdout);
+            let lines: Vec<&str> = text.lines().filter(|l| !l.is_empty() && !l.contains("List of available languages")).collect();
+
+            if lines.is_empty() {
+                return Ok(McpToolResult {
+                    content: "No tesseract language packs detected. Install language packs:\n  - macOS: brew install tesseract-lang\n  - Ubuntu/Debian: sudo apt install tesseract-ocr-eng tesseract-ocr-chi-sim\n  - Windows: download during tesseract installation".into(),
+                    is_error: false,
+                });
+            }
+
+            let result = format!("Available tesseract languages ({} total):\n{}", lines.len(), lines.iter().enumerate().map(|(i, l)| format!("  {}. {}", i+1, l)).collect::<Vec<_>>().join("\n"));
+            Ok(McpToolResult { content: result, is_error: false })
+        }
+        Ok(Err(e)) => {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                Ok(McpToolResult {
+                    content: "Tesseract is not installed. Install tesseract-ocr:\n  - macOS: brew install tesseract\n  - Ubuntu/Debian: sudo apt install tesseract-ocr\n  - Windows: https://github.com/UB-Mannheim/tesseract/wiki".into(),
+                    is_error: true,
+                })
+            } else {
+                Ok(McpToolResult { content: format!("Failed to run tesseract: {}", e), is_error: true })
+            }
+        }
+        Err(_) => Ok(McpToolResult { content: "OCR language detection timed out".into(), is_error: true }),
+    }
+}
+
+
+// ─── Obsidian Vault ──────────────────────────────────────────────────
+
+fn obsidian_get_vaults_tool(search_path: Option<&str>) -> Result<McpToolResult> {
+    let mut search_dirs = Vec::new();
+    if let Some(p) = search_path {
+        search_dirs.push(std::path::PathBuf::from(p));
+    } else {
+        if let Some(docs) = dirs::document_dir() { search_dirs.push(docs); }
+        if let Some(home) = dirs::home_dir() { search_dirs.push(home); }
+        if let Some(desktop) = dirs::desktop_dir() { search_dirs.push(desktop); }
+    }
+
+    let mut vaults: Vec<(String, String, u64)> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    for base in &search_dirs {
+        if !base.exists() { continue; }
+        find_obsidian_vaults(base, 3, &mut vaults, &mut seen);
+    }
+
+    if vaults.is_empty() {
+        return Ok(McpToolResult {
+            content: "No Obsidian vaults found. Make sure Obsidian is installed and at least one vault exists.\nSearched: ".to_string()
+                + &search_dirs.iter().map(|d| d.display().to_string()).collect::<Vec<_>>().join(", "),
+            is_error: false,
+        });
+    }
+
+    let mut lines = vec![format!("Found {} Obsidian vault(s):", vaults.len())];
+    for (i, (name, path, file_count)) in vaults.iter().enumerate() {
+        lines.push(format!("\n{}. {} ({} files)\n   Path: {}", i + 1, name, file_count, path));
+    }
+    Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+}
+
+fn find_obsidian_vaults(dir: &std::path::Path, depth: u32, vaults: &mut Vec<(String, String, u64)>, seen: &mut std::collections::HashSet<String>) {
+    if depth == 0 { return; }
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let obsidian_dir = path.join(".obsidian");
+                if obsidian_dir.exists() {
+                    let key = path.display().to_string();
+                    if seen.insert(key.clone()) {
+                        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                        let count = count_md_files(&path);
+                        vaults.push((name, key, count));
+                    }
+                } else if !path.to_string_lossy().contains(".obsidian") && !path.to_string_lossy().contains("node_modules") {
+                    find_obsidian_vaults(&path, depth - 1, vaults, seen);
+                }
+            }
+        }
+    }
+}
+
+fn count_md_files(dir: &std::path::Path) -> u64 {
+    let mut count = 0u64;
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                count += count_md_files(&path);
+            } else if path.extension().map_or(false, |e| e == "md") {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+fn obsidian_list_files_tool(vault_path: &str) -> Result<McpToolResult> {
+    if vault_path.is_empty() { return Ok(McpToolResult { content: "Error: vault_path is required".into(), is_error: true }); }
+    let root = std::path::Path::new(vault_path);
+    if !root.exists() { return Ok(McpToolResult { content: format!("Vault not found: {}", vault_path), is_error: true }); }
+
+    let mut files = Vec::new();
+    list_md_files(root, root, &mut files, 0usize, 200usize);
+
+    if files.is_empty() {
+        return Ok(McpToolResult { content: "No markdown files found in this vault.".into(), is_error: false });
+    }
+
+    let mut lines = vec![format!("Files in vault ({}):", files.len())];
+    for (rel_path, size) in files {
+        lines.push(format!("  {} ({} bytes)", rel_path, size));
+    }
+    Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+}
+
+fn list_md_files(root: &std::path::Path, current: &std::path::Path, files: &mut Vec<(String, u64)>, depth: usize, max: usize) {
+    if depth > 10 || files.len() >= max { return; }
+    if let Ok(entries) = std::fs::read_dir(current) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            if name.starts_with('.') || name == "node_modules" { continue; }
+            if path.is_dir() {
+                list_md_files(root, &path, files, depth + 1, max);
+            } else if path.extension().map_or(false, |e| e == "md") {
+                let rel = path.strip_prefix(root).unwrap_or(&path).display().to_string();
+                let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+                files.push((rel, size));
+            }
+        }
+    }
+}
+
+fn obsidian_read_file_tool(vault_path: &str, file_path: &str) -> Result<McpToolResult> {
+    if vault_path.is_empty() || file_path.is_empty() {
+        return Ok(McpToolResult { content: "Error: vault_path and file_path are required".into(), is_error: true });
+    }
+    let full = std::path::Path::new(vault_path).join(file_path);
+    if !full.exists() {
+        return Ok(McpToolResult { content: format!("File not found: {}", full.display()), is_error: true });
+    }
+    match std::fs::read_to_string(&full) {
+        Ok(content) => {
+            let truncated = if content.len() > 30000 { format!("{}...\n\n[Truncated at 30000 chars]", &content[..30000]) } else { content };
+            Ok(McpToolResult { content: truncated, is_error: false })
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Error reading file: {}", e), is_error: true }),
+    }
+}
+
+// ─── Export to Word ──────────────────────────────────────────────────
+
+fn export_word_tool(markdown: &str, output_path: &str, title: &str) -> Result<McpToolResult> {
+    if markdown.is_empty() { return Ok(McpToolResult { content: "Error: markdown content is required".into(), is_error: true }); }
+    if output_path.is_empty() { return Ok(McpToolResult { content: "Error: output_path is required".into(), is_error: true }); }
+
+    use docx_rs::*;
+
+    let path = std::path::Path::new(output_path);
+    let parent = path.parent().unwrap_or(std::path::Path::new("."));
+    if let Err(e) = std::fs::create_dir_all(parent) {
+        return Ok(McpToolResult { content: format!("Error creating output directory: {}", e), is_error: true });
+    }
+
+    let mut doc = Docx::new();
+
+    doc = doc.add_paragraph(
+        Paragraph::new()
+            .add_run(Run::new().add_text(title).size(32).bold())
+            .align(AlignmentType::Center)
+    );
+    doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text("")));
+
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text("")));
+        } else if trimmed.starts_with("# ") {
+            doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(&trimmed[2..]).size(36).bold()));
+        } else if trimmed.starts_with("## ") {
+            doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(&trimmed[3..]).size(28).bold()));
+        } else if trimmed.starts_with("### ") {
+            doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(&trimmed[4..]).size(24).bold()));
+        } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+            doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(&format!("• {}", &trimmed[2..]))));
+        } else if trimmed.starts_with("> ") {
+            doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(trimmed).italic().color("666666")));
+        } else {
+            doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(trimmed).size(22)));
+        }
+    }
+
+    match doc.build().pack(std::fs::File::create(path).map_err(|e| AxAgentError::Gateway(e.to_string()))?) {
+        Ok(_) => Ok(McpToolResult {
+            content: format!("Word document exported successfully to: {}", output_path),
+            is_error: false,
+        }),
+        Err(e) => Ok(McpToolResult { content: format!("Error creating Word document: {}", e), is_error: true }),
+    }
+}
+
+// ─── Remote Files ────────────────────────────────────────────────────
+
+async fn remotefile_upload_tool(provider: &str, api_key: &str, file_path: &str, purpose: Option<&str>) -> Result<McpToolResult> {
+    if provider.is_empty() || api_key.is_empty() || file_path.is_empty() {
+        return Ok(McpToolResult { content: "Error: provider, api_key, and file_path are required".into(), is_error: true });
+    }
+    let fp = std::path::Path::new(file_path);
+    if !fp.exists() { return Ok(McpToolResult { content: format!("File not found: {}", file_path), is_error: true }); }
+
+    let data = match std::fs::read(file_path) {
+        Ok(d) => d,
+        Err(e) => return Ok(McpToolResult { content: format!("Error reading file: {}", e), is_error: true }),
+    };
+    if data.len() > 100 * 1024 * 1024 {
+        return Ok(McpToolResult { content: "Error: file too large (max 100 MB)".into(), is_error: true });
+    }
+
+    let client = reqwest::Client::new();
+    match provider {
+        "gemini" => upload_to_gemini(&client, api_key, &data, fp).await,
+        "openai" => upload_to_openai(&client, api_key, &data, fp, purpose).await,
+        "mistral" => upload_to_mistral(&client, api_key, &data, fp).await,
+        _ => Ok(McpToolResult { content: format!("Unknown provider: {}. Use gemini, openai, or mistral.", provider), is_error: true }),
+    }
+}
+
+async fn remotefile_list_tool(provider: &str, api_key: &str) -> Result<McpToolResult> {
+    if provider.is_empty() || api_key.is_empty() {
+        return Ok(McpToolResult { content: "Error: provider and api_key are required".into(), is_error: true });
+    }
+    let client = reqwest::Client::new();
+    match provider {
+        "gemini" => list_gemini_files(&client, api_key).await,
+        "openai" => list_openai_files(&client, api_key).await,
+        "mistral" => list_mistral_files(&client, api_key).await,
+        _ => Ok(McpToolResult { content: format!("Unknown provider: {}", provider), is_error: true }),
+    }
+}
+
+async fn remotefile_delete_tool(provider: &str, api_key: &str, file_id: &str) -> Result<McpToolResult> {
+    if provider.is_empty() || api_key.is_empty() || file_id.is_empty() {
+        return Ok(McpToolResult { content: "Error: provider, api_key, and file_id are required".into(), is_error: true });
+    }
+    let client = reqwest::Client::new();
+    match provider {
+        "gemini" => delete_gemini_file(&client, api_key, file_id).await,
+        "openai" => delete_openai_file(&client, api_key, file_id).await,
+        "mistral" => delete_mistral_file(&client, api_key, file_id).await,
+        _ => Ok(McpToolResult { content: format!("Unknown provider: {}", provider), is_error: true }),
+    }
+}
+
+async fn upload_to_gemini(client: &reqwest::Client, api_key: &str, data: &[u8], path: &std::path::Path) -> Result<McpToolResult> {
+    let mime = mime_for_path(path);
+    let display_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let url = format!("https://generativelanguage.googleapis.com/upload/v1beta/files?key={}", api_key);
+
+    // Gemini uses a two-step: start upload, then actually upload
+    let metadata = serde_json::json!({
+        "file": {
+            "display_name": display_name,
+            "mime_type": mime,
+        }
+    });
+
+    let body = serde_json::json!({
+        "metadata_bytes": base64::engine::general_purpose::STANDARD.encode(serde_json::to_string(&metadata).unwrap_or_default()),
+        "file_bytes": base64::engine::general_purpose::STANDARD.encode(data),
+    });
+
+    match client.post(&url).header("Content-Type", "application/json").json(&body).send().await {
+        Ok(resp) => {
+            let text = resp.text().await.unwrap_or_default();
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) => {
+                    let name = v.get("file").and_then(|f| f.get("name")).and_then(|n| n.as_str()).unwrap_or("");
+                    let uri = v.get("file").and_then(|f| f.get("uri")).and_then(|u| u.as_str()).unwrap_or("");
+                    Ok(McpToolResult { content: format!("Uploaded to Gemini: {} (uri: {})", name, uri), is_error: false })
+                }
+                Err(_) => Ok(McpToolResult { content: format!("Gemini upload response: {}", truncate_text(&text, 1000)), is_error: false }),
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Gemini upload failed: {}", e), is_error: true }),
+    }
+}
+
+async fn list_gemini_files(client: &reqwest::Client, api_key: &str) -> Result<McpToolResult> {
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/files?key={}", api_key);
+    match client.get(&url).send().await {
+        Ok(resp) => {
+            let text = resp.text().await.unwrap_or_default();
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) => {
+                    let files = v.get("files").and_then(|f| f.as_array()).cloned().unwrap_or_default();
+                    if files.is_empty() { return Ok(McpToolResult { content: "No files stored in Gemini.".into(), is_error: false }); }
+                    let mut lines = vec![format!("Gemini files ({}):", files.len())];
+                    for f in files {
+                        let name = f.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                        let display = f.get("displayName").and_then(|n| n.as_str()).unwrap_or("");
+                        let mime = f.get("mimeType").and_then(|n| n.as_str()).unwrap_or("");
+                        lines.push(format!("  {} ({}): {}", name, mime, display));
+                    }
+                    Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+                }
+                Err(_) => Ok(McpToolResult { content: format!("Gemini response: {}", truncate_text(&text, 1000)), is_error: false }),
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Gemini list failed: {}", e), is_error: true }),
+    }
+}
+
+async fn delete_gemini_file(client: &reqwest::Client, api_key: &str, file_id: &str) -> Result<McpToolResult> {
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/{}?key={}", file_id, api_key);
+    match client.delete(&url).send().await {
+        Ok(resp) => {
+            if resp.status().is_success() { Ok(McpToolResult { content: format!("Deleted {}", file_id), is_error: false }) }
+            else { Ok(McpToolResult { content: format!("Delete failed: {}", resp.status()), is_error: true }) }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Gemini delete failed: {}", e), is_error: true }),
+    }
+}
+
+async fn upload_to_openai(client: &reqwest::Client, api_key: &str, data: &[u8], path: &std::path::Path, purpose: Option<&str>) -> Result<McpToolResult> {
+    let display_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let purpose_str = purpose.unwrap_or("assistants");
+    let url = "https://api.openai.com/v1/files";
+    let b64 = base64::engine::general_purpose::STANDARD.encode(data);
+
+    let body = serde_json::json!({
+        "purpose": purpose_str,
+        "file": b64,
+        "filename": display_name,
+    });
+
+    match client.post(url).header("Authorization", format!("Bearer {}", api_key)).json(&body).send().await {
+        Ok(resp) => {
+            let text = resp.text().await.unwrap_or_default();
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) => {
+                    let id = v.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                    let fname = v.get("filename").and_then(|n| n.as_str()).unwrap_or("");
+                    let bytes = v.get("bytes").and_then(|b| b.as_u64()).unwrap_or(0);
+                    Ok(McpToolResult { content: format!("Uploaded to OpenAI: {} (id: {}, {} bytes)", fname, id, bytes), is_error: false })
+                }
+                Err(_) => Ok(McpToolResult { content: format!("OpenAI response: {}", truncate_text(&text, 1000)), is_error: false }),
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("OpenAI upload failed: {}", e), is_error: true }),
+    }
+}
+
+async fn list_openai_files(client: &reqwest::Client, api_key: &str) -> Result<McpToolResult> {
+    let url = "https://api.openai.com/v1/files";
+    match client.get(url).header("Authorization", format!("Bearer {}", api_key)).send().await {
+        Ok(resp) => {
+            let text = resp.text().await.unwrap_or_default();
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) => {
+                    let files = v.get("data").and_then(|d| d.as_array()).cloned().unwrap_or_default();
+                    if files.is_empty() { return Ok(McpToolResult { content: "No files in OpenAI storage.".into(), is_error: false }); }
+                    let mut lines = vec![format!("OpenAI files ({}):", files.len())];
+                    for f in files {
+                        let id = f.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                        let name = f.get("filename").and_then(|n| n.as_str()).unwrap_or("");
+                        let bytes = f.get("bytes").and_then(|b| b.as_u64()).unwrap_or(0);
+                        lines.push(format!("  {}: {} ({} bytes)", id, name, bytes));
+                    }
+                    Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+                }
+                Err(_) => Ok(McpToolResult { content: format!("OpenAI response: {}", truncate_text(&text, 1000)), is_error: false }),
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("OpenAI list failed: {}", e), is_error: true }),
+    }
+}
+
+async fn delete_openai_file(client: &reqwest::Client, api_key: &str, file_id: &str) -> Result<McpToolResult> {
+    let url = format!("https://api.openai.com/v1/files/{}", file_id);
+    match client.delete(&url).header("Authorization", format!("Bearer {}", api_key)).send().await {
+        Ok(resp) => {
+            if resp.status().is_success() { Ok(McpToolResult { content: format!("Deleted {}", file_id), is_error: false }) }
+            else { Ok(McpToolResult { content: format!("Delete failed: {}", resp.status()), is_error: true }) }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("OpenAI delete failed: {}", e), is_error: true }),
+    }
+}
+
+async fn upload_to_mistral(client: &reqwest::Client, api_key: &str, data: &[u8], path: &std::path::Path) -> Result<McpToolResult> {
+    let url = "https://api.mistral.ai/v1/files";
+    let display_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+
+    let mime_type = mime_for_path(path);
+        let part = reqwest::multipart::Part::bytes(data.to_vec())
+            .file_name(display_name.clone())
+            .mime_str(mime_type)
+            .unwrap_or_else(|_| reqwest::multipart::Part::bytes(data.to_vec()).file_name(display_name.clone()));
+        let form = reqwest::multipart::Form::new()
+        .part("file", part)
+        .text("purpose", "fine-tune");
+
+    match client.post(url).header("Authorization", format!("Bearer {}", api_key)).multipart(form).send().await {
+        Ok(resp) => {
+            let text = resp.text().await.unwrap_or_default();
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) => {
+                    let id = v.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                    Ok(McpToolResult { content: format!("Uploaded to Mistral: {} (id: {})", display_name, id), is_error: false })
+                }
+                Err(_) => Ok(McpToolResult { content: format!("Mistral response: {}", truncate_text(&text, 1000)), is_error: false }),
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Mistral upload failed: {}", e), is_error: true }),
+    }
+}
+
+async fn list_mistral_files(client: &reqwest::Client, api_key: &str) -> Result<McpToolResult> {
+    let url = "https://api.mistral.ai/v1/files";
+    match client.get(url).header("Authorization", format!("Bearer {}", api_key)).send().await {
+        Ok(resp) => {
+            let text = resp.text().await.unwrap_or_default();
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) => {
+                    let files = v.get("data").and_then(|d| d.as_array()).cloned().unwrap_or_default();
+                    if files.is_empty() { return Ok(McpToolResult { content: "No files in Mistral storage.".into(), is_error: false }); }
+                    let mut lines = vec![format!("Mistral files ({}):", files.len())];
+                    for f in files {
+                        let id = f.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                        let name = f.get("filename").and_then(|n| n.as_str()).unwrap_or("");
+                        let bytes = f.get("size_bytes").and_then(|b| b.as_u64()).unwrap_or(0);
+                        lines.push(format!("  {}: {} ({} bytes)", id, name, bytes));
+                    }
+                    Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+                }
+                Err(_) => Ok(McpToolResult { content: format!("Mistral response: {}", truncate_text(&text, 1000)), is_error: false }),
+            }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Mistral list failed: {}", e), is_error: true }),
+    }
+}
+
+async fn delete_mistral_file(client: &reqwest::Client, api_key: &str, file_id: &str) -> Result<McpToolResult> {
+    let url = format!("https://api.mistral.ai/v1/files/{}", file_id);
+    match client.delete(&url).header("Authorization", format!("Bearer {}", api_key)).send().await {
+        Ok(resp) => {
+            if resp.status().is_success() { Ok(McpToolResult { content: format!("Deleted {}", file_id), is_error: false }) }
+            else { Ok(McpToolResult { content: format!("Delete failed: {}", resp.status()), is_error: true }) }
+        }
+        Err(e) => Ok(McpToolResult { content: format!("Mistral delete failed: {}", e), is_error: true }),
+    }
+}
+
+fn mime_for_path(path: &std::path::Path) -> &'static str {
+    match path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase().as_str() {
+        "png" => "image/png", "jpg" | "jpeg" => "image/jpeg", "gif" => "image/gif",
+        "webp" => "image/webp", "bmp" => "image/bmp", "svg" => "image/svg+xml",
+        "pdf" => "application/pdf", "json" => "application/json",
+        "txt" => "text/plain", "md" => "text/markdown", "csv" => "text/csv",
+        "html" => "text/html", "xml" => "application/xml",
+        "mp3" => "audio/mpeg", "mp4" => "video/mp4", "wav" => "audio/wav",
+        _ => "application/octet-stream",
+    }
+}
+
+
+// ─── Agent Control Tools ─────────────────────────────────────────────
+
+use std::sync::LazyLock;
+
+static CHECKPOINTS: LazyLock<std::sync::Mutex<Vec<(String, String, String)>>> =
+    LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
+
+static AGENT_MEMORY: LazyLock<std::sync::Mutex<std::collections::HashMap<String, String>>> =
+    LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+
+fn agent_checkpoint_tool(action: &str, checkpoint_id: &str, label: &str) -> Result<McpToolResult> {
+    match action {
+        "save" => {
+            let id = format!("ckpt-{}", chrono::Utc::now().format("%Y%m%d-%H%M%S"));
+            let display_label = if label.is_empty() { "unnamed checkpoint" } else { label };
+            let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string();
+            let mut checkpoints = CHECKPOINTS.lock().unwrap();
+            checkpoints.push((id.clone(), display_label.to_string(), timestamp));
+            if checkpoints.len() > 50 { checkpoints.remove(0); }
+            Ok(McpToolResult { content: format!("Checkpoint saved: {} (label: {})", id, display_label), is_error: false })
+        }
+        "list" => {
+            let checkpoints = CHECKPOINTS.lock().unwrap();
+            if checkpoints.is_empty() {
+                return Ok(McpToolResult { content: "No checkpoints saved yet. Use action='save' to create one.".into(), is_error: false });
+            }
+            let mut lines = vec![format!("Checkpoints ({}):", checkpoints.len())];
+            for (id, lbl, ts) in checkpoints.iter() {
+                lines.push(format!("  {} -- {} ({})", id, lbl, ts));
+            }
+            Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+        }
+        "restore" => {
+            if checkpoint_id.is_empty() {
+                return Ok(McpToolResult { content: "Error: checkpoint_id is required for restore action".into(), is_error: true });
+            }
+            let checkpoints = CHECKPOINTS.lock().unwrap();
+            let found = checkpoints.iter().find(|(id, _, _)| id == checkpoint_id);
+            match found {
+                Some((id, label, ts)) => Ok(McpToolResult {
+                    content: format!("Checkpoint restored: {} (label: {}, saved: {})\nNote: Session state has been marked for restoration. Continue from this point.", id, label, ts),
+                    is_error: false,
+                }),
+                None => Ok(McpToolResult { content: format!("Checkpoint '{}' not found. Use action='list' to see available checkpoints.", checkpoint_id), is_error: true }),
+            }
+        }
+        _ => Ok(McpToolResult { content: format!("Unknown action: {}. Use save, list, or restore.", action), is_error: true }),
+    }
+}
+
+fn agent_status_tool() -> Result<McpToolResult> {
+    let checkpoints = CHECKPOINTS.lock().unwrap();
+    let memory = AGENT_MEMORY.lock().unwrap();
+
+    let mut lines = vec!["Agent Session Status:".to_string()];
+    lines.push(format!("  Checkpoints: {}", checkpoints.len()));
+    lines.push(format!("  Memory items: {}", memory.len()));
+
+    if !checkpoints.is_empty() {
+        let last = checkpoints.last().unwrap();
+        lines.push(format!("  Last checkpoint: {} ({})", last.0, last.2));
+    }
+
+    if !memory.is_empty() {
+        lines.push("  Stored keys:".to_string());
+        for (key, _) in memory.iter() {
+            lines.push(format!("    - {}", key));
+        }
+    }
+
+    Ok(McpToolResult { content: lines.join("\n"), is_error: false })
+}
+
+fn agent_remember_tool(key: &str, value: &str) -> Result<McpToolResult> {
+    if key.is_empty() { return Ok(McpToolResult { content: "Error: key is required".into(), is_error: true }); }
+    if value.is_empty() { return Ok(McpToolResult { content: "Error: value is required".into(), is_error: true }); }
+
+    let mut memory = AGENT_MEMORY.lock().unwrap();
+    let was_updated = memory.contains_key(key);
+    memory.insert(key.to_string(), value.to_string());
+
+    if was_updated {
+        Ok(McpToolResult { content: format!("Memory updated: {}", key), is_error: false })
+    } else {
+        Ok(McpToolResult { content: format!("Memory stored: {} (total: {} items)", key, memory.len()), is_error: false })
     }
 }

@@ -1,5 +1,6 @@
 import { Input, InputNumber } from "antd";
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ModelSelect } from "@/components/shared/ModelSelect";
 import { useProviderStore } from "@/stores";
 import type { LLMNode, WorkflowNode } from "../../types";
@@ -12,6 +13,7 @@ interface LLMPropertyPanelProps {
 }
 
 export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const llmNode = node as LLMNode;
   const config = llmNode.config || {
     model: "",
@@ -35,30 +37,30 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>模型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.model")}</label>
         <ModelSelect
           value={config.model || undefined}
           onChange={(value) => handleConfigChange("model", value || "")}
-          placeholder="选择模型..."
+          placeholder={t("workflow.props.selectModel")}
           allowClear
           style={{ width: "100%" }}
         />
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>提示词</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.prompt")}</label>
         <Input.TextArea
           value={config.prompt || ""}
           onChange={(e) => handleConfigChange("prompt", e.target.value)}
           rows={5}
           size="small"
-          placeholder="输入你的提示词..."
+          placeholder={t("workflow.props.promptPlaceholder")}
         />
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>温度</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.temperature")}</label>
           <InputNumber
             value={config.temperature ?? 0.7}
             onChange={(value) => handleConfigChange("temperature", value)}
@@ -69,11 +71,11 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
             style={{ width: "100%" }}
           />
           <div style={{ fontSize: 9, color: "#666", marginTop: 2 }}>
-            0: 确定性 ↑ | 2: 随机性 ↑
+            {t("workflow.props.temperatureHint")}
           </div>
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>最大 Token</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxTokens")}</label>
           <InputNumber
             value={config.max_tokens ?? 2048}
             onChange={(value) => handleConfigChange("max_tokens", value)}

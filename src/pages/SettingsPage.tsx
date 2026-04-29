@@ -2,6 +2,7 @@ import {
   AboutPage,
   BackupCenter,
   DataManager,
+  DashboardPluginsSettings,
   DisplaySettings,
   GeneralSettings,
   LocalToolSettings,
@@ -12,9 +13,11 @@ import {
   SearchProviderSettings,
   SettingsSidebar,
   ShortcutSettings,
+  SkillsHubSettings,
   StorageSpaceManager,
   ToolManager,
   UserProfileSettings,
+  WebhookSettings,
   WorkflowSettings,
 } from "@/components/settings";
 import { ConversationSettings } from "@/components/settings/ConversationSettings";
@@ -45,6 +48,9 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   backup: BackupCenter,
   workflow: WorkflowSettings,
   userProfile: UserProfileSettings,
+  skillsHub: SkillsHubSettings,
+  dashboardPlugins: DashboardPluginsSettings,
+  webhooks: WebhookSettings,
 };
 
 export function SettingsPage() {

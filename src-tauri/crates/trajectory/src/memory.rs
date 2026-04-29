@@ -6,18 +6,16 @@
 //! - Working memory: short-term context for prompts
 //! - Closed-loop learning: nudges and proactive suggestions
 
-mod closed_loop;
-mod entity;
-pub mod service;
-
-pub use closed_loop::{
-    AutoAction, ClosedLoopConfig, ClosedLoopService, MemoryConsolidationTask, PeriodicNudge,
-    SkillCreationProposal, SkillUpgradeProposal,
-};
-pub use entity::{Entity, EntityType, GraphQuery, NudgeCandidate, Relationship, RelationshipType};
-pub use service::{
-    MemoryActionResult, MemoryConfig, MemoryEntry, MemoryService, MemoryUsage, SearchResult,
-    WorkingMemory,
+pub use crate::memory_providers::{
+    closed_loop::{
+        AutoAction, ClosedLoopConfig, ClosedLoopService, MemoryConsolidationTask, PeriodicNudge,
+        SkillCreationProposal, SkillUpgradeProposal,
+    },
+    entity::{Entity, EntityType, GraphQuery, NudgeCandidate, Relationship, RelationshipType},
+    service::{
+        MemoryActionResult, MemoryConfig, MemoryEntry, MemoryService, MemoryUsage, SearchResult,
+        WorkingMemory,
+    },
 };
 
 use crate::TrajectoryStorage;

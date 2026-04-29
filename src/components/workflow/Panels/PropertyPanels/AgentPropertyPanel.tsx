@@ -1,5 +1,6 @@
 import { Divider, Input, InputNumber, Select } from "antd";
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ModelSelect } from "@/components/shared/ModelSelect";
 import { useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
 import type { AgentNode, AgentRole, OutputMode, WorkflowNode } from "../../types";
@@ -12,6 +13,7 @@ interface AgentPropertyPanelProps {
 }
 
 export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
     role: "developer" as AgentRole,
@@ -51,11 +53,11 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
   const contextSourceOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [
-      { value: "conversation_history", label: "对话历史" },
+      { value: "conversation_history", label: t("workflow.props.contextConversationHistory") },
     ];
     for (const kb of knowledgeBases) {
       if (kb.enabled) {
-        options.push({ value: `knowledge_base::${kb.id}`, label: `知识库: ${kb.name}` });
+        options.push({ value: `knowledge_base::${kb.id}`, label: t("workflow.props.contextKnowledgeBase", { name: kb.name }) });
       }
     }
     return options;
@@ -68,40 +70,40 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>Agent 角色</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.agentRole")}</label>
         <Select
           value={config.role}
           onChange={(value) => handleConfigChange("role", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "researcher", label: "🔍 研究员" },
-            { value: "planner", label: "📋 规划师" },
-            { value: "developer", label: "💻 开发者" },
-            { value: "reviewer", label: "👀 审核员" },
-            { value: "synthesizer", label: "🔬 综合师" },
-            { value: "executor", label: "⚙️ 执行者" },
+            { value: "researcher", label: t("workflow.props.roleResearcher") },
+            { value: "planner", label: t("workflow.props.rolePlanner") },
+            { value: "developer", label: t("workflow.props.roleDeveloper") },
+            { value: "reviewer", label: t("workflow.props.roleReviewer") },
+            { value: "synthesizer", label: t("workflow.props.roleSynthesizer") },
+            { value: "executor", label: t("workflow.props.roleExecutor") },
           ]}
         />
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>系统提示词</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.systemPrompt")}</label>
         <Input.TextArea
           value={config.system_prompt || ""}
           onChange={(e) => handleConfigChange("system_prompt", e.target.value)}
           rows={4}
           size="small"
-          placeholder="定义 Agent 的行为和能力..."
+          placeholder={t("workflow.props.systemPromptPlaceholder")}
         />
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>模型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.model")}</label>
         <ModelSelect
           value={config.model || undefined}
           onChange={(value) => handleConfigChange("model", value || "")}
-          placeholder="选择模型..."
+          placeholder={t("workflow.props.selectModel")}
           allowClear
           style={{ width: "100%" }}
         />
@@ -109,7 +111,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>温度</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.temperature")}</label>
           <InputNumber
             value={config.temperature ?? 0.7}
             onChange={(value) => handleConfigChange("temperature", value)}
@@ -121,7 +123,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>最大 Token</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxTokens")}</label>
           <InputNumber
             value={config.max_tokens ?? 2048}
             onChange={(value) => handleConfigChange("max_tokens", value)}
@@ -135,27 +137,27 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出模式</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputMode")}</label>
         <Select
           value={config.output_mode}
           onChange={(value) => handleConfigChange("output_mode", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "text", label: "📝 文本" },
+            { value: "text", label: t("workflow.props.outputText") },
             { value: "json", label: "{} JSON" },
-            { value: "artifact", label: "🎨 工件" },
+            { value: "artifact", label: t("workflow.props.outputArtifact") },
           ]}
         />
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出变量</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
-          placeholder="agent_output"
+          placeholder={t("workflow.props.outputVarDefault")}
         />
       </div>
 
@@ -163,7 +165,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-          工具 ({config.tools?.length || 0})
+          {t("workflow.props.toolsCount", { count: config.tools?.length || 0 })}
         </label>
         <Select
           mode="multiple"
@@ -171,7 +173,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           onChange={(value) => handleConfigChange("tools", value)}
           size="small"
           style={{ width: "100%" }}
-          placeholder="选择工具..."
+          placeholder={t("workflow.props.selectTools")}
           showSearch
           optionFilterProp="label"
           options={toolOptions}
@@ -180,7 +182,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-          上下文源 ({config.context_sources?.length || 0})
+          {t("workflow.props.contextSourcesCount", { count: config.context_sources?.length || 0 })}
         </label>
         <Select
           mode="multiple"
@@ -188,7 +190,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           onChange={(value) => handleConfigChange("context_sources", value)}
           size="small"
           style={{ width: "100%" }}
-          placeholder="选择上下文源..."
+          placeholder={t("workflow.props.selectContextSources")}
           options={contextSourceOptions}
         />
       </div>

@@ -1,5 +1,6 @@
 import { Divider, Input, InputNumber, Select } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { DelayNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -10,6 +11,7 @@ interface DelayPropertyPanelProps {
 }
 
 export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const delayNode = node as DelayNode;
   const config = delayNode.config || {
     delay_type: "seconds",
@@ -80,10 +82,10 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
               value={config.until || ""}
               onChange={(e) => handleConfigChange("until", e.target.value)}
               size="small"
-              placeholder="ISO 8601 时间或变量"
+              placeholder={t("workflow.props.delayUntilPlaceholder")}
             />
             <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
-              支持 ISO 8601 格式或变量引用
+              {t("workflow.props.delayUntilHint")}
             </div>
           </div>
         );
@@ -96,7 +98,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟类型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayType")}</label>
         <Select
           value={config.delay_type}
           onChange={(value) => handleConfigChange("delay_type", value)}

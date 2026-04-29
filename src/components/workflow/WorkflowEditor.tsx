@@ -405,7 +405,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           data: {
             id,
             type: payload.type,
-            title: `新建 ${typeInfo.label}`,
+            title: t("workflow.newNode", { type: typeInfo.label }),
             description: "",
             color: typeInfo.color,
             nodeType: payload.type,
@@ -416,7 +416,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
         setRNodes((nds) => [...nds, newNode]);
 
-        const workflowNode = createWorkflowNode(id, payload.type, position, `新建 ${typeInfo.label}`);
+        const workflowNode = createWorkflowNode(id, payload.type, position, t("workflow.newNode", { type: typeInfo.label }));
         useWorkflowEditorStore.getState().addNode(workflowNode);
       } catch (error) {
         console.error("Failed to drop node:", error);
@@ -466,7 +466,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         const nodeToCopy = nodes.find((n) => n.id === selectedNodeId);
         if (nodeToCopy) {
           clipboardRef.current = [nodeToCopy];
-          message.success("节点已复制");
+          message.success(t("workflow.nodeCopied"));
         }
         return;
       }
@@ -490,7 +490,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           addNode(newNode);
         });
         if (newNodes.length > 0) {
-          message.success(`已粘贴 ${newNodes.length} 个节点`);
+          message.success(t("workflow.nodesPasted", { count: newNodes.length }));
         }
         return;
       }
@@ -613,7 +613,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#1a1a1a" }}>
       <EditorHeader
-        templateName={currentTemplate?.name || "新建工作流"}
+        templateName={currentTemplate?.name || t("workflow.newWorkflow")}
         isDirty={isDirty}
         isSaving={isSaving}
         onSave={handleSave}
@@ -655,7 +655,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
               />
               {nodes.length === 0 && (
                 <Panel position="top-center" style={{ textAlign: "center", color: "#666" }}>
-                  从左侧面板拖拽节点以开始构建工作流
+                  {t("workflow.dragToStart")}
                 </Panel>
               )}
             </ReactFlow>

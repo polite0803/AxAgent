@@ -2,6 +2,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { Button, Card, Empty, Input, message, Tabs, Tag } from "antd";
 import { Lightbulb, MessageSquare, Sparkles, Wand2 } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { WorkflowEdge, WorkflowNode } from "../types";
 
 interface AIPanelProps {
@@ -16,6 +17,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   onOptimizePrompt,
   onRecommendNodes,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("generate");
   const [generatePrompt, setGeneratePrompt] = useState("");
   const [optimizePrompt, setOptimizePrompt] = useState("");
@@ -30,7 +32,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
 
   const handleGenerate = async () => {
     if (!generatePrompt.trim()) {
-      message.warning("请输入工作流描述");
+      message.warning(t("workflow.aiPanel.enterWorkflowDesc"));
       return;
     }
     setIsGenerating(true);
@@ -39,10 +41,10 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       if (result) {
         setNodes(result.nodes);
         setEdges(result.edges);
-        message.success("工作流已生成");
+        message.success(t("workflow.aiPanel.workflowGenerated"));
       }
     } catch (error) {
-      message.error("生成失败");
+      message.error(t("workflow.aiPanel.generationFailed"));
     } finally {
       setIsGenerating(false);
     }
@@ -50,7 +52,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
 
   const handleOptimize = async () => {
     if (!optimizePrompt.trim()) {
-      message.warning("请输入要优化的 Prompt");
+      message.warning(t("workflow.aiPanel.enterPromptToOptimize"));
       return;
     }
     setIsOptimizing(true);
@@ -59,10 +61,10 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       const result = await onOptimizePrompt(optimizePrompt);
       if (result) {
         setOptimizedResult(result);
-        message.success("Prompt 已优化");
+        message.success(t("workflow.aiPanel.promptOptimized"));
       }
     } catch (error) {
-      message.error("优化失败");
+      message.error(t("workflow.aiPanel.optimizationFailed"));
     } finally {
       setIsOptimizing(false);
     }
@@ -70,7 +72,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
 
   const handleRecommend = async () => {
     if (!recommendContext.trim()) {
-      message.warning("请输入上下文信息");
+      message.warning(t("workflow.aiPanel.enterContext"));
       return;
     }
     setIsRecommending(true);
@@ -79,10 +81,10 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       const result = await onRecommendNodes(recommendContext);
       if (result) {
         setRecommendedNodes(result);
-        message.success("推荐已生成");
+        message.success(t("workflow.aiPanel.recommendationGenerated"));
       }
     } catch (error) {
-      message.error("推荐失败");
+      message.error(t("workflow.aiPanel.recommendationFailed"));
     } finally {
       setIsRecommending(false);
     }
@@ -91,7 +93,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const handleCopyOptimized = () => {
     if (optimizedResult) {
       navigator.clipboard.writeText(optimizedResult);
-      message.success("已复制到剪贴板");
+      message.success(t("workflow.aiPanel.copiedToClipboard"));
     }
   };
 
@@ -101,17 +103,17 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Wand2 size={14} />
-          生成工作流
+          {t("workflow.aiPanel.tabGenerateWorkflow")}
         </span>
       ),
       children: (
         <div style={{ padding: "16px 0" }}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
-              描述你想要的工作流
+              {t("workflow.aiPanel.describeWorkflow")}
             </label>
             <Input.TextArea
-              placeholder="例如：创建一个代码审查工作流，首先探索代码库结构，然后进行 Bug 检测和安全审查，最后生成总结报告"
+              placeholder={t("workflow.aiPanel.generatePlaceholder")}
               value={generatePrompt}
               onChange={(e) => setGeneratePrompt(e.target.value)}
               rows={6}
@@ -131,15 +133,15 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               disabled={isGenerating}
               style={{ width: "100%" }}
             >
-              {isGenerating ? "生成中..." : "生成工作流"}
+              {isGenerating ? t("workflow.aiPanel.generating") : t("workflow.aiPanel.generateBtn")}
             </Button>
           </div>
 
           <div style={{ color: "#666", fontSize: 11 }}>
-            <strong>当前画布状态：</strong>
-            {nodes.length} 个节点，{edges.length} 条边
+            <strong>{t("workflow.aiPanel.currentCanvasState")}</strong>
+            {t("workflow.aiPanel.canvasStatus", { nodes: nodes.length, edges: edges.length })}
             <br />
-            生成的工作流将替换当前画布内容
+            {t("workflow.aiPanel.replaceCanvasWarning")}
           </div>
         </div>
       ),
@@ -149,17 +151,17 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <MessageSquare size={14} />
-          优化 Prompt
+          {t("workflow.aiPanel.tabOptimizePrompt")}
         </span>
       ),
       children: (
         <div style={{ padding: "16px 0" }}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
-              输入要优化的 Agent Prompt
+              {t("workflow.aiPanel.enterAgentPrompt")}
             </label>
             <Input.TextArea
-              placeholder="粘贴你的 Prompt..."
+              placeholder={t("workflow.aiPanel.optimizePlaceholder")}
               value={optimizePrompt}
               onChange={(e) => setOptimizePrompt(e.target.value)}
               rows={6}
@@ -178,15 +180,15 @@ export const AIPanel: React.FC<AIPanelProps> = ({
             disabled={isOptimizing}
             style={{ width: "100%", marginBottom: 16 }}
           >
-            {isOptimizing ? "优化中..." : "优化 Prompt"}
+            {isOptimizing ? t("workflow.aiPanel.optimizing") : t("workflow.aiPanel.optimizeBtn")}
           </Button>
 
           {optimizedResult && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <label style={{ color: "#999", fontSize: 12 }}>优化结果</label>
+                <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.aiPanel.optimizedResult")}</label>
                 <Button type="text" size="small" onClick={handleCopyOptimized}>
-                  复制
+                  {t("workflow.aiPanel.copy")}
                 </Button>
               </div>
               <Card
@@ -211,17 +213,17 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Lightbulb size={14} />
-          推荐节点
+          {t("workflow.aiPanel.tabRecommend")}
         </span>
       ),
       children: (
         <div style={{ padding: "16px 0" }}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
-              描述当前工作流的上下文和目标
+              {t("workflow.aiPanel.describeContext")}
             </label>
             <Input.TextArea
-              placeholder="例如：我正在构建一个自动化测试工作流，需要对代码变更进行单元测试和集成测试"
+              placeholder={t("workflow.aiPanel.recommendPlaceholder")}
               value={recommendContext}
               onChange={(e) => setRecommendContext(e.target.value)}
               rows={4}
@@ -240,13 +242,13 @@ export const AIPanel: React.FC<AIPanelProps> = ({
             disabled={isRecommending}
             style={{ width: "100%", marginBottom: 16 }}
           >
-            {isRecommending ? "推荐中..." : "获取推荐"}
+            {isRecommending ? t("workflow.aiPanel.recommending") : t("workflow.aiPanel.getRecommendation")}
           </Button>
 
           {recommendedNodes && (
             <div>
               <label style={{ color: "#999", fontSize: 12, marginBottom: 8, display: "block" }}>
-                推荐的节点类型
+                {t("workflow.aiPanel.recommendedNodeTypes")}
               </label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {recommendedNodes.map((node) => (
@@ -260,13 +262,13 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                 ))}
               </div>
               <div style={{ color: "#666", fontSize: 11, marginTop: 12 }}>
-                从左侧节点面板拖拽这些节点到画布上
+                {t("workflow.aiPanel.dragHint")}
               </div>
             </div>
           )}
 
           {recommendedNodes && recommendedNodes.length === 0 && (
-            <Empty description="暂无推荐" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <Empty description={t("workflow.aiPanel.noRecommendations")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
           )}
         </div>
       ),
@@ -294,7 +296,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Sparkles size={16} color="#722ed1" />
-          <span style={{ fontWeight: 500, color: "#fff" }}>AI 助手</span>
+          <span style={{ fontWeight: 500, color: "#fff" }}>{t("workflow.aiPanel.aiAssistant")}</span>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { Button, Input, Space, Tooltip, message } from "antd";
 import { ArrowLeft, Bot, Bug, Eye, Save, Share2, Sparkles, Download } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface EditorHeaderProps {
   templateName: string;
@@ -31,6 +32,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(templateName);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isEditing) {
@@ -63,12 +65,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   }, [onSave]);
 
   const handlePreview = useCallback(() => {
-    message.info("预览功能开发中");
-  }, []);
+    message.info(t("workflow.previewInDevelopment"));
+  }, [t]);
 
   const handlePublish = useCallback(() => {
-    message.info("发布功能开发中");
-  }, []);
+    message.info(t("workflow.publishInDevelopment"));
+  }, [t]);
 
   return (
     <div
@@ -118,7 +120,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       <Space>
         {onToggleAIPanel && (
-          <Tooltip title="AI 辅助">
+          <Tooltip title={t("workflow.aiAssistant")}>
             <Button
               type="text"
               icon={<Sparkles size={18} />}
@@ -129,7 +131,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         )}
 
         {onToggleDebugPanel && (
-          <Tooltip title="调试面板">
+          <Tooltip title={t("workflow.debugPanel")}>
             <Button
               type="text"
               icon={<Bug size={18} />}
@@ -140,7 +142,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         )}
 
         {onOpenImportExport && (
-          <Tooltip title="导入/导出">
+          <Tooltip title={t("workflow.importExport")}>
             <Button
               type="text"
               icon={<Download size={18} />}
@@ -150,11 +152,11 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           </Tooltip>
         )}
 
-        <Tooltip title="预览">
+        <Tooltip title={t("workflow.preview")}>
           <Button type="text" icon={<Eye size={18} />} onClick={handlePreview} style={{ color: "#999" }} />
         </Tooltip>
 
-        <Tooltip title="发布">
+        <Tooltip title={t("workflow.publish")}>
           <Button type="text" icon={<Share2 size={18} />} onClick={handlePublish} style={{ color: "#999" }} />
         </Tooltip>
 
@@ -165,7 +167,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           onClick={handleSave}
           style={{ display: "flex", alignItems: "center", gap: 6 }}
         >
-          {isSaving ? "保存中..." : "保存"}
+          {isSaving ? t("workflow.saving") : t("workflow.save")}
         </Button>
       </Space>
     </div>

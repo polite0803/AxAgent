@@ -3870,6 +3870,8 @@ mod tests {
                 axagent_trajectory::SkillDecomposer::new(),
             )),
             proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
+            dashboard_registry: None,
+            webhook_subscription_manager: None,
         };
 
         let attachments = vec![AttachmentInput {

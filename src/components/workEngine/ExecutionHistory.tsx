@@ -1,5 +1,6 @@
 import { Empty, Spin, Table, Tag, Typography } from "antd";
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useWorkEngineStore } from "../../stores/feature/workEngineStore";
 
 const { Text } = Typography;
@@ -27,6 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ workflowId }) => {
+  const { t } = useTranslation();
   const { executionHistory: history, loading, loadHistory } = useWorkEngineStore();
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ workflowId }
       render: (ms: number) => ms ? `${ms}ms` : "-",
     },
     {
-      title: "节点进度",
+      title: t("workEngine.nodeProgress"),
       key: "progress",
       width: 100,
       render: (_: unknown, record: Record<string, unknown>) => {
@@ -81,7 +83,7 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ workflowId }
   ];
 
   if (loading) { return <Spin />; }
-  if (!history || history.length === 0) { return <Empty description="暂无执行记录" />; }
+  if (!history || history.length === 0) { return <Empty description={t("workEngine.noExecutionHistory")} />; }
 
   return (
     <Table

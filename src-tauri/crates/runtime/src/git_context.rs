@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// A single git commit entry from the log.
@@ -39,6 +39,18 @@ impl GitContext {
             recent_commits: read_recent_commits(cwd),
             staged_files: read_staged_files(cwd),
         })
+    }
+
+    pub fn detect_with_context_files(cwd: &Path) -> Option<(Self, Vec<PathBuf>)> {
+        let ctx = Self::detect(cwd)?;
+        let mut context_files = Vec::new();
+        for name in &["AGENTS.md", "CLAUDE.md"] {
+            let path = cwd.join(name);
+            if path.exists() {
+                context_files.push(path);
+            }
+        }
+        Some((ctx, context_files))
     }
 
     /// Render a human-readable summary suitable for system-prompt injection.

@@ -1,6 +1,7 @@
 import { Button, Divider, Input, Select } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { CompareOperator, Condition, ConditionNode, LogicalOperator, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -27,6 +28,7 @@ const OPERATOR_OPTIONS: { value: CompareOperator; label: string }[] = [
 ];
 
 export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const conditionNode = node as ConditionNode;
   const config = conditionNode.config || {
     conditions: [],
@@ -104,7 +106,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
             icon={<Plus size={12} />}
             onClick={handleAddCondition}
           >
-            添加条件
+            {t("workflow.props.addCondition")}
           </Button>
         </div>
 
@@ -124,7 +126,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
                   value={condition.var_path}
                   onChange={(e) => handleUpdateCondition(index, { var_path: e.target.value })}
                   size="small"
-                  placeholder="变量路径 (如: input.status)"
+                  placeholder={t("workflow.props.conditionVarPath")}
                 />
               </div>
 
@@ -148,7 +150,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
                     value={String(condition.value || "")}
                     onChange={(e) => handleUpdateCondition(index, { value: e.target.value })}
                     size="small"
-                    placeholder="值"
+                    placeholder={t("workflow.props.conditionValue")}
                     style={{ flex: 1 }}
                   />
                 )}

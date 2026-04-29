@@ -1,5 +1,6 @@
 import { Divider, Input, InputNumber, Select } from "antd";
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useKnowledgeStore } from "@/stores";
 import type { VectorRetrieveNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
@@ -13,6 +14,7 @@ interface VectorRetrievePropertyPanelProps {
 export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelProps> = (
   { node, onUpdate, onDelete },
 ) => {
+  const { t } = useTranslation();
   const vectorRetrieveNode = node as VectorRetrieveNode;
   const config = vectorRetrieveNode.config || {
     query: "",
@@ -62,7 +64,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
           onChange={(value) => handleConfigChange("knowledge_base_id", value)}
           size="small"
           style={{ width: "100%" }}
-          placeholder="选择知识库..."
+          placeholder={t("workflow.props.selectKnowledgeBase")}
           showSearch
           optionFilterProp="label"
           options={knowledgeBaseOptions}
@@ -71,7 +73,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>返回数量</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.topK")}</label>
           <InputNumber
             value={config.top_k ?? 5}
             onChange={(value) => handleConfigChange("top_k", value)}
@@ -82,7 +84,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>相似度阈值</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.similarityThreshold")}</label>
           <InputNumber
             value={config.similarity_threshold !== undefined ? Math.round(config.similarity_threshold * 100) : 70}
             onChange={(value) => handleConfigChange("similarity_threshold", (value != null ? value : 70) / 100)}
@@ -97,12 +99,12 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出变量</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
-          placeholder="retrieved_content"
+          placeholder={t("workflow.props.outputVarRetrieved")}
         />
       </div>
 

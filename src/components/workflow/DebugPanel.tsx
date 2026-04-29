@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   Timeline,
@@ -214,6 +215,7 @@ interface DebugPanelProps {
 }
 
 export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
+  const { t } = useTranslation();
   const [showVariables, setShowVariables] = useState(true);
   const [showPerformance, setShowPerformance] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -292,7 +294,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
           <Col span={6}>
             <Card size="small">
               <Statistic
-                title="Total Duration"
+                title={t("workflow.debug.totalDuration")}
                 value={metrics.totalDuration}
                 formatter={(val) => formatDuration(Number(val))}
                 prefix={<ClockCircleOutlined />}
@@ -302,7 +304,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
           <Col span={6}>
             <Card size="small">
               <Statistic
-                title="Successful"
+                title={t("workflow.debug.successful")}
                 value={metrics.successfulNodes}
                 valueStyle={{ color: "#3f8600" }}
                 prefix={<CheckCircleOutlined />}
@@ -312,7 +314,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
           <Col span={6}>
             <Card size="small">
               <Statistic
-                title="Failed"
+                title={t("workflow.debug.failed")}
                 value={metrics.failedNodes}
                 valueStyle={{ color: "#cf1322" }}
                 prefix={<CloseCircleOutlined />}
@@ -322,7 +324,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
           <Col span={6}>
             <Card size="small">
               <Statistic
-                title="Avg Node Time"
+                title={t("workflow.debug.avgNodeTime")}
                 value={metrics.avgNodeDuration}
                 formatter={(val) => formatDuration(Number(val))}
                 prefix={<ThunderboltOutlined />}
@@ -332,7 +334,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
         </Row>
 
         <Collapse defaultActiveKey={["execution", "performance"]} className="mb-4">
-          <Panel header="Node Executions" key="execution">
+          <Panel header={t("workflow.debug.nodeExecutions")} key="execution">
             <Table
               columns={nodeColumns}
               dataSource={trace.nodeExecutions}
@@ -410,7 +412,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
         )}
 
         {selectedNode && (
-          <Card size="small" className="mt-4" title="Selected Node Details">
+          <Card size="small" className="mt-4" title={t("workflow.debug.selectedNodeDetails")}>
             {(() => {
               const node = trace.nodeExecutions.find((n) => n.nodeId === selectedNode);
               if (!node) return null;

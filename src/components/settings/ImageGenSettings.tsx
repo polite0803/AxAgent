@@ -1,6 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import { Button, Card, Form, Input, Select, Switch, Typography } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ImageGenConfig {
   default_provider: string;

@@ -181,6 +181,51 @@ impl ErrorRecoveryEngine {
                 "Immediate failure".to_string(),
                 start.elapsed().as_millis() as u64,
             ),
+            RecoveryStrategy::AutoRecover {
+                max_attempts,
+                checkpoint_interval_secs: _,
+            } => {
+                let mut last_error = "Max attempts reached".to_string();
+                for attempt in 0..*max_attempts {
+                    self.emit(RecoveryEvent::AttemptStarted {
+                        attempt,
+                        strategy: "AutoRecover".to_string(),
+                    });
+                    let result = f().await;
+                    match result {
+                        Ok(_) => {
+                            self.emit(RecoveryEvent::AttemptCompleted {
+                                attempt,
+                                success: true,
+                            });
+                            return RecoveryResult {
+                                success: true,
+                                recovered: true,
+                                strategy_used: "AutoRecover".to_string(),
+                                attempts_made: attempt + 1,
+                                final_error: None,
+                                recovery_time_ms: start.elapsed().as_millis() as u64,
+                            };
+                        }
+                        Err(e) => {
+                            last_error = e;
+                            self.emit(RecoveryEvent::AttemptCompleted {
+                                attempt,
+                                success: false,
+                            });
+                        }
+                    }
+                }
+                self.emit(RecoveryEvent::RecoveryFailed {
+                    error: last_error.clone(),
+                });
+                RecoveryResult::failure(
+                    "AutoRecover",
+                    *max_attempts,
+                    last_error,
+                    start.elapsed().as_millis() as u64,
+                )
+            }
         }
     }
 

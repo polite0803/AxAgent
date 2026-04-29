@@ -10,6 +10,12 @@ pub struct UnifiedConfig {
     pub cache: CacheSettings,
     pub security: SecuritySettings,
     pub logging: LoggingSettings,
+    pub profile: ProfileSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProfileSettings {
+    pub active_profile: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

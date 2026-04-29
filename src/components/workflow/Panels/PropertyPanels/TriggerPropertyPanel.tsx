@@ -1,5 +1,6 @@
 import { Input, Select, Switch } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { TriggerNode, TriggerType, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -10,6 +11,7 @@ interface TriggerPropertyPanelProps {
 }
 
 export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const triggerNode = node as TriggerNode;
   const triggerConfig = triggerNode.config || { type: "manual" as TriggerType, config: {} };
 
@@ -75,7 +77,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <label style={{ color: "#666", fontSize: 10 }}>启用</label>
+              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.enabled")}</label>
               <Switch
                 size="small"
                 checked={(triggerConfig.config as { enabled?: boolean }).enabled ?? true}
@@ -89,7 +91,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>路径</label>
+              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.webhookPath")}</label>
               <Input
                 value={(triggerConfig.config as { path?: string }).path || ""}
                 onChange={(e) => handleConfigChange("path", e.target.value)}
@@ -98,7 +100,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>请求方法</label>
+              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.httpMethod")}</label>
               <Select
                 value={(triggerConfig.config as { method?: string }).method || "GET"}
                 onChange={(value) => handleConfigChange("method", value)}
@@ -113,14 +115,14 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>认证类型</label>
+              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.authType")}</label>
               <Select
                 value={(triggerConfig.config as { auth_type?: string }).auth_type || "none"}
                 onChange={(value) => handleConfigChange("auth_type", value)}
                 size="small"
                 style={{ width: "100%" }}
                 options={[
-                  { value: "none", label: "无认证" },
+                  { value: "none", label: t("workflow.props.authNone") },
                   { value: "bearer", label: "Bearer Token" },
                   { value: "api_key", label: "API Key" },
                   { value: "basic", label: "Basic Auth" },
@@ -134,7 +136,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>事件类型</label>
+              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.eventType")}</label>
               <Input
                 value={(triggerConfig.config as { event_type?: string }).event_type || ""}
                 onChange={(e) => handleConfigChange("event_type", e.target.value)}

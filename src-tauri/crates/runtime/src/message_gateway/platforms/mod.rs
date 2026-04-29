@@ -1,5 +1,11 @@
+pub mod dingtalk;
 pub mod discord;
+pub mod feishu;
+pub mod qq;
+pub mod slack;
 pub mod telegram;
+pub mod wechat;
+pub mod whatsapp;
 
 use crate::message_gateway::platform_config::PlatformConfig;
 

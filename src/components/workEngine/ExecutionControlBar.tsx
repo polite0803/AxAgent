@@ -7,6 +7,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Popconfirm, Space, Tag, Tooltip, message } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke } from "../../lib/invoke";
 import { useWorkEngineStore } from "../../stores/feature/workEngineStore";
 import { useSettingsStore } from "../../stores";
@@ -16,6 +17,7 @@ interface ExecutionControlBarProps {
 }
 
 export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workflowId }) => {
+  const { t } = useTranslation();
   const {
     executionId,
     status,
@@ -41,7 +43,7 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
 
   const handleStart = async () => {
     if (!defaultProviderId) {
-      message.error("请先在设置中配置默认 AI Provider");
+      message.error(t("workEngine.configureProviderFirst"));
       return;
     }
     setStarting(true);
@@ -50,9 +52,9 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
         workflow_id: workflowId,
         provider_id: defaultProviderId,
       });
-      message.success("工作流已开始执行");
+      message.success(t("workEngine.workflowStarted"));
     } catch (e) {
-      message.error(`启动失败: ${e}`);
+      message.error(`${t("workEngine.startFailed")}: ${e}`);
     } finally {
       setStarting(false);
     }

@@ -4,6 +4,7 @@ import type { SettingsSection } from "@/types";
 import { Menu, theme } from "antd";
 import {
   ArrowLeft,
+  Bell,
   Bot,
   Clock,
   Cloud,
@@ -13,10 +14,12 @@ import {
   Globe,
   HardDrive,
   Info,
+  LayoutDashboard,
   MessageSquare,
   Palette,
   Search,
   Settings,
+  ShoppingBag,
   User,
   Wrench,
   Zap,
@@ -41,6 +44,9 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   backup: <CloudUpload size={16} color={SETTINGS_ICON_COLORS.CloudUpload} />,
   workflow: <GitBranch size={16} color={SETTINGS_ICON_COLORS.Workflow} />,
   userProfile: <User size={16} color={SETTINGS_ICON_COLORS.User} />,
+  skillsHub: <ShoppingBag size={16} color={SETTINGS_ICON_COLORS.ShoppingBag} />,
+  dashboardPlugins: <LayoutDashboard size={16} color={SETTINGS_ICON_COLORS.LayoutDashboard} />,
+  webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
 };
 
 const SECTION_KEYS: SettingsSection[] = [
@@ -51,6 +57,9 @@ const SECTION_KEYS: SettingsSection[] = [
   "defaultModel",
   "searchProviders",
   "tools",
+  "skillsHub",
+  "dashboardPlugins",
+  "webhooks",
   "proxy",
   "shortcuts",
   "data",

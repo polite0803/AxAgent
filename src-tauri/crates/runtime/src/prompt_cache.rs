@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PromptCacheState {
     pub system_prompt_hash: Option<String>,
     pub tools_hash: Option<String>,
@@ -14,22 +14,6 @@ pub struct PromptCacheState {
     pub pending_changes: Vec<PendingChange>,
     pub tokens_saved_estimate: u64,
     pub cache_hits: u64,
-}
-
-impl Default for PromptCacheState {
-    fn default() -> Self {
-        Self {
-            system_prompt_hash: None,
-            tools_hash: None,
-            memory_hash: None,
-            context_files_hash: None,
-            cache_valid: false,
-            last_invalidation_reason: None,
-            pending_changes: Vec::new(),
-            tokens_saved_estimate: 0,
-            cache_hits: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

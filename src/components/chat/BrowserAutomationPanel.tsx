@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Button, Card, Input, Space, Typography, message, Table } from "antd";
 import { Globe, Image, MousePointer, Keyboard, Search, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface NavigateResult {
   url: string;

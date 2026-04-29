@@ -5,6 +5,12 @@ pub struct SessionRouter {
     sessions: HashMap<String, RoutedSession>,
 }
 
+impl Default for SessionRouter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RoutedSession {
     pub session_id: String,

@@ -592,7 +592,10 @@ export type SettingsSection =
   | "mcpServers"
   | "workflow"
   | "tools"
-  | "userProfile";
+  | "userProfile"
+  | "skillsHub"
+  | "dashboardPlugins"
+  | "webhooks";
 
 // === Generated Tool ===
 export interface GeneratedToolInfo {

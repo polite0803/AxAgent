@@ -1,5 +1,6 @@
 export { AboutPage } from "./AboutPage";
 export { DataManager } from "./DataManager";
+export { default as DashboardPluginsSettings } from "./DashboardPluginsSettings";
 export { DisplaySettings } from "./DisplaySettings";
 export { GeneralSettings } from "./GeneralSettings";
 export { default as KnowledgeSettings } from "./KnowledgeSettings";
@@ -15,6 +16,8 @@ export { SettingsSelect } from "./SettingsSelect";
 export { SettingsSidebar } from "./SettingsSidebar";
 export { ShortcutSettings } from "./ShortcutSettings";
 export { default as ToolManager } from "./ToolManager";
+export { default as SkillsHubSettings } from "./SkillsHubSettings";
+export { default as WebhookSettings } from "./WebhookSettings";
 
 export { default as BackupCenter } from "./BackupCenter";
 export { SchedulerSettings } from "./SchedulerSettings";

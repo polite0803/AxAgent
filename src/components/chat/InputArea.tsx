@@ -2044,12 +2044,13 @@ export function InputArea() {
               </Tooltip>
             </Dropdown>
             {currentMode === "agent" && (
-              <Tooltip title={agentCwd || t("common.workingDirectory")}>
+              <Tooltip title={messages.length > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}>
                 <Button
                   type="text"
                   size="small"
                   icon={<FolderOpen size={14} />}
                   onClick={handleSelectCwd}
+                  disabled={messages.length > 0}
                   style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: 200 }}
                 >
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>

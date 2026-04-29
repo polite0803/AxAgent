@@ -1,5 +1,6 @@
 import { Divider, Input, Select } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { DocumentParserNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -22,6 +23,7 @@ const PARSER_TYPE_OPTIONS = [
 export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelProps> = (
   { node, onUpdate, onDelete },
 ) => {
+  const { t } = useTranslation();
   const documentParserNode = node as DocumentParserNode;
   const config = documentParserNode.config || {
     input_var: "",
@@ -36,17 +38,17 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输入变量</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.inputVariable")}</label>
         <Input
           value={config.input_var || ""}
           onChange={(e) => handleConfigChange("input_var", e.target.value)}
           size="small"
-          placeholder="document"
+          placeholder={t("workflow.props.inputVarDocument")}
         />
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>解析类型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.parserType")}</label>
         <Select
           value={config.parser_type}
           onChange={(value) => handleConfigChange("parser_type", value)}
@@ -57,12 +59,12 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出变量</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
-          placeholder="parsed_content"
+          placeholder={t("workflow.props.outputVarParsed")}
         />
       </div>
 

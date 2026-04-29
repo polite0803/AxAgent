@@ -65,6 +65,35 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     Ok(DbHandle { conn })
 }
 
+pub fn default_db_path() -> String {
+    let home = dirs::home_dir().expect("Could not determine home directory");
+    let path = home.join(".axagent").join("data").join("axagent.db");
+    path.to_string_lossy().to_string()
+}
+
+pub fn profile_db_path(profile_name: &str) -> String {
+    let home = dirs::home_dir().expect("Could not determine home directory");
+    let path = home
+        .join(".axagent")
+        .join("profiles")
+        .join(profile_name)
+        .join("data")
+        .join("axagent.db");
+    path.to_string_lossy().to_string()
+}
+
+pub async fn create_pool_for_profile(profile_name: &str) -> Result<DbHandle> {
+    let db_path = if profile_name == "default" {
+        default_db_path()
+    } else {
+        profile_db_path(profile_name)
+    };
+    if let Some(parent) = std::path::Path::new(&db_path).parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    create_pool(&db_path).await
+}
+
 pub struct BuiltinProvider {
     pub builtin_id: &'static str,
     pub name: &'static str,

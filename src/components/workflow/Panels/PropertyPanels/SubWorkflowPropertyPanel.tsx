@@ -1,5 +1,6 @@
 import { Divider, Input, Select, Switch } from "antd";
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useWorkflowEditorStore } from "@/stores";
 import type { SubWorkflowNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
@@ -11,6 +12,7 @@ interface SubWorkflowPropertyPanelProps {
 }
 
 export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const subWorkflowNode = node as SubWorkflowNode;
   const config = subWorkflowNode.config || {
     sub_workflow_id: "",

@@ -1,5 +1,6 @@
 import { Divider, Input, Select } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { CodeNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -25,6 +26,7 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const codeNode = node as CodeNode;
   const config = codeNode.config || {
     language: "javascript",
@@ -75,7 +77,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-          代码
+          {t("workflow.props.code")}
           <span style={{ color: "#666", fontWeight: 400, marginLeft: 4 }}>
             (输入: input, 输出: return)
           </span>
@@ -90,17 +92,17 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
             fontSize: 11,
             background: "#1a1a1a",
           }}
-          placeholder="输入你的代码..."
+          placeholder={t("workflow.props.codePlaceholder")}
         />
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出变量</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
-          placeholder="code_output"
+          placeholder={t("workflow.props.outputVarDefault")}
         />
       </div>
 

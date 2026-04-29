@@ -414,6 +414,77 @@ pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
                         "required": ["base_id", "query"]
                     }),
                 },
+                BuiltinToolDefinition {
+                    tool_name: "create_knowledge_entity".to_string(),
+                    description: "Create a knowledge graph entity (service, component, module) in a knowledge base. Entities are the fundamental units of the knowledge graph. Use this to document system components, services, or modules discovered during analysis.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "knowledge_base_id": {"type": "string", "description": "Knowledge base ID"},
+                            "name": {"type": "string", "description": "Entity name"},
+                            "entity_type": {"type": "string", "description": "Type: service, component, module, class, function, etc."},
+                            "description": {"type": "string", "description": "Description of the entity"},
+                            "source_path": {"type": "string", "description": "Source file path"},
+                            "source_language": {"type": "string", "description": "Programming language"},
+                            "properties": {"type": "object", "description": "Custom properties"},
+                            "lifecycle": {"type": "object", "description": "Lifecycle stages"},
+                            "behaviors": {"type": "object", "description": "Behavior descriptions"}
+                        },
+                        "required": ["knowledge_base_id", "name", "entity_type"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "create_knowledge_flow".to_string(),
+                    description: "Create a knowledge graph flow (process, pipeline, workflow) in a knowledge base. Flows describe how data, control, or work moves through the system. Use this to document business processes, data pipelines, or request workflows.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "knowledge_base_id": {"type": "string", "description": "Knowledge base ID"},
+                            "name": {"type": "string", "description": "Flow name"},
+                            "flow_type": {"type": "string", "description": "Type: process, pipeline, workflow, data_flow, control_flow"},
+                            "description": {"type": "string", "description": "Description of the flow"},
+                            "source_path": {"type": "string", "description": "Source file that implements this flow"},
+                            "steps": {"type": "object", "description": "Flow steps as JSON array"},
+                            "decision_points": {"type": "object", "description": "Decision points in the flow"},
+                            "error_handling": {"type": "object", "description": "Error handling patterns"},
+                            "preconditions": {"type": "object", "description": "Pre-conditions"},
+                            "postconditions": {"type": "object", "description": "Post-conditions"}
+                        },
+                        "required": ["knowledge_base_id", "name", "flow_type"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "create_knowledge_interface".to_string(),
+                    description: "Create a knowledge graph interface (API, protocol, contract) in a knowledge base. Interfaces define how components communicate. Use this to document REST APIs, gRPC services, message formats, or inter-component contracts.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "knowledge_base_id": {"type": "string", "description": "Knowledge base ID"},
+                            "name": {"type": "string", "description": "Interface name"},
+                            "interface_type": {"type": "string", "description": "Type: api, rpc, message, contract, event"},
+                            "description": {"type": "string", "description": "Description of the interface"},
+                            "source_path": {"type": "string", "description": "Source file that defines this interface"},
+                            "input_schema": {"type": "object", "description": "Input schema"},
+                            "output_schema": {"type": "object", "description": "Output schema"},
+                            "error_codes": {"type": "object", "description": "Error codes and messages"},
+                            "communication_pattern": {"type": "string", "description": "Pattern: sync, async, pubsub, polling, streaming"}
+                        },
+                        "required": ["knowledge_base_id", "name", "interface_type"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "add_knowledge_document".to_string(),
+                    description: "Add a document to a knowledge base for indexing and later retrieval. Documents are chunked, embedded, and stored for semantic search. Use this to add documentation, notes, or reference material to the knowledge base.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "knowledge_base_id": {"type": "string", "description": "Knowledge base ID"},
+                            "title": {"type": "string", "description": "Document title"},
+                            "content": {"type": "string", "description": "Document content (markdown supported)"}
+                        },
+                        "required": ["knowledge_base_id", "title", "content"]
+                    }),
+                },
             ],
         },
         BuiltinServerDefinition {
@@ -772,6 +843,717 @@ pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
                 },
             ],
         },
+        BuiltinServerDefinition {
+            server_id: "builtin-brave-search".to_string(),
+            server_name: "@axagent/brave-search".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "brave_web_search".to_string(),
+                    description: "Search the web using the Brave Search API. Returns web pages, articles, and information matching your query. Use for general web searches, finding documentation, or researching topics.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Search query string"
+                            },
+                            "count": {
+                                "type": "integer",
+                                "description": "Number of results to return (default: 10, max: 20)",
+                                "default": 10
+                            }
+                        },
+                        "required": ["query"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "brave_local_search".to_string(),
+                    description: "Search for local businesses and places using the Brave Search API. Use for finding restaurants, stores, services, or any physical locations.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Search query for local places"
+                            },
+                            "count": {
+                                "type": "integer",
+                                "description": "Number of results to return (default: 5)",
+                                "default": 5
+                            }
+                        },
+                        "required": ["query"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-sequential-thinking".to_string(),
+            server_name: "@axagent/sequential-thinking".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "sequentialthinking".to_string(),
+                    description: "A detailed tool for dynamic and reflective problem-solving through thoughts. This tool helps analyze problems through a flexible thinking process that can adapt and evolve. Each thought can build on, question, or revise previous insights as understanding deepens. Use this tool for complex problems requiring step-by-step reasoning, breaking down tasks, and structured analysis.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "thought": {
+                                "type": "string",
+                                "description": "Your current thinking step"
+                            },
+                            "nextThoughtNeeded": {
+                                "type": "boolean",
+                                "description": "Whether another thought step is needed"
+                            },
+                            "thoughtNumber": {
+                                "type": "integer",
+                                "description": "Current thought number",
+                                "minimum": 1
+                            },
+                            "totalThoughts": {
+                                "type": "integer",
+                                "description": "Estimated total thoughts needed",
+                                "minimum": 1
+                            },
+                            "isRevision": {
+                                "type": "boolean",
+                                "description": "Whether this revises a previous thought"
+                            },
+                            "revisesThought": {
+                                "type": "integer",
+                                "description": "Which thought number is being revised",
+                                "minimum": 1
+                            },
+                            "branchFromThought": {
+                                "type": "integer",
+                                "description": "Branching point thought number",
+                                "minimum": 1
+                            },
+                            "branchId": {
+                                "type": "string",
+                                "description": "Branch identifier"
+                            },
+                            "needsMoreThoughts": {
+                                "type": "boolean",
+                                "description": "Whether more thoughts are needed"
+                            }
+                        },
+                        "required": ["thought", "nextThoughtNeeded", "thoughtNumber", "totalThoughts"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-python".to_string(),
+            server_name: "@axagent/python".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "python_execute".to_string(),
+                    description: "Execute a Python script in a sandboxed environment. Use this for computations, data processing, or running Python code. Returns combined stdout and stderr output.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "script": {
+                                "type": "string",
+                                "description": "Python script to execute"
+                            },
+                            "timeout": {
+                                "type": "integer",
+                                "description": "Timeout in seconds (default: 30, max: 120)",
+                                "default": 30,
+                                "minimum": 1,
+                                "maximum": 120
+                            }
+                        },
+                        "required": ["script"]
+                    }),
+                },
+            ],
+        },
+
+        BuiltinServerDefinition {
+            server_id: "builtin-dify-knowledge".to_string(),
+            server_name: "@axagent/dify-knowledge".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "dify_list_bases".to_string(),
+                    description: "List all available knowledge bases from a Dify instance. Use this to discover what datasets are available for searching.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "api_base": {
+                                "type": "string",
+                                "description": "Dify API base URL (e.g. https://api.dify.ai/v1)"
+                            },
+                            "api_key": {
+                                "type": "string",
+                                "description": "Dify API key (dataset API permission required)"
+                            }
+                        },
+                        "required": ["api_base", "api_key"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "dify_search".to_string(),
+                    description: "Search a Dify knowledge base for relevant documents using semantic search. Returns chunk content, relevance scores, and source document info.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "api_base": {
+                                "type": "string",
+                                "description": "Dify API base URL"
+                            },
+                            "api_key": {
+                                "type": "string",
+                                "description": "Dify API key"
+                            },
+                            "dataset_id": {
+                                "type": "string",
+                                "description": "Knowledge base (dataset) ID to search"
+                            },
+                            "query": {
+                                "type": "string",
+                                "description": "Search query string"
+                            },
+                            "top_k": {
+                                "type": "integer",
+                                "description": "Number of results to return",
+                                "default": 5
+                            }
+                        },
+                        "required": ["api_base", "api_key", "dataset_id", "query"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-workspace-memory".to_string(),
+            server_name: "@axagent/workspace-memory".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "workspace_read".to_string(),
+                    description: "Read a memory file from the agent workspace. This provides access to persistent workspace-level memory (e.g. FACT.md for facts, SUMMARY.md for summaries, journal entries). Use this to recall previously stored information about the workspace.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "filename": {
+                                "type": "string",
+                                "description": "Memory filename to read (default: FACT.md). Other options: SUMMARY.md, journal.md, decisions.md",
+                                "default": "FACT.md"
+                            },
+                            "workspace_path": {
+                                "type": "string",
+                                "description": "Absolute path to the workspace directory"
+                            }
+                        },
+                        "required": ["workspace_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "workspace_write".to_string(),
+                    description: "Write or append content to a memory file in the agent workspace. Use to persist important facts, decisions, preferences, or project context across agent sessions. Use mode='append' to add new information while preserving existing content (recommended). Use mode='overwrite' to replace the entire file.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "filename": {
+                                "type": "string",
+                                "description": "Memory filename (default: FACT.md). Use FACT.md for general facts, decisions.md for decisions, journal.md for dated entries.",
+                                "default": "FACT.md"
+                            },
+                            "workspace_path": {
+                                "type": "string",
+                                "description": "Absolute path to the workspace directory"
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "Content to write or append to the memory file"
+                            },
+                            "mode": {
+                                "type": "string",
+                                "enum": ["overwrite", "append"],
+                                "description": "Write mode: 'append' adds to end of file, 'overwrite' replaces entire file",
+                                "default": "append"
+                            }
+                        },
+                        "required": ["workspace_path", "content"]
+                    }),
+                },
+            ],
+        },
+
+
+        BuiltinServerDefinition {
+            server_id: "builtin-file-utils".to_string(),
+            server_name: "@axagent/file-utils".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "pdf_info".to_string(),
+                    description: "Extract metadata and text content from a PDF file. Returns page count and a text content preview. Use this to inspect PDF documents before processing them.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "file_path": {"type": "string", "description": "Absolute path to the PDF file"}
+                        },
+                        "required": ["file_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "detect_encoding".to_string(),
+                    description: "Detect the text encoding of a file by checking BOM markers and validating UTF-8. Returns the detected encoding and a text preview. Useful when reading files of unknown encoding.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "file_path": {"type": "string", "description": "Absolute path to the file to analyze"}
+                        },
+                        "required": ["file_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "base64_image".to_string(),
+                    description: "Read an image file and return it as base64-encoded data with MIME type detection. Supports PNG, JPEG, GIF, WebP, BMP, SVG, ICO, and TIFF. Use this when you need to pass an image to a vision model.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "file_path": {"type": "string", "description": "Absolute path to the image file"}
+                        },
+                        "required": ["file_path"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-cache".to_string(),
+            server_name: "@axagent/cache".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "cache_info".to_string(),
+                    description: "Get detailed information about application caches. Reports total cache size, file counts, and cache directory locations. Use to check disk usage of cached data.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {}
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "cache_clear".to_string(),
+                    description: "Clear application caches to free disk space. Use 'all' to clear everything, or 'temp' to clear only temporary files.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "cache_type": {
+                                "type": "string",
+                                "enum": ["all", "temp"],
+                                "description": "Cache type to clear (default: all)",
+                                "default": "all"
+                            }
+                        }
+                    }),
+                },
+            ],
+        },
+
+
+        BuiltinServerDefinition {
+            server_id: "builtin-ocr".to_string(),
+            server_name: "@axagent/ocr".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "ocr_image".to_string(),
+                    description: "Extract text from an image file using Tesseract OCR. Supports PNG, JPEG, TIFF, BMP, and other formats supported by tesseract. Requires tesseract-ocr to be installed on the system. Use this to read text from screenshots, scanned documents, or any image containing text.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "Absolute path to the image file to OCR"
+                            },
+                            "lang": {
+                                "type": "string",
+                                "description": "Tesseract language code (default: eng, chi_sim for Chinese, jpn for Japanese). Use ocr_detect_langs to see available languages."
+                            }
+                        },
+                        "required": ["file_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "ocr_detect_langs".to_string(),
+                    description: "List all available language packs installed for Tesseract OCR. Returns language codes (e.g., eng, chi_sim, fra) suitable for use with the ocr_image tool.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {}
+                    }),
+                },
+            ],
+        },
+
+
+        BuiltinServerDefinition {
+            server_id: "builtin-obsidian".to_string(),
+            server_name: "@axagent/obsidian".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "obsidian_get_vaults".to_string(),
+                    description: "Find all Obsidian vaults on this system. Searches common locations (Documents, home directory) for .obsidian folders and returns vault paths and names.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "search_path": {"type": "string", "description": "Optional custom search path"}
+                        }
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "obsidian_list_files".to_string(),
+                    description: "List all Markdown (.md) files in an Obsidian vault directory. Returns file names, relative paths, and sizes.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "vault_path": {"type": "string", "description": "Absolute path to vault root"}
+                        },
+                        "required": ["vault_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "obsidian_read_file".to_string(),
+                    description: "Read a markdown file from an Obsidian vault. Handles Obsidian Wikilinks ([[links]]) and returns clean markdown content.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "vault_path": {"type": "string", "description": "Vault root path"},
+                            "file_path": {"type": "string", "description": "Relative path to the file within the vault"}
+                        },
+                        "required": ["vault_path", "file_path"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-export".to_string(),
+            server_name: "@axagent/export".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "export_word".to_string(),
+                    description: "Export markdown content as a Microsoft Word (.docx) document. Creates a properly formatted document with headings, paragraphs, and text styling. Use this when the user asks to save content as a Word file.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "markdown": {"type": "string", "description": "Markdown content to export"},
+                            "output_path": {"type": "string", "description": "Output file path (.docx)"},
+                            "title": {"type": "string", "description": "Optional document title"}
+                        },
+                        "required": ["markdown", "output_path"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-remotefile".to_string(),
+            server_name: "@axagent/remotefile".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "remotefile_upload".to_string(),
+                    description: "Upload a local file to an AI provider's file service (Gemini Files API, OpenAI Files API, or Mistral Files API). The uploaded file can then be referenced by the AI model. Returns the remote file ID and metadata.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "provider": {"type": "string", "enum": ["gemini", "openai", "mistral"], "description": "AI provider"},
+                            "api_key": {"type": "string", "description": "API key for the provider"},
+                            "file_path": {"type": "string", "description": "Local file path to upload"},
+                            "purpose": {"type": "string", "description": "File purpose for OpenAI (e.g., 'assistants', 'fine-tune')"}
+                        },
+                        "required": ["provider", "api_key", "file_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "remotefile_list".to_string(),
+                    description: "List all files stored in a remote AI provider's file service. Returns file IDs, names, sizes, and upload dates.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "provider": {"type": "string", "enum": ["gemini", "openai", "mistral"], "description": "AI provider"},
+                            "api_key": {"type": "string", "description": "API key for the provider"}
+                        },
+                        "required": ["provider", "api_key"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "remotefile_delete".to_string(),
+                    description: "Delete a file from a remote AI provider's file service using its file ID.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "provider": {"type": "string", "enum": ["gemini", "openai", "mistral"], "description": "AI provider"},
+                            "api_key": {"type": "string", "description": "API key for the provider"},
+                            "file_id": {"type": "string", "description": "Remote file ID to delete"}
+                        },
+                        "required": ["provider", "api_key", "file_id"]
+                    }),
+                },
+            ],
+        },
+
+
+        BuiltinServerDefinition {
+            server_id: "builtin-agent-control".to_string(),
+            server_name: "@axagent/agent-control".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "agent_checkpoint".to_string(),
+                    description: "Create and manage checkpoints during agent execution. Use 'save' to snapshot current progress during complex tasks, 'list' to see available checkpoints, and 'restore' to resume from a saved checkpoint if interrupted or to explore alternative approaches.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "action": {
+                                "type": "string",
+                                "enum": ["save", "list", "restore"],
+                                "description": "Action: save a new checkpoint, list existing checkpoints, or restore from a previous one"
+                            },
+                            "checkpoint_id": {
+                                "type": "string",
+                                "description": "Checkpoint ID (required for restore action)"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Human-readable label describing the checkpoint state"
+                            }
+                        },
+                        "required": ["action"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "agent_status".to_string(),
+                    description: "Get the current execution status of the agent. Reports running tasks, completed tool calls, encountered errors, session duration, and resource usage. Use this to self-monitor progress during long-running operations.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {}
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "agent_remember".to_string(),
+                    description: "Store a key-value pair in the agent's session-level memory. This persists across tool calls within the same session. Use for tracking task context, user preferences, important findings, decisions made, or work-in-progress. Retrieve with memory_flush or by reading back with the same key.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "description": "A descriptive key for the memory item (e.g., 'user_preference', 'task_context', 'findings', 'current_step')"
+                            },
+                            "value": {
+                                "type": "string",
+                                "description": "The value to store. Can be a plain string or a JSON-encoded object."
+                            }
+                        },
+                        "required": ["key", "value"]
+                    }),
+                },
+            ],
+        },
+
+
+        BuiltinServerDefinition {
+            server_id: "builtin-memory".to_string(),
+            server_name: "@axagent/memory".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "memory_flush".to_string(),
+                    description: "Persist an important insight to long-term memory. Use when: task completed and you learned something worth remembering, discovered a user preference, solved a non-trivial error, or identified a reusable pattern.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "content": {"type": "string", "description": "The insight, decision, or observation to persist."},
+                            "target": {"type": "string", "enum": ["memory", "user"], "description": "'memory' for system-level insights, 'user' for user preferences.", "default": "memory"},
+                            "category": {"type": "string", "enum": ["insight", "decision", "error_solution", "preference", "pattern", "workflow"], "description": "Category of the memory item.", "default": "insight"}
+                        },
+                        "required": ["content"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-image-gen".to_string(),
+            server_name: "@axagent/image-gen".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "generate_image".to_string(),
+                    description: "Generate an image from a text prompt using AI. Supports Flux and DALL-E providers. Use this when the user asks to create or visualize an image based on a description.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "prompt": {"type": "string", "description": "Text description of the image to generate"},
+                            "negative_prompt": {"type": "string", "description": "What to avoid in the image"},
+                            "provider": {"type": "string", "enum": ["flux", "dall-e"], "description": "Image generation provider (default: flux)"},
+                            "width": {"type": "integer", "description": "Image width"},
+                            "height": {"type": "integer", "description": "Image height"},
+                            "steps": {"type": "integer", "description": "Number of diffusion steps (Flux only)"},
+                            "seed": {"type": "integer", "description": "Random seed for reproducibility"},
+                            "api_key": {"type": "string", "description": "API key for the provider"}
+                        },
+                        "required": ["prompt"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-chart-gen".to_string(),
+            server_name: "@axagent/chart-gen".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "generate_chart_config".to_string(),
+                    description: "Generate an ECharts configuration from a natural language description. Supports line, bar, pie, scatter, heatmap, radar, treemap, sankey, funnel, and gauge charts. Use this to create data visualizations from descriptions.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "description": {"type": "string", "description": "Natural language description of the chart"},
+                            "data": {"type": "object", "description": "Optional data to visualize"},
+                            "chart_type": {"type": "string", "enum": ["line", "bar", "pie", "scatter", "heatmap", "radar", "treemap", "sankey", "funnel", "gauge"], "description": "Desired chart type"},
+                            "title": {"type": "string", "description": "Chart title"},
+                            "api_key": {"type": "string", "description": "API key for the LLM"},
+                            "base_url": {"type": "string", "description": "Base URL for the LLM API"},
+                            "model": {"type": "string", "description": "Model to use"}
+                        },
+                        "required": ["description"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-code-edit".to_string(),
+            server_name: "@axagent/code-edit".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "search_replace".to_string(),
+                    description: "Perform precise search-and-replace edits on text files. Supports optional line range constraints and replace-all mode. Use this for targeted code modifications instead of rewriting entire files.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string", "description": "Absolute path to the file to edit"},
+                            "old_str": {"type": "string", "description": "The exact text to search for"},
+                            "new_str": {"type": "string", "description": "The text to replace old_str with"},
+                            "start_line": {"type": "integer", "description": "Starting line number (1-based)"},
+                            "end_line": {"type": "integer", "description": "Ending line number (1-based, inclusive)"},
+                            "replace_all": {"type": "boolean", "description": "Replace all occurrences", "default": false}
+                        },
+                        "required": ["path", "old_str", "new_str"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-git".to_string(),
+            server_name: "@axagent/git".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "git_status".to_string(),
+                    description: "Get the current git status of a repository. Shows staged, unstaged, and untracked files.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "repo_path": {"type": "string", "description": "Absolute path to the git repository"}
+                        },
+                        "required": ["repo_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "git_diff".to_string(),
+                    description: "Get a summary of staged or branch changes. Returns files changed, insertions, deletions, and hunk details.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "repo_path": {"type": "string", "description": "Absolute path to the git repository"},
+                            "base_branch": {"type": "string", "description": "Show diff between this branch and HEAD"}
+                        },
+                        "required": ["repo_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "git_commit".to_string(),
+                    description: "Stage all changes and commit them with the given message. Use after reviewing changes to create a commit.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "repo_path": {"type": "string", "description": "Absolute path to the git repository"},
+                            "message": {"type": "string", "description": "Commit message"},
+                            "stage_all": {"type": "boolean", "description": "Stage all changes before committing", "default": true}
+                        },
+                        "required": ["repo_path", "message"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "git_log".to_string(),
+                    description: "Get recent git commit history. Returns commit hash, author, date, and subject.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "repo_path": {"type": "string", "description": "Absolute path to the git repository"},
+                            "max_count": {"type": "integer", "description": "Maximum number of commits", "default": 10}
+                        },
+                        "required": ["repo_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "git_branch".to_string(),
+                    description: "List all branches in the repository, or create/switch branches.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "repo_path": {"type": "string", "description": "Absolute path to the git repository"},
+                            "action": {"type": "string", "enum": ["list", "create", "switch"], "description": "Action to perform", "default": "list"},
+                            "name": {"type": "string", "description": "Branch name (for create and switch)"}
+                        },
+                        "required": ["repo_path"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "git_review".to_string(),
+                    description: "Generate a context summary of staged changes for code review. Returns diff summary, file list, and change statistics.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "repo_path": {"type": "string", "description": "Absolute path to the git repository"},
+                            "base_branch": {"type": "string", "description": "Review changes between this branch and HEAD"}
+                        },
+                        "required": ["repo_path"]
+                    }),
+                },
+            ],
+        },
+        BuiltinServerDefinition {
+            server_id: "builtin-cron".to_string(),
+            server_name: "@axagent/cron".to_string(),
+            tools: vec![
+                BuiltinToolDefinition {
+                    tool_name: "cron_add".to_string(),
+                    description: "Schedule a new recurring cron job. Define the task name, cron schedule expression, and the prompt that will be executed periodically.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "Job name"},
+                            "schedule": {"type": "string", "description": "Cron expression (e.g., '0 9 * * *' for daily at 9am)"},
+                            "prompt": {"type": "string", "description": "The prompt/task to execute"}
+                        },
+                        "required": ["name", "schedule", "prompt"]
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "cron_list".to_string(),
+                    description: "List all scheduled cron jobs. Returns job IDs, names, schedules, and next execution times.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {}
+                    }),
+                },
+                BuiltinToolDefinition {
+                    tool_name: "cron_delete".to_string(),
+                    description: "Delete a scheduled cron job by its ID. The job will be permanently removed and will no longer execute.".to_string(),
+                    input_schema: serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string", "description": "Job ID to delete"}
+                        },
+                        "required": ["id"]
+                    }),
+                },
+            ],
+        },
+
     ]
 }
 

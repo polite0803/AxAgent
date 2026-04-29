@@ -19,6 +19,10 @@ pub enum RecoveryStrategy {
     },
     SkipTask,
     Fail,
+    AutoRecover {
+        max_attempts: usize,
+        checkpoint_interval_secs: u64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,6 +67,7 @@ impl RecoveryStrategy {
             RecoveryStrategy::Fallback { .. } => true,
             RecoveryStrategy::SkipTask => false,
             RecoveryStrategy::Fail => false,
+            RecoveryStrategy::AutoRecover { max_attempts, .. } => *max_attempts > 0,
         }
     }
 
@@ -73,6 +78,7 @@ impl RecoveryStrategy {
             RecoveryStrategy::Fallback { .. } => 1,
             RecoveryStrategy::SkipTask => 0,
             RecoveryStrategy::Fail => 0,
+            RecoveryStrategy::AutoRecover { max_attempts, .. } => *max_attempts,
         }
     }
 
@@ -83,6 +89,14 @@ impl RecoveryStrategy {
             RecoveryStrategy::Fallback { .. } => "Use fallback value",
             RecoveryStrategy::SkipTask => "Skip this task",
             RecoveryStrategy::Fail => "Fail immediately",
+            RecoveryStrategy::AutoRecover { .. } => "Auto-recover with checkpointing",
+        }
+    }
+
+    pub fn for_interrupt() -> Self {
+        RecoveryStrategy::AutoRecover {
+            max_attempts: 3,
+            checkpoint_interval_secs: 30,
         }
     }
 }

@@ -1,4 +1,6 @@
 use crate::commands::proactive::ProactiveService;
+use axagent_runtime::dashboard_registry::DashboardRegistry;
+use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
 use sea_orm::DatabaseConnection;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -56,4 +58,6 @@ pub struct AppState {
     pub work_engine: Arc<tokio::sync::RwLock<axagent_runtime::work_engine::WorkEngine>>,
     pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
     pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
+    pub dashboard_registry: Option<Arc<DashboardRegistry>>,
+    pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
 }

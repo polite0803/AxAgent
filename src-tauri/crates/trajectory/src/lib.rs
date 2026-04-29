@@ -28,6 +28,8 @@ mod fts5;
 mod hooks;
 mod insight;
 mod memory;
+mod memory_providers;
+mod memory_provider;
 mod nudge;
 mod parallel_execution;
 mod pattern;
@@ -39,10 +41,13 @@ mod reminder_manager;
 #[allow(dead_code)]
 mod retrieval;
 mod rl;
+mod rl_trainer;
 mod scheduled_task;
 mod skill;
 mod skill_decomposition;
 mod skill_evolution;
+mod skills_hub_adapter;
+mod skills_hub_client;
 mod skill_manager;
 mod skill_matcher;
 mod skill_proposal;
@@ -55,6 +60,8 @@ mod sub_agent;
 mod suggestion_engine;
 mod task_prefetcher;
 mod trajectory;
+mod trajectory_compressor;
+mod training_env;
 mod user_profile;
 
 pub use adaptation::*;
@@ -72,6 +79,10 @@ pub use fts5::*;
 pub use hooks::*;
 pub use insight::*;
 pub use memory::*;
+pub use memory_provider::{
+    MemoryEntry, MemoryProvider, MemoryProviderRegistry, MemoryQuery, MemoryQueryResult, MemoryType,
+};
+pub use memory_providers::*;
 pub use nudge::{
     Nudge, NudgeAction, NudgeCandidate, NudgeConfig, NudgeContext, NudgeEntity, NudgeMessage,
     NudgeService, NudgeSession, NudgeType, Urgency,
@@ -80,10 +91,13 @@ pub use parallel_execution::*;
 pub use platform_integration::*;
 pub use preference_learner::*;
 pub use rl::*;
+pub use rl_trainer::{TrainingEpisode, TrainingReport, RLTrainer};
 pub use scheduled_task::*;
 pub use skill::*;
 pub use skill_decomposition::*;
 pub use skill_evolution::*;
+pub use skills_hub_adapter::{HermesCommand, HermesExample, HermesParameter, HermesSkillManifest, SkillsHubAdapter};
+pub use skills_hub_client::{SkillsHubClient, SkillsHubConfig, SkillsHubSearchResult, SkillsHubSkill};
 pub use skill_manager::*;
 pub use skill_matcher::*;
 pub use skill_proposal::*;
@@ -101,6 +115,8 @@ pub use style_vectorizer::{
 };
 pub use sub_agent::*;
 pub use trajectory::*;
+pub use trajectory_compressor::{CompressedStep, CompressedToolCall, TrajectoryCompressor};
+pub use training_env::{EvaluationResult, RewardComputation, TrainingEnv};
 
 pub use context_predictor::{
     ActionType, ActivityLevel, ContextFeatures, ContextPredictor, PatternMatch, PredictionResult,

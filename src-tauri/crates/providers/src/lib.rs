@@ -11,10 +11,15 @@ pub mod openai_responses;
 pub mod openclaw;
 pub mod realtime_client;
 pub mod registry;
+pub mod transport;
 
 pub use image_gen::{
     DallEProvider, FluxProvider, GeneratedImage, ImageGenModelInfo, ImageGenProvider,
     ImageGenRequest, ImageGenResponse,
+};
+pub use transport::{
+    AnthropicTransport, ChatCompletionsTransport, ResponsesTransport,
+    TransportProvider, TransportRequest, TransportResponse, TransportStreamChunk,
 };
 
 use async_trait::async_trait;

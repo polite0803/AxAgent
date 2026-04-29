@@ -36,6 +36,7 @@ async fn test_same_system_prompt_keeps_cache_valid() {
 #[tokio::test]
 async fn test_record_tools() {
     let cache = PromptCache::new();
+    cache.record_system_prompt("test").await;
     let tools = vec!["bash".to_string(), "read".to_string(), "write".to_string()];
     cache.record_tools(&tools).await;
 

@@ -30,6 +30,7 @@ pub mod rag;
 pub mod repo;
 pub mod reranker;
 pub mod sandbox_runner;
+pub mod s3_backup;
 pub mod screen_capture;
 pub mod screen_vision;
 pub mod search;

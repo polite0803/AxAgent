@@ -22,11 +22,19 @@ mod compact;
 mod config;
 pub mod config_validate;
 mod conversation;
+pub mod cron;
+pub mod dashboard_plugin;
+pub mod dashboard_registry;
+pub mod webhook_dispatcher;
+pub mod webhook_server;
+pub mod webhook_subscription;
 mod file_ops;
 mod git_context;
 pub mod git_tools;
 pub mod green_contract;
 mod hooks;
+mod hook_chain;
+pub mod hook_config;
 mod json;
 mod lane_events;
 pub mod lsp_client;
@@ -38,11 +46,15 @@ pub mod mcp_lifecycle_hardened;
 pub mod mcp_server;
 mod mcp_stdio;
 pub mod mcp_tool_bridge;
+pub mod lan_transfer;
 pub mod message_gateway;
 mod oauth;
 pub mod permission_enforcer;
 mod permissions;
+pub mod plugin_hooks;
 pub mod plugin_lifecycle;
+pub mod profile;
+pub mod profile_manager;
 pub mod prompt_cache;
 pub mod pty;
 mod policy_engine;
@@ -53,8 +65,10 @@ pub mod sandbox;
 mod session;
 pub mod session_control;
 pub mod shared_memory;
+pub mod shell_hooks;
 pub mod terminal_analyzer;
 pub mod tool_generator;
+pub mod transform_pipeline;
 pub mod transport_handlers;
 pub mod validation_executor;
 pub mod work_engine;
@@ -67,6 +81,10 @@ pub mod summary_compression;
 pub mod task_packet;
 pub mod task_registry;
 pub mod team_cron_registry;
+pub mod terminal;
+pub mod theme_engine;
+pub mod session_search;
+pub mod shell_completer;
 
 #[cfg(test)]
 mod trust_resolver;
@@ -107,6 +125,7 @@ pub use git_context::{GitCommitEntry, GitContext};
 pub use hooks::{
     HookAbortSignal, HookEvent, HookProgressEvent, HookProgressReporter, HookRunResult, HookRunner,
 };
+pub use hook_chain::HookChain;
 pub use lane_events::{
     dedupe_superseded_commit_events, LaneCommitProvenance, LaneEvent, LaneEventBlocker,
     LaneEventName, LaneEventStatus, LaneFailureClass,
@@ -144,6 +163,10 @@ pub use permissions::{
     PermissionContext, PermissionMode, PermissionOutcome, PermissionOverride, PermissionPolicy,
     PermissionPromptDecision, PermissionPrompter, PermissionRequest,
 };
+pub use plugin_hooks::{
+    HookContext, HookDecision, LlmCallContext, LlmCallResult, PluginHook, SharedHook,
+    ToolCallContext, ToolCallResult,
+};
 pub use plugin_lifecycle::{
     DegradedMode, DiscoveryResult, PluginHealthcheck, PluginLifecycle, PluginLifecycleEvent,
     PluginState, ResourceInfo, ServerHealth, ServerStatus, ToolInfo,
@@ -175,6 +198,9 @@ pub use sandbox::{
 pub use session::{
     ContentBlock, ConversationMessage, MessageRole, Session, SessionCompaction, SessionError,
     SessionFork, SessionPromptEntry,
+};
+pub use session_search::{
+    IndexedMessage, SearchQuery as RuntimeSearchQuery, SearchResult, SessionSearchEngine,
 };
 pub use sse::{IncrementalSseParser, SseEvent};
 pub use stale_base::{

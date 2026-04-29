@@ -1,5 +1,6 @@
 import { Button, Drawer, Form, Input, message, Space, Switch } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAtomicSkillStore } from "../../stores/feature/atomicSkillStore";
 import type { AtomicSkill, CreateAtomicSkillParams, UpdateAtomicSkillParams } from "../../types";
 import { EntryRefSelector } from "./EntryRefSelector";

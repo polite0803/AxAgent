@@ -1,6 +1,7 @@
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
+use crate::steer_manager::SteerManager;
 use async_trait::async_trait;
-use axagent_runtime::{prompt_cache::PromptCache, CacheGuard};
+use axagent_runtime::{prompt_cache::PromptCache, CacheGuard, HookChain};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use thiserror::Error;
@@ -117,6 +118,8 @@ pub struct AgentCoordinator<T: AgentImpl> {
     correlation_counter: std::sync::atomic::AtomicU64,
     pub prompt_cache: Arc<PromptCache>,
     pub cache_guard: Arc<CacheGuard>,
+    pub hook_chain: Arc<HookChain>,
+    pub steer_manager: Arc<SteerManager>,
 }
 
 impl<T: AgentImpl> AgentCoordinator<T> {
@@ -132,6 +135,8 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             correlation_counter: std::sync::atomic::AtomicU64::new(0),
             prompt_cache: prompt_cache.clone(),
             cache_guard: Arc::new(CacheGuard::new(prompt_cache)),
+            hook_chain: Arc::new(HookChain::new()),
+            steer_manager: Arc::new(SteerManager::new()),
         }
     }
 
@@ -182,6 +187,16 @@ impl<T: AgentImpl> AgentCoordinator<T> {
 
         *status = AgentStatus::Running;
         drop(status);
+
+        let mut input = input;
+        if self.steer_manager.has_pending().await {
+            if let Some(steer_block) = self.steer_manager.format_steer_block().await {
+                input.context = Some(serde_json::json!({
+                    "steer": steer_block,
+                }));
+                tracing::info!("Injecting steer instructions into agent turn");
+            }
+        }
 
         let cache_was_valid = self.prompt_cache.is_cache_valid().await;
         self.emit_event(AgentEventType::TurnStarted, serde_json::json!({

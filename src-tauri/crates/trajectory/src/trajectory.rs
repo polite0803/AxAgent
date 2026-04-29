@@ -426,6 +426,27 @@ pub enum ExportFormat {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrainingConfig {
+    pub max_episodes: u32,
+    pub batch_size: u32,
+    pub learning_rate: f64,
+    pub reward_threshold: f64,
+    pub export_format: ExportFormat,
+}
+
+impl Default for TrainingConfig {
+    fn default() -> Self {
+        Self {
+            max_episodes: 100,
+            batch_size: 32,
+            learning_rate: 0.001,
+            reward_threshold: 0.6,
+            export_format: ExportFormat::Jsonl,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RLTrainingEntry {
     pub prompt: String,
     pub completion: String,

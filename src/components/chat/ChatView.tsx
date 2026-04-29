@@ -17,6 +17,7 @@ import {
   Modal,
   Popconfirm,
   Popover,
+  Select,
   Spin,
   Tag,
   theme,
@@ -2202,6 +2203,17 @@ function ChatViewInner() {
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const isTitleGenerating = activeConversationId != null && titleGeneratingConversationId === activeConversationId;
 
+  const scenarioOptions = useMemo(() => [
+    { value: "coding", label: t("chat.welcomePromptCoding") },
+    { value: "creative", label: t("chat.welcomePromptCreative") },
+    { value: "translation", label: t("chat.welcomePromptTranslation") },
+    { value: "writing", label: t("chat.welcomePromptWriting") },
+    { value: "research", label: t("chat.welcomePromptResearch") },
+    { value: "analysis", label: t("chat.welcomePromptAnalysis") },
+    { value: "investment", label: t("chat.welcomePromptInvestment") },
+    { value: "social_media", label: t("chat.welcomePromptSocialMedia") },
+  ], [t]);
+
   const renderConvIconForChat = useCallback((size: number, model_id?: string | null) => {
     if (!activeConversation) {
       return <Avatar icon={<Bot size={16} />} style={{ background: token.colorPrimary }} size={size} />;
@@ -3927,6 +3939,19 @@ function ChatViewInner() {
                       : <Pencil size={12} className="ml-1 text-xs opacity-50" />}
                   </Typography.Text>
                 )}
+
+              <Select
+                value={activeConversation.scenario || undefined}
+                onChange={(val) => {
+                  updateConversation(activeConversation.id, { scenario: val || null });
+                }}
+                disabled={messages.length > 0}
+                placeholder={t("chat.scenarioPlaceholder")}
+                size="small"
+                style={{ minWidth: 100 }}
+                allowClear
+                options={scenarioOptions}
+              />
 
               <div className="flex-1" />
 

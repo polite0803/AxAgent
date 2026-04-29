@@ -189,5 +189,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_trajectory::SkillDecomposer::new(),
         )),
         proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
+        dashboard_registry: None,
+        webhook_subscription_manager: None,
     }
 }
