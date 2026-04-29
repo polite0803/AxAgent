@@ -249,11 +249,14 @@ jobs:
           files: |
             src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ github.ref_name }}_macos-*.dmg
 
-  # ── Build for Linux ARM64 (cross-compile) ──────────────
+  # ── Build for Linux ARM64 (cross-compile with Docker) ───
   release-linux-arm:
     name: Build (aarch64-unknown-linux-gnu)
     needs: [check-version, draft-release-notes]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/tauri-apps/tauri:12
+      options: --user root
     steps:
       - uses: actions/checkout@v4
         with:
@@ -268,63 +271,22 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 'v1'
-          key: 'ubuntu-24.04-aarch64-unknown-linux-gnu'
+          key: 'docker-aarch64-unknown-linux-gnu'
           workspaces: src-tauri -> target
-
-      - name: Setup cross-compilation sources
-        run: |
-          sudo rm -f /etc/apt/sources.list.d/*.list
-          sudo rm -f /etc/apt/sources.list.d/*.sources
-          cat > /tmp/sources.list << 'EOF'
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu noble main multiverse universe restricted
-          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu noble-security main multiverse universe restricted
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu noble-updates main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main multiverse universe restricted
-          EOF
-          sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak
-          sudo mv /tmp/sources.list /etc/apt/sources.list
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-
-      - name: Install ARM64 dependencies
-        run: |
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            libwebkit2gtk-4.1-dev:arm64 \
-            libayatana-appindicator3-dev:arm64 \
-            librsvg2-dev:arm64 \
-            libssl-dev:arm64 \
-            patchelf:arm64 \
-            libpipewire-0.3-dev:arm64
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      # 使用npm包替代本地构建的依赖
 
       - name: Install frontend dependencies
         run: npm install
 
       - name: Build for Linux ARM64
         run: |
-          export PKG_CONFIG_ALLOW_CROSS=1
-          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
-          export PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu/
           npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb,rpm
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
-          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
-          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
