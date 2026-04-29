@@ -295,6 +295,7 @@ jobs:
             libayatana-appindicator3-dev:arm64 \
             librsvg2-dev:arm64 \
             libssl-dev:arm64 \
+            libpipewire-0.3-dev:arm64 \
             patchelf:arm64
 
       - name: Install Protoc
