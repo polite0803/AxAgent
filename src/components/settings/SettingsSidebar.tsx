@@ -88,6 +88,7 @@ export function SettingsSidebar() {
     <div
       className="h-full flex flex-col"
       data-os-scrollbar
+      data-testid="settings-sidebar"
       style={{ backgroundColor: token.colorBgContainer, overflowY: "auto" }}
     >
       {/* Back button */}

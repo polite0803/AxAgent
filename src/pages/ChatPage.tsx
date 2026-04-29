@@ -96,7 +96,7 @@ export function ChatPage() {
   }, [providers, createConversation, openTab]);
 
   return (
-    <div className="flex h-full" style={{ overflow: "hidden" }}>
+    <div className="flex h-full" style={{ overflow: "hidden" }} data-testid="chat-view">
       <div
         className="w-64 h-full"
         style={{

@@ -1353,6 +1353,7 @@ export function ChatSidebar() {
                 <Tooltip title={shortcutHint(t("chat.newConversation"), "newConversation")}>
                   <Button
                     type="text"
+                    data-testid="new-conversation-btn"
                     icon={<MessageSquarePlus size={16} />}
                     size="small"
                     onClick={() => {

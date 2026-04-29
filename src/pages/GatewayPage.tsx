@@ -64,7 +64,7 @@ export function GatewayPage() {
   ];
 
   return (
-    <div className="h-full flex flex-col px-2" style={{ overflow: "hidden" }}>
+    <div className="h-full flex flex-col px-2" style={{ overflow: "hidden" }} data-testid="gateway-overview">
       <Tabs
         items={items}
         activeKey={activeKey}

@@ -655,6 +655,7 @@ export function TitleBar() {
             })`}
           >
             <button
+              data-testid="settings-nav-btn"
               onClick={(e) => {
                 handleSettingsToggle();
                 e.currentTarget.style.backgroundColor = "transparent";

@@ -1,21 +1,95 @@
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
-import { useSettingsStore } from "@/stores";
-import { Input, theme, Typography, Tooltip } from "antd";
+import { useProviderStore, useSettingsStore } from "@/stores";
+import { Input, theme, Tooltip, Typography } from "antd";
 import {
-  Camera,
+  Brain,
+  ChevronDown,
+  Copy,
   Globe,
   Loader2,
-  Send,
-  X,
   ArrowRight,
   BookOpen,
+  MessageSquare,
+  Search,
+  X,
+  Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ModelIcon } from "@lobehub/icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const QUICKBAR_CONV_KEY = "axagent_quickbar_conv_id";
+const QUICKBAR_RECENT_KEY = "axagent_quickbar_recent";
+
+type CommandType = "chat" | "agent" | "url" | "search" | "wiki" | "calc" | "model";
+
+interface CommandDef {
+  key: CommandType;
+  icon: React.ReactNode;
+  label: string;
+  hint: string;
+}
+
+const COMMANDS: CommandDef[] = [
+  { key: "chat", icon: <MessageSquare size={14} />, label: "chat", hint: "快速问答" },
+  { key: "agent", icon: <Zap size={14} />, label: "agent", hint: "执行 Agent 任务" },
+  { key: "url", icon: <Globe size={14} />, label: "url", hint: "抓取网页内容" },
+  { key: "search", icon: <Search size={14} />, label: "search", hint: "搜索知识库" },
+  { key: "wiki", icon: <BookOpen size={14} />, label: "wiki", hint: "存入知识库" },
+  { key: "calc", icon: <Brain size={14} />, label: "calc", hint: "数学计算" },
+  { key: "model", icon: <ChevronDown size={14} />, label: "model", hint: "切换模型" },
+];
 
 function isUrl(text: string): boolean {
   return /^https?:\/\/\S+$/i.test(text.trim());
+}
+
+function isCalcExpr(text: string): boolean {
+  const t = text.trim();
+  return /^[\d\s+\-*/().%^]+$/.test(t) && /[\d]/.test(t) && /[+\-*/]/.test(t);
+}
+
+function parseCommand(raw: string): { command: CommandType | null; body: string } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^\/(\w+)\s*(.*)$/s);
+  if (match) {
+    const cmd = match[1].toLowerCase();
+    const validCommands = COMMANDS.map((c) => c.key);
+    if (validCommands.includes(cmd as CommandType)) {
+      return { command: cmd as CommandType, body: match[2].trim() };
+    }
+  }
+  // Smart detection (no / prefix)
+  if (isUrl(trimmed)) return { command: "url", body: trimmed };
+  if (trimmed.startsWith(">")) return { command: "agent", body: trimmed.slice(1).trim() };
+  if (isCalcExpr(trimmed)) return { command: "calc", body: trimmed };
+  return { command: null, body: trimmed }; // null = default chat
+}
+
+function resolveCommand(input: string): { command: CommandType; body: string } {
+  const { command, body } = parseCommand(input);
+  return { command: command ?? "chat", body };
+}
+
+/** Recent items — max 3, persisted in localStorage */
+function loadRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(QUICKBAR_RECENT_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(items: string[]) {
+  try {
+    localStorage.setItem(QUICKBAR_RECENT_KEY, JSON.stringify(items.slice(0, 3)));
+  } catch { /* noop */ }
+}
+
+function pushRecent(query: string) {
+  const items = loadRecent().filter((i) => i !== query);
+  items.unshift(query);
+  saveRecent(items);
 }
 
 export function QuickBarPage() {
@@ -26,23 +100,44 @@ export function QuickBarPage() {
   const [convId, setConvId] = useState<string | null>(
     () => localStorage.getItem(QUICKBAR_CONV_KEY),
   );
-  const [mode, setMode] = useState<"qa" | "agent" | "url" | "wiki">("qa");
+  const [mode, setMode] = useState<CommandType | null>(null);
+  const [recentItems, setRecentItems] = useState<string[]>(loadRecent);
+  const [showCommands, setShowCommands] = useState(false);
+  const [selectedCmd, setSelectedCmd] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [showModelList, setShowModelList] = useState(false);
+
   const inputRef = useRef<any>(null);
   const unlistenRef = useRef<UnlistenFn[]>([]);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const settings = useSettingsStore((s) => s.settings);
   const activeProviderId = settings.default_provider_id;
   const activeModelId = settings.default_model_id;
+  const providers = useProviderStore((s) => s.providers);
+  const currentProvider = useMemo(
+    () => providers.find((p) => p.id === activeProviderId),
+    [providers, activeProviderId],
+  );
+  const currentModels = useMemo(
+    () => currentProvider?.models.filter((m) => m.enabled) ?? [],
+    [currentProvider],
+  );
 
-  // Auto-detect mode from input
+  // Auto-detect /cmd prefix to show command palette
   useEffect(() => {
-    if (isUrl(input.trim())) {
-      setMode("url");
-    } else if (input.trim().startsWith(">")) {
-      setMode("agent");
+    if (input.trimStart().startsWith("/") && !input.includes(" ")) {
+      setShowCommands(true);
+      setSelectedCmd(0);
     } else {
-      setMode("qa");
+      setShowCommands(false);
     }
+  }, [input]);
+
+  // Resolve mode when user submits
+  const resolvedMode = useMemo(() => {
+    if (!input.trim()) return null;
+    return resolveCommand(input).command;
   }, [input]);
 
   // Focus input on mount
@@ -53,7 +148,6 @@ export function QuickBarPage() {
   // Ensure conversation exists
   const ensureConversation = useCallback(async (): Promise<string> => {
     if (convId) return convId;
-
     const conversation = await invoke<{ id: string }>("create_conversation", {
       title: "QuickBar",
     });
@@ -64,358 +158,513 @@ export function QuickBarPage() {
 
   // Cleanup stream listeners
   const cleanupListeners = useCallback(() => {
-    for (const fn of unlistenRef.current) {
-      fn();
-    }
+    for (const fn of unlistenRef.current) fn();
     unlistenRef.current = [];
   }, []);
 
-  useEffect(() => {
-    return () => cleanupListeners();
-  }, [cleanupListeners]);
+  useEffect(() => () => cleanupListeners(), [cleanupListeners]);
 
   // Hide window
   const handleHide = useCallback(async () => {
-    if (isTauri()) {
-      await invoke("hide_quickbar");
-    }
+    if (isTauri()) await invoke("hide_quickbar");
   }, []);
 
-  // Handle Escape key
+  // Escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (showCommands) { setShowCommands(false); return; }
+        if (showModelList) { setShowModelList(false); return; }
         handleHide();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleHide]);
+  }, [handleHide, showCommands, showModelList]);
 
-  // Handle URL mode: fetch content
-  const handleUrlMode = useCallback(
-    async (url: string) => {
+  // ── Stream helpers ────────────────────────────────────────────────
+  const startStream = useCallback(
+    async (op: () => Promise<void>) => {
       setLoading(true);
       setResult("");
+      setMode(resolvedMode ?? "chat");
       try {
-        const cid = await ensureConversation();
-        // Use agent_query to fetch the URL content
-        await invoke(
-          "agent_query",
-          {
-            request: {
-              conversationId: cid,
-              input: `Fetch the content from this URL and summarize it concisely (in 2-3 sentences max): ${url}`,
-              providerId: activeProviderId,
-              model_id: activeModelId,
-            },
-          },
-          0,
-        );
-
+        await op();
         let text = "";
         cleanupListeners();
-        const unlistenText = await listen<{
-          conversationId: string;
-          assistantMessageId: string;
-          text: string;
-        }>("agent-stream-text", (event) => {
-          text += event.payload.text;
-          setResult(text);
-        });
-        const unlistenDone = await listen("agent-done", () => {
-          setLoading(false);
-        });
-        const unlistenError = await listen<{ message: string }>(
-          "agent-error",
+        const u1 = await listen<{ conversationId: string; assistantMessageId: string; text: string }>(
+          "agent-stream-text",
           (event) => {
-            setResult(`Error: ${event.payload.message}`);
-            setLoading(false);
+            text += event.payload.text;
+            setResult(text);
           },
         );
-        unlistenRef.current = [unlistenText, unlistenDone, unlistenError];
+        const u2 = await listen("agent-done", () => setLoading(false));
+        const u3 = await listen<{ message: string }>("agent-error", (event) => {
+          setResult(`Error: ${event.payload.message}`);
+          setLoading(false);
+        });
+        unlistenRef.current = [u1, u2, u3];
       } catch (e) {
         setResult(`Error: ${String(e)}`);
         setLoading(false);
       }
     },
-    [ensureConversation, activeProviderId, activeModelId, cleanupListeners],
+    [cleanupListeners, resolvedMode],
   );
 
-  // Handle Q&A mode
-  const handleQaMode = useCallback(
-    async (question: string) => {
+  // ── Command executors ─────────────────────────────────────────────
+  const runChat = useCallback(
+    (body: string) => startStream(async () => {
+      const cid = await ensureConversation();
+      await invoke("send_message", { conversationId: cid, content: body, providerId: activeProviderId, modelId: activeModelId });
+    }),
+    [startStream, ensureConversation, activeProviderId, activeModelId],
+  );
+
+  const runAgent = useCallback(
+    (body: string) => startStream(async () => {
+      const cid = await ensureConversation();
+      await invoke("agent_query", { request: { conversationId: cid, input: body, providerId: activeProviderId, model_id: activeModelId } }, 0);
+    }),
+    [startStream, ensureConversation, activeProviderId, activeModelId],
+  );
+
+  const runUrl = useCallback(
+    (url: string) => startStream(async () => {
+      const cid = await ensureConversation();
+      await invoke("agent_query", { request: { conversationId: cid, input: `Fetch the content from this URL and summarize it concisely (in 2-3 sentences max): ${url}`, providerId: activeProviderId, model_id: activeModelId } }, 0);
+    }),
+    [startStream, ensureConversation, activeProviderId, activeModelId],
+  );
+
+  const runSearch = useCallback(
+    (body: string) => startStream(async () => {
+      const results = await invoke<Array<{ content: string; score: number; title: string }>>("search_knowledge_base", { query: body, limit: 5 });
+      if (!results || results.length === 0) { setResult("未找到相关知识"); setLoading(false); return; }
+      const text = results.map((r) => `**${r.title}** (相关度: ${(r.score * 100).toFixed(0)}%)\n\n${r.content}`).join("\n\n---\n\n");
+      setResult(text);
+      setLoading(false);
+    }),
+    [startStream],
+  );
+
+  const runWiki = useCallback(
+    async (body: string) => {
+      if (!body.trim()) return;
       setLoading(true);
       setResult("");
       try {
-        const cid = await ensureConversation();
-
-        await invoke("send_message", {
-          conversationId: cid,
-          content: question,
-          providerId: activeProviderId,
-          modelId: activeModelId,
-        });
-
-        let text = "";
-        cleanupListeners();
-        const unlistenText = await listen<{
-          conversationId: string;
-          assistantMessageId: string;
-          text: string;
-        }>("agent-stream-text", (event) => {
-          text += event.payload.text;
-          setResult(text);
-        });
-        const unlistenDone = await listen("agent-done", () => {
-          setLoading(false);
-        });
-        const unlistenError = await listen<{ message: string }>(
-          "agent-error",
-          (event) => {
-            setResult(`Error: ${event.payload.message}`);
-            setLoading(false);
-          },
-        );
-        unlistenRef.current = [unlistenText, unlistenDone, unlistenError];
-      } catch (e) {
-        setResult(`Error: ${String(e)}`);
-        setLoading(false);
-      }
+        await invoke("llm_wiki_ingest", { title: `QuickBar - ${new Date().toLocaleString()}`, content: body });
+        setResult("已存入知识库");
+      } catch (e) { setResult(`存入失败: ${String(e)}`); }
+      setLoading(false);
     },
-    [ensureConversation, activeProviderId, activeModelId, cleanupListeners],
+    [],
   );
 
-  // Handle Agent mode (input starts with ">")
-  const handleAgentMode = useCallback(
-    async (task: string) => {
-      const actualTask = task.startsWith(">") ? task.slice(1).trim() : task;
-      if (!actualTask) return;
-
-      setLoading(true);
-      setResult("");
+  const runCalc = useCallback(
+    async (expr: string) => {
       try {
-        const cid = await ensureConversation();
-
-        await invoke(
-          "agent_query",
-          {
-            request: {
-              conversationId: cid,
-              input: actualTask,
-              providerId: activeProviderId,
-              model_id: activeModelId,
-            },
-          },
-          0,
-        );
-
-        let text = "";
-        cleanupListeners();
-        const unlistenText = await listen<{
-          conversationId: string;
-          assistantMessageId: string;
-          text: string;
-        }>("agent-stream-text", (event) => {
-          text += event.payload.text;
-          setResult(text);
-        });
-        const unlistenDone = await listen("agent-done", () => {
-          setLoading(false);
-        });
-        const unlistenError = await listen<{ message: string }>(
-          "agent-error",
-          (event) => {
-            setResult(`Error: ${event.payload.message}`);
-            setLoading(false);
-          },
-        );
-        unlistenRef.current = [unlistenText, unlistenDone, unlistenError];
+        const sanitized = expr.replace(/[^0-9+\-*/().%\s]/g, "");
+        const value = Function(`"use strict"; return (${sanitized})`)();
+        if (value === Infinity || value === -Infinity) throw new Error("Division by zero");
+        setResult(`${expr.trim()} = ${Number.isInteger(value) ? value : value.toFixed(6)}`);
       } catch (e) {
-        setResult(`Error: ${String(e)}`);
-        setLoading(false);
+        const cid = await ensureConversation();
+        await startStream(async () => {
+          await invoke("send_message", { conversationId: cid, content: `Calculate: ${expr}`, providerId: activeProviderId, modelId: activeModelId });
+        });
+        return;
       }
     },
-    [ensureConversation, activeProviderId, activeModelId, cleanupListeners],
+    [startStream, ensureConversation, activeProviderId, activeModelId],
   );
 
-  // Handle submit
-  const handleSubmit = useCallback(async () => {
-    const trimmed = input.trim();
-    if (!trimmed || loading) return;
 
-    if (isUrl(trimmed)) {
-      await handleUrlMode(trimmed);
-    } else if (trimmed.startsWith(">")) {
-      await handleAgentMode(trimmed);
-    } else {
-      await handleQaMode(trimmed);
-    }
-  }, [input, loading, handleUrlMode, handleAgentMode, handleQaMode]);
-
-  // Handle screenshot
-  const handleScreenshot = useCallback(async () => {
-    setLoading(true);
-    setResult("");
-    try {
-      const result = await invoke<{
-        image_base64: string;
-        width: number;
-        height: number;
-      }>("screen_capture", { monitor: 0 });
-      setResult(`Screenshot captured: ${result.width}x${result.height}`);
-      // Could pipe to vision analysis or save to wiki
-    } catch (e) {
-      setResult(`Screenshot error: ${String(e)}`);
-    }
-    setLoading(false);
+  const runSwitchModel = useCallback((modelId: string) => {
+    const settingsStore = useSettingsStore.getState();
+    settingsStore.saveSettings({ default_model_id: modelId });
+    setShowModelList(false);
+    setResult(`模型已切换`);
+    setTimeout(() => setResult(""), 1500);
   }, []);
 
-  // Handle wiki save
-  const handleSaveToWiki = useCallback(async () => {
-    if (!result.trim()) return;
-    try {
-      await invoke("llm_wiki_ingest", {
-        title: `QuickBar - ${new Date().toLocaleString()}`,
-        content: result,
-      });
-      setResult((prev) => prev + "\n\n[Saved to Wiki]");
-    } catch (e) {
-      setResult((prev) => prev + `\n\n[Save failed: ${String(e)}]`);
+  // ── Submit handler ─────────────────────────────────────────────────
+  const handleSubmit = useCallback(async () => {
+    const { command, body } = resolveCommand(input);
+    if (!body) return;
+
+    setShowCommands(false);
+    pushRecent(input.trim());
+    setRecentItems(loadRecent());
+
+    switch (command) {
+      case "chat": await runChat(body); break;
+      case "agent": await runAgent(body); break;
+      case "url": await runUrl(body); break;
+      case "search": await runSearch(body); break;
+      case "wiki": await runWiki(body); break;
+      case "calc": await runCalc(body); break;
+      case "model": setShowModelList(true); break;
     }
+  }, [input, runChat, runAgent, runUrl, runSearch, runWiki, runCalc]);
+
+  // Keyboard in command palette
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (showCommands) {
+        if (e.key === "ArrowDown") { e.preventDefault(); setSelectedCmd((i) => Math.min(i + 1, COMMANDS.length - 1)); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedCmd((i) => Math.max(i - 1, 0)); }
+        else if (e.key === "Enter") {
+          e.preventDefault();
+          const cmd = COMMANDS[selectedCmd];
+          setInput(`/${cmd.key} `);
+          setShowCommands(false);
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }
+      }
+    },
+    [showCommands, selectedCmd],
+  );
+
+  const handleSelectCommand = useCallback((cmd: CommandDef) => {
+    setInput(`/${cmd.key} `);
+    setShowCommands(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  // ── Copy ───────────────────────────────────────────────────────────
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* noop */ }
   }, [result]);
 
-  const showClear = input.length > 0 || result.length > 0;
+  const handleContinue = useCallback(() => {
+    setInput((prev) => prev + "\n\n---\n" + result.slice(-500));
+    setResult("");
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [result]);
+
+  const handleClear = useCallback(() => {
+    setInput("");
+    setResult("");
+    setMode(null);
+  }, []);
+
+  const handleModelIconClick = useCallback(() => {
+    setShowModelList((v) => !v);
+  }, []);
+
+  // ── UI short-hands ─────────────────────────────────────────────────
+  const borderColor = token.colorBorderSecondary;
+
+  const hasResult = result.length > 0;
+  const showClear = input.length > 0 || hasResult;
 
   return (
     <div
-      className="flex flex-col"
-      style={{
-        height: "100vh",
-        backgroundColor: token.colorBgContainer,
-      }}
+      className="ax-page-transition"
+      style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: token.colorBgContainer }}
     >
-      {/* Main input bar */}
+      {/* ── Header ─────────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-2"
+        className="ax-titlebar-compact title-bar-drag"
         style={{
-          padding: "6px 10px",
-          borderBottom: result ? "1px solid var(--border-color)" : "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingLeft: 12,
+          paddingRight: 8,
+          height: 28,
+          flexShrink: 0,
+          borderBottom: `1px solid ${borderColor}`,
         }}
       >
-        {/* Mode indicator */}
-        <Tooltip
-          title={
-            mode === "url"
-              ? "URL Fetch"
-              : mode === "agent"
-              ? "Agent Task"
-              : "Quick Q&A"
-          }
-        >
-          <span style={{ fontSize: 14, opacity: 0.5, flexShrink: 0 }}>
-            {mode === "url" ? (
-              <Globe size={16} />
-            ) : mode === "agent" ? (
-              <ArrowRight size={16} />
-            ) : (
-              <Send size={16} />
-            )}
-          </span>
-        </Tooltip>
+        <span style={{ fontSize: 12, fontWeight: 500, color: token.colorTextSecondary }}>快捷入口</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {activeModelId && (
+            <Tooltip title={activeModelId}>
+              <button
+                className="title-bar-nodrag"
+                onClick={handleModelIconClick}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}
+              >
+                <ModelIcon model={activeModelId} size={16} type="avatar" />
+              </button>
+            </Tooltip>
+          )}
+          <button
+            className="title-bar-nodrag"
+            onClick={handleHide}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: 4,
+              color: token.colorTextSecondary, opacity: 0.5,
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
 
+      {/* ── Recent ──────────────────────────────────────────────────── */}
+      {!hasResult && recentItems.length > 0 && (
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "4px 12px",
+            fontSize: 11, color: token.colorTextQuaternary, flexShrink: 0,
+            overflowX: "auto", whiteSpace: "nowrap",
+          }}
+        >
+          <span>最近:</span>
+          {recentItems.map((item, i) => (
+            <span
+              key={i}
+              onClick={() => { setInput(item); setTimeout(() => inputRef.current?.focus(), 50); }}
+              style={{ cursor: "pointer", opacity: 0.7, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis" }}
+              title={item}
+            >
+              {item.length > 30 ? item.slice(0, 30) + "…" : item}
+            </span>
+          ))}
+          <span
+            onClick={() => { saveRecent([]); setRecentItems([]); }}
+            style={{ cursor: "pointer", opacity: 0.4, marginLeft: "auto", flexShrink: 0 }}
+          >
+            清空
+          </span>
+        </div>
+      )}
+
+      {/* ── Input bar ───────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", flexShrink: 0,
+          position: "relative",
+        }}
+      >
+        <span style={{ opacity: 0.4, fontSize: 14, flexShrink: 0, color: token.colorTextSecondary }}>
+          ▸
+        </span>
         <Input
           ref={inputRef}
-          placeholder={
-            mode === "url"
-              ? "Paste URL to fetch..."
-              : mode === "agent"
-              ? "> Describe agent task..."
-              : "Ask anything or paste URL..."
-          }
+          placeholder={showCommands ? "选择命令..." : "输入 / 查看命令，或直接提问..."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onPressEnter={handleSubmit}
+          onKeyDown={handleKeyDown}
           variant="borderless"
           disabled={loading}
-          style={{ flex: 1, fontSize: 14 }}
+          style={{ flex: 1, fontSize: 14, backgroundColor: "transparent" }}
         />
-
-        {/* Action buttons */}
-        <Tooltip title="Screenshot">
-          <button
-            onClick={handleScreenshot}
-            disabled={loading}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
-              padding: 4,
-              opacity: loading ? 0.3 : 0.6,
-            }}
-          >
-            <Camera size={16} />
-          </button>
-        </Tooltip>
-
-        {result && (
-          <Tooltip title="Save to Wiki">
-            <button
-              onClick={handleSaveToWiki}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 4,
-                opacity: 0.6,
-              }}
-            >
-              <BookOpen size={16} />
-            </button>
-          </Tooltip>
-        )}
-
-        {loading ? (
-          <Loader2 size={16} className="animate-spin" style={{ opacity: 0.6, flexShrink: 0 }} />
-        ) : showClear ? (
-          <Tooltip title="Clear (Esc to close)">
-            <button
-              onClick={() => {
-                setInput("");
-                setResult("");
-                setMode("qa");
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 4,
-                opacity: 0.5,
-              }}
-            >
-              <X size={16} />
-            </button>
-          </Tooltip>
-        ) : null}
+        {loading
+          ? <Loader2 size={16} className="animate-spin" style={{ opacity: 0.5, flexShrink: 0 }} />
+          : showClear && (
+            <Tooltip title="清空">
+              <button
+                onClick={handleClear}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: 0.4 }}
+              >
+                <X size={14} color={token.colorTextSecondary} />
+              </button>
+            </Tooltip>
+          )}
       </div>
 
-      {/* Result area */}
-      {result && (
+      {/* ── Command palette ──────────────────────────────────────────── */}
+      {showCommands && (
         <div
-          data-os-scrollbar
           style={{
-            flex: 1,
-            padding: "8px 14px",
-            overflowY: "auto",
-            fontSize: 13,
-            lineHeight: 1.6,
-            maxHeight: 300,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            color: token.colorText,
+            margin: "0 10px", padding: "6px 0",
+            backgroundColor: token.colorBgElevated,
+            border: `1px solid ${borderColor}`,
+            borderRadius: 8,
+            boxShadow: `0 4px 16px rgba(0,0,0,0.2)`,
+            zIndex: 10,
+            flexShrink: 0,
           }}
         >
-          <Typography.Text style={{ fontSize: 13 }}>{result}</Typography.Text>
+          {COMMANDS.map((cmd, idx) => (
+            <div
+              key={cmd.key}
+              onClick={() => handleSelectCommand(cmd)}
+              onMouseEnter={() => setSelectedCmd(idx)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "5px 12px",
+                cursor: "pointer", fontSize: 12,
+                backgroundColor: idx === selectedCmd ? token.colorFillSecondary : "transparent",
+                color: token.colorText,
+                transition: "background-color 0.1s",
+              }}
+            >
+              <span style={{ opacity: 0.6, display: "flex", alignItems: "center" }}>{cmd.icon}</span>
+              <span style={{ fontWeight: 500, fontFamily: "var(--code-font-family, monospace)", minWidth: 55 }}>
+                /{cmd.label}
+              </span>
+              <span style={{ opacity: 0.5 }}>{cmd.hint}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Model switcher ───────────────────────────────────────────── */}
+      {showModelList && (
+        <div
+          style={{
+            margin: "0 10px", padding: "6px 0",
+            backgroundColor: token.colorBgElevated,
+            border: `1px solid ${borderColor}`,
+            borderRadius: 8,
+            boxShadow: `0 4px 16px rgba(0,0,0,0.2)`,
+            zIndex: 10,
+            flexShrink: 0,
+            maxHeight: 200,
+            overflowY: "auto",
+          }}
+        >
+          {currentModels.map((m) => (
+            <div
+              key={m.model_id}
+              onClick={() => runSwitchModel(m.model_id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "6px 12px",
+                cursor: "pointer", fontSize: 12,
+                backgroundColor: m.model_id === activeModelId ? token.colorFillSecondary : "transparent",
+                color: token.colorText,
+                transition: "background-color 0.1s",
+              }}
+            >
+              <ModelIcon model={m.model_id} size={16} type="avatar" />
+              <span>{m.model_id}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Command hint bar ─────────────────────────────────────────── */}
+      {!hasResult && !showCommands && !showModelList && (
+        <div
+          style={{
+            display: "flex", gap: 12, padding: "2px 10px 6px",
+            fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0,
+            overflow: "hidden", flexWrap: "wrap",
+          }}
+        >
+          {COMMANDS.map((c) => (
+            <span
+              key={c.key}
+              onClick={() => handleSelectCommand(c)}
+              style={{ cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              /{c.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* ── Divider ──────────────────────────────────────────────────── */}
+      {hasResult && (
+        <div style={{ height: 1, backgroundColor: borderColor, flexShrink: 0 }} />
+      )}
+
+      {/* ── Result area ──────────────────────────────────────────────── */}
+      {hasResult && (
+        <>
+          <div
+            ref={resultRef}
+            data-os-scrollbar
+            style={{
+              flex: 1, padding: "10px 14px", overflowY: "auto",
+              fontSize: 13, lineHeight: 1.7, color: token.colorText,
+              maxHeight: "60vh", whiteSpace: "pre-wrap", wordBreak: "break-word",
+            }}
+          >
+            <Typography.Text style={{ fontSize: 13 }}>{result}</Typography.Text>
+          </div>
+          {/* ── Action bar ──────────────────────────────────────────── */}
+          <div
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "6px 12px", borderTop: `1px solid ${borderColor}`,
+              flexShrink: 0,
+            }}
+          >
+            <Tooltip title={copied ? "已复制" : "复制结果"}>
+              <button
+                onClick={handleCopy}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: "3px 8px", borderRadius: 4, fontSize: 11,
+                  color: copied ? token.colorSuccess : token.colorTextSecondary,
+                  transition: "background-color 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = token.colorFillSecondary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+              >
+                <Copy size={12} /> {copied ? "已复制" : "复制"}
+              </button>
+            </Tooltip>
+            <Tooltip title="存入知识库">
+              <button
+                onClick={async () => {
+                  if (!result.trim()) return;
+                  setLoading(true);
+                  try {
+                    await invoke("llm_wiki_ingest", { title: `QuickBar - ${new Date().toLocaleString()}`, content: result });
+                    setResult((prev) => prev + "\n\n[已存入知识库]");
+                  } catch (e) { setResult((prev) => prev + `\n\n[存入失败: ${String(e)}]`); }
+                  setLoading(false);
+                }}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: "3px 8px", borderRadius: 4, fontSize: 11,
+                  color: token.colorTextSecondary,
+                  transition: "background-color 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = token.colorFillSecondary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+              >
+                <BookOpen size={12} /> 存为知识
+              </button>
+            </Tooltip>
+            <Tooltip title="将结果追加到输入继续追问">
+              <button
+                onClick={handleContinue}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: "3px 8px", borderRadius: 4, fontSize: 11,
+                  color: token.colorTextSecondary,
+                  transition: "background-color 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = token.colorFillSecondary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+              >
+                <ArrowRight size={12} /> 继续追问
+              </button>
+            </Tooltip>
+            <div style={{ flex: 1 }} />
+            {mode && (
+              <span style={{ fontSize: 10, color: token.colorTextQuaternary }}>
+                /{mode}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Empty state ──────────────────────────────────────────────── */}
+      {!hasResult && !showCommands && !showModelList && (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ textAlign: "center", opacity: 0.2 }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>▸</div>
+            <div style={{ fontSize: 11, color: token.colorTextSecondary }}>输入 / 发现命令</div>
+          </div>
         </div>
       )}
     </div>

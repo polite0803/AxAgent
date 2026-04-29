@@ -1684,6 +1684,7 @@ export function InputArea() {
           <textarea
             className="axagent-input-textarea"
             ref={textareaRef}
+            data-testid="message-input"
             value={value}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
@@ -2096,6 +2097,7 @@ export function InputArea() {
                   type="primary"
                   shape="circle"
                   size="small"
+                  data-testid="send-btn"
                   icon={<ArrowUp size={14} />}
                   onClick={handleSend}
                   disabled={!value.trim() || streaming}

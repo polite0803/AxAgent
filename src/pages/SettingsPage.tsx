@@ -95,7 +95,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full" data-testid="settings-panel">
       <div
         className="w-56 shrink-0 h-full"
         style={{ borderRight: "1px solid var(--border-color)", backgroundColor: token.colorBgContainer }}

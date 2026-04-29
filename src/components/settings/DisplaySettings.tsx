@@ -44,6 +44,7 @@ export function DisplaySettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.theme")}</span>
           <Segmented
+            data-testid="dark-mode-toggle"
             value={settings.theme_mode}
             onChange={(val) => saveSettings({ theme_mode: val as string })}
             options={[
