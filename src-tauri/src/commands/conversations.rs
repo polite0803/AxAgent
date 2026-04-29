@@ -3770,6 +3770,14 @@ mod tests {
             axagent_trajectory::TrajectoryStorage::new()
                 .unwrap_or_else(|e| panic!("Failed to create TrajectoryStorage: {}", e)),
         );
+        let semantic_cache = Arc::new(tokio::sync::Mutex::new(
+            crate::semantic_cache::SemanticCache::new(
+                db.clone(),
+                crate::semantic_cache::CacheConfig::default(),
+            )
+            .await
+            .expect("Failed to create semantic cache"),
+        ));
         let state = crate::AppState {
             sea_db: db.clone(),
             master_key: [0; 32],
@@ -3878,6 +3886,7 @@ mod tests {
             proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
             dashboard_registry: None,
             webhook_subscription_manager: None,
+            semantic_cache,
         };
 
         let attachments = vec![AttachmentInput {
