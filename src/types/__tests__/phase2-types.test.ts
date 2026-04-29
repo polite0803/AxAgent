@@ -114,8 +114,8 @@ describe("Phase-2 type contracts", () => {
     const pp: ProgramPolicy = {
       id: "pp1",
       programName: "cursor",
-      allowedProviderIds: [],
-      allowedModelIds: [],
+      allowedProviderIdsJson: "[]",
+      allowedModelIdsJson: "[]",
     };
     expect(pp.programName).toBe("cursor");
   });

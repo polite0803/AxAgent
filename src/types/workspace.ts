@@ -17,7 +17,7 @@ export type ConversationBranch = {
   parentMessageId: string;
   branchLabel: string;
   branchIndex: number;
-  comparedMessageIds?: string[];
+  comparedMessageIdsJson?: string;
   createdAt: string;
 };
 
@@ -92,7 +92,7 @@ export type CreateConversationInput = {
   workspaceSnapshot?: ConversationWorkspaceSnapshot;
 };
 
-export type UpdateConversationInput = {
+export type WorkspaceUpdateInput = {
   title?: string;
   providerId?: string;
   model_id?: string;
@@ -105,15 +105,8 @@ export type UpdateConversationInput = {
 export type SendMessageInput = {
   conversationId: string;
   content: string;
-  attachments?: AttachmentInput[];
+  attachments?: import("./index").AttachmentInput[];
   contextOverride?: ContextOverrideInput;
-};
-
-export type AttachmentInput = {
-  name: string;
-  path: string;
-  mimeType: string;
-  sizeBytes: number;
 };
 
 export type CompareResponsesResult = {

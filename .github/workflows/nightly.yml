@@ -37,7 +37,7 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: windows-latest
             target: aarch64-pc-windows-msvc
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
 
     runs-on: ${{ matrix.os }}
@@ -64,7 +64,7 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'ubuntu-24.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -171,7 +171,7 @@ jobs:
   # ── Build for Linux ARM64 (cross-compile) ──────────────
   release-linux-arm:
     name: Build (aarch64-unknown-linux-gnu)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -191,7 +191,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 'v1'
-          key: 'ubuntu-22.04-aarch64-unknown-linux-gnu-nightly'
+          key: 'ubuntu-24.04-aarch64-unknown-linux-gnu-nightly'
           workspaces: src-tauri -> target
 
       - name: Setup cross-compilation sources

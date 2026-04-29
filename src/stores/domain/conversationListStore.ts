@@ -70,7 +70,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
 
   renameConversation: async (id, title) => {
     try {
-      await invoke("rename_conversation", { id, title });
+      await invoke("update_conversation", { id, input: { title } });
       set((state) => ({
         conversations: state.conversations.map((c) =>
           c.id === id ? { ...c, title } : c,
@@ -124,7 +124,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
 
   archiveToKnowledgeBase: async (id, knowledgeBaseId) => {
     try {
-      await invoke("archive_to_knowledge_base", { id, knowledgeBaseId });
+      await invoke("archive_conversation_to_knowledge_base", { id, knowledge_base_id: knowledgeBaseId });
     } catch (e: any) {
       set({ error: String(e) });
     }
@@ -132,7 +132,9 @@ export const useConversationListStore = create<ConversationListState>((set, get)
 
   batchDelete: async (ids) => {
     try {
-      await invoke("batch_delete_conversations", { ids });
+      for (const id of ids) {
+        await invoke("delete_conversation", { id });
+      }
       set((state) => ({
         conversations: state.conversations.filter((c) => !ids.includes(c.id)),
         totalActiveCount: Math.max(0, state.totalActiveCount - ids.length),
@@ -144,7 +146,9 @@ export const useConversationListStore = create<ConversationListState>((set, get)
 
   batchArchive: async (ids) => {
     try {
-      await invoke("batch_archive_conversations", { ids });
+      for (const id of ids) {
+        await invoke("toggle_archive_conversation", { id });
+      }
       set((state) => ({
         conversations: state.conversations.filter((c) => !ids.includes(c.id)),
         totalActiveCount: Math.max(0, state.totalActiveCount - ids.length),

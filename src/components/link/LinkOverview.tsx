@@ -147,7 +147,7 @@ export function LinkOverview({ link }: LinkOverviewProps) {
                   <span style={{ color: token.colorTextTertiary, flexShrink: 0, fontSize: 12 }}>
                     {new Date(activity.created_at * 1000).toLocaleTimeString()}
                   </span>
-                  <span>{activity.detail}</span>
+                  <span>{activity.description}</span>
                 </div>
               ))}
             </div>

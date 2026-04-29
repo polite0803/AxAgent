@@ -746,6 +746,18 @@ pub struct AppSettings {
     pub render_user_markdown: bool,
     /// Default workspace directory for new sessions when not manually set.
     pub default_workspace_dir: Option<String>,
+    /// Enable screen perception and vision-based UI control.
+    pub screen_perception_enabled: bool,
+    /// Enable RL optimizer for tool selection and task strategies.
+    pub rl_optimizer_enabled: bool,
+    /// Enable LoRA fine-tuning for custom model adaptation.
+    pub lora_finetune_enabled: bool,
+    /// Enable proactive nudge suggestions based on context.
+    pub proactive_nudge_enabled: bool,
+    /// Enable thought chain visualization for reasoning.
+    pub thought_chain_enabled: bool,
+    /// Enable automatic error recovery suggestions.
+    pub error_recovery_enabled: bool,
 }
 
 impl Default for AppSettings {
@@ -803,7 +815,7 @@ impl Default for AppSettings {
             shortcut_toggle_gateway: "CommandOrControl+Shift+G".to_string(),
             shortcut_toggle_mode: "Shift+Tab".to_string(),
             gateway_auto_start: false,
-            gateway_listen_address: "127.1.0.0".to_string(),
+            gateway_listen_address: "127.0.0.1".to_string(),
             gateway_port: 8080,
             gateway_ssl_enabled: false,
             gateway_ssl_mode: "upload".to_string(),
@@ -856,6 +868,12 @@ impl Default for AppSettings {
             multi_model_display_mode: "tabs".to_string(),
             render_user_markdown: false,
             default_workspace_dir: None,
+            screen_perception_enabled: false,
+            rl_optimizer_enabled: false,
+            lora_finetune_enabled: false,
+            proactive_nudge_enabled: true,
+            thought_chain_enabled: false,
+            error_recovery_enabled: true,
         }
     }
 }

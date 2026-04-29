@@ -62,6 +62,15 @@ export type CreateBackupJobInput = {
 export type ProgramPolicy = {
   id: string;
   programName: string;
+  allowedProviderIdsJson: string;
+  allowedModelIdsJson: string;
+  defaultProviderId?: string;
+  defaultModelId?: string;
+  rateLimitPerMinute?: number;
+};
+
+export type SaveProgramPolicyInput = {
+  programName: string;
   allowedProviderIds: string[];
   allowedModelIds: string[];
   defaultProviderId?: string;

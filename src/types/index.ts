@@ -245,6 +245,7 @@ export interface UpdateConversationInput {
   enabled_memory_namespace_ids?: string[];
   context_compression?: boolean;
   category_id?: string | null;
+  parent_conversation_id?: string | null;
   mode?: "chat" | "agent" | "gateway";
   scenario?: string | null;
   enabled_skill_ids?: string[];
@@ -417,6 +418,11 @@ export interface AppSettings {
   notify_backup?: boolean;
   notify_import?: boolean;
   notify_errors?: boolean;
+  // Auto-backup settings
+  backup_dir?: string | null;
+  auto_backup_enabled?: boolean;
+  auto_backup_interval_hours?: number;
+  auto_backup_max_count?: number;
   // WebDAV sync settings
   webdav_host?: string | null;
   webdav_username?: string | null;
@@ -426,6 +432,17 @@ export interface AppSettings {
   webdav_sync_interval_minutes?: number;
   webdav_max_remote_backups?: number;
   webdav_include_documents?: boolean;
+  // S3 sync settings
+  s3_endpoint?: string | null;
+  s3_region?: string | null;
+  s3_bucket?: string | null;
+  s3_access_key_id?: string | null;
+  s3_root?: string | null;
+  s3_use_path_style?: boolean;
+  s3_sync_enabled?: boolean;
+  s3_sync_interval_minutes?: number;
+  s3_max_remote_backups?: number;
+  s3_include_documents?: boolean;
   /** Closed-loop nudge scheduler enabled */
   closed_loop_enabled?: boolean;
   /** Closed-loop nudge interval in minutes (default 5) */
@@ -559,6 +576,7 @@ export interface CreateGatewayLinkInput {
   name: string;
   link_type: GatewayLinkType;
   endpoint: string;
+  api_key_id?: string | null;
   api_key?: string | null;
   auto_sync_models?: boolean;
   auto_sync_skills?: boolean;
@@ -567,8 +585,8 @@ export interface CreateGatewayLinkInput {
 export interface GatewayLinkActivity {
   id: string;
   link_id: string;
-  action: string;
-  detail: string;
+  activity_type: string;
+  description: string | null;
   created_at: number;
 }
 

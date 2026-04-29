@@ -11,6 +11,7 @@ import type {
   GatewayTemplate,
   ProgramPolicy,
   QuickConnectProtocol,
+  SaveProgramPolicyInput,
   UsageByDay,
   UsageByKey,
   UsageByProvider,
@@ -36,14 +37,7 @@ interface GatewayState {
   cliToolsLoading: boolean;
   loadDiagnostics: () => Promise<void>;
   loadProgramPolicies: () => Promise<void>;
-  saveProgramPolicy: (input: {
-    programName: string;
-    allowedProviderIds: string[];
-    allowedModelIds: string[];
-    defaultProviderId?: string;
-    defaultModelId?: string;
-    rateLimitPerMinute?: number;
-  }) => Promise<ProgramPolicy>;
+  saveProgramPolicy: (input: SaveProgramPolicyInput) => Promise<ProgramPolicy>;
   loadGatewayTemplates: () => Promise<void>;
   copyGatewayTemplate: (templateId: string) => Promise<string>;
   fetchKeys: () => Promise<void>;
