@@ -1,4 +1,4 @@
-use axagent_agent::{ingest_pipeline, lint_checker, query_engine, schema_manager, wiki_compiler};
+use axagent_agent::{ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler};
 use axagent_core::entity::wiki_sync_queue;
 use axagent_core::repo::wiki;
 use axagent_core::types::{
@@ -87,10 +87,12 @@ pub async fn llm_wiki_list(
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct CreateWikiInput {
     pub name: String,
     pub root_path: String,
     pub description: Option<String>,
+    #[allow(dead_code)]
     pub embedding_provider: Option<String>,
 }
 
@@ -187,6 +189,7 @@ pub async fn llm_wiki_ingest(
         path: input.path,
         url: input.url,
         title: input.title,
+        folder_context: None,
     };
 
     let result = pipeline.ingest(&input.wiki_id, source).await?;
@@ -605,6 +608,7 @@ pub async fn write_base64_to_file(
         path: file_path.to_string_lossy().to_string(),
         url: None,
         title: Some(input.file_name.clone()),
+        folder_context: None,
     };
 
     let result = pipeline.ingest(&input.wiki_id, source).await?;
@@ -825,4 +829,23 @@ pub async fn wiki_get_capacity_info(
     axagent_core::rag::get_vault_capacity_info(&state.sea_db, &wiki_id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(dead_code)]
+pub async fn llm_wiki_get_purpose(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<String, String> {
+    purpose_manager::PurposeManager::load(&state.sea_db, &wiki_id).await
+}
+
+#[tauri::command]
+#[allow(dead_code)]
+pub async fn llm_wiki_update_purpose(
+    state: State<'_, AppState>,
+    wiki_id: String,
+    content: String,
+) -> Result<(), String> {
+    purpose_manager::PurposeManager::save(&state.sea_db, &wiki_id, &content).await
 }

@@ -93,6 +93,21 @@ export interface AgentCancelledEvent {
   reason: string;
 }
 
+/** Emitted when a model fails and the system falls back to an alternate model. */
+export interface ModelFallbackEvent {
+  conversationId: string;
+  /** The model that failed. */
+  fromProviderId: string;
+  fromModelId: string;
+  /** The model that was selected as fallback. */
+  toProviderId: string;
+  toModelId: string;
+  /** Why the original model failed (e.g. "rate_limited", "connection_refused", "timeout"). */
+  reason: string;
+  /** Whether this was the final fallback (no more models to try). */
+  exhausted: boolean;
+}
+
 export interface AgentStatusEvent {
   conversationId: string;
   message: string;

@@ -117,10 +117,3 @@ clippy.config.edition = "2021"
 [workspace.metadata.format]
 rust = "dprint"
 typescript = "dprint"
-
-# Scripts for CI/CD
-[workspace.metadata.scripts]
-rust-fmt = "cargo fmt --all -- --check"
-rust-clippy = "cargo clippy --all-targets -- -D warnings"
-rust-test = "cargo test --all"
-rust-all = "cargo fmt --all && cargo clippy --all-targets -- -D warnings && cargo test --all"

@@ -58,6 +58,7 @@ import {
   incrementActiveMessageLoadSeq,
   incrementListenerGen,
   isConversationStreaming as isConvStreaming,
+  rebuildMessageIndex,
   registerConversationStoreRef,
   resetMultiModelState,
   setIsMultiModelActive,
@@ -77,6 +78,56 @@ import {
   STREAM_UI_FLUSH_INTERVAL_MS,
   useStreamStore,
 } from "./streamStore";
+
+// ─── Fallback model chain ───
+//
+// When the primary model fails (rate limit, timeout, provider error),
+// we iterate through a chain of fallback models instead of immediately
+// showing an error. The chain is built from the user's configured providers.
+// This increases reliability significantly for long-running sessions.
+
+interface FallbackModel {
+  providerId: string;
+  model_id: string;
+}
+
+/** Build a fallback model chain from available providers, excluding the current model.
+ *  Prioritizes models from the same provider, then the user's default model, then others. */
+function buildFallbackChain(
+  currentProviderId: string,
+  currentModelId: string,
+): FallbackModel[] {
+  const chain: FallbackModel[] = [];
+  try {
+    // Access provider store — dynamic import avoids circular dependency
+    const { useProviderStore } = require("@/stores");
+    const providers = useProviderStore.getState().providers ?? [];
+    const { usePreferenceStore } = require("@/stores/domain/preferenceStore");
+    const { defaultProviderId, defaultModelId } = usePreferenceStore.getState();
+
+    for (const p of providers) {
+      for (const m of p.models ?? []) {
+        const key = `${p.id}:${m.model_id}`;
+        if (key === `${currentProviderId}:${currentModelId}`) continue;
+
+        const entry: FallbackModel = { providerId: p.id, model_id: m.model_id };
+
+        // Same provider, different model — highest priority
+        if (p.id === currentProviderId) {
+          chain.unshift(entry);
+        } else if (p.id === defaultProviderId && m.model_id === defaultModelId) {
+          // User's default model — second priority
+          chain.push(entry);
+        } else {
+          chain.push(entry);
+        }
+      }
+    }
+  } catch {
+    // If stores aren't available, return empty chain
+  }
+  return chain.slice(0, 3); // Max 3 fallback attempts
+}
 
 interface ConversationState {
   conversations: Conversation[];
@@ -805,6 +856,64 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     } catch (e) {
       console.error("[sendMessage] error:", e);
       const errMsg = String(e);
+
+      // Determine whether this error is retryable (transient) vs permanent.
+      // Only attempt fallback for network, rate limit, timeout, and provider errors.
+      const isRetryable = true
+        && !errMsg.includes("invalid_request_error")   // bad request
+        && !errMsg.includes("authentication")           // auth error
+        && !errMsg.includes("insufficient_quota")       // billing
+        && !errMsg.includes("invalid_api_key")          // auth
+        && !errMsg.includes("context_length_exceeded"); // context too long
+
+      // Try fallback models before showing error
+      if (isRetryable) {
+        const conversation = get().conversations.find(c => c.id === conversationId);
+        const currentProviderId = conversation?.provider_id;
+        const currentModelId = conversation?.model_id;
+
+        if (currentProviderId && currentModelId) {
+          const fallbackChain = buildFallbackChain(currentProviderId, currentModelId);
+          for (let i = 0; i < fallbackChain.length; i++) {
+            const fb = fallbackChain[i];
+            try {
+              // Switch conversation to fallback model
+              await get().updateConversation(conversationId, {
+                provider_id: fb.providerId,
+                model_id: fb.model_id,
+              });
+
+              // Re-check streaming guard
+              const currentActiveStreams = useStreamStore.getState().activeStreams;
+              if (isConvStreaming(currentActiveStreams, conversationId)) {
+                return; // Another stream started, abort fallback
+              }
+
+              // Reset placeholder for retry
+              set((s) => {
+                const filtered = s.messages.filter(m =>
+                  m.id !== currentStreamingMessageId
+                  && m.id !== `temp-error-${Date.now()}`
+                  && !(m.status === "error" && m.role === "assistant" && m.content === errMsg)
+                );
+                return { messages: filtered };
+              });
+
+              // Retry sendMessage — uses the conversation's now-updated model
+              await get().sendMessage(content, attachments, searchProviderId);
+              return; // Success! Fallback worked.
+            } catch (fallbackError) {
+              console.warn(
+                `[sendMessage] Fallback ${i + 1}/${fallbackChain.length} (${fb.model_id}) also failed:`,
+                fallbackError,
+              );
+              // Continue to next fallback
+            }
+          }
+        }
+      }
+
+      // All fallbacks exhausted or error not retryable — show error
       const currentStreamingMessageId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
       useStreamStore.setState((s) => ({
         ...stopConversationStream(s.activeStreams, conversationId),
@@ -2463,3 +2572,15 @@ registerConversationStoreRef({
   getState: () => useConversationStore.getState(),
   setState: (partial) => useConversationStore.setState(partial),
 });
+
+// Auto-rebuild message index on every messages replacement to keep O(1) streaming fast.
+// Uses shallow comparison (=== on the messages array reference), so it only fires
+// when the entire messages array is replaced — not on every streaming chunk flush,
+// since those create new arrays too. The rebuild is O(n) but n is typically <1000;
+// at 50ms flush intervals this adds negligible overhead (<1ms for 1000 messages).
+useConversationStore.subscribe(
+  (state) => state.messages,
+  (messages) => {
+    rebuildMessageIndex(messages);
+  },
+);

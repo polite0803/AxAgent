@@ -58,9 +58,17 @@ export let _streamPrefix = "";
 export const _pendingConversationRefresh = new Set<string>();
 
 // ─── UI flush batching ───
+//
+// Performance tuning (2026-04-30):
+// - FLUSH_INTERVAL: 16→50ms (~20fps instead of ~60fps). Text streaming doesn't
+//   benefit from 60fps; human reading speed is the bottleneck. This cuts
+//   React setState calls by ~67% while maintaining perceived smoothness.
+// - MAX_CHUNK_SIZE: 100→500 chars. Fewer but larger updates reduce the
+//   React reconciliation overhead per batch. 500 chars ≈ one paragraph,
+//   which maps naturally to human reading cadence.
 
-export const STREAM_UI_FLUSH_INTERVAL_MS = 16;
-export const STREAM_MAX_CHUNK_SIZE = 100;
+export const STREAM_UI_FLUSH_INTERVAL_MS = 50;
+export const STREAM_MAX_CHUNK_SIZE = 500;
 
 let _rafId: number | null = null;
 let _needsFlush = false;
@@ -99,6 +107,47 @@ export let _streamUiFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Monotonically increasing counter to ignore stale fetchMessages after conversation switch */
 export let _activeMessageLoadSeq = 0;
+
+// ─── Message index for O(1) streaming updates ───
+//
+// During streaming, we receive chunks every ~50ms that update a single message.
+// Without an index, each update does a full messages.find() + messages.map() — O(n).
+// With this index, we do a direct array slot mutation in O(1), saving significant
+// CPU in long conversations (1000+ messages).
+//
+// The index is rebuilt on every full message replacement (fetchMessages, setActiveConversation)
+// and remains valid as long as only the streaming message is being mutated in place.
+
+/** Maps messageId → its position in the conversationStore.messages array.
+ *  Rebuilt on full message loads; consulted during streaming for O(1) lookups. */
+const _messageIndex = new Map<string, number>();
+
+/** Rebuild the index from a fresh messages array. Call after any operation
+ *  that replaces the entire messages list (fetchMessages, switchConversation). */
+export function rebuildMessageIndex(messages: ReadonlyArray<{ id: string }>) {
+  _messageIndex.clear();
+  for (let i = 0; i < messages.length; i++) {
+    _messageIndex.set(messages[i].id, i);
+  }
+}
+
+/** Update the index after a message ID changes (e.g. temp- placeholder → real ID). */
+function updateMessageIdInIndex(oldId: string, newId: string) {
+  const idx = _messageIndex.get(oldId);
+  if (idx !== undefined) {
+    _messageIndex.delete(oldId);
+    _messageIndex.set(newId, idx);
+  }
+}
+
+/** Bump index positions for all entries >= startIdx by delta. Used after insertions. */
+function shiftMessageIndexFrom(startIdx: number, delta: number) {
+  for (const [id, idx] of _messageIndex) {
+    if (idx >= startIdx) {
+      _messageIndex.set(id, idx + delta);
+    }
+  }
+}
 
 // ─── Multi-model parallel tracking (exported for conversationStore) ───
 
@@ -276,7 +325,22 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
   if (get().activeConversationId !== conversationId) { return; }
 
   set((s) => {
-    // 1. Direct ID match — append to existing message
+    // 1. Direct ID match via index — O(1) append to existing message
+    const existingIdx = _messageIndex.get(messageId);
+    if (existingIdx !== undefined && existingIdx < s.messages.length && s.messages[existingIdx].id === messageId) {
+      const updated = [...s.messages];
+      updated[existingIdx] = {
+        ...updated[existingIdx],
+        content: updated[existingIdx].content + (content ?? ""),
+        // Enrich model info from chunk if missing
+        model_id: updated[existingIdx].model_id ?? chunkModelId ?? null,
+        provider_id: updated[existingIdx].provider_id ?? chunkProviderId ?? null,
+      };
+      return {
+        messages: updated,
+      } as Partial<T>;
+    }
+    // Fallback: index miss — do a linear scan (should be rare, only on index invalidation)
     const existing = s.messages.find((m) => m.id === messageId);
     if (existing) {
       return {
@@ -285,7 +349,6 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
             ? {
               ...m,
               content: m.content + (content ?? ""),
-              // Enrich model info from chunk if missing
               model_id: m.model_id ?? chunkModelId ?? null,
               provider_id: m.provider_id ?? chunkProviderId ?? null,
             }
@@ -301,6 +364,21 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
     // they fall through to case 3 and create their own message entries.
     if (s.streamingMessageId && s.streamingMessageId !== messageId) {
       if (!_isMultiModelActive || s.streamingMessageId.startsWith("temp-")) {
+        const placeholderIdx = _messageIndex.get(s.streamingMessageId);
+        if (placeholderIdx !== undefined && placeholderIdx < s.messages.length && s.messages[placeholderIdx].id === s.streamingMessageId) {
+          const updated = [...s.messages];
+          updated[placeholderIdx] = {
+            ...updated[placeholderIdx],
+            id: messageId,
+            content: updated[placeholderIdx].content + (content ?? ""),
+          };
+          updateMessageIdInIndex(s.streamingMessageId, messageId);
+          return {
+            messages: updated,
+            streamingMessageId: messageId,
+          } as Partial<T>;
+        }
+        // Fallback: linear scan
         const placeholder = s.messages.find((m) => m.id === s.streamingMessageId);
         if (placeholder) {
           return {
@@ -341,6 +419,8 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
       is_active: !isMultiModel,
       status: "partial",
     };
+    // Register the new message in our index for O(1) future updates
+    _messageIndex.set(messageId, s.messages.length);
     return {
       messages: [...s.messages, newMessage],
       // Don't overwrite streamingMessageId in multi-model mode

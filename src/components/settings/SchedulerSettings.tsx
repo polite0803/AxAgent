@@ -681,28 +681,32 @@ export function SchedulerSettings() {
                   {t("settings.scheduler.reportTemplates")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                  {taskTemplates.filter(t => !t.workflow_id).map((template) => (
-                    <div
-                      key={template.template_type}
-                      onClick={() => handleTemplateSelect(template.template_type)}
-                      style={{
-                        padding: "10px",
-                        border: selectedTemplate === template.template_type ? "2px solid #1677ff" : "1px solid #d9d9d9",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        backgroundColor: selectedTemplate === template.template_type ? "#e6f4ff" : "white",
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13 }}>{template.name}</div>
-                      <div style={{ fontSize: 11, color: "#666" }}>{template.description}</div>
+                {taskTemplates.filter(t => !t.workflow_id).map((template) => (
+                  <div
+                    key={template.template_type}
+                    onClick={() => handleTemplateSelect(template.template_type)}
+                    style={{
+                      padding: "10px",
+                      border: selectedTemplate === template.template_type ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      backgroundColor: selectedTemplate === template.template_type ? "var(--color-bg-tertiary)" : "var(--color-bg-secondary)",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
+                      {t(`settings.scheduler.${template.template_type}`) || template.name}
                     </div>
-                  ))}
-                </div>
+                    <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+                      {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
               </div>
 
               <div>
-                <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 6 }}>
                   {t("settings.scheduler.workflowTemplates")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
@@ -712,15 +716,19 @@ export function SchedulerSettings() {
                       onClick={() => handleTemplateSelect(template.template_type)}
                       style={{
                         padding: "10px",
-                        border: selectedTemplate === template.template_type ? "2px solid #52c41a" : "1px solid #d9d9d9",
+                        border: selectedTemplate === template.template_type ? "2px solid var(--color-success)" : "1px solid var(--color-border)",
                         borderRadius: 6,
                         cursor: "pointer",
-                        backgroundColor: selectedTemplate === template.template_type ? "#f6ffed" : "white",
+                        backgroundColor: selectedTemplate === template.template_type ? "var(--color-bg-tertiary)" : "var(--color-bg-secondary)",
                         transition: "all 0.2s",
                       }}
                     >
-                      <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13 }}>{template.name}</div>
-                      <div style={{ fontSize: 11, color: "#666" }}>{template.description}</div>
+                      <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
+                        {t(`settings.scheduler.${template.template_type}`) || template.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+                        {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
+                      </div>
                     </div>
                   ))}
                 </div>

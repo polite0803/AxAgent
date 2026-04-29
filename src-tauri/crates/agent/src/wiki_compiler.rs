@@ -36,6 +36,7 @@ pub struct WikiCompiler {
     llm_adapter: Arc<dyn ProviderAdapter>,
     llm_ctx: ProviderRequestContext,
     llm_model: String,
+    #[allow(dead_code)]
     quality_threshold: f64,
 }
 
