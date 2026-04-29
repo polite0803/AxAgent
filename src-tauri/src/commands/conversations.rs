@@ -3672,6 +3672,8 @@ mod tests {
                 status: "done".into(),
                 tokens_per_second: None,
                 first_token_latency_ms: None,
+                parts: None,
+                blocks: None,
             };
 
             build_message_content(&file_store, &message).unwrap()
@@ -3730,6 +3732,8 @@ mod tests {
                 status: "done".into(),
                 tokens_per_second: None,
                 first_token_latency_ms: None,
+                parts: None,
+                blocks: None,
             };
 
             build_message_content(&file_store, &message).unwrap()
