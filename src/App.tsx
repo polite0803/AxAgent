@@ -19,7 +19,7 @@ import zhCN from "antd/locale/zh_CN";
 import { enableD2, setDefaultI18nMap } from "markstream-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { BrowserRouter, useLocation } from "react-router-dom";
+import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./i18n";
 
 const { Sider, Content } = Layout;
@@ -40,8 +40,29 @@ function AppInner() {
   const { t } = useTranslation();
   const { modal } = AntdApp.useApp();
   const location = useLocation();
+  const navigate = useNavigate();
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const isInSettings = location.pathname === "/settings" || location.pathname.startsWith("/settings/");
+  const isQuickBar = location.pathname === "/quickbar";
+
+  // Navigate to /quickbar if the app is loaded in the quickbar window
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("__route") === "quickbar") {
+      navigate("/quickbar", { replace: true });
+      return;
+    }
+    if (isTauri()) {
+      import("@tauri-apps/api/webviewWindow").then(({ getCurrentWebviewWindow }) => {
+        try {
+          const label = getCurrentWebviewWindow().label;
+          if (label === "quickbar") {
+            navigate("/quickbar", { replace: true });
+          }
+        } catch { /* not a Tauri webview window */ }
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // These hooks use useNavigate() and must be inside BrowserRouter
   useKeyboardShortcuts();
@@ -117,25 +138,31 @@ function AppInner() {
 
   return (
     <div className="flex flex-col h-screen" style={{ backgroundColor: token.colorBgContainer }}>
-      <TitleBar />
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-      <GlobalCopyMenu />
-      <Layout className="flex-1 overflow-hidden" style={{ backgroundColor: "transparent" }}>
-        {!isInSettings && (
-          <Sider
-            width={48}
-            style={{
-              backgroundColor: "transparent",
-              borderRight: "1px solid var(--border-color)",
-            }}
-          >
-            <Sidebar />
-          </Sider>
-        )}
-        <Content className="overflow-hidden">
-          <ContentArea />
-        </Content>
-      </Layout>
+      {isQuickBar ? (
+        <ContentArea />
+      ) : (
+        <>
+          <TitleBar />
+          <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+          <GlobalCopyMenu />
+          <Layout className="flex-1 overflow-hidden" style={{ backgroundColor: "transparent" }}>
+            {!isInSettings && (
+              <Sider
+                width={48}
+                style={{
+                  backgroundColor: "transparent",
+                  borderRight: "1px solid var(--border-color)",
+                }}
+              >
+                <Sidebar />
+              </Sider>
+            )}
+            <Content className="overflow-hidden">
+              <ContentArea />
+            </Content>
+          </Layout>
+        </>
+      )}
     </div>
   );
 }

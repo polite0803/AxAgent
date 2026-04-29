@@ -121,5 +121,9 @@ export async function executeShortcutAction(action: ShortcutAction): Promise<voi
       notifyShortcutTriggered(action);
       dispatchChatScopedEvent("axagent:toggle-mode");
       return;
+    case "showQuickBar":
+      notifyShortcutTriggered(action);
+      await invoke("show_quickbar");
+      return;
   }
 }

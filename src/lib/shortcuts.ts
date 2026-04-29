@@ -11,7 +11,8 @@ export type ShortcutAction =
   | "clearContext"
   | "clearConversationMessages"
   | "toggleGateway"
-  | "toggleMode";
+  | "toggleMode"
+  | "showQuickBar";
 
 export interface ShortcutDescriptor {
   action: ShortcutAction;
@@ -31,6 +32,7 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   "clearConversationMessages",
   "toggleGateway",
   "toggleMode",
+  "showQuickBar",
 ];
 
 export const SHORTCUT_DESCRIPTORS: ShortcutDescriptor[] = [
@@ -49,6 +51,7 @@ export const SHORTCUT_DESCRIPTORS: ShortcutDescriptor[] = [
   },
   { action: "toggleGateway", labelKey: "settings.shortcutAction.toggleGateway", supportsGlobal: false },
   { action: "toggleMode", labelKey: "settings.shortcutAction.toggleMode", supportsGlobal: false },
+  { action: "showQuickBar", labelKey: "settings.shortcutAction.showQuickBar", supportsGlobal: true },
 ];
 
 export const SHORTCUT_ACTION_LABEL_KEYS: Record<ShortcutAction, string> = {
@@ -63,12 +66,14 @@ export const SHORTCUT_ACTION_LABEL_KEYS: Record<ShortcutAction, string> = {
   clearConversationMessages: "settings.shortcutAction.clearConversationMessages",
   toggleGateway: "settings.shortcutAction.toggleGateway",
   toggleMode: "settings.shortcutAction.toggleMode",
+  showQuickBar: "settings.shortcutAction.showQuickBar",
 };
 
 export const GLOBAL_SHORTCUT_ACTIONS: ShortcutAction[] = [
   "toggleCurrentWindow",
   "toggleAllWindows",
   "closeWindow",
+  "showQuickBar",
 ];
 
 export function isGlobalShortcutAction(action: ShortcutAction): boolean {
@@ -89,6 +94,7 @@ export const SHORTCUT_SETTING_KEYS = {
   clearConversationMessages: "shortcut_clear_conversation_messages",
   toggleGateway: "shortcut_toggle_gateway",
   toggleMode: "shortcut_toggle_mode",
+  showQuickBar: "shortcut_show_quick_bar",
 } as const satisfies Record<ShortcutAction, keyof AppSettings>;
 
 export type ShortcutSettingKey = (typeof SHORTCUT_SETTING_KEYS)[ShortcutAction];
@@ -105,6 +111,7 @@ export const DEFAULT_SHORTCUT_BINDINGS: Record<ShortcutAction, string> = {
   clearConversationMessages: "CmdOrCtrl+Shift+Backspace",
   toggleGateway: "CmdOrCtrl+Shift+G",
   toggleMode: "Shift+Tab",
+  showQuickBar: "CmdOrCtrl+Shift+Space",
 };
 
 const DISPLAY_MAP: Record<string, string> = {

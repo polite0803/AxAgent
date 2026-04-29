@@ -35,6 +35,7 @@ pub mod platform_integration;
 pub mod proactive;
 pub mod profile;
 pub mod providers;
+pub mod quickbar;
 pub mod rl;
 pub mod sandbox;
 pub mod scheduled_task;

@@ -231,6 +231,8 @@ pub fn run() {
             commands::desktop::list_system_fonts,
             commands::desktop::minimize_window,
             commands::desktop::toggle_maximize_window,
+            commands::quickbar::show_quickbar,
+            commands::quickbar::hide_quickbar,
             commands::dashboard::dashboard_list_plugins,
             commands::dashboard::dashboard_register_plugin,
             commands::dashboard::dashboard_unregister_plugin,
@@ -775,6 +777,14 @@ pub fn run() {
                             api.prevent_close();
                             let _ = app.emit("app-close-requested", ());
                         }
+                    }
+                    _ => {}
+                }
+            }
+            if window.label() == "quickbar" {
+                match event {
+                    tauri::WindowEvent::Focused(false) => {
+                        let _ = window.hide();
                     }
                     _ => {}
                 }
