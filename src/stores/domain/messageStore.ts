@@ -284,7 +284,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     // after checking _isMultiModelActive. The multi-model branch stays in
     // conversationStore because it needs to call setUserManuallySelectedVersion.
     try {
-      await invoke("switch_message_version", { conversationId, parentMessageId, messageId });
+      await invoke("switch_message_version", { conversation_id: conversationId, parent_message_id: parentMessageId, message_id: messageId });
 
       const versions = await get().listMessageVersions(conversationId, parentMessageId);
       if (versions.length > 0) {
@@ -346,7 +346,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       return;
     }
     try {
-      await invoke("delete_message_group", { conversationId, userMessageId });
+      await invoke("delete_message_group", { conversation_id: conversationId, user_message_id: userMessageId });
       set((s) => ({
         messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));
@@ -373,7 +373,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   updateWorkspaceSnapshot: async (conversationId, snapshot) => {
     try {
       await invoke("update_workspace_snapshot", {
-        conversationId: conversationId,
+        conversation_id: conversationId,
         ...snapshot,
       });
       set((s) => ({

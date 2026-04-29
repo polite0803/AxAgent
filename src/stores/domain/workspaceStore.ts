@@ -24,7 +24,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     try {
       const snapshot = await invoke<ConversationWorkspaceSnapshot | null>(
         "get_workspace_snapshot",
-        { conversationId },
+        { conversation_id: conversationId },
       );
       set({ workspaceSnapshot: snapshot, loading: false });
       return snapshot;
@@ -36,7 +36,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   updateWorkspaceSnapshot: async (conversationId, snapshot) => {
     try {
-      await invoke("update_workspace_snapshot", { conversationId, snapshot });
+      await invoke("update_workspace_snapshot", { conversation_id: conversationId, snapshot });
       set((state) => ({
         workspaceSnapshot: state.workspaceSnapshot
           ? { ...state.workspaceSnapshot, ...snapshot }

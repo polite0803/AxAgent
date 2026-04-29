@@ -88,7 +88,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
 
   deleteMessage: async (messageId) => {
     try {
-      await invoke("delete_message", { messageId });
+      await invoke("delete_message", { id: messageId });
       set((state) => ({
         messages: state.messages.filter((m) => m.id !== messageId),
       }));
@@ -99,7 +99,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
 
   deleteMessageGroup: async (conversationId, userMessageId) => {
     try {
-      await invoke("delete_message_group", { conversationId, userMessageId });
+      await invoke("delete_message_group", { conversation_id: conversationId, user_message_id: userMessageId });
       set((state) => ({
         messages: state.messages.filter(
           (m) => m.id !== userMessageId && m.parent_message_id !== userMessageId,
@@ -112,7 +112,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
 
   updateMessageContent: async (messageId, content) => {
     try {
-      await invoke("update_message_content", { messageId, content });
+      await invoke("update_message_content", { id: messageId, content });
       set((state) => ({
         messages: state.messages.map((m) =>
           m.id === messageId ? { ...m, content } : m,
@@ -125,7 +125,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
 
   switchMessageVersion: async (conversationId, parentMessageId, messageId) => {
     try {
-      await invoke("switch_message_version", { conversationId, parentMessageId, messageId });
+      await invoke("switch_message_version", { conversation_id: conversationId, parent_message_id: parentMessageId, message_id: messageId });
       const page = await invoke<MessagePage>("list_messages", {
         conversationId,
         limit: MESSAGE_PAGE_SIZE,

@@ -274,12 +274,12 @@ jobs:
       - name: Setup cross-compilation sources
         run: |
           cat > /tmp/sources.list << 'EOF'
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy main multiverse universe restricted
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy-security main multiverse universe restricted
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy-updates main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main multiverse universe restricted
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu noble main multiverse universe restricted
+          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu noble-security main multiverse universe restricted
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu noble-updates main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main multiverse universe restricted
           EOF
           sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak
           sudo mv /tmp/sources.list /etc/apt/sources.list

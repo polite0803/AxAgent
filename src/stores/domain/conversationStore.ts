@@ -1739,17 +1739,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }
         if (targetMessageId) {
           await invoke("switch_message_version", {
-            conversationId,
-            parentMessageId: parentId,
-            messageId: targetMessageId,
+            conversation_id: conversationId,
+            parent_message_id: parentId,
+            message_id: targetMessageId,
           }).catch(() => {});
         }
       } else if (parentId && userSelectedMessageId) {
         // User manually selected a version — sync that to backend
         await invoke("switch_message_version", {
-          conversationId,
-          parentMessageId: parentId,
-          messageId: userSelectedMessageId,
+          conversation_id: conversationId,
+          parent_message_id: parentId,
+          message_id: userSelectedMessageId,
         }).catch(() => {});
       }
 
@@ -2322,7 +2322,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
 
-      await invoke("switch_message_version", { conversationId, parentMessageId, messageId });
+      await invoke("switch_message_version", { conversation_id: conversationId, parent_message_id: parentMessageId, message_id: messageId });
 
       // Normal path: fetch all versions from DB and keep them all in store
       // with correct is_active flags. This preserves multi-model detection
@@ -2390,7 +2390,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       return;
     }
     try {
-      await invoke("delete_message_group", { conversationId, userMessageId });
+      await invoke("delete_message_group", { conversation_id: conversationId, user_message_id: userMessageId });
       set((s) => ({
         messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));

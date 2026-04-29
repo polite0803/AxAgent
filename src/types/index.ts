@@ -126,7 +126,7 @@ export interface Conversation {
   context_compression: boolean;
   category_id: string | null;
   parent_conversation_id: string | null;
-  mode?: "chat" | "agent" | "gateway";
+  mode: "chat" | "agent" | "gateway";
   message_count: number;
   created_at: number;
   updated_at: number;
@@ -161,7 +161,7 @@ export interface Message {
   parent_message_id: string | null;
   version_index: number;
   is_active: boolean;
-  status: "complete" | "partial" | "error" | "cancelled";
+  status: string;
   tokens_per_second?: number | null;
   first_token_latency_ms?: number | null;
 }
