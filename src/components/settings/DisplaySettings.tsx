@@ -42,7 +42,7 @@ export function DisplaySettings() {
     <div className="p-6 pb-12">
       <SettingsGroup title={t("settings.groupTheme")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t("settings.theme")}</span>
+          <span>{t("settings.theme.label")}</span>
           <Segmented
             data-testid="dark-mode-toggle"
             value={settings.theme_mode}

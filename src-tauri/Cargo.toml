@@ -28,7 +28,7 @@ xcap = "0.9.4"
 
 [package]
 name = "axagent"
-version = "1.2.6"
+version = "1.2.7"
 description = "AxAgent - AI Chat Desktop App"
 authors = ["you"]
 license = "AGPL-3.0-only"

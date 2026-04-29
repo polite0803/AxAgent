@@ -123,7 +123,7 @@ export default function StylePreviewPanel({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t("style.dimensions")}
+            {t("style.dimensions.label")}
           </button>
         </div>
       </div>

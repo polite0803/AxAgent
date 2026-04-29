@@ -146,23 +146,24 @@ function AppInner() {
           <TitleBar />
           <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
           <GlobalCopyMenu />
-          <Layout className="flex-1 overflow-hidden" style={{ backgroundColor: "transparent" }}>
+          <Layout
+            hasSider={!isInSettings}
+            className="flex-1 overflow-hidden"
+            style={{ backgroundColor: "transparent" }}
+          >
             {!isInSettings && (
               <div
-                className="ax-sidebar"
                 style={{
-                  width: 44,
                   backgroundColor: "transparent",
                   borderRight: "1px solid var(--border-color)",
                   flexShrink: 0,
-                  overflow: "hidden",
                 }}
               >
                 <Sidebar />
               </div>
             )}
             <Content className="overflow-hidden">
-              <div className="ax-page-transition" style={{ height: "100%" }}>
+              <div className="ax-page-transition" style={{ height: "100%" }} key={location.key}>
                 <ContentArea />
               </div>
             </Content>

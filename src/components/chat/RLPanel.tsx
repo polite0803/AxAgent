@@ -124,7 +124,7 @@ export default function RLPanel() {
           </div>
 
           <div className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider mt-1">
-            {t("chat.rewardWeights")}
+            {t("chat.rewardWeights.title")}
           </div>
           <div className="space-y-0.5">
             {Object.entries(config.weights).map(([k, v]) => (

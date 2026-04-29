@@ -28,3 +28,13 @@ P2 中 Agent 自然语言生成和 Part-based 消息模型均未实现。
 - 主题层（可切换）：4 套预设 — dark-elegance / dark-neon / light-professional / light-minimal
 - 主题预设定义在 src/theme/shadcnTheme.ts 的 PRESETS 表中
 - 用户可在 DisplaySettings 中的主题预设选择器切换
+
+## 2026-04-30 添加：布局关键修复
+- App.tsx 中 `<Sider>` 不能直接用 `<div>` 替换（antd Layout 依赖 Sider 检测），必须加 `hasSider` prop
+- `ax-page-transition` 动画需 `key={location.key}` 才能随路由切换重新触发
+
+## 2026-04-30 添加：QuickBar 图形化设计
+- 双模式: 卡片网格为主（16 个可点击命令卡片），命令输入为备选（按 / 进入）
+- 16 个命令覆盖: chat/agent/new/continue/search/wiki/memory/files/url/summarize/translate/calc/code/model/settings/gateway
+- 5 大分类: AI对话、知识管理、网页工具、实用工具、系统快捷
+- 存储: localStorage recent items 扩至 5 项
