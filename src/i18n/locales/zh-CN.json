@@ -762,7 +762,8 @@
       "clearContext": "清空上下文",
       "clearConversationMessages": "清空当前对话所有消息",
       "toggleGateway": "开启/关闭网关",
-      "toggleMode": "切换对话模式"
+      "toggleMode": "切换对话模式",
+      "showQuickBar": "打开快捷栏"
     },
     "workflow": {
       "title": "工作流设置",

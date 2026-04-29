@@ -2,7 +2,7 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 const QUICKBAR_LABEL: &str = "quickbar";
 const QUICKBAR_WIDTH: f64 = 650.0;
-const QUICKBAR_HEIGHT: f64 = 58.0;
+const QUICKBAR_HEIGHT: f64 = 400.0;
 
 fn quickbar_url(app: &AppHandle) -> WebviewUrl {
     match app.config().build.dev_url.as_ref() {

@@ -763,7 +763,8 @@
       "clearContext": "Clear Context",
       "clearConversationMessages": "Clear Current Conversation Messages",
       "toggleGateway": "Toggle Gateway",
-      "toggleMode": "Toggle Chat/Agent Mode"
+      "toggleMode": "Toggle Chat/Agent Mode",
+      "showQuickBar": "Show QuickBar"
     },
     "exportData": "Export Data",
     "importData": "Import Data",
@@ -1791,6 +1792,16 @@
     "toggleInspector": "Toggle Inspector",
     "searchConversations": "Search Conversations",
     "goToSkills": "Go to Skills"
+  },
+  "quickbar": {
+    "placeholder": "Ask anything, paste URL, or type > for agent task...",
+    "urlPlaceholder": "Paste URL to fetch...",
+    "agentPlaceholder": "Describe agent task...",
+    "qaPlaceholder": "Ask anything...",
+    "screenshot": "Screenshot",
+    "saveToWiki": "Save to Wiki",
+    "clear": "Clear",
+    "fetching": "Fetching..."
   },
   "appLaunch": {
     "title": "Launch Configuration",
