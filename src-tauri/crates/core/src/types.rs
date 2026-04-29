@@ -265,6 +265,28 @@ pub struct Message {
     pub status: String,
     pub tokens_per_second: Option<f64>,
     pub first_token_latency_ms: Option<i64>,
+    /// Structured content blocks (JSON-encoded ContentBlock[]).
+    pub parts: Option<String>,
+    /// Parsed content blocks for frontend consumption.
+    #[serde(default)]
+    pub blocks: Option<Vec<ContentBlock>>,
+}
+
+/// A structured content block in a message (Part-based model).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ContentBlock {
+    #[serde(rename = "text")]
+    Text { text: String },
+    #[serde(rename = "tool_use")]
+    ToolUse { id: String, name: String, input: String },
+    #[serde(rename = "tool_result")]
+    ToolResult {
+        tool_use_id: String,
+        tool_name: String,
+        output: String,
+        is_error: bool,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -680,6 +702,7 @@ pub struct AppSettings {
     pub shortcut_clear_conversation_messages: String,
     pub shortcut_toggle_gateway: String,
     pub shortcut_toggle_mode: String,
+    pub shortcut_show_quick_bar: String,
     pub gateway_auto_start: bool,
     pub gateway_listen_address: String,
     pub gateway_port: u16,
@@ -814,6 +837,7 @@ impl Default for AppSettings {
             shortcut_clear_conversation_messages: "CommandOrControl+Shift+Backspace".to_string(),
             shortcut_toggle_gateway: "CommandOrControl+Shift+G".to_string(),
             shortcut_toggle_mode: "Shift+Tab".to_string(),
+            shortcut_show_quick_bar: "CommandOrControl+Shift+Space".to_string(),
             gateway_auto_start: false,
             gateway_listen_address: "127.0.0.1".to_string(),
             gateway_port: 8080,

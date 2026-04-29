@@ -76,6 +76,32 @@ impl CommandValidator {
             };
         }
 
+        // Phase 1: AST-level security audit via shell_parser
+        if let Ok(parsed) = crate::shell_parser::parse_shell(command) {
+            let audit_warnings = crate::shell_parser::audit_shell(&parsed);
+            for warning in &audit_warnings {
+                let severity = warning.severity();
+                let desc = warning.description();
+                match severity {
+                    crate::shell_parser::SecuritySeverity::Critical => {
+                        dangerous_patterns.push(format!("CRITICAL: {desc}"));
+                        warnings.push(format!("CRITICAL: {desc}"));
+                    }
+                    crate::shell_parser::SecuritySeverity::High => {
+                        dangerous_patterns.push(format!("HIGH: {desc}"));
+                        warnings.push(format!("HIGH: {desc}"));
+                    }
+                    crate::shell_parser::SecuritySeverity::Medium => {
+                        warnings.push(format!("MEDIUM: {desc}"));
+                    }
+                    crate::shell_parser::SecuritySeverity::Low => {
+                        warnings.push(format!("LOW: {desc}"));
+                    }
+                }
+            }
+        }
+
+        // Phase 2: Pattern-based validation (fallback and complementary)
         for pattern in &self.dangerous_patterns {
             if command.contains(pattern) {
                 dangerous_patterns.push(pattern.clone());

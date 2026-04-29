@@ -62,6 +62,81 @@ pub fn get_global_db_path() -> Option<String> {
     db_path.clone()
 }
 
+/// Type alias for a closure that creates and runs a sub-agent session.
+/// Takes (provider_id, parent_conversation_id, user_input, agent_type, task_description)
+/// and returns (child_conversation_id, result_text).
+pub type SubAgentRunner = Arc<
+    dyn Fn(
+            String, // provider_id
+            String, // parent_conversation_id
+            String, // user_input
+            String, // agent_type
+            String, // task_description
+        ) -> Pin<Box<dyn Future<Output = std::result::Result<(String, String), String>> + Send>>
+        + Send
+        + Sync,
+>;
+
+/// Global sub-agent runner. Set once at startup by agent.rs.
+static GLOBAL_SUB_AGENT_RUNNER: LazyLock<std::sync::RwLock<Option<SubAgentRunner>>> =
+    LazyLock::new(|| std::sync::RwLock::new(None));
+
+/// Set the global sub-agent runner. Called once at startup.
+pub fn set_global_sub_agent_runner(runner: SubAgentRunner) {
+    let mut r = GLOBAL_SUB_AGENT_RUNNER.write().unwrap();
+    *r = Some(runner);
+}
+
+/// Get the global sub-agent runner.
+pub fn get_global_sub_agent_runner() -> Option<SubAgentRunner> {
+    let r = GLOBAL_SUB_AGENT_RUNNER.read().unwrap();
+    r.clone()
+}
+
+/// Global current conversation ID for tools that need parent context.
+static GLOBAL_CURRENT_CONVERSATION_ID: LazyLock<std::sync::RwLock<Option<String>>> =
+    LazyLock::new(|| std::sync::RwLock::new(None));
+
+/// Set the current conversation ID, called before each agent turn.
+pub fn set_current_conversation_id(id: &str) {
+    let mut cid = GLOBAL_CURRENT_CONVERSATION_ID.write().unwrap();
+    *cid = Some(id.to_string());
+}
+
+/// Get the current conversation ID.
+pub fn get_current_conversation_id() -> Option<String> {
+    let cid = GLOBAL_CURRENT_CONVERSATION_ID.read().unwrap();
+    cid.clone()
+}
+
+/// Stores pending sub-agent card data. Key is parent_conversation_id.
+/// Value is (child_conversation_id, agent_type, description).
+pub type PendingSubAgentCard = (String, String, String); // (child_id, agent_type, description)
+
+static PENDING_SUB_AGENT_CARDS: LazyLock<
+    std::sync::RwLock<HashMap<String, PendingSubAgentCard>>,
+> = LazyLock::new(|| std::sync::RwLock::new(HashMap::new()));
+
+/// Store a pending sub-agent card. Called by the task tool handler.
+pub fn store_pending_sub_agent_card(
+    parent_id: &str,
+    child_id: &str,
+    agent_type: &str,
+    description: &str,
+) {
+    let mut m = PENDING_SUB_AGENT_CARDS.write().unwrap();
+    m.insert(
+        parent_id.to_string(),
+        (child_id.to_string(), agent_type.to_string(), description.to_string()),
+    );
+}
+
+/// Take and remove a pending sub-agent card for the given parent conversation.
+pub fn take_pending_sub_agent_card(parent_id: &str) -> Option<PendingSubAgentCard> {
+    let mut m = PENDING_SUB_AGENT_CARDS.write().unwrap();
+    m.remove(parent_id)
+}
+
 pub fn register_builtin_handler(server_name: &str, tool_name: &str, handler: BoxedToolHandler) {
     let mut handlers = BUILTIN_HANDLERS.write().unwrap();
     handlers.insert((server_name.to_string(), tool_name.to_string()), handler);
@@ -1977,6 +2052,34 @@ pub fn get_dynamic_builtin_tools() -> std::collections::BTreeMap<String, Builtin
         },
     );
 
+    tools.insert(
+        "task".to_string(),
+        BuiltinDynamicTool {
+            server_id: "builtin-agent".to_string(),
+            server_name: "@axagent/agent".to_string(),
+            tool_name: "task".to_string(),
+            description: "Launch a sub-agent to handle complex, multi-step tasks autonomously. Use this when you need to delegate work to a specialized agent. The sub-agent runs in its own child session.".to_string(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "agent_type": {
+                        "type": "string",
+                        "description": "Type of sub-agent to launch (e.g. 'explore', 'general', 'build', 'plan')"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Short description of the task for the sub-agent"
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "description": "Full prompt/instructions for the sub-agent to execute"
+                    }
+                },
+                "required": ["agent_type", "description", "prompt"]
+            }),
+        },
+    );
+
     tools
 }
 
@@ -2001,6 +2104,7 @@ pub fn get_all_builtin_tools_flat() -> Vec<FlatBuiltinTool> {
         let env_json = if dynamic_tool.server_id == "builtin-session"
             || dynamic_tool.server_id == "builtin-memory"
             || dynamic_tool.server_id == "builtin-search"
+            || dynamic_tool.server_id == "builtin-agent"
         {
             Some(serde_json::json!({}).to_string())
         } else {

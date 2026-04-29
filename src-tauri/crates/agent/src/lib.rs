@@ -62,9 +62,14 @@ pub mod trajectory_recorder;
 pub mod web_search;
 pub mod wiki_compiler;
 pub mod ingest_pipeline;
+pub mod ingest_queue;
+pub mod purpose_manager;
 pub mod query_engine;
 pub mod lint_checker;
 pub mod schema_manager;
+pub mod graph_insights;
+pub mod deep_research;
+pub mod relevance;
 
 pub use academic_search::{
     AcademicSearchConfig, AcademicSearchProvider, AcademicSearchProviderBuilder,
@@ -174,3 +179,23 @@ pub use tool_registry::{
 };
 pub use trajectory_recorder::TrajectoryRecorder;
 pub use web_search::{WebSearchConfig, WebSearchProvider, WebSearchProviderBuilder};
+
+pub use ingest_pipeline::{
+    ConceptMention, ConnectionHint, Contradiction, EntityMention, GeneratedPage, IngestPipeline,
+    IngestResult, IngestSource, IngestSourceType, Argument as IngestArgument,
+    PageSuggestion, ReviewItem, SourceAnalysis, SourceMetadata,
+};
+pub use ingest_queue::{FolderImportPreviewItem, IngestQueue, IngestTaskStatus, QueuedIngestTask};
+pub use purpose_manager::PurposeManager;
+
+pub use graph_insights::{
+    analyze_graph, BridgeNode, GapType, GraphInsightAnalyzer, GraphInsightStats,
+    GraphInsights, KnowledgeGap, SurprisingConnection,
+};
+
+pub use deep_research::{
+    DeepResearchConfig, DeepResearchResult, DeepResearcher, DeepResearcherBuilder,
+    ResearchFinding, ResearchQuery,
+};
+
+pub use relevance::{RankedPage, RelevanceConfig, RelevanceEngine};

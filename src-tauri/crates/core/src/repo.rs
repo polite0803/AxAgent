@@ -34,4 +34,6 @@ pub mod workflow_execution;
 pub mod workflow_template;
 
 pub mod note;
+pub mod note_graph;
+pub mod louvain;
 pub mod wiki;

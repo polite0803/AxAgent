@@ -1244,6 +1244,103 @@ async fn generate_ai_title_with(
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct SimpleCompletionMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct SimpleCompletionInput {
+    pub conversation_id: String,
+    pub messages: Vec<SimpleCompletionMessage>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<u32>,
+}
+
+#[tauri::command]
+pub async fn simple_chat_completion(
+    state: State<'_, AppState>,
+    input: SimpleCompletionInput,
+) -> Result<String, String> {
+    let db = state.sea_db.clone();
+    let master_key = state.master_key;
+
+    // Load conversation to get provider/model
+    let conversation = axagent_core::repo::conversation::get_conversation(&db, &input.conversation_id)
+        .await
+        .map_err(|e| format!("Conversation not found: {}", e))?;
+
+    let provider = axagent_core::repo::provider::get_provider(&db, &conversation.provider_id)
+        .await
+        .map_err(|e| format!("Provider error: {}", e))?;
+    let key_row = axagent_core::repo::provider::get_active_key(&db, &provider.id)
+        .await
+        .map_err(|e| format!("Key error: {}", e))?;
+    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &master_key)
+        .map_err(|e| format!("Decrypt error: {}", e))?;
+
+    let settings = axagent_core::repo::settings::get_settings(&db)
+        .await
+        .map_err(|e| format!("Settings error: {}", e))?;
+
+    let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
+    let ctx = ProviderRequestContext {
+        api_key: decrypted_key,
+        key_id: key_row.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
+        api_path: provider.api_path.clone(),
+        proxy_config: proxy,
+        custom_headers: provider
+            .custom_headers
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let messages: Vec<ChatMessage> = input.messages.iter().map(|m| ChatMessage {
+        role: m.role.clone(),
+        content: ChatContent::Text(m.content.clone()),
+        tool_calls: None,
+        tool_call_id: None,
+    }).collect();
+
+    let request = ChatRequest {
+        model: conversation.model_id.clone(),
+        messages,
+        stream: false,
+        temperature: input.temperature.or(Some(0.3)),
+        top_p: None,
+        max_tokens: input.max_tokens.or(Some(4000)),
+        tools: None,
+        thinking_budget: None,
+        use_max_completion_tokens: None,
+        thinking_param_style: None,
+        api_mode: None,
+        instructions: None,
+        conversation: None,
+        previous_response_id: None,
+        store: None,
+    };
+
+    let registry = ProviderRegistry::create_default();
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = registry.get(registry_key)
+        .ok_or_else(|| format!("Adapter not found: {}", registry_key))?;
+
+    let response = adapter.chat(&ctx, request).await
+        .map_err(|e| format!("Chat error: {}", e))?;
+
+    Ok(response.content)
+}
+
 #[tauri::command]
 pub async fn regenerate_conversation_title(
     app: tauri::AppHandle,
@@ -1523,6 +1620,7 @@ fn spawn_stream_task(
                 status: Set("partial".to_string()),
                 tokens_per_second: Set(None),
                 first_token_latency_ms: Set(None),
+                parts: Set(None),
             })
             .insert(&db)
             .await
@@ -3064,6 +3162,7 @@ pub async fn regenerate_with_model(
             status: Set("partial".to_string()),
             tokens_per_second: Set(None),
             first_token_latency_ms: Set(None),
+            parts: Set(None),
         })
         .insert(&state.sea_db)
         .await
@@ -3780,7 +3879,7 @@ mod tests {
             agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
-            agent_session_manager: axagent_agent::SessionManager::new(db.clone()),
+            agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
             agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),

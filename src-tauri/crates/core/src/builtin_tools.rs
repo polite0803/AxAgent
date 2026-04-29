@@ -1933,6 +1933,19 @@ Rules:
         }),
     );
 
+    register_builtin_handler(
+        "@axagent/agent",
+        "task",
+        make_handler(|args: Value| {
+            Box::pin(async move {
+                let agent_type = args.get("agent_type").and_then(|v| v.as_str()).unwrap_or("general");
+                let description = args.get("description").and_then(|v| v.as_str()).unwrap_or("Untitled task");
+                let prompt = args.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
+                task_tool_handler(agent_type, description, prompt).await
+            })
+        }),
+    );
+
 }
 
 
@@ -5798,5 +5811,72 @@ fn agent_remember_tool(key: &str, value: &str) -> Result<McpToolResult> {
         Ok(McpToolResult { content: format!("Memory updated: {}", key), is_error: false })
     } else {
         Ok(McpToolResult { content: format!("Memory stored: {} (total: {} items)", key, memory.len()), is_error: false })
+    }
+}
+
+async fn task_tool_handler(agent_type: &str, description: &str, _prompt: &str) -> Result<McpToolResult> {
+    use crate::builtin_tools_registry::get_current_conversation_id;
+    use rusqlite::params;
+    use uuid::Uuid;
+
+    let parent_id = match get_current_conversation_id() {
+        Some(id) => id,
+        None => {
+            return Ok(McpToolResult {
+                content: "Error: task tool requires a parent conversation context".into(),
+                is_error: true,
+            });
+        }
+    };
+
+    let child_id = Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().timestamp_millis();
+
+    let db_path_str = match crate::builtin_tools_registry::get_global_db_path() {
+        Some(p) => p,
+        None => {
+            return Ok(McpToolResult {
+                content: "Error: database not available for task tool".into(),
+                is_error: true,
+            });
+        }
+    };
+
+    let db_file = db_path_str.strip_prefix("sqlite:").unwrap_or(&db_path_str);
+
+    let conn = match rusqlite::Connection::open(db_file) {
+        Ok(c) => c,
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error opening database: {}", e),
+                is_error: true,
+            });
+        }
+    };
+
+    let result = conn.execute(
+        "INSERT INTO conversations (id, title, model_id, provider_id, system_prompt, temperature, max_tokens, top_p, frequency_penalty, message_count, is_pinned, is_archived, search_enabled, thinking_budget, enabled_mcp_server_ids, enabled_knowledge_base_ids, enabled_memory_namespace_ids, created_at, updated_at, context_compression, category_id, parent_conversation_id, mode, scenario, enabled_skill_ids)
+         VALUES (?1, ?2, '', '', NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, NULL, '[]', '[]', '[]', ?3, ?3, 0, NULL, ?4, 'agent', ?5, '[]')",
+        params![child_id, description, now, parent_id, format!("subagent:{}", agent_type)],
+    );
+
+    match result {
+        Ok(_) => {
+            let output = serde_json::json!({
+                "status": "created",
+                "child_conversation_id": child_id,
+                "agent_type": agent_type,
+                "description": description,
+                "parent_conversation_id": parent_id
+            });
+            Ok(McpToolResult {
+                content: output.to_string(),
+                is_error: false,
+            })
+        }
+        Err(e) => Ok(McpToolResult {
+            content: format!("Failed to create child conversation: {}", e),
+            is_error: true,
+        }),
     }
 }

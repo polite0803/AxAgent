@@ -1134,6 +1134,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                   status: "complete" as const,
                   prompt_tokens: event.payload.usage?.input_tokens ?? null,
                   completion_tokens: event.payload.usage?.output_tokens ?? null,
+                  blocks: event.payload.blocks ?? m.blocks,
                 };
               }
               return m;

@@ -6,8 +6,5 @@ export { CitationPanel } from "./CitationPanel";
 export { GitBranchPanel, GitCommitPanel } from "./GitCommitPanel";
 export { InputArea } from "./InputArea";
 export { ModelSelector } from "./ModelSelector";
-export { default as MultiAgentStatusPanel } from "./MultiAgentStatusPanel";
-export { default as ProgressDashboard } from "./ProgressDashboard";
-export { TaskDependencyGraph, TaskDependencyGraphMini } from "./TaskDependencyGraph";
 export { ToolCallCard } from "./ToolCallCard";
 export { default as WorkflowProgressPanel } from "./WorkflowProgressPanel";

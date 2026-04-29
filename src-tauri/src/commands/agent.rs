@@ -160,6 +160,25 @@ pub struct AgentDonePayload {
     pub num_turns: Option<u32>,
     #[serde(rename = "costUsd")]
     pub cost_usd: Option<f64>,
+    /// Structured content blocks from the agent session (short-term Part-based model).
+    pub blocks: Option<Vec<AgentContentBlock>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentContentBlock {
+    #[serde(rename = "type")]
+    pub block_type: String,
+    pub text: Option<String>,
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub input: Option<String>,
+    #[serde(rename = "toolUseId")]
+    pub tool_use_id: Option<String>,
+    #[serde(rename = "toolName")]
+    pub tool_name: Option<String>,
+    pub output: Option<String>,
+    #[serde(rename = "isError")]
+    pub is_error: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -260,6 +279,23 @@ pub struct AgentPermissionPayload {
     pub risk_level: String,
     #[serde(rename = "requestId")]
     pub request_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct SubAgentCardPayload {
+    #[serde(rename = "conversationId")]
+    pub conversation_id: String,
+    #[serde(rename = "agentType")]
+    pub agent_type: String,
+    #[serde(rename = "agentName")]
+    pub agent_name: String,
+    pub description: String,
+    pub status: String,
+    #[serde(rename = "childConversationId")]
+    pub child_conversation_id: Option<String>,
+    #[serde(rename = "childSessionId")]
+    pub child_session_id: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -997,6 +1033,9 @@ pub async fn agent_query(
         resolved_role
     };
 
+    // Set current conversation ID for builtin tools that need parent context (e.g., task tool)
+    axagent_core::builtin_tools_registry::set_current_conversation_id(&conversation_id);
+
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = request
         .enabled_knowledge_base_ids
@@ -1398,8 +1437,33 @@ pub async fn agent_query(
                 }
             }
 
+            // Serialize structured content blocks as parts JSON
+            let parts_json = {
+                let all_blocks: Vec<serde_json::Value> = summary
+                    .assistant_messages
+                    .iter()
+                    .flat_map(|msg| &msg.blocks)
+                    .map(|block| match block {
+                        axagent_runtime::ContentBlock::Text { text } => {
+                            serde_json::json!({ "type": "text", "text": text })
+                        }
+                        axagent_runtime::ContentBlock::ToolUse { id, name, input } => {
+                            serde_json::json!({ "type": "tool_use", "id": id, "name": name, "input": input })
+                        }
+                        axagent_runtime::ContentBlock::ToolResult { tool_use_id, tool_name, output, is_error } => {
+                            serde_json::json!({ "type": "tool_result", "tool_use_id": tool_use_id, "tool_name": tool_name, "output": output, "is_error": is_error })
+                        }
+                    })
+                    .collect();
+                if all_blocks.is_empty() {
+                    None
+                } else {
+                    serde_json::to_string(&all_blocks).ok()
+                }
+            };
+
             // Create assistant message in DB
-            let assistant_message = message::create_message(
+            let assistant_message = message::create_message_with_parts(
                 &app_state.sea_db,
                 &conversation_id,
                 MessageRole::Assistant,
@@ -1407,6 +1471,7 @@ pub async fn agent_query(
                 &[],
                 None,
                 0,
+                parts_json.as_deref(),
             )
             .await
             .map_err(|e| e.to_string())?;
@@ -1447,6 +1512,37 @@ pub async fn agent_query(
                 summary.usage.input_tokens as u64,
                 summary.usage.output_tokens as u64,
             );
+            let blocks: Vec<AgentContentBlock> = summary
+                .assistant_messages
+                .iter()
+                .flat_map(|msg| &msg.blocks)
+                .map(|block| match block {
+                    axagent_runtime::ContentBlock::Text { text } => AgentContentBlock {
+                        block_type: "text".to_string(),
+                        text: Some(text.clone()),
+                        id: None, name: None, input: None,
+                        tool_use_id: None, tool_name: None, output: None, is_error: None,
+                    },
+                    axagent_runtime::ContentBlock::ToolUse { id, name, input } => AgentContentBlock {
+                        block_type: "tool_use".to_string(),
+                        id: Some(id.clone()),
+                        name: Some(name.clone()),
+                        input: Some(input.clone()),
+                        text: None,
+                        tool_use_id: None, tool_name: None, output: None, is_error: None,
+                    },
+                    axagent_runtime::ContentBlock::ToolResult { tool_use_id, tool_name, output, is_error } => AgentContentBlock {
+                        block_type: "tool_result".to_string(),
+                        tool_use_id: Some(tool_use_id.clone()),
+                        tool_name: Some(tool_name.clone()),
+                        output: Some(output.clone()),
+                        is_error: Some(*is_error),
+                        text: None, id: None, name: None, input: None,
+                    },
+                })
+                .collect();
+            let blocks_opt = if blocks.is_empty() { None } else { Some(blocks) };
+
             let payload = AgentDonePayload {
                 conversation_id: conversation_id.clone(),
                 assistant_message_id: assistant_message.id.clone(),
@@ -1462,6 +1558,7 @@ pub async fn agent_query(
                 }),
                 num_turns: Some(summary.iterations as u32),
                 cost_usd,
+                blocks: blocks_opt,
             };
             let _ = app.emit("agent-done", &payload);
 

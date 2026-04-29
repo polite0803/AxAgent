@@ -68,6 +68,17 @@ export interface AgentDoneEvent {
   usage?: { input_tokens: number; output_tokens: number };
   numTurns?: number;
   costUsd?: number;
+  blocks?: Array<{
+    type: "text" | "tool_use" | "tool_result";
+    text?: string;
+    id?: string;
+    name?: string;
+    input?: string;
+    toolUseId?: string;
+    toolName?: string;
+    output?: string;
+    isError?: boolean;
+  }>;
 }
 
 export interface AgentErrorEvent {
@@ -162,4 +173,27 @@ export interface ToolCallState {
   approvalStatus?: ApprovalStatus;
   output?: string;
   isError?: boolean;
+}
+
+// --- Sub-agent card event ---
+
+export interface SubAgentCardEvent {
+  conversationId: string;
+  agentType: string;
+  agentName: string;
+  description: string;
+  status: "running" | "completed" | "failed";
+  childConversationId?: string;
+  childSessionId?: string;
+}
+
+export interface SubAgentCardData {
+  id: string; // unique card ID (childConversationId)
+  conversationId: string;
+  agentType: string;
+  agentName: string;
+  description: string;
+  status: "running" | "completed" | "failed";
+  childConversationId?: string;
+  childSessionId?: string;
 }

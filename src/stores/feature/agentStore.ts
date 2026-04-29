@@ -10,6 +10,8 @@ import type {
   AgentStatusEvent,
   AskUserEvent,
   PermissionRequestEvent,
+  SubAgentCardData,
+  SubAgentCardEvent,
   ToolCallState,
   ToolResultEvent,
   ToolStartEvent,
@@ -38,6 +40,7 @@ interface AgentStore {
   queryStats: Record<string, QueryStats>; // assistantMessageId → cost stats
   rateLimitInfo: Record<string, AgentRateLimitEvent>; // conversationId → rate limit event
   pausedConversations: Set<string>; // conversationIds that are paused
+  subAgentCards: Record<string, SubAgentCardData>; // cardId → card data
 
   // Actions
   fetchSession: (conversationId: string) => Promise<AgentSession | null>;
@@ -60,6 +63,7 @@ interface AgentStore {
   handleError: (event: AgentErrorEvent) => void;
   handleCancelled: (event: AgentCancelledEvent) => void;
   handleRateLimit: (event: AgentRateLimitEvent) => void;
+  handleSubAgentCard: (event: SubAgentCardEvent) => void;
 
   // Expire unresolved permissions for a conversation
   expirePendingPermissions: (conversationId: string) => void;
@@ -86,6 +90,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   queryStats: {},
   rateLimitInfo: {},
   pausedConversations: new Set<string>(),
+  subAgentCards: {},
 
   fetchSession: async (conversationId) => {
     try {
@@ -161,14 +166,27 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         [event.toolUseId]: toolCall,
       };
       const idMap = { ...s.sdkIdToExecId };
-      // Also store by DB execution ID for inline <tool-call> tag lookups
       if (event.executionId) {
         updates[event.executionId] = { ...toolCall, toolUseId: event.executionId };
         idMap[event.toolUseId] = event.executionId;
       }
+      // Create optimistic sub-agent card when task tool is called
+      let cardUpdates: Record<string, SubAgentCardData> = {};
+      if (event.toolName === "task" && event.conversationId) {
+        const cardId = `task-${event.toolUseId}`;
+        cardUpdates[cardId] = {
+          id: cardId,
+          conversationId: event.conversationId,
+          agentType: (event.input.agent_type as string) || "general",
+          agentName: (event.input.agent_type as string) || "general",
+          description: (event.input.description as string) || "Untitled task",
+          status: "running",
+        };
+      }
       return {
         toolCalls: { ...s.toolCalls, ...updates },
         sdkIdToExecId: idMap,
+        subAgentCards: { ...s.subAgentCards, ...cardUpdates },
       };
     });
   },
@@ -376,6 +394,23 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         return { rateLimitInfo: rest };
       });
     }, clearAfter);
+  },
+
+  handleSubAgentCard: (event) => {
+    const cardId = event.childConversationId ?? `card-${Date.now()}`;
+    const card: SubAgentCardData = {
+      id: cardId,
+      conversationId: event.conversationId,
+      agentType: event.agentType,
+      agentName: event.agentName,
+      description: event.description,
+      status: event.status,
+      childConversationId: event.childConversationId,
+      childSessionId: event.childSessionId,
+    };
+    set((s) => ({
+      subAgentCards: { ...s.subAgentCards, [cardId]: card },
+    }));
   },
 
   expirePendingPermissions: (conversationId) => {
@@ -625,6 +660,12 @@ export function setupAgentEventListeners(): () => void {
   unlisteners.push(
     listen<AgentRateLimitEvent>("agent-rate-limit", (event) => {
       store.handleRateLimit(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<SubAgentCardEvent>("agent-subagent-card", (event) => {
+      store.handleSubAgentCard(event.payload);
     }),
   );
 

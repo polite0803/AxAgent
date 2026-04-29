@@ -1,7 +1,6 @@
 pub use sea_orm_migration::prelude::*;
 
 mod m20240101_000001_init;
-mod m20260429_000001_add_wiki_tables;
 
 pub struct Migrator;
 
@@ -10,7 +9,6 @@ impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
             Box::new(m20240101_000001_init::Migration),
-            Box::new(m20260429_000001_add_wiki_tables::Migration),
         ]
     }
 }

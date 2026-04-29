@@ -37,6 +37,8 @@ fn stringify_attachment_list(attachments: &[Attachment]) -> Result<String> {
 }
 
 fn message_from_entity(m: messages::Model) -> Result<Message> {
+    let blocks = m.parts.as_ref()
+        .and_then(|p| serde_json::from_str::<Vec<crate::types::ContentBlock>>(p).ok());
     Ok(Message {
         id: m.id,
         conversation_id: m.conversation_id,
@@ -58,6 +60,8 @@ fn message_from_entity(m: messages::Model) -> Result<Message> {
         status: m.status,
         tokens_per_second: m.tokens_per_second,
         first_token_latency_ms: m.first_token_latency_ms,
+        parts: m.parts,
+        blocks,
     })
 }
 
@@ -141,6 +145,19 @@ pub async fn create_message(
     parent_message_id: Option<&str>,
     version_index: i32,
 ) -> Result<Message> {
+    create_message_with_parts(db, conversation_id, role, content, attachments, parent_message_id, version_index, None).await
+}
+
+pub async fn create_message_with_parts(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+    role: MessageRole,
+    content: &str,
+    attachments: &[Attachment],
+    parent_message_id: Option<&str>,
+    version_index: i32,
+    parts: Option<&str>,
+) -> Result<Message> {
     let id = gen_id();
     let now = now_ts();
     let role_s = role_str(&role);
@@ -156,6 +173,7 @@ pub async fn create_message(
         parent_message_id: Set(parent_message_id.map(|s| s.to_string())),
         version_index: Set(version_index),
         is_active: Set(1),
+        parts: Set(parts.map(|s| s.to_string())),
         ..Default::default()
     }
     .insert(db)
@@ -251,6 +269,24 @@ pub async fn update_message_thinking(
 ) -> Result<()> {
     let update = messages::Entity::update_many()
         .col_expr(messages::Column::Thinking, Expr::value(thinking.map(|s| s.to_string())))
+        .filter(messages::Column::Id.eq(id));
+
+    let result = update.exec(db).await?;
+
+    if result.rows_affected == 0 {
+        return Err(AxAgentError::NotFound(format!("Message {}", id)));
+    }
+    Ok(())
+}
+
+/// Update parts (structured content blocks) on an existing message.
+pub async fn update_message_parts(
+    db: &DatabaseConnection,
+    id: &str,
+    parts: Option<&str>,
+) -> Result<()> {
+    let update = messages::Entity::update_many()
+        .col_expr(messages::Column::Parts, Expr::value(parts.map(|s| s.to_string())))
         .filter(messages::Column::Id.eq(id));
 
     let result = update.exec(db).await?;
@@ -502,6 +538,7 @@ pub async fn create_tool_result_message(
         status: Set("complete".to_string()),
         tokens_per_second: Set(None),
         first_token_latency_ms: Set(None),
+        parts: Set(None),
     }
     .insert(db)
     .await?;
@@ -542,6 +579,7 @@ pub async fn create_assistant_tool_call_message(
         status: Set("complete".to_string()),
         tokens_per_second: Set(None),
         first_token_latency_ms: Set(None),
+        parts: Set(None),
     }
     .insert(db)
     .await?;

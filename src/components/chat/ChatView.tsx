@@ -120,7 +120,6 @@ import {
 } from "@/stores";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
-import AgentTaskList from "./AgentTaskList";
 import AskUserCard from "./AskUserCard";
 import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import {
@@ -149,6 +148,8 @@ import { ModelSelector } from "./ModelSelector";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
 import PermissionCard from "./PermissionCard";
 import { ToolCallCard } from "./ToolCallCard";
+import { SubAgentCard } from "./SubAgentCard";
+import { BreadcrumbBar } from "./BreadcrumbBar";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
 import { WebSearchNode } from "./WebSearchNode";
 import WorkflowProgressPanel from "./WorkflowProgressPanel";
@@ -2117,6 +2118,7 @@ function ChatViewInner() {
   // ── Store selectors ────────────────────────────────────────────────
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const setActiveConversation = useConversationStore((s) => s.setActiveConversation);
   const messages = useConversationStore((s) => s.messages);
   const loading = useConversationStore((s) => s.loading);
   const loadingOlder = useConversationStore((s) => s.loadingOlder);
@@ -2440,6 +2442,7 @@ function ChatViewInner() {
   const agentToolCalls = useAgentStore((s) => s.toolCalls);
   const agentPendingPermissions = useAgentStore((s) => s.pendingPermissions);
   const agentPendingAskUser = useAgentStore((s) => s.pendingAskUser);
+  const agentSubAgentCards = useAgentStore((s) => s.subAgentCards);
 
   const handleTitleClick = useCallback(() => {
     if (!activeConversation) { return; }
@@ -3982,6 +3985,13 @@ function ChatViewInner() {
           )}
       </div>
 
+      {/* Breadcrumb navigation for sub-agent sessions */}
+      <BreadcrumbBar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        setActiveConversation={setActiveConversation}
+      />
+
       {/* Message Area */}
       <div
         ref={messageAreaRef}
@@ -4020,6 +4030,22 @@ function ChatViewInner() {
             <>
               {/* Workflow Progress Panel - shows DAG execution status */}
               {activeConversation?.mode === "agent" && <WorkflowProgressPanel />}
+              {/* Sub-agent cards for this conversation */}
+              {activeConversation?.mode === "agent" && activeConversationId && (
+                (() => {
+                  const cards = Object.values(agentSubAgentCards).filter(
+                    c => c.conversationId === activeConversationId
+                  );
+                  if (cards.length === 0) return null;
+                  return (
+                    <div className="sub-agent-cards-bar" style={{ padding: "0 16px" }}>
+                      {cards.map(card => (
+                        <SubAgentCard key={card.id} card={card} />
+                      ))}
+                    </div>
+                  );
+                })()
+              )}
               <Bubble.List
                 key={bubbleListThemeKey}
                 ref={bubbleListRef}
@@ -4162,9 +4188,6 @@ function ChatViewInner() {
           />
         )}
       </Modal>
-      {activeConversation?.mode === "agent" && activeConversationId && (
-        <AgentTaskList conversationId={activeConversationId} />
-      )}
     </div>
   );
 }

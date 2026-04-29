@@ -105,7 +105,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
         agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
         agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_session_manager: axagent_agent::SessionManager::new(sea_db.clone()),
+        agent_session_manager: Arc::new(axagent_agent::SessionManager::new(sea_db.clone())),
         agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
         agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),

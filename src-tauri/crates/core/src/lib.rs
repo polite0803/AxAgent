@@ -35,6 +35,7 @@ pub mod s3_backup;
 pub mod screen_capture;
 pub mod screen_vision;
 pub mod search;
+pub mod shell_parser;
 pub mod storage_inventory;
 pub mod storage_migration;
 pub mod storage_paths;

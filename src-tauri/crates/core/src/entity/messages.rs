@@ -27,6 +27,7 @@ pub struct Model {
     pub status: String,
     pub tokens_per_second: Option<f64>,
     pub first_token_latency_ms: Option<i64>,
+    pub parts: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

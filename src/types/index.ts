@@ -87,6 +87,8 @@ export interface ModelParamOverrides {
 // === Conversation & Message ===
 export type MessageRole = "system" | "user" | "assistant" | "tool";
 
+export type MessageStatus = "complete" | "partial" | "error" | "cancelled";
+
 export interface ConversationCategory {
   id: string;
   name: string;
@@ -161,10 +163,18 @@ export interface Message {
   parent_message_id: string | null;
   version_index: number;
   is_active: boolean;
-  status: string;
+  status: MessageStatus;
   tokens_per_second?: number | null;
   first_token_latency_ms?: number | null;
+  /** Structured content blocks (from agent session ContentBlock). */
+  blocks?: ContentBlock[];
 }
+
+// ── Content Block (Part-based message model, short-term) ──────────────
+export type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: string }
+  | { type: "tool_result"; tool_use_id: string; tool_name: string; output: string; is_error: boolean };
 
 export interface MessagePage {
   messages: Message[];
@@ -727,7 +737,123 @@ export * from "./mcp";
 export * from "./memory";
 export * from "./nudge";
 export * from "./search";
-export * from "./workspace";
+
+// ── Workspace / Context Types (merged from workspace.ts) ───────────────
+export type ContextSourceType = "attachment" | "search" | "knowledge" | "memory" | "tool";
+
+export type ContextSource = {
+  id: string;
+  conversationId: string;
+  messageId?: string;
+  type: ContextSourceType;
+  refId: string;
+  title: string;
+  enabled: boolean;
+  summary?: string;
+};
+
+export type ConversationBranch = {
+  id: string;
+  conversationId: string;
+  parentMessageId: string;
+  branchLabel: string;
+  branchIndex: number;
+  comparedMessageIdsJson?: string;
+  createdAt: string;
+};
+
+export type SearchPolicy = {
+  enabled: boolean;
+  searchProviderId?: string;
+  queryMode: "manual" | "auto";
+  resultLimit: number;
+};
+
+export type ToolBinding = {
+  serverIds: string[];
+  defaultTools?: string[];
+  approvalMode: "inherit" | "ask" | "allow_safe";
+};
+
+export type KnowledgeBinding = {
+  knowledgeBaseIds: string[];
+  autoAttach: boolean;
+};
+
+export type MemoryPolicy = {
+  enabled: boolean;
+  namespaceId?: string;
+  writeBack: boolean;
+};
+
+export type ContextToggleState = {
+  searchEnabled: boolean;
+  searchProviderId?: string;
+  enabledKnowledgeBaseIds: string[];
+  enabledMcpServerIds: string[];
+  enabledToolNames?: string[];
+  memoryEnabled: boolean;
+  memoryNamespaceId?: string;
+  memoryWriteBack: boolean;
+  disabledContextSourceIds?: string[];
+};
+
+export type ConversationWorkspaceSnapshot = {
+  searchPolicy: SearchPolicy;
+  toolBinding: ToolBinding;
+  knowledgeBinding: KnowledgeBinding;
+  memoryPolicy: MemoryPolicy;
+  toggles: ContextToggleState;
+  researchMode: boolean;
+  pinnedArtifactIds: string[];
+};
+
+export type ContextOverrideInput = {
+  searchEnabled?: boolean;
+  searchProviderId?: string | null;
+  enabledKnowledgeBaseIds?: string[];
+  enabledMcpServerIds?: string[];
+  enabledToolNames?: string[];
+  memoryEnabled?: boolean;
+  memoryNamespaceId?: string | null;
+  memoryWriteBack?: boolean;
+  disabledContextSourceIds?: string[];
+  researchMode?: boolean;
+};
+
+export type CreateConversationInput = {
+  title: string;
+  providerId: string;
+  model_id: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  workspaceSnapshot?: ConversationWorkspaceSnapshot;
+};
+
+export type WorkspaceUpdateInput = {
+  title?: string;
+  providerId?: string;
+  model_id?: string;
+  workspaceSnapshot?: ConversationWorkspaceSnapshot;
+  activeBranchId?: string | null;
+  activeArtifactId?: string | null;
+  researchMode?: boolean;
+};
+
+export type SendMessageInput = {
+  conversationId: string;
+  content: string;
+  attachments?: AttachmentInput[];
+  contextOverride?: ContextOverrideInput;
+};
+
+export type CompareResponsesResult = {
+  leftMessage: { id: string; content: string };
+  rightMessage: { id: string; content: string };
+};
 
 // ── Atomic Skills ─────────────────────────────────────────────────────
 export interface AtomicSkill {
