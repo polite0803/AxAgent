@@ -101,6 +101,10 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Update dependencies
+        run: cargo update -p xcap --precise 0.6.0
+        working-directory: src-tauri
+
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -263,6 +267,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-unknown-linux-gnu
+
+      - name: Update dependencies
+        run: cargo update -p xcap --precise 0.6.0
+        working-directory: src-tauri
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
