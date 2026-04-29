@@ -255,7 +255,7 @@ jobs:
     needs: [check-version, draft-release-notes]
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/tauri-apps/tauri:12
+      image: liudonghua123/tauri-build:debian-bookworm-22
       options: --user root
     steps:
       - uses: actions/checkout@v4
