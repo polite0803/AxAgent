@@ -48,7 +48,7 @@ export function LintReport({ wikiId }: LintReportProps) {
   const loadLintResults = async () => {
     setLoading(true);
     try {
-      const results = await invoke<LintResult[]>('llm_wiki_lint_batch', { wikiId });
+      const results = await invoke<LintResult[]>('llm_wiki_lint_vault', { wikiId });
       setLintResults(results);
     } catch (e) {
       message.error(t('wiki.lint.loadError', { error: String(e) }));

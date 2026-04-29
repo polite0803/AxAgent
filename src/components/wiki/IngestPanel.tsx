@@ -71,7 +71,7 @@ export function IngestPanel({ wikiId }: IngestPanelProps) {
         : ext === 'html' ? 'web'
         : 'markdown';
 
-      const sourceId = await invoke<string>('write_base64_to_file', {
+      await invoke<string>('write_base64_to_file', {
         wikiId,
         fileName: file.name,
         base64Content: base64,

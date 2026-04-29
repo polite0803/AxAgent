@@ -2,7 +2,7 @@ use axagent_agent::{ingest_pipeline, lint_checker, query_engine, schema_manager,
 use axagent_core::entity::wiki_sync_queue;
 use axagent_core::repo::wiki;
 use axagent_core::types::{
-    ChatContent, ChatMessage, ChatRequest, ProviderProxyConfig, ProviderType,
+    ProviderProxyConfig, ProviderType,
 };
 use crate::AppState;
 use axagent_providers::{
@@ -91,6 +91,7 @@ pub struct CreateWikiInput {
     pub name: String,
     pub root_path: String,
     pub description: Option<String>,
+    pub embedding_provider: Option<String>,
 }
 
 #[tauri::command]
@@ -149,6 +150,7 @@ pub async fn llm_wiki_operations_list(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IngestSourceInput {
     pub wiki_id: String,
     pub source_type: String,
@@ -197,6 +199,7 @@ pub async fn llm_wiki_ingest(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CompileInput {
     pub wiki_id: String,
     pub source_ids: Vec<String>,
@@ -345,6 +348,7 @@ pub async fn llm_wiki_compile(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QueryInput {
     pub wiki_id: String,
     pub query: String,
@@ -426,6 +430,7 @@ pub async fn llm_wiki_get_schema(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ValidateFrontmatterInput {
     pub wiki_id: String,
     pub frontmatter: serde_json::Map<String, serde_json::Value>,
@@ -586,7 +591,7 @@ pub async fn write_base64_to_file(
         .await
         .map_err(|e| e.to_string())?;
 
-    let source_content = String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
+    let _source_content = String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
 
     let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.sea_db.clone()));
     let source = ingest_pipeline::IngestSource {

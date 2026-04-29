@@ -6,6 +6,7 @@ use crate::error::{AxAgentError, Result};
 use crate::utils::gen_id;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Note {
     pub id: String,
     pub vault_id: String,

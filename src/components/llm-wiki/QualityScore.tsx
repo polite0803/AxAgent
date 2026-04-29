@@ -20,7 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@/lib/invoke';
-import type { LintIssue } from '@/types/llmWiki';
+import type { LintIssue, LintResult } from '@/types/llmWiki';
 
 const { Text } = Typography;
 
@@ -66,17 +66,22 @@ export function QualityScore({
     setRefreshing(true);
     try {
       if (pageId) {
-        const result = await invoke<LintIssue[]>('llm_wiki_lint', { wikiId, pageId });
-        const score = calculateScore(result || []);
+        const result = await invoke<LintResult>('llm_wiki_lint', { noteId: pageId });
+        const score = result?.score ?? 1.0;
+        const issues = result?.issues || [];
         setDetails({
           score,
-          issues: result || [],
-          factors: analyzeFactors(result || []),
+          issues,
+          factors: analyzeFactors(issues),
         });
       } else {
-        const result = await invoke<{ pageId: string; issues: LintIssue[] }[]>('llm_wiki_lint_batch', { wikiId });
+        const result = await invoke<LintResult[]>('llm_wiki_lint_vault', { wikiId });
         const allIssues = result?.flatMap(r => r.issues) || [];
-        const score = calculateScore(allIssues);
+        const score = allIssues.length > 0
+          ? allIssues.reduce((acc, issues) => acc + issues.length, 0) > 0
+            ? Math.max(0, 1.0 - allIssues.length * 0.1)
+            : 1.0
+          : 1.0;
         setDetails({
           score,
           issues: allIssues,

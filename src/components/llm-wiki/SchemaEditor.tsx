@@ -48,12 +48,43 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
   const loadSchemas = async () => {
     setLoading(true);
     try {
-      const result = await invoke<SchemaVersion[]>('llm_wiki_get_schema', { wikiId });
-      setSchemas(result || []);
+      const content = await invoke<string>('llm_wiki_get_schema', { wikiId });
+      setSchemas(content ? [{
+        version: '1.0',
+        created_at: Date.now(),
+        content_hash: '',
+        note_count: 0,
+        description: undefined,
+        schema: parseSchemaContent(content),
+      } as SchemaVersion] : []);
     } catch (e) {
       message.error(String(e));
     }
     setLoading(false);
+  };
+
+  const parseSchemaContent = (content: string): Record<string, unknown> => {
+    try {
+      const parsed: Record<string, unknown> = {};
+      let inFrontmatter = false;
+      for (const line of content.split('\n')) {
+        if (line.trim() === '---') {
+          inFrontmatter = !inFrontmatter;
+          continue;
+        }
+        if (inFrontmatter) {
+          const idx = line.indexOf(':');
+          if (idx > 0) {
+            const key = line.substring(0, idx).trim();
+            const val = line.substring(idx + 1).trim();
+            parsed[key] = val;
+          }
+        }
+      }
+      return parsed;
+    } catch {
+      return { raw: content };
+    }
   };
 
   const handleCreateSchema = () => {
@@ -101,7 +132,7 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
     setSaving(false);
   };
 
-  const handleDeleteSchema = async (schemaId: string) => {
+  const handleDeleteSchema = async (_schemaId: string) => {
     try {
       await invoke('llm_wiki_delete_schema', { wikiId });
       message.success(t('wiki.schema.deleted', 'Schema deleted'));

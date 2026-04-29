@@ -77,7 +77,7 @@ export function SyncStatus({
   const handleProcessQueue = async () => {
     setProcessing(true);
     try {
-      await invoke('wiki_sync_process', { wikiId });
+      await invoke('wiki_sync_process_pending', { wikiId });
       message.success(t('wiki.sync.processStarted', 'Sync process started'));
       await loadSyncStatus();
     } catch (e) {

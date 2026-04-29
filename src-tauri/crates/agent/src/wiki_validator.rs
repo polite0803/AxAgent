@@ -2,12 +2,13 @@ use std::path::Path;
 use std::sync::Arc;
 
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
+use serde::{Deserialize, Serialize};
 
 use axagent_core::entity::{notes, wikis};
 use axagent_core::repo::note::calculate_content_hash;
 use axagent_core::error::{AxAgentError, Result};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationIssue {
     pub note_id: String,
     pub title: String,
@@ -15,7 +16,7 @@ pub struct ValidationIssue {
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ValidationIssueType {
     HashMismatch,
     MissingInDatabase,
@@ -23,7 +24,7 @@ pub enum ValidationIssueType {
     OrphanInVectorStore,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationReport {
     pub wiki_id: String,
     pub total_notes: usize,
