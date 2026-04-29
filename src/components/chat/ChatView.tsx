@@ -4005,7 +4005,18 @@ function ChatViewInner() {
       <div
         ref={messageAreaRef}
         data-message-area
+        data-message-count={messages.length}
         className={`flex-1 min-h-0 overflow-hidden relative bubble-${bubbleStyle || "modern"}`}
+        style={{
+          // CSS containment for long conversations: tells the browser to skip
+          // off-screen bubble rendering. Only applied when 50+ messages to avoid
+          // affecting short conversations where full virtualization overhead isn't
+          // worth it.
+          ...(messages.length > 50 ? {
+            contentVisibility: "auto",
+            containIntrinsicSize: "auto 5000px",
+          } : {}),
+        }}
       >
         {messages.length === 0
           ? (

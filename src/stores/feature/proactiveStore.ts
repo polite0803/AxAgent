@@ -9,6 +9,103 @@ import type {
 } from "@/types/proactive";
 import { create } from "zustand";
 
+// ─── Prefetch state: tracks what's been prefetched to avoid duplicates ───
+
+interface PrefetchState {
+  /** Set of already-prefetched resource IDs to prevent redundant work */
+  prefetchedIds: Set<string>;
+  /** Timestamps of last prefetch per type */
+  lastPrefetchTime: Record<string, number>;
+}
+
+const _prefetchState: PrefetchState = {
+  prefetchedIds: new Set(),
+  lastPrefetchTime: {},
+};
+
+/** Minimum interval between prefetches of the same type (ms) */
+const PREFETCH_COOLDOWN_MS = 30_000; // 30 seconds
+/** Maximum prefetched items to track */
+const MAX_PREFETCH_IDS = 200;
+
+// ─── Input intent prediction (local, no backend call) ───
+
+interface IntentPrediction {
+  intent: string;
+  confidence: number;
+}
+
+/** Lightweight local intent prediction from user typing patterns.
+ *  Used to trigger prefetching before the user hits send. */
+function predictIntentFromInput(text: string): IntentPrediction[] {
+  if (!text || text.length < 3) return [];
+  const lower = text.toLowerCase();
+  const intents: IntentPrediction[] = [];
+
+  // Code generation
+  if (
+    lower.includes("write") || lower.includes("create") || lower.includes("build")
+    || lower.includes("写") || lower.includes("创建") || lower.includes("生成")
+    || lower.startsWith("```")
+  ) {
+    intents.push({ intent: "codeGeneration", confidence: 0.85 });
+  }
+
+  // Search / research
+  if (
+    lower.includes("search") || lower.includes("find") || lower.includes("look up")
+    || lower.includes("搜索") || lower.includes("查找") || lower.includes("what is")
+    || lower.includes("how to") || lower.includes("什么是") || lower.includes("怎么")
+  ) {
+    intents.push({ intent: "search", confidence: 0.8 });
+  }
+
+  // Refactoring
+  if (
+    lower.includes("refactor") || lower.includes("optimize") || lower.includes("improve")
+    || lower.includes("重构") || lower.includes("优化") || lower.includes("改进")
+  ) {
+    intents.push({ intent: "refactoring", confidence: 0.75 });
+  }
+
+  // Translation
+  if (
+    lower.includes("translate") || lower.includes("翻译") || lower.includes("译为")
+  ) {
+    intents.push({ intent: "translation", confidence: 0.9 });
+  }
+
+  // Debug
+  if (
+    lower.includes("debug") || lower.includes("fix") || lower.includes("error")
+    || lower.includes("broken") || lower.includes("not working")
+    || lower.includes("修复") || lower.includes("错误") || lower.includes("bug")
+  ) {
+    intents.push({ intent: "debug", confidence: 0.8 });
+  }
+
+  return intents;
+}
+
+/** Check if a prefetch type has been recently prefetched (cooldown). */
+function canPrefetchNow(type: string): boolean {
+  const last = _prefetchState.lastPrefetchTime[type] || 0;
+  return Date.now() - last > PREFETCH_COOLDOWN_MS;
+}
+
+/** Mark a prefetch type as done. */
+function markPrefetched(type: string, ids: string[]) {
+  _prefetchState.lastPrefetchTime[type] = Date.now();
+  for (const id of ids) {
+    if (_prefetchState.prefetchedIds.size >= MAX_PREFETCH_IDS) {
+      // Evict oldest (simple FIFO via clear-and-rebuild)
+      const entries = [..._prefetchState.prefetchedIds].slice(-MAX_PREFETCH_IDS / 2);
+      _prefetchState.prefetchedIds = new Set(entries);
+    }
+    _prefetchState.prefetchedIds.add(id);
+  }
+}
+
 interface ProactiveState {
   suggestions: ProactiveSuggestion[];
   predictions: ContextPrediction[];
@@ -31,6 +128,20 @@ interface ProactiveState {
   updateConfig: (config: Partial<ProactiveConfig>) => Promise<void>;
   prefetch: (predictions: ContextPrediction[]) => Promise<PrefetchResults>;
   clearAll: () => void;
+
+  // ── P2 Smart Prefetch ──
+
+  /** Triggered on conversation switch — prefetch context, token counts */
+  prefetchOnConversationSwitch: (conversationId: string) => void;
+
+  /** Prefetch model cost and capability info when model selector opens */
+  prefetchModelCosts: (providerId: string, modelId: string) => void;
+
+  /** Analyze user input and trigger prefetch based on predicted intent */
+  predictAndPrefetch: (inputText: string) => IntentPrediction[];
+
+  /** Clear the internal prefetch dedup state */
+  resetPrefetchState: () => void;
 }
 
 export interface ReminderInput {
@@ -232,5 +343,88 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       reminders: [],
       error: null,
     });
+  },
+
+  // ── P2 Smart Prefetch ──
+
+  prefetchOnConversationSwitch: (conversationId: string) => {
+    if (!get().isEnabled || !canPrefetchNow("conversationSwitch")) return;
+
+    // Prefetch token counts for the conversation in background
+    const type = "conversationSwitch";
+    invoke("list_messages_page", {
+      conversationId,
+      limit: 1,
+      beforeMessageId: null,
+    })
+      .then(() => {
+        markPrefetched(type, [conversationId]);
+      })
+      .catch(() => {
+        // Silent — prefetch is best-effort
+      });
+
+    // Also prefetch compression summary if available
+    invoke("get_compression_summary", { conversationId })
+      .then(() => {
+        markPrefetched("compressionSummary", [conversationId]);
+      })
+      .catch(() => {});
+  },
+
+  prefetchModelCosts: (_providerId: string, _modelId: string) => {
+    if (!get().isEnabled || !canPrefetchNow("modelCosts")) return;
+
+    // Cost estimation is now config-based (pricing.toml) and computed locally.
+    // The backend has fast O(1) lookup via lookup_pricing_from_config().
+    // We still call it asynchronously to warm any cold caches.
+    const type = "modelCosts";
+    invoke("get_invoke_metrics", {})
+      .then(() => {
+        markPrefetched(type, ["metrics"]);
+      })
+      .catch(() => {});
+  },
+
+  predictAndPrefetch: (inputText: string): IntentPrediction[] => {
+    const intents = predictIntentFromInput(inputText);
+    if (intents.length === 0 || !get().isEnabled) return intents;
+
+    // Trigger prefetch based on predicted intent
+    for (const intent of intents) {
+      const type = `intent:${intent.intent}`;
+      if (!canPrefetchNow(type)) continue;
+
+      // Fire-and-forget prefetch based on intent type
+      switch (intent.intent) {
+        case "search":
+          // Warm up search provider
+          invoke("list_search_providers", {})
+            .then(() => markPrefetched(type, ["searchProviders"]))
+            .catch(() => {});
+          break;
+        case "codeGeneration":
+          // Pre-warm code executor
+          invoke("list_local_tools", {})
+            .then(() => markPrefetched(type, ["localTools"]))
+            .catch(() => {});
+          break;
+        case "translation":
+          // Pre-warm language models list
+          invoke("list_providers", {})
+            .then(() => markPrefetched(type, ["providers"]))
+            .catch(() => {});
+          break;
+        default:
+          break;
+      }
+    }
+
+    return intents;
+  },
+
+  resetPrefetchState: () => {
+    _prefetchState.prefetchedIds.clear();
+    _prefetchState.lastPrefetchTime = {};
   },
 }));

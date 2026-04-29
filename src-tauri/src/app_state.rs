@@ -1,4 +1,5 @@
 use crate::commands::proactive::ProactiveService;
+use crate::semantic_cache::SemanticCache;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
 use sea_orm::DatabaseConnection;
@@ -60,4 +61,5 @@ pub struct AppState {
     pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
     pub dashboard_registry: Option<Arc<DashboardRegistry>>,
     pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
+    pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCache>>,
 }

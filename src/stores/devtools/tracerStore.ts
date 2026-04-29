@@ -28,6 +28,24 @@ interface TracerState {
   exportTrace: (traceId: string, format: "json" | "csv") => Promise<void>;
   deleteTrace: (traceId: string) => Promise<void>;
   clearAll: () => void;
+
+  /** Record an LLM call span with model/token/cost metadata */
+  recordLlmCall: (params: {
+    traceId: string;
+    parentSpanId?: string;
+    modelId: string;
+    providerId: string;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+    durationMs: number;
+    cacheHit: boolean;
+    fallbackUsed: boolean;
+    fallbackModelId?: string;
+  }) => Promise<void>;
+
+  /** Setup PerformanceObserver for long task detection */
+  setupLongTaskObserver: () => void;
 }
 
 function buildSpanTree(spans: Span[]): SpanTreeNode[] {
@@ -172,5 +190,67 @@ export const useTracerStore = create<TracerState>((set, get) => ({
       filter: {},
       error: null,
     });
+  },
+
+  // ── LLM call tracing (P2 enhancement) ──
+
+  recordLlmCall: async (params: {
+    traceId: string;
+    parentSpanId?: string;
+    modelId: string;
+    providerId: string;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+    durationMs: number;
+    cacheHit: boolean;
+    fallbackUsed: boolean;
+    fallbackModelId?: string;
+  }) => {
+    try {
+      await invoke("tracer_record_span", {
+        traceId: params.traceId,
+        span: {
+          span_type: "llm_call",
+          parent_span_id: params.parentSpanId || null,
+          name: `llm:${params.modelId}`,
+          start_time: new Date(Date.now() - params.durationMs).toISOString(),
+          end_time: new Date().toISOString(),
+          duration_ms: params.durationMs,
+          status: "ok",
+          attributes: {
+            model_id: params.modelId,
+            provider_id: params.providerId,
+            input_tokens: params.inputTokens,
+            output_tokens: params.outputTokens,
+            total_tokens: params.inputTokens + params.outputTokens,
+            cost_usd: params.costUsd,
+            cache_hit: params.cacheHit,
+            fallback_used: params.fallbackUsed,
+            fallback_model_id: params.fallbackModelId || null,
+          },
+          events: [],
+          errors: [],
+        },
+      });
+    } catch {
+      // Tracer is fire-and-forget
+    }
+  },
+
+  setupLongTaskObserver: () => {
+    if (typeof window === "undefined" || !("PerformanceObserver" in window)) return;
+    try {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.duration > 50) {
+            console.debug(`[tracer] Long task: ${entry.duration.toFixed(1)}ms`);
+          }
+        }
+      });
+      observer.observe({ type: "longtask", buffered: true });
+    } catch {
+      // Long task API not universally available
+    }
   },
 }));

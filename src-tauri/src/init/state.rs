@@ -5,6 +5,7 @@ use tokio::sync::Mutex;
 
 use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
+use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
@@ -191,5 +192,16 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         dashboard_registry: None,
         webhook_subscription_manager: None,
+        semantic_cache: {
+            let cache = rt.block_on(async {
+                SemanticCache::new(sea_db.clone(), CacheConfig::default()).await
+            })
+            .unwrap_or_else(|e| {
+                tracing::error!("Failed to init semantic cache: {}", e);
+                // We can't easily recover here without a DB, so panic
+                panic!("Semantic cache initialization failed: {}", e);
+            });
+            Arc::new(tokio::sync::Mutex::new(cache))
+        },
     }
 }

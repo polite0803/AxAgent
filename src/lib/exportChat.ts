@@ -1,5 +1,6 @@
 import { stripAxAgentTags } from "@/lib/chatMarkdown";
 import { isTauri } from "@/lib/invoke";
+import { formatExportAsync } from "@/lib/workers";
 import type { Message } from "@/types";
 
 function browserDownload(filename: string, content: string, mimeType: string) {
@@ -153,5 +154,52 @@ export async function exportAsJSON(messages: Message[], title: string, options?:
   return saveFile(`${title}.json`, buildJsonTranscript(messages, title, options), [{
     name: "JSON",
     extensions: ["json"],
+  }]);
+}
+
+// ── Worker-accelerated exports (P2) ──
+
+/** Export as Markdown using a Web Worker for large conversations (>50 messages). */
+export async function exportAsMarkdownAsync(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+): Promise<boolean> {
+  if (messages.length < 50) {
+    return exportAsMarkdown(messages, title, options);
+  }
+  const content = await formatExportAsync(
+    messages.map((m) => ({
+      role: m.role,
+      content: getExportMessageContent(m, options),
+    })),
+    "markdown",
+  );
+  return saveFile(`${title}.md`, `# ${title}\n\n${content}`, [{
+    name: "Markdown",
+    extensions: ["md"],
+  }]);
+}
+
+/** Export as Text using a Web Worker for large conversations (>50 messages). */
+export async function exportAsTextAsync(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+): Promise<boolean> {
+  if (messages.length < 50) {
+    return exportAsText(messages, title, options);
+  }
+  const content = await formatExportAsync(
+    messages.map((m) => ({
+      role: m.role,
+      content: getExportMessageContent(m, options),
+    })),
+    "text",
+  );
+  const fullContent = `${title}\n${"=".repeat(title.length)}\n\n${content}`;
+  return saveFile(`${title}.txt`, fullContent, [{
+    name: "Text",
+    extensions: ["txt"],
   }]);
 }

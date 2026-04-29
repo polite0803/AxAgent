@@ -24,7 +24,7 @@ sysinfo = "0.32"
 lazy_static = "1"
 sha2 = "0.10"
 image = { version = "0.25", features = ["png"] }
-xcap = "0.9.3"
+xcap = "0.6.0"
 
 [package]
 name = "axagent"

@@ -7,6 +7,7 @@ mod context_manager;
 mod indexing;
 mod init;
 mod paths;
+mod semantic_cache;
 mod smart_router;
 mod tray;
 mod window_state;
@@ -414,7 +415,6 @@ pub fn run() {
             commands::branches::update_workspace_snapshot,
             // Conversations commands - additional
             commands::conversations::regenerate_conversation_title,
-            commands::conversations::simple_chat_completion,
             commands::conversations::delete_message_group,
             commands::conversations::compress_context,
             commands::conversations::get_compression_summary,

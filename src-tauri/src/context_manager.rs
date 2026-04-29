@@ -90,11 +90,32 @@ pub fn should_auto_compress(
 ///
 /// Uses `ContextAssembler`'s `TokenBudget` for budget-aware history allocation,
 /// ensuring consistent token allocation across all context components.
+///
+/// When `query` is provided, uses relevance-based pruning instead of simple
+/// sliding window, keeping messages most pertinent to the current conversation.
 pub fn build_context(
     system_messages: &[ChatMessage],
     history_messages: &[ChatMessage],
     existing_summary: Option<&str>,
     model_context_window: Option<u32>,
+) -> Vec<ChatMessage> {
+    build_context_with_query(
+        system_messages,
+        history_messages,
+        existing_summary,
+        model_context_window,
+        None,
+    )
+}
+
+/// Extended version of `build_context` that accepts an optional query for
+/// relevance-based history pruning.
+pub fn build_context_with_query(
+    system_messages: &[ChatMessage],
+    history_messages: &[ChatMessage],
+    existing_summary: Option<&str>,
+    model_context_window: Option<u32>,
+    query: Option<&str>,
 ) -> Vec<ChatMessage> {
     let mut out = system_messages.to_vec();
 
@@ -134,7 +155,12 @@ pub fn build_context(
                 .try_fold(0usize, |acc, t| acc.checked_add(t))
                 .unwrap_or(usize::MAX);
             let available = history_budget.saturating_sub(system_tokens);
-            let trimmed = sliding_window(history_messages, available);
+
+            // Use relevance pruning when query is available; otherwise sliding window
+            let trimmed = match query {
+                Some(q) if !q.is_empty() => prune_by_relevance(history_messages, q, available),
+                _ => sliding_window(history_messages, available),
+            };
             let trimmed_len = trimmed.len();
             out.extend(trimmed);
 
@@ -187,6 +213,192 @@ fn sliding_window(history: &[ChatMessage], budget: usize) -> Vec<ChatMessage> {
     }
 
     history[start_idx..].to_vec()
+}
+
+// ─── Relevance-based pruning ───
+
+/// Minimum number of most recent messages to always keep regardless of relevance.
+const RECENCY_WINDOW: usize = 5;
+
+/// Weight of recency vs relevance in the combined score (0.0 = pure relevance, 1.0 = pure recency).
+const RECENCY_WEIGHT: f64 = 0.3;
+
+/// Score a message's relevance to the query using TF-IDF-like word overlap.
+/// Returns a score between 0.0 (irrelevant) and 1.0 (highly relevant).
+fn relevance_score(message_text: &str, query_terms: &[String]) -> f64 {
+    if query_terms.is_empty() || message_text.is_empty() {
+        return 0.0;
+    }
+
+    let msg_lower = message_text.to_lowercase();
+    let mut hits = 0usize;
+    let mut total_term_weight = 0usize;
+
+    for term in query_terms {
+        let count = msg_lower.matches(term.as_str()).count();
+        hits += count;
+        // Weight longer terms more heavily (less likely to be noise)
+        total_term_weight += term.len().max(1);
+    }
+
+    if hits == 0 {
+        return 0.0;
+    }
+
+    // Normalize: hits / (msg_length * term_count) with bonus for multiple matches
+    let msg_len = msg_lower.len().max(1) as f64;
+    let density = hits as f64 / msg_len;
+    let term_weight = total_term_weight as f64 / query_terms.iter().map(|t| t.len().max(1)).sum::<usize>() as f64;
+    (density * term_weight).min(1.0)
+}
+
+/// Extract meaningful query terms from a user message.
+fn extract_query_terms(query: &str) -> Vec<String> {
+    let lower = query.to_lowercase();
+    // Split on non-alphanumeric, filter short/stop words
+    lower
+        .split(|c: char| !c.is_alphanumeric() && c != '_' && c != '-')
+        .filter(|w| w.len() >= 3)
+        .filter(|w| !is_stop_word(w))
+        .map(|w| w.to_string())
+        .collect()
+}
+
+/// Check if a word is a common stop word (English + Chinese).
+fn is_stop_word(word: &str) -> bool {
+    matches!(
+        word,
+        "the" | "and" | "for" | "that" | "this" | "with" | "you" | "are" | "not"
+        | "but" | "from" | "have" | "has" | "was" | "were" | "can" | "will"
+        | "what" | "when" | "where" | "which" | "how" | "all" | "just" | "like"
+        | "very" | "been" | "would" | "could" | "should" | "about" | "also"
+        | "的" | "了" | "是" | "在" | "我" | "有" | "和" | "就" | "不" | "人"
+        | "都" | "一" | "一个" | "上" | "也" | "很" | "到" | "说" | "要" | "去"
+        | "你" | "会" | "着" | "没有" | "看" | "好" | "自己" | "这"
+    )
+}
+
+/// Recency weight: exponential decay by position (most recent = 1.0).
+fn recency_weight(position_from_end: usize, total_messages: usize) -> f64 {
+    if total_messages <= RECENCY_WINDOW {
+        return 1.0;
+    }
+    let position = position_from_end as f64;
+    let max_pos = (total_messages - RECENCY_WINDOW) as f64;
+    if position <= RECENCY_WINDOW as f64 {
+        1.0
+    } else {
+        // Exponential decay after recency window
+        let normalized = (position - RECENCY_WINDOW as f64) / max_pos.max(1.0);
+        (-3.0 * normalized).exp()
+    }
+}
+
+/// Prune history messages by relevance to the current query + recency.
+///
+/// Returns a subset of history that fits within `budget` tokens, prioritizing
+/// messages that are both recent AND relevant to the query.
+///
+/// Strategy:
+/// 1. Always keep the most recent `RECENCY_WINDOW` messages (guaranteed recency)
+/// 2. Score remaining messages by combined relevance + recency
+/// 3. Greedily select highest-scoring messages until budget exhausted
+pub fn prune_by_relevance(
+    history: &[ChatMessage],
+    query: &str,
+    budget: usize,
+) -> Vec<ChatMessage> {
+    if history.is_empty() || budget == 0 {
+        return Vec::new();
+    }
+
+    let query_terms = extract_query_terms(query);
+
+    // If no meaningful query terms, fall back to sliding window
+    if query_terms.is_empty() {
+        return sliding_window(history, budget);
+    }
+
+    let n = history.len();
+
+    // Always include the last RECENCY_WINDOW messages
+    let recency_start = if n <= RECENCY_WINDOW { 0 } else { n - RECENCY_WINDOW };
+
+    let mut selected: Vec<bool> = vec![false; n];
+    let mut used_tokens = 0usize;
+
+    // Mark recency window as always selected
+    for i in recency_start..n {
+        selected[i] = true;
+        used_tokens += message_tokens(&history[i]);
+    }
+
+    // If recency window alone exceeds budget, trim from oldest within window
+    if used_tokens > budget {
+        let mut trimmed: Vec<ChatMessage> = Vec::new();
+        let mut tokens = 0usize;
+        for i in (0..n).rev() {
+            if !selected[i] { continue; }
+            let t = message_tokens(&history[i]);
+            if tokens + t > budget { break; }
+            tokens += t;
+            trimmed.push(history[i].clone());
+        }
+        trimmed.reverse();
+        return trimmed;
+    }
+
+    // Score remaining messages for relevance + recency
+    let mut scored: Vec<(usize, f64)> = Vec::new();
+
+    for i in 0..recency_start {
+        let content_text = match &history[i].content {
+            ChatContent::Text(s) => s.as_str(),
+            ChatContent::Multipart(_) => "",
+        };
+        let rel = if content_text.is_empty() {
+            0.0
+        } else {
+            relevance_score(content_text.trim(), &query_terms)
+        };
+        let rec = recency_weight(n - 1 - i, n);
+        let combined = rel * (1.0 - RECENCY_WEIGHT) + rec * RECENCY_WEIGHT;
+
+        if combined > 0.01 {
+            scored.push((i, combined));
+        }
+    }
+
+    // Sort by score descending
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    // Greedily fill budget
+    for (idx, _score) in scored {
+        let t = message_tokens(&history[idx]);
+        if used_tokens + t > budget {
+            break;
+        }
+        used_tokens += t;
+        selected[idx] = true;
+    }
+
+    // Collect selected messages in order
+    let result: Vec<ChatMessage> = history
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| selected[*i])
+        .map(|(_, msg)| msg.clone())
+        .collect();
+
+    tracing::debug!(
+        "Relevance pruning: {}/{} messages selected, {} tokens (budget: {})",
+        result.len(),
+        n,
+        used_tokens,
+        budget
+    );
+
+    result
 }
 
 /// Messages that need to be summarized (passed to LLM).
