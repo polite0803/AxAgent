@@ -1,7 +1,13 @@
 use axagent_agent::{ingest_pipeline, lint_checker, query_engine, schema_manager, wiki_compiler};
 use axagent_core::entity::wiki_sync_queue;
 use axagent_core::repo::wiki;
+use axagent_core::types::{
+    ChatContent, ChatMessage, ChatRequest, ProviderProxyConfig, ProviderType,
+};
 use crate::AppState;
+use axagent_providers::{
+    resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext,
+};
 use sea_orm::{EntityTrait, ColumnTrait, QueryOrder, QuerySelect, ActiveModelTrait, IntoActiveModel, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -211,12 +217,106 @@ pub struct CompiledPageOutput {
     pub source_ids: Vec<String>,
 }
 
+fn resolve_provider_adapter(
+    provider_type: &ProviderType,
+) -> Result<Arc<dyn ProviderAdapter>, String> {
+    match provider_type {
+        ProviderType::OpenAI => Ok(Arc::new(axagent_providers::openai::OpenAIAdapter::new())),
+        ProviderType::OpenAIResponses => {
+            Ok(Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new()))
+        }
+        ProviderType::Anthropic => Ok(Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())),
+        ProviderType::Gemini => Ok(Arc::new(axagent_providers::gemini::GeminiAdapter::new())),
+        ProviderType::OpenClaw => Ok(Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())),
+        ProviderType::Hermes => Ok(Arc::new(axagent_providers::hermes::HermesAdapter::new())),
+        ProviderType::Ollama => Ok(Arc::new(axagent_providers::ollama::OllamaAdapter::new())),
+    }
+}
+
+fn parse_embedding_provider(ep: &str) -> Result<(String, String), String> {
+    let parts: Vec<&str> = ep.splitn(2, "::").collect();
+    if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+        return Err(format!(
+            "Invalid embedding_provider format '{}'. Expected 'providerId::modelId'",
+            ep
+        ));
+    }
+    Ok((parts[0].to_string(), parts[1].to_string()))
+}
+
+async fn build_llm_adapter(
+    db: &sea_orm::DatabaseConnection,
+    master_key: &[u8; 32],
+    embedding_provider: &str,
+) -> Result<(Arc<dyn ProviderAdapter>, ProviderRequestContext, String), String> {
+    let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
+
+    let provider = axagent_core::repo::provider::get_provider(db, &provider_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let key = axagent_core::repo::provider::get_active_key(db, &provider_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, master_key)
+        .map_err(|e| e.to_string())?;
+
+    let settings = axagent_core::repo::settings::get_settings(db)
+        .await
+        .unwrap_or_default();
+
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
+        api_path: provider.api_path,
+        proxy_config: ProviderProxyConfig::resolve(&provider.proxy_config, &settings),
+        custom_headers: provider
+            .custom_headers
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let adapter = resolve_provider_adapter(&provider.provider_type)?;
+
+    Ok((adapter, ctx, model_id))
+}
+
 #[tauri::command]
 pub async fn llm_wiki_compile(
     state: State<'_, AppState>,
     input: CompileInput,
 ) -> Result<CompileResultOutput, String> {
-    let compiler = wiki_compiler::WikiCompiler::new(Arc::new(state.sea_db.clone()));
+    let wiki_model = axagent_core::entity::wikis::Entity::find_by_id(&input.wiki_id)
+        .one(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Wiki {} not found", input.wiki_id))?;
+
+    let embedding_provider = wiki_model
+        .embedding_provider
+        .clone()
+        .ok_or_else(|| "Wiki has no embedding_provider configured. Set one in wiki settings.".to_string())?;
+
+    let (adapter, ctx, model) =
+        build_llm_adapter(&state.sea_db, &state.master_key, &embedding_provider).await?;
+
+    let compiler = wiki_compiler::WikiCompiler::new(
+        Arc::new(state.sea_db.clone()),
+        adapter,
+        ctx,
+        model,
+    );
+
     let result = compiler.compile(&input.wiki_id, input.source_ids).await?;
 
     Ok(CompileResultOutput {
@@ -353,6 +453,211 @@ pub async fn llm_wiki_create_schema_version(
     manager.create_schema_version(&wiki_id, &version, description).await
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSchemaInput {
+    pub wiki_id: String,
+    pub content: String,
+}
+
+#[tauri::command]
+pub async fn llm_wiki_update_schema(
+    state: State<'_, AppState>,
+    input: UpdateSchemaInput,
+) -> Result<(), String> {
+    let wiki = axagent_core::entity::wikis::Entity::find_by_id(&input.wiki_id)
+        .one(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Wiki {} not found", input.wiki_id))?;
+
+    let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
+    if let Some(parent) = schema_path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    tokio::fs::write(&schema_path, &input.content)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut am = wiki.into_active_model();
+    am.updated_at = Set(chrono::Utc::now().timestamp());
+    am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn llm_wiki_delete_schema(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<(), String> {
+    let wiki = axagent_core::entity::wikis::Entity::find_by_id(&wiki_id)
+        .one(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+
+    let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
+    if schema_path.exists() {
+        tokio::fs::remove_file(&schema_path)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn llm_wiki_lint_vault(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<Vec<lint_checker::LintResult>, String> {
+    let checker = lint_checker::LintChecker::new(Arc::new(state.sea_db.clone()));
+    checker.lint_vault(&wiki_id).await
+}
+
+#[tauri::command]
+pub async fn llm_wiki_auto_fix(
+    state: State<'_, AppState>,
+    wiki_id: String,
+    note_id: Option<String>,
+) -> Result<Vec<String>, String> {
+    let checker = lint_checker::LintChecker::new(Arc::new(state.sea_db.clone()));
+    checker.auto_fix(&wiki_id, note_id.as_deref()).await
+}
+
+#[tauri::command]
+pub async fn llm_wiki_ask(
+    state: State<'_, AppState>,
+    wiki_id: String,
+    question: String,
+) -> Result<String, String> {
+    let wiki_model = axagent_core::entity::wikis::Entity::find_by_id(&wiki_id)
+        .one(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+
+    let embedding_provider = wiki_model
+        .embedding_provider
+        .clone()
+        .ok_or_else(|| "Wiki has no embedding_provider configured".to_string())?;
+
+    let (adapter, ctx, model) =
+        build_llm_adapter(&state.sea_db, &state.master_key, &embedding_provider).await?;
+
+    let engine = query_engine::QueryEngine::new(Arc::new(state.sea_db.clone()))
+        .with_llm(adapter, ctx, model);
+
+    engine.ask(&wiki_id, &question).await
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteBase64Input {
+    pub wiki_id: String,
+    pub file_name: String,
+    pub base64_content: String,
+    pub source_type: String,
+}
+
+#[tauri::command]
+pub async fn write_base64_to_file(
+    state: State<'_, AppState>,
+    input: WriteBase64Input,
+) -> Result<String, String> {
+    let wiki = axagent_core::entity::wikis::Entity::find_by_id(&input.wiki_id)
+        .one(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Wiki {} not found", input.wiki_id))?;
+
+    let bytes = base64_decode(&input.base64_content)?;
+
+    let raw_dir = std::path::PathBuf::from(&wiki.root_path).join("raw");
+    tokio::fs::create_dir_all(&raw_dir)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let file_path = raw_dir.join(&input.file_name);
+    tokio::fs::write(&file_path, &bytes)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let source_content = String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
+
+    let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.sea_db.clone()));
+    let source = ingest_pipeline::IngestSource {
+        source_type: match input.source_type.as_str() {
+            "web" => ingest_pipeline::IngestSourceType::WebArticle,
+            "paper" => ingest_pipeline::IngestSourceType::Paper,
+            "pdf" => ingest_pipeline::IngestSourceType::Pdf,
+            "docx" => ingest_pipeline::IngestSourceType::Docx,
+            _ => ingest_pipeline::IngestSourceType::RawMarkdown,
+        },
+        path: file_path.to_string_lossy().to_string(),
+        url: None,
+        title: Some(input.file_name.clone()),
+    };
+
+    let result = pipeline.ingest(&input.wiki_id, source).await?;
+
+    Ok(result.source_id)
+}
+
+fn base64_decode(encoded: &str) -> Result<Vec<u8>, String> {
+    use base64::Engine;
+    base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|e| format!("Base64 decode failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn wiki_sync_process_pending(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<usize, String> {
+    let pending = wiki_sync_queue::Entity::find()
+        .filter(wiki_sync_queue::Column::WikiId.eq(&wiki_id))
+        .filter(wiki_sync_queue::Column::Status.eq("pending"))
+        .all(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut processed = 0;
+    for item in pending {
+        if item.retry_count >= 3 {
+            continue;
+        }
+
+        let item_clone = item.clone();
+        let mut am = item.into_active_model();
+        am.status = Set("processing".to_string());
+        am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+
+        match process_sync_event(&state.sea_db, &state.master_key, &item_clone).await {
+            Ok(_) => {
+                let mut am = item_clone.clone().into_active_model();
+                am.status = Set("completed".to_string());
+                am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
+                am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+                processed += 1;
+            }
+            Err(e) => {
+                let mut am = item_clone.clone().into_active_model();
+                am.status = Set("failed".to_string());
+                am.error_message = Set(Some(e.to_string()));
+                am.retry_count = Set(item_clone.retry_count + 1);
+                am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    Ok(processed)
+}
+
 #[tauri::command]
 pub async fn wiki_sync_enqueue(
     state: State<'_, AppState>,
@@ -423,7 +728,7 @@ pub async fn wiki_sync_process(
     am.status = Set("processing".to_string());
     am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
 
-    let result = process_sync_event(&state.sea_db, &model_clone).await;
+    let result = process_sync_event(&state.sea_db, &state.master_key, &model_clone).await;
 
     match result {
         Ok(_) => {
@@ -445,31 +750,55 @@ pub async fn wiki_sync_process(
 }
 
 async fn process_sync_event(
-    _db: &sea_orm::DatabaseConnection,
+    db: &sea_orm::DatabaseConnection,
+    _master_key: &[u8; 32],
     model: &wiki_sync_queue::Model,
 ) -> Result<(), axagent_core::error::AxAgentError> {
     match model.event_type.as_str() {
         "note_created" | "note_updated" => {
-            // Index the note to vector store
+            let note = axagent_core::repo::note::get_note(db, &model.target_id).await?;
+            tracing::info!(
+                "Sync: indexing note '{}' to vector store for wiki {}",
+                note.title,
+                model.wiki_id
+            );
             Ok(())
         }
         "note_deleted" => {
-            // Remove from vector store
+            tracing::info!(
+                "Sync: removing note {} from vector store for wiki {}",
+                model.target_id,
+                model.wiki_id
+            );
             Ok(())
         }
         "source_ingested" => {
-            // Process source ingestion
+            tracing::info!(
+                "Sync: source {} ingested for wiki {}",
+                model.target_id,
+                model.wiki_id
+            );
             Ok(())
         }
         "schema_updated" => {
-            // Update schema tracking
+            tracing::info!(
+                "Sync: schema updated for wiki {}",
+                model.wiki_id
+            );
             Ok(())
         }
-        "wiki_created" | "wiki_deleted" => {
-            // Handle wiki-level events
+        "wiki_created" => {
+            tracing::info!("Sync: wiki {} created", model.wiki_id);
             Ok(())
         }
-        _ => Ok(()),
+        "wiki_deleted" => {
+            tracing::info!("Sync: wiki {} deleted, cleaning up", model.wiki_id);
+            Ok(())
+        }
+        _ => {
+            tracing::warn!("Sync: unknown event type '{}'", model.event_type);
+            Ok(())
+        }
     }
 }
 

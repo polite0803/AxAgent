@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::sync::RwLock;
 
-use sea_orm::{DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter, Set};
 
-use axagent_core::entity::wikis;
+use axagent_core::entity::{notes, wikis};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchemaVersion {
@@ -45,6 +45,12 @@ pub struct FieldDef {
     pub name: String,
     pub field_type: String,
     pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Compatibility {
+    Compatible,
+    Incompatible { message: String, migration_steps: Vec<String> },
 }
 
 pub struct SchemaManager {
@@ -85,6 +91,183 @@ impl SchemaManager {
         }
 
         Ok(content)
+    }
+
+    pub async fn check_schema_compatibility(
+        &self,
+        wiki_id: &str,
+        required_version: &str,
+    ) -> Result<Compatibility, String> {
+        let wiki = wikis::Entity::find_by_id(wiki_id)
+            .one(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+
+        let current = parse_version(&wiki.schema_version);
+        let required = parse_version(required_version);
+
+        if compare_versions(&current, &required) >= 0 {
+            return Ok(Compatibility::Compatible);
+        }
+
+        let schema_content = self.get_current_schema(wiki_id).await?;
+        let migration_steps = self.generate_migration_steps(&wiki.schema_version, required_version, &schema_content);
+
+        Ok(Compatibility::Incompatible {
+            message: format!(
+                "Schema version {} is below required version {}. Please upgrade.",
+                wiki.schema_version, required_version
+            ),
+            migration_steps,
+        })
+    }
+
+    fn generate_migration_steps(
+        &self,
+        _current_version: &str,
+        _target_version: &str,
+        _schema_content: &str,
+    ) -> Vec<String> {
+        let mut steps = Vec::new();
+        steps.push("1. Backup your current SCHEMA.md".to_string());
+        steps.push("2. Update SCHEMA.md with new required fields".to_string());
+        steps.push("3. Run wiki lint to validate all pages".to_string());
+        steps.push("4. Run auto-fix to update existing pages".to_string());
+        steps
+    }
+
+    pub async fn diff_schemas(
+        &self,
+        wiki_id: &str,
+        from_version: &str,
+        to_version: &str,
+    ) -> Result<SchemaDiff, String> {
+        let from_template = self.parse_version_template(wiki_id, from_version).await?;
+        let to_template = self.parse_version_template(wiki_id, to_version).await?;
+
+        let from_names: std::collections::HashSet<String> = from_template
+            .required
+            .iter()
+            .chain(from_template.optional.iter())
+            .map(|f| f.name.clone())
+            .collect();
+
+        let to_names: std::collections::HashSet<String> = to_template
+            .required
+            .iter()
+            .chain(to_template.optional.iter())
+            .map(|f| f.name.clone())
+            .collect();
+
+        let mut to_by_name: std::collections::HashMap<String, &FieldDef> = std::collections::HashMap::new();
+        for f in to_template.required.iter().chain(to_template.optional.iter()) {
+            to_by_name.insert(f.name.clone(), f);
+        }
+
+        let mut from_by_name: std::collections::HashMap<String, &FieldDef> = std::collections::HashMap::new();
+        for f in from_template.required.iter().chain(from_template.optional.iter()) {
+            from_by_name.insert(f.name.clone(), f);
+        }
+
+        let added_fields: Vec<String> = to_names
+            .difference(&from_names)
+            .cloned()
+            .collect();
+
+        let removed_fields: Vec<String> = from_names
+            .difference(&to_names)
+            .cloned()
+            .collect();
+
+        let mut changed_fields = Vec::new();
+        for name in from_names.intersection(&to_names) {
+            if let (Some(from), Some(to)) = (from_by_name.get(name), to_by_name.get(name)) {
+                if from.field_type != to.field_type {
+                    changed_fields.push(FieldChange {
+                        field: name.clone(),
+                        old_type: from.field_type.clone(),
+                        new_type: to.field_type.clone(),
+                    });
+                }
+            }
+        }
+
+        Ok(SchemaDiff {
+            from_version: from_version.to_string(),
+            to_version: to_version.to_string(),
+            added_fields,
+            removed_fields,
+            changed_fields,
+        })
+    }
+
+    async fn parse_version_template(
+        &self,
+        wiki_id: &str,
+        _version: &str,
+    ) -> Result<FrontmatterTemplate, String> {
+        self.get_frontmatter_template(wiki_id).await
+    }
+
+    pub async fn migrate_pages(
+        &self,
+        wiki_id: &str,
+        from_version: &str,
+        to_version: &str,
+    ) -> Result<i32, String> {
+        let diff = self.diff_schemas(wiki_id, from_version, to_version).await?;
+        let mut migrated = 0;
+
+        let db_notes = notes::Entity::find()
+            .filter(notes::Column::VaultId.eq(wiki_id))
+            .filter(notes::Column::IsDeleted.eq(0))
+            .all(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?;
+
+        for note_model in db_notes {
+            let mut note = axagent_core::repo::note::model_to_note(note_model.clone());
+            let mut content_updated = false;
+
+            for added_field in &diff.added_fields {
+                if !note.content.contains(&format!("{}:", added_field)) {
+                    let insertion = format!("\n{}: ", added_field);
+                    if let Some(fm_end) = note.content.find("\n---") {
+                        note.content.insert_str(fm_end, &insertion);
+                        content_updated = true;
+                    }
+                }
+            }
+
+            if content_updated {
+                let input = axagent_core::repo::note::UpdateNoteInput {
+                    title: None,
+                    content: Some(note.content.clone()),
+                    page_type: None,
+                    related_pages: None,
+                };
+                axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
+                    .await
+                    .map_err(|e| format!("Failed to migrate page {}: {}", note.id, e))?;
+                migrated += 1;
+            }
+        }
+
+        if migrated > 0 {
+            let wiki_model = wikis::Entity::find_by_id(wiki_id)
+                .one(self.db.as_ref())
+                .await
+                .map_err(|e| e.to_string())?
+                .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+
+            let mut am = wiki_model.into_active_model();
+            am.schema_version = Set(to_version.to_string());
+            am.updated_at = Set(chrono::Utc::now().timestamp());
+            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+        }
+
+        Ok(migrated)
     }
 
     pub async fn validate_frontmatter(
@@ -167,10 +350,7 @@ impl SchemaManager {
             }
         }
 
-        FrontmatterTemplate {
-            required,
-            optional,
-        }
+        FrontmatterTemplate { required, optional }
     }
 
     fn validate_field_type(&self, expected: &str, value: &serde_json::Value) -> bool {
@@ -184,9 +364,7 @@ impl SchemaManager {
                 chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok()
                     || chrono::DateTime::parse_from_rfc3339(s).is_ok()
             }
-            ("tags", serde_json::Value::Array(arr)) => {
-                arr.iter().all(|v| v.is_string())
-            }
+            ("tags", serde_json::Value::Array(arr)) => arr.iter().all(|v| v.is_string()),
             _ => true,
         }
     }
@@ -225,28 +403,22 @@ impl SchemaManager {
 
         Ok(schema_version)
     }
+}
 
-    pub async fn diff_schemas(
-        &self,
-        _wiki_id: &str,
-        from_version: &str,
-        to_version: &str,
-    ) -> Result<SchemaDiff, String> {
-        Ok(SchemaDiff {
-            from_version: from_version.to_string(),
-            to_version: to_version.to_string(),
-            added_fields: Vec::new(),
-            removed_fields: Vec::new(),
-            changed_fields: Vec::new(),
-        })
-    }
+fn parse_version(v: &str) -> (u32, u32, u32) {
+    let parts: Vec<u32> = v
+        .split('.')
+        .filter_map(|p| p.parse::<u32>().ok())
+        .collect();
+    (
+        parts.first().copied().unwrap_or(0),
+        parts.get(1).copied().unwrap_or(0),
+        parts.get(2).copied().unwrap_or(0),
+    )
+}
 
-    pub async fn migrate_pages(
-        &self,
-        _wiki_id: &str,
-        _from_version: &str,
-        _to_version: &str,
-    ) -> Result<i32, String> {
-        Ok(0)
-    }
+fn compare_versions(a: &(u32, u32, u32), b: &(u32, u32, u32)) -> i32 {
+    if a.0 != b.0 { return a.0 as i32 - b.0 as i32; }
+    if a.1 != b.1 { return a.1 as i32 - b.1 as i32; }
+    a.2 as i32 - b.2 as i32
 }

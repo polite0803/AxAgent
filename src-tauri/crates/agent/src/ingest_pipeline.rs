@@ -73,7 +73,7 @@ impl IngestPipeline {
         let parsed = self.parse_source(&source).await?;
         let metadata = self.extract_metadata(&parsed).await?;
         let raw_path = self.save_to_raw(wiki_id, &source, &parsed).await?;
-        let source_record = self.save_source_record(wiki_id, &raw_path, &source, &metadata).await?;
+        let source_record = self.save_source_record(wiki_id, &raw_path, &source, &metadata, &parsed).await?;
 
         Ok(IngestResult {
             source_id: source_record.id,
@@ -143,11 +143,48 @@ impl IngestPipeline {
         Ok(text)
     }
 
-    async fn extract_metadata(&self, _content: &str) -> Result<SourceMetadata, String> {
+    async fn extract_metadata(&self, content: &str) -> Result<SourceMetadata, String> {
+        let mut title = None;
+        if !content.is_empty() {
+            for line in content.lines().take(20) {
+                let trimmed = line.trim();
+                if let Some(t) = trimmed.strip_prefix("# ") {
+                    title = Some(t.to_string());
+                    break;
+                }
+                if let Some(t) = trimmed.strip_prefix("Title: ") {
+                    title = Some(t.to_string());
+                    break;
+                }
+            }
+        }
+
+        let mut author = None;
+        for line in content.lines().take(30) {
+            let trimmed = line.trim();
+            if let Some(a) = trimmed.strip_prefix("Author: ") {
+                author = Some(a.to_string());
+                break;
+            }
+            if let Some(a) = trimmed.strip_prefix("author: ") {
+                author = Some(a.to_string());
+                break;
+            }
+        }
+
+        let mut created_date = None;
+        for line in content.lines().take(30) {
+            let trimmed = line.trim();
+            if let Some(d) = trimmed.strip_prefix("Date: ") {
+                created_date = Some(d.to_string());
+                break;
+            }
+        }
+
         Ok(SourceMetadata {
-            title: None,
-            author: None,
-            created_date: None,
+            title,
+            author,
+            created_date,
             page_count: None,
         })
     }
@@ -189,6 +226,7 @@ impl IngestPipeline {
         raw_path: &str,
         source: &IngestSource,
         metadata: &SourceMetadata,
+        content: &str,
     ) -> Result<wiki_sources::Model, String> {
         let id = gen_id();
         let mime_type = match source.source_type {
@@ -200,7 +238,7 @@ impl IngestPipeline {
             _ => "text/markdown",
         };
 
-        let content_hash = format!("{:x}", md5::compute(raw_path.as_bytes()));
+        let content_hash = format!("{:x}", md5::compute(content.as_bytes()));
 
         let am = wiki_sources::ActiveModel {
             id: Set(id),

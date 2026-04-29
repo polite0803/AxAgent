@@ -57,13 +57,28 @@ export function IngestPanel({ wikiId }: IngestPanelProps) {
   const handleFileUpload = async (file: File) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      await invoke('write_base64_to_file', {
-        path: `uploads/${file.name}`,
-        content: base64,
+      const base64 = btoa(
+        Array.from(new Uint8Array(arrayBuffer))
+          .map((b) => String.fromCharCode(b))
+          .join('')
+      );
+
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const sourceType = ext === 'pdf' ? 'pdf'
+        : ext === 'docx' ? 'docx'
+        : ext === 'xlsx' ? 'xlsx'
+        : ext === 'pptx' ? 'pptx'
+        : ext === 'html' ? 'web'
+        : 'markdown';
+
+      const sourceId = await invoke<string>('write_base64_to_file', {
+        wikiId,
+        fileName: file.name,
+        base64Content: base64,
+        sourceType,
       });
 
-      form.setFieldsValue({ path: `uploads/${file.name}` });
+      form.setFieldsValue({ path: file.name });
       message.success(t('wiki.llm.fileUploaded', { name: file.name }));
     } catch (e) {
       message.error(t('wiki.llm.uploadError', { error: String(e) }));

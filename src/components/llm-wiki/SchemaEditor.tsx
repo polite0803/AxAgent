@@ -79,8 +79,7 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
       if (editingSchema) {
         await invoke('llm_wiki_update_schema', {
           wikiId,
-          versionId: editingSchema.id,
-          schema: schemaObj,
+          content: schemaContent,
         });
         message.success(t('wiki.schema.updated', 'Schema updated'));
       } else {
@@ -104,7 +103,7 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
 
   const handleDeleteSchema = async (schemaId: string) => {
     try {
-      await invoke('llm_wiki_delete_schema', { wikiId, versionId: schemaId });
+      await invoke('llm_wiki_delete_schema', { wikiId });
       message.success(t('wiki.schema.deleted', 'Schema deleted'));
       loadSchemas();
     } catch (e) {

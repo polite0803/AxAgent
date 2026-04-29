@@ -150,6 +150,13 @@ interface LlmWikiState {
   ) => Promise<SchemaVersion | null>;
 
   loadOperations: (wikiId: string) => Promise<void>;
+
+  updateSchema: (wikiId: string, content: string) => Promise<void>;
+  deleteSchema: (wikiId: string) => Promise<void>;
+  lintVault: (wikiId: string) => Promise<LintResult[] | null>;
+  autoFix: (wikiId: string, noteId?: string) => Promise<string[] | null>;
+  askQuestion: (wikiId: string, question: string) => Promise<string | null>;
+  processSyncPending: (wikiId: string) => Promise<number | null>;
 }
 
 export const useLlmWikiStore = create<LlmWikiState>((set) => ({
@@ -291,6 +298,58 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       set({ operations });
     } catch (e) {
       set({ error: String(e) });
+    }
+  },
+
+  updateSchema: async (wikiId, content) => {
+    try {
+      await invoke('llm_wiki_update_schema', { wikiId, content });
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  deleteSchema: async (wikiId) => {
+    try {
+      await invoke('llm_wiki_delete_schema', { wikiId });
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  lintVault: async (wikiId) => {
+    try {
+      return await invoke<LintResult[]>('llm_wiki_lint_vault', { wikiId });
+    } catch (e) {
+      set({ error: String(e) });
+      return null;
+    }
+  },
+
+  autoFix: async (wikiId, noteId) => {
+    try {
+      return await invoke<string[]>('llm_wiki_auto_fix', { wikiId, noteId });
+    } catch (e) {
+      set({ error: String(e) });
+      return null;
+    }
+  },
+
+  askQuestion: async (wikiId, question) => {
+    try {
+      return await invoke<string>('llm_wiki_ask', { wikiId, question });
+    } catch (e) {
+      set({ error: String(e) });
+      return null;
+    }
+  },
+
+  processSyncPending: async (wikiId) => {
+    try {
+      return await invoke<number>('wiki_sync_process_pending', { wikiId });
+    } catch (e) {
+      set({ error: String(e) });
+      return null;
     }
   },
 }));
