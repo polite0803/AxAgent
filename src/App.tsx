@@ -14,6 +14,7 @@ import { invoke, isTauri, listen } from "@/lib/invoke";
 import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
 import { useConversationStore, useSettingsStore, useStreamStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
+import type { ThemePreset } from "@/theme/shadcnTheme";
 import { App as AntdApp, ConfigProvider, Layout, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import { enableD2, setDefaultI18nMap } from "markstream-react";
@@ -22,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./i18n";
 
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 const { useToken } = theme;
 
 /** Show the main window (it starts hidden to avoid white flash). */
@@ -147,18 +148,23 @@ function AppInner() {
           <GlobalCopyMenu />
           <Layout className="flex-1 overflow-hidden" style={{ backgroundColor: "transparent" }}>
             {!isInSettings && (
-              <Sider
-                width={48}
+              <div
+                className="ax-sidebar"
                 style={{
+                  width: 44,
                   backgroundColor: "transparent",
                   borderRight: "1px solid var(--border-color)",
+                  flexShrink: 0,
+                  overflow: "hidden",
                 }}
               >
                 <Sidebar />
-              </Sider>
+              </div>
             )}
             <Content className="overflow-hidden">
-              <ContentArea />
+              <div className="ax-page-transition" style={{ height: "100%" }}>
+                <ContentArea />
+              </div>
             </Content>
           </Layout>
         </>
@@ -171,13 +177,14 @@ function AppRoot() {
   const { i18n } = useTranslation();
   const themeMode = useSettingsStore((s) => s.settings.theme_mode);
   const primaryColor = useSettingsStore((s) => s.settings.primary_color);
+  const themePreset = useSettingsStore((s) => s.settings.theme_preset) as ThemePreset | undefined;
   const fontSize = useSettingsStore((s) => s.settings.font_size);
   const fontWeight = useSettingsStore((s) => s.settings.font_weight);
   const fontFamily = useSettingsStore((s) => s.settings.font_family);
   const codeFontFamily = useSettingsStore((s) => s.settings.code_font_family);
   const borderRadius = useSettingsStore((s) => s.settings.border_radius);
   const language = useSettingsStore((s) => s.settings.language);
-  const isDark = useResolvedDarkMode(themeMode);
+  const isDark = useResolvedDarkMode(themeMode, themePreset);
 
   useEffect(() => {
     document.documentElement.dataset.theme = isDark ? "dark" : "light";
@@ -300,6 +307,7 @@ function AppRoot() {
     borderRadius,
     fontFamily || undefined,
     codeFontFamily || undefined,
+    themePreset,
   );
 
   return (

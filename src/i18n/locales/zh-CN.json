@@ -693,6 +693,7 @@
     "themeLight": "浅色",
     "themeDark": "深色",
     "themeSystem": "跟随系统",
+    "themePreset": "主题预设",
     "autoStart": "开机自启动",
     "showOnStart": "启动时显示窗口",
     "minimizeToTray": "关闭时最小化到托盘",

@@ -5,7 +5,8 @@ import { create } from "zustand";
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: "zh-CN",
-  theme_mode: "system",
+  theme_mode: "dark",
+  theme_preset: "dark-elegance",
   primary_color: "#17A93D",
   border_radius: 8,
   auto_start: false,

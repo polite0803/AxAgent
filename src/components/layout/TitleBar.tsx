@@ -11,7 +11,7 @@ import {
   ArrowDownCircle,
   Bug,
   CloudUpload,
-  GitFork,
+  Ellipsis,
   Globe,
   MessageSquarePlus,
   Minus,
@@ -46,12 +46,6 @@ const THEME_OPTIONS = [
   { key: "light", icon: <Sun size={14} color={TITLEBAR_ICON_COLORS.Sun} />, labelKey: "settings.themeLight" },
   { key: "dark", icon: <Moon size={14} color={TITLEBAR_ICON_COLORS.Moon} />, labelKey: "settings.themeDark" },
 ] as const;
-
-const THEME_ICONS: Record<string, React.ReactNode> = {
-  system: <Monitor size={14} color={TITLEBAR_ICON_COLORS.Monitor} />,
-  light: <Sun size={14} color={TITLEBAR_ICON_COLORS.Sun} />,
-  dark: <Moon size={14} color={TITLEBAR_ICON_COLORS.Moon} />,
-};
 
 import { LANG_OPTIONS } from "@/lib/constants";
 
@@ -90,14 +84,9 @@ export function TitleBar() {
   }, [pinned, saveSettings]);
 
   const { checkForUpdate } = useUpdateChecker();
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
   const handleCheckUpdate = useCallback(async () => {
-    setCheckingUpdate(true);
-    try {
-      await checkForUpdate();
-    } finally {
-      setCheckingUpdate(false);
-    }
+    await checkForUpdate();
   }, [checkForUpdate]);
 
   const themeMenuItems: MenuProps["items"] = THEME_OPTIONS.map((opt) => ({
@@ -111,15 +100,6 @@ export function TitleBar() {
     icon: <span>{opt.icon}</span>,
     label: opt.label,
   }));
-
-  const handleThemeChange: MenuProps["onClick"] = ({ key }) => {
-    saveSettings({ theme_mode: key });
-  };
-
-  const handleLangChange: MenuProps["onClick"] = ({ key }) => {
-    i18n.changeLanguage(key);
-    saveSettings({ language: key });
-  };
 
   const handleSettingsToggle = () => {
     if (isInSettings) {
@@ -402,13 +382,13 @@ export function TitleBar() {
   }, []);
 
   const buttonBase: React.CSSProperties = {
-    width: 28,
-    height: 28,
+    width: 22,
+    height: 22,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: token.borderRadius,
-    fontSize: 14,
+    borderRadius: 4,
+    fontSize: 11,
     cursor: "pointer",
     border: "none",
     backgroundColor: "transparent",
@@ -427,12 +407,12 @@ export function TitleBar() {
 
   return (
     <div
-      className="title-bar-drag"
+      className="title-bar-drag ax-titlebar-compact"
       {...(!IS_WINDOWS ? { "data-tauri-drag-region": true } : {})}
       onMouseDown={handleDragMouseDown}
       onDoubleClick={IS_WINDOWS ? handleTitleBarDoubleClick : undefined}
       style={{
-        height: 36,
+        height: 28,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -481,14 +461,29 @@ export function TitleBar() {
               }}
             >
               {pinned
-                ? <Pin size={14} color={TITLEBAR_ICON_COLORS.Pin} />
-                : <PinOff size={14} color={TITLEBAR_ICON_COLORS.PinOff} />}
+                ? <Pin size={12} color={TITLEBAR_ICON_COLORS.Pin} />
+                : <PinOff size={12} color={TITLEBAR_ICON_COLORS.PinOff} />}
             </button>
           </Tooltip>
 
-          {/* Theme Dropdown */}
+          {/* Appearance: theme + language combined */}
           <Dropdown
-            menu={{ items: themeMenuItems, onClick: handleThemeChange, selectedKeys: [themeMode] }}
+            menu={{
+              items: [
+                { type: "group", label: t("settings.groupTheme"), children: themeMenuItems as any },
+                { type: "divider" },
+                ...langMenuItems as any,
+              ],
+              onClick: ({ key }) => {
+                if (THEME_OPTIONS.some((o) => o.key === key)) {
+                  saveSettings({ theme_mode: key });
+                } else {
+                  i18n.changeLanguage(key);
+                  saveSettings({ language: key });
+                }
+              },
+              selectedKeys: [themeMode, i18n.language],
+            }}
             trigger={["click"]}
             placement="bottomRight"
             destroyOnHidden
@@ -497,22 +492,7 @@ export function TitleBar() {
               style={{ ...buttonBase, color: token.colorTextSecondary }}
               {...hoverHandlers(token.colorTextSecondary)}
             >
-              {THEME_ICONS[themeMode] ?? <Monitor size={14} />}
-            </button>
-          </Dropdown>
-
-          {/* Language Dropdown */}
-          <Dropdown
-            menu={{ items: langMenuItems, onClick: handleLangChange, selectedKeys: [i18n.language] }}
-            trigger={["click"]}
-            placement="bottomRight"
-            destroyOnHidden
-          >
-            <button
-              style={{ ...buttonBase, color: token.colorTextSecondary }}
-              {...hoverHandlers(token.colorTextSecondary)}
-            >
-              <Globe size={14} color={TITLEBAR_ICON_COLORS.Globe} />
+              <Globe size={12} color={TITLEBAR_ICON_COLORS.Globe} />
             </button>
           </Dropdown>
 
@@ -627,15 +607,35 @@ export function TitleBar() {
                 }}
                 {...hoverHandlers(countdownText ? token.colorPrimary : token.colorTextSecondary)}
               >
-                <CloudUpload size={14} color={TITLEBAR_ICON_COLORS.CloudUpload} />
+                <CloudUpload size={12} color={TITLEBAR_ICON_COLORS.CloudUpload} />
                 {countdownText && <span>({countdownText})</span>}
               </button>
             </Tooltip>
           </Popover>
 
-          {/* GitHub */}
+          {/* More: GitHub, check update, reload */}
           <Dropdown
-            menu={{ items: githubMenuItems, onClick: handleGithubClick }}
+            menu={{
+              items: [
+                ...githubMenuItems as any,
+                { type: "divider" },
+                ...(isTauri() ? [{
+                  key: "checkUpdate",
+                  icon: <ArrowDownCircle size={12} color={TITLEBAR_ICON_COLORS.ArrowDownCircle} />,
+                  label: t("settings.checkUpdate"),
+                }] : []),
+                {
+                  key: "reload",
+                  icon: <RotateCcw size={12} color={TITLEBAR_ICON_COLORS.RotateCcw} />,
+                  label: t("desktop.reloadPage"),
+                },
+              ],
+              onClick: ({ key }) => {
+                if (key === "reload") handleReload();
+                else if (key === "checkUpdate") handleCheckUpdate();
+                else handleGithubClick({ key } as any);
+              },
+            }}
             trigger={["click"]}
             placement="bottomRight"
             destroyOnHidden
@@ -644,36 +644,9 @@ export function TitleBar() {
               style={{ ...buttonBase, color: token.colorTextSecondary }}
               {...hoverHandlers(token.colorTextSecondary)}
             >
-              <GitFork size={14} color={TITLEBAR_ICON_COLORS.GitFork} />
+              <Ellipsis size={12} color={TITLEBAR_ICON_COLORS.GitFork} />
             </button>
           </Dropdown>
-
-          {/* Check Update */}
-          {isTauri() && (
-            <Tooltip title={t("settings.checkUpdate")}>
-              <button
-                onClick={handleCheckUpdate}
-                disabled={checkingUpdate}
-                style={{ ...buttonBase, color: token.colorTextSecondary, opacity: checkingUpdate ? 0.5 : 1 }}
-                {...hoverHandlers(token.colorTextSecondary)}
-              >
-                {checkingUpdate
-                  ? <Spin size="small" />
-                  : <ArrowDownCircle size={14} color={TITLEBAR_ICON_COLORS.ArrowDownCircle} />}
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Reload Page */}
-          <Tooltip title={t("desktop.reloadPage")}>
-            <button
-              onClick={handleReload}
-              style={{ ...buttonBase, color: token.colorTextSecondary }}
-              {...hoverHandlers(token.colorTextSecondary)}
-            >
-              <RotateCcw size={14} color={TITLEBAR_ICON_COLORS.RotateCcw} />
-            </button>
-          </Tooltip>
 
           {/* Settings Toggle */}
           <Tooltip
@@ -707,8 +680,8 @@ export function TitleBar() {
               }}
             >
               {isInSettings
-                ? <XCircle size={14} color={TITLEBAR_ICON_COLORS.XCircle} />
-                : <Settings size={14} color={TITLEBAR_ICON_COLORS.Settings} />}
+                ? <XCircle size={12} color={TITLEBAR_ICON_COLORS.XCircle} />
+                : <Settings size={12} color={TITLEBAR_ICON_COLORS.Settings} />}
             </button>
           </Tooltip>
         </div>

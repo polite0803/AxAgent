@@ -16,3 +16,15 @@
 核心发现：P0 中 SubAgentCard 和前后端链路已实现，但面包屑导航和面板废弃未开始；
 P1 中权限系统、上下文压缩、插件体系和指令加载均已超预期实现，Tree-sitter 未实现；
 P2 中 Agent 自然语言生成和 Part-based 消息模型均未实现。
+
+## 2026-04-30 添加：用户 UI 偏好
+- 以深色主题为主要使用场景，默认 dark-elegance 预设
+- 标题栏、导航栏需保持紧凑不占空间（28px 标题栏、44px 侧栏 hover 展开至 180px）
+- 适量动画提升使用舒适性（页面切换、消息出现、hover 反馈）
+- 需要多主题可选但保持布局结构一致性
+
+## 2026-04-30 添加：UI 主题系统架构
+- 布局层（共享）：紧凑标题栏 28px、可折叠侧栏 44px↔180px、动画系统、文本选择
+- 主题层（可切换）：4 套预设 — dark-elegance / dark-neon / light-professional / light-minimal
+- 主题预设定义在 src/theme/shadcnTheme.ts 的 PRESETS 表中
+- 用户可在 DisplaySettings 中的主题预设选择器切换

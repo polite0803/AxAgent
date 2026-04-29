@@ -2,15 +2,15 @@
 @import 'markstream-react/index.css';
 @import 'overlayscrollbars/overlayscrollbars.css';
 
-/* Global theme tokens — synced with Ant Design ConfigProvider via JS */
+/* ── Base — dark-first defaults, overridden by JS on startup ──────── */
 :root {
-  --border-color: #f0f0f0;
-  --color-bg-container: #ffffff;
-  --color-bg-elevated: #ffffff;
-  --color-text: rgba(0, 0, 0, 0.88);
-  --color-text-secondary: rgba(0, 0, 0, 0.45);
+  --border-color: #2a2a2a;
+  --color-bg-container: #141414;
+  --color-bg-elevated: #1a1a1a;
+  --color-text: rgba(255, 255, 255, 0.85);
+  --color-text-secondary: rgba(255, 255, 255, 0.45);
   --color-primary: #1677ff;
-  --color-fill-alter: rgba(0, 0, 0, 0.02);
+  --color-fill-alter: rgba(255, 255, 255, 0.04);
   --font-size-base: 14px;
 }
 
@@ -25,6 +25,16 @@ body,
 body {
   margin: 0;
   font-weight: var(--font-weight, 400);
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+/* ── Selection: allow globally, disable only on draggable / interactive ── */
+.title-bar-drag,
+button,
+.ant-tabs-tab,
+.ant-menu-item,
+.ant-dropdown-menu-item {
   user-select: none;
   -webkit-user-select: none;
 }
@@ -34,7 +44,100 @@ body {
   outline: none !important;
 }
 
-/* Re-enable text selection for content areas */
+/* ── Animation system ─────────────────────────────────────────────── */
+
+/* Page enter: fade + slight slide */
+@keyframes ax-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ax-page-transition {
+  animation: ax-page-enter 0.18s ease-out;
+}
+
+/* Message slide-up (applied by ChatView) */
+@keyframes ax-message-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Button press feedback */
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+button {
+  transition: transform 0.08s ease-out, background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+
+/* Skeleton shimmer */
+@keyframes ax-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.ax-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-fill-alter, rgba(255,255,255,0.04)) 25%,
+    var(--color-fill-alter, rgba(255,255,255,0.08)) 50%,
+    var(--color-fill-alter, rgba(255,255,255,0.04)) 75%
+  );
+  background-size: 200% 100%;
+  animation: ax-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Subtle card lift on hover */
+.ax-card-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ax-card-lift:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Sidebar: hover expand ────────────────────────────────────────── */
+.ax-sidebar {
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* When expanded (width > icon-only), show text */
+.ax-sidebar .ax-nav-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.1s ease, width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ax-sidebar-expanded .ax-nav-label,
+.ax-sidebar:hover .ax-nav-label {
+  opacity: 1;
+  width: auto;
+}
+
+/* Active nav indicator (left bar) */
+.ax-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-primary, #1677ff);
+  transition: height 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ax-nav-item-active .ax-nav-indicator {
+  height: 24px;
+}
+
+/* ── TitleBar: compact mode ───────────────────────────────────────── */
+.ax-titlebar-compact {
+  height: 28px;
+  min-height: 28px;
+  font-size: 12px;
+}
+
+/* ── Re-enable text selection for content areas ───────────────────── */
 .ant-bubble-content,
 .markstream-react,
 textarea,
@@ -158,10 +261,7 @@ code,
   min-height: 21px !important;
 }
 
-/* Fix code block height: make code blocks size to actual content instead of fixed height.
-   The markstream-react library sets inline minHeight via JS based on getBoundingClientRect(),
-   which can be larger than the actual code content when Monaco editor initializes.
-   We override the CSS min-height and use contain:size to prevent layout overflow. */
+/* Fix code block height: make code blocks size to actual content instead of fixed height. */
 .code-block-content {
   min-height: 0 !important;
 }
@@ -192,18 +292,14 @@ b, strong, th,
   font-weight: calc(var(--font-weight, 400) + 200) !important;
 }
 
-/* Scrollbar styling — native scrollbars are hidden; OverlayScrollbars provides
- * a consistent, thin, semi-transparent custom scrollbar across all builds.
- * This avoids the WKWebView SDK-linked-on-or-after rendering bug where
- * scrollbar-color is parsed but ignored by the native renderer. */
-
+/* ── Scrollbar styling ────────────────────────────────────────────── */
 * {
   scrollbar-width: none !important;
 }
 
 .axagent-input-textarea {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 .axagent-input-textarea::-webkit-scrollbar {
@@ -215,27 +311,27 @@ b, strong, th,
 }
 
 .axagent-input-textarea::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 999px;
 }
 
 .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+html[data-theme="light"] .axagent-input-textarea {
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+html[data-theme="light"] .axagent-input-textarea::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="light"] .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.28);
 }
 
-html[data-theme="dark"] .axagent-input-textarea {
-  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
-}
-
-html[data-theme="dark"] .axagent-input-textarea::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.24);
-}
-
-html[data-theme="dark"] .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.34);
-}
-
-/* ── OverlayScrollbars custom theme ──────────────────────────────── */
+/* ── OverlayScrollbars custom theme ────────────────────────────────── */
 .os-theme-axagent {
   --os-size: 5px;
   --os-padding-perpendicular: 0;
@@ -245,29 +341,28 @@ html[data-theme="dark"] .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
   --os-track-bg-hover: transparent;
   --os-track-bg-active: transparent;
   --os-handle-border-radius: 3px;
-  --os-handle-bg: rgba(0, 0, 0, 0.08);
-  --os-handle-bg-hover: rgba(0, 0, 0, 0.18);
-  --os-handle-bg-active: rgba(0, 0, 0, 0.28);
+  --os-handle-bg: rgba(255, 255, 255, 0.08);
+  --os-handle-bg-hover: rgba(255, 255, 255, 0.18);
+  --os-handle-bg-active: rgba(255, 255, 255, 0.28);
   --os-handle-perpendicular-size: 100%;
   --os-handle-perpendicular-size-hover: 100%;
   --os-handle-perpendicular-size-active: 100%;
 }
-html[data-theme="dark"] .os-theme-axagent {
-  --os-handle-bg: rgba(255, 255, 255, 0.08);
-  --os-handle-bg-hover: rgba(255, 255, 255, 0.18);
-  --os-handle-bg-active: rgba(255, 255, 255, 0.28);
+html[data-theme="light"] .os-theme-axagent {
+  --os-handle-bg: rgba(0, 0, 0, 0.08);
+  --os-handle-bg-hover: rgba(0, 0, 0, 0.18);
+  --os-handle-bg-active: rgba(0, 0, 0, 0.28);
 }
 
-/* ── Chat scroll indicator (Bubble.List uses column-reverse, incompatible
- *    with OverlayScrollbars — uses a lightweight visual-only indicator) ── */
+/* ── Chat scroll indicator ─────────────────────────────────────────── */
 .chat-scroll-indicator {
-  background: rgba(0, 0, 0, 0.12);
-}
-html[data-theme="dark"] .chat-scroll-indicator {
   background: rgba(255, 255, 255, 0.12);
 }
+html[data-theme="light"] .chat-scroll-indicator {
+  background: rgba(0, 0, 0, 0.12);
+}
 
-/* Custom action item hover style (for actionRender items in @ant-design/x Actions) */
+/* Custom action item hover style */
 .axagent-action-item {
   cursor: pointer;
   display: inline-flex;
@@ -278,7 +373,7 @@ html[data-theme="dark"] .chat-scroll-indicator {
   transition: all 0.2s ease-in-out;
 }
 .axagent-action-item:hover {
-  background: var(--ant-color-bg-text-hover, rgba(0, 0, 0, 0.06));
+  background: var(--ant-color-bg-text-hover, rgba(255, 255, 255, 0.08));
 }
 
 /* Ant Design style overrides */
@@ -363,23 +458,19 @@ svg.lucide {
   50% { opacity: 0.7; }
 }
 
-/* ── markstream-react dark mode border overrides ──────────────────────── */
+/* ── markstream-react dark mode border overrides ────────────────────── */
 html[data-theme="dark"] .markstream-react .thematic-break {
   border-top-color: var(--hr-border-color, var(--border-color));
 }
 
-/* Chat markdown runs inside a Tauri WebView where `content-visibility:auto`
- * can leave freshly completed assistant content unpainted until the next
- * scroll/repaint. Keep chat message renderers painted in this shell only. */
+/* Chat markdown — keep painted in Tauri WebView */
 .axagent-chat-markdown > .markdown-renderer,
 .axagent-chat-markdown .code-block-container {
   content-visibility: visible;
   contain-intrinsic-size: auto;
 }
 
-/* Let AxAgent own chat bottom-lock behavior instead of browser scroll anchoring.
- * Async math / diagram rendering can otherwise move the viewport without any
- * user input and trick the chat into thinking the user scrolled away. */
+/* Let AxAgent own chat bottom-lock behavior */
 [data-message-area] .ant-bubble-list-scroll-box {
   overflow-anchor: none;
 }

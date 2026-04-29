@@ -694,6 +694,7 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",
+    "themePreset": "Theme Preset",
     "autoStart": "Start on Boot",
     "showOnStart": "Show on Start",
     "minimizeToTray": "Minimize to Tray on Close",

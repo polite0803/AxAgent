@@ -1,12 +1,20 @@
 import { formatThemeName, SHIKI_DARK_THEMES, SHIKI_LIGHT_THEMES } from "@/constants/codeThemes";
 import { invoke, isTauri } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
-import { ColorPicker, Divider, Segmented, Slider } from "antd";
+import type { ThemePreset } from "@/theme/shadcnTheme";
+import { ColorPicker, Divider, Segmented, Slider, Tooltip } from "antd";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
+
+const THEME_PRESETS: { key: ThemePreset; label: string; bg: string; accent: string }[] = [
+  { key: "dark-elegance", label: "Dark Elegance", bg: "#141414", accent: "#1677ff" },
+  { key: "dark-neon", label: "Dark Neon", bg: "#0a0a0f", accent: "#a855f7" },
+  { key: "light-professional", label: "Light Pro", bg: "#ffffff", accent: "#1677ff" },
+  { key: "light-minimal", label: "Light Minimal", bg: "#f8fafc", accent: "#0891b2" },
+];
 
 export function DisplaySettings() {
   const { t } = useTranslation();
@@ -44,6 +52,50 @@ export function DisplaySettings() {
               { label: t("settings.themeDark"), value: "dark", icon: <Moon size={14} /> },
             ]}
           />
+        </div>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={rowStyle} className="flex items-start justify-between">
+          <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
+          <div style={{ display: "flex", gap: 6 }}>
+            {THEME_PRESETS.map((preset) => {
+              const isActive = (settings.theme_preset || "dark-elegance") === preset.key;
+              return (
+                <Tooltip key={preset.key} title={preset.label}>
+                  <div
+                    onClick={() => saveSettings({ theme_preset: preset.key })}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 8,
+                      backgroundColor: preset.bg,
+                      cursor: "pointer",
+                      border: isActive ? `2px solid ${preset.accent}` : "2px solid transparent",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      transition: "border-color 0.2s",
+                      boxShadow: isActive ? `0 0 0 1px ${preset.accent}` : "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 20,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: preset.accent,
+                      }}
+                    />
+                    <div style={{ display: "flex", gap: 2 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.6 }} />
+                      <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.3 }} />
+                    </div>
+                  </div>
+                </Tooltip>
+              );
+            })}
+          </div>
         </div>
         <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">

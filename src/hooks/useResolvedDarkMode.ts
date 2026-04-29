@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import type { ThemePreset } from "@/theme/shadcnTheme";
 
-export function useResolvedDarkMode(themeMode: string): boolean {
+const DARK_PRESETS: Set<string> = new Set(["dark-elegance", "dark-neon"]);
+
+export function useResolvedDarkMode(themeMode: string, themePreset?: ThemePreset): boolean {
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches,
   );
@@ -13,6 +16,8 @@ export function useResolvedDarkMode(themeMode: string): boolean {
     return () => mq.removeEventListener("change", handler);
   }, [themeMode]);
 
+  // Preset takes highest priority for dark/light determination
+  if (themePreset) { return DARK_PRESETS.has(themePreset); }
   if (themeMode === "dark") { return true; }
   if (themeMode === "light") { return false; }
   return systemDark;

@@ -357,6 +357,7 @@ export interface GatewaySettings {
 export interface AppSettings {
   language: string;
   theme_mode: string;
+  theme_preset: string;
   primary_color: string;
   border_radius: number;
   auto_start: boolean;
