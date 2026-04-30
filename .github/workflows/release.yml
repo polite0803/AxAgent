@@ -127,8 +127,19 @@ jobs:
           echo "OPENSSL_INCLUDE_DIR=$(arch -x86_64 brew --prefix openssl@3)/include" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=$(arch -x86_64 brew --prefix openssl@3)/lib" >> $GITHUB_ENV
 
-      - name: Install Protoc
+      - name: Install Protoc (macOS)
+        if: matrix.os == 'macos-latest'
         run: brew install protobuf
+
+      - name: Install Protoc (Ubuntu)
+        if: matrix.os == 'ubuntu-24.04'
+        run: sudo apt-get install -y protobuf-compiler
+
+      - name: Install Protoc (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '27.x'
 
       - uses: actions/setup-node@v4
         with:

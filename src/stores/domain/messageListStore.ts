@@ -2,6 +2,7 @@ import { invoke } from "@/lib/invoke";
 import type { Message, MessagePage } from "@/types";
 import { create } from "zustand";
 import { MESSAGE_PAGE_SIZE, mergeOlderPages, mergePreservedMessages } from "./messageStore";
+import { useConversationStore } from "./conversationStore";
 
 interface MessageListState {
   messages: Message[];
@@ -65,9 +66,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
 
     set({ loadingOlder: true });
     try {
-      const activeConvId = (await import("./conversationStore")).useConversationStore
-        .getState()
-        .activeConversationId;
+      const activeConvId = useConversationStore.getState().activeConversationId;
       if (!activeConvId) return;
 
       const page = await invoke<MessagePage>("list_messages", {
