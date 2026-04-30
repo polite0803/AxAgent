@@ -1,6 +1,8 @@
 {
   "app": {
-    "name": "AxAgent"
+    "name": "AxAgent",
+    "title": "Smart Workspace",
+    "description": "AI-Powered Work Assistant"
   },
   "nav": {
     "chat": "Chat",

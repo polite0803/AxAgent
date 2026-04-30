@@ -1107,6 +1107,7 @@ mod tests {
             circuit_breaker: CircuitBreaker::default(),
             skill_id: None,
             skill_params: None,
+            expert_role_id: None,
         }
     }
 

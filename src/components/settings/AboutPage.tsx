@@ -58,11 +58,11 @@ export function AboutPage() {
       >
         <img
           src={logoUrl}
-          alt="AxAgent"
+          alt={t("app.name")}
           style={{ width: 96, height: 96, borderRadius: 20, marginBottom: 16 }}
           draggable={false}
         />
-        <div style={{ fontSize: 22, fontWeight: 600 }}>AxAgent</div>
+        <div style={{ fontSize: 22, fontWeight: 600 }}>{t("app.title")}</div>
         <Text type="secondary" style={{ marginTop: 4 }}>
           {t("settings.version")} {appVersion}
         </Text>

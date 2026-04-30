@@ -1,6 +1,8 @@
 {
   "app": {
-    "name": "AxAgent"
+    "name": "AxAgent",
+    "title": "智聊助手",
+    "description": "智能工作助手"
   },
   "nav": {
     "chat": "对话",

@@ -427,9 +427,9 @@ export function TitleBar() {
       {IS_WINDOWS
         ? (
           <div className="title-bar-nodrag" style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 8 }}>
-            <img src={appLogo} alt="AxAgent" style={{ width: 18, height: 18 }} draggable={false} />
+            <img src={appLogo} alt={t("app.name")} style={{ width: 18, height: 18 }} draggable={false} />
             <span style={{ fontSize: 13, fontWeight: 600, color: token.colorTextBase, userSelect: "none" }}>
-              AxAgent
+              {t("app.title")}
             </span>
           </div>
         )
