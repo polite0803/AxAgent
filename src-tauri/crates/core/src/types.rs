@@ -280,7 +280,11 @@ pub enum ContentBlock {
     #[serde(rename = "text")]
     Text { text: String },
     #[serde(rename = "tool_use")]
-    ToolUse { id: String, name: String, input: String },
+    ToolUse {
+        id: String,
+        name: String,
+        input: String,
+    },
     #[serde(rename = "tool_result")]
     ToolResult {
         tool_use_id: String,

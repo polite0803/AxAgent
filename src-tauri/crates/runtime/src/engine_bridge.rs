@@ -272,10 +272,20 @@ mod tests {
     async fn test_session_isolation() {
         let bridge = EngineBridge::new();
 
-        bridge.set_session_key(EngineId::Code, "code_session_1".to_string()).await;
-        bridge.set_session_key(EngineId::General, "general_session_1".to_string()).await;
+        bridge
+            .set_session_key(EngineId::Code, "code_session_1".to_string())
+            .await;
+        bridge
+            .set_session_key(EngineId::General, "general_session_1".to_string())
+            .await;
 
-        assert_eq!(bridge.session_key(EngineId::Code).await.unwrap(), "code_session_1");
-        assert_eq!(bridge.session_key(EngineId::General).await.unwrap(), "general_session_1");
+        assert_eq!(
+            bridge.session_key(EngineId::Code).await.unwrap(),
+            "code_session_1"
+        );
+        assert_eq!(
+            bridge.session_key(EngineId::General).await.unwrap(),
+            "general_session_1"
+        );
     }
 }

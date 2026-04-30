@@ -1,8 +1,8 @@
+use futures::{SinkExt, StreamExt};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
-use futures::{SinkExt, StreamExt};
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::message_gateway::platform_config::PlatformConfig;
@@ -145,11 +145,8 @@ async fn run_slack_socket_mode(
             break;
         }
 
-        let msg = match tokio::time::timeout(
-            std::time::Duration::from_secs(60),
-            ws_stream.next(),
-        )
-        .await
+        let msg = match tokio::time::timeout(std::time::Duration::from_secs(60), ws_stream.next())
+            .await
         {
             Ok(Some(Ok(msg))) => msg,
             Ok(Some(Err(e))) => {
@@ -195,19 +192,15 @@ async fn run_slack_socket_mode(
                             let text = event["text"].as_str().unwrap_or("");
 
                             if !text.is_empty() {
-                                let cb =
-                                    crate::message_gateway::platforms::get_message_callback();
+                                let cb = crate::message_gateway::platforms::get_message_callback();
                                 if let Some(cb) = cb {
                                     let bt = bot_token.to_string();
                                     let uid = user.to_string();
                                     let ch = channel.to_string();
                                     let t = text.to_string();
                                     tokio::spawn(async move {
-                                        let reply = cb
-                                            .on_message(
-                                                "slack", &uid, None, &ch, &t,
-                                            )
-                                            .await;
+                                        let reply =
+                                            cb.on_message("slack", &uid, None, &ch, &t).await;
                                         if let Some(reply_text) = reply {
                                             let client = reqwest::Client::new();
                                             let body = serde_json::json!({
@@ -216,10 +209,7 @@ async fn run_slack_socket_mode(
                                             });
                                             let _ = client
                                                 .post("https://slack.com/api/chat.postMessage")
-                                                .header(
-                                                    "Authorization",
-                                                    format!("Bearer {}", bt),
-                                                )
+                                                .header("Authorization", format!("Bearer {}", bt))
                                                 .header("Content-Type", "application/json")
                                                 .json(&body)
                                                 .send()

@@ -18,8 +18,8 @@ pub use image_gen::{
     ImageGenRequest, ImageGenResponse,
 };
 pub use transport::{
-    AnthropicTransport, ChatCompletionsTransport, ResponsesTransport,
-    TransportProvider, TransportRequest, TransportResponse, TransportStreamChunk,
+    AnthropicTransport, ChatCompletionsTransport, ResponsesTransport, TransportProvider,
+    TransportRequest, TransportResponse, TransportStreamChunk,
 };
 
 use async_trait::async_trait;

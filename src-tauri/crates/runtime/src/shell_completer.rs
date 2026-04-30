@@ -181,7 +181,10 @@ impl ShellCompleter {
         let mut sorted = candidates;
         sorted.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
 
-        sorted.into_iter().take(self.config.max_candidates).collect()
+        sorted
+            .into_iter()
+            .take(self.config.max_candidates)
+            .collect()
     }
 
     async fn provide_completions(&self, ctx: &CompletionContext) -> Vec<CompletionCandidate> {

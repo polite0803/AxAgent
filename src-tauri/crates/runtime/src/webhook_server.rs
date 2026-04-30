@@ -33,12 +33,16 @@ impl WebhookServer {
             .route("/health", get(health_handler))
             .route("/subscriptions", get(list_subscriptions_handler))
             .route("/subscriptions", post(create_subscription_handler))
-            .route("/subscriptions/:id", axum::routing::delete(delete_subscription_handler))
+            .route(
+                "/subscriptions/:id",
+                axum::routing::delete(delete_subscription_handler),
+            )
             .with_state(Arc::new(self.state));
-        tracing::info!("Webhook server listening on port {}", listener.local_addr().unwrap().port());
-        axum::serve(listener, app)
-            .await
-            .map_err(|e| e.to_string())
+        tracing::info!(
+            "Webhook server listening on port {}",
+            listener.local_addr().unwrap().port()
+        );
+        axum::serve(listener, app).await.map_err(|e| e.to_string())
     }
 
     pub fn shutdown(self) {
@@ -67,7 +71,8 @@ async fn create_subscription_handler(
     State(state): State<Arc<WebhookServerState>>,
     Json(req): Json<CreateSubscriptionRequest>,
 ) -> Result<Json<WebhookSubscription>, StatusCode> {
-    let events: Vec<WebhookEvent> = req.events
+    let events: Vec<WebhookEvent> = req
+        .events
         .iter()
         .filter_map(|e| WebhookEvent::from_event_str(e))
         .collect();

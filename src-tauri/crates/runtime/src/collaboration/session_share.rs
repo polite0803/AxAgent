@@ -164,11 +164,7 @@ impl SessionShareManager {
         Ok(role)
     }
 
-    pub fn leave_session(
-        &mut self,
-        session_id: &str,
-        user_id: &str,
-    ) -> Result<(), String> {
+    pub fn leave_session(&mut self, session_id: &str, user_id: &str) -> Result<(), String> {
         let session = self
             .sessions
             .get_mut(session_id)
@@ -214,11 +210,7 @@ impl SessionShareManager {
         Ok(())
     }
 
-    pub fn unshare_resource(
-        &mut self,
-        session_id: &str,
-        resource_id: &str,
-    ) -> Result<(), String> {
+    pub fn unshare_resource(&mut self, session_id: &str, resource_id: &str) -> Result<(), String> {
         let session = self
             .sessions
             .get_mut(session_id)
@@ -241,7 +233,10 @@ impl SessionShareManager {
             .get_mut(session_id)
             .ok_or_else(|| "Session not found".to_string())?;
 
-        if let Some(participant) = session.participants.iter_mut().find(|p| p.user_id == user_id)
+        if let Some(participant) = session
+            .participants
+            .iter_mut()
+            .find(|p| p.user_id == user_id)
         {
             participant.role = new_role;
             Ok(())

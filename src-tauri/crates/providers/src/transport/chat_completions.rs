@@ -46,9 +46,11 @@ impl ChatCompletionsTransport {
     }
 
     fn parse_response(&self, json: &Value) -> anyhow::Result<TransportResponse> {
-        let choices = json["choices"].as_array()
+        let choices = json["choices"]
+            .as_array()
             .ok_or_else(|| anyhow::anyhow!("No choices in response"))?;
-        let first = choices.first()
+        let first = choices
+            .first()
             .ok_or_else(|| anyhow::anyhow!("Empty choices"))?;
 
         let content = first["message"]["content"]
@@ -57,20 +59,25 @@ impl ChatCompletionsTransport {
             .to_string();
 
         let tool_calls = first["message"]["tool_calls"].as_array().map(|arr| {
-            arr.iter().map(|tc| TransportToolCall {
-                id: tc["id"].as_str().unwrap_or("").to_string(),
-                name: tc["function"]["name"].as_str().unwrap_or("").to_string(),
-                arguments: tc["function"]["arguments"].as_str().unwrap_or("{}").to_string(),
-            }).collect()
+            arr.iter()
+                .map(|tc| TransportToolCall {
+                    id: tc["id"].as_str().unwrap_or("").to_string(),
+                    name: tc["function"]["name"].as_str().unwrap_or("").to_string(),
+                    arguments: tc["function"]["arguments"]
+                        .as_str()
+                        .unwrap_or("{}")
+                        .to_string(),
+                })
+                .collect()
         });
 
-        let usage = json["usage"].as_object().map_or(TransportUsage::default(), |u| {
-            TransportUsage {
+        let usage = json["usage"]
+            .as_object()
+            .map_or(TransportUsage::default(), |u| TransportUsage {
                 prompt_tokens: u["prompt_tokens"].as_u64().unwrap_or(0) as u32,
                 completion_tokens: u["completion_tokens"].as_u64().unwrap_or(0) as u32,
                 total_tokens: u["total_tokens"].as_u64().unwrap_or(0) as u32,
-            }
-        });
+            });
 
         Ok(TransportResponse {
             content,
@@ -115,7 +122,9 @@ impl TransportProvider for ChatCompletionsTransport {
         request: TransportRequest,
         api_key: &str,
         base_url: Option<&str>,
-    ) -> anyhow::Result<Box<dyn futures::Stream<Item = anyhow::Result<TransportStreamChunk>> + Send + Unpin>> {
+    ) -> anyhow::Result<
+        Box<dyn futures::Stream<Item = anyhow::Result<TransportStreamChunk>> + Send + Unpin>,
+    > {
         let url = format!(
             "{}/chat/completions",
             base_url.unwrap_or("https://api.openai.com/v1")

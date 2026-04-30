@@ -321,24 +321,19 @@ Return the analysis in this JSON format:
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .map(|e| {
-                        UIElementInfo {
-                            element_type: e["element_type"]
-                                .as_str()
-                                .unwrap_or("unknown")
-                                .to_string(),
-                            name: e["name"].as_str().unwrap_or("").to_string(),
-                            description: e["description"].as_str().unwrap_or("").to_string(),
-                            bounds: ElementBounds {
-                                x: e["bounds"]["x"].as_f64().unwrap_or(0.0),
-                                y: e["bounds"]["y"].as_f64().unwrap_or(0.0),
-                                width: e["bounds"]["width"].as_f64().unwrap_or(0.0),
-                                height: e["bounds"]["height"].as_f64().unwrap_or(0.0),
-                            },
-                            clickable: e["clickable"].as_bool().unwrap_or(false),
-                            editable: e["editable"].as_bool().unwrap_or(false),
-                            confidence: e["confidence"].as_f64().unwrap_or(0.5) as f32,
-                        }
+                    .map(|e| UIElementInfo {
+                        element_type: e["element_type"].as_str().unwrap_or("unknown").to_string(),
+                        name: e["name"].as_str().unwrap_or("").to_string(),
+                        description: e["description"].as_str().unwrap_or("").to_string(),
+                        bounds: ElementBounds {
+                            x: e["bounds"]["x"].as_f64().unwrap_or(0.0),
+                            y: e["bounds"]["y"].as_f64().unwrap_or(0.0),
+                            width: e["bounds"]["width"].as_f64().unwrap_or(0.0),
+                            height: e["bounds"]["height"].as_f64().unwrap_or(0.0),
+                        },
+                        clickable: e["clickable"].as_bool().unwrap_or(false),
+                        editable: e["editable"].as_bool().unwrap_or(false),
+                        confidence: e["confidence"].as_f64().unwrap_or(0.5) as f32,
                     })
                     .collect()
             })
@@ -348,15 +343,13 @@ Return the analysis in this JSON format:
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .map(|a| {
-                        SuggestedAction {
-                            action_type: ActionType::from_str(
-                                a["action_type"].as_str().unwrap_or("none"),
-                            ),
-                            target_element: a["target_element"].as_str().unwrap_or("").to_string(),
-                            description: a["description"].as_str().unwrap_or("").to_string(),
-                            reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
-                        }
+                    .map(|a| SuggestedAction {
+                        action_type: ActionType::from_str(
+                            a["action_type"].as_str().unwrap_or("none"),
+                        ),
+                        target_element: a["target_element"].as_str().unwrap_or("").to_string(),
+                        description: a["description"].as_str().unwrap_or("").to_string(),
+                        reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
                     })
                     .collect()
             })
@@ -427,15 +420,13 @@ Return the analysis in this JSON format:
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .map(|a| {
-                        SuggestedAction {
-                            action_type: ActionType::from_str(
-                                a["action_type"].as_str().unwrap_or("none"),
-                            ),
-                            target_element: a["target_element"].as_str().unwrap_or("").to_string(),
-                            description: a["description"].as_str().unwrap_or("").to_string(),
-                            reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
-                        }
+                    .map(|a| SuggestedAction {
+                        action_type: ActionType::from_str(
+                            a["action_type"].as_str().unwrap_or("none"),
+                        ),
+                        target_element: a["target_element"].as_str().unwrap_or("").to_string(),
+                        description: a["description"].as_str().unwrap_or("").to_string(),
+                        reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
                     })
                     .collect()
             })

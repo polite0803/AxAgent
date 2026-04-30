@@ -910,11 +910,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(
-                        ColumnDef::new(Conversations::CategoryId)
-                            .string()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(Conversations::CategoryId).string().null())
                     .col(
                         ColumnDef::new(Conversations::ParentConversationId)
                             .string()
@@ -926,16 +922,8 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("chat"),
                     )
-                    .col(
-                        ColumnDef::new(Conversations::WorkStrategy)
-                            .string()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Conversations::Scenario)
-                            .string()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(Conversations::WorkStrategy).string().null())
+                    .col(ColumnDef::new(Conversations::Scenario).string().null())
                     .col(
                         ColumnDef::new(Conversations::EnabledSkillIds)
                             .string()
@@ -2710,11 +2698,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(
-                        ColumnDef::new(SkillStates::UpdatedAt)
-                            .integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(SkillStates::UpdatedAt).integer().not_null())
                     .to_owned(),
             )
             .await?;
@@ -2755,11 +2739,7 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(AgentSessions::SdkContextJson)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(AgentSessions::SdkContextJson).text().null())
                     .col(
                         ColumnDef::new(AgentSessions::SdkContextBackupJson)
                             .text()
@@ -2777,16 +2757,8 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0.0),
                     )
-                    .col(
-                        ColumnDef::new(AgentSessions::CreatedAt)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(AgentSessions::UpdatedAt)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(AgentSessions::CreatedAt).string().not_null())
+                    .col(ColumnDef::new(AgentSessions::UpdatedAt).string().not_null())
                     .to_owned(),
             )
             .await?;
@@ -2835,7 +2807,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Wikis::Id).string().not_null().primary_key())
                     .col(ColumnDef::new(Wikis::Name).string().not_null())
                     .col(ColumnDef::new(Wikis::RootPath).string().not_null())
-                    .col(ColumnDef::new(Wikis::SchemaVersion).string().not_null().default("1.0"))
+                    .col(
+                        ColumnDef::new(Wikis::SchemaVersion)
+                            .string()
+                            .not_null()
+                            .default("1.0"),
+                    )
                     .col(ColumnDef::new(Wikis::Description).string().null())
                     .col(ColumnDef::new(Wikis::CreatedAt).integer().not_null())
                     .col(ColumnDef::new(Wikis::UpdatedAt).integer().not_null())
@@ -2848,7 +2825,12 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(WikiSources::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(WikiSources::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(WikiSources::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(WikiSources::WikiId).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
@@ -2860,7 +2842,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(WikiSources::SourcePath).string().not_null())
                     .col(ColumnDef::new(WikiSources::Title).string().not_null())
                     .col(ColumnDef::new(WikiSources::MimeType).string().not_null())
-                    .col(ColumnDef::new(WikiSources::SizeBytes).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(WikiSources::SizeBytes)
+                            .big_integer()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(WikiSources::ContentHash).string().not_null())
                     .col(ColumnDef::new(WikiSources::MetadataJson).json().null())
                     .col(ColumnDef::new(WikiSources::CreatedAt).integer().not_null())
@@ -2874,7 +2860,12 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(WikiPages::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(WikiPages::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(WikiPages::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(WikiPages::WikiId).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
@@ -2905,7 +2896,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(WikiOperations::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(WikiOperations::Id).big_integer().not_null().primary_key().auto_increment())
+                    .col(
+                        ColumnDef::new(WikiOperations::Id)
+                            .big_integer()
+                            .not_null()
+                            .primary_key()
+                            .auto_increment(),
+                    )
                     .col(ColumnDef::new(WikiOperations::WikiId).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
@@ -2918,12 +2915,20 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(WikiOperations::TargetType).string().not_null())
+                    .col(
+                        ColumnDef::new(WikiOperations::TargetType)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(WikiOperations::TargetId).string().not_null())
                     .col(ColumnDef::new(WikiOperations::Status).string().not_null())
                     .col(ColumnDef::new(WikiOperations::DetailsJson).json().null())
                     .col(ColumnDef::new(WikiOperations::ErrorMessage).text().null())
-                    .col(ColumnDef::new(WikiOperations::CreatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(WikiOperations::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(WikiOperations::CompletedAt).integer().null())
                     .to_owned(),
             )
@@ -2934,7 +2939,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(WikiSyncQueue::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(WikiSyncQueue::Id).big_integer().not_null().primary_key().auto_increment())
+                    .col(
+                        ColumnDef::new(WikiSyncQueue::Id)
+                            .big_integer()
+                            .not_null()
+                            .primary_key()
+                            .auto_increment(),
+                    )
                     .col(ColumnDef::new(WikiSyncQueue::WikiId).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
@@ -2943,10 +2954,19 @@ impl MigrationTrait for Migration {
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .col(ColumnDef::new(WikiSyncQueue::EventType).string().not_null())
-                    .col(ColumnDef::new(WikiSyncQueue::TargetType).string().not_null())
+                    .col(
+                        ColumnDef::new(WikiSyncQueue::TargetType)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(WikiSyncQueue::TargetId).string().not_null())
                     .col(ColumnDef::new(WikiSyncQueue::Payload).json().null())
-                    .col(ColumnDef::new(WikiSyncQueue::Status).string().not_null().default("pending"))
+                    .col(
+                        ColumnDef::new(WikiSyncQueue::Status)
+                            .string()
+                            .not_null()
+                            .default("pending"),
+                    )
                     .col(
                         ColumnDef::new(WikiSyncQueue::RetryCount)
                             .integer()
@@ -2954,7 +2974,11 @@ impl MigrationTrait for Migration {
                             .default(0),
                     )
                     .col(ColumnDef::new(WikiSyncQueue::ErrorMessage).text().null())
-                    .col(ColumnDef::new(WikiSyncQueue::CreatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(WikiSyncQueue::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(WikiSyncQueue::ProcessedAt).integer().null())
                     .to_owned(),
             )
@@ -2965,7 +2989,12 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(NoteLinks::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(NoteLinks::Id).integer().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(NoteLinks::Id)
+                            .integer()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(NoteLinks::VaultId).string().not_null())
                     .col(ColumnDef::new(NoteLinks::SourceNoteId).string().not_null())
                     .col(ColumnDef::new(NoteLinks::TargetNoteId).string().not_null())
@@ -2981,13 +3010,30 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(NoteBacklinks::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(NoteBacklinks::Id).integer().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(NoteBacklinks::Id)
+                            .integer()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(NoteBacklinks::VaultId).string().not_null())
-                    .col(ColumnDef::new(NoteBacklinks::SourceNoteId).string().not_null())
-                    .col(ColumnDef::new(NoteBacklinks::TargetNoteId).string().not_null())
+                    .col(
+                        ColumnDef::new(NoteBacklinks::SourceNoteId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(NoteBacklinks::TargetNoteId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(NoteBacklinks::LinkText).string().null())
                     .col(ColumnDef::new(NoteBacklinks::LinkType).string().not_null())
-                    .col(ColumnDef::new(NoteBacklinks::CreatedAt).integer().not_null())
+                    .col(
+                        ColumnDef::new(NoteBacklinks::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -3004,9 +3050,24 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Plans::ConversationId).string().not_null())
                     .col(ColumnDef::new(Plans::UserMessageId).string().not_null())
                     .col(ColumnDef::new(Plans::Title).string().not_null())
-                    .col(ColumnDef::new(Plans::StepsJson).string().not_null().default("[]"))
-                    .col(ColumnDef::new(Plans::Status).string().not_null().default("draft"))
-                    .col(ColumnDef::new(Plans::IsActive).integer().not_null().default(1))
+                    .col(
+                        ColumnDef::new(Plans::StepsJson)
+                            .string()
+                            .not_null()
+                            .default("[]"),
+                    )
+                    .col(
+                        ColumnDef::new(Plans::Status)
+                            .string()
+                            .not_null()
+                            .default("draft"),
+                    )
+                    .col(
+                        ColumnDef::new(Plans::IsActive)
+                            .integer()
+                            .not_null()
+                            .default(1),
+                    )
                     .col(ColumnDef::new(Plans::CreatedUnderStrategy).string().null())
                     .col(ColumnDef::new(Plans::CreatedAt).integer().not_null())
                     .col(ColumnDef::new(Plans::UpdatedAt).integer().not_null())
@@ -3023,11 +3084,9 @@ impl MigrationTrait for Migration {
         // Add work_strategy column for existing databases
         // Use raw SQL to safely add the column if it doesn't exist
         let db = manager.get_connection();
-        db.execute_unprepared(
-            "ALTER TABLE conversations ADD COLUMN work_strategy TEXT"
-        )
-        .await
-        .ok(); // Silently ignore if column already exists
+        db.execute_unprepared("ALTER TABLE conversations ADD COLUMN work_strategy TEXT")
+            .await
+            .ok(); // Silently ignore if column already exists
 
         // Agency experts table — imported from agency-agents-zh
         manager
@@ -3035,28 +3094,54 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(AgencyExperts::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(AgencyExperts::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(AgencyExperts::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(AgencyExperts::Name).string().not_null())
                     .col(ColumnDef::new(AgencyExperts::Description).string().null())
                     .col(ColumnDef::new(AgencyExperts::Category).string().not_null())
-                    .col(ColumnDef::new(AgencyExperts::SystemPrompt).string().not_null())
+                    .col(
+                        ColumnDef::new(AgencyExperts::SystemPrompt)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(AgencyExperts::Color).string().null())
                     .col(ColumnDef::new(AgencyExperts::SourceDir).string().not_null())
-                    .col(ColumnDef::new(AgencyExperts::IsEnabled).integer().not_null().default(1))
-                    .col(ColumnDef::new(AgencyExperts::ImportedAt).integer().not_null())
-                    .col(ColumnDef::new(AgencyExperts::RecommendedWorkflows).string().null())
-                    .col(ColumnDef::new(AgencyExperts::RecommendedTools).string().null())
+                    .col(
+                        ColumnDef::new(AgencyExperts::IsEnabled)
+                            .integer()
+                            .not_null()
+                            .default(1),
+                    )
+                    .col(
+                        ColumnDef::new(AgencyExperts::ImportedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgencyExperts::RecommendedWorkflows)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgencyExperts::RecommendedTools)
+                            .string()
+                            .null(),
+                    )
                     .to_owned(),
             )
             .await?;
 
         // Add agency expert columns for existing databases
-        db.execute_unprepared(
-            "ALTER TABLE agency_experts ADD COLUMN recommended_workflows TEXT"
-        ).await.ok();
-        db.execute_unprepared(
-            "ALTER TABLE agency_experts ADD COLUMN recommended_tools TEXT"
-        ).await.ok();
+        db.execute_unprepared("ALTER TABLE agency_experts ADD COLUMN recommended_workflows TEXT")
+            .await
+            .ok();
+        db.execute_unprepared("ALTER TABLE agency_experts ADD COLUMN recommended_tools TEXT")
+            .await
+            .ok();
 
         Ok(())
     }

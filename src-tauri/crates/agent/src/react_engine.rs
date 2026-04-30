@@ -283,10 +283,7 @@ impl ReActEngine {
                                 latest.result = Some(action_result.to_observation());
                                 latest.observation = Some(action_result.to_observation());
                                 self.emit(ThoughtEvent::StepCompleted(latest.clone()));
-                                return Ok((
-                                    ReasoningState::Observing,
-                                    action_result.is_success(),
-                                ));
+                                return Ok((ReasoningState::Observing, action_result.is_success()));
                             }
                             Err(e) => {
                                 latest.result = Some(format!("Error: {}", e));
@@ -303,7 +300,9 @@ impl ReActEngine {
             ReasoningState::Observing => {
                 if let Some(latest) = chain.latest_step() {
                     let verification = if self.config.verification_enabled {
-                        self.verifier.verify(latest, user_input).await
+                        self.verifier
+                            .verify(latest, user_input)
+                            .await
                             .map_err(|e| ReActError::VerificationError(e.to_string()))?
                     } else {
                         VerificationResult::valid("Verification skipped".to_string())
@@ -347,7 +346,8 @@ impl ReActEngine {
 
     fn analyze_input(&self, input: &str) -> String {
         let word_count = input.split_whitespace().count();
-        let has_code = input.contains("```") || input.contains("function") || input.contains("class");
+        let has_code =
+            input.contains("```") || input.contains("function") || input.contains("class");
         let has_questions = input.contains('?');
 
         let complexity = if word_count > 100 {
@@ -411,11 +411,7 @@ impl ReActEngine {
 
     fn generate_reflection(&self, chain: &ThoughtChain, context: &mut ReasoningContext) -> String {
         let total_steps = chain.steps.len();
-        let successful_steps = chain
-            .steps
-            .iter()
-            .filter(|s| s.is_verified)
-            .count();
+        let successful_steps = chain.steps.iter().filter(|s| s.is_verified).count();
         let failed_steps = total_steps - successful_steps;
 
         format!(

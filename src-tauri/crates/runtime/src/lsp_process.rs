@@ -104,7 +104,12 @@ impl LspProcess {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| format!("Failed to spawn LSP server '{}': {}", self.config.command, e))?;
+            .map_err(|e| {
+                format!(
+                    "Failed to spawn LSP server '{}': {}",
+                    self.config.command, e
+                )
+            })?;
 
         let stdin = child
             .stdin
@@ -173,7 +178,10 @@ impl LspProcess {
 
         {
             let mut inner = self.inner.lock().await;
-            inner.capabilities = result.get("capabilities").cloned().unwrap_or(serde_json::json!({}));
+            inner.capabilities = result
+                .get("capabilities")
+                .cloned()
+                .unwrap_or(serde_json::json!({}));
             inner.initialized = true;
         }
 
@@ -184,10 +192,12 @@ impl LspProcess {
     }
 
     pub async fn shutdown(&self) -> Result<(), String> {
-        self.shutdown.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.shutdown
+            .store(true, std::sync::atomic::Ordering::SeqCst);
 
         let _ = self.send_request("shutdown", serde_json::Value::Null).await;
-        self.send_notification("exit", serde_json::Value::Null).await?;
+        self.send_notification("exit", serde_json::Value::Null)
+            .await?;
 
         let mut inner = self.inner.lock().await;
         if let Some(mut child) = inner.child.take() {
@@ -229,7 +239,8 @@ impl LspProcess {
             }
         });
 
-        self.send_notification("textDocument/didClose", params).await
+        self.send_notification("textDocument/didClose", params)
+            .await
     }
 
     pub async fn change_document(
@@ -248,10 +259,16 @@ impl LspProcess {
             "contentChanges": changes
         });
 
-        self.send_notification("textDocument/didChange", params).await
+        self.send_notification("textDocument/didChange", params)
+            .await
     }
 
-    pub async fn hover(&self, path: &str, line: u32, character: u32) -> Result<serde_json::Value, String> {
+    pub async fn hover(
+        &self,
+        path: &str,
+        line: u32,
+        character: u32,
+    ) -> Result<serde_json::Value, String> {
         let uri = format!("file://{}", path);
 
         let params = serde_json::json!({
@@ -318,7 +335,8 @@ impl LspProcess {
             "textDocument": { "uri": uri }
         });
 
-        self.send_request("textDocument/documentSymbol", params).await
+        self.send_request("textDocument/documentSymbol", params)
+            .await
     }
 
     pub async fn formatting(&self, path: &str) -> Result<serde_json::Value, String> {
@@ -502,7 +520,8 @@ impl LspProcess {
                                 .unwrap_or(&empty_range);
                             new_diags.push(LspDiagnostic {
                                 path: path.to_string(),
-                                line: start.get("line").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                                line: start.get("line").and_then(|v| v.as_u64()).unwrap_or(0)
+                                    as u32,
                                 character: start
                                     .get("character")
                                     .and_then(|v| v.as_u64())

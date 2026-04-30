@@ -1,6 +1,4 @@
-use axagent_core::types::{
-    ChatContent, ChatMessage, ChatRequest, ContentPart, ImageUrl,
-};
+use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ContentPart, ImageUrl};
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -129,9 +127,7 @@ impl VisionPipeline {
                     ContentPart {
                         r#type: "image_url".to_string(),
                         text: None,
-                        image_url: Some(ImageUrl {
-                            url: base64_image,
-                        }),
+                        image_url: Some(ImageUrl { url: base64_image }),
                     },
                 ]),
                 tool_calls: None,
@@ -163,8 +159,7 @@ impl VisionPipeline {
             .await
             .map_err(|e| format!("Vision analysis failed: {}", e))?;
 
-        let text_content = if matches!(task, VisionTask::Ocr | VisionTask::CodeScreenshotReading)
-        {
+        let text_content = if matches!(task, VisionTask::Ocr | VisionTask::CodeScreenshotReading) {
             Some(response.content.clone())
         } else {
             None

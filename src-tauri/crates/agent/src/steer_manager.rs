@@ -50,11 +50,7 @@ impl SteerManager {
 
     pub async fn drain_pending(&self) -> Vec<SteerMessage> {
         let mut queue = self.queue.write().await;
-        let pending: Vec<SteerMessage> = queue
-            .iter()
-            .filter(|m| !m.consumed)
-            .cloned()
-            .collect();
+        let pending: Vec<SteerMessage> = queue.iter().filter(|m| !m.consumed).cloned().collect();
         for msg in queue.iter_mut() {
             msg.consumed = true;
         }

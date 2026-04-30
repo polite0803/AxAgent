@@ -147,9 +147,7 @@ fn test_resolve_chat_url_path_without_slash() {
 
 #[test]
 fn test_parse_valid_base64_data_url() {
-    let result = parse_base64_data_url(
-        "data:image/png;base64,iVBORw0KGgo="
-    );
+    let result = parse_base64_data_url("data:image/png;base64,iVBORw0KGgo=");
     assert!(result.is_some());
     let (mime, data) = result.unwrap();
     assert_eq!(mime, "image/png");
@@ -199,7 +197,7 @@ fn test_diagnose_401_authentication_error() {
     let msg = diagnose_http_status(
         "OpenAI",
         reqwest::StatusCode::UNAUTHORIZED,
-        "Invalid API key"
+        "Invalid API key",
     );
     assert!(msg.contains("401"));
     assert!(msg.contains("Authentication failed"));
@@ -211,7 +209,7 @@ fn test_diagnose_429_rate_limit() {
     let msg = diagnose_http_status(
         "Anthropic",
         reqwest::StatusCode::TOO_MANY_REQUESTS,
-        "Rate limit exceeded"
+        "Rate limit exceeded",
     );
     assert!(msg.contains("429"));
     assert!(msg.contains("Rate limit exceeded"));
@@ -222,7 +220,7 @@ fn test_diagnose_500_internal_error() {
     let msg = diagnose_http_status(
         "Gemini",
         reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-        "Internal error"
+        "Internal error",
     );
     assert!(msg.contains("500"));
     assert!(msg.contains("Internal server error"));
@@ -233,7 +231,7 @@ fn test_diagnose_400_bad_request() {
     let msg = diagnose_http_status(
         "Ollama",
         reqwest::StatusCode::BAD_REQUEST,
-        "Bad request body"
+        "Bad request body",
     );
     assert!(msg.contains("400"));
     assert!(msg.contains("Bad request"));
@@ -241,11 +239,7 @@ fn test_diagnose_400_bad_request() {
 
 #[test]
 fn test_diagnose_404_not_found() {
-    let msg = diagnose_http_status(
-        "Hermes",
-        reqwest::StatusCode::NOT_FOUND,
-        "Not found"
-    );
+    let msg = diagnose_http_status("Hermes", reqwest::StatusCode::NOT_FOUND, "Not found");
     assert!(msg.contains("404"));
     assert!(msg.contains("Not found"));
 }
@@ -255,7 +249,7 @@ fn test_diagnose_unknown_status_code() {
     let msg = diagnose_http_status(
         "test-provider",
         reqwest::StatusCode::IM_A_TEAPOT,
-        "I'm a teapot"
+        "I'm a teapot",
     );
     assert!(msg.contains("418"));
     assert!(msg.contains("I'm a teapot"));

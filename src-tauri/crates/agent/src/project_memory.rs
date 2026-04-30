@@ -19,18 +19,23 @@ impl ProjectMemory {
         if !memory_path.exists() {
             return Ok(None);
         }
-        let content =
-            tokio::fs::read_to_string(&memory_path).await.map_err(|e| e.to_string())?;
+        let content = tokio::fs::read_to_string(&memory_path)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(Some(Self::parse_from_markdown(&content, project_path)))
     }
 
     pub async fn save(&self) -> Result<(), String> {
         let memory_path = PathBuf::from(&self.project_path).join(Self::MEMORY_FILE);
         if let Some(parent) = memory_path.parent() {
-            tokio::fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| e.to_string())?;
         }
         let content = self.to_markdown();
-        tokio::fs::write(&memory_path, content).await.map_err(|e| e.to_string())
+        tokio::fs::write(&memory_path, content)
+            .await
+            .map_err(|e| e.to_string())
     }
 
     pub fn to_markdown(&self) -> String {

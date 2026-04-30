@@ -5,7 +5,9 @@ use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::RwLock;
 
-use super::backend_trait::{BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput};
+use super::backend_trait::{
+    BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput,
+};
 
 #[allow(dead_code)]
 pub struct SshBackend {
@@ -128,11 +130,7 @@ impl TerminalBackend for SshBackend {
         *self.connected.read().await
     }
 
-    async fn spawn_session(
-        &self,
-        session_id: &str,
-        config: SpawnConfig,
-    ) -> anyhow::Result<()> {
+    async fn spawn_session(&self, session_id: &str, config: SpawnConfig) -> anyhow::Result<()> {
         let shell = config.shell.unwrap_or_else(|| "/bin/bash".to_string());
 
         let mut ssh_args = self.build_ssh_args();

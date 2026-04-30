@@ -64,20 +64,11 @@ pub trait TerminalBackend: Send + Sync {
 
     async fn is_connected(&self) -> bool;
 
-    async fn spawn_session(
-        &self,
-        session_id: &str,
-        config: SpawnConfig,
-    ) -> anyhow::Result<()>;
+    async fn spawn_session(&self, session_id: &str, config: SpawnConfig) -> anyhow::Result<()>;
 
     async fn write_to_session(&self, session_id: &str, data: &[u8]) -> anyhow::Result<()>;
 
-    async fn resize_session(
-        &self,
-        session_id: &str,
-        rows: u16,
-        cols: u16,
-    ) -> anyhow::Result<()>;
+    async fn resize_session(&self, session_id: &str, rows: u16, cols: u16) -> anyhow::Result<()>;
 
     async fn kill_session(&self, session_id: &str) -> anyhow::Result<()>;
 

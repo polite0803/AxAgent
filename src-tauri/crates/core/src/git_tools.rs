@@ -104,10 +104,7 @@ impl GitTools {
         })
     }
 
-    pub fn get_branch_diff(
-        repo_path: &str,
-        base_branch: &str,
-    ) -> Result<GitDiffSummary, String> {
+    pub fn get_branch_diff(repo_path: &str, base_branch: &str) -> Result<GitDiffSummary, String> {
         let stat_output = run_git(
             repo_path,
             &["diff", &format!("{}...HEAD", base_branch), "--numstat"],
@@ -229,7 +226,11 @@ impl GitTools {
     pub fn list_branches(repo_path: &str) -> Result<Vec<BranchInfo>, String> {
         let output = run_git(
             repo_path,
-            &["branch", "-a", "--format=%(refname:short)|%(HEAD)|%(upstream:short)|%(creatordate:short)"],
+            &[
+                "branch",
+                "-a",
+                "--format=%(refname:short)|%(HEAD)|%(upstream:short)|%(creatordate:short)",
+            ],
         )?;
 
         let current_branch = run_git(repo_path, &["rev-parse", "--abbrev-ref", "HEAD"])
@@ -265,17 +266,10 @@ impl GitTools {
             .collect())
     }
 
-    pub fn get_log(
-        repo_path: &str,
-        max_count: usize,
-    ) -> Result<Vec<GitLogEntry>, String> {
+    pub fn get_log(repo_path: &str, max_count: usize) -> Result<Vec<GitLogEntry>, String> {
         let output = run_git(
             repo_path,
-            &[
-                "log",
-                &format!("-n{}", max_count),
-                "--format=%H|%an|%ai|%s",
-            ],
+            &["log", &format!("-n{}", max_count), "--format=%H|%an|%ai|%s"],
         )?;
 
         Ok(output
@@ -320,8 +314,15 @@ impl GitTools {
         if !status.is_empty() {
             context.push_str("Working tree status:\n");
             for entry in &status {
-                let staged_marker = if entry.staged { "[staged]" } else { "[unstaged]" };
-                context.push_str(&format!("  {} {} {}\n", staged_marker, entry.status, entry.path));
+                let staged_marker = if entry.staged {
+                    "[staged]"
+                } else {
+                    "[unstaged]"
+                };
+                context.push_str(&format!(
+                    "  {} {} {}\n",
+                    staged_marker, entry.status, entry.path
+                ));
             }
             context.push('\n');
         }
@@ -339,10 +340,7 @@ impl GitTools {
         Ok(context)
     }
 
-    pub fn generate_pr_context(
-        repo_path: &str,
-        base_branch: &str,
-    ) -> Result<String, String> {
+    pub fn generate_pr_context(repo_path: &str, base_branch: &str) -> Result<String, String> {
         let diff = Self::get_branch_diff(repo_path, base_branch)?;
         let commits = Self::get_branch_commits(repo_path, base_branch)?;
 
@@ -351,7 +349,11 @@ impl GitTools {
         if !commits.is_empty() {
             context.push_str("Commits in this branch:\n");
             for c in &commits {
-                context.push_str(&format!("  {} {}\n", &c.hash[..7.min(c.hash.len())], c.subject));
+                context.push_str(&format!(
+                    "  {} {}\n",
+                    &c.hash[..7.min(c.hash.len())],
+                    c.subject
+                ));
             }
             context.push('\n');
         }

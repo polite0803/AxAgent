@@ -95,7 +95,10 @@ impl DashboardRegistry {
             .collect()
     }
 
-    pub async fn list_panels(&self, position: Option<PanelPosition>) -> Vec<DashboardPanelWithPlugin> {
+    pub async fn list_panels(
+        &self,
+        position: Option<PanelPosition>,
+    ) -> Vec<DashboardPanelWithPlugin> {
         let mut result = Vec::new();
         let plugins = self.plugins.read().await;
         for (plugin_id, plugin) in plugins.iter() {

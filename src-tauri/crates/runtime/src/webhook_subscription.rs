@@ -104,7 +104,11 @@ impl WebhookSubscriptionManager {
             .write()
             .await
             .insert(subscription.id.clone(), subscription.clone());
-        tracing::info!("Webhook subscribed: {} for {} events", subscription.id, subscription.events.len());
+        tracing::info!(
+            "Webhook subscribed: {} for {} events",
+            subscription.id,
+            subscription.events.len()
+        );
         subscription
     }
 
@@ -125,7 +129,10 @@ impl WebhookSubscriptionManager {
         self.subscriptions.read().await.values().cloned().collect()
     }
 
-    pub async fn get_subscriptions_for_event(&self, event: WebhookEvent) -> Vec<WebhookSubscription> {
+    pub async fn get_subscriptions_for_event(
+        &self,
+        event: WebhookEvent,
+    ) -> Vec<WebhookSubscription> {
         self.subscriptions
             .read()
             .await
@@ -160,7 +167,11 @@ impl WebhookSubscriptionManager {
     pub async fn set_enabled(&self, id: &str, enabled: bool) -> Result<(), String> {
         if let Some(sub) = self.subscriptions.write().await.get_mut(id) {
             sub.enabled = enabled;
-            tracing::info!("Webhook {} {}", id, if enabled { "enabled" } else { "disabled" });
+            tracing::info!(
+                "Webhook {} {}",
+                id,
+                if enabled { "enabled" } else { "disabled" }
+            );
             Ok(())
         } else {
             Err(format!("Subscription '{}' not found", id))

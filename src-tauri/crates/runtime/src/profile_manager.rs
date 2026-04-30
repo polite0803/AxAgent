@@ -46,9 +46,8 @@ impl ProfileManager {
         let profile = Profile::new(name, display_name);
         let info = self.info_for(name, &profile)?;
         let meta_path = dir.join("profile.json");
-        let json = serde_json::to_string_pretty(&profile).map_err(|e| {
-            ProfileError::Serialization(e.to_string())
-        })?;
+        let json = serde_json::to_string_pretty(&profile)
+            .map_err(|e| ProfileError::Serialization(e.to_string()))?;
         std::fs::write(&meta_path, json)?;
         Ok(info)
     }
@@ -83,8 +82,7 @@ impl ProfileManager {
                 let meta_path = entry.path().join("profile.json");
                 let profile = if meta_path.exists() {
                     let content = std::fs::read_to_string(&meta_path)?;
-                    serde_json::from_str(&content)
-                        .unwrap_or_else(|_| Profile::new(&name, &name))
+                    serde_json::from_str(&content).unwrap_or_else(|_| Profile::new(&name, &name))
                 } else {
                     Profile::new(&name, &name)
                 };

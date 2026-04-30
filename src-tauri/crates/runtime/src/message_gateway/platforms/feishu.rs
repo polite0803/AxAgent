@@ -77,12 +77,7 @@ impl PlatformAdapter for FeishuAdapter {
                 match poll_feishu_messages(&client, &token, &mut seen_ids).await {
                     Ok(msgs) => {
                         for (user_id, text, chat_id, msg_id) in msgs {
-                            tracing::info!(
-                                "Feishu msg [{}]: {} (from {})",
-                                msg_id,
-                                text,
-                                user_id
-                            );
+                            tracing::info!("Feishu msg [{}]: {} (from {})", msg_id, text, user_id);
 
                             if let Some(cb) =
                                 crate::message_gateway::platforms::get_message_callback()
@@ -92,9 +87,7 @@ impl PlatformAdapter for FeishuAdapter {
                                 let t = text.clone();
                                 let ch = chat_id.clone();
                                 tokio::spawn(async move {
-                                    let reply = cb
-                                        .on_message("feishu", &uid, None, &ch, &t)
-                                        .await;
+                                    let reply = cb.on_message("feishu", &uid, None, &ch, &t).await;
                                     if let Some(reply_text) = reply {
                                         let _ = send_feishu_text_message(
                                             &reqwest::Client::new(),
@@ -117,8 +110,7 @@ impl PlatformAdapter for FeishuAdapter {
                             }
                             Err(e2) => {
                                 tracing::error!("Feishu: token refresh failed: {}", e2);
-                                tokio::time::sleep(std::time::Duration::from_secs(10))
-                                    .await;
+                                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
                             }
                         }
                     }
@@ -249,11 +241,7 @@ async fn poll_feishu_messages(
             seen_ids.insert(msg_id.to_string());
 
             if seen_ids.len() > 5000 {
-                let to_remove: Vec<String> = seen_ids
-                    .iter()
-                    .take(2000)
-                    .cloned()
-                    .collect();
+                let to_remove: Vec<String> = seen_ids.iter().take(2000).cloned().collect();
                 for old in to_remove {
                     seen_ids.remove(&old);
                 }
@@ -262,9 +250,7 @@ async fn poll_feishu_messages(
             let content = &item["body"]["content"];
             let text = match msg_type {
                 "text" => content["text"].as_str().unwrap_or("").to_string(),
-                "post" => {
-                    content.as_str().unwrap_or("").to_string()
-                }
+                "post" => content.as_str().unwrap_or("").to_string(),
                 _ => continue,
             };
 

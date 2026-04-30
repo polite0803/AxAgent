@@ -571,10 +571,7 @@ pub async fn check_vault_rag_capacity(
     })
 }
 
-async fn count_collection_items(
-    db: &DatabaseConnection,
-    collection_name: &str,
-) -> Result<usize> {
+async fn count_collection_items(db: &DatabaseConnection, collection_name: &str) -> Result<usize> {
     let count: i64 = db
         .query_one(Statement::from_string(
             DbBackend::Sqlite,
@@ -686,28 +683,28 @@ pub fn extract_surrounding_lines(
 ///
 /// This avoids injecting entire class definitions when only one method
 /// is relevant.
-pub fn inject_function_only(
-    source: &str,
-    snippet: &str,
-    max_context_chars: usize,
-) -> String {
+pub fn inject_function_only(source: &str, snippet: &str, max_context_chars: usize) -> String {
     let Some(snippet_start) = source.find(snippet) else {
         return snippet.to_string();
     };
 
     let before = &source[..snippet_start];
-    let fn_patterns = ["fn ", "def ", "function ", "class ", "impl ", "pub fn ", "pub struct "];
+    let fn_patterns = [
+        "fn ",
+        "def ",
+        "function ",
+        "class ",
+        "impl ",
+        "pub fn ",
+        "pub struct ",
+    ];
 
-    let fn_start = before
-        .lines()
-        .rev()
-        .take(50)
-        .find(|line| {
-            let trimmed = line.trim();
-            fn_patterns.iter().any(|p| trimmed.starts_with(p))
-                || trimmed.ends_with('{')
-                || trimmed.starts_with('#')
-        });
+    let fn_start = before.lines().rev().take(50).find(|line| {
+        let trimmed = line.trim();
+        fn_patterns.iter().any(|p| trimmed.starts_with(p))
+            || trimmed.ends_with('{')
+            || trimmed.starts_with('#')
+    });
 
     if let Some(fn_line) = fn_start {
         let fn_pos = before.rfind(fn_line).unwrap_or(0);
@@ -719,8 +716,10 @@ pub fn inject_function_only(
         let end = raw_end.min(relevant.len());
 
         // Try to stop at the next function definition boundary
-        let after_snippet = &relevant[snippet_pos_in_relevant + snippet.len()..end.min(relevant.len())];
-        let next_fn_pos = after_snippet.find("\nfn ")
+        let after_snippet =
+            &relevant[snippet_pos_in_relevant + snippet.len()..end.min(relevant.len())];
+        let next_fn_pos = after_snippet
+            .find("\nfn ")
             .or_else(|| after_snippet.find("\npub fn "))
             .or_else(|| after_snippet.find("\nclass "))
             .or_else(|| after_snippet.find("\ndef "));
@@ -760,7 +759,8 @@ mod tests {
 
     #[test]
     fn test_inject_function_only_finds_fn() {
-        let source = "// comment\nfn main() {\n    let x = 1;\n    println!(\"{x}\");\n}\nfn other() {}";
+        let source =
+            "// comment\nfn main() {\n    let x = 1;\n    println!(\"{x}\");\n}\nfn other() {}";
         let snippet = "println!(\"{x}\");";
         let result = inject_function_only(source, snippet, 500);
         assert!(result.contains("fn main()"));

@@ -117,9 +117,7 @@ impl GraphInsightAnalyzer {
                 let a = &nodes[i];
                 let b = &nodes[j];
 
-                let signal = self
-                    .graph
-                    .compute_relevance(a, b, &self.source_map);
+                let signal = self.graph.compute_relevance(a, b, &self.source_map);
 
                 if signal.total_score() < 0.5 {
                     continue;
@@ -140,10 +138,7 @@ impl GraphInsightAnalyzer {
                 let type_b = self.graph.get_page_type(b);
                 if type_a != type_b {
                     surprise_score += 1.5;
-                    reasons.push(format!(
-                        "Cross-type link: {:?} ↔ {:?}",
-                        type_a, type_b
-                    ));
+                    reasons.push(format!("Cross-type link: {:?} ↔ {:?}", type_a, type_b));
                 }
 
                 let degree_a = self.graph.get_degree(a);
@@ -162,16 +157,8 @@ impl GraphInsightAnalyzer {
                     connections.push(SurprisingConnection {
                         page_a: a.clone(),
                         page_b: b.clone(),
-                        title_a: self
-                            .graph
-                            .get_node_title(a)
-                            .unwrap_or(a)
-                            .to_string(),
-                        title_b: self
-                            .graph
-                            .get_node_title(b)
-                            .unwrap_or(b)
-                            .to_string(),
+                        title_a: self.graph.get_node_title(a).unwrap_or(a).to_string(),
+                        title_b: self.graph.get_node_title(b).unwrap_or(b).to_string(),
                         surprise_score,
                         reasons,
                         dismissed: false,
@@ -202,12 +189,7 @@ impl GraphInsightAnalyzer {
         if !isolated.is_empty() {
             let titles: Vec<String> = isolated
                 .iter()
-                .map(|n| {
-                    self.graph
-                        .get_node_title(n)
-                        .unwrap_or(n)
-                        .to_string()
-                })
+                .map(|n| self.graph.get_node_title(n).unwrap_or(n).to_string())
                 .collect();
 
             gaps.push(KnowledgeGap {
@@ -230,12 +212,7 @@ impl GraphInsightAnalyzer {
                 if members.len() >= 3 {
                     let titles: Vec<String> = members
                         .iter()
-                        .map(|n| {
-                            self.graph
-                                .get_node_title(n)
-                                .unwrap_or(n)
-                                .to_string()
-                        })
+                        .map(|n| self.graph.get_node_title(n).unwrap_or(n).to_string())
                         .collect();
 
                     gaps.push(KnowledgeGap {
@@ -247,8 +224,9 @@ impl GraphInsightAnalyzer {
                             community_id, cohesion
                         ),
                         community_id: Some(community_id),
-                        suggested_action: "Add more [[wikilinks]] between pages in this knowledge area"
-                            .to_string(),
+                        suggested_action:
+                            "Add more [[wikilinks]] between pages in this knowledge area"
+                                .to_string(),
                     });
                 }
             }
@@ -260,20 +238,14 @@ impl GraphInsightAnalyzer {
             .into_iter()
             .filter(|n| {
                 let pt = self.graph.get_page_type(n);
-                (pt == PageType::Concept || pt == PageType::Entity)
-                    && self.graph.get_degree(n) == 0
+                (pt == PageType::Concept || pt == PageType::Entity) && self.graph.get_degree(n) == 0
             })
             .collect();
 
         if !unlinked_concepts.is_empty() {
             let titles: Vec<String> = unlinked_concepts
                 .iter()
-                .map(|n| {
-                    self.graph
-                        .get_node_title(n)
-                        .unwrap_or(n)
-                        .to_string()
-                })
+                .map(|n| self.graph.get_node_title(n).unwrap_or(n).to_string())
                 .collect();
 
             gaps.push(KnowledgeGap {
@@ -317,9 +289,7 @@ impl GraphInsightAnalyzer {
                             .get_node_title(&node_id)
                             .unwrap_or(&node_id)
                             .to_string(),
-                        connected_communities: connected_communities
-                            .into_iter()
-                            .collect(),
+                        connected_communities: connected_communities.into_iter().collect(),
                         community_count,
                     })
                 } else {

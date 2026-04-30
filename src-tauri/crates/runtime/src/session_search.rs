@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
@@ -63,7 +63,10 @@ impl SessionSearchEngine {
             })
             .collect();
 
-        self.cache.write().await.insert(session_id.to_string(), entries);
+        self.cache
+            .write()
+            .await
+            .insert(session_id.to_string(), entries);
     }
 
     pub async fn search(&self, query: &SearchQuery) -> Vec<SearchResult> {

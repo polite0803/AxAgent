@@ -142,18 +142,36 @@ impl AstIndex {
         let variables = extract_variables(content, file_path, lang);
         let call_edges = extract_call_edges(content, file_path, &functions);
 
-        let tx = self.conn.unchecked_transaction().map_err(|e| format!("tx: {e}"))?;
+        let tx = self
+            .conn
+            .unchecked_transaction()
+            .map_err(|e| format!("tx: {e}"))?;
 
-        tx.execute("DELETE FROM ast_functions WHERE file_path = ?1", params![file_path])
-            .map_err(|e| format!("delete fn: {e}"))?;
-        tx.execute("DELETE FROM ast_classes WHERE file_path = ?1", params![file_path])
-            .map_err(|e| format!("delete cls: {e}"))?;
-        tx.execute("DELETE FROM ast_interfaces WHERE file_path = ?1", params![file_path])
-            .map_err(|e| format!("delete iface: {e}"))?;
-        tx.execute("DELETE FROM ast_variables WHERE file_path = ?1", params![file_path])
-            .map_err(|e| format!("delete var: {e}"))?;
-        tx.execute("DELETE FROM ast_call_edges WHERE caller_file = ?1", params![file_path])
-            .map_err(|e| format!("delete edge: {e}"))?;
+        tx.execute(
+            "DELETE FROM ast_functions WHERE file_path = ?1",
+            params![file_path],
+        )
+        .map_err(|e| format!("delete fn: {e}"))?;
+        tx.execute(
+            "DELETE FROM ast_classes WHERE file_path = ?1",
+            params![file_path],
+        )
+        .map_err(|e| format!("delete cls: {e}"))?;
+        tx.execute(
+            "DELETE FROM ast_interfaces WHERE file_path = ?1",
+            params![file_path],
+        )
+        .map_err(|e| format!("delete iface: {e}"))?;
+        tx.execute(
+            "DELETE FROM ast_variables WHERE file_path = ?1",
+            params![file_path],
+        )
+        .map_err(|e| format!("delete var: {e}"))?;
+        tx.execute(
+            "DELETE FROM ast_call_edges WHERE caller_file = ?1",
+            params![file_path],
+        )
+        .map_err(|e| format!("delete edge: {e}"))?;
 
         let mut total = 0;
 
@@ -298,9 +316,17 @@ impl AstIndex {
         let pattern = format!("%{query}%");
         let mut results = std::collections::HashSet::new();
 
-        for table in &["ast_functions", "ast_classes", "ast_interfaces", "ast_variables"] {
+        for table in &[
+            "ast_functions",
+            "ast_classes",
+            "ast_interfaces",
+            "ast_variables",
+        ] {
             let sql = format!("SELECT DISTINCT file_path FROM {table} WHERE name LIKE ?1 LIMIT ?2");
-            let mut stmt = self.conn.prepare(&sql).map_err(|e| format!("prepare {table}: {e}"))?;
+            let mut stmt = self
+                .conn
+                .prepare(&sql)
+                .map_err(|e| format!("prepare {table}: {e}"))?;
             let rows = stmt
                 .query_map(params![&pattern, limit], |row| row.get::<_, String>(0))
                 .map_err(|e| format!("query {table}: {e}"))?;
@@ -332,15 +358,25 @@ impl AstIndex {
 
 fn detect_language(file_path: &str) -> &str {
     let lower = file_path.to_lowercase();
-    if lower.ends_with(".rs") { "rust" }
-    else if lower.ends_with(".ts") || lower.ends_with(".tsx") { "typescript" }
-    else if lower.ends_with(".js") || lower.ends_with(".jsx") { "javascript" }
-    else if lower.ends_with(".py") { "python" }
-    else if lower.ends_with(".go") { "go" }
-    else if lower.ends_with(".java") { "java" }
-    else if lower.ends_with(".cpp") || lower.ends_with(".cc") || lower.ends_with(".cxx") { "cpp" }
-    else if lower.ends_with(".c") || lower.ends_with(".h") { "c" }
-    else { "unknown" }
+    if lower.ends_with(".rs") {
+        "rust"
+    } else if lower.ends_with(".ts") || lower.ends_with(".tsx") {
+        "typescript"
+    } else if lower.ends_with(".js") || lower.ends_with(".jsx") {
+        "javascript"
+    } else if lower.ends_with(".py") {
+        "python"
+    } else if lower.ends_with(".go") {
+        "go"
+    } else if lower.ends_with(".java") {
+        "java"
+    } else if lower.ends_with(".cpp") || lower.ends_with(".cc") || lower.ends_with(".cxx") {
+        "cpp"
+    } else if lower.ends_with(".c") || lower.ends_with(".h") {
+        "c"
+    } else {
+        "unknown"
+    }
 }
 
 fn extract_functions(content: &str, file_path: &str, lang: &str) -> Vec<FunctionDef> {
@@ -443,7 +479,8 @@ fn extract_variables(content: &str, file_path: &str, lang: &str) -> Vec<Variable
 
 fn extract_call_edges(content: &str, file_path: &str, functions: &[FunctionDef]) -> Vec<CallEdge> {
     let mut edges = Vec::new();
-    let fn_names: std::collections::HashSet<&str> = functions.iter().map(|f| f.name.as_str()).collect();
+    let fn_names: std::collections::HashSet<&str> =
+        functions.iter().map(|f| f.name.as_str()).collect();
 
     for (line_num, line) in content.lines().enumerate() {
         let trimmed = line.trim();
@@ -452,11 +489,14 @@ fn extract_call_edges(content: &str, file_path: &str, functions: &[FunctionDef])
         }
 
         for fn_name in &fn_names {
-            if trimmed.contains(*fn_name) && !trimmed.contains(&format!("fn {}", fn_name))
+            if trimmed.contains(*fn_name)
+                && !trimmed.contains(&format!("fn {}", fn_name))
                 && !trimmed.contains(&format!("def {}", fn_name))
                 && !trimmed.contains(&format!("function {}", fn_name))
             {
-                let caller = functions.iter().find(|f| f.line_start <= line_num + 1 && f.line_end >= line_num + 1);
+                let caller = functions
+                    .iter()
+                    .find(|f| f.line_start <= line_num + 1 && f.line_end >= line_num + 1);
                 if let Some(caller_fn) = caller {
                     edges.push(CallEdge {
                         caller_file: file_path.to_string(),
@@ -474,21 +514,32 @@ fn extract_call_edges(content: &str, file_path: &str, functions: &[FunctionDef])
 // ── Language-specific extractors ──────────────────────────────────────────
 
 fn detect_visibility(line: &str) -> &str {
-    if line.starts_with("pub ") || line.starts_with("pub(") { "public" }
-    else if line.starts_with("pub(crate) ") { "crate" }
-    else { "private" }
+    if line.starts_with("pub ") || line.starts_with("pub(") {
+        "public"
+    } else if line.starts_with("pub(crate) ") {
+        "crate"
+    } else {
+        "private"
+    }
 }
 
 fn extract_rust_fn_name(line: &str) -> Option<String> {
     let line = line.trim();
-    if !line.starts_with("fn ") && !line.starts_with("pub fn ") && !line.starts_with("pub(crate) fn ")
-        && !line.starts_with("async fn ") && !line.starts_with("pub async fn ")
+    if !line.starts_with("fn ")
+        && !line.starts_with("pub fn ")
+        && !line.starts_with("pub(crate) fn ")
+        && !line.starts_with("async fn ")
+        && !line.starts_with("pub async fn ")
     {
         return None;
     }
     let after_fn = line.split("fn ").nth(1)?;
     let name = after_fn.split(['(', '<']).next()?.trim();
-    if name.is_empty() || name == "fn" { None } else { Some(name.to_string()) }
+    if name.is_empty() || name == "fn" {
+        None
+    } else {
+        Some(name.to_string())
+    }
 }
 
 fn extract_rust_struct_enum_name(line: &str) -> Option<String> {
@@ -496,21 +547,42 @@ fn extract_rust_struct_enum_name(line: &str) -> Option<String> {
     if line.starts_with("struct ") || line.starts_with("pub struct ") {
         let after = line.split("struct ").nth(1)?;
         let name = after.split(['<', '{', '(', ';']).next()?.trim();
-        if name.is_empty() { None } else { Some(name.to_string()) }
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else if line.starts_with("enum ") || line.starts_with("pub enum ") {
         let after = line.split("enum ").nth(1)?;
         let name = after.split(['<', '{']).next()?.trim();
-        if name.is_empty() { None } else { Some(name.to_string()) }
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else if line.starts_with("trait ") || line.starts_with("pub trait ") {
         let after = line.split("trait ").nth(1)?;
         let name = after.split(['<', '{']).next()?.trim();
-        if name.is_empty() { None } else { Some(name.to_string()) }
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else if line.starts_with("impl ") {
         let after = line.trim_start_matches("impl ");
         let name = after.split(['<', ' ', '{']).next()?.trim();
         if name == "for" {
-            after.split("for ").nth(1)?.split(['<', '{']).next().map(|n| n.trim().to_string())
-        } else if name.is_empty() { None } else { Some(name.to_string()) }
+            after
+                .split("for ")
+                .nth(1)?
+                .split(['<', '{'])
+                .next()
+                .map(|n| n.trim().to_string())
+        } else if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else {
         None
     }
@@ -518,35 +590,57 @@ fn extract_rust_struct_enum_name(line: &str) -> Option<String> {
 
 fn extract_python_fn_name(line: &str) -> Option<String> {
     let line = line.trim();
-    if !line.starts_with("def ") && !line.starts_with("async def ") { return None; }
+    if !line.starts_with("def ") && !line.starts_with("async def ") {
+        return None;
+    }
     let after = if line.starts_with("async def ") {
         line.split("async def ").nth(1)?
     } else {
         line.split("def ").nth(1)?
     };
     let name = after.split(['(', ':']).next()?.trim();
-    if name.is_empty() { None } else { Some(name.to_string()) }
+    if name.is_empty() {
+        None
+    } else {
+        Some(name.to_string())
+    }
 }
 
 fn extract_python_class_name(line: &str) -> Option<String> {
     let line = line.trim();
-    if !line.starts_with("class ") { return None; }
+    if !line.starts_with("class ") {
+        return None;
+    }
     let after = line.strip_prefix("class ")?;
     let name = after.split(['(', ':']).next()?.trim();
-    if name.is_empty() { None } else { Some(name.to_string()) }
+    if name.is_empty() {
+        None
+    } else {
+        Some(name.to_string())
+    }
 }
 
 fn extract_ts_fn_name(line: &str) -> Option<String> {
     let line = line.trim();
-    if !line.contains("function ") && !line.contains("=>") { return None; }
+    if !line.contains("function ") && !line.contains("=>") {
+        return None;
+    }
     if line.starts_with("function ") {
         let after = line.strip_prefix("function ")?;
         let name = after.split(['(', '<']).next()?.trim();
-        if name.is_empty() { None } else { Some(name.to_string()) }
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else if line.starts_with("export function ") {
         let after = line.strip_prefix("export function ")?;
         let name = after.split(['(', '<']).next()?.trim();
-        if name.is_empty() { None } else { Some(name.to_string()) }
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else if line.starts_with("export const ") || line.starts_with("const ") {
         let after = if line.starts_with("export const ") {
             line.strip_prefix("export const ")?
@@ -554,7 +648,11 @@ fn extract_ts_fn_name(line: &str) -> Option<String> {
             line.strip_prefix("const ")?
         };
         let name = after.split(['=', ':', '(']).next()?.trim();
-        if name.contains("=>") || name.is_empty() { None } else { Some(name.to_string()) }
+        if name.contains("=>") || name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else {
         None
     }
@@ -569,7 +667,11 @@ fn extract_ts_class_name(line: &str) -> Option<String> {
             line.strip_prefix("class ")?
         };
         let name = after.split(['<', '{', ' ', ':']).next()?.trim();
-        if name.is_empty() { None } else { Some(name.to_string()) }
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else {
         None
     }
@@ -577,7 +679,9 @@ fn extract_ts_class_name(line: &str) -> Option<String> {
 
 fn extract_go_fn_name(line: &str) -> Option<String> {
     let line = line.trim();
-    if !line.starts_with("func ") { return None; }
+    if !line.starts_with("func ") {
+        return None;
+    }
     let after = line.strip_prefix("func ")?;
     let rest = if after.starts_with('(') {
         after.split(')').nth(1)?.trim_start()
@@ -585,47 +689,86 @@ fn extract_go_fn_name(line: &str) -> Option<String> {
         after
     };
     let name = rest.split(['(', '<']).next()?.trim();
-    if name.is_empty() { None } else { Some(name.to_string()) }
+    if name.is_empty() {
+        None
+    } else {
+        Some(name.to_string())
+    }
 }
 
 fn extract_go_type_name(line: &str) -> Option<String> {
     let line = line.trim();
-    if !line.starts_with("type ") { return None; }
+    if !line.starts_with("type ") {
+        return None;
+    }
     let after = line.strip_prefix("type ")?;
     let name = after.split([' ', '[', '{']).next()?.trim();
-    if name.is_empty() { None } else { Some(name.to_string()) }
+    if name.is_empty() {
+        None
+    } else {
+        Some(name.to_string())
+    }
 }
 
 fn extract_variable_declaration(line: &str, lang: &str) -> Option<(String, Option<String>)> {
     let line = line.trim();
     match lang {
         "rust" => {
-            if line.starts_with("let ") && !line.contains('=') { return None; }
+            if line.starts_with("let ") && !line.contains('=') {
+                return None;
+            }
             if line.starts_with("let mut ") || line.starts_with("let ") {
-                let after = line.strip_prefix("let mut ").or_else(|| line.strip_prefix("let "))?;
+                let after = line
+                    .strip_prefix("let mut ")
+                    .or_else(|| line.strip_prefix("let "))?;
                 let name = after.split(['=', ':', ' ']).next()?.trim();
-                let type_ann = after.split(':').nth(1).and_then(|t| t.split('=').next()).map(|t| t.trim().to_string());
+                let type_ann = after
+                    .split(':')
+                    .nth(1)
+                    .and_then(|t| t.split('=').next())
+                    .map(|t| t.trim().to_string());
                 Some((name.to_string(), type_ann))
-            } else { None }
+            } else {
+                None
+            }
         }
         "typescript" | "javascript" => {
             if line.starts_with("let ") || line.starts_with("var ") || line.starts_with("const ") {
-                let after = line.trim_start_matches("export ").trim_start_matches("let ")
-                    .trim_start_matches("var ").trim_start_matches("const ");
+                let after = line
+                    .trim_start_matches("export ")
+                    .trim_start_matches("let ")
+                    .trim_start_matches("var ")
+                    .trim_start_matches("const ");
                 let name = after.split(['=', ':', ' ']).next()?.trim();
-                if name.is_empty() || name == "{" { return None; }
-                let type_ann = after.split(':').nth(1).and_then(|t| t.split('=').next()).map(|t| t.trim().to_string());
+                if name.is_empty() || name == "{" {
+                    return None;
+                }
+                let type_ann = after
+                    .split(':')
+                    .nth(1)
+                    .and_then(|t| t.split('=').next())
+                    .map(|t| t.trim().to_string());
                 Some((name.to_string(), type_ann))
-            } else { None }
+            } else {
+                None
+            }
         }
         "python" => {
-            if line.contains('=') && !line.starts_with("if ") && !line.starts_with("for ")
-                && !line.starts_with("while ") && !line.starts_with("def ") && !line.starts_with("class ")
+            if line.contains('=')
+                && !line.starts_with("if ")
+                && !line.starts_with("for ")
+                && !line.starts_with("while ")
+                && !line.starts_with("def ")
+                && !line.starts_with("class ")
             {
                 let name = line.split('=').next()?.trim();
-                if name.is_empty() || name.contains(' ') { return None; }
+                if name.is_empty() || name.contains(' ') {
+                    return None;
+                }
                 Some((name.to_string(), None))
-            } else { None }
+            } else {
+                None
+            }
         }
         _ => None,
     }
@@ -634,15 +777,61 @@ fn extract_variable_declaration(line: &str, lang: &str) -> Option<(String, Optio
 fn is_common_keyword(name: &str) -> bool {
     matches!(
         name,
-        "if" | "else" | "for" | "while" | "match" | "switch" | "case"
-            | "return" | "break" | "continue" | "true" | "false" | "None"
-            | "Some" | "Ok" | "Err" | "self" | "Self" | "super" | "this"
-            | "new" | "use" | "mod" | "crate" | "pub" | "async" | "await"
-            | "let" | "const" | "var" | "import" | "export" | "from"
-            | "try" | "catch" | "finally" | "throw" | "yield" | "with"
-            | "type" | "interface" | "enum" | "struct" | "impl" | "trait"
-            | "fn" | "def" | "class" | "function" | "static" | "public"
-            | "private" | "protected" | "final" | "abstract" | "override"
+        "if" | "else"
+            | "for"
+            | "while"
+            | "match"
+            | "switch"
+            | "case"
+            | "return"
+            | "break"
+            | "continue"
+            | "true"
+            | "false"
+            | "None"
+            | "Some"
+            | "Ok"
+            | "Err"
+            | "self"
+            | "Self"
+            | "super"
+            | "this"
+            | "new"
+            | "use"
+            | "mod"
+            | "crate"
+            | "pub"
+            | "async"
+            | "await"
+            | "let"
+            | "const"
+            | "var"
+            | "import"
+            | "export"
+            | "from"
+            | "try"
+            | "catch"
+            | "finally"
+            | "throw"
+            | "yield"
+            | "with"
+            | "type"
+            | "interface"
+            | "enum"
+            | "struct"
+            | "impl"
+            | "trait"
+            | "fn"
+            | "def"
+            | "class"
+            | "function"
+            | "static"
+            | "public"
+            | "private"
+            | "protected"
+            | "final"
+            | "abstract"
+            | "override"
     )
 }
 
@@ -650,7 +839,9 @@ fn find_block_end(content: &str, start: usize) -> usize {
     let mut depth: i32 = 0;
     let mut started = false;
     for (i, line) in content.lines().enumerate() {
-        if i < start { continue; }
+        if i < start {
+            continue;
+        }
         let trimmed = line.trim();
         let opens = trimmed.matches('{').count() as i32 + trimmed.matches("do").count() as i32;
         let closes = trimmed.matches('}').count() as i32;

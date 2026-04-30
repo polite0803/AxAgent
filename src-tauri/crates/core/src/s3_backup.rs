@@ -48,14 +48,23 @@ impl S3Client {
     }
 
     fn host(&self) -> String {
-        let endpoint = self.config.endpoint.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/');
+        let endpoint = self
+            .config
+            .endpoint
+            .trim_start_matches("https://")
+            .trim_start_matches("http://")
+            .trim_end_matches('/');
         format!("{}.{}", self.config.bucket, endpoint)
     }
 
     #[allow(dead_code)]
     fn base_url(&self) -> String {
         if self.config.use_path_style {
-            format!("{}/{}", self.config.endpoint.trim_end_matches('/'), self.config.bucket)
+            format!(
+                "{}/{}",
+                self.config.endpoint.trim_end_matches('/'),
+                self.config.bucket
+            )
         } else {
             let endpoint = self.config.endpoint.trim_start_matches("https://");
             if self.config.endpoint.starts_with("http://") {
@@ -98,7 +107,12 @@ impl S3Client {
         query_params.insert("max-keys".to_string(), max_keys.to_string());
 
         let (headers, url) = self.sign_request(Method::GET, "/", &query_params, "");
-        let resp = self.client.get(&url).headers(headers).send().await
+        let resp = self
+            .client
+            .get(&url)
+            .headers(headers)
+            .send()
+            .await
             .map_err(|e| AxAgentError::Gateway(format!("S3 list failed: {}", e)))?;
 
         if !resp.status().is_success() {
@@ -115,9 +129,16 @@ impl S3Client {
         let full_key = self.object_key(key);
         let path = format!("/{}", full_key);
 
-        let (headers, url) = self.sign_request_with_body(Method::PUT, &path, &BTreeMap::new(), data, content_type);
+        let (headers, url) =
+            self.sign_request_with_body(Method::PUT, &path, &BTreeMap::new(), data, content_type);
 
-        let resp = self.client.put(&url).headers(headers).body(data.to_vec()).send().await
+        let resp = self
+            .client
+            .put(&url)
+            .headers(headers)
+            .body(data.to_vec())
+            .send()
+            .await
             .map_err(|e| AxAgentError::Gateway(format!("S3 upload failed: {}", e)))?;
 
         if !resp.status().is_success() {
@@ -133,15 +154,24 @@ impl S3Client {
         let path = format!("/{}", full_key);
 
         let (headers, url) = self.sign_request(Method::GET, &path, &BTreeMap::new(), "");
-        let resp = self.client.get(&url).headers(headers).send().await
+        let resp = self
+            .client
+            .get(&url)
+            .headers(headers)
+            .send()
+            .await
             .map_err(|e| AxAgentError::Gateway(format!("S3 download failed: {}", e)))?;
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Gateway(format!("S3 download error: {}", body)));
+            return Err(AxAgentError::Gateway(format!(
+                "S3 download error: {}",
+                body
+            )));
         }
 
-        resp.bytes().await
+        resp.bytes()
+            .await
             .map(|b| b.to_vec())
             .map_err(|e| AxAgentError::Gateway(format!("S3 read body error: {}", e)))
     }
@@ -152,7 +182,12 @@ impl S3Client {
         let path = format!("/{}", full_key);
 
         let (headers, url) = self.sign_request(Method::DELETE, &path, &BTreeMap::new(), "");
-        let resp = self.client.delete(&url).headers(headers).send().await
+        let resp = self
+            .client
+            .delete(&url)
+            .headers(headers)
+            .send()
+            .await
             .map_err(|e| AxAgentError::Gateway(format!("S3 delete failed: {}", e)))?;
 
         if !resp.status().is_success() {
@@ -164,11 +199,24 @@ impl S3Client {
 
     // ── AWS Signature V4 Implementation ──────────────────────────────
 
-    fn sign_request(&self, method: Method, path: &str, query: &BTreeMap<String, String>, payload_hash_str: &str) -> (reqwest::header::HeaderMap, String) {
+    fn sign_request(
+        &self,
+        method: Method,
+        path: &str,
+        query: &BTreeMap<String, String>,
+        payload_hash_str: &str,
+    ) -> (reqwest::header::HeaderMap, String) {
         self.sign_request_with_body(method, path, query, &[], payload_hash_str)
     }
 
-    fn sign_request_with_body(&self, method: Method, path: &str, query: &BTreeMap<String, String>, body: &[u8], content_type: &str) -> (reqwest::header::HeaderMap, String) {
+    fn sign_request_with_body(
+        &self,
+        method: Method,
+        path: &str,
+        query: &BTreeMap<String, String>,
+        body: &[u8],
+        content_type: &str,
+    ) -> (reqwest::header::HeaderMap, String) {
         let now = Utc::now();
         let amz_date = now.format("%Y%m%dT%H%M%SZ").to_string();
         let date_stamp = now.format("%Y%m%d").to_string();
@@ -176,7 +224,12 @@ impl S3Client {
         let service = "s3";
         let region = &self.config.region;
         let host = if self.config.use_path_style {
-            let endpoint = self.config.endpoint.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/');
+            let endpoint = self
+                .config
+                .endpoint
+                .trim_start_matches("https://")
+                .trim_start_matches("http://")
+                .trim_end_matches('/');
             endpoint.to_string()
         } else {
             self.host()
@@ -200,8 +253,16 @@ impl S3Client {
             h
         };
 
-        let signed_headers = headers.keys().map(|k| k.as_str()).collect::<Vec<_>>().join(";");
-        let canonical_headers = headers.iter().map(|(k, v)| format!("{}:{}", k, v.trim())).collect::<Vec<_>>().join("\n");
+        let signed_headers = headers
+            .keys()
+            .map(|k| k.as_str())
+            .collect::<Vec<_>>()
+            .join(";");
+        let canonical_headers = headers
+            .iter()
+            .map(|(k, v)| format!("{}:{}", k, v.trim()))
+            .collect::<Vec<_>>()
+            .join("\n");
 
         let canonical_request = format!(
             "{}\n{}\n{}\n{}\n{}\n{}",
@@ -218,12 +279,10 @@ impl S3Client {
         let cr_hash = hex::encode(cr_hasher.finalize());
 
         let scope = format!("{}/{}/{}/aws4_request", date_stamp, region, service);
-        let string_to_sign = format!(
-            "AWS4-HMAC-SHA256\n{}\n{}\n{}",
-            amz_date, scope, cr_hash
-        );
+        let string_to_sign = format!("AWS4-HMAC-SHA256\n{}\n{}\n{}", amz_date, scope, cr_hash);
 
-        let signing_key = get_signature_key(&self.config.secret_access_key, &date_stamp, region, service);
+        let signing_key =
+            get_signature_key(&self.config.secret_access_key, &date_stamp, region, service);
         let signature = hex::encode(hmac_sha256(&signing_key, string_to_sign.as_bytes()));
 
         let authorization = format!(
@@ -231,16 +290,44 @@ impl S3Client {
             self.config.access_key_id, scope, signed_headers, signature
         );
 
-        let url = format!("{}://{}{}", if self.config.endpoint.starts_with("http://") { "http" } else { "https" }, host, canonical_uri);
-        let url = if canonical_querystring.is_empty() { url } else { format!("{}?{}", url, canonical_querystring) };
+        let url = format!(
+            "{}://{}{}",
+            if self.config.endpoint.starts_with("http://") {
+                "http"
+            } else {
+                "https"
+            },
+            host,
+            canonical_uri
+        );
+        let url = if canonical_querystring.is_empty() {
+            url
+        } else {
+            format!("{}?{}", url, canonical_querystring)
+        };
 
         let mut header_map = reqwest::header::HeaderMap::new();
-        header_map.insert("Host", reqwest::header::HeaderValue::from_str(&host).unwrap());
-        header_map.insert("X-Amz-Date", reqwest::header::HeaderValue::from_str(&amz_date).unwrap());
-        header_map.insert("X-Amz-Content-Sha256", reqwest::header::HeaderValue::from_str(&payload_hash).unwrap());
-        header_map.insert("Authorization", reqwest::header::HeaderValue::from_str(&authorization).unwrap());
+        header_map.insert(
+            "Host",
+            reqwest::header::HeaderValue::from_str(&host).unwrap(),
+        );
+        header_map.insert(
+            "X-Amz-Date",
+            reqwest::header::HeaderValue::from_str(&amz_date).unwrap(),
+        );
+        header_map.insert(
+            "X-Amz-Content-Sha256",
+            reqwest::header::HeaderValue::from_str(&payload_hash).unwrap(),
+        );
+        header_map.insert(
+            "Authorization",
+            reqwest::header::HeaderValue::from_str(&authorization).unwrap(),
+        );
         if !content_type.is_empty() {
-            header_map.insert("Content-Type", reqwest::header::HeaderValue::from_str(content_type).unwrap());
+            header_map.insert(
+                "Content-Type",
+                reqwest::header::HeaderValue::from_str(content_type).unwrap(),
+            );
         }
 
         (header_map, url)
@@ -248,20 +335,23 @@ impl S3Client {
 }
 
 fn build_canonical_query(query: &BTreeMap<String, String>) -> String {
-    query.iter()
+    query
+        .iter()
         .map(|(k, v)| format!("{}={}", urlencode(k), urlencode(v)))
         .collect::<Vec<_>>()
         .join("&")
 }
 
 fn urlencode(s: &str) -> String {
-    s.chars().map(|c| {
-        if c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == '~' {
-            c.to_string()
-        } else {
-            format!("%{:02X}", c as u8)
-        }
-    }).collect()
+    s.chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == '~' {
+                c.to_string()
+            } else {
+                format!("%{:02X}", c as u8)
+            }
+        })
+        .collect()
 }
 
 fn hmac_sha256(key: &[u8], data: &[u8]) -> Vec<u8> {
@@ -307,16 +397,38 @@ fn parse_s3_list_response(xml: &str) -> Result<Vec<S3FileInfo>> {
 
     let mut files = Vec::new();
     for contents in doc.descendants().filter(|n| n.has_tag_name("Contents")) {
-        let key = contents.descendants().find(|n| n.has_tag_name("Key"))
-            .and_then(|n| n.text()).unwrap_or("").to_string();
-        let size = contents.descendants().find(|n| n.has_tag_name("Size"))
-            .and_then(|n| n.text()).and_then(|s| s.parse().ok()).unwrap_or(0);
-        let last_modified = contents.descendants().find(|n| n.has_tag_name("LastModified"))
-            .and_then(|n| n.text()).unwrap_or("").to_string();
-        let etag = contents.descendants().find(|n| n.has_tag_name("ETag"))
-            .and_then(|n| n.text()).unwrap_or("").trim_matches('"').to_string();
+        let key = contents
+            .descendants()
+            .find(|n| n.has_tag_name("Key"))
+            .and_then(|n| n.text())
+            .unwrap_or("")
+            .to_string();
+        let size = contents
+            .descendants()
+            .find(|n| n.has_tag_name("Size"))
+            .and_then(|n| n.text())
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
+        let last_modified = contents
+            .descendants()
+            .find(|n| n.has_tag_name("LastModified"))
+            .and_then(|n| n.text())
+            .unwrap_or("")
+            .to_string();
+        let etag = contents
+            .descendants()
+            .find(|n| n.has_tag_name("ETag"))
+            .and_then(|n| n.text())
+            .unwrap_or("")
+            .trim_matches('"')
+            .to_string();
 
-        files.push(S3FileInfo { key, size, last_modified, etag });
+        files.push(S3FileInfo {
+            key,
+            size,
+            last_modified,
+            etag,
+        });
     }
     Ok(files)
 }

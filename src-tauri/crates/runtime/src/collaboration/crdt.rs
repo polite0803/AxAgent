@@ -158,7 +158,11 @@ impl CrdtEngine {
             OperationType::Insert { text } => {
                 let mut result: String = chars[..op.position.min(chars.len())].iter().collect();
                 result.push_str(text);
-                result.push_str(&chars[op.position.min(chars.len())..].iter().collect::<String>());
+                result.push_str(
+                    &chars[op.position.min(chars.len())..]
+                        .iter()
+                        .collect::<String>(),
+                );
                 result
             }
             OperationType::Delete { length } => {

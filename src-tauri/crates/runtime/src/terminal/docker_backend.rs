@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use super::backend_trait::{BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput};
+use super::backend_trait::{
+    BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput,
+};
 
 #[allow(dead_code)]
 pub struct DockerBackend {
@@ -111,14 +113,16 @@ impl TerminalBackend for DockerBackend {
         *self.connected.read().await
     }
 
-    async fn spawn_session(
-        &self,
-        session_id: &str,
-        config: SpawnConfig,
-    ) -> anyhow::Result<()> {
+    async fn spawn_session(&self, session_id: &str, config: SpawnConfig) -> anyhow::Result<()> {
         let shell_cmd = config.shell.unwrap_or_else(|| {
-            #[cfg(windows)] { "cmd.exe".to_string() }
-            #[cfg(not(windows))] { "/bin/sh".to_string() }
+            #[cfg(windows)]
+            {
+                "cmd.exe".to_string()
+            }
+            #[cfg(not(windows))]
+            {
+                "/bin/sh".to_string()
+            }
         });
 
         let create_body = serde_json::json!({
@@ -141,12 +145,8 @@ impl TerminalBackend for DockerBackend {
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("No container ID in response"))?;
 
-        self.docker_api_request(
-            "POST",
-            &format!("/containers/{}/start", container_id),
-            None,
-        )
-        .await?;
+        self.docker_api_request("POST", &format!("/containers/{}/start", container_id), None)
+            .await?;
 
         let mut sessions = self.sessions.write().await;
         sessions.insert(session_id.to_string(), container_id.to_string());
@@ -188,12 +188,7 @@ impl TerminalBackend for DockerBackend {
         Ok(())
     }
 
-    async fn resize_session(
-        &self,
-        session_id: &str,
-        rows: u16,
-        cols: u16,
-    ) -> anyhow::Result<()> {
+    async fn resize_session(&self, session_id: &str, rows: u16, cols: u16) -> anyhow::Result<()> {
         let sessions = self.sessions.read().await;
         let container_id = sessions
             .get(session_id)
@@ -239,10 +234,7 @@ impl TerminalBackend for DockerBackend {
         let resp = self
             .docker_api_request(
                 "GET",
-                &format!(
-                    "/containers/{}/logs?stdout=true&stderr=true&tail=50",
-                    cid
-                ),
+                &format!("/containers/{}/logs?stdout=true&stderr=true&tail=50", cid),
                 None,
             )
             .await;
@@ -280,11 +272,7 @@ impl TerminalBackend for DockerBackend {
             attempts += 1;
 
             let resp = self
-                .docker_api_request(
-                    "GET",
-                    &format!("/containers/{}/json", container_id),
-                    None,
-                )
+                .docker_api_request("GET", &format!("/containers/{}/json", container_id), None)
                 .await?;
 
             let status_str = resp["State"]["Status"].as_str().unwrap_or("unknown");

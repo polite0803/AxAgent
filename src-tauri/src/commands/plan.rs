@@ -109,7 +109,10 @@ pub struct Plan {
     pub status: PlanStatus,
     #[serde(rename = "isActive")]
     pub is_active: bool,
-    #[serde(rename = "createdUnderStrategy", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "createdUnderStrategy",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub created_under_strategy: Option<String>,
     #[serde(rename = "createdAt")]
     pub created_at: i64,
@@ -285,16 +288,19 @@ async fn generate_plan_via_llm(
     };
 
     // Call LLM
-    let response = adapter.chat(&ctx, request)
+    let response = adapter
+        .chat(&ctx, request)
         .await
         .map_err(|e| format!("LLM call failed: {}", e))?;
 
     // Parse JSON from response
-    let plan_json = extract_json_from_text(&response.content)
-        .map_err(|e| {
-            let preview = &response.content[..200.min(response.content.len())];
-            format!("Failed to parse plan JSON: {}. Raw response: {}", e, preview)
-        })?;
+    let plan_json = extract_json_from_text(&response.content).map_err(|e| {
+        let preview = &response.content[..200.min(response.content.len())];
+        format!(
+            "Failed to parse plan JSON: {}. Raw response: {}",
+            e, preview
+        )
+    })?;
 
     // Validate and build Plan
     let title = plan_json["title"]
@@ -365,8 +371,7 @@ fn extract_json_from_text(text: &str) -> Result<Value, String> {
         text
     };
 
-    serde_json::from_str(json_str.trim())
-        .map_err(|e| format!("Invalid JSON: {}", e))
+    serde_json::from_str(json_str.trim()).map_err(|e| format!("Invalid JSON: {}", e))
 }
 
 fn find_matching_brace(s: &str) -> Result<usize, String> {
@@ -430,7 +435,10 @@ async fn build_agent_context(
         api_key,
         key_id: key.id.clone(),
         provider_id: prov.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &prov.api_host,
+            &prov.provider_type,
+        )),
         api_path: prov.api_path.clone(),
         proxy_config: ProviderProxyConfig::resolve(&prov.proxy_config, &settings),
         custom_headers: prov
@@ -541,15 +549,13 @@ async fn build_step_tools(
     chat_tools.extend(local_tools.get_enabled_chat_tools());
     tool_registry = tool_registry.with_local_tools(local_tools);
 
-    tool_registry = tool_registry
-        .with_recorder(axagent_agent::ToolExecutionRecorder::new(Arc::new(db.clone())));
+    tool_registry = tool_registry.with_recorder(axagent_agent::ToolExecutionRecorder::new(
+        Arc::new(db.clone()),
+    ));
 
     let api_client = if chat_tools.is_empty() {
-        axagent_agent::AxAgentApiClient::new(
-            agent_ctx.adapter.clone(),
-            agent_ctx.ctx.clone(),
-        )
-        .with_model(&agent_ctx.model_id)
+        axagent_agent::AxAgentApiClient::new(agent_ctx.adapter.clone(), agent_ctx.ctx.clone())
+            .with_model(&agent_ctx.model_id)
     } else {
         axagent_agent::AxAgentApiClient::with_tools(
             agent_ctx.adapter.clone(),
@@ -574,10 +580,7 @@ async fn execute_step_with_agent(
     let session_manager = &state.agent_session_manager;
 
     let session = session_manager
-        .get_or_create_session(
-            agent_ctx.provider_id.clone(),
-            conversation_id.to_string(),
-        )
+        .get_or_create_session(agent_ctx.provider_id.clone(), conversation_id.to_string())
         .await
         .map_err(|e| format!("Failed to get agent session: {}", e))?;
 
@@ -589,19 +592,20 @@ async fn execute_step_with_agent(
          Description: {}\n\n\
          Complete this step now. Use tools as needed. \
          When done, summarize the result in plain text.",
-        step.title,
-        step.title,
-        step.description,
+        step.title, step.title, step.description,
     )];
 
     // Emit running status
-    let _ = app.emit("plan-step-update", PlanStepUpdateEvent {
-        conversation_id: conversation_id.to_string(),
-        plan_id: plan_id.to_string(),
-        step_id: step.id.clone(),
-        status: PlanStepStatus::Running,
-        result: None,
-    });
+    let _ = app.emit(
+        "plan-step-update",
+        PlanStepUpdateEvent {
+            conversation_id: conversation_id.to_string(),
+            plan_id: plan_id.to_string(),
+            step_id: step.id.clone(),
+            status: PlanStepStatus::Running,
+            result: None,
+        },
+    );
 
     // Build fresh api_client + tool_registry for this step
     let (api_client, tool_registry) = build_step_tools(agent_ctx, &state.sea_db).await;
@@ -609,7 +613,10 @@ async fn execute_step_with_agent(
     let result = session_manager
         .run_turn_with_tools(
             &session_id,
-            format!("Execute this plan step: {}\n\nContext: {}", step.title, step.description),
+            format!(
+                "Execute this plan step: {}\n\nContext: {}",
+                step.title, step.description
+            ),
             api_client,
             tool_registry,
             system_prompt,
@@ -625,42 +632,59 @@ async fn execute_step_with_agent(
             let last_msg = summary.assistant_messages.last();
             let result_text = match last_msg {
                 Some(msg) => {
-                    let text_blocks = msg.blocks.iter().filter_map(|b| {
-                        if let axagent_runtime::ContentBlock::Text { text } = b {
-                            Some(text.clone())
-                        } else {
-                            None
-                        }
-                    }).collect::<Vec<_>>().join("\n");
+                    let text_blocks = msg
+                        .blocks
+                        .iter()
+                        .filter_map(|b| {
+                            if let axagent_runtime::ContentBlock::Text { text } = b {
+                                Some(text.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n");
                     if text_blocks.is_empty() {
-                        format!("Step '{}' completed ({} iterations)", step.title, summary.iterations)
+                        format!(
+                            "Step '{}' completed ({} iterations)",
+                            step.title, summary.iterations
+                        )
                     } else {
                         text_blocks
                     }
-                },
-                None => format!("Step '{}' completed ({} iterations)", step.title, summary.iterations),
+                }
+                None => format!(
+                    "Step '{}' completed ({} iterations)",
+                    step.title, summary.iterations
+                ),
             };
 
-            let _ = app.emit("plan-step-update", PlanStepUpdateEvent {
-                conversation_id: conversation_id.to_string(),
-                plan_id: plan_id.to_string(),
-                step_id: step.id.clone(),
-                status: PlanStepStatus::Completed,
-                result: Some(result_text.clone()),
-            });
+            let _ = app.emit(
+                "plan-step-update",
+                PlanStepUpdateEvent {
+                    conversation_id: conversation_id.to_string(),
+                    plan_id: plan_id.to_string(),
+                    step_id: step.id.clone(),
+                    status: PlanStepStatus::Completed,
+                    result: Some(result_text.clone()),
+                },
+            );
 
             Ok(result_text)
         }
         Err(e) => {
             let err_text = format!("Step failed: {}", e);
 
-            let _ = app.emit("plan-step-update", PlanStepUpdateEvent {
-                conversation_id: conversation_id.to_string(),
-                plan_id: plan_id.to_string(),
-                step_id: step.id.clone(),
-                status: PlanStepStatus::Error,
-                result: Some(err_text.clone()),
-            });
+            let _ = app.emit(
+                "plan-step-update",
+                PlanStepUpdateEvent {
+                    conversation_id: conversation_id.to_string(),
+                    plan_id: plan_id.to_string(),
+                    step_id: step.id.clone(),
+                    status: PlanStepStatus::Error,
+                    result: Some(err_text.clone()),
+                },
+            );
 
             Err(err_text)
         }
@@ -680,17 +704,15 @@ pub async fn plan_generate(
     let db = &state.sea_db;
 
     // Load conversation to get provider/model info
-    let conversation = axagent_core::repo::conversation::get_conversation(db, &request.conversation_id)
-        .await
-        .map_err(|e| format!("Conversation not found: {}", e))?;
+    let conversation =
+        axagent_core::repo::conversation::get_conversation(db, &request.conversation_id)
+            .await
+            .map_err(|e| format!("Conversation not found: {}", e))?;
 
     // Find the latest user message for this conversation
-    let messages = axagent_core::repo::message::list_messages(
-        db,
-        &request.conversation_id,
-    )
-    .await
-    .map_err(|e| format!("Failed to get messages: {}", e))?;
+    let messages = axagent_core::repo::message::list_messages(db, &request.conversation_id)
+        .await
+        .map_err(|e| format!("Failed to get messages: {}", e))?;
 
     let user_message_id = messages
         .first()
@@ -746,10 +768,13 @@ pub async fn plan_generate(
         .map_err(|e| format!("Failed to save plan: {}", e))?;
 
     // Emit plan-generated event
-    let _ = app.emit("plan-generated", PlanGeneratedEvent {
-        conversation_id: request.conversation_id.clone(),
-        plan: plan.clone(),
-    });
+    let _ = app.emit(
+        "plan-generated",
+        PlanGeneratedEvent {
+            conversation_id: request.conversation_id.clone(),
+            plan: plan.clone(),
+        },
+    );
 
     Ok(plan)
 }
@@ -774,7 +799,9 @@ pub async fn plan_execute(
     let mut am: axagent_core::entity::plans::ActiveModel = plan_row.clone().into();
     am.status = Set("executing".to_string());
     am.updated_at = Set(chrono::Utc::now().timestamp_millis());
-    am.update(db).await.map_err(|e| format!("Failed to update plan: {}", e))?;
+    am.update(db)
+        .await
+        .map_err(|e| format!("Failed to update plan: {}", e))?;
 
     // Parse steps
     let steps: Vec<PlanStep> = serde_json::from_str(&plan_row.steps_json)
@@ -786,9 +813,7 @@ pub async fn plan_execute(
     } else {
         steps
             .iter()
-            .filter(|s| {
-                s.status == PlanStepStatus::Approved || s.status == PlanStepStatus::Pending
-            })
+            .filter(|s| s.status == PlanStepStatus::Approved || s.status == PlanStepStatus::Pending)
             .collect()
     };
 
@@ -799,21 +824,22 @@ pub async fn plan_execute(
         am.updated_at = Set(chrono::Utc::now().timestamp_millis());
         am.update(db).await.ok();
 
-        let _ = app.emit("plan-execution-complete", PlanExecutionCompleteEvent {
-            conversation_id: request.conversation_id.clone(),
-            plan_id: request.plan_id.clone(),
-            status: "completed".to_string(),
-        });
+        let _ = app.emit(
+            "plan-execution-complete",
+            PlanExecutionCompleteEvent {
+                conversation_id: request.conversation_id.clone(),
+                plan_id: request.plan_id.clone(),
+                status: "completed".to_string(),
+            },
+        );
         return Ok(());
     }
 
     // Load conversation for provider/model info
-    let conversation = axagent_core::repo::conversation::get_conversation(
-        db,
-        &request.conversation_id,
-    )
-    .await
-    .map_err(|e| format!("Failed to load conversation: {}", e))?;
+    let conversation =
+        axagent_core::repo::conversation::get_conversation(db, &request.conversation_id)
+            .await
+            .map_err(|e| format!("Failed to load conversation: {}", e))?;
 
     // Build agent context once (adapter + credentials) — reusable across steps
     let agent_ctx = build_agent_context(
@@ -861,12 +887,10 @@ pub async fn plan_execute(
     }
     let steps_json = serde_json::to_string(&updated_steps).unwrap_or_default();
 
-    let has_errors = updated_steps.iter().any(|s| s.status == PlanStepStatus::Error);
-    let final_status = if has_errors {
-        "completed"
-    } else {
-        "completed"
-    };
+    let has_errors = updated_steps
+        .iter()
+        .any(|s| s.status == PlanStepStatus::Error);
+    let final_status = if has_errors { "completed" } else { "completed" };
 
     let mut am2: axagent_core::entity::plans::ActiveModel = plan_row.into();
     am2.steps_json = Set(steps_json);
@@ -875,11 +899,14 @@ pub async fn plan_execute(
     am2.update(db).await.ok();
 
     // Emit completion
-    let _ = app.emit("plan-execution-complete", PlanExecutionCompleteEvent {
-        conversation_id: request.conversation_id,
-        plan_id: request.plan_id,
-        status: final_status.to_string(),
-    });
+    let _ = app.emit(
+        "plan-execution-complete",
+        PlanExecutionCompleteEvent {
+            conversation_id: request.conversation_id,
+            plan_id: request.plan_id,
+            status: final_status.to_string(),
+        },
+    );
 
     Ok(())
 }
@@ -906,11 +933,14 @@ pub async fn plan_cancel(
         am.update(db).await.ok();
     }
 
-    let _ = app.emit("plan-execution-complete", PlanExecutionCompleteEvent {
-        conversation_id: request.conversation_id,
-        plan_id: request.plan_id,
-        status: "cancelled".to_string(),
-    });
+    let _ = app.emit(
+        "plan-execution-complete",
+        PlanExecutionCompleteEvent {
+            conversation_id: request.conversation_id,
+            plan_id: request.plan_id,
+            status: "cancelled".to_string(),
+        },
+    );
 
     Ok(())
 }
@@ -977,29 +1007,32 @@ pub async fn plan_list(
         .await
         .map_err(|e| format!("DB error: {}", e))?;
 
-    let plans = rows.into_iter().map(|row| {
-        let steps: Vec<PlanStep> = serde_json::from_str(&row.steps_json).unwrap_or_default();
-        let status = match row.status.as_str() {
-            "draft" => PlanStatus::Draft,
-            "reviewing" => PlanStatus::Reviewing,
-            "approved" => PlanStatus::Approved,
-            "executing" => PlanStatus::Executing,
-            "completed" => PlanStatus::Completed,
-            _ => PlanStatus::Cancelled,
-        };
-        Plan {
-            id: row.id,
-            conversation_id: row.conversation_id,
-            user_message_id: row.user_message_id,
-            title: row.title,
-            steps,
-            status,
-            is_active: row.is_active != 0,
-            created_under_strategy: row.created_under_strategy,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-        }
-    }).collect();
+    let plans = rows
+        .into_iter()
+        .map(|row| {
+            let steps: Vec<PlanStep> = serde_json::from_str(&row.steps_json).unwrap_or_default();
+            let status = match row.status.as_str() {
+                "draft" => PlanStatus::Draft,
+                "reviewing" => PlanStatus::Reviewing,
+                "approved" => PlanStatus::Approved,
+                "executing" => PlanStatus::Executing,
+                "completed" => PlanStatus::Completed,
+                _ => PlanStatus::Cancelled,
+            };
+            Plan {
+                id: row.id,
+                conversation_id: row.conversation_id,
+                user_message_id: row.user_message_id,
+                title: row.title,
+                steps,
+                status,
+                is_active: row.is_active != 0,
+                created_under_strategy: row.created_under_strategy,
+                created_at: row.created_at,
+                updated_at: row.updated_at,
+            }
+        })
+        .collect();
 
     Ok(plans)
 }
@@ -1037,14 +1070,16 @@ pub async fn plan_modify_step(
         }
     }
 
-    let steps_json = serde_json::to_string(&steps)
-        .map_err(|e| format!("Failed to serialize steps: {}", e))?;
+    let steps_json =
+        serde_json::to_string(&steps).map_err(|e| format!("Failed to serialize steps: {}", e))?;
 
     let now = chrono::Utc::now().timestamp_millis();
     let mut am: axagent_core::entity::plans::ActiveModel = row.clone().into();
     am.steps_json = Set(steps_json);
     am.updated_at = Set(now);
-    am.update(db).await.map_err(|e| format!("Failed to update plan: {}", e))?;
+    am.update(db)
+        .await
+        .map_err(|e| format!("Failed to update plan: {}", e))?;
 
     let status = match row.status.as_str() {
         "draft" => PlanStatus::Draft,

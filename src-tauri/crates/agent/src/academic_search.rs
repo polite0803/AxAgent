@@ -469,7 +469,11 @@ impl AcademicSearchProvider {
         let mut results = Vec::new();
 
         if let Ok(data) = serde_json::from_str::<serde_json::Value>(json) {
-            if let Some(id_list) = data.get("esearchresult").and_then(|r| r.get("idlist")).and_then(|r| r.as_array()) {
+            if let Some(id_list) = data
+                .get("esearchresult")
+                .and_then(|r| r.get("idlist"))
+                .and_then(|r| r.as_array())
+            {
                 for id in id_list {
                     if let Some(id_str) = id.as_str() {
                         let link = format!("https://pubmed.ncbi.nlm.nih.gov/{}/", id_str);

@@ -53,8 +53,7 @@ impl PromptCache {
                 new_hash: Some(hash.clone()),
             });
             state.cache_valid = false;
-            state.last_invalidation_reason =
-                Some("System prompt changed".to_string());
+            state.last_invalidation_reason = Some("System prompt changed".to_string());
         }
 
         if state.system_prompt_hash.is_none() {
@@ -81,8 +80,7 @@ impl PromptCache {
                 new_hash: Some(hash.clone()),
             });
             state.cache_valid = false;
-            state.last_invalidation_reason =
-                Some("Tool set changed".to_string());
+            state.last_invalidation_reason = Some("Tool set changed".to_string());
         }
 
         state.tools_hash = Some(hash);

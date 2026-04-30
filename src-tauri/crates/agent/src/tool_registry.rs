@@ -342,7 +342,10 @@ impl ToolUsageStats {
 
     pub fn top_tools(&self, limit: usize) -> Vec<(String, ToolMetadata)> {
         let metrics = self.metrics.read();
-        let mut sorted: Vec<_> = metrics.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let mut sorted: Vec<_> = metrics
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
         sorted.sort_by(|a, b| b.1.success_count.cmp(&a.1.success_count));
         sorted.into_iter().take(limit).collect()
     }
@@ -612,7 +615,8 @@ impl ToolRegistry {
     }
 
     pub fn list_tools_by_category(&self) -> std::collections::HashMap<ToolCategory, Vec<String>> {
-        let mut categories: std::collections::HashMap<ToolCategory, Vec<String>> = std::collections::HashMap::new();
+        let mut categories: std::collections::HashMap<ToolCategory, Vec<String>> =
+            std::collections::HashMap::new();
         for tool_name in self.list_tools() {
             let category = classify_tool(&tool_name);
             categories.entry(category).or_default().push(tool_name);
@@ -720,10 +724,17 @@ impl ToolRegistry {
                                     last_error = Some(result.content);
                                 }
                                 Ok(Err(e)) => last_error = Some(e.to_string()),
-                                Err(_) => last_error = Some(format!("Tool timed out after {}s", timeout_duration.as_secs())),
+                                Err(_) => {
+                                    last_error = Some(format!(
+                                        "Tool timed out after {}s",
+                                        timeout_duration.as_secs()
+                                    ))
+                                }
                             }
                         }
-                        Err(ToolError::new(last_error.unwrap_or("All retry attempts failed".to_string())))
+                        Err(ToolError::new(
+                            last_error.unwrap_or("All retry attempts failed".to_string()),
+                        ))
                     }
                     "http" => {
                         let endpoint = server_config.endpoint.ok_or_else(|| {
@@ -731,10 +742,19 @@ impl ToolRegistry {
                         })?;
                         tokio::time::timeout(
                             timeout_duration,
-                            axagent_core::mcp_client::call_tool_http(&endpoint, &tool_name_owned, arguments),
+                            axagent_core::mcp_client::call_tool_http(
+                                &endpoint,
+                                &tool_name_owned,
+                                arguments,
+                            ),
                         )
                         .await
-                        .map_err(|_| ToolError::new(format!("Tool timed out after {}s", timeout_duration.as_secs())))?
+                        .map_err(|_| {
+                            ToolError::new(format!(
+                                "Tool timed out after {}s",
+                                timeout_duration.as_secs()
+                            ))
+                        })?
                         .map_err(|e| ToolError::new(e.to_string()))
                         .map(|r| r.content)
                     }
@@ -744,10 +764,19 @@ impl ToolRegistry {
                         })?;
                         tokio::time::timeout(
                             timeout_duration,
-                            axagent_core::mcp_client::call_tool_sse(&endpoint, &tool_name_owned, arguments),
+                            axagent_core::mcp_client::call_tool_sse(
+                                &endpoint,
+                                &tool_name_owned,
+                                arguments,
+                            ),
                         )
                         .await
-                        .map_err(|_| ToolError::new(format!("Tool timed out after {}s", timeout_duration.as_secs())))?
+                        .map_err(|_| {
+                            ToolError::new(format!(
+                                "Tool timed out after {}s",
+                                timeout_duration.as_secs()
+                            ))
+                        })?
                         .map_err(|e| ToolError::new(e.to_string()))
                         .map(|r| r.content)
                     }
@@ -769,12 +798,18 @@ impl Default for ToolRegistry {
 impl ToolExecutor for ToolRegistry {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, RuntimeToolError> {
         if !self.is_tool_allowed(tool_name) {
-            tracing::warn!("Tool '{}' execution denied by whitelist/blacklist policy", tool_name);
-            return Err(RuntimeToolError::new(ToolError::permission_denied(tool_name).to_string()));
+            tracing::warn!(
+                "Tool '{}' execution denied by whitelist/blacklist policy",
+                tool_name
+            );
+            return Err(RuntimeToolError::new(
+                ToolError::permission_denied(tool_name).to_string(),
+            ));
         }
 
         let category = self.get_tool_category(tool_name);
-        let is_cacheable = matches!(category, ToolCategory::ReadOnly) && is_read_only_tool(tool_name);
+        let is_cacheable =
+            matches!(category, ToolCategory::ReadOnly) && is_read_only_tool(tool_name);
 
         if is_cacheable {
             let input_hash = compute_hash(input);
@@ -830,7 +865,10 @@ impl ToolExecutor for ToolRegistry {
                 self.execute_mcp_tool(tool_name, input)
                     .map_err(|e| RuntimeToolError::new(e.to_string()))
             } else {
-                Err(RuntimeToolError::new(format!("Unknown tool: {}", tool_name)))
+                Err(RuntimeToolError::new(format!(
+                    "Unknown tool: {}",
+                    tool_name
+                )))
             }
         };
 
@@ -840,7 +878,8 @@ impl ToolExecutor for ToolRegistry {
         match &result {
             Ok(output) => {
                 self.record_result_sync(&execution_id, true, output, duration_ms);
-                self.usage_stats.record_execution(tool_name, category, execution_time_ms, true);
+                self.usage_stats
+                    .record_execution(tool_name, category, execution_time_ms, true);
 
                 if is_cacheable {
                     let input_hash = compute_hash(input);
@@ -856,7 +895,8 @@ impl ToolExecutor for ToolRegistry {
             }
             Err(e) => {
                 self.record_result_sync(&execution_id, false, &e.to_string(), duration_ms);
-                self.usage_stats.record_execution(tool_name, category, execution_time_ms, false);
+                self.usage_stats
+                    .record_execution(tool_name, category, execution_time_ms, false);
             }
         }
 
@@ -920,9 +960,13 @@ impl ToolRegistry {
         tokio::task::block_in_place(|| {
             handle.block_on(async {
                 if is_success {
-                    let _ = recorder.record_success(&exec_id, &content, Some(duration_ms)).await;
+                    let _ = recorder
+                        .record_success(&exec_id, &content, Some(duration_ms))
+                        .await;
                 } else {
-                    let _ = recorder.record_error(&exec_id, &content, Some(duration_ms)).await;
+                    let _ = recorder
+                        .record_error(&exec_id, &content, Some(duration_ms))
+                        .await;
                 }
             })
         });
@@ -971,10 +1015,9 @@ mod tests {
         for i in 0..(CACHE_MAX_ENTRIES + 50) {
             let key = format!("tool_{}", i);
             let input_hash = compute_hash(&key);
-            registry.result_cache.insert(
-                (key, input_hash),
-                (format!("result_{}", i), Instant::now()),
-            );
+            registry
+                .result_cache
+                .insert((key, input_hash), (format!("result_{}", i), Instant::now()));
         }
         registry.evict_cache_if_needed();
         assert!(registry.result_cache.len() <= CACHE_MAX_ENTRIES);

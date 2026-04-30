@@ -275,7 +275,10 @@ impl PtySession {
         let mut guard = self.inner.lock().await;
         match guard.as_mut() {
             Some(inner) => {
-                inner.child.kill().map_err(|e| format!("Failed to kill PTY child: {}", e))?;
+                inner
+                    .child
+                    .kill()
+                    .map_err(|e| format!("Failed to kill PTY child: {}", e))?;
                 inner.status = PtySessionStatus::Exited;
                 let mut s = self.status.write().await;
                 *s = PtySessionStatus::Exited;

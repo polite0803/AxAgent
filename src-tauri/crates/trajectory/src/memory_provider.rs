@@ -56,7 +56,11 @@ pub struct MemoryQueryResult {
 #[async_trait]
 pub trait MemoryProvider: Send + Sync {
     async fn sync_turn(&self, session_id: &str, entries: Vec<MemoryEntry>) -> Result<(), String>;
-    async fn prefetch(&self, session_id: &str, query: &MemoryQuery) -> Result<MemoryQueryResult, String>;
+    async fn prefetch(
+        &self,
+        session_id: &str,
+        query: &MemoryQuery,
+    ) -> Result<MemoryQueryResult, String>;
     async fn shutdown(&self) -> Result<(), String>;
     fn provider_name(&self) -> &'static str;
     fn provider_version(&self) -> &'static str;
@@ -94,14 +98,26 @@ impl MemoryProviderRegistry {
         Ok(())
     }
 
-    pub async fn sync_turn(&self, session_id: &str, entries: Vec<MemoryEntry>) -> Result<(), String> {
-        let provider = self.providers.get(&self.active_provider)
+    pub async fn sync_turn(
+        &self,
+        session_id: &str,
+        entries: Vec<MemoryEntry>,
+    ) -> Result<(), String> {
+        let provider = self
+            .providers
+            .get(&self.active_provider)
             .ok_or_else(|| format!("Active provider '{}' not found", self.active_provider))?;
         provider.sync_turn(session_id, entries).await
     }
 
-    pub async fn prefetch(&self, session_id: &str, query: &MemoryQuery) -> Result<MemoryQueryResult, String> {
-        let provider = self.providers.get(&self.active_provider)
+    pub async fn prefetch(
+        &self,
+        session_id: &str,
+        query: &MemoryQuery,
+    ) -> Result<MemoryQueryResult, String> {
+        let provider = self
+            .providers
+            .get(&self.active_provider)
             .ok_or_else(|| format!("Active provider '{}' not found", self.active_provider))?;
         provider.prefetch(session_id, query).await
     }

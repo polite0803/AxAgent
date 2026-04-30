@@ -88,10 +88,7 @@ impl CheckpointManager {
 
     pub async fn list_for_plan(&self, plan_id: &str) -> Result<Vec<Checkpoint>, String> {
         let all = self.list().await?;
-        Ok(all
-            .into_iter()
-            .filter(|cp| cp.plan_id == plan_id)
-            .collect())
+        Ok(all.into_iter().filter(|cp| cp.plan_id == plan_id).collect())
     }
 
     pub async fn get_latest_for_plan(&self, plan_id: &str) -> Result<Option<Checkpoint>, String> {

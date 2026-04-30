@@ -171,7 +171,11 @@ impl HealthChecker {
 
         let throughput = self.calculate_throughput().await;
         let throughput_healthy = throughput >= self.thresholds.min_throughput_per_sec;
-        metrics.push(HealthMetric::new("throughput_per_sec", throughput, throughput_healthy));
+        metrics.push(HealthMetric::new(
+            "throughput_per_sec",
+            throughput,
+            throughput_healthy,
+        ));
         if !throughput_healthy {
             issues.push(format!(
                 "Low throughput: {:.2} ops/sec (min: {:.2})",
@@ -181,7 +185,11 @@ impl HealthChecker {
 
         let error_rate = self.calculate_error_rate().await;
         let error_rate_healthy = error_rate <= self.thresholds.max_error_rate;
-        metrics.push(HealthMetric::new("error_rate", error_rate, error_rate_healthy));
+        metrics.push(HealthMetric::new(
+            "error_rate",
+            error_rate,
+            error_rate_healthy,
+        ));
         if !error_rate_healthy {
             issues.push(format!(
                 "High error rate: {:.1}% (max: {:.1}%)",
@@ -334,15 +342,18 @@ impl HealthChecker {
 
     pub async fn get_operation_stats(&self) -> std::collections::HashMap<String, OperationStats> {
         let ops = self.recent_operations.read().await;
-        let mut stats_map: std::collections::HashMap<String, OperationStats> = std::collections::HashMap::new();
+        let mut stats_map: std::collections::HashMap<String, OperationStats> =
+            std::collections::HashMap::new();
 
         for op in ops.iter() {
-            let stats = stats_map.entry(op.operation_type.clone()).or_insert_with(|| OperationStats {
-                count: 0,
-                success_count: 0,
-                failure_count: 0,
-                total_duration_ms: 0,
-            });
+            let stats = stats_map
+                .entry(op.operation_type.clone())
+                .or_insert_with(|| OperationStats {
+                    count: 0,
+                    success_count: 0,
+                    failure_count: 0,
+                    total_duration_ms: 0,
+                });
             stats.count += 1;
             stats.total_duration_ms += op.duration_ms;
             if op.success {
@@ -408,10 +419,7 @@ impl HealthCheckRunner {
                     }
                 });
             } else if matches!(result.status, HealthStatus::Degraded) {
-                tracing::debug!(
-                    "Health check degraded: {}",
-                    result.message
-                );
+                tracing::debug!("Health check degraded: {}", result.message);
             }
         }
     }
@@ -439,9 +447,7 @@ mod tests {
         let bus = create_test_event_bus();
         let checker = HealthChecker::new(bus);
 
-        checker
-            .record_operation(100, true, "test_op")
-            .await;
+        checker.record_operation(100, true, "test_op").await;
 
         let result = checker.check().await;
         assert!(matches!(result.status, HealthStatus::Healthy));
@@ -457,7 +463,10 @@ mod tests {
         }
 
         let result = checker.check().await;
-        assert!(matches!(result.status, HealthStatus::Unhealthy | HealthStatus::Degraded));
+        assert!(matches!(
+            result.status,
+            HealthStatus::Unhealthy | HealthStatus::Degraded
+        ));
     }
 
     #[tokio::test]

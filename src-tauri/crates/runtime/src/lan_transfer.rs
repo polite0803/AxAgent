@@ -58,7 +58,8 @@ impl LanDiscovery {
         if self.running.load(std::sync::atomic::Ordering::SeqCst) {
             return Ok(());
         }
-        self.running.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.running
+            .store(true, std::sync::atomic::Ordering::SeqCst);
 
         let running = self.running.clone();
         let _peers = self.peers.clone();
@@ -100,7 +101,8 @@ impl LanDiscovery {
     }
 
     pub async fn stop(&self) {
-        self.running.store(false, std::sync::atomic::Ordering::SeqCst);
+        self.running
+            .store(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(task) = self.task.lock().await.take() {
             task.abort();
             let _ = task.await;
@@ -127,7 +129,9 @@ impl LanDiscovery {
         while std::time::Instant::now() < deadline {
             match socket.recv_from(&mut buf) {
                 Ok((len, _src)) => {
-                    if let Ok(LanMessage::DiscoveryReply(peer)) = serde_json::from_slice(&buf[..len]) {
+                    if let Ok(LanMessage::DiscoveryReply(peer)) =
+                        serde_json::from_slice(&buf[..len])
+                    {
                         if !found.iter().any(|p: &LanPeer| p.id == peer.id) {
                             found.push(peer);
                         }
@@ -175,7 +179,8 @@ impl LanFileServer {
         if self.running.load(std::sync::atomic::Ordering::SeqCst) {
             return Ok(());
         }
-        self.running.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.running
+            .store(true, std::sync::atomic::Ordering::SeqCst);
 
         let listener = TcpListener::bind("0.0.0.0:0")?;
         let port = listener.local_addr()?.port();
@@ -207,7 +212,8 @@ impl LanFileServer {
     }
 
     pub async fn stop(&self) {
-        self.running.store(false, std::sync::atomic::Ordering::SeqCst);
+        self.running
+            .store(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(task) = self.task.lock().await.take() {
             task.abort();
             let _ = task.await;
@@ -251,7 +257,10 @@ async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::pa
             return;
         }
         if !file_path.exists() {
-            let _ = send_msg(stream, &LanMessage::TransferRejected("File not found".into()));
+            let _ = send_msg(
+                stream,
+                &LanMessage::TransferRejected("File not found".into()),
+            );
             return;
         }
 
@@ -276,7 +285,10 @@ async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::pa
                 return;
             }
             sent = end;
-            let progress = LanMessage::TransferProgress { bytes: sent as u64, total: data.len() as u64 };
+            let progress = LanMessage::TransferProgress {
+                bytes: sent as u64,
+                total: data.len() as u64,
+            };
             let _ = send_msg(stream, &progress);
         }
 
@@ -299,8 +311,16 @@ pub struct LanFileClient;
 
 impl LanFileClient {
     /// Download a file from a LAN peer
-    pub async fn download(peer: &LanPeer, file_name: &str, save_path: &std::path::Path) -> anyhow::Result<()> {
-        let addr = format!("{}:{}", peer.addresses.first().cloned().unwrap_or_default(), peer.port);
+    pub async fn download(
+        peer: &LanPeer,
+        file_name: &str,
+        save_path: &std::path::Path,
+    ) -> anyhow::Result<()> {
+        let addr = format!(
+            "{}:{}",
+            peer.addresses.first().cloned().unwrap_or_default(),
+            peer.port
+        );
         let mut stream = TcpStream::connect(&addr)?;
         let _ = stream.set_read_timeout(Some(Duration::from_secs(120)));
 
@@ -347,7 +367,11 @@ impl LanFileClient {
 
     /// Request a file list from a LAN peer
     pub async fn list_files(peer: &LanPeer) -> anyhow::Result<Vec<String>> {
-        let addr = format!("{}:{}", peer.addresses.first().cloned().unwrap_or_default(), peer.port);
+        let addr = format!(
+            "{}:{}",
+            peer.addresses.first().cloned().unwrap_or_default(),
+            peer.port
+        );
         let mut stream = TcpStream::connect(&addr)?;
         let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
 

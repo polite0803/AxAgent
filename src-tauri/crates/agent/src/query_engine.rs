@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use axagent_core::entity::{notes, note_links, note_backlinks, wikis};
+use axagent_core::entity::{note_backlinks, note_links, notes, wikis};
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
@@ -181,7 +181,9 @@ impl QueryEngine {
         let search_result = self.query(&query_ctx).await?;
 
         if search_result.pages.is_empty() {
-            return Ok("No relevant information found in this wiki to answer your question.".to_string());
+            return Ok(
+                "No relevant information found in this wiki to answer your question.".to_string(),
+            );
         }
 
         let mut context = String::from("Relevant wiki pages:\n\n");
@@ -252,11 +254,7 @@ impl QueryEngine {
         Ok(response.content)
     }
 
-    pub async fn get_page_context(
-        &self,
-        note_id: &str,
-        depth: usize,
-    ) -> Result<String, String> {
+    pub async fn get_page_context(&self, note_id: &str, depth: usize) -> Result<String, String> {
         let note = axagent_core::repo::note::get_note(self.db.as_ref(), note_id)
             .await
             .map_err(|e| e.to_string())?;

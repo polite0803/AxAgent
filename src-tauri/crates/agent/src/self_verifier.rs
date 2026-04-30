@@ -131,19 +131,23 @@ impl SelfVerifier {
             "read_file" | "read_multiple_files" => self.verify_file_read(result, input).await,
             "write_file" | "create_file" => self.verify_file_write(result, input).await,
             "glob_search" | "file_search" => self.verify_search_result(result, input).await,
-            "execute_command" | "bash" | "shell" => {
-                self.verify_command_result(result, input).await
-            }
+            "execute_command" | "bash" | "shell" => self.verify_command_result(result, input).await,
             "web_search" | "search" => self.verify_web_search(result, input).await,
             "edit_file" | "apply_diff" => self.verify_file_edit(result, input).await,
-            _ => Ok(VerificationResult::valid("No specific validation available")),
+            _ => Ok(VerificationResult::valid(
+                "No specific validation available",
+            )),
         }?;
 
         if let Some(ref validator) = self.semantic_validator {
             let semantic_result = validator
                 .validate_semantically(tool_name, input, result)
                 .await?;
-            Ok(Self::combine_results(base_verification, specific_check, semantic_result))
+            Ok(Self::combine_results(
+                base_verification,
+                specific_check,
+                semantic_result,
+            ))
         } else {
             Ok(specific_check)
         }
@@ -158,8 +162,10 @@ impl SelfVerifier {
             || result.contains("Path does not exist")
             || result.contains("permission denied")
         {
-            return Ok(VerificationResult::invalid("File read failed - file not found or no permission")
-                .with_correction("Verify the file path is correct"));
+            return Ok(VerificationResult::invalid(
+                "File read failed - file not found or no permission",
+            )
+            .with_correction("Verify the file path is correct"));
         }
 
         if _input.contains("line_numbers") && !result.contains('\n') && !result.is_empty() {
@@ -267,8 +273,10 @@ impl SelfVerifier {
         input: &str,
     ) -> Result<VerificationResult, VerificationError> {
         if result.is_empty() {
-            return Ok(VerificationResult::invalid("Web search returned no results")
-                .with_correction("Try different search terms"));
+            return Ok(
+                VerificationResult::invalid("Web search returned no results")
+                    .with_correction("Try different search terms"),
+            );
         }
 
         let query = input
@@ -290,7 +298,10 @@ impl SelfVerifier {
             if match_ratio < 0.3 && !result.is_empty() {
                 return Ok(VerificationResult::uncertain(
                     0.6,
-                    format!("Search results may not be relevant to query ({}% word match)", (match_ratio * 100.0) as i32),
+                    format!(
+                        "Search results may not be relevant to query ({}% word match)",
+                        (match_ratio * 100.0) as i32
+                    ),
                 ));
             }
         }

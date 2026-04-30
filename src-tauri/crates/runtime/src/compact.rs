@@ -665,15 +665,33 @@ pub fn detect_task_boundary(messages: &[ConversationMessage]) -> Option<usize> {
     }
 
     let completion_markers = [
-        "thanks", "thank you", "done", "looks good", "lgtm",
-        "works", "working", "perfect", "great", "awesome",
-        "completed", "resolved", "fixed",
+        "thanks",
+        "thank you",
+        "done",
+        "looks good",
+        "lgtm",
+        "works",
+        "working",
+        "perfect",
+        "great",
+        "awesome",
+        "completed",
+        "resolved",
+        "fixed",
     ];
 
     let new_task_markers = [
-        "now let's", "next,", "can you also", "additionally",
-        "separately", "another thing", "new task", "moving on",
-        "also,", "one more", "by the way",
+        "now let's",
+        "next,",
+        "can you also",
+        "additionally",
+        "separately",
+        "another thing",
+        "new task",
+        "moving on",
+        "also,",
+        "one more",
+        "by the way",
     ];
 
     // Search from newest backwards for completion markers followed by new task
@@ -1001,11 +1019,9 @@ mod tests {
     fn test_summarize_turn_simple() {
         let messages = vec![
             ConversationMessage::user_text("Fix the bug in main.rs"),
-            ConversationMessage::assistant(vec![
-                ContentBlock::Text {
-                    text: "I'll fix that.".to_string(),
-                },
-            ]),
+            ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "I'll fix that.".to_string(),
+            }]),
         ];
         let summary = super::summarize_turn(&messages);
         assert!(summary.contains("Fix the bug"));
@@ -1018,13 +1034,11 @@ mod tests {
             ConversationMessage::user_text("Read the file"),
             ConversationMessage {
                 role: MessageRole::Assistant,
-                blocks: vec![
-                    ContentBlock::ToolUse {
-                        id: "1".to_string(),
-                        name: "read_file".to_string(),
-                        input: "main.rs".to_string(),
-                    },
-                ],
+                blocks: vec![ContentBlock::ToolUse {
+                    id: "1".to_string(),
+                    name: "read_file".to_string(),
+                    input: "main.rs".to_string(),
+                }],
                 usage: None,
             },
             ConversationMessage::tool_result("1", "read_file", "file contents", false),

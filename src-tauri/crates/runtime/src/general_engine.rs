@@ -79,28 +79,49 @@ impl GeneralEngine {
     pub fn classify_task(&self, input: &str) -> GeneralTaskCategory {
         let lowered = input.to_lowercase();
 
-        if lowered.contains("document") || lowered.contains("pdf") || lowered.contains("docx")
-            || lowered.contains("excel") || lowered.contains("powerpoint") || lowered.contains("parse")
+        if lowered.contains("document")
+            || lowered.contains("pdf")
+            || lowered.contains("docx")
+            || lowered.contains("excel")
+            || lowered.contains("powerpoint")
+            || lowered.contains("parse")
         {
             GeneralTaskCategory::DocumentProcessing
-        } else if lowered.contains("search") || lowered.contains("find") || lowered.contains("lookup")
-            || lowered.contains("google") || lowered.contains("web")
+        } else if lowered.contains("search")
+            || lowered.contains("find")
+            || lowered.contains("lookup")
+            || lowered.contains("google")
+            || lowered.contains("web")
         {
             GeneralTaskCategory::WebSearch
-        } else if lowered.contains("file") || lowered.contains("folder") || lowered.contains("directory")
-            || lowered.contains("rename") || lowered.contains("delete") || lowered.contains("move")
+        } else if lowered.contains("file")
+            || lowered.contains("folder")
+            || lowered.contains("directory")
+            || lowered.contains("rename")
+            || lowered.contains("delete")
+            || lowered.contains("move")
         {
             GeneralTaskCategory::FileOperation
-        } else if lowered.contains("system") || lowered.contains("command") || lowered.contains("terminal")
-            || lowered.contains("bash") || lowered.contains("shell") || lowered.contains("execute")
+        } else if lowered.contains("system")
+            || lowered.contains("command")
+            || lowered.contains("terminal")
+            || lowered.contains("bash")
+            || lowered.contains("shell")
+            || lowered.contains("execute")
         {
             GeneralTaskCategory::SystemTool
-        } else if lowered.contains("analyze") || lowered.contains("data") || lowered.contains("statistics")
-            || lowered.contains("chart") || lowered.contains("graph")
+        } else if lowered.contains("analyze")
+            || lowered.contains("data")
+            || lowered.contains("statistics")
+            || lowered.contains("chart")
+            || lowered.contains("graph")
         {
             GeneralTaskCategory::DataAnalysis
-        } else if lowered.contains("whatsapp") || lowered.contains("telegram") || lowered.contains("slack")
-            || lowered.contains("discord") || lowered.contains("wechat")
+        } else if lowered.contains("whatsapp")
+            || lowered.contains("telegram")
+            || lowered.contains("slack")
+            || lowered.contains("discord")
+            || lowered.contains("wechat")
         {
             GeneralTaskCategory::MessageGateway
         } else {
@@ -110,12 +131,16 @@ impl GeneralEngine {
 
     /// Check if a capability is enabled.
     pub fn is_capability_enabled(&self, capability: &str) -> bool {
-        self.active_capabilities.get(capability).copied().unwrap_or(false)
+        self.active_capabilities
+            .get(capability)
+            .copied()
+            .unwrap_or(false)
     }
 
     /// Enable or disable a specific capability.
     pub fn set_capability(&mut self, capability: &str, enabled: bool) {
-        self.active_capabilities.insert(capability.to_string(), enabled);
+        self.active_capabilities
+            .insert(capability.to_string(), enabled);
     }
 
     /// Get a summary of active capabilities.

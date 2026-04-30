@@ -45,14 +45,30 @@ impl MemoryProvider for HonchoProvider {
             return Ok(());
         }
         let cache_key = format!("{}:{}", self.config.user_id, session_id);
-        self.local_cache.write().await.insert(cache_key.clone(), entries);
-        tracing::debug!("Synced memory entries for session {} via Honcho", session_id);
+        self.local_cache
+            .write()
+            .await
+            .insert(cache_key.clone(), entries);
+        tracing::debug!(
+            "Synced memory entries for session {} via Honcho",
+            session_id
+        );
         Ok(())
     }
 
-    async fn prefetch(&self, session_id: &str, query: &MemoryQuery) -> Result<MemoryQueryResult, String> {
+    async fn prefetch(
+        &self,
+        session_id: &str,
+        query: &MemoryQuery,
+    ) -> Result<MemoryQueryResult, String> {
         let cache_key = format!("{}:{}", self.config.user_id, session_id);
-        let cached = self.local_cache.read().await.get(&cache_key).cloned().unwrap_or_default();
+        let cached = self
+            .local_cache
+            .read()
+            .await
+            .get(&cache_key)
+            .cloned()
+            .unwrap_or_default();
         let filtered: Vec<MemoryEntry> = cached
             .into_iter()
             .filter(|e| {

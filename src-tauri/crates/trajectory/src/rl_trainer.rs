@@ -1,5 +1,5 @@
 use crate::training_env::{EvaluationResult, RewardComputation, TaskDefinition, TrainingEnv};
-use crate::trajectory::{Trajectory, TrainingConfig};
+use crate::trajectory::{TrainingConfig, Trajectory};
 use crate::trajectory_compressor::{CompressedTrajectory, TrajectoryCompressor};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -92,27 +92,20 @@ impl PlatformAdapter for WeChatAdapter {
                     }
                 }
 
-                if let Ok(msgs) =
-                    poll_wechat_cs_messages(&client, &access_token).await
-                {
+                if let Ok(msgs) = poll_wechat_cs_messages(&client, &access_token).await {
                     for (openid, text) in msgs {
                         tracing::info!("WeChat msg: {} from {}", text, openid);
 
-                        if let Some(cb) =
-                            crate::message_gateway::platforms::get_message_callback()
+                        if let Some(cb) = crate::message_gateway::platforms::get_message_callback()
                         {
                             let at = access_token.clone();
                             let oid = openid.clone();
                             let t = text.clone();
                             tokio::spawn(async move {
-                                let reply = cb
-                                    .on_message("wechat", &oid, None, &oid, &t)
-                                    .await;
+                                let reply = cb.on_message("wechat", &oid, None, &oid, &t).await;
                                 if let Some(reply_text) = reply {
-                                    let _ = send_wechat_custom_message(
-                                        &at, &oid, &reply_text,
-                                    )
-                                    .await;
+                                    let _ =
+                                        send_wechat_custom_message(&at, &oid, &reply_text).await;
                                 }
                             });
                         }

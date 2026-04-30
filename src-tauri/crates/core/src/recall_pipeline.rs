@@ -71,7 +71,11 @@ pub struct RecallPipeline<'a> {
 
 impl<'a> RecallPipeline<'a> {
     pub fn new(file_index: &'a FileIndex, ast_index: &'a AstIndex, config: PipelineConfig) -> Self {
-        Self { file_index, ast_index, config }
+        Self {
+            file_index,
+            ast_index,
+            config,
+        }
     }
 
     /// Execute the full three-level recall for a query.
@@ -85,7 +89,12 @@ impl<'a> RecallPipeline<'a> {
     ) -> Result<Vec<RecallResult>, String> {
         // ── L1: File metadata filter ────────────────────────────────────
         let l1_files: Vec<String> = if self.config.l1_enabled {
-            let extensions: Vec<&str> = self.config.l1_code_extensions.iter().map(|s| s.as_str()).collect();
+            let extensions: Vec<&str> = self
+                .config
+                .l1_code_extensions
+                .iter()
+                .map(|s| s.as_str())
+                .collect();
             let entries = self.file_index.filter_by_extension(&extensions)?;
             entries.into_iter().map(|e| e.path).collect()
         } else {
@@ -100,7 +109,10 @@ impl<'a> RecallPipeline<'a> {
         let ast_scored = if self.config.l2_enabled {
             self.score_ast_matches(query, &l1_files)?
         } else {
-            l1_files.into_iter().map(|f| (f, 0.0f32, Vec::new())).collect()
+            l1_files
+                .into_iter()
+                .map(|f| (f, 0.0f32, Vec::new()))
+                .collect()
         };
 
         // ── L3: Vector similarity sort ──────────────────────────────────
@@ -156,9 +168,17 @@ impl<'a> RecallPipeline<'a> {
         };
 
         // Sort by combined score descending
-        results.sort_by(|a, b| b.combined_score.partial_cmp(&a.combined_score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.combined_score
+                .partial_cmp(&a.combined_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
-        let limit = if self.config.l3_enabled { self.config.l3_limit } else { self.config.l2_limit };
+        let limit = if self.config.l3_enabled {
+            self.config.l3_limit
+        } else {
+            self.config.l2_limit
+        };
         results.truncate(limit);
 
         Ok(results)
@@ -203,7 +223,12 @@ impl<'a> RecallPipeline<'a> {
         if let Ok(edges) = self.ast_index.find_callers(query) {
             for e in &edges {
                 if l1_files.is_empty() || l1_files.contains(&e.caller_file) {
-                    self.upsert_score(&mut scored, &e.caller_file, 0.6, format!("calls_{}", e.callee_name));
+                    self.upsert_score(
+                        &mut scored,
+                        &e.caller_file,
+                        0.6,
+                        format!("calls_{}", e.callee_name),
+                    );
                 }
             }
         }
@@ -219,7 +244,13 @@ impl<'a> RecallPipeline<'a> {
         Ok(scored)
     }
 
-    fn upsert_score(&self, scored: &mut Vec<(String, f32, Vec<String>)>, file_path: &str, score: f32, def_name: String) {
+    fn upsert_score(
+        &self,
+        scored: &mut Vec<(String, f32, Vec<String>)>,
+        file_path: &str,
+        score: f32,
+        def_name: String,
+    ) {
         if let Some(existing) = scored.iter_mut().find(|(f, _, _)| f == file_path) {
             existing.1 += score;
             existing.2.push(def_name);
@@ -249,9 +280,15 @@ mod tests {
         fi.upsert("/src/lib.rs", "rs", 2048, 2000).unwrap();
         fi.upsert("/app.ts", "ts", 512, 500).unwrap();
 
-        ai.index_file("/src/main.rs", "fn calculate() -> u32 { 42 }\nfn render() {}").unwrap();
-        ai.index_file("/src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }").unwrap();
-        ai.index_file("/app.ts", "function hello() { console.log('hi'); }").unwrap();
+        ai.index_file(
+            "/src/main.rs",
+            "fn calculate() -> u32 { 42 }\nfn render() {}",
+        )
+        .unwrap();
+        ai.index_file("/src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }")
+            .unwrap();
+        ai.index_file("/app.ts", "function hello() { console.log('hi'); }")
+            .unwrap();
 
         let pipeline = RecallPipeline::new(
             &fi,

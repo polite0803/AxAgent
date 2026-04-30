@@ -195,10 +195,9 @@ impl ModeSelector {
                 "{} — 仅代码引擎 + 严格Token管控 + 非必要模块休眠",
                 mode.display_name()
             ),
-            ActiveMode::General => format!(
-                "{} — 全功能开启，保留完整通用能力",
-                mode.display_name()
-            ),
+            ActiveMode::General => {
+                format!("{} — 全功能开启，保留完整通用能力", mode.display_name())
+            }
         }
     }
 }
@@ -214,10 +213,26 @@ mod tests {
         let registry = Arc::new(ModuleRegistry::new());
 
         // Register test modules
-        let code = Arc::new(SimpleToggle::new("code_engine", "Code Engine", ResourceCost::MEDIUM));
-        let doc = Arc::new(SimpleToggle::new("document_parser", "Document Parser", ResourceCost::LOW));
-        let vision = Arc::new(SimpleToggle::new("screen_vision", "Screen Vision", ResourceCost::HIGH));
-        let deep = Arc::new(SimpleToggle::new("deep_research", "Deep Research", ResourceCost::LOW));
+        let code = Arc::new(SimpleToggle::new(
+            "code_engine",
+            "Code Engine",
+            ResourceCost::MEDIUM,
+        ));
+        let doc = Arc::new(SimpleToggle::new(
+            "document_parser",
+            "Document Parser",
+            ResourceCost::LOW,
+        ));
+        let vision = Arc::new(SimpleToggle::new(
+            "screen_vision",
+            "Screen Vision",
+            ResourceCost::HIGH,
+        ));
+        let deep = Arc::new(SimpleToggle::new(
+            "deep_research",
+            "Deep Research",
+            ResourceCost::LOW,
+        ));
 
         registry.register(code).await;
         registry.register(doc).await;

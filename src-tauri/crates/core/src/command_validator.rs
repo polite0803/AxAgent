@@ -71,7 +71,10 @@ impl CommandValidator {
             return CommandValidationResult {
                 is_safe: false,
                 sanitized: None,
-                warnings: vec![format!("Command exceeds maximum length of {} bytes", self.max_length)],
+                warnings: vec![format!(
+                    "Command exceeds maximum length of {} bytes",
+                    self.max_length
+                )],
                 dangerous_patterns: vec![],
             };
         }
@@ -118,7 +121,11 @@ impl CommandValidator {
 
         CommandValidationResult {
             is_safe,
-            sanitized: if is_safe { Some(command.to_string()) } else { None },
+            sanitized: if is_safe {
+                Some(command.to_string())
+            } else {
+                None
+            },
             warnings,
             dangerous_patterns,
         }
@@ -174,10 +181,7 @@ pub fn validate_command(command: &str) -> Result<(), String> {
 
     for blocked in get_platform_blocked_commands() {
         if command.contains(blocked) {
-            return Err(format!(
-                "Command blocked for security reasons: {}",
-                blocked
-            ));
+            return Err(format!("Command blocked for security reasons: {}", blocked));
         }
     }
 

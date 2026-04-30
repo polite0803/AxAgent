@@ -4,8 +4,8 @@ use axagent_runtime::message_gateway::platform_manager::{
     PlatformAdapterStatus, PlatformReconcileReport,
 };
 use axagent_trajectory::{
-    DiscordMessage, MessagePlatform, OutgoingMessage, PlatformMessage,
-    PlatformSession, TelegramMessage,
+    DiscordMessage, MessagePlatform, OutgoingMessage, PlatformMessage, PlatformSession,
+    TelegramMessage,
 };
 use tauri::State;
 

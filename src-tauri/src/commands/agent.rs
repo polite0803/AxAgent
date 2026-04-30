@@ -1602,17 +1602,19 @@ pub async fn agent_query(
                         output: None,
                         is_error: None,
                     },
-                    axagent_runtime::ContentBlock::ToolUse { id, name, input } => AgentContentBlock {
-                        block_type: "tool_use".to_string(),
-                        id: Some(id.clone()),
-                        name: Some(name.clone()),
-                        input: Some(input.clone()),
-                        text: None,
-                        tool_use_id: None,
-                        tool_name: None,
-                        output: None,
-                        is_error: None,
-                    },
+                    axagent_runtime::ContentBlock::ToolUse { id, name, input } => {
+                        AgentContentBlock {
+                            block_type: "tool_use".to_string(),
+                            id: Some(id.clone()),
+                            name: Some(name.clone()),
+                            input: Some(input.clone()),
+                            text: None,
+                            tool_use_id: None,
+                            tool_name: None,
+                            output: None,
+                            is_error: None,
+                        }
+                    }
                     axagent_runtime::ContentBlock::ToolResult {
                         tool_use_id,
                         tool_name,
@@ -2208,19 +2210,20 @@ fn create_llm_step_executor(
                     store_response: None,
                 };
 
-                let system_prompt = if let (Some(ref expert_id), Some(db)) = (&step.expert_role_id, &db) {
-                    match axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
-                        .one(db.as_ref())
-                        .await
-                    {
-                        Ok(Some(expert)) if !expert.system_prompt.is_empty() => {
-                            expert.system_prompt
+                let system_prompt =
+                    if let (Some(ref expert_id), Some(db)) = (&step.expert_role_id, &db) {
+                        match axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                            .one(db.as_ref())
+                            .await
+                        {
+                            Ok(Some(expert)) if !expert.system_prompt.is_empty() => {
+                                expert.system_prompt
+                            }
+                            _ => step.agent_role.system_prompt().to_string(),
                         }
-                        _ => step.agent_role.system_prompt().to_string(),
-                    }
-                } else {
-                    step.agent_role.system_prompt().to_string()
-                };
+                    } else {
+                        step.agent_role.system_prompt().to_string()
+                    };
 
                 let mut user_message = format!("Task goal: {}\n\n", step.goal);
                 if !deps_results.is_empty() {

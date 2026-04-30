@@ -1,4 +1,6 @@
-use crate::coordinator::{AgentConfig, AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput};
+use crate::coordinator::{
+    AgentConfig, AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput,
+};
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -66,9 +68,13 @@ impl AgentImpl for AgentImplAdapter {
         *status = AgentStatus::Running;
         drop(status);
 
-        self.emit(AgentEventType::TurnStarted, serde_json::json!({
-            "input_preview": input.content.chars().take(100).collect::<String>()
-        })).await;
+        self.emit(
+            AgentEventType::TurnStarted,
+            serde_json::json!({
+                "input_preview": input.content.chars().take(100).collect::<String>()
+            }),
+        )
+        .await;
 
         let result = Ok(CoordinatorOutput::success(
             format!("Processed: {}", input.content),
@@ -78,9 +84,13 @@ impl AgentImpl for AgentImplAdapter {
         let mut status = self.status.write().await;
         *status = AgentStatus::Completed;
 
-        self.emit(AgentEventType::TurnCompleted, serde_json::json!({
-            "status": "Completed"
-        })).await;
+        self.emit(
+            AgentEventType::TurnCompleted,
+            serde_json::json!({
+                "status": "Completed"
+            }),
+        )
+        .await;
 
         result
     }
@@ -146,10 +156,7 @@ pub struct AgentRuntimeAdapter<M: AgentRuntimeManager> {
 }
 
 impl<M: AgentRuntimeManager> AgentRuntimeAdapter<M> {
-    pub fn new(
-        manager: M,
-        event_bus: Option<Arc<AgentEventBus>>,
-    ) -> Self {
+    pub fn new(manager: M, event_bus: Option<Arc<AgentEventBus>>) -> Self {
         Self {
             manager,
             status: RwLock::new(AgentStatus::Idle),
@@ -189,10 +196,14 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
         let mut status = self.status.write().await;
         *status = AgentStatus::Idle;
 
-        self.emit(AgentEventType::StateChanged, serde_json::json!({
-            "from": "Initializing",
-            "to": "Idle"
-        })).await;
+        self.emit(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "from": "Initializing",
+                "to": "Idle"
+            }),
+        )
+        .await;
 
         Ok(())
     }
@@ -206,28 +217,42 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
             *status = AgentStatus::Running;
         }
 
-        self.emit(AgentEventType::TurnStarted, serde_json::json!({
-            "input_preview": input.content.chars().take(100).collect::<String>()
-        })).await;
+        self.emit(
+            AgentEventType::TurnStarted,
+            serde_json::json!({
+                "input_preview": input.content.chars().take(100).collect::<String>()
+            }),
+        )
+        .await;
 
-        let result = self.manager.execute(&input.content).await.map_err(|e| {
-            AgentError::ExecutionFailed(e.to_string())
-        });
+        let result = self
+            .manager
+            .execute(&input.content)
+            .await
+            .map_err(|e| AgentError::ExecutionFailed(e.to_string()));
 
         let mut status = self.status.write().await;
         match &result {
             Ok(output) => {
                 *status = AgentStatus::Completed;
-                self.emit(AgentEventType::TurnCompleted, serde_json::json!({
-                    "iterations": output.iterations,
-                    "tool_call_count": output.tool_call_count
-                })).await;
+                self.emit(
+                    AgentEventType::TurnCompleted,
+                    serde_json::json!({
+                        "iterations": output.iterations,
+                        "tool_call_count": output.tool_call_count
+                    }),
+                )
+                .await;
             }
             Err(e) => {
                 *status = AgentStatus::Failed(e.to_string());
-                self.emit(AgentEventType::Error, serde_json::json!({
-                    "error": e.to_string()
-                })).await;
+                self.emit(
+                    AgentEventType::Error,
+                    serde_json::json!({
+                        "error": e.to_string()
+                    }),
+                )
+                .await;
             }
         }
 
@@ -252,10 +277,14 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
         }
         *status = AgentStatus::Paused;
 
-        self.emit(AgentEventType::StateChanged, serde_json::json!({
-            "from": "Running",
-            "to": "Paused"
-        })).await;
+        self.emit(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "from": "Running",
+                "to": "Paused"
+            }),
+        )
+        .await;
 
         Ok(())
     }
@@ -270,10 +299,14 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
         }
         *status = AgentStatus::Running;
 
-        self.emit(AgentEventType::StateChanged, serde_json::json!({
-            "from": "Paused",
-            "to": "Running"
-        })).await;
+        self.emit(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "from": "Paused",
+                "to": "Running"
+            }),
+        )
+        .await;
 
         Ok(())
     }
@@ -282,9 +315,13 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
         let mut status = self.status.write().await;
         *status = AgentStatus::Idle;
 
-        self.emit(AgentEventType::StateChanged, serde_json::json!({
-            "to": "Idle"
-        })).await;
+        self.emit(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "to": "Idle"
+            }),
+        )
+        .await;
 
         Ok(())
     }

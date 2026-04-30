@@ -103,8 +103,8 @@ impl TaskRouter {
         let code_score = self.code_keyword_score(input);
         let context_bonus = self.context_code_bonus();
 
-        let total_score = self.config.keyword_weight * code_score
-            + self.config.context_weight * context_bonus;
+        let total_score =
+            self.config.keyword_weight * code_score + self.config.context_weight * context_bonus;
 
         let decision = if total_score >= self.config.code_confidence_threshold {
             RouteDecision::Code
@@ -121,22 +121,54 @@ impl TaskRouter {
         let lowered = input.to_lowercase();
 
         let strong_code_keywords = [
-            "fn ", "def ", "function ", "class ", "struct ", "enum ",
-            "impl ", "trait ", "import ", "export ", "const ", "let ",
-            "pub fn", "mod ", "cargo ", "npm ", "pip ", "go build",
-            "javac", "gcc ", "rustc", "compile", "compiler",
+            "fn ",
+            "def ",
+            "function ",
+            "class ",
+            "struct ",
+            "enum ",
+            "impl ",
+            "trait ",
+            "import ",
+            "export ",
+            "const ",
+            "let ",
+            "pub fn",
+            "mod ",
+            "cargo ",
+            "npm ",
+            "pip ",
+            "go build",
+            "javac",
+            "gcc ",
+            "rustc",
+            "compile",
+            "compiler",
         ];
 
         let medium_code_keywords = [
-            "code", "debug", "fix", "refactor", "implement",
-            "test", "build", "commit", "push", "pull request",
-            "merge", "branch", "repository", "dependency",
-            "syntax", "lint", "format",
+            "code",
+            "debug",
+            "fix",
+            "refactor",
+            "implement",
+            "test",
+            "build",
+            "commit",
+            "push",
+            "pull request",
+            "merge",
+            "branch",
+            "repository",
+            "dependency",
+            "syntax",
+            "lint",
+            "format",
         ];
 
         let file_extensions = [
-            ".rs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go",
-            ".java", ".cpp", ".c", ".h", ".toml", ".json",
+            ".rs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".cpp", ".c", ".h",
+            ".toml", ".json",
         ];
 
         let mut score = 0.0f32;
@@ -165,8 +197,10 @@ impl TaskRouter {
         }
 
         // Detect explicit code tool references
-        if lowered.contains("write_file") || lowered.contains("edit_file")
-            || lowered.contains("read_file") || lowered.contains("grep")
+        if lowered.contains("write_file")
+            || lowered.contains("edit_file")
+            || lowered.contains("read_file")
+            || lowered.contains("grep")
         {
             score += 0.3;
         }
@@ -179,8 +213,8 @@ impl TaskRouter {
         let mut bonus = 0.0f32;
 
         // Sticky code mode: if user has been coding for several turns, bias toward code
-        let sticky_ratio = self.context.consecutive_code_turns as f32
-            / self.config.sticky_code_turns as f32;
+        let sticky_ratio =
+            self.context.consecutive_code_turns as f32 / self.config.sticky_code_turns as f32;
         bonus += sticky_ratio.min(1.0) * 0.5;
 
         // Recent code activity
@@ -194,8 +228,11 @@ impl TaskRouter {
             .open_files
             .iter()
             .filter(|f| {
-                f.ends_with(".rs") || f.ends_with(".ts") || f.ends_with(".py")
-                    || f.ends_with(".go") || f.ends_with(".js")
+                f.ends_with(".rs")
+                    || f.ends_with(".ts")
+                    || f.ends_with(".py")
+                    || f.ends_with(".go")
+                    || f.ends_with(".js")
             })
             .count();
         if code_file_count > 0 {
@@ -205,9 +242,16 @@ impl TaskRouter {
         // Last tool was code-related
         if let Some(ref tool) = self.context.last_tool {
             let code_tools = [
-                "read_file", "write_file", "edit_file", "grep_search",
-                "glob_search", "git_diff", "git_log", "git_status",
-                "lsp_diagnostics", "lsp_hover",
+                "read_file",
+                "write_file",
+                "edit_file",
+                "grep_search",
+                "glob_search",
+                "git_diff",
+                "git_log",
+                "git_status",
+                "lsp_diagnostics",
+                "lsp_hover",
             ];
             if code_tools.contains(&tool.as_str()) {
                 bonus += 0.3;
@@ -276,7 +320,9 @@ mod tests {
         let mut router = TaskRouter::default();
         // Simulate several strongly code-related turns
         for _ in 0..5 {
-            router.infer("Fix the bug in main.rs fn calculate and trait Calculator and struct Config");
+            router.infer(
+                "Fix the bug in main.rs fn calculate and trait Calculator and struct Config",
+            );
         }
         // With heavy code momentum, even a light code-related query routes to code
         let decision = router.infer("Can you check this code and fix the build?");

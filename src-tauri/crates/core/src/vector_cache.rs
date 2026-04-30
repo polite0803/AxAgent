@@ -38,7 +38,8 @@ impl VectorSearchCache {
                 return Some(entry.results.clone());
             }
         }
-        self.misses.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.misses
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         None
     }
 
@@ -88,7 +89,11 @@ impl VectorSearchCache {
         }
     }
 
-    pub fn compute_query_hash(knowledge_base_id: &str, query_embedding: &[f32], top_k: usize) -> u64 {
+    pub fn compute_query_hash(
+        knowledge_base_id: &str,
+        query_embedding: &[f32],
+        top_k: usize,
+    ) -> u64 {
         use std::hash::{Hash, Hasher};
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         knowledge_base_id.hash(&mut hasher);
@@ -138,8 +143,7 @@ impl VectorSearchCache {
             .iter()
             .filter(|(_, entry)| entry.timestamp.elapsed() < self.ttl)
             .map(|(key, entry)| {
-                let results_json =
-                    serde_json::to_string(&entry.results).unwrap_or_default();
+                let results_json = serde_json::to_string(&entry.results).unwrap_or_default();
                 CacheEntrySnapshot {
                     key: key.clone(),
                     results_json,

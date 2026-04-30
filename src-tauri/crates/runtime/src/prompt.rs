@@ -460,19 +460,56 @@ impl TaskScene {
         let lowered = text.to_lowercase();
 
         let code_keywords = [
-            "code", "function", "class", "impl", "compile", "build", "cargo",
-            "npm", "test", "debug", "error", "fix", "refactor", "rust", "typescript",
-            "javascript", "python", "golang", "java", "struct", "trait", "mod",
-            "import", "export", "component", "hook", "api", "endpoint",
+            "code",
+            "function",
+            "class",
+            "impl",
+            "compile",
+            "build",
+            "cargo",
+            "npm",
+            "test",
+            "debug",
+            "error",
+            "fix",
+            "refactor",
+            "rust",
+            "typescript",
+            "javascript",
+            "python",
+            "golang",
+            "java",
+            "struct",
+            "trait",
+            "mod",
+            "import",
+            "export",
+            "component",
+            "hook",
+            "api",
+            "endpoint",
         ];
         let research_keywords = [
-            "research", "analyze", "knowledge", "extract", "academic",
-            "paper", "search for", "find information", "learn about",
+            "research",
+            "analyze",
+            "knowledge",
+            "extract",
+            "academic",
+            "paper",
+            "search for",
+            "find information",
+            "learn about",
             "explain concept",
         ];
 
-        let code_score = code_keywords.iter().filter(|k| lowered.contains(*k)).count();
-        let research_score = research_keywords.iter().filter(|k| lowered.contains(*k)).count();
+        let code_score = code_keywords
+            .iter()
+            .filter(|k| lowered.contains(*k))
+            .count();
+        let research_score = research_keywords
+            .iter()
+            .filter(|k| lowered.contains(*k))
+            .count();
 
         if code_score >= 2 {
             TaskScene::Code

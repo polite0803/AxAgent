@@ -1,4 +1,4 @@
-use super::{BenchScore, BenchEvaluator};
+use super::{BenchEvaluator, BenchScore};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +42,10 @@ impl BenchEvaluator for SweBenchEvaluator {
             }
 
             let similarity = strsim::levenshtein(&normalized_output, &normalized_expected);
-            let max_len = normalized_output.len().max(normalized_expected.len()).max(1);
+            let max_len = normalized_output
+                .len()
+                .max(normalized_expected.len())
+                .max(1);
             let score = 1.0 - (similarity as f64 / max_len as f64);
 
             return BenchScore {
@@ -91,7 +94,11 @@ mod strsim {
         for i in 1..=m {
             dp[1][0] = i;
             for j in 1..=n {
-                let cost = if a_chars[i - 1] == b_chars[j - 1] { 0 } else { 1 };
+                let cost = if a_chars[i - 1] == b_chars[j - 1] {
+                    0
+                } else {
+                    1
+                };
                 dp[1][j] = (dp[0][j] + 1)
                     .min(dp[1][j - 1] + 1)
                     .min(dp[0][j - 1] + cost);

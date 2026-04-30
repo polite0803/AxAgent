@@ -2,8 +2,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::plugin_hooks::{
-    HookDecision, LlmCallContext, LlmCallResult, SharedHook,
-    ToolCallContext, ToolCallResult,
+    HookDecision, LlmCallContext, LlmCallResult, SharedHook, ToolCallContext, ToolCallResult,
 };
 
 pub struct HookChain {
@@ -32,10 +31,7 @@ impl HookChain {
         hooks.iter().map(|h| h.name().to_string()).collect()
     }
 
-    pub async fn execute_pre_tool_call(
-        &self,
-        ctx: &ToolCallContext,
-    ) -> Option<HookDecision> {
+    pub async fn execute_pre_tool_call(&self, ctx: &ToolCallContext) -> Option<HookDecision> {
         let hooks = self.hooks.read().await;
         let mut sorted: Vec<_> = hooks.iter().collect();
         sorted.sort_by_key(|h| h.priority());
@@ -66,11 +62,7 @@ impl HookChain {
         None
     }
 
-    pub async fn execute_post_tool_call(
-        &self,
-        ctx: &ToolCallContext,
-        result: &ToolCallResult,
-    ) {
+    pub async fn execute_post_tool_call(&self, ctx: &ToolCallContext, result: &ToolCallResult) {
         let hooks = self.hooks.read().await;
         let mut sorted: Vec<_> = hooks.iter().collect();
         sorted.sort_by_key(|h| h.priority());
@@ -98,32 +90,23 @@ impl HookChain {
         result
     }
 
-    pub async fn execute_pre_llm_call(
-        &self,
-        ctx: &LlmCallContext,
-    ) -> Option<HookDecision> {
+    pub async fn execute_pre_llm_call(&self, ctx: &LlmCallContext) -> Option<HookDecision> {
         let hooks = self.hooks.read().await;
         let mut sorted: Vec<_> = hooks.iter().collect();
         sorted.sort_by_key(|h| h.priority());
 
         for hook in sorted {
             if let Some(HookDecision::Veto { ref reason }) = hook.pre_llm_call(ctx).await {
-                tracing::warn!(
-                    "Hook '{}' vetoed LLM call: {}",
-                    hook.name(),
-                    reason
-                );
-                return Some(HookDecision::Veto { reason: reason.clone() });
+                tracing::warn!("Hook '{}' vetoed LLM call: {}", hook.name(), reason);
+                return Some(HookDecision::Veto {
+                    reason: reason.clone(),
+                });
             }
         }
         None
     }
 
-    pub async fn execute_post_llm_call(
-        &self,
-        ctx: &LlmCallContext,
-        result: &LlmCallResult,
-    ) {
+    pub async fn execute_post_llm_call(&self, ctx: &LlmCallContext, result: &LlmCallResult) {
         let hooks = self.hooks.read().await;
         let mut sorted: Vec<_> = hooks.iter().collect();
         sorted.sort_by_key(|h| h.priority());
@@ -214,10 +197,12 @@ mod tests {
     #[tokio::test]
     async fn test_hook_chain_veto() {
         let chain = HookChain::new();
-        chain.register(Arc::new(TestHook {
-            name: "test_hook".to_string(),
-            should_veto: true,
-        })).await;
+        chain
+            .register(Arc::new(TestHook {
+                name: "test_hook".to_string(),
+                should_veto: true,
+            }))
+            .await;
 
         let ctx = ToolCallContext {
             tool_name: "test_tool".to_string(),
@@ -237,10 +222,12 @@ mod tests {
     #[tokio::test]
     async fn test_hook_chain_allows() {
         let chain = HookChain::new();
-        chain.register(Arc::new(TestHook {
-            name: "passive_hook".to_string(),
-            should_veto: false,
-        })).await;
+        chain
+            .register(Arc::new(TestHook {
+                name: "passive_hook".to_string(),
+                should_veto: false,
+            }))
+            .await;
 
         let ctx = ToolCallContext {
             tool_name: "harmless_tool".to_string(),

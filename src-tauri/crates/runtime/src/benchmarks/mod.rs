@@ -93,7 +93,12 @@ pub struct ResultSummary {
 }
 
 pub trait BenchEvaluator: Send + Sync {
-    fn evaluate(&self, output: &str, expected: Option<&str>, context: Option<&serde_json::Value>) -> BenchScore;
+    fn evaluate(
+        &self,
+        output: &str,
+        expected: Option<&str>,
+        context: Option<&serde_json::Value>,
+    ) -> BenchScore;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

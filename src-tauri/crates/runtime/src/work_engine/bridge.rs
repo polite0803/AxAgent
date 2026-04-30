@@ -1,8 +1,6 @@
 use crate::work_engine::engine::WorkEngine;
 use crate::work_engine::execution_state::ExecutionState;
-use crate::workflow_engine::{
-    WorkflowEngine, WorkflowRunner, WorkflowStep, StepExecutor,
-};
+use crate::workflow_engine::{StepExecutor, WorkflowEngine, WorkflowRunner, WorkflowStep};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -22,10 +20,7 @@ pub struct WorkflowBridge {
 }
 
 impl WorkflowBridge {
-    pub fn new(
-        work_engine: Arc<WorkEngine>,
-        workflow_engine: Arc<WorkflowEngine>,
-    ) -> Self {
+    pub fn new(work_engine: Arc<WorkEngine>, workflow_engine: Arc<WorkflowEngine>) -> Self {
         Self {
             work_engine,
             workflow_engine,
@@ -89,10 +84,7 @@ impl WorkflowBridge {
         })
     }
 
-    pub async fn get_execution_status(
-        &self,
-        execution_id: &str,
-    ) -> Result<ExecutionState, String> {
+    pub async fn get_execution_status(&self, execution_id: &str) -> Result<ExecutionState, String> {
         self.work_engine
             .get_status(execution_id)
             .await

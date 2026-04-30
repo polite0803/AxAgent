@@ -183,9 +183,10 @@ impl HierarchicalPlanner {
                     continue;
                 }
                 let deps_met = task.dependencies.iter().all(|dep_id| {
-                    phase.tasks.iter().any(|t| {
-                        t.id == *dep_id && t.status == TaskStatus::Completed
-                    })
+                    phase
+                        .tasks
+                        .iter()
+                        .any(|t| t.id == *dep_id && t.status == TaskStatus::Completed)
                 });
                 if deps_met {
                     executable.push(task);
@@ -236,7 +237,9 @@ impl HierarchicalPlanner {
                         break;
                     }
                 }
-                if found { break; }
+                if found {
+                    break;
+                }
             }
 
             plan_id
@@ -277,7 +280,9 @@ impl HierarchicalPlanner {
                         break;
                     }
                 }
-                if found { break; }
+                if found {
+                    break;
+                }
             }
         }
 
@@ -364,11 +369,13 @@ impl HierarchicalPlanner {
             for phase in &mut plan.phases {
                 let phase_tasks = phase.tasks.clone();
                 for task in &mut phase.tasks {
-                    if task.status == TaskStatus::Blocked && task.dependencies.contains(&completed_id) {
+                    if task.status == TaskStatus::Blocked
+                        && task.dependencies.contains(&completed_id)
+                    {
                         let all_deps_met = task.dependencies.iter().all(|dep_id| {
-                            phase_tasks.iter().any(|t| {
-                                t.id == *dep_id && t.status == TaskStatus::Completed
-                            })
+                            phase_tasks
+                                .iter()
+                                .any(|t| t.id == *dep_id && t.status == TaskStatus::Completed)
                         });
                         if all_deps_met {
                             task.status = TaskStatus::Pending;
@@ -388,7 +395,10 @@ impl HierarchicalPlanner {
                 continue;
             }
 
-            let all_completed = phase.tasks.iter().all(|t| t.status == TaskStatus::Completed);
+            let all_completed = phase
+                .tasks
+                .iter()
+                .all(|t| t.status == TaskStatus::Completed);
             let any_failed = phase.tasks.iter().any(|t| t.status == TaskStatus::Failed);
 
             if all_completed {
@@ -410,7 +420,10 @@ impl HierarchicalPlanner {
     fn check_plan_completion(&mut self) -> Result<(), String> {
         let plan = self.current_plan.as_mut().ok_or("No plan created")?;
 
-        let all_completed = plan.phases.iter().all(|p| p.status == PhaseStatus::Completed);
+        let all_completed = plan
+            .phases
+            .iter()
+            .all(|p| p.status == PhaseStatus::Completed);
         let any_failed = plan.phases.iter().any(|p| p.status == PhaseStatus::Failed);
 
         if all_completed {
@@ -626,8 +639,7 @@ mod tests {
                 id: "p1".to_string(),
                 name: "Phase 1".to_string(),
                 description: "First phase".to_string(),
-                tasks: vec![TaskBuilder::new("Task 1", "shell")
-                    .build()],
+                tasks: vec![TaskBuilder::new("Task 1", "shell").build()],
                 dependencies: vec![],
                 status: PhaseStatus::Pending,
             }],

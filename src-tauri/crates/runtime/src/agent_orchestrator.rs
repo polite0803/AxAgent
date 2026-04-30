@@ -67,11 +67,14 @@ pub enum ConsensusStrategy {
     #[default]
     MajorityVote,
     Unanimous,
-    LeaderDecides { leader_agent_id: String },
-    WeightedVote { weights: HashMap<String, f32> },
+    LeaderDecides {
+        leader_agent_id: String,
+    },
+    WeightedVote {
+        weights: HashMap<String, f32>,
+    },
     FirstResponse,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrchestrationResult {
@@ -145,14 +148,30 @@ impl AgentMessage {
 #[serde(tag = "type", content = "data")]
 #[serde(rename_all = "snake_case")]
 pub enum MessagePayload {
-    TaskAssign { task: String },
-    ProgressReport { progress: f32, message: String },
-    TaskResult { result: serde_json::Value },
-    TaskError { error: String },
+    TaskAssign {
+        task: String,
+    },
+    ProgressReport {
+        progress: f32,
+        message: String,
+    },
+    TaskResult {
+        result: serde_json::Value,
+    },
+    TaskError {
+        error: String,
+    },
     TaskCancel,
-    Data { content: serde_json::Value },
-    ConsensusRequest { vote: serde_json::Value },
-    ConsensusResponse { agreed: bool, value: serde_json::Value },
+    Data {
+        content: serde_json::Value,
+    },
+    ConsensusRequest {
+        vote: serde_json::Value,
+    },
+    ConsensusResponse {
+        agreed: bool,
+        value: serde_json::Value,
+    },
 }
 
 pub struct AgentOrchestrator {
@@ -210,7 +229,10 @@ impl AgentOrchestrator {
                 let remaining: Vec<String> = plan
                     .agents
                     .iter()
-                    .filter(|a| !completed.contains_key(&a.agent_id) && !failures.iter().any(|(id, _)| id == &a.agent_id))
+                    .filter(|a| {
+                        !completed.contains_key(&a.agent_id)
+                            && !failures.iter().any(|(id, _)| id == &a.agent_id)
+                    })
                     .map(|a| a.agent_id.clone())
                     .collect();
                 drop(agents);
@@ -220,7 +242,9 @@ impl AgentOrchestrator {
                 break;
             }
 
-            let ready_agents = self.get_ready_agents(&plan, &completed, max_concurrent).await;
+            let ready_agents = self
+                .get_ready_agents(&plan, &completed, max_concurrent)
+                .await;
             let has_ready = !ready_agents.is_empty();
 
             if !has_ready && pending_count > 0 {
@@ -228,17 +252,17 @@ impl AgentOrchestrator {
                 let agents = self.active_agents.read().await;
                 pending_count = agents
                     .values()
-                    .filter(|a| a.status == AgentRunStatus::Pending || a.status == AgentRunStatus::Starting || a.status == AgentRunStatus::Running)
+                    .filter(|a| {
+                        a.status == AgentRunStatus::Pending
+                            || a.status == AgentRunStatus::Starting
+                            || a.status == AgentRunStatus::Running
+                    })
                     .count();
                 continue;
             }
 
             for agent_id in ready_agents {
-                let assignment = plan
-                    .agents
-                    .iter()
-                    .find(|a| a.agent_id == agent_id)
-                    .cloned();
+                let assignment = plan.agents.iter().find(|a| a.agent_id == agent_id).cloned();
 
                 if let Some(assignment) = assignment {
                     match self.run_agent(&assignment).await {
@@ -391,7 +415,10 @@ impl AgentOrchestrator {
                     return agent.result.clone().ok_or_else(|| "No result".to_string());
                 }
                 if agent.status == AgentRunStatus::Failed {
-                    return Err(agent.error.clone().unwrap_or_else(|| "Unknown error".to_string()));
+                    return Err(agent
+                        .error
+                        .clone()
+                        .unwrap_or_else(|| "Unknown error".to_string()));
                 }
                 if agent.status == AgentRunStatus::Cancelled {
                     return Err("Agent was cancelled".to_string());
@@ -424,10 +451,13 @@ impl AgentOrchestrator {
 
         match strategy {
             ConsensusStrategy::LeaderDecides { leader_agent_id } => {
-                results
-                    .get(leader_agent_id)
-                    .cloned()
-                    .unwrap_or_else(|| results.values().next().cloned().unwrap_or(serde_json::json!(null)))
+                results.get(leader_agent_id).cloned().unwrap_or_else(|| {
+                    results
+                        .values()
+                        .next()
+                        .cloned()
+                        .unwrap_or(serde_json::json!(null))
+                })
             }
             ConsensusStrategy::MajorityVote => {
                 let mut vote_counts: HashMap<String, usize> = HashMap::new();
@@ -462,16 +492,22 @@ impl AgentOrchestrator {
                     serde_json::json!(null)
                 }
             }
-            ConsensusStrategy::FirstResponse => {
-                results.values().next().cloned().unwrap_or(serde_json::json!(null))
-            }
+            ConsensusStrategy::FirstResponse => results
+                .values()
+                .next()
+                .cloned()
+                .unwrap_or(serde_json::json!(null)),
             ConsensusStrategy::Unanimous => {
                 let unique_results: std::collections::HashSet<String> = results
                     .values()
                     .filter_map(|r| serde_json::to_string(r).ok())
                     .collect();
                 if unique_results.len() == 1 {
-                    results.values().next().cloned().unwrap_or(serde_json::json!(null))
+                    results
+                        .values()
+                        .next()
+                        .cloned()
+                        .unwrap_or(serde_json::json!(null))
                 } else {
                     serde_json::json!({
                         "status": "no_consensus",
@@ -517,12 +553,8 @@ impl AgentOrchestrator {
             ConsensusStrategy::LeaderDecides { leader_agent_id } => {
                 results.contains_key(leader_agent_id)
             }
-            ConsensusStrategy::WeightedVote { .. } => {
-                !results.is_empty()
-            }
-            ConsensusStrategy::FirstResponse => {
-                !results.is_empty()
-            }
+            ConsensusStrategy::WeightedVote { .. } => !results.is_empty(),
+            ConsensusStrategy::FirstResponse => !results.is_empty(),
         }
     }
 

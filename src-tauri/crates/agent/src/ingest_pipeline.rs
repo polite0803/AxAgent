@@ -6,9 +6,9 @@ use sha2::{Digest, Sha256};
 use tokio::fs;
 
 use axagent_core::entity::wiki_sources;
+use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::utils::gen_id;
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,9 +28,13 @@ impl IngestSourceType {
         match mime {
             "application/pdf" => Some(Self::Paper),
             "text/markdown" | "text/plain" => Some(Self::RawMarkdown),
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => Some(Self::Docx),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => {
+                Some(Self::Docx)
+            }
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" => Some(Self::Xlsx),
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation" => Some(Self::Pptx),
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation" => {
+                Some(Self::Pptx)
+            }
             _ => None,
         }
     }
@@ -183,9 +187,16 @@ impl IngestPipeline {
 
         let metadata = self.extract_metadata(&parsed).await?;
         let raw_path = self.save_to_raw(wiki_id, &source, &parsed).await?;
-        let source_record = self.save_source_record(
-            wiki_id, &raw_path, &source, &metadata, &parsed, &content_hash,
-        ).await?;
+        let source_record = self
+            .save_source_record(
+                wiki_id,
+                &raw_path,
+                &source,
+                &metadata,
+                &parsed,
+                &content_hash,
+            )
+            .await?;
 
         let mut pages_generated = 0usize;
 
@@ -210,7 +221,8 @@ impl IngestPipeline {
                 .await?;
         }
 
-        self.update_cache(wiki_id, &source, &content_hash, &source_record.id).await?;
+        self.update_cache(wiki_id, &source, &content_hash, &source_record.id)
+            .await?;
 
         Ok(IngestResult {
             source_id: source_record.id,
@@ -241,16 +253,24 @@ impl IngestPipeline {
 
         let path = PathBuf::from(&raw_path);
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
+            fs::create_dir_all(parent)
+                .await
+                .map_err(|e| e.to_string())?;
         }
         fs::write(&path, text).await.map_err(|e| e.to_string())?;
 
         let metadata = self.extract_metadata(text).await?;
         let mime_type = match source_type {
             IngestSourceType::Pdf => "application/pdf",
-            IngestSourceType::Docx => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            IngestSourceType::Xlsx => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            IngestSourceType::Pptx => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            IngestSourceType::Docx => {
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
+            IngestSourceType::Xlsx => {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            }
+            IngestSourceType::Pptx => {
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            }
             IngestSourceType::WebArticle => "text/html",
             _ => "text/markdown",
         };
@@ -260,7 +280,10 @@ impl IngestPipeline {
             wiki_id: Set(wiki_id.to_string()),
             source_type: Set(format!("{:?}", source_type).to_lowercase()),
             source_path: Set(raw_path.clone()),
-            title: Set(metadata.title.clone().unwrap_or_else(|| "Untitled".to_string())),
+            title: Set(metadata
+                .title
+                .clone()
+                .unwrap_or_else(|| "Untitled".to_string())),
             mime_type: Set(mime_type.to_string()),
             size_bytes: Set(0),
             content_hash: Set(content_hash.clone()),
@@ -269,7 +292,9 @@ impl IngestPipeline {
             updated_at: Set(chrono::Utc::now().timestamp()),
         };
 
-        am.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+        am.insert(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?;
 
         let mut pages_generated = 0usize;
 
@@ -411,8 +436,7 @@ Output ONLY valid JSON inside a ```json fenced code block."#
     }
 
     fn parse_analysis_json(raw_text: &str) -> Result<SourceAnalysis, String> {
-        let re = regex::Regex::new(r"```json\s*\n?([\s\S]*?)```")
-            .map_err(|e| e.to_string())?;
+        let re = regex::Regex::new(r"```json\s*\n?([\s\S]*?)```").map_err(|e| e.to_string())?;
 
         if let Some(cap) = re.captures(raw_text) {
             let json_str = cap.get(1).map(|m| m.as_str()).unwrap_or("").trim();
@@ -424,8 +448,7 @@ Output ONLY valid JSON inside a ```json fenced code block."#
         }
 
         let trimmed = raw_text.trim();
-        serde_json::from_str(trimmed)
-            .map_err(|e| format!("Failed to parse analysis JSON: {}", e))
+        serde_json::from_str(trimmed).map_err(|e| format!("Failed to parse analysis JSON: {}", e))
     }
 
     async fn generate_wiki_pages(
@@ -438,15 +461,21 @@ Output ONLY valid JSON inside a ```json fenced code block."#
         raw_path: &str,
         analysis: &SourceAnalysis,
     ) -> Result<usize, String> {
-        let analysis_json = serde_json::to_string_pretty(analysis)
-            .map_err(|e| e.to_string())?;
+        let analysis_json = serde_json::to_string_pretty(analysis).map_err(|e| e.to_string())?;
 
         let suggestions_text: Vec<String> = analysis
             .suggested_structure
             .iter()
             .enumerate()
             .map(|(i, s)| {
-                format!("{}. [{}/{}] {}: {}", i + 1, s.page_type, s.title, s.title, s.summary)
+                format!(
+                    "{}. [{}/{}] {}: {}",
+                    i + 1,
+                    s.page_type,
+                    s.title,
+                    s.title,
+                    s.summary
+                )
             })
             .collect();
 
@@ -535,8 +564,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         raw_text: &str,
         _default_source_id: &str,
     ) -> Result<Vec<GeneratedPage>, String> {
-        let re = regex::Regex::new(r"```json\s*\n?([\s\S]*?)```")
-            .map_err(|e| e.to_string())?;
+        let re = regex::Regex::new(r"```json\s*\n?([\s\S]*?)```").map_err(|e| e.to_string())?;
 
         let mut pages = Vec::new();
 
@@ -559,8 +587,11 @@ Each page must be valid JSON inside a ```json fenced code block with these field
                     }
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to parse generated page: {}. Raw: {}", e,
-                        &clean[..clean.len().min(200)]);
+                    tracing::warn!(
+                        "Failed to parse generated page: {}. Raw: {}",
+                        e,
+                        &clean[..clean.len().min(200)]
+                    );
                 }
             }
         }
@@ -613,9 +644,13 @@ Each page must be valid JSON inside a ```json fenced code block with these field
 
         let note_path = std::path::Path::new(&wiki.root_path).join(&file_path);
         if let Some(parent) = note_path.parent() {
-            fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
+            fs::create_dir_all(parent)
+                .await
+                .map_err(|e| e.to_string())?;
         }
-        fs::write(&note_path, &page.content).await.map_err(|e| e.to_string())?;
+        fs::write(&note_path, &page.content)
+            .await
+            .map_err(|e| e.to_string())?;
 
         let input = axagent_core::repo::note::CreateNoteInput {
             vault_id: wiki_id.to_string(),
@@ -652,8 +687,13 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     ) -> Result<Option<IngestResult>, String> {
         let path = Self::cache_path(wiki_id);
         if let Ok(data) = tokio::fs::read_to_string(&path).await {
-            let cache: IngestCache = serde_json::from_str(&data).unwrap_or(IngestCache { entries: vec![] });
-            if let Some(entry) = cache.entries.iter().find(|e| e.content_hash == content_hash) {
+            let cache: IngestCache =
+                serde_json::from_str(&data).unwrap_or(IngestCache { entries: vec![] });
+            if let Some(entry) = cache
+                .entries
+                .iter()
+                .find(|e| e.content_hash == content_hash)
+            {
                 tracing::info!("Cache hit for source: {}", source.path);
                 return Ok(Some(IngestResult {
                     source_id: entry.source_id.clone(),
@@ -688,10 +728,15 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         });
 
         let cache_dir = std::path::Path::new(&path).parent().unwrap().to_path_buf();
-        fs::create_dir_all(&cache_dir).await.map_err(|e| e.to_string())?;
-        fs::write(&path, serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?)
+        fs::create_dir_all(&cache_dir)
             .await
             .map_err(|e| e.to_string())?;
+        fs::write(
+            &path,
+            serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
 
         Ok(())
     }
@@ -719,28 +764,24 @@ Each page must be valid JSON inside a ```json fenced code block with these field
                 if let Some(url) = &source.url {
                     self.fetch_web_content(url).await
                 } else {
-                    tokio::fs::read_to_string(&source.path).await.map_err(|e| e.to_string())
+                    tokio::fs::read_to_string(&source.path)
+                        .await
+                        .map_err(|e| e.to_string())
                 }
             }
-            IngestSourceType::RawMarkdown => {
-                tokio::fs::read_to_string(&source.path).await.map_err(|e| e.to_string())
-            }
-            IngestSourceType::Pdf => {
-                self.extract_pdf_text(&source.path).await
-            }
-            IngestSourceType::Docx => {
-                self.extract_docx_text(&source.path).await
-            }
-            _ => {
-                tokio::fs::read_to_string(&source.path).await.map_err(|e| e.to_string())
-            }
+            IngestSourceType::RawMarkdown => tokio::fs::read_to_string(&source.path)
+                .await
+                .map_err(|e| e.to_string()),
+            IngestSourceType::Pdf => self.extract_pdf_text(&source.path).await,
+            IngestSourceType::Docx => self.extract_docx_text(&source.path).await,
+            _ => tokio::fs::read_to_string(&source.path)
+                .await
+                .map_err(|e| e.to_string()),
         }
     }
 
     async fn fetch_web_content(&self, url: &str) -> Result<String, String> {
-        let response = reqwest::get(url)
-            .await
-            .map_err(|e| e.to_string())?;
+        let response = reqwest::get(url).await.map_err(|e| e.to_string())?;
         let body = response.text().await.map_err(|e| e.to_string())?;
         Ok(body)
     }
@@ -835,16 +876,13 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             _ => "md",
         };
 
-        let raw_path = format!(
-            "~/axagent-notes/{}/raw/{}.{}",
-            wiki_id,
-            gen_id(),
-            extension
-        );
+        let raw_path = format!("~/axagent-notes/{}/raw/{}.{}", wiki_id, gen_id(), extension);
 
         let path = PathBuf::from(&raw_path);
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
+            fs::create_dir_all(parent)
+                .await
+                .map_err(|e| e.to_string())?;
         }
         fs::write(&path, content).await.map_err(|e| e.to_string())?;
 
@@ -863,9 +901,15 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         let id = gen_id();
         let mime_type = match source.source_type {
             IngestSourceType::Pdf => "application/pdf",
-            IngestSourceType::Docx => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            IngestSourceType::Xlsx => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            IngestSourceType::Pptx => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            IngestSourceType::Docx => {
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
+            IngestSourceType::Xlsx => {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            }
+            IngestSourceType::Pptx => {
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            }
             IngestSourceType::WebArticle => "text/html",
             _ => "text/markdown",
         };
@@ -875,7 +919,10 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             wiki_id: Set(wiki_id.to_string()),
             source_type: Set(format!("{:?}", source.source_type).to_lowercase()),
             source_path: Set(raw_path.to_string()),
-            title: Set(metadata.title.clone().unwrap_or_else(|| "Untitled".to_string())),
+            title: Set(metadata
+                .title
+                .clone()
+                .unwrap_or_else(|| "Untitled".to_string())),
             mime_type: Set(mime_type.to_string()),
             size_bytes: Set(0),
             content_hash: Set(content_hash.to_string()),

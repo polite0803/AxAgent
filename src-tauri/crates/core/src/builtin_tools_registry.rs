@@ -72,7 +72,8 @@ pub type SubAgentRunner = Arc<
             String, // user_input
             String, // agent_type
             String, // task_description
-        ) -> Pin<Box<dyn Future<Output = std::result::Result<(String, String), String>> + Send>>
+        )
+            -> Pin<Box<dyn Future<Output = std::result::Result<(String, String), String>> + Send>>
         + Send
         + Sync,
 >;
@@ -113,9 +114,8 @@ pub fn get_current_conversation_id() -> Option<String> {
 /// Value is (child_conversation_id, agent_type, description).
 pub type PendingSubAgentCard = (String, String, String); // (child_id, agent_type, description)
 
-static PENDING_SUB_AGENT_CARDS: LazyLock<
-    std::sync::RwLock<HashMap<String, PendingSubAgentCard>>,
-> = LazyLock::new(|| std::sync::RwLock::new(HashMap::new()));
+static PENDING_SUB_AGENT_CARDS: LazyLock<std::sync::RwLock<HashMap<String, PendingSubAgentCard>>> =
+    LazyLock::new(|| std::sync::RwLock::new(HashMap::new()));
 
 /// Store a pending sub-agent card. Called by the task tool handler.
 pub fn store_pending_sub_agent_card(
@@ -127,7 +127,11 @@ pub fn store_pending_sub_agent_card(
     let mut m = PENDING_SUB_AGENT_CARDS.write().unwrap();
     m.insert(
         parent_id.to_string(),
-        (child_id.to_string(), agent_type.to_string(), description.to_string()),
+        (
+            child_id.to_string(),
+            agent_type.to_string(),
+            description.to_string(),
+        ),
     );
 }
 
@@ -1979,7 +1983,9 @@ pub fn get_dynamic_builtin_tools() -> std::collections::BTreeMap<String, Builtin
             server_id: "builtin-git".to_string(),
             server_name: "@axagent/git".to_string(),
             tool_name: "git_log".to_string(),
-            description: "Get recent git commit history. Returns commit hash, author, date, and subject.".to_string(),
+            description:
+                "Get recent git commit history. Returns commit hash, author, date, and subject."
+                    .to_string(),
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {

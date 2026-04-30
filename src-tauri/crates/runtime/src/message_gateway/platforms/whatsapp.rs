@@ -48,10 +48,7 @@ impl PlatformAdapter for WhatsAppAdapter {
             return Ok(());
         }
 
-        let phone_number_id = config
-            .whatsapp_phone_number_id
-            .clone()
-            .unwrap_or_default();
+        let phone_number_id = config.whatsapp_phone_number_id.clone().unwrap_or_default();
         let access_token = config.whatsapp_access_token.clone().unwrap_or_default();
 
         let connected = self.connected.clone();
@@ -81,9 +78,7 @@ impl PlatformAdapter for WhatsAppAdapter {
                     break;
                 }
 
-                if let Err(e) =
-                    verify_whatsapp(&client, &phone_number_id, &access_token).await
-                {
+                if let Err(e) = verify_whatsapp(&client, &phone_number_id, &access_token).await {
                     tracing::warn!("WhatsApp: health check failed: {}", e);
                     connected.store(false, Ordering::SeqCst);
                 } else if !connected.load(Ordering::SeqCst) {
@@ -124,14 +119,8 @@ impl PlatformAdapter for WhatsAppAdapter {
         text: &str,
         _parse_mode: Option<&str>,
     ) -> anyhow::Result<()> {
-        let phone_number_id = _config
-            .whatsapp_phone_number_id
-            .clone()
-            .unwrap_or_default();
-        let access_token = _config
-            .whatsapp_access_token
-            .clone()
-            .unwrap_or_default();
+        let phone_number_id = _config.whatsapp_phone_number_id.clone().unwrap_or_default();
+        let access_token = _config.whatsapp_access_token.clone().unwrap_or_default();
 
         let url = format!(
             "https://graph.facebook.com/v18.0/{}/messages",
@@ -167,10 +156,7 @@ async fn verify_whatsapp(
     phone_number_id: &str,
     access_token: &str,
 ) -> anyhow::Result<()> {
-    let url = format!(
-        "https://graph.facebook.com/v18.0/{}",
-        phone_number_id
-    );
+    let url = format!("https://graph.facebook.com/v18.0/{}", phone_number_id);
 
     let resp = client
         .get(&url)

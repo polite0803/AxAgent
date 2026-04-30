@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use sea_orm::DatabaseConnection;
 
+use crate::message_gateway::platform_manager::{PlatformManager, PlatformMessageCallback};
 use axagent_providers::registry::ProviderRegistry;
 use axagent_providers::{resolve_base_url_for_type, ProviderRequestContext};
-use crate::message_gateway::platform_manager::{PlatformManager, PlatformMessageCallback};
 
 pub struct PlatformBridge {
     db: DatabaseConnection,
@@ -41,11 +41,9 @@ impl PlatformBridge {
             .get(&registry_key)
             .ok_or_else(|| anyhow::anyhow!("Provider adapter not found: {}", registry_key))?;
 
-        let key_row = provider::get_active_key(&self.db, provider_id)
-            .await?;
+        let key_row = provider::get_active_key(&self.db, provider_id).await?;
 
-        let api_key =
-            axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
+        let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
 
         let ctx = ProviderRequestContext {
             api_key,
@@ -135,31 +133,13 @@ impl PlatformBridge {
             .as_deref()
             .ok_or_else(|| anyhow::anyhow!("No default model configured"))?;
 
-        let conv_title = format!(
-            "[{}] {}",
-            platform,
-            username.unwrap_or(user_id)
-        );
+        let conv_title = format!("[{}] {}", platform, username.unwrap_or(user_id));
 
-        let conv = conversation::create_conversation(
-            &self.db,
-            &conv_title,
-            model_id,
-            provider_id,
-            None,
-        )
-        .await?;
+        let conv =
+            conversation::create_conversation(&self.db, &conv_title, model_id, provider_id, None)
+                .await?;
 
-        message::create_message(
-            &self.db,
-            &conv.id,
-            MessageRole::User,
-            text,
-            &[],
-            None,
-            0,
-        )
-        .await?;
+        message::create_message(&self.db, &conv.id, MessageRole::User, text, &[], None, 0).await?;
 
         conversation::increment_message_count(&self.db, &conv.id).await?;
 

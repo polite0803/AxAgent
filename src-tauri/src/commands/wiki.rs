@@ -112,7 +112,9 @@ pub async fn wiki_notes_search(
                 || note.title.to_lowercase().contains(&query_lower)
             {
                 let snippet_start = content_lower.find(&query_lower).unwrap_or(0);
-                let snippet = note.content.chars()
+                let snippet = note
+                    .content
+                    .chars()
                     .skip(snippet_start.saturating_sub(50))
                     .take(100)
                     .collect::<String>();

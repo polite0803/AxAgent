@@ -40,7 +40,10 @@ impl WebSearchProvider {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build()
             .unwrap_or_default();
-        Self { config, http_client: client }
+        Self {
+            config,
+            http_client: client,
+        }
     }
 
     pub fn with_api_key(mut self, api_key: impl Into<String>) -> Self {
@@ -74,23 +77,32 @@ impl WebSearchProvider {
             urlencoding::encode(&query.query)
         );
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .get(&ddg_url)
             .send()
             .await
             .map_err(|e| crate::search_provider::SearchError::NetworkError(e.to_string()))?;
 
-        let html = response.text().await
+        let html = response
+            .text()
+            .await
             .map_err(|e| crate::search_provider::SearchError::NetworkError(e.to_string()))?;
 
         self.parse_ddg_html(&html, query)
     }
 
-    fn parse_ddg_html(&self, html: &str, query: &SearchQuery) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    fn parse_ddg_html(
+        &self,
+        html: &str,
+        query: &SearchQuery,
+    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
         let mut results = Vec::new();
         let doc = scraper::Html::parse_document(html);
-        let result_selector = scraper::Selector::parse(".result__a").map_err(|e| crate::search_provider::SearchError::ParseError(e.to_string()))?;
-        let snippet_selector = scraper::Selector::parse(".result__snippet").map_err(|e| crate::search_provider::SearchError::ParseError(e.to_string()))?;
+        let result_selector = scraper::Selector::parse(".result__a")
+            .map_err(|e| crate::search_provider::SearchError::ParseError(e.to_string()))?;
+        let snippet_selector = scraper::Selector::parse(".result__snippet")
+            .map_err(|e| crate::search_provider::SearchError::ParseError(e.to_string()))?;
 
         for (idx, result_element) in doc.select(&result_selector).enumerate() {
             if idx >= query.max_results {
@@ -124,7 +136,8 @@ impl WebSearchProvider {
         }
 
         if results.is_empty() {
-            let wiki_results = tokio::runtime::Handle::current().block_on(self.search_via_wikipedia(query));
+            let wiki_results =
+                tokio::runtime::Handle::current().block_on(self.search_via_wikipedia(query));
             return wiki_results;
         }
 
@@ -141,7 +154,8 @@ impl WebSearchProvider {
             query.max_results
         );
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .get(&wiki_url)
             .send()
             .await
@@ -157,7 +171,9 @@ impl WebSearchProvider {
             urls: Vec<String>,
         }
 
-        let wiki_response: WikiSearchResponse = response.json().await
+        let wiki_response: WikiSearchResponse = response
+            .json()
+            .await
             .map_err(|e| crate::search_provider::SearchError::ParseError(e.to_string()))?;
 
         let scorer = RelevanceScorer::new(&query.query);
@@ -171,13 +187,8 @@ impl WebSearchProvider {
             .enumerate()
             .filter(|(idx, _)| *idx < max_results)
             .map(|(_, ((title, snippet), url))| {
-                let result = SearchResult::new(
-                    SourceType::Wikipedia,
-                    url,
-                    title,
-                    snippet,
-                )
-                .with_credibility(SourceType::Wikipedia.default_credibility());
+                let result = SearchResult::new(SourceType::Wikipedia, url, title, snippet)
+                    .with_credibility(SourceType::Wikipedia.default_credibility());
                 let relevance = scorer.score(&result);
                 result.with_relevance(relevance)
             })
@@ -198,7 +209,8 @@ impl WebSearchProvider {
             format!("{}?q={}", endpoint, urlencoding::encode(&query.query))
         };
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .get(&url)
             .send()
             .await
@@ -216,7 +228,9 @@ impl WebSearchProvider {
             results: Vec<ApiSearchResult>,
         }
 
-        let api_response: ApiResponse = response.json().await
+        let api_response: ApiResponse = response
+            .json()
+            .await
             .map_err(|e| crate::search_provider::SearchError::ParseError(e.to_string()))?;
 
         let scorer = RelevanceScorer::new(&query.query);
@@ -229,13 +243,8 @@ impl WebSearchProvider {
                 let snippet = r.snippet.unwrap_or_default();
                 let url = r.url.clone();
                 let credibility = self.estimate_credibility(&url);
-                let result = SearchResult::new(
-                    SourceType::Web,
-                    r.url,
-                    r.title,
-                    snippet,
-                )
-                .with_credibility(credibility);
+                let result = SearchResult::new(SourceType::Web, r.url, r.title, snippet)
+                    .with_credibility(credibility);
                 let relevance = scorer.score(&result);
                 result.with_relevance(relevance)
             })
@@ -265,8 +274,14 @@ impl WebSearchProvider {
     fn estimate_credibility(&self, url: &str) -> f32 {
         let domain = url.split('/').nth(2).unwrap_or("");
         let high_credibility = [
-            "arxiv.org", "github.com", "stackoverflow.com", "wikipedia.org",
-            "doi.org", "pubmed.gov", "nature.com", "science.org",
+            "arxiv.org",
+            "github.com",
+            "stackoverflow.com",
+            "wikipedia.org",
+            "doi.org",
+            "pubmed.gov",
+            "nature.com",
+            "science.org",
         ];
 
         for credible in high_credibility {

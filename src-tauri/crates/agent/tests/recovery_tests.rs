@@ -1,12 +1,17 @@
-use axagent_agent::recovery_strategies::{RecoveryStrategy};
 use axagent_agent::error_classifier::ErrorType;
+use axagent_agent::recovery_strategies::RecoveryStrategy;
 use std::time::Duration;
 
 #[test]
 fn test_transient_error_maps_to_retry() {
     let strategy = RecoveryStrategy::for_error_type(ErrorType::Transient);
     assert!(matches!(strategy, RecoveryStrategy::Retry { .. }));
-    if let RecoveryStrategy::Retry { max_attempts, exponential_backoff, .. } = strategy {
+    if let RecoveryStrategy::Retry {
+        max_attempts,
+        exponential_backoff,
+        ..
+    } = strategy
+    {
         assert!(max_attempts > 0);
         assert!(exponential_backoff);
     }
@@ -68,7 +73,11 @@ fn test_all_error_types_have_strategy() {
                 | RecoveryStrategy::SkipTask
                 | RecoveryStrategy::Fail
         );
-        assert!(is_valid, "ErrorType {:?} should map to a valid recovery strategy", error_type);
+        assert!(
+            is_valid,
+            "ErrorType {:?} should map to a valid recovery strategy",
+            error_type
+        );
     }
 }
 

@@ -1,7 +1,7 @@
+use crate::AppState;
 use axagent_trajectory::{
     Skill, SkillsHubAdapter, SkillsHubClient, SkillsHubConfig, SkillsHubSearchResult,
 };
-use crate::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 

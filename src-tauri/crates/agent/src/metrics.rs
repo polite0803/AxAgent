@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::{Instant};
+use std::time::Instant;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -334,7 +334,11 @@ impl Drop for TimedGuard {
     }
 }
 
-pub async fn record_timing_async(collector: &MetricsCollector, metric_name: &str, duration_ms: f64) {
+pub async fn record_timing_async(
+    collector: &MetricsCollector,
+    metric_name: &str,
+    duration_ms: f64,
+) {
     collector.record_timing(metric_name, duration_ms).await;
 }
 

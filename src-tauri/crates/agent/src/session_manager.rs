@@ -30,10 +30,7 @@ pub struct TokenUsageBreakdown {
 }
 
 impl TokenUsageBreakdown {
-    pub fn from_turn_summary(
-        usage: &axagent_runtime::TokenUsage,
-        estimated_chars: usize,
-    ) -> Self {
+    pub fn from_turn_summary(usage: &axagent_runtime::TokenUsage, estimated_chars: usize) -> Self {
         let total = usage.total_tokens();
         let estimated_from_chars = total == 0 && estimated_chars > 0;
         Self {
@@ -58,18 +55,21 @@ pub fn estimate_tokens_from_text(text: &str) -> usize {
 }
 
 pub fn estimate_tokens_from_messages(messages: &[axagent_runtime::ConversationMessage]) -> usize {
-    messages.iter().map(|m| estimate_tokens_from_content_blocks(&m.blocks)).sum()
+    messages
+        .iter()
+        .map(|m| estimate_tokens_from_content_blocks(&m.blocks))
+        .sum()
 }
 
 fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime::ContentBlock]) -> usize {
     blocks
         .iter()
         .map(|block| match block {
-            axagent_runtime::ContentBlock::Text { text } => {
-                estimate_tokens_from_text(text)
-            }
+            axagent_runtime::ContentBlock::Text { text } => estimate_tokens_from_text(text),
             axagent_runtime::ContentBlock::ToolUse { id, name, input } => {
-                estimate_tokens_from_text(id) + estimate_tokens_from_text(name) + estimate_tokens_from_text(input)
+                estimate_tokens_from_text(id)
+                    + estimate_tokens_from_text(name)
+                    + estimate_tokens_from_text(input)
             }
             axagent_runtime::ContentBlock::ToolResult {
                 tool_use_id,

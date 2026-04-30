@@ -1,9 +1,9 @@
-pub mod chat_completions;
 pub mod anthropic;
+pub mod chat_completions;
 pub mod responses;
 
-pub use chat_completions::ChatCompletionsTransport;
 pub use anthropic::AnthropicTransport;
+pub use chat_completions::ChatCompletionsTransport;
 pub use responses::ResponsesTransport;
 
 use async_trait::async_trait;
@@ -66,7 +66,9 @@ pub trait TransportProvider: Send + Sync {
         request: TransportRequest,
         api_key: &str,
         base_url: Option<&str>,
-    ) -> anyhow::Result<Box<dyn futures::Stream<Item = anyhow::Result<TransportStreamChunk>> + Send + Unpin>>;
+    ) -> anyhow::Result<
+        Box<dyn futures::Stream<Item = anyhow::Result<TransportStreamChunk>> + Send + Unpin>,
+    >;
 }
 
 #[derive(Debug, Clone)]

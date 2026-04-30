@@ -54,10 +54,8 @@ pub struct AppState {
     pub scheduled_task_service: Arc<tokio::sync::RwLock<axagent_trajectory::ScheduledTaskService>>,
     pub platform_integration_service:
         Arc<tokio::sync::RwLock<axagent_trajectory::PlatformIntegrationService>>,
-    pub platform_manager:
-        Arc<axagent_runtime::message_gateway::platform_manager::PlatformManager>,
-    pub platform_bridge:
-        Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
+    pub platform_manager: Arc<axagent_runtime::message_gateway::platform_manager::PlatformManager>,
+    pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
     pub user_profile: Arc<std::sync::RwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_agent::LocalToolRegistry>>,
     pub work_engine: Arc<tokio::sync::RwLock<axagent_runtime::work_engine::WorkEngine>>,

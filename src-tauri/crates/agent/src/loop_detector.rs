@@ -187,12 +187,14 @@ impl LoopDetector {
         }
 
         if let Some(pattern) = self.detect_output_pattern() {
-            return Some(LoopWarning::new(
-                LoopWarningLevel::Warning,
-                "Detected repeating output pattern".to_string(),
-                self.consecutive_failures,
-            )
-            .with_pattern(pattern));
+            return Some(
+                LoopWarning::new(
+                    LoopWarningLevel::Warning,
+                    "Detected repeating output pattern".to_string(),
+                    self.consecutive_failures,
+                )
+                .with_pattern(pattern),
+            );
         }
 
         for (tool_name, stats) in &self.tool_stats {
@@ -346,7 +348,13 @@ mod tests {
 
         for i in 0..6 {
             let is_error = i < 5;
-            detector.record_call("faulty_tool", &format!("input_{}", i), "output", is_error, 100);
+            detector.record_call(
+                "faulty_tool",
+                &format!("input_{}", i),
+                "output",
+                is_error,
+                100,
+            );
         }
 
         let warning = detector.detect_loop();

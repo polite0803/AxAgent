@@ -12,11 +12,23 @@ pub struct AgentOutput {
 
 #[derive(Debug, Clone)]
 pub enum AgentEvent {
-    TurnStarted { iteration: usize },
-    TurnCompleted { iteration: usize },
-    ToolUse { tool_name: String, tool_use_id: String },
-    ToolResult { tool_use_id: String, is_error: bool },
-    Error { error: String },
+    TurnStarted {
+        iteration: usize,
+    },
+    TurnCompleted {
+        iteration: usize,
+    },
+    ToolUse {
+        tool_name: String,
+        tool_use_id: String,
+    },
+    ToolResult {
+        tool_use_id: String,
+        is_error: bool,
+    },
+    Error {
+        error: String,
+    },
 }
 
 pub struct AgentRuntimeConfig {

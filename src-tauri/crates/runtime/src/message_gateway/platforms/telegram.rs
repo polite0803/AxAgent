@@ -114,7 +114,10 @@ impl PlatformAdapter for TelegramAdapter {
                                                 .await;
                                             if let Some(reply_text) = reply {
                                                 send_telegram_message(
-                                                    &client, &bt, ch, &reply_text,
+                                                    &client,
+                                                    &bt,
+                                                    ch,
+                                                    &reply_text,
                                                 )
                                                 .await;
                                             }
@@ -222,10 +225,7 @@ fn handle_telegram_command(text: &str, username: &Option<String>, user_id: &str)
             if text.starts_with('/') {
                 None
             } else {
-                Some(format!(
-                    "I received: \"{}\". Processing...",
-                    text
-                ))
+                Some(format!("I received: \"{}\". Processing...", text))
             }
         }
     }
@@ -299,16 +299,18 @@ async fn set_telegram_webhook(bot_token: &str, webhook_url: &str) {
 }
 
 async fn delete_telegram_webhook(bot_token: &str) {
-    let url = format!(
-        "https://api.telegram.org/bot{}/deleteWebhook",
-        bot_token
-    );
+    let url = format!("https://api.telegram.org/bot{}/deleteWebhook", bot_token);
     if let Ok(resp) = reqwest::Client::new().get(&url).send().await {
         tracing::info!("Telegram webhook deleted: {}", resp.status());
     }
 }
 
-async fn send_telegram_message(client: &reqwest::Client, bot_token: &str, chat_id: i64, text: &str) {
+async fn send_telegram_message(
+    client: &reqwest::Client,
+    bot_token: &str,
+    chat_id: i64,
+    text: &str,
+) {
     let url = format!("https://api.telegram.org/bot{}/sendMessage", bot_token);
     let body = serde_json::json!({
         "chat_id": chat_id,

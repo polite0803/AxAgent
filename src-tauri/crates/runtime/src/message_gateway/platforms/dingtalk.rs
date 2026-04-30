@@ -75,10 +75,8 @@ impl PlatformAdapter for DingtalkAdapter {
                 }
 
                 if let Some(ref rc) = robot_code {
-                    if let Ok(msgs) = poll_dingtalk_robot_msgs(
-                        &client, &token, rc, last_msg_time,
-                    )
-                    .await
+                    if let Ok(msgs) =
+                        poll_dingtalk_robot_msgs(&client, &token, rc, last_msg_time).await
                     {
                         for (sender_id, text, conversation_id) in msgs {
                             last_msg_time = chrono::Utc::now().timestamp_millis();
@@ -97,13 +95,7 @@ impl PlatformAdapter for DingtalkAdapter {
                                 let t = text.clone();
                                 tokio::spawn(async move {
                                     let reply = cb
-                                        .on_message(
-                                            "dingtalk",
-                                            &sid,
-                                            None,
-                                            &conversation_id,
-                                            &t,
-                                        )
+                                        .on_message("dingtalk", &sid, None, &conversation_id, &t)
                                         .await;
                                     if let Some(reply_text) = reply {
                                         let _ = send_dingtalk_message(
@@ -250,11 +242,7 @@ async fn poll_dingtalk_robot_msgs(
             let ts = msg["createAt"].as_i64().unwrap_or(0);
 
             if ts > after_ms && !text.is_empty() && !sender.is_empty() {
-                results.push((
-                    sender.to_string(),
-                    text.to_string(),
-                    conv_id.to_string(),
-                ));
+                results.push((sender.to_string(), text.to_string(), conv_id.to_string()));
             }
         }
     }

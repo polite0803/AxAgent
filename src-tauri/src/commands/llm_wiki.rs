@@ -7,9 +7,7 @@ use axagent_core::{
     repo::wiki,
     types::{ProviderProxyConfig, ProviderType},
 };
-use axagent_providers::{
-    resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext,
-};
+use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
     QuerySelect, Set,
@@ -319,23 +317,15 @@ pub async fn llm_wiki_compile(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Wiki {} not found", input.wiki_id))?;
 
-    let embedding_provider = wiki_model
-        .embedding_provider
-        .clone()
-        .ok_or_else(|| {
-            "Wiki has no embedding_provider configured. Set one in wiki settings."
-                .to_string()
-        })?;
+    let embedding_provider = wiki_model.embedding_provider.clone().ok_or_else(|| {
+        "Wiki has no embedding_provider configured. Set one in wiki settings.".to_string()
+    })?;
 
     let (adapter, ctx, model) =
         build_llm_adapter(&state.sea_db, &state.master_key, &embedding_provider).await?;
 
-    let compiler = wiki_compiler::WikiCompiler::new(
-        Arc::new(state.sea_db.clone()),
-        adapter,
-        ctx,
-        model,
-    );
+    let compiler =
+        wiki_compiler::WikiCompiler::new(Arc::new(state.sea_db.clone()), adapter, ctx, model);
 
     let result = compiler.compile(&input.wiki_id, input.source_ids).await?;
 
@@ -472,7 +462,9 @@ pub async fn llm_wiki_create_schema_version(
     description: Option<String>,
 ) -> Result<schema_manager::SchemaVersion, String> {
     let manager = schema_manager::SchemaManager::new(Arc::new(state.sea_db.clone()));
-    manager.create_schema_version(&wiki_id, &version, description).await
+    manager
+        .create_schema_version(&wiki_id, &version, description)
+        .await
 }
 
 #[derive(Debug, Deserialize)]
@@ -608,8 +600,8 @@ pub async fn write_base64_to_file(
         .await
         .map_err(|e| e.to_string())?;
 
-    let _source_content = String::from_utf8(bytes)
-        .unwrap_or_else(|_| "[Binary content]".to_string());
+    let _source_content =
+        String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
 
     let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.sea_db.clone()));
     let source = ingest_pipeline::IngestSource {
@@ -729,10 +721,7 @@ pub async fn wiki_sync_get_queue(
     }
 
     query
-        .order_by(
-            wiki_sync_queue::Column::CreatedAt,
-            sea_orm::Order::Desc,
-        )
+        .order_by(wiki_sync_queue::Column::CreatedAt, sea_orm::Order::Desc)
         .limit(100)
         .all(&state.sea_db)
         .await
@@ -797,7 +786,11 @@ async fn process_sync_event(
             Ok(())
         }
         "source_ingested" => {
-            tracing::info!("Sync: source {} ingested for wiki {}", model.target_id, model.wiki_id);
+            tracing::info!(
+                "Sync: source {} ingested for wiki {}",
+                model.target_id,
+                model.wiki_id
+            );
             Ok(())
         }
         "schema_updated" => {

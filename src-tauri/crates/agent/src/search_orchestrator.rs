@@ -177,9 +177,9 @@ impl SearchOrchestrator {
         source_type: SourceType,
         providers: &HashMap<SourceType, Arc<dyn SearchProvider>>,
     ) -> Result<Vec<SearchResult>, OrchestratorError> {
-        let provider = providers.get(&source_type).ok_or(
-            OrchestratorError::NoProviderForSource(source_type)
-        )?;
+        let provider = providers
+            .get(&source_type)
+            .ok_or(OrchestratorError::NoProviderForSource(source_type))?;
 
         provider
             .search(query)
@@ -251,7 +251,9 @@ impl SearchOrchestratorBuilder {
     }
 
     pub fn add_provider(mut self, provider: Arc<dyn SearchProvider>) -> Self {
-        self.orchestrator.providers.insert(provider.source_type(), provider);
+        self.orchestrator
+            .providers
+            .insert(provider.source_type(), provider);
         self
     }
 

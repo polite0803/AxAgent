@@ -18,8 +18,8 @@
 //! and react to the returned `ResourceState` by pausing or resuming background tasks.
 
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use sysinfo::System;
 
 /// The current system resource state.
@@ -144,8 +144,12 @@ impl ResourceGovernor {
             return;
         }
 
-        let should_freeze = matches!(self.current_state, ResourceState::High | ResourceState::Critical);
-        self.background_tasks_frozen.store(should_freeze, Ordering::Relaxed);
+        let should_freeze = matches!(
+            self.current_state,
+            ResourceState::High | ResourceState::Critical
+        );
+        self.background_tasks_frozen
+            .store(should_freeze, Ordering::Relaxed);
 
         if matches!(self.current_state, ResourceState::Critical) {
             tracing::warn!(

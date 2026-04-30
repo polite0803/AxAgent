@@ -123,8 +123,12 @@ pub struct AgentCoordinator<T: AgentImpl> {
 }
 
 impl<T: AgentImpl> AgentCoordinator<T> {
-    pub fn new(implementation: Arc<tokio::sync::Mutex<T>>, event_bus: Option<Arc<AgentEventBus>>) -> Self {
-        let event_bus = event_bus.unwrap_or_else(|| Arc::new(AgentEventBus::new("typed_coordinator")));
+    pub fn new(
+        implementation: Arc<tokio::sync::Mutex<T>>,
+        event_bus: Option<Arc<AgentEventBus>>,
+    ) -> Self {
+        let event_bus =
+            event_bus.unwrap_or_else(|| Arc::new(AgentEventBus::new("typed_coordinator")));
         let prompt_cache = Arc::new(PromptCache::new());
 
         Self {
@@ -162,10 +166,14 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let mut cfg = self.config.write().await;
         *cfg = config;
 
-        self.emit_event(AgentEventType::StateChanged, serde_json::json!({
-            "previous": "Initializing",
-            "current": "Idle"
-        })).await;
+        self.emit_event(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "previous": "Initializing",
+                "current": "Idle"
+            }),
+        )
+        .await;
 
         Ok(())
     }
@@ -199,11 +207,15 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         }
 
         let cache_was_valid = self.prompt_cache.is_cache_valid().await;
-        self.emit_event(AgentEventType::TurnStarted, serde_json::json!({
-            "input_preview": input.content.chars().take(100).collect::<String>(),
-            "cache_valid": cache_was_valid,
-            "has_pending_changes": self.prompt_cache.has_pending_changes().await,
-        })).await;
+        self.emit_event(
+            AgentEventType::TurnStarted,
+            serde_json::json!({
+                "input_preview": input.content.chars().take(100).collect::<String>(),
+                "cache_valid": cache_was_valid,
+                "has_pending_changes": self.prompt_cache.has_pending_changes().await,
+            }),
+        )
+        .await;
 
         let correlation_id = self.next_correlation_id();
         let result = {
@@ -215,20 +227,28 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         match &result {
             Ok(output) => {
                 *status = output.status.clone();
-                self.emit_event(AgentEventType::TurnCompleted, serde_json::json!({
-                    "correlation_id": correlation_id,
-                    "iterations": output.iterations,
-                    "status": output.status.to_string(),
-                    "cache_was_valid": cache_was_valid,
-                })).await;
+                self.emit_event(
+                    AgentEventType::TurnCompleted,
+                    serde_json::json!({
+                        "correlation_id": correlation_id,
+                        "iterations": output.iterations,
+                        "status": output.status.to_string(),
+                        "cache_was_valid": cache_was_valid,
+                    }),
+                )
+                .await;
             }
             Err(e) => {
                 *status = AgentStatus::Failed(e.to_string());
-                self.emit_event(AgentEventType::Error, serde_json::json!({
-                    "correlation_id": correlation_id,
-                    "error": e.to_string(),
-                    "cache_was_valid": cache_was_valid,
-                })).await;
+                self.emit_event(
+                    AgentEventType::Error,
+                    serde_json::json!({
+                        "correlation_id": correlation_id,
+                        "error": e.to_string(),
+                        "cache_was_valid": cache_was_valid,
+                    }),
+                )
+                .await;
             }
         }
 
@@ -237,7 +257,9 @@ impl<T: AgentImpl> AgentCoordinator<T> {
 
     pub async fn force_now(&self) {
         self.cache_guard.set_force_immediate(true).await;
-        self.prompt_cache.invalidate("--now flag: immediate invalidation").await;
+        self.prompt_cache
+            .invalidate("--now flag: immediate invalidation")
+            .await;
     }
 
     pub async fn prepare_for_new_session(&self) {
@@ -263,10 +285,14 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let mut status = self.status.write().await;
         *status = AgentStatus::Paused;
 
-        self.emit_event(AgentEventType::StateChanged, serde_json::json!({
-            "from": "Running",
-            "to": "Paused"
-        })).await;
+        self.emit_event(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "from": "Running",
+                "to": "Paused"
+            }),
+        )
+        .await;
 
         Ok(())
     }
@@ -289,10 +315,14 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let mut status = self.status.write().await;
         *status = AgentStatus::Running;
 
-        self.emit_event(AgentEventType::StateChanged, serde_json::json!({
-            "from": "Paused",
-            "to": "Running"
-        })).await;
+        self.emit_event(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "from": "Paused",
+                "to": "Running"
+            }),
+        )
+        .await;
 
         Ok(())
     }
@@ -306,9 +336,13 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let mut status = self.status.write().await;
         *status = AgentStatus::Idle;
 
-        self.emit_event(AgentEventType::StateChanged, serde_json::json!({
-            "to": "Idle"
-        })).await;
+        self.emit_event(
+            AgentEventType::StateChanged,
+            serde_json::json!({
+                "to": "Idle"
+            }),
+        )
+        .await;
 
         Ok(())
     }
@@ -322,7 +356,8 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     fn next_correlation_id(&self) -> u64 {
-        self.correlation_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        self.correlation_counter
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 
     async fn emit_event(&self, event_type: AgentEventType, payload: serde_json::Value) {

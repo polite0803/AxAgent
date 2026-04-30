@@ -170,7 +170,9 @@ mod tests {
     #[tokio::test]
     async fn test_record_run() {
         let store = CronJobStore::new();
-        let id = store.add(CronJob::new("runner", "* * * * *", "run me")).await;
+        let id = store
+            .add(CronJob::new("runner", "* * * * *", "run me"))
+            .await;
 
         assert!(store.record_run(&id).await);
 

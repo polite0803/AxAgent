@@ -195,7 +195,10 @@ impl CodeEngine {
     }
 
     /// Execute a code search using the three-level recall pipeline.
-    pub async fn search(&self, request: &CodeSearchRequest) -> Result<Vec<CodeSearchResult>, String> {
+    pub async fn search(
+        &self,
+        request: &CodeSearchRequest,
+    ) -> Result<Vec<CodeSearchResult>, String> {
         let fi_guard = self.file_index.read().await;
         let ai_guard = self.ast_index.read().await;
         let root_guard = self.project_root.read().await;
@@ -222,7 +225,10 @@ impl CodeEngine {
         );
 
         // No vector search function for L3 (pipeline falls back to AST-only)
-        let results = pipeline.execute(&request.query, None::<&axagent_core::recall_pipeline::VectorSearchFn>)?;
+        let results = pipeline.execute(
+            &request.query,
+            None::<&axagent_core::recall_pipeline::VectorSearchFn>,
+        )?;
 
         let mut search_results = Vec::new();
         for r in &results {
@@ -244,9 +250,14 @@ impl CodeEngine {
                         }
                         if content.is_empty() {
                             // Extract surrounding lines around the first matched definition
-                            let snippet = r.matched_definitions.first().map(|s| s.as_str()).unwrap_or(&r.file_path);
-                            content = extract_surrounding_lines(&source, snippet, request.context_lines)
-                                .unwrap_or_else(|| source.chars().take(500).collect());
+                            let snippet = r
+                                .matched_definitions
+                                .first()
+                                .map(|s| s.as_str())
+                                .unwrap_or(&r.file_path);
+                            content =
+                                extract_surrounding_lines(&source, snippet, request.context_lines)
+                                    .unwrap_or_else(|| source.chars().take(500).collect());
                         }
                     }
                 }
@@ -276,7 +287,8 @@ impl CodeEngine {
             if let Some(ref dc) = *self.disk_cache.read().await {
                 let hash = DiskCache::query_hash(&request.query);
                 if let Ok(json) = serde_json::to_string(&search_results) {
-                    let _ = dc.store_search_results(&hash, &request.query, &json, search_results.len());
+                    let _ =
+                        dc.store_search_results(&hash, &request.query, &json, search_results.len());
                 }
             }
         }
@@ -295,7 +307,10 @@ impl CodeEngine {
     }
 
     /// Get file information for all indexed code files.
-    pub async fn list_files(&self, extension_filter: Option<&[&str]>) -> Result<Vec<CodeFileInfo>, String> {
+    pub async fn list_files(
+        &self,
+        extension_filter: Option<&[&str]>,
+    ) -> Result<Vec<CodeFileInfo>, String> {
         let fi_guard = self.file_index.read().await;
         let ai_guard = self.ast_index.read().await;
 
@@ -377,18 +392,31 @@ impl CodeEngine {
 
 fn detect_language(file_path: &str) -> &str {
     let lower = file_path.to_lowercase();
-    if lower.ends_with(".rs") { "rust" }
-    else if lower.ends_with(".ts") || lower.ends_with(".tsx") { "typescript" }
-    else if lower.ends_with(".js") || lower.ends_with(".jsx") { "javascript" }
-    else if lower.ends_with(".py") { "python" }
-    else if lower.ends_with(".go") { "go" }
-    else if lower.ends_with(".java") { "java" }
-    else if lower.ends_with(".cpp") || lower.ends_with(".cc") { "cpp" }
-    else if lower.ends_with(".c") || lower.ends_with(".h") { "c" }
-    else if lower.ends_with(".toml") || lower.ends_with(".yaml") || lower.ends_with(".yml") { "config" }
-    else if lower.ends_with(".json") { "json" }
-    else if lower.ends_with(".md") { "markdown" }
-    else { "unknown" }
+    if lower.ends_with(".rs") {
+        "rust"
+    } else if lower.ends_with(".ts") || lower.ends_with(".tsx") {
+        "typescript"
+    } else if lower.ends_with(".js") || lower.ends_with(".jsx") {
+        "javascript"
+    } else if lower.ends_with(".py") {
+        "python"
+    } else if lower.ends_with(".go") {
+        "go"
+    } else if lower.ends_with(".java") {
+        "java"
+    } else if lower.ends_with(".cpp") || lower.ends_with(".cc") {
+        "cpp"
+    } else if lower.ends_with(".c") || lower.ends_with(".h") {
+        "c"
+    } else if lower.ends_with(".toml") || lower.ends_with(".yaml") || lower.ends_with(".yml") {
+        "config"
+    } else if lower.ends_with(".json") {
+        "json"
+    } else if lower.ends_with(".md") {
+        "markdown"
+    } else {
+        "unknown"
+    }
 }
 
 #[cfg(test)]

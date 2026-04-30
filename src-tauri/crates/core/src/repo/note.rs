@@ -1,7 +1,7 @@
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 
-use crate::entity::{notes, note_links, note_backlinks};
+use crate::entity::{note_backlinks, note_links, notes};
 use crate::error::{AxAgentError, Result};
 use crate::utils::gen_id;
 
@@ -76,8 +76,12 @@ pub fn model_to_note(m: notes::Model) -> Note {
         content_hash: m.content_hash,
         author: m.author,
         page_type: m.page_type,
-        source_refs: m.source_refs.map(|j| serde_json::from_value(j).unwrap_or_default()),
-        related_pages: m.related_pages.map(|j| serde_json::from_value(j).unwrap_or_default()),
+        source_refs: m
+            .source_refs
+            .map(|j| serde_json::from_value(j).unwrap_or_default()),
+        related_pages: m
+            .related_pages
+            .map(|j| serde_json::from_value(j).unwrap_or_default()),
         quality_score: m.quality_score,
         last_linted_at: m.last_linted_at,
         last_compiled_at: m.last_compiled_at,
@@ -152,7 +156,9 @@ pub async fn create_note(db: &DatabaseConnection, input: CreateNoteInput) -> Res
         content_hash: Set(content_hash),
         author: Set(input.author.clone()),
         page_type: Set(input.page_type.clone()),
-        source_refs: Set(input.source_refs.map(|v| serde_json::to_value(v).unwrap_or_default())),
+        source_refs: Set(input
+            .source_refs
+            .map(|v| serde_json::to_value(v).unwrap_or_default())),
         related_pages: Set(None),
         quality_score: Set(None),
         last_linted_at: Set(None),
@@ -198,7 +204,9 @@ pub async fn update_note(
     }
 
     if let Some(related_pages) = input.related_pages {
-        am.related_pages = Set(Some(serde_json::to_value(related_pages).unwrap_or_default()));
+        am.related_pages = Set(Some(
+            serde_json::to_value(related_pages).unwrap_or_default(),
+        ));
     }
 
     am.updated_at = Set(chrono::Utc::now().timestamp());
@@ -222,10 +230,7 @@ pub async fn delete_note(db: &DatabaseConnection, id: &str) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_note_links(
-    db: &DatabaseConnection,
-    note_id: &str,
-) -> Result<Vec<NoteLink>> {
+pub async fn get_note_links(db: &DatabaseConnection, note_id: &str) -> Result<Vec<NoteLink>> {
     let models = note_links::Entity::find()
         .filter(note_links::Column::SourceNoteId.eq(note_id))
         .all(db)
@@ -234,24 +239,24 @@ pub async fn get_note_links(
     Ok(models.into_iter().map(model_to_link).collect())
 }
 
-pub async fn get_note_backlinks(
-    db: &DatabaseConnection,
-    note_id: &str,
-) -> Result<Vec<NoteLink>> {
+pub async fn get_note_backlinks(db: &DatabaseConnection, note_id: &str) -> Result<Vec<NoteLink>> {
     let models = note_backlinks::Entity::find()
         .filter(note_backlinks::Column::TargetNoteId.eq(note_id))
         .all(db)
         .await?;
 
-    Ok(models.into_iter().map(|m| NoteLink {
-        id: m.id,
-        vault_id: m.vault_id,
-        source_note_id: m.source_note_id,
-        target_note_id: m.target_note_id,
-        link_text: m.link_text,
-        link_type: m.link_type,
-        created_at: m.created_at,
-    }).collect())
+    Ok(models
+        .into_iter()
+        .map(|m| NoteLink {
+            id: m.id,
+            vault_id: m.vault_id,
+            source_note_id: m.source_note_id,
+            target_note_id: m.target_note_id,
+            link_text: m.link_text,
+            link_type: m.link_type,
+            created_at: m.created_at,
+        })
+        .collect())
 }
 
 pub async fn create_note_link(
@@ -341,10 +346,7 @@ pub struct GraphData {
     pub edges: Vec<GraphEdge>,
 }
 
-pub async fn get_vault_graph(
-    db: &DatabaseConnection,
-    vault_id: &str,
-) -> Result<GraphData> {
+pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<GraphData> {
     let notes = list_notes(db, vault_id).await?;
     let links = note_links::Entity::find()
         .filter(note_links::Column::VaultId.eq(vault_id))
@@ -358,19 +360,26 @@ pub async fn get_vault_graph(
     let note_ids: std::collections::HashSet<_> = notes.iter().map(|n| n.id.clone()).collect();
 
     let mut link_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
-    let mut backlink_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    let mut backlink_counts: std::collections::HashMap<String, i32> =
+        std::collections::HashMap::new();
 
     for link in &links {
         if note_ids.contains(&link.target_note_id) {
             *link_counts.entry(link.source_note_id.clone()).or_insert(0) += 1;
-            *backlink_counts.entry(link.target_note_id.clone()).or_insert(0) += 1;
+            *backlink_counts
+                .entry(link.target_note_id.clone())
+                .or_insert(0) += 1;
         }
     }
 
     for backlink in &backlinks {
         if note_ids.contains(&backlink.source_note_id) {
-            *link_counts.entry(backlink.source_note_id.clone()).or_insert(0) += 1;
-            *backlink_counts.entry(backlink.target_note_id.clone()).or_insert(0) += 1;
+            *link_counts
+                .entry(backlink.source_note_id.clone())
+                .or_insert(0) += 1;
+            *backlink_counts
+                .entry(backlink.target_note_id.clone())
+                .or_insert(0) += 1;
         }
     }
 

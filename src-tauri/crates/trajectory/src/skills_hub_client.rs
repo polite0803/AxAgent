@@ -52,7 +52,13 @@ impl SkillsHubClient {
         }
     }
 
-    pub async fn search(&self, query: &str, _category: Option<&str>, page: usize, page_size: usize) -> Result<SkillsHubSearchResult, String> {
+    pub async fn search(
+        &self,
+        query: &str,
+        _category: Option<&str>,
+        page: usize,
+        page_size: usize,
+    ) -> Result<SkillsHubSearchResult, String> {
         let url = format!("{}/v1/skills/search", self.config.api_url);
         let params = [
             ("q", query),
@@ -67,7 +73,9 @@ impl SkillsHubClient {
         if !resp.status().is_success() {
             return Err(format!("Skills Hub API error: {}", resp.status()));
         }
-        resp.json::<SkillsHubSearchResult>().await.map_err(|e| e.to_string())
+        resp.json::<SkillsHubSearchResult>()
+            .await
+            .map_err(|e| e.to_string())
     }
 
     pub async fn get_skill(&self, skill_id: &str) -> Result<SkillsHubSkill, String> {
@@ -80,7 +88,9 @@ impl SkillsHubClient {
         if !resp.status().is_success() {
             return Err(format!("Skills Hub API error: {}", resp.status()));
         }
-        resp.json::<SkillsHubSkill>().await.map_err(|e| e.to_string())
+        resp.json::<SkillsHubSkill>()
+            .await
+            .map_err(|e| e.to_string())
     }
 
     pub async fn download_skill(&self, skill_id: &str) -> Result<Vec<u8>, String> {
@@ -93,7 +103,10 @@ impl SkillsHubClient {
         if !resp.status().is_success() {
             return Err(format!("Download failed: {}", resp.status()));
         }
-        resp.bytes().await.map(|b| b.to_vec()).map_err(|e| e.to_string())
+        resp.bytes()
+            .await
+            .map(|b| b.to_vec())
+            .map_err(|e| e.to_string())
     }
 
     pub async fn list_categories(&self) -> Result<Vec<String>, String> {
@@ -119,6 +132,8 @@ impl SkillsHubClient {
         if !resp.status().is_success() {
             return Err(format!("Skills Hub API error: {}", resp.status()));
         }
-        resp.json::<Vec<SkillsHubSkill>>().await.map_err(|e| e.to_string())
+        resp.json::<Vec<SkillsHubSkill>>()
+            .await
+            .map_err(|e| e.to_string())
     }
 }

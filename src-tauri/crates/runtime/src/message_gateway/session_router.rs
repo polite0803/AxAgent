@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use chrono::Utc;
+use std::collections::HashMap;
 
 pub struct SessionRouter {
     sessions: HashMap<String, RoutedSession>,
@@ -59,7 +59,9 @@ impl SessionRouter {
                 created_at: now,
                 last_activity: now,
             });
-        self.sessions.get(&Self::session_key(platform, user_id)).unwrap()
+        self.sessions
+            .get(&Self::session_key(platform, user_id))
+            .unwrap()
     }
 
     pub fn get_session(&self, platform: &str, user_id: &str) -> Option<&RoutedSession> {

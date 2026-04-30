@@ -134,7 +134,9 @@ pub fn make_notification(method: &str, params: serde_json::Value) -> serde_json:
     })
 }
 
-pub fn parse_response(value: &serde_json::Value) -> Result<(Option<i64>, Result<serde_json::Value, JsonRpcError>), String> {
+pub fn parse_response(
+    value: &serde_json::Value,
+) -> Result<(Option<i64>, Result<serde_json::Value, JsonRpcError>), String> {
     let id = value.get("id").and_then(|v| v.as_i64());
 
     if let Some(error) = value.get("error") {
@@ -159,7 +161,10 @@ pub fn get_method(value: &serde_json::Value) -> Option<&str> {
 }
 
 pub fn get_params(value: &serde_json::Value) -> serde_json::Value {
-    value.get("params").cloned().unwrap_or(serde_json::Value::Null)
+    value
+        .get("params")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -314,13 +314,7 @@ fn segment_text(text: &str, threshold: usize) -> Vec<String> {
     segments
         .into_iter()
         .enumerate()
-        .map(|(i, seg)| {
-            format!(
-                "[Segment {}/{}]\n{seg}",
-                i + 1,
-                total_segments
-            )
-        })
+        .map(|(i, seg)| format!("[Segment {}/{}]\n{seg}", i + 1, total_segments))
         .collect()
 }
 

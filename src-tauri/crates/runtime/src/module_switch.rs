@@ -29,10 +29,26 @@ pub struct ResourceCost {
 }
 
 impl ResourceCost {
-    pub const ZERO: Self = Self { cpu_percent: 0, memory_mb: 0, disk_mb: 0 };
-    pub const LOW: Self = Self { cpu_percent: 5, memory_mb: 10, disk_mb: 5 };
-    pub const MEDIUM: Self = Self { cpu_percent: 20, memory_mb: 100, disk_mb: 50 };
-    pub const HIGH: Self = Self { cpu_percent: 50, memory_mb: 500, disk_mb: 200 };
+    pub const ZERO: Self = Self {
+        cpu_percent: 0,
+        memory_mb: 0,
+        disk_mb: 0,
+    };
+    pub const LOW: Self = Self {
+        cpu_percent: 5,
+        memory_mb: 10,
+        disk_mb: 5,
+    };
+    pub const MEDIUM: Self = Self {
+        cpu_percent: 20,
+        memory_mb: 100,
+        disk_mb: 50,
+    };
+    pub const HIGH: Self = Self {
+        cpu_percent: 50,
+        memory_mb: 500,
+        disk_mb: 200,
+    };
 }
 
 /// The lifecycle state of a module.
@@ -146,7 +162,10 @@ impl ModuleRegistry {
     /// Get the state of a module.
     pub async fn module_state(&self, module_id: &str) -> Option<ModuleState> {
         let entries = self.entries.read().await;
-        entries.iter().find(|e| e.module.module_id() == module_id).map(|e| e.module.state())
+        entries
+            .iter()
+            .find(|e| e.module.module_id() == module_id)
+            .map(|e| e.module.state())
     }
 
     /// List all registered modules.
@@ -302,7 +321,11 @@ mod tests {
     #[tokio::test]
     async fn test_registry_register_and_list() {
         let registry = ModuleRegistry::new();
-        let toggle = Arc::new(SimpleToggle::new("test_mod", "Test Module", ResourceCost::LOW));
+        let toggle = Arc::new(SimpleToggle::new(
+            "test_mod",
+            "Test Module",
+            ResourceCost::LOW,
+        ));
         registry.register(toggle).await;
 
         let modules = registry.list_modules().await;
@@ -313,13 +336,23 @@ mod tests {
     #[tokio::test]
     async fn test_registry_enable_disable() {
         let registry = ModuleRegistry::new();
-        let toggle = Arc::new(SimpleToggle::new("test_mod", "Test Module", ResourceCost::LOW));
+        let toggle = Arc::new(SimpleToggle::new(
+            "test_mod",
+            "Test Module",
+            ResourceCost::LOW,
+        ));
         registry.register(toggle).await;
 
-        assert_eq!(registry.module_state("test_mod").await, Some(ModuleState::Disabled));
+        assert_eq!(
+            registry.module_state("test_mod").await,
+            Some(ModuleState::Disabled)
+        );
 
         registry.enable_module("test_mod").await.unwrap();
-        assert_eq!(registry.module_state("test_mod").await.unwrap(), ModuleState::Active);
+        assert_eq!(
+            registry.module_state("test_mod").await.unwrap(),
+            ModuleState::Active
+        );
 
         registry.disable_module("test_mod").await.unwrap();
         let state = registry.module_state("test_mod").await.unwrap();
@@ -329,9 +362,21 @@ mod tests {
     #[tokio::test]
     async fn test_speed_mode() {
         let registry = ModuleRegistry::new();
-        let code = Arc::new(SimpleToggle::new("code_engine", "Code Engine", ResourceCost::MEDIUM));
-        let vision = Arc::new(SimpleToggle::new("screen_vision", "Screen Vision", ResourceCost::HIGH));
-        let research = Arc::new(SimpleToggle::new("deep_research", "Deep Research", ResourceCost::LOW));
+        let code = Arc::new(SimpleToggle::new(
+            "code_engine",
+            "Code Engine",
+            ResourceCost::MEDIUM,
+        ));
+        let vision = Arc::new(SimpleToggle::new(
+            "screen_vision",
+            "Screen Vision",
+            ResourceCost::HIGH,
+        ));
+        let research = Arc::new(SimpleToggle::new(
+            "deep_research",
+            "Deep Research",
+            ResourceCost::LOW,
+        ));
         registry.register(code.clone()).await;
         registry.register(vision.clone()).await;
         registry.register(research.clone()).await;
@@ -343,15 +388,37 @@ mod tests {
         let disabled = registry.enter_speed_mode(&["code_engine"]).await.unwrap();
         assert_eq!(disabled, 2);
 
-        assert_eq!(registry.module_state("code_engine").await, Some(ModuleState::Active));
-        assert_eq!(registry.module_state("screen_vision").await, Some(ModuleState::Disabled));
+        assert_eq!(
+            registry.module_state("code_engine").await,
+            Some(ModuleState::Active)
+        );
+        assert_eq!(
+            registry.module_state("screen_vision").await,
+            Some(ModuleState::Disabled)
+        );
     }
 
     #[tokio::test]
     async fn test_resource_cost_accumulation() {
         let registry = ModuleRegistry::new();
-        let a = Arc::new(SimpleToggle::new("a", "A", ResourceCost { cpu_percent: 10, memory_mb: 50, disk_mb: 0 }));
-        let b = Arc::new(SimpleToggle::new("b", "B", ResourceCost { cpu_percent: 20, memory_mb: 100, disk_mb: 0 }));
+        let a = Arc::new(SimpleToggle::new(
+            "a",
+            "A",
+            ResourceCost {
+                cpu_percent: 10,
+                memory_mb: 50,
+                disk_mb: 0,
+            },
+        ));
+        let b = Arc::new(SimpleToggle::new(
+            "b",
+            "B",
+            ResourceCost {
+                cpu_percent: 20,
+                memory_mb: 100,
+                disk_mb: 0,
+            },
+        ));
         registry.register(a.clone()).await;
         registry.register(b.clone()).await;
 

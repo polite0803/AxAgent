@@ -55,8 +55,8 @@ fn map_directory_to_category(dir: &str) -> &str {
         "devops" | "infrastructure" => "devops",
         "design" | "game-development" => "design",
         "marketing" | "writing" | "content" => "writing",
-        "legal" | "hr" | "sales" | "product" | "project-management"
-        | "strategy" | "supply-chain" => "business",
+        "legal" | "hr" | "sales" | "product" | "project-management" | "strategy"
+        | "supply-chain" => "business",
         _ => "general",
     }
 }
@@ -326,10 +326,7 @@ pub async fn import_agency_experts(
         for md_entry in md_files {
             let md_entry = md_entry.map_err(|e| format!("读取文件条目失败: {}", e))?;
             let md_path = md_entry.path();
-            if md_path
-                .extension()
-                .map_or(true, |ext| ext != "md")
-            {
+            if md_path.extension().map_or(true, |ext| ext != "md") {
                 continue;
             }
 
@@ -395,11 +392,7 @@ pub async fn import_agency_experts(
                 }),
                 category: Set(final_category),
                 system_prompt: Set(body),
-                color: Set(if color.is_empty() {
-                    None
-                } else {
-                    Some(color)
-                }),
+                color: Set(if color.is_empty() { None } else { Some(color) }),
                 source_dir: Set(dir_name.clone()),
                 is_enabled: Set(1),
                 imported_at: Set(now),
@@ -711,7 +704,9 @@ pub async fn update_agency_expert(
         am.is_enabled = Set(if enabled { 1 } else { 0 });
     }
 
-    am.update(db).await.map_err(|e| format!("更新失败: {}", e))?;
+    am.update(db)
+        .await
+        .map_err(|e| format!("更新失败: {}", e))?;
     Ok(())
 }
 

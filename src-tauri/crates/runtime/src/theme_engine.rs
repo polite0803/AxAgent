@@ -60,8 +60,7 @@ pub struct UiTheme {
 
 impl Theme {
     pub fn from_json(json_content: &str) -> Result<Self, String> {
-        serde_json::from_str(json_content)
-            .map_err(|e| format!("Failed to parse theme JSON: {}", e))
+        serde_json::from_str(json_content).map_err(|e| format!("Failed to parse theme JSON: {}", e))
     }
 
     pub fn to_xterm_theme(&self) -> XTermTheme {
@@ -69,24 +68,96 @@ impl Theme {
             background: self.colors.background.clone(),
             foreground: self.colors.foreground.clone(),
             cursor: self.colors.cursor.clone(),
-            cursor_accent: self.colors.cursor_accent.clone().unwrap_or_else(|| self.colors.background.clone()),
-            selection_background: self.colors.selection_background.clone().unwrap_or_else(|| "#585b7066".to_string()),
-            black: self.colors.black.clone().unwrap_or_else(|| "#45475a".to_string()),
-            red: self.colors.red.clone().unwrap_or_else(|| "#f38ba8".to_string()),
-            green: self.colors.green.clone().unwrap_or_else(|| "#a6e3a1".to_string()),
-            yellow: self.colors.yellow.clone().unwrap_or_else(|| "#f9e2af".to_string()),
-            blue: self.colors.blue.clone().unwrap_or_else(|| "#89b4fa".to_string()),
-            magenta: self.colors.magenta.clone().unwrap_or_else(|| "#f5c2e7".to_string()),
-            cyan: self.colors.cyan.clone().unwrap_or_else(|| "#94e2d5".to_string()),
-            white: self.colors.white.clone().unwrap_or_else(|| "#bac2de".to_string()),
-            bright_black: self.colors.bright_black.clone().unwrap_or_else(|| "#585b70".to_string()),
-            bright_red: self.colors.bright_red.clone().unwrap_or_else(|| "#f38ba8".to_string()),
-            bright_green: self.colors.bright_green.clone().unwrap_or_else(|| "#a6e3a1".to_string()),
-            bright_yellow: self.colors.bright_yellow.clone().unwrap_or_else(|| "#f9e2af".to_string()),
-            bright_blue: self.colors.bright_blue.clone().unwrap_or_else(|| "#89b4fa".to_string()),
-            bright_magenta: self.colors.bright_magenta.clone().unwrap_or_else(|| "#f5c2e7".to_string()),
-            bright_cyan: self.colors.bright_cyan.clone().unwrap_or_else(|| "#94e2d5".to_string()),
-            bright_white: self.colors.bright_white.clone().unwrap_or_else(|| "#a6adc8".to_string()),
+            cursor_accent: self
+                .colors
+                .cursor_accent
+                .clone()
+                .unwrap_or_else(|| self.colors.background.clone()),
+            selection_background: self
+                .colors
+                .selection_background
+                .clone()
+                .unwrap_or_else(|| "#585b7066".to_string()),
+            black: self
+                .colors
+                .black
+                .clone()
+                .unwrap_or_else(|| "#45475a".to_string()),
+            red: self
+                .colors
+                .red
+                .clone()
+                .unwrap_or_else(|| "#f38ba8".to_string()),
+            green: self
+                .colors
+                .green
+                .clone()
+                .unwrap_or_else(|| "#a6e3a1".to_string()),
+            yellow: self
+                .colors
+                .yellow
+                .clone()
+                .unwrap_or_else(|| "#f9e2af".to_string()),
+            blue: self
+                .colors
+                .blue
+                .clone()
+                .unwrap_or_else(|| "#89b4fa".to_string()),
+            magenta: self
+                .colors
+                .magenta
+                .clone()
+                .unwrap_or_else(|| "#f5c2e7".to_string()),
+            cyan: self
+                .colors
+                .cyan
+                .clone()
+                .unwrap_or_else(|| "#94e2d5".to_string()),
+            white: self
+                .colors
+                .white
+                .clone()
+                .unwrap_or_else(|| "#bac2de".to_string()),
+            bright_black: self
+                .colors
+                .bright_black
+                .clone()
+                .unwrap_or_else(|| "#585b70".to_string()),
+            bright_red: self
+                .colors
+                .bright_red
+                .clone()
+                .unwrap_or_else(|| "#f38ba8".to_string()),
+            bright_green: self
+                .colors
+                .bright_green
+                .clone()
+                .unwrap_or_else(|| "#a6e3a1".to_string()),
+            bright_yellow: self
+                .colors
+                .bright_yellow
+                .clone()
+                .unwrap_or_else(|| "#f9e2af".to_string()),
+            bright_blue: self
+                .colors
+                .bright_blue
+                .clone()
+                .unwrap_or_else(|| "#89b4fa".to_string()),
+            bright_magenta: self
+                .colors
+                .bright_magenta
+                .clone()
+                .unwrap_or_else(|| "#f5c2e7".to_string()),
+            bright_cyan: self
+                .colors
+                .bright_cyan
+                .clone()
+                .unwrap_or_else(|| "#94e2d5".to_string()),
+            bright_white: self
+                .colors
+                .bright_white
+                .clone()
+                .unwrap_or_else(|| "#a6adc8".to_string()),
         }
     }
 }
@@ -338,7 +409,10 @@ impl ThemeEngine {
     }
 
     pub fn save_theme(&self, theme: &Theme) -> Result<(), String> {
-        let file_name = format!("{}.json", theme.metadata.name.to_lowercase().replace(' ', "-"));
+        let file_name = format!(
+            "{}.json",
+            theme.metadata.name.to_lowercase().replace(' ', "-")
+        );
         let file_path = self.themes_dir.join(&file_name);
 
         if let Some(parent) = file_path.parent() {
@@ -349,8 +423,7 @@ impl ThemeEngine {
         let json = serde_json::to_string_pretty(theme)
             .map_err(|e| format!("Failed to serialize theme: {}", e))?;
 
-        fs::write(&file_path, json)
-            .map_err(|e| format!("Failed to write theme file: {}", e))?;
+        fs::write(&file_path, json).map_err(|e| format!("Failed to write theme file: {}", e))?;
 
         Ok(())
     }
@@ -364,8 +437,7 @@ impl ThemeEngine {
         let file_path = self.themes_dir.join(&file_name);
 
         if file_path.exists() {
-            fs::remove_file(&file_path)
-                .map_err(|e| format!("Failed to delete theme: {}", e))?;
+            fs::remove_file(&file_path).map_err(|e| format!("Failed to delete theme: {}", e))?;
         }
 
         Ok(())

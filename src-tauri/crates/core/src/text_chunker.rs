@@ -385,7 +385,11 @@ fn find_code_break_point(text: &str, start: usize, target: usize) -> usize {
 ///
 /// Uses `CODE_CHUNK_SIZE` (120) and `CODE_OVERLAP` (12) as defaults, but allows
 /// the caller to override via the optional `config` parameter.
-pub fn chunk_for_code(text: &str, chunk_size: Option<usize>, overlap: Option<usize>) -> Vec<TextChunk> {
+pub fn chunk_for_code(
+    text: &str,
+    chunk_size: Option<usize>,
+    overlap: Option<usize>,
+) -> Vec<TextChunk> {
     let chunk_size = chunk_size.unwrap_or(CODE_CHUNK_SIZE);
     let overlap = overlap.unwrap_or(CODE_OVERLAP);
     let text = text.trim();

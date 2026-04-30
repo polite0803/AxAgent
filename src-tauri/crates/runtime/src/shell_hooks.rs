@@ -120,12 +120,8 @@ impl ShellHookExecutor {
 
     pub async fn should_veto(&self, input: ShellHookInput) -> Option<String> {
         let results = self.execute(input).await;
-        results.into_iter().find_map(|r| {
-            if r.veto {
-                r.reason
-            } else {
-                None
-            }
-        })
+        results
+            .into_iter()
+            .find_map(|r| if r.veto { r.reason } else { None })
     }
 }

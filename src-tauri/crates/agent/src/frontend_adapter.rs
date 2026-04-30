@@ -52,9 +52,7 @@ impl FrontendEventAdapter {
         let receiver = self.frontend_sender.subscribe();
 
         let backend_receiver = match filter {
-            FrontendEventFilter::All => {
-                self.event_bus.subscribe("frontend", vec![])
-            }
+            FrontendEventFilter::All => self.event_bus.subscribe("frontend", vec![]),
             FrontendEventFilter::Specific(event_types) => {
                 self.event_bus.subscribe("frontend", event_types)
             }
@@ -76,7 +74,10 @@ impl FrontendEventAdapter {
         receiver
     }
 
-    pub fn broadcast(&self, event: UnifiedAgentEvent) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
+    pub fn broadcast(
+        &self,
+        event: UnifiedAgentEvent,
+    ) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
         self.event_bus.emit(event)
     }
 
@@ -140,7 +141,9 @@ impl From<AgentEventType> for FrontendEventType {
             AgentEventType::Warning => FrontendEventType::AgentWarning,
             AgentEventType::Debug => FrontendEventType::AgentDebug,
             AgentEventType::LlmGenerationStarted => FrontendEventType::AgentLlmGenerationStarted,
-            AgentEventType::LlmGenerationCompleted => FrontendEventType::AgentLlmGenerationCompleted,
+            AgentEventType::LlmGenerationCompleted => {
+                FrontendEventType::AgentLlmGenerationCompleted
+            }
             AgentEventType::PermissionRequest => FrontendEventType::AgentPermissionRequest,
             AgentEventType::PermissionGranted => FrontendEventType::AgentPermissionGranted,
             AgentEventType::PermissionDenied => FrontendEventType::AgentPermissionDenied,
@@ -213,10 +216,15 @@ impl TauriEventAdapter {
         rx
     }
 
-    pub fn subscribe_specific(&self, event_types: Vec<AgentEventType>) -> broadcast::Receiver<TauriEventEnvelope> {
+    pub fn subscribe_specific(
+        &self,
+        event_types: Vec<AgentEventType>,
+    ) -> broadcast::Receiver<TauriEventEnvelope> {
         let (tx, rx) = broadcast::channel(1000);
 
-        let receiver = self.frontend_adapter.subscribe(FrontendEventFilter::Specific(event_types.clone()));
+        let receiver = self
+            .frontend_adapter
+            .subscribe(FrontendEventFilter::Specific(event_types.clone()));
 
         tokio::spawn(async move {
             let mut rx = receiver;
@@ -256,7 +264,10 @@ impl TauriEventAdapter {
         rx
     }
 
-    pub fn emit(&self, event: UnifiedAgentEvent) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
+    pub fn emit(
+        &self,
+        event: UnifiedAgentEvent,
+    ) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
         self.frontend_adapter.broadcast(event)
     }
 

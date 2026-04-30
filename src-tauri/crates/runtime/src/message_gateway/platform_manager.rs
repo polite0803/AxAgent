@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use axagent_core::platform_config::PlatformConfig;
 use crate::message_gateway::platforms;
 use crate::message_gateway::platforms::PlatformAdapter;
 use crate::message_gateway::session_router::SessionRouter;
+use axagent_core::platform_config::PlatformConfig;
 
 #[async_trait::async_trait]
 pub trait PlatformMessageCallback: Send + Sync {
@@ -46,10 +46,7 @@ impl PlatformManager {
             "feishu".to_string(),
             Arc::new(platforms::feishu::FeishuAdapter::new()),
         );
-        adapters.insert(
-            "qq".to_string(),
-            Arc::new(platforms::qq::QQAdapter::new()),
-        );
+        adapters.insert("qq".to_string(), Arc::new(platforms::qq::QQAdapter::new()));
         adapters.insert(
             "dingtalk".to_string(),
             Arc::new(platforms::dingtalk::DingtalkAdapter::new()),
@@ -158,10 +155,7 @@ impl PlatformManager {
         router.link_agent_session(platform, user_id, agent_session_id)
     }
 
-    pub async fn get_statuses(
-        &self,
-        config: &PlatformConfig,
-    ) -> Vec<PlatformAdapterStatus> {
+    pub async fn get_statuses(&self, config: &PlatformConfig) -> Vec<PlatformAdapterStatus> {
         struct AdapterInfo {
             name: String,
             enabled: bool,

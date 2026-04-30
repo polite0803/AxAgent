@@ -51,12 +51,7 @@ impl TrajectoryRecorder {
         state.is_recording = true;
     }
 
-    pub async fn record_tool_call(
-        &self,
-        tool_name: &str,
-        tool_use_id: &str,
-        arguments: &str,
-    ) {
+    pub async fn record_tool_call(&self, tool_name: &str, tool_use_id: &str, arguments: &str) {
         let mut state = self.state.write().await;
         if !state.is_recording {
             return;
@@ -87,11 +82,7 @@ impl TrajectoryRecorder {
         });
     }
 
-    pub async fn record_llm_response(
-        &self,
-        content: &str,
-        reasoning: Option<&str>,
-    ) {
+    pub async fn record_llm_response(&self, content: &str, reasoning: Option<&str>) {
         let mut state = self.state.write().await;
         if !state.is_recording {
             return;
@@ -177,10 +168,7 @@ impl TrajectoryRecorder {
             TrajectoryOutcome::Abandoned => 0.2,
         };
 
-        let tool_count = steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .count();
+        let tool_count = steps.iter().filter(|s| s.tool_calls.is_some()).count();
         let successful_tools = steps
             .iter()
             .filter(|s| {
@@ -251,10 +239,7 @@ impl TrajectoryRecorder {
             return "No steps recorded".to_string();
         }
 
-        let tool_count = steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .count();
+        let tool_count = steps.iter().filter(|s| s.tool_calls.is_some()).count();
         let total_steps = steps.len();
 
         format!(

@@ -109,10 +109,8 @@ impl TrajectoryCompressor {
         &self,
         trajectories: &[CompressedTrajectory],
     ) -> Result<String, serde_json::Error> {
-        let lines: Result<Vec<String>, _> = trajectories
-            .iter()
-            .map(serde_json::to_string)
-            .collect();
+        let lines: Result<Vec<String>, _> =
+            trajectories.iter().map(serde_json::to_string).collect();
         Ok(lines?.join("\n"))
     }
 }
@@ -122,6 +120,10 @@ fn summarize(content: &str, max_len: usize) -> String {
         content.to_string()
     } else {
         let half = max_len / 2;
-        format!("{}...{}", &content[..half], &content[content.len() - half..])
+        format!(
+            "{}...{}",
+            &content[..half],
+            &content[content.len() - half..]
+        )
     }
 }

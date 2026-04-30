@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 
 use crate::ingest_pipeline::{IngestPipeline, IngestSourceType};
@@ -86,7 +86,8 @@ impl DeepResearcher {
         let queries = if let (Some(ref adapter), Some(ctx), Some(model)) =
             (&llm_adapter, &llm_ctx, &llm_model)
         {
-            self.generate_queries(topic, &context, adapter.as_ref(), &ctx, model).await?
+            self.generate_queries(topic, &context, adapter.as_ref(), &ctx, model)
+                .await?
         } else {
             self.default_queries(topic)
         };
@@ -287,25 +288,16 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
         findings
     }
 
-    async fn ingest_result(
-        &self,
-        wiki_id: &str,
-        result: &SearchResult,
-    ) -> Result<String, String> {
+    async fn ingest_result(&self, wiki_id: &str, result: &SearchResult) -> Result<String, String> {
         let content = format!(
             "# {}\n\n**Source:** [{}]({})\n\n**Research Query:** {}\n\n---\n\n{}",
-            result.title,
-            result.url,
-            result.url,
-            result.query,
-            result.snippet
+            result.title, result.url, result.url, result.query, result.snippet
         );
 
-        let ingest_result = self.ingest_pipeline.ingest_text(
-            wiki_id,
-            &content,
-            IngestSourceType::WebArticle,
-        ).await?;
+        let ingest_result = self
+            .ingest_pipeline
+            .ingest_text(wiki_id, &content, IngestSourceType::WebArticle)
+            .await?;
 
         Ok(ingest_result.source_id)
     }

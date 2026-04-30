@@ -3,12 +3,15 @@ use std::sync::Arc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use axagent_core::entity::{notes, wiki_pages, wiki_sources, wiki_operations, wikis};
+use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_core::repo::note::{calculate_content_hash, CreateNoteInput, Note, UpdateNoteInput};
+use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::utils::gen_id;
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
+    Set,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledPage {
@@ -181,9 +184,11 @@ impl WikiCompiler {
                     .await
                     .map_err(|e| e.to_string())?;
                 if let Some(w) = wiki {
-                    let alt_path = std::path::Path::new(&w.root_path)
-                        .join("raw")
-                        .join(std::path::Path::new(&source.source_path).file_name().unwrap_or_default());
+                    let alt_path = std::path::Path::new(&w.root_path).join("raw").join(
+                        std::path::Path::new(&source.source_path)
+                            .file_name()
+                            .unwrap_or_default(),
+                    );
                     if alt_path.exists() {
                         let content = tokio::fs::read_to_string(&alt_path)
                             .await
@@ -192,7 +197,10 @@ impl WikiCompiler {
                         continue;
                     }
                 }
-                results.push((source.clone(), format!("[File not found: {}]", source.source_path)));
+                results.push((
+                    source.clone(),
+                    format!("[File not found: {}]", source.source_path),
+                ));
             }
         }
         Ok(results)
@@ -300,7 +308,12 @@ impl WikiCompiler {
         let mut pages = Vec::new();
 
         for cap in json_re.captures_iter(raw_text) {
-            let json_str = cap.get(1).map(|m| m.as_str()).unwrap_or("").trim().to_string();
+            let json_str = cap
+                .get(1)
+                .map(|m| m.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
             if json_str.is_empty() {
                 continue;
             }
@@ -323,9 +336,7 @@ impl WikiCompiler {
                             }
                         }
                     } else if value.is_array() {
-                        if let Ok(arr) =
-                            serde_json::from_value::<Vec<CompiledPage>>(value)
-                        {
+                        if let Ok(arr) = serde_json::from_value::<Vec<CompiledPage>>(value) {
                             for page in arr {
                                 if !page.content.is_empty()
                                     && !page.title.is_empty()
@@ -338,7 +349,11 @@ impl WikiCompiler {
                     }
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to parse JSON block: {}. Raw: {}", e, &clean_json[..clean_json.len().min(200)]);
+                    tracing::warn!(
+                        "Failed to parse JSON block: {}. Raw: {}",
+                        e,
+                        &clean_json[..clean_json.len().min(200)]
+                    );
                 }
             }
         }
@@ -411,11 +426,7 @@ impl WikiCompiler {
             || pt == "overview"
     }
 
-    async fn save_page(
-        &self,
-        wiki_id: &str,
-        page: &CompiledPage,
-    ) -> Result<(Note, bool), String> {
+    async fn save_page(&self, wiki_id: &str, page: &CompiledPage) -> Result<(Note, bool), String> {
         let slug = page
             .title
             .chars()
@@ -434,7 +445,9 @@ impl WikiCompiler {
         let dir = self.page_type_dir(&page.page_type);
         let file_path = format!("notes/{}/{}.md", dir, slug);
 
-        let existing_note = self.find_existing_note_by_title(wiki_id, &page.title).await?;
+        let existing_note = self
+            .find_existing_note_by_title(wiki_id, &page.title)
+            .await?;
 
         if let Some(ref note) = existing_note {
             if !self.should_overwrite(note).await? {
@@ -453,9 +466,10 @@ impl WikiCompiler {
                 related_pages: None,
             };
 
-            let updated_note = axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
-                .await
-                .map_err(|e| e.to_string())?;
+            let updated_note =
+                axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
+                    .await
+                    .map_err(|e| e.to_string())?;
 
             self.update_wiki_page(&updated_note, page).await?;
 
@@ -465,7 +479,9 @@ impl WikiCompiler {
                 .map_err(|e| e.to_string())?
                 .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
-            let note_path = std::path::Path::new(&wiki.root_path).join("notes").join(&file_path);
+            let note_path = std::path::Path::new(&wiki.root_path)
+                .join("notes")
+                .join(&file_path);
             if let Some(parent) = note_path.parent() {
                 let _ = tokio::fs::create_dir_all(parent).await;
             }
@@ -496,7 +512,9 @@ impl WikiCompiler {
             .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
-        let note_path = std::path::Path::new(&wiki.root_path).join("notes").join(&file_path);
+        let note_path = std::path::Path::new(&wiki.root_path)
+            .join("notes")
+            .join(&file_path);
         if let Some(parent) = note_path.parent() {
             let _ = tokio::fs::create_dir_all(parent).await;
         }
@@ -552,7 +570,9 @@ impl WikiCompiler {
             let mut am = wp.into_active_model();
             am.quality_score = Set(Some(score));
             am.last_linted_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref())
+                .await
+                .map_err(|e| e.to_string())?;
         }
 
         Ok(())
@@ -568,9 +588,10 @@ impl WikiCompiler {
         if let Some(wp) = wiki_page {
             let mut am = wp.into_active_model();
             am.last_compiled_at = Set(chrono::Utc::now().timestamp());
-            am.compiled_source_hash =
-                Set(Some(calculate_content_hash(&page.content)));
-            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+            am.compiled_source_hash = Set(Some(calculate_content_hash(&page.content)));
+            am.update(self.db.as_ref())
+                .await
+                .map_err(|e| e.to_string())?;
         }
 
         Ok(())
@@ -622,9 +643,13 @@ impl WikiCompiler {
             .map_err(|e| e.to_string())?;
 
         let mut index = String::from("# Wiki Index\n\n");
-        index.push_str(&format!("Last updated: {}\n\n", chrono::Utc::now().format("%Y-%m-%d %H:%M UTC")));
+        index.push_str(&format!(
+            "Last updated: {}\n\n",
+            chrono::Utc::now().format("%Y-%m-%d %H:%M UTC")
+        ));
 
-        let mut by_type: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+        let mut by_type: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
         for note in &db_notes {
             let note_ref = axagent_core::repo::note::model_to_note(note.clone());
             let pt = note_ref.page_type.unwrap_or_else(|| "note".to_string());
@@ -648,7 +673,9 @@ impl WikiCompiler {
             }
         }
 
-        let index_path = std::path::Path::new(&wiki.root_path).join("notes").join("index.md");
+        let index_path = std::path::Path::new(&wiki.root_path)
+            .join("notes")
+            .join("index.md");
         if let Some(parent) = index_path.parent() {
             let _ = tokio::fs::create_dir_all(parent).await;
         }
@@ -656,7 +683,8 @@ impl WikiCompiler {
             .await
             .map_err(|e| e.to_string())?;
 
-        self.upsert_system_note(wiki_id, "Index", "index", &index, "notes/index.md").await
+        self.upsert_system_note(wiki_id, "Index", "index", &index, "notes/index.md")
+            .await
     }
 
     async fn update_log(
@@ -671,7 +699,9 @@ impl WikiCompiler {
             .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
-        let log_path = std::path::Path::new(&wiki.root_path).join("notes").join("log.md");
+        let log_path = std::path::Path::new(&wiki.root_path)
+            .join("notes")
+            .join("log.md");
 
         let mut existing = String::new();
         if log_path.exists() {
@@ -715,9 +745,7 @@ impl WikiCompiler {
                 "partial"
             }
             .to_string()),
-            details_json: Set(Some(
-                serde_json::to_value(result).unwrap_or_default(),
-            )),
+            details_json: Set(Some(serde_json::to_value(result).unwrap_or_default())),
             error_message: Set(None),
             created_at: Set(chrono::Utc::now().timestamp()),
             completed_at: Set(Some(chrono::Utc::now().timestamp())),
@@ -729,7 +757,8 @@ impl WikiCompiler {
             .await
             .map_err(|e| e.to_string())?;
 
-        self.upsert_system_note(wiki_id, "Operation Log", "log", &new_log, "notes/log.md").await
+        self.upsert_system_note(wiki_id, "Operation Log", "log", &new_log, "notes/log.md")
+            .await
     }
 
     async fn update_overview(&self, wiki_id: &str) -> Result<(), String> {
@@ -780,7 +809,9 @@ impl WikiCompiler {
 
         overview.push_str("\n## Recent Activity\n\nSee [[Operation Log]] for details.\n");
 
-        let overview_path = std::path::Path::new(&wiki.root_path).join("notes").join("overview.md");
+        let overview_path = std::path::Path::new(&wiki.root_path)
+            .join("notes")
+            .join("overview.md");
         if let Some(parent) = overview_path.parent() {
             let _ = tokio::fs::create_dir_all(parent).await;
         }
@@ -788,7 +819,14 @@ impl WikiCompiler {
             .await
             .map_err(|e| e.to_string())?;
 
-        self.upsert_system_note(wiki_id, "Overview", "overview", &overview, "notes/overview.md").await
+        self.upsert_system_note(
+            wiki_id,
+            "Overview",
+            "overview",
+            &overview,
+            "notes/overview.md",
+        )
+        .await
     }
 
     async fn upsert_system_note(
@@ -817,7 +855,9 @@ impl WikiCompiler {
             am.content = Set(content.to_string());
             am.content_hash = Set(content_hash);
             am.updated_at = Set(chrono::Utc::now().timestamp());
-            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref())
+                .await
+                .map_err(|e| e.to_string())?;
         } else {
             let input = CreateNoteInput {
                 vault_id: wiki_id.to_string(),

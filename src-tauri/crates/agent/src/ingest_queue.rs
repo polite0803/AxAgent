@@ -1,13 +1,13 @@
-use std::sync::Arc;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
 use tokio::fs;
+use tokio::sync::Mutex;
 
 use axagent_core::utils::gen_id;
 
-use crate::ingest_pipeline::{IngestPipeline, IngestSource, IngestResult};
+use crate::ingest_pipeline::{IngestPipeline, IngestResult, IngestSource};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum IngestTaskStatus {
@@ -72,7 +72,9 @@ impl IngestQueue {
                     }
                     t
                 })
-                .filter(|t| t.status == IngestTaskStatus::Pending || t.status == IngestTaskStatus::Failed)
+                .filter(|t| {
+                    t.status == IngestTaskStatus::Pending || t.status == IngestTaskStatus::Failed
+                })
                 .collect();
 
             let count = pending.len();
@@ -82,11 +84,7 @@ impl IngestQueue {
         Ok(0)
     }
 
-    pub async fn enqueue(
-        &self,
-        wiki_id: &str,
-        source: IngestSource,
-    ) -> String {
+    pub async fn enqueue(&self, wiki_id: &str, source: IngestSource) -> String {
         let task = QueuedIngestTask {
             id: gen_id(),
             wiki_id: wiki_id.to_string(),
@@ -107,11 +105,7 @@ impl IngestQueue {
         id
     }
 
-    pub async fn enqueue_batch(
-        &self,
-        wiki_id: &str,
-        sources: Vec<IngestSource>,
-    ) -> Vec<String> {
+    pub async fn enqueue_batch(&self, wiki_id: &str, sources: Vec<IngestSource>) -> Vec<String> {
         let mut ids = Vec::new();
         let now = chrono::Utc::now().timestamp();
 
@@ -140,7 +134,10 @@ impl IngestQueue {
     pub async fn process_next(&self) -> Option<IngestResult> {
         let task_id = {
             let mut tasks = self.tasks.lock().await;
-            if let Some(idx) = tasks.iter().position(|t| t.status == IngestTaskStatus::Pending) {
+            if let Some(idx) = tasks
+                .iter()
+                .position(|t| t.status == IngestTaskStatus::Pending)
+            {
                 tasks[idx].status = IngestTaskStatus::Processing;
                 tasks[idx].started_at = Some(chrono::Utc::now().timestamp());
                 tasks[idx].id.clone()
@@ -151,28 +148,33 @@ impl IngestQueue {
 
         self.save_to_disk().await.ok();
 
-        let result = self.pipeline.ingest(
-            &{
-                let tasks = self.tasks.lock().await;
-                tasks.iter()
-                    .find(|t| t.id == task_id)
-                    .map(|t| t.wiki_id.clone())
-                    .unwrap_or_default()
-            },
-            {
-                let tasks = self.tasks.lock().await;
-                tasks.iter()
-                    .find(|t| t.id == task_id)
-                    .map(|t| t.source.clone())
-                    .unwrap_or_else(|| IngestSource {
-                        source_type: crate::ingest_pipeline::IngestSourceType::RawMarkdown,
-                        path: String::new(),
-                        url: None,
-                        title: None,
-                        folder_context: None,
-                    })
-            },
-        ).await;
+        let result = self
+            .pipeline
+            .ingest(
+                &{
+                    let tasks = self.tasks.lock().await;
+                    tasks
+                        .iter()
+                        .find(|t| t.id == task_id)
+                        .map(|t| t.wiki_id.clone())
+                        .unwrap_or_default()
+                },
+                {
+                    let tasks = self.tasks.lock().await;
+                    tasks
+                        .iter()
+                        .find(|t| t.id == task_id)
+                        .map(|t| t.source.clone())
+                        .unwrap_or_else(|| IngestSource {
+                            source_type: crate::ingest_pipeline::IngestSourceType::RawMarkdown,
+                            path: String::new(),
+                            url: None,
+                            title: None,
+                            folder_context: None,
+                        })
+                },
+            )
+            .await;
 
         {
             let mut tasks = self.tasks.lock().await;
@@ -207,16 +209,21 @@ impl IngestQueue {
         while let Some(result) = self.process_next().await {
             let task_id = {
                 let tasks = self.tasks.lock().await;
-                tasks.iter()
+                tasks
+                    .iter()
                     .rev()
-                    .find(|t| t.status == IngestTaskStatus::Completed || t.status == IngestTaskStatus::Failed)
+                    .find(|t| {
+                        t.status == IngestTaskStatus::Completed
+                            || t.status == IngestTaskStatus::Failed
+                    })
                     .map(|t| t.id.clone())
             };
 
             if let Some(id) = task_id {
                 let error = {
                     let tasks = self.tasks.lock().await;
-                    tasks.iter()
+                    tasks
+                        .iter()
                         .find(|t| t.id == id)
                         .and_then(|t| t.error_message.clone())
                 };
@@ -263,12 +270,10 @@ impl IngestQueue {
         tasks.iter().find(|t| t.id == task_id).cloned()
     }
 
-    pub async fn list_tasks(
-        &self,
-        wiki_id: Option<&str>,
-    ) -> Vec<QueuedIngestTask> {
+    pub async fn list_tasks(&self, wiki_id: Option<&str>) -> Vec<QueuedIngestTask> {
         let tasks = self.tasks.lock().await;
-        tasks.iter()
+        tasks
+            .iter()
             .filter(|t| wiki_id.map_or(true, |w| t.wiki_id == w))
             .cloned()
             .collect()
@@ -276,18 +281,26 @@ impl IngestQueue {
 
     pub async fn pending_count(&self) -> usize {
         let tasks = self.tasks.lock().await;
-        tasks.iter().filter(|t| t.status == IngestTaskStatus::Pending).count()
+        tasks
+            .iter()
+            .filter(|t| t.status == IngestTaskStatus::Pending)
+            .count()
     }
 
     pub async fn processing_count(&self) -> usize {
         let tasks = self.tasks.lock().await;
-        tasks.iter().filter(|t| t.status == IngestTaskStatus::Processing).count()
+        tasks
+            .iter()
+            .filter(|t| t.status == IngestTaskStatus::Processing)
+            .count()
     }
 
     pub async fn clear_completed(&self) -> usize {
         let mut tasks = self.tasks.lock().await;
         let before = tasks.len();
-        tasks.retain(|t| t.status != IngestTaskStatus::Completed && t.status != IngestTaskStatus::Cancelled);
+        tasks.retain(|t| {
+            t.status != IngestTaskStatus::Completed && t.status != IngestTaskStatus::Cancelled
+        });
         let removed = before - tasks.len();
         self.save_to_disk().await.ok();
         removed
@@ -310,9 +323,12 @@ impl IngestQueue {
         fs::create_dir_all(&dir).await.map_err(|e| e.to_string())?;
 
         let path = self.snapshot_path();
-        fs::write(&path, serde_json::to_string_pretty(&snapshot).map_err(|e| e.to_string())?)
-            .await
-            .map_err(|e| e.to_string())
+        fs::write(
+            &path,
+            serde_json::to_string_pretty(&snapshot).map_err(|e| e.to_string())?,
+        )
+        .await
+        .map_err(|e| e.to_string())
     }
 
     pub async fn import_folder(
@@ -332,7 +348,9 @@ impl IngestQueue {
         let mut dir_stack: Vec<std::path::PathBuf> = vec![base_path.to_path_buf()];
 
         while let Some(current_path) = dir_stack.pop() {
-            let mut entries = fs::read_dir(&current_path).await.map_err(|e| e.to_string())?;
+            let mut entries = fs::read_dir(&current_path)
+                .await
+                .map_err(|e| e.to_string())?;
 
             while let Some(entry) = entries.next_entry().await.map_err(|e| e.to_string())? {
                 let path = entry.path();
@@ -401,7 +419,9 @@ impl IngestQueue {
         let mut dir_stack: Vec<std::path::PathBuf> = vec![base_path.to_path_buf()];
 
         while let Some(current_path) = dir_stack.pop() {
-            let mut entries = fs::read_dir(&current_path).await.map_err(|e| e.to_string())?;
+            let mut entries = fs::read_dir(&current_path)
+                .await
+                .map_err(|e| e.to_string())?;
 
             while let Some(entry) = entries.next_entry().await.map_err(|e| e.to_string())? {
                 let path = entry.path();

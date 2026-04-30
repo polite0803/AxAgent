@@ -45,7 +45,11 @@ pub trait DashboardPlugin: Send + Sync {
     fn manifest(&self) -> &DashboardPluginManifest;
     async fn on_load(&self) -> Result<(), String>;
     async fn on_unload(&self) -> Result<(), String>;
-    async fn render_panel(&self, panel_id: &str, props: HashMap<String, serde_json::Value>) -> Result<String, String>;
+    async fn render_panel(
+        &self,
+        panel_id: &str,
+        props: HashMap<String, serde_json::Value>,
+    ) -> Result<String, String>;
 }
 
 pub struct DashboardPluginAdapter {
@@ -81,7 +85,11 @@ impl DashboardPlugin for DashboardPluginAdapter {
         Ok(())
     }
 
-    async fn render_panel(&self, panel_id: &str, props: HashMap<String, serde_json::Value>) -> Result<String, String> {
+    async fn render_panel(
+        &self,
+        panel_id: &str,
+        props: HashMap<String, serde_json::Value>,
+    ) -> Result<String, String> {
         Ok((self.render_fn)(panel_id, props))
     }
 }

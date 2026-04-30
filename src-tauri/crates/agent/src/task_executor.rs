@@ -94,7 +94,10 @@ impl Default for TaskExecutorConfig {
 }
 
 pub trait TaskExecutorImpl: Send + Sync {
-    fn execute_task(&self, context: &TaskContext) -> impl std::future::Future<Output = Result<serde_json::Value, TaskExecutorError>> + Send;
+    fn execute_task(
+        &self,
+        context: &TaskContext,
+    ) -> impl std::future::Future<Output = Result<serde_json::Value, TaskExecutorError>> + Send;
 }
 
 #[derive(Debug, Clone)]
@@ -246,9 +249,7 @@ impl TaskExecutor {
                     graph.get_failed_task_ids().join(", "),
                 ));
                 *self.graph.write().await = Some(graph.clone());
-                return Err(ExecutionError::TaskFailed(
-                    graph.get_failed_task_ids(),
-                ));
+                return Err(ExecutionError::TaskFailed(graph.get_failed_task_ids()));
             }
         }
 
@@ -333,10 +334,7 @@ impl TaskExecutor {
             let duration_ms = start.elapsed().as_millis() as u64;
 
             match result {
-                Ok(Ok(output)) => (
-                    task_id_clone,
-                    Ok(TaskResult::success(output, duration_ms)),
-                ),
+                Ok(Ok(output)) => (task_id_clone, Ok(TaskResult::success(output, duration_ms))),
                 Ok(Err(e)) => (task_id_clone, Err(e)),
                 Err(_) => (
                     task_id_clone,
@@ -422,7 +420,10 @@ impl Default for TaskExecutor {
 pub(crate) struct DefaultTaskExecutorImpl;
 
 impl TaskExecutorImpl for DefaultTaskExecutorImpl {
-    async fn execute_task(&self, context: &TaskContext) -> Result<serde_json::Value, TaskExecutorError> {
+    async fn execute_task(
+        &self,
+        context: &TaskContext,
+    ) -> Result<serde_json::Value, TaskExecutorError> {
         match context.task_type {
             crate::task::TaskType::ToolCall => {
                 tokio::time::sleep(Duration::from_millis(100)).await;

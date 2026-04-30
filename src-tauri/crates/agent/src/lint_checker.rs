@@ -3,7 +3,10 @@ use std::sync::Arc;
 
 use axagent_core::entity::{notes, wiki_pages, wikis};
 use axagent_core::markdown_parser::MarkdownParser;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
+    Set,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,7 +128,11 @@ impl LintChecker {
         Ok(results)
     }
 
-    fn check_frontmatter(&self, note: &axagent_core::repo::note::Note, issues: &mut Vec<LintIssue>) {
+    fn check_frontmatter(
+        &self,
+        note: &axagent_core::repo::note::Note,
+        issues: &mut Vec<LintIssue>,
+    ) {
         if note.title.is_empty() {
             issues.push(LintIssue {
                 severity: IssueSeverity::Error,
@@ -235,10 +242,20 @@ impl LintChecker {
         }
     }
 
-    fn check_content_quality(&self, note: &axagent_core::repo::note::Note, issues: &mut Vec<LintIssue>) {
+    fn check_content_quality(
+        &self,
+        note: &axagent_core::repo::note::Note,
+        issues: &mut Vec<LintIssue>,
+    ) {
         let lower = note.content.to_lowercase();
 
-        for phrase in &["unknown", "not sure", "cannot determine", "i don't know", "todo"] {
+        for phrase in &[
+            "unknown",
+            "not sure",
+            "cannot determine",
+            "i don't know",
+            "todo",
+        ] {
             if lower.contains(phrase) {
                 issues.push(LintIssue {
                     severity: IssueSeverity::Warning,
@@ -319,10 +336,7 @@ impl LintChecker {
                 issues: vec![LintIssue {
                     severity: IssueSeverity::Warning,
                     code: "missing-index-entry".to_string(),
-                    message: format!(
-                        "index.md is missing entries for: {}",
-                        missing.join(", ")
-                    ),
+                    message: format!("index.md is missing entries for: {}", missing.join(", ")),
                     line: None,
                 }],
                 score: 0.5,
@@ -413,7 +427,9 @@ impl LintChecker {
             let mut am = wp.into_active_model();
             am.quality_score = Set(Some(result.score));
             am.last_linted_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref())
+                .await
+                .map_err(|e| e.to_string())?;
         }
 
         Ok(result.score)
@@ -479,8 +495,14 @@ impl LintChecker {
                 if result.issues.iter().any(|i| i.code == "missing-index") {
                     fixed.push("Index is missing. Run compile to regenerate it.".to_string());
                 }
-                if result.issues.iter().any(|i| i.code == "missing-index-entry") {
-                    fixed.push("Index has missing entries. Run compile to regenerate it.".to_string());
+                if result
+                    .issues
+                    .iter()
+                    .any(|i| i.code == "missing-index-entry")
+                {
+                    fixed.push(
+                        "Index has missing entries. Run compile to regenerate it.".to_string(),
+                    );
                 }
             }
         }

@@ -37,7 +37,9 @@ fn stringify_attachment_list(attachments: &[Attachment]) -> Result<String> {
 }
 
 fn message_from_entity(m: messages::Model) -> Result<Message> {
-    let blocks = m.parts.as_ref()
+    let blocks = m
+        .parts
+        .as_ref()
         .and_then(|p| serde_json::from_str::<Vec<crate::types::ContentBlock>>(p).ok());
     Ok(Message {
         id: m.id,
@@ -145,7 +147,17 @@ pub async fn create_message(
     parent_message_id: Option<&str>,
     version_index: i32,
 ) -> Result<Message> {
-    create_message_with_parts(db, conversation_id, role, content, attachments, parent_message_id, version_index, None).await
+    create_message_with_parts(
+        db,
+        conversation_id,
+        role,
+        content,
+        attachments,
+        parent_message_id,
+        version_index,
+        None,
+    )
+    .await
 }
 
 pub async fn create_message_with_parts(
@@ -268,7 +280,10 @@ pub async fn update_message_thinking(
     thinking: Option<&str>,
 ) -> Result<()> {
     let update = messages::Entity::update_many()
-        .col_expr(messages::Column::Thinking, Expr::value(thinking.map(|s| s.to_string())))
+        .col_expr(
+            messages::Column::Thinking,
+            Expr::value(thinking.map(|s| s.to_string())),
+        )
         .filter(messages::Column::Id.eq(id));
 
     let result = update.exec(db).await?;
@@ -286,7 +301,10 @@ pub async fn update_message_parts(
     parts: Option<&str>,
 ) -> Result<()> {
     let update = messages::Entity::update_many()
-        .col_expr(messages::Column::Parts, Expr::value(parts.map(|s| s.to_string())))
+        .col_expr(
+            messages::Column::Parts,
+            Expr::value(parts.map(|s| s.to_string())),
+        )
         .filter(messages::Column::Id.eq(id));
 
     let result = update.exec(db).await?;

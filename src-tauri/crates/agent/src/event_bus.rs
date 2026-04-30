@@ -76,7 +76,11 @@ pub struct UnifiedAgentEvent {
 }
 
 impl UnifiedAgentEvent {
-    pub fn new(source: impl Into<String>, event_type: AgentEventType, payload: serde_json::Value) -> Self {
+    pub fn new(
+        source: impl Into<String>,
+        event_type: AgentEventType,
+        payload: serde_json::Value,
+    ) -> Self {
         Self {
             event_type,
             timestamp: Utc::now(),
@@ -145,7 +149,10 @@ impl AgentEventBus {
         subs.remove(subscriber_id);
     }
 
-    pub fn emit(&self, event: UnifiedAgentEvent) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
+    pub fn emit(
+        &self,
+        event: UnifiedAgentEvent,
+    ) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
         tracing::debug!(
             "EventBus[{}] emitting: {} from {}",
             self.name,
@@ -156,7 +163,10 @@ impl AgentEventBus {
         self.sender.send(event)
     }
 
-    pub fn emit_to_all(&self, event: UnifiedAgentEvent) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
+    pub fn emit_to_all(
+        &self,
+        event: UnifiedAgentEvent,
+    ) -> Result<usize, broadcast::error::SendError<UnifiedAgentEvent>> {
         let count = self.sender.len();
         self.sender.send(event)?;
         Ok(count)
@@ -236,9 +246,13 @@ mod tests {
     async fn test_event_bus_multiple_subscribers() {
         let bus = AgentEventBus::new("test");
         let _receiver1 = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);
-        let _receiver2 = bus.subscribe("sub2", vec![AgentEventType::TurnStarted, AgentEventType::Error]);
+        let _receiver2 = bus.subscribe(
+            "sub2",
+            vec![AgentEventType::TurnStarted, AgentEventType::Error],
+        );
 
-        let event = UnifiedAgentEvent::new("source", AgentEventType::TurnStarted, serde_json::json!({}));
+        let event =
+            UnifiedAgentEvent::new("source", AgentEventType::TurnStarted, serde_json::json!({}));
         bus.emit(event).unwrap();
 
         let subscriptions = bus.get_subscriptions().await;

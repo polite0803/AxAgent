@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
@@ -403,7 +403,10 @@ where
         }
 
         let probe_input = r#"{"pattern": "*.health-check-probe-"}"#;
-        let mut executor = self.tool_executor.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let mut executor = self
+            .tool_executor
+            .lock()
+            .map_err(|e| format!("Lock error: {}", e))?;
         match executor.execute("glob_search", probe_input) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Tool executor probe failed: {e}")),
@@ -460,13 +463,10 @@ where
             }
 
             if let Some(ref pause_state) = self.pause_state {
-                pause_state.wait_while_paused(
-                    self.cancel_token.as_ref().map(|t| t.as_ref())
-                );
+                pause_state.wait_while_paused(self.cancel_token.as_ref().map(|t| t.as_ref()));
                 if let Some(ref token) = self.cancel_token {
                     if token.load(Ordering::Relaxed) {
-                        let error =
-                            RuntimeError::new("Agent cancelled while paused".to_string());
+                        let error = RuntimeError::new("Agent cancelled while paused".to_string());
                         self.record_turn_failed(iterations, &error);
                         return Err(error);
                     }
@@ -685,16 +685,23 @@ where
                             let effective_input_owned = effective_input.clone();
                             let tool_executor = self.tool_executor.clone();
 
-                            let scope_result: Result<Result<String, ToolError>, std::sync::mpsc::RecvTimeoutError> = tokio::task::block_in_place(|| {
+                            let scope_result: Result<
+                                Result<String, ToolError>,
+                                std::sync::mpsc::RecvTimeoutError,
+                            > = tokio::task::block_in_place(|| {
                                 let mut tool_executor = match tool_executor.lock() {
                                     Ok(executor) => executor,
                                     Err(e) => {
                                         let (tx, rx) = std::sync::mpsc::channel();
-                                        let _ = tx.send(Err(ToolError::new(format!("Lock error: {}", e))));
+                                        let _ = tx.send(Err(ToolError::new(format!(
+                                            "Lock error: {}",
+                                            e
+                                        ))));
                                         return rx.recv_timeout(tool_timeout);
                                     }
                                 };
-                                let result = tool_executor.execute(&tool_name_owned, &effective_input_owned);
+                                let result =
+                                    tool_executor.execute(&tool_name_owned, &effective_input_owned);
                                 let (tx, rx) = std::sync::mpsc::channel();
                                 let _ = tx.send(result);
                                 rx.recv_timeout(tool_timeout)
@@ -758,16 +765,23 @@ where
                                             let retry_tool_name = tool_name.clone();
                                             let retry_input = effective_input.clone();
                                             let retry_tool_executor = self.tool_executor.clone();
-                                            let retry_scope_result: Result<Result<String, ToolError>, std::sync::mpsc::RecvTimeoutError> = tokio::task::block_in_place(|| {
-                                                let mut executor = match retry_tool_executor.lock() {
+                                            let retry_scope_result: Result<
+                                                Result<String, ToolError>,
+                                                std::sync::mpsc::RecvTimeoutError,
+                                            > = tokio::task::block_in_place(|| {
+                                                let mut executor = match retry_tool_executor.lock()
+                                                {
                                                     Ok(ex) => ex,
                                                     Err(e) => {
                                                         let (tx, rx) = std::sync::mpsc::channel();
-                                                        let _ = tx.send(Err(ToolError::new(format!("Lock error: {}", e))));
+                                                        let _ = tx.send(Err(ToolError::new(
+                                                            format!("Lock error: {}", e),
+                                                        )));
                                                         return rx.recv_timeout(tool_timeout);
                                                     }
                                                 };
-                                                let result = executor.execute(&retry_tool_name, &retry_input);
+                                                let result = executor
+                                                    .execute(&retry_tool_name, &retry_input);
                                                 let (tx, rx) = std::sync::mpsc::channel();
                                                 let _ = tx.send(result);
                                                 rx.recv_timeout(tool_timeout)
@@ -2192,12 +2206,19 @@ mod tests {
 
         // then: partial content is preserved
         let (msg, _usage, _cache, _thinking) = result;
-        let text = msg.blocks.iter().find_map(|b| match b {
-            ContentBlock::Text { text } => Some(text.clone()),
-            _ => None,
-        }).unwrap();
+        let text = msg
+            .blocks
+            .iter()
+            .find_map(|b| match b {
+                ContentBlock::Text { text } => Some(text.clone()),
+                _ => None,
+            })
+            .unwrap();
         assert!(text.contains("partial"), "should contain original text");
-        assert!(text.contains("Stream was interrupted"), "should contain recovery marker");
+        assert!(
+            text.contains("Stream was interrupted"),
+            "should contain recovery marker"
+        );
     }
 
     #[test]

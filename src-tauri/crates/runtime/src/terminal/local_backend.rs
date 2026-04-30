@@ -5,7 +5,9 @@ use std::io::Write;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
-use super::backend_trait::{BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput};
+use super::backend_trait::{
+    BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput,
+};
 
 #[allow(dead_code)]
 struct LocalPtySession {
@@ -74,11 +76,7 @@ impl TerminalBackend for LocalBackend {
         *self.connected.read().await
     }
 
-    async fn spawn_session(
-        &self,
-        session_id: &str,
-        config: SpawnConfig,
-    ) -> anyhow::Result<()> {
+    async fn spawn_session(&self, session_id: &str, config: SpawnConfig) -> anyhow::Result<()> {
         let pty_system = native_pty_system();
         let pair = pty_system
             .openpty(PtySize {

@@ -147,7 +147,10 @@ mod tests {
         let loaded = persister.load().unwrap();
         assert_eq!(loaded.embedding_cache.len(), 1);
         assert_eq!(loaded.text_hash_cache.len(), 1);
-        assert_eq!(loaded.embedding_cache.get("hash1").unwrap(), &vec![0.1, 0.2, 0.3]);
+        assert_eq!(
+            loaded.embedding_cache.get("hash1").unwrap(),
+            &vec![0.1, 0.2, 0.3]
+        );
 
         // Cleanup
         persister.clear();

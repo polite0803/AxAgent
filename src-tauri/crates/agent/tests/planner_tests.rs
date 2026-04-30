@@ -7,7 +7,12 @@ fn make_task(desc: &str, action: &str) -> axagent_agent::hierarchical_planner::P
     TaskBuilder::new(desc, action).build()
 }
 
-fn make_phase(name: &str, desc: &str, deps: Vec<String>, tasks: Vec<axagent_agent::hierarchical_planner::PlannedTask>) -> axagent_agent::hierarchical_planner::Phase {
+fn make_phase(
+    name: &str,
+    desc: &str,
+    deps: Vec<String>,
+    tasks: Vec<axagent_agent::hierarchical_planner::PlannedTask>,
+) -> axagent_agent::hierarchical_planner::Phase {
     axagent_agent::hierarchical_planner::Phase {
         id: format!("id_{}", name),
         name: name.to_string(),
@@ -21,9 +26,12 @@ fn make_phase(name: &str, desc: &str, deps: Vec<String>, tasks: Vec<axagent_agen
 #[test]
 fn test_create_plan() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("data_collection", "Gather data", vec![], vec![
-        make_task("Search for information", "web_search"),
-    ]);
+    let phase = make_phase(
+        "data_collection",
+        "Gather data",
+        vec![],
+        vec![make_task("Search for information", "web_search")],
+    );
     let plan = planner.create_plan("Test Goal", vec![phase]);
     assert_eq!(plan.goal, "Test Goal");
     assert_eq!(plan.phases.len(), 1);
@@ -78,9 +86,12 @@ fn test_cancel_execution() {
 #[test]
 fn test_get_next_executable_tasks() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![
-        make_task("Search for information", "web_search"),
-    ]);
+    let phase = make_phase(
+        "p1",
+        "Phase 1",
+        vec![],
+        vec![make_task("Search for information", "web_search")],
+    );
     planner.create_plan("Tasks Test", vec![phase]);
     planner.start_execution().unwrap();
 
@@ -92,9 +103,12 @@ fn test_get_next_executable_tasks() {
 #[test]
 fn test_mark_task_lifecycle() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![
-        make_task("test task", "action_type"),
-    ]);
+    let phase = make_phase(
+        "p1",
+        "Phase 1",
+        vec![],
+        vec![make_task("test task", "action_type")],
+    );
     planner.create_plan("Lifecycle Test", vec![phase]);
     planner.start_execution().unwrap();
 
@@ -104,13 +118,17 @@ fn test_mark_task_lifecycle() {
     };
 
     assert!(planner.mark_task_started(&task_id).is_ok());
-    assert!(planner.mark_task_completed(&task_id, json!({"status": "ok"})).is_ok());
+    assert!(planner
+        .mark_task_completed(&task_id, json!({"status": "ok"}))
+        .is_ok());
 }
 
 #[test]
 fn test_mark_task_failed() {
     let mut planner = HierarchicalPlanner::new();
-    let task = TaskBuilder::new("failable task", "action").with_max_retries(1).build();
+    let task = TaskBuilder::new("failable task", "action")
+        .with_max_retries(1)
+        .build();
     let phase = make_phase("p1", "Phase 1", vec![], vec![task]);
     planner.create_plan("Fail Test", vec![phase]);
     planner.start_execution().unwrap();
@@ -121,16 +139,20 @@ fn test_mark_task_failed() {
     };
 
     planner.mark_task_started(&task_id).unwrap();
-    assert!(planner.mark_task_failed(&task_id, "simulated error").is_ok());
+    assert!(planner
+        .mark_task_failed(&task_id, "simulated error")
+        .is_ok());
 }
 
 #[test]
 fn test_get_progress() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![
-        make_task("task1", "action"),
-        make_task("task2", "action"),
-    ]);
+    let phase = make_phase(
+        "p1",
+        "Phase 1",
+        vec![],
+        vec![make_task("task1", "action"), make_task("task2", "action")],
+    );
     planner.create_plan("Progress Test", vec![phase]);
 
     let progress = planner.get_progress();
@@ -146,11 +168,9 @@ fn test_plan_builder() {
             "First Phase",
             "Description of first phase",
             vec![],
-            vec![
-                TaskBuilder::new("Do something", "action_type")
-                    .with_max_retries(3)
-                    .build(),
-            ],
+            vec![TaskBuilder::new("Do something", "action_type")
+                .with_max_retries(3)
+                .build()],
         )
         .build(&mut planner);
 

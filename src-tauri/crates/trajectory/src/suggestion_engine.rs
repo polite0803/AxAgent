@@ -345,16 +345,16 @@ impl SuggestionEngine {
             && context.time_of_day <= profile.work_habits.peak_hours_end;
 
         if is_peak_hour && profile.coding_style.test_creation && context.recent_actions.is_empty() {
-                suggestions.push(ProactiveSuggestion::new(
-                    SuggestionType::Test,
-                    "Peak productivity time - Add tests".to_string(),
-                    "您的高效工作时间，适合添加测试".to_string(),
-                    SuggestionAction::GenerateTests {
-                        target: "current_file".to_string(),
-                    },
-                    Priority::Medium,
-                    self.config.suggestion_ttl_minutes,
-                ));
+            suggestions.push(ProactiveSuggestion::new(
+                SuggestionType::Test,
+                "Peak productivity time - Add tests".to_string(),
+                "您的高效工作时间，适合添加测试".to_string(),
+                SuggestionAction::GenerateTests {
+                    target: "current_file".to_string(),
+                },
+                Priority::Medium,
+                self.config.suggestion_ttl_minutes,
+            ));
         }
 
         if profile.coding_style.documentation_level == DocumentationLevel::Comprehensive {

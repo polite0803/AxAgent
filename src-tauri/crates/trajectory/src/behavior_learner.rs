@@ -81,10 +81,8 @@ impl BehaviorLearner {
     }
 
     fn recompute_profile(&mut self) {
-        let accepted: Vec<&UserBehavior> =
-            self.behaviors.iter().filter(|b| b.accepted).collect();
-        let rejected: Vec<&UserBehavior> =
-            self.behaviors.iter().filter(|b| !b.accepted).collect();
+        let accepted: Vec<&UserBehavior> = self.behaviors.iter().filter(|b| b.accepted).collect();
+        let rejected: Vec<&UserBehavior> = self.behaviors.iter().filter(|b| !b.accepted).collect();
 
         let preferred_patterns = Self::extract_patterns(&accepted);
         let rejected_patterns = Self::extract_patterns(&rejected);
@@ -111,28 +109,16 @@ impl BehaviorLearner {
             .map(|p| {
                 let mut hints = vec![];
                 if !p.preferred_patterns.is_empty() {
-                    hints.push(format!(
-                        "User prefers: {}",
-                        p.preferred_patterns.join(", ")
-                    ));
+                    hints.push(format!("User prefers: {}", p.preferred_patterns.join(", ")));
                 }
                 if !p.rejected_patterns.is_empty() {
-                    hints.push(format!(
-                        "User avoids: {}",
-                        p.rejected_patterns.join(", ")
-                    ));
+                    hints.push(format!("User avoids: {}", p.rejected_patterns.join(", ")));
                 }
                 if !p.common_apis.is_empty() {
-                    hints.push(format!(
-                        "Common APIs: {}",
-                        p.common_apis.join(", ")
-                    ));
+                    hints.push(format!("Common APIs: {}", p.common_apis.join(", ")));
                 }
                 if !p.naming_convention.is_empty() {
-                    hints.push(format!(
-                        "Naming convention: {}",
-                        p.naming_convention
-                    ));
+                    hints.push(format!("Naming convention: {}", p.naming_convention));
                 }
                 hints
             })
@@ -178,11 +164,7 @@ impl BehaviorLearner {
         }
         let mut patterns: Vec<(String, u32)> = freq.into_iter().collect();
         patterns.sort_by(|a, b| b.1.cmp(&a.1));
-        patterns
-            .into_iter()
-            .take(10)
-            .map(|(k, _)| k)
-            .collect()
+        patterns.into_iter().take(10).map(|(k, _)| k).collect()
     }
 
     fn extract_common_apis(&self, behaviors: &[&UserBehavior]) -> Vec<String> {
@@ -214,7 +196,10 @@ impl BehaviorLearner {
             }
         }
 
-        let max = *[camel_case, snake_case, pascal_case].iter().max().unwrap_or(&0);
+        let max = *[camel_case, snake_case, pascal_case]
+            .iter()
+            .max()
+            .unwrap_or(&0);
         if max == snake_case {
             "snake_case".into()
         } else if max == pascal_case {
@@ -236,6 +221,10 @@ impl BehaviorLearner {
                 }
             }
         }
-        if tabs > spaces { "tabs".into() } else { "spaces".into() }
+        if tabs > spaces {
+            "tabs".into()
+        } else {
+            "spaces".into()
+        }
     }
 }

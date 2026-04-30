@@ -1,8 +1,8 @@
+use futures::{SinkExt, StreamExt};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
-use futures::{SinkExt, StreamExt};
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::message_gateway::platform_config::PlatformConfig;
@@ -37,9 +37,7 @@ impl PlatformAdapter for QQAdapter {
     }
 
     fn is_enabled(&self, config: &PlatformConfig) -> bool {
-        config.qq_enabled
-            && config.qq_bot_app_id.is_some()
-            && config.qq_bot_token.is_some()
+        config.qq_enabled && config.qq_bot_app_id.is_some() && config.qq_bot_token.is_some()
     }
 
     async fn start(&self, config: &PlatformConfig) -> anyhow::Result<()> {
@@ -188,25 +186,17 @@ async fn run_qq_gateway(
                                 connected.store(true, Ordering::SeqCst);
                                 tracing::info!("QQ: session resumed");
                             }
-                            "AT_MESSAGE_CREATE" | "MESSAGE_CREATE"
-                            | "DIRECT_MESSAGE_CREATE" | "C2C_MESSAGE_CREATE"
+                            "AT_MESSAGE_CREATE"
+                            | "MESSAGE_CREATE"
+                            | "DIRECT_MESSAGE_CREATE"
+                            | "C2C_MESSAGE_CREATE"
                             | "GROUP_AT_MESSAGE_CREATE" => {
-                                let author_id = d["author"]["id"]
-                                    .as_str()
-                                    .unwrap_or("")
-                                    .to_string();
-                                let author_username = d["author"]["username"]
-                                    .as_str()
-                                    .unwrap_or("")
-                                    .to_string();
-                                let content = d["content"]
-                                    .as_str()
-                                    .unwrap_or("")
-                                    .to_string();
-                                let channel_id = d["channel_id"]
-                                    .as_str()
-                                    .unwrap_or("")
-                                    .to_string();
+                                let author_id =
+                                    d["author"]["id"].as_str().unwrap_or("").to_string();
+                                let author_username =
+                                    d["author"]["username"].as_str().unwrap_or("").to_string();
+                                let content = d["content"].as_str().unwrap_or("").to_string();
+                                let channel_id = d["channel_id"].as_str().unwrap_or("").to_string();
                                 let guild_id = d["guild_id"].as_str().unwrap_or("").to_string();
 
                                 if !content.is_empty() {
@@ -229,19 +219,11 @@ async fn run_qq_gateway(
                                         let gid = guild_id.clone();
                                         tokio::spawn(async move {
                                             let reply = cb
-                                                .on_message(
-                                                    "qq",
-                                                    &uid,
-                                                    Some(&uname),
-                                                    &ch,
-                                                    &t,
-                                                )
+                                                .on_message("qq", &uid, Some(&uname), &ch, &t)
                                                 .await;
                                             if let Some(reply_text) = reply {
-                                                send_qq_reply(
-                                                    &bt, &ch, &gid, &uid, &reply_text,
-                                                )
-                                                .await;
+                                                send_qq_reply(&bt, &ch, &gid, &uid, &reply_text)
+                                                    .await;
                                             }
                                         });
                                     }
@@ -254,9 +236,8 @@ async fn run_qq_gateway(
                         last_heartbeat_ack = false;
                     }
                     10 => {
-                        heartbeat_interval = payload["d"]["heartbeat_interval"]
-                            .as_u64()
-                            .unwrap_or(41250);
+                        heartbeat_interval =
+                            payload["d"]["heartbeat_interval"].as_u64().unwrap_or(41250);
 
                         if !identified {
                             // QQ bot intents: 1<<0 PUBLIC_GUILD_MESSAGES | 1<<12 GROUP_AT_MESSAGE |
@@ -300,10 +281,7 @@ async fn get_qq_gateway_url(
     bot_app_id: &str,
     bot_token: &str,
 ) -> anyhow::Result<String> {
-    let url = format!(
-        "https://api.sgroup.qq.com/gateway/bot?appid={}",
-        bot_app_id
-    );
+    let url = format!("https://api.sgroup.qq.com/gateway/bot?appid={}", bot_app_id);
     let resp = client
         .get(&url)
         .header("Authorization", format!("QQBot {}", bot_token))
@@ -323,11 +301,7 @@ async fn get_qq_gateway_url(
         .ok_or_else(|| anyhow::anyhow!("No gateway URL in QQ response"))
 }
 
-async fn send_qq_message(
-    bot_token: &str,
-    channel_id: &str,
-    text: &str,
-) -> anyhow::Result<()> {
+async fn send_qq_message(bot_token: &str, channel_id: &str, text: &str) -> anyhow::Result<()> {
     let url = format!(
         "https://api.sgroup.qq.com/v2/channels/{}/messages",
         channel_id
@@ -366,10 +340,7 @@ async fn send_qq_reply(
     text: &str,
 ) {
     let url = if guild_id.is_empty() {
-        format!(
-            "https://api.sgroup.qq.com/v2/users/{}/messages",
-            user_id
-        )
+        format!("https://api.sgroup.qq.com/v2/users/{}/messages", user_id)
     } else {
         format!(
             "https://api.sgroup.qq.com/v2/channels/{}/messages",

@@ -160,7 +160,8 @@ impl LouvainDetector {
     }
 
     fn add_to_community(&mut self, node_id: &str, community: i32) {
-        self.node_to_community.insert(node_id.to_string(), community);
+        self.node_to_community
+            .insert(node_id.to_string(), community);
         self.community_to_nodes
             .entry(community)
             .or_default()
@@ -192,10 +193,7 @@ impl LouvainDetector {
             .count() as f64;
 
         let sigma_tot: f64 = if let Some(nodes) = self.community_to_nodes.get(&target_community) {
-            nodes
-                .iter()
-                .map(|n| self.graph.get_degree(n) as f64)
-                .sum()
+            nodes.iter().map(|n| self.graph.get_degree(n) as f64).sum()
         } else {
             0.0
         };
@@ -317,8 +315,8 @@ pub fn detect_communities(graph: LinkGraph) -> LouvainResult {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::note::{GraphData, GraphEdge, GraphNode};
+    use super::*;
 
     fn make_test_graph() -> LinkGraph {
         let nodes = vec![
@@ -379,13 +377,41 @@ mod tests {
         ];
 
         let edges = vec![
-            GraphEdge { source: "a".to_string(), target: "b".to_string(), edge_type: "link".to_string() },
-            GraphEdge { source: "a".to_string(), target: "c".to_string(), edge_type: "link".to_string() },
-            GraphEdge { source: "b".to_string(), target: "c".to_string(), edge_type: "link".to_string() },
-            GraphEdge { source: "d".to_string(), target: "e".to_string(), edge_type: "link".to_string() },
-            GraphEdge { source: "d".to_string(), target: "f".to_string(), edge_type: "link".to_string() },
-            GraphEdge { source: "e".to_string(), target: "f".to_string(), edge_type: "link".to_string() },
-            GraphEdge { source: "b".to_string(), target: "d".to_string(), edge_type: "link".to_string() },
+            GraphEdge {
+                source: "a".to_string(),
+                target: "b".to_string(),
+                edge_type: "link".to_string(),
+            },
+            GraphEdge {
+                source: "a".to_string(),
+                target: "c".to_string(),
+                edge_type: "link".to_string(),
+            },
+            GraphEdge {
+                source: "b".to_string(),
+                target: "c".to_string(),
+                edge_type: "link".to_string(),
+            },
+            GraphEdge {
+                source: "d".to_string(),
+                target: "e".to_string(),
+                edge_type: "link".to_string(),
+            },
+            GraphEdge {
+                source: "d".to_string(),
+                target: "f".to_string(),
+                edge_type: "link".to_string(),
+            },
+            GraphEdge {
+                source: "e".to_string(),
+                target: "f".to_string(),
+                edge_type: "link".to_string(),
+            },
+            GraphEdge {
+                source: "b".to_string(),
+                target: "d".to_string(),
+                edge_type: "link".to_string(),
+            },
         ];
 
         LinkGraph::from_graph_data(GraphData { nodes, edges })
@@ -407,7 +433,12 @@ mod tests {
         let result = detect_communities(graph);
 
         for (&cid, &score) in &result.cohesion_scores {
-            assert!(score >= 0.0 && score <= 1.0, "Community {} cohesion out of range: {}", cid, score);
+            assert!(
+                score >= 0.0 && score <= 1.0,
+                "Community {} cohesion out of range: {}",
+                cid,
+                score
+            );
         }
     }
 }

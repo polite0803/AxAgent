@@ -35,24 +35,56 @@ pub enum ResearchError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResearchEvent {
-    Started { topic: String },
-    PhaseChanged { from: ResearchPhase, to: ResearchPhase },
-    SourcesFound { count: usize },
-    SourceProcessed { source_id: String },
-    CitationAdded { citation_id: String },
-    ReportGenerated { report_id: String },
+    Started {
+        topic: String,
+    },
+    PhaseChanged {
+        from: ResearchPhase,
+        to: ResearchPhase,
+    },
+    SourcesFound {
+        count: usize,
+    },
+    SourceProcessed {
+        source_id: String,
+    },
+    CitationAdded {
+        citation_id: String,
+    },
+    ReportGenerated {
+        report_id: String,
+    },
     Completed,
-    Failed { error: String },
+    Failed {
+        error: String,
+    },
     Paused,
     Resumed,
-    LlmGenerationStarted { phase: String },
-    LlmGenerationCompleted { phase: String },
+    LlmGenerationStarted {
+        phase: String,
+    },
+    LlmGenerationCompleted {
+        phase: String,
+    },
 }
 
 pub trait LlmContentGenerator: Send + Sync {
-    fn generate_outline(&self, topic: &str, context: &str) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
-    fn generate_content(&self, topic: &str, outline: &str, sources: &str) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
-    fn generate_summary(&self, topic: &str, findings: &str) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
+    fn generate_outline(
+        &self,
+        topic: &str,
+        context: &str,
+    ) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
+    fn generate_content(
+        &self,
+        topic: &str,
+        outline: &str,
+        sources: &str,
+    ) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
+    fn generate_summary(
+        &self,
+        topic: &str,
+        findings: &str,
+    ) -> impl std::future::Future<Output = Result<String, ResearchError>> + Send;
 }
 
 pub struct ResearchAgent {
@@ -139,7 +171,9 @@ impl ResearchAgent {
         state.current_phase = ResearchPhase::Planning;
         state.progress = ResearchProgress::new().with_phase(ResearchPhase::Planning);
 
-        self.emit(ResearchEvent::Started { topic: topic.clone() });
+        self.emit(ResearchEvent::Started {
+            topic: topic.clone(),
+        });
         tracing::info!("Research started: {}", topic);
 
         Ok(state.id.clone())
@@ -209,7 +243,9 @@ impl ResearchAgent {
             }
         }
 
-        self.emit(ResearchEvent::SourcesFound { count: results.len() });
+        self.emit(ResearchEvent::SourcesFound {
+            count: results.len(),
+        });
         tracing::info!("Searching phase complete, found {} sources", results.len());
 
         Ok(results)
@@ -225,10 +261,14 @@ impl ResearchAgent {
         let mut sorted_results = results.clone();
         sorted_results.sort_by(|a, b| {
             let score_a = a.relevance_score
-                + a.credibility_score.unwrap_or(a.source_type.default_credibility());
+                + a.credibility_score
+                    .unwrap_or(a.source_type.default_credibility());
             let score_b = b.relevance_score
-                + b.credibility_score.unwrap_or(b.source_type.default_credibility());
-            score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+                + b.credibility_score
+                    .unwrap_or(b.source_type.default_credibility());
+            score_b
+                .partial_cmp(&score_a)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -343,7 +383,10 @@ impl ResearchAgent {
         Ok(report)
     }
 
-    async fn generate_outline(&self, state: &ResearchState) -> Result<crate::research_state::ReportOutline, ResearchError> {
+    async fn generate_outline(
+        &self,
+        state: &ResearchState,
+    ) -> Result<crate::research_state::ReportOutline, ResearchError> {
         use crate::research_state::{OutlineSection, ReportOutline};
 
         if let Some(ref generator) = self.content_generator {
@@ -359,8 +402,8 @@ impl ResearchAgent {
             });
 
             if let Ok(outline) = serde_json::from_str::<Vec<OutlineSection>>(&outline_json) {
-                let mut report_outline = ReportOutline::new()
-                    .with_title(format!("关于「{}」的研究报告", state.topic));
+                let mut report_outline =
+                    ReportOutline::new().with_title(format!("关于「{}」的研究报告", state.topic));
                 for section in outline {
                     report_outline = report_outline.add_section(section);
                 }
@@ -377,8 +420,7 @@ impl ResearchAgent {
                 .with_description("从多个来源中提取的主要发现".to_string()),
             OutlineSection::new("分析讨论".to_string())
                 .with_description("对发现进行深入分析".to_string()),
-            OutlineSection::new("结论".to_string())
-                .with_description("研究结论和建议".to_string()),
+            OutlineSection::new("结论".to_string()).with_description("研究结论和建议".to_string()),
             OutlineSection::new("参考文献".to_string())
                 .with_description("所有引用的来源".to_string()),
         ];
@@ -404,7 +446,9 @@ impl ResearchAgent {
             let sources = self.format_sources_for_llm(state);
             let outline = format!("{:?}", state.topic);
 
-            let content = generator.generate_content(&state.topic, &outline, &sources).await?;
+            let content = generator
+                .generate_content(&state.topic, &outline, &sources)
+                .await?;
 
             self.emit(ResearchEvent::LlmGenerationCompleted {
                 phase: "content".to_string(),
@@ -593,7 +637,7 @@ impl DefaultLlmContentGenerator {
     }
 
     async fn call_llm(&self, system: &str, user: &str) -> Result<String, ResearchError> {
-        use axagent_core::types::{ChatRequest, ChatMessage, ChatContent};
+        use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 
         match (&self.llm_adapter, &self.ctx) {
             (Some(adapter), Some(ctx)) => {
@@ -628,12 +672,16 @@ impl DefaultLlmContentGenerator {
                     store: None,
                 };
 
-                let response = adapter.chat(ctx, request).await
+                let response = adapter
+                    .chat(ctx, request)
+                    .await
                     .map_err(|e| ResearchError::LlmFailed(e.to_string()))?;
 
                 Ok(response.content)
             }
-            _ => Err(ResearchError::LlmFailed("No LLM adapter configured".to_string())),
+            _ => Err(ResearchError::LlmFailed(
+                "No LLM adapter configured".to_string(),
+            )),
         }
     }
 }
@@ -671,7 +719,12 @@ impl LlmContentGenerator for DefaultLlmContentGenerator {
         }
     }
 
-    async fn generate_content(&self, topic: &str, outline: &str, sources: &str) -> Result<String, ResearchError> {
+    async fn generate_content(
+        &self,
+        topic: &str,
+        outline: &str,
+        sources: &str,
+    ) -> Result<String, ResearchError> {
         let system = r#"你是一个专业的研究报告撰写专家。根据提供的大纲和来源信息，生成完整的研究报告内容。
 
 要求：
@@ -709,8 +762,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_research_agent_with_generator() {
-        let agent = ResearchAgent::new()
-            .with_generator(Arc::new(DefaultLlmContentGenerator::new()));
+        let agent =
+            ResearchAgent::new().with_generator(Arc::new(DefaultLlmContentGenerator::new()));
         assert!(agent.content_generator.is_some());
     }
 
@@ -733,7 +786,9 @@ mod tests {
         let outline = generator.generate_outline("test", "context").await;
         assert!(outline.is_ok());
 
-        let content = generator.generate_content("test", "outline", "sources").await;
+        let content = generator
+            .generate_content("test", "outline", "sources")
+            .await;
         assert!(content.is_ok());
 
         let summary = generator.generate_summary("test", "findings").await;

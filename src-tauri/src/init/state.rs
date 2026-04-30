@@ -90,9 +90,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         Arc::new(std::sync::RwLock::new(ms))
     };
 
-    let platform_manager = Arc::new(
-        axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
-    );
+    let platform_manager =
+        Arc::new(axagent_runtime::message_gateway::platform_manager::PlatformManager::new());
 
     let platform_bridge = Arc::new(
         axagent_runtime::message_gateway::platform_bridge::PlatformBridge::new(

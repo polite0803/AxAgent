@@ -38,7 +38,6 @@ const BUILTIN_CODEEDIT_ID: &str = "builtin-code-edit";
 const BUILTIN_GIT_ID: &str = "builtin-git";
 const BUILTIN_CRON_ID: &str = "builtin-cron";
 
-
 struct BuiltinDef {
     id: &'static str,
     name: &'static str,
@@ -126,20 +125,71 @@ const BUILTIN_DEFS: &[BuiltinDef] = &[
         name: "@axagent/cache",
         default_enabled: true,
     },
-    BuiltinDef { id: BUILTIN_OCR_ID, name: "@axagent/ocr", default_enabled: true, },
-    BuiltinDef { id: BUILTIN_OBSIDIAN_ID, name: "@axagent/obsidian", default_enabled: true, },
-    BuiltinDef { id: BUILTIN_EXPORT_ID, name: "@axagent/export", default_enabled: true, },
-    BuiltinDef { id: BUILTIN_REMOTEFILE_ID, name: "@axagent/remotefile", default_enabled: false, },
-    BuiltinDef { id: BUILTIN_AGENTCTRL_ID, name: "@axagent/agent-control", default_enabled: true, },
-    BuiltinDef { id: BUILTIN_COMPUTER_ID, name: "@axagent/computer-control", default_enabled: false, },
-    BuiltinDef { id: BUILTIN_BROWSER_ID, name: "@axagent/browser", default_enabled: true, },
-    BuiltinDef { id: BUILTIN_MEMORY_ID, name: "@axagent/memory", default_enabled: true, },
-    BuiltinDef { id: BUILTIN_IMAGEGEN_ID, name: "@axagent/image-gen", default_enabled: false, },
-    BuiltinDef { id: BUILTIN_CHARTGEN_ID, name: "@axagent/chart-gen", default_enabled: true, },
-    BuiltinDef { id: BUILTIN_CODEEDIT_ID, name: "@axagent/code-edit", default_enabled: false, },
-    BuiltinDef { id: BUILTIN_GIT_ID, name: "@axagent/git", default_enabled: false, },
-    BuiltinDef { id: BUILTIN_CRON_ID, name: "@axagent/cron", default_enabled: false, },
-
+    BuiltinDef {
+        id: BUILTIN_OCR_ID,
+        name: "@axagent/ocr",
+        default_enabled: true,
+    },
+    BuiltinDef {
+        id: BUILTIN_OBSIDIAN_ID,
+        name: "@axagent/obsidian",
+        default_enabled: true,
+    },
+    BuiltinDef {
+        id: BUILTIN_EXPORT_ID,
+        name: "@axagent/export",
+        default_enabled: true,
+    },
+    BuiltinDef {
+        id: BUILTIN_REMOTEFILE_ID,
+        name: "@axagent/remotefile",
+        default_enabled: false,
+    },
+    BuiltinDef {
+        id: BUILTIN_AGENTCTRL_ID,
+        name: "@axagent/agent-control",
+        default_enabled: true,
+    },
+    BuiltinDef {
+        id: BUILTIN_COMPUTER_ID,
+        name: "@axagent/computer-control",
+        default_enabled: false,
+    },
+    BuiltinDef {
+        id: BUILTIN_BROWSER_ID,
+        name: "@axagent/browser",
+        default_enabled: true,
+    },
+    BuiltinDef {
+        id: BUILTIN_MEMORY_ID,
+        name: "@axagent/memory",
+        default_enabled: true,
+    },
+    BuiltinDef {
+        id: BUILTIN_IMAGEGEN_ID,
+        name: "@axagent/image-gen",
+        default_enabled: false,
+    },
+    BuiltinDef {
+        id: BUILTIN_CHARTGEN_ID,
+        name: "@axagent/chart-gen",
+        default_enabled: true,
+    },
+    BuiltinDef {
+        id: BUILTIN_CODEEDIT_ID,
+        name: "@axagent/code-edit",
+        default_enabled: false,
+    },
+    BuiltinDef {
+        id: BUILTIN_GIT_ID,
+        name: "@axagent/git",
+        default_enabled: false,
+    },
+    BuiltinDef {
+        id: BUILTIN_CRON_ID,
+        name: "@axagent/cron",
+        default_enabled: false,
+    },
 ];
 
 // ── Preset MCP servers (stored in DB, auto-created on first run) ───────

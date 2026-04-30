@@ -1,9 +1,9 @@
+use chrono::{Datelike, Timelike};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{Datelike, Timelike};
 
-use super::job_store::{CronJobStore};
 use super::executor::CronExecutor;
+use super::job_store::CronJobStore;
 
 pub struct CronScheduler {
     store: Arc<CronJobStore>,
@@ -92,14 +92,19 @@ fn should_run_now(
     now: &chrono::DateTime<chrono::Utc>,
 ) -> bool {
     let _ = last_check;
-    if schedule.contains('*') || schedule.contains('/') || schedule.contains(',') || schedule.contains('-') {
+    if schedule.contains('*')
+        || schedule.contains('/')
+        || schedule.contains(',')
+        || schedule.contains('-')
+    {
         let parts: Vec<&str> = schedule.split_whitespace().collect();
         if parts.len() == 5 {
             let minute_match = match_cron_field(parts[0], now.minute() as i64, 0, 59);
             let hour_match = match_cron_field(parts[1], now.hour() as i64, 0, 23);
             let day_match = match_cron_field(parts[2], now.day() as i64, 1, 31);
             let month_match = match_cron_field(parts[3], now.month() as i64, 1, 12);
-            let weekday_match = match_cron_field(parts[4], now.weekday().num_days_from_sunday() as i64, 0, 6);
+            let weekday_match =
+                match_cron_field(parts[4], now.weekday().num_days_from_sunday() as i64, 0, 6);
 
             return minute_match && hour_match && day_match && month_match && weekday_match;
         }
@@ -120,7 +125,9 @@ fn match_cron_field(field: &str, current: i64, _min: i64, _max: i64) -> bool {
     }
 
     if field.contains(',') {
-        return field.split(',').any(|p| match_cron_field(p, current, _min, _max));
+        return field
+            .split(',')
+            .any(|p| match_cron_field(p, current, _min, _max));
     }
 
     if field.contains('-') {
@@ -159,7 +166,7 @@ mod tests {
         assert!(match_cron_field("10-20", 15, 0, 59));
         assert!(!match_cron_field("10-20", 25, 0, 59));
     }
-   
+
     #[test]
     fn test_match_cron_field_list() {
         assert!(match_cron_field("0,30", 30, 0, 59));

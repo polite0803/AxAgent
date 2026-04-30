@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::sync::RwLock;
 
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
+    Set,
+};
 
 use axagent_core::entity::{notes, wikis};
 
@@ -50,7 +53,10 @@ pub struct FieldDef {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Compatibility {
     Compatible,
-    Incompatible { message: String, migration_steps: Vec<String> },
+    Incompatible {
+        message: String,
+        migration_steps: Vec<String>,
+    },
 }
 
 pub struct SchemaManager {
@@ -112,7 +118,8 @@ impl SchemaManager {
         }
 
         let schema_content = self.get_current_schema(wiki_id).await?;
-        let migration_steps = self.generate_migration_steps(&wiki.schema_version, required_version, &schema_content);
+        let migration_steps =
+            self.generate_migration_steps(&wiki.schema_version, required_version, &schema_content);
 
         Ok(Compatibility::Incompatible {
             message: format!(
@@ -160,25 +167,29 @@ impl SchemaManager {
             .map(|f| f.name.clone())
             .collect();
 
-        let mut to_by_name: std::collections::HashMap<String, &FieldDef> = std::collections::HashMap::new();
-        for f in to_template.required.iter().chain(to_template.optional.iter()) {
+        let mut to_by_name: std::collections::HashMap<String, &FieldDef> =
+            std::collections::HashMap::new();
+        for f in to_template
+            .required
+            .iter()
+            .chain(to_template.optional.iter())
+        {
             to_by_name.insert(f.name.clone(), f);
         }
 
-        let mut from_by_name: std::collections::HashMap<String, &FieldDef> = std::collections::HashMap::new();
-        for f in from_template.required.iter().chain(from_template.optional.iter()) {
+        let mut from_by_name: std::collections::HashMap<String, &FieldDef> =
+            std::collections::HashMap::new();
+        for f in from_template
+            .required
+            .iter()
+            .chain(from_template.optional.iter())
+        {
             from_by_name.insert(f.name.clone(), f);
         }
 
-        let added_fields: Vec<String> = to_names
-            .difference(&from_names)
-            .cloned()
-            .collect();
+        let added_fields: Vec<String> = to_names.difference(&from_names).cloned().collect();
 
-        let removed_fields: Vec<String> = from_names
-            .difference(&to_names)
-            .cloned()
-            .collect();
+        let removed_fields: Vec<String> = from_names.difference(&to_names).cloned().collect();
 
         let mut changed_fields = Vec::new();
         for name in from_names.intersection(&to_names) {
@@ -264,7 +275,9 @@ impl SchemaManager {
             let mut am = wiki_model.into_active_model();
             am.schema_version = Set(to_version.to_string());
             am.updated_at = Set(chrono::Utc::now().timestamp());
-            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref())
+                .await
+                .map_err(|e| e.to_string())?;
         }
 
         Ok(migrated)
@@ -406,10 +419,7 @@ impl SchemaManager {
 }
 
 fn parse_version(v: &str) -> (u32, u32, u32) {
-    let parts: Vec<u32> = v
-        .split('.')
-        .filter_map(|p| p.parse::<u32>().ok())
-        .collect();
+    let parts: Vec<u32> = v.split('.').filter_map(|p| p.parse::<u32>().ok()).collect();
     (
         parts.first().copied().unwrap_or(0),
         parts.get(1).copied().unwrap_or(0),
@@ -418,7 +428,11 @@ fn parse_version(v: &str) -> (u32, u32, u32) {
 }
 
 fn compare_versions(a: &(u32, u32, u32), b: &(u32, u32, u32)) -> i32 {
-    if a.0 != b.0 { return a.0 as i32 - b.0 as i32; }
-    if a.1 != b.1 { return a.1 as i32 - b.1 as i32; }
+    if a.0 != b.0 {
+        return a.0 as i32 - b.0 as i32;
+    }
+    if a.1 != b.1 {
+        return a.1 as i32 - b.1 as i32;
+    }
     a.2 as i32 - b.2 as i32
 }

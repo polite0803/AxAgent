@@ -72,8 +72,8 @@ impl TerminalAnalyzer {
     pub fn new() -> Self {
         let error_patterns = Self::build_error_patterns();
 
-        let prompt_pattern = Regex::new(r"(?m)^[^$]*[\$#>]\s*$")
-            .unwrap_or_else(|_| Regex::new(r"^$").unwrap());
+        let prompt_pattern =
+            Regex::new(r"(?m)^[^$]*[\$#>]\s*$").unwrap_or_else(|_| Regex::new(r"^$").unwrap());
 
         Self {
             history: VecDeque::with_capacity(MAX_HISTORY_LINES),
@@ -88,24 +88,63 @@ impl TerminalAnalyzer {
         let patterns: Vec<(&str, TerminalErrorType)> = vec![
             (r"(?mi)^error\[E\d+\]", TerminalErrorType::CompilationError),
             (r"(?mi)^error:\s*", TerminalErrorType::CompilationError),
-            (r"(?mi)error:\s*aborted\s+due\s+to\s+previous\s+error", TerminalErrorType::CompilationError),
-            (r"(?mi)cannot\s+find\s+", TerminalErrorType::CompilationError),
-            (r"(?mi)mismatched\s+types?", TerminalErrorType::CompilationError),
+            (
+                r"(?mi)error:\s*aborted\s+due\s+to\s+previous\s+error",
+                TerminalErrorType::CompilationError,
+            ),
+            (
+                r"(?mi)cannot\s+find\s+",
+                TerminalErrorType::CompilationError,
+            ),
+            (
+                r"(?mi)mismatched\s+types?",
+                TerminalErrorType::CompilationError,
+            ),
             (r"(?mi)^FAILED\s+\(", TerminalErrorType::TestFailure),
-            (r"(?mi)test\s+result:\s+FAILED", TerminalErrorType::TestFailure),
+            (
+                r"(?mi)test\s+result:\s+FAILED",
+                TerminalErrorType::TestFailure,
+            ),
             (r"(?mi)panic!\(", TerminalErrorType::RuntimeError),
-            (r"(?mi)thread\s+'[^']*'\s+panicked", TerminalErrorType::RuntimeError),
+            (
+                r"(?mi)thread\s+'[^']*'\s+panicked",
+                TerminalErrorType::RuntimeError,
+            ),
             (r"(?mi)stack\s+overflow", TerminalErrorType::RuntimeError),
-            (r"(?mi)index\s+out\s+of\s+bounds", TerminalErrorType::RuntimeError),
-            (r"(?mi)Permission\s+denied", TerminalErrorType::PermissionDenied),
-            (r"(?mi)command\s+not\s+found", TerminalErrorType::CommandNotFound),
-            (r"(?mi)no\s+such\s+file\s+or\s+directory", TerminalErrorType::CommandNotFound),
-            (r"(?mi)Connection\s+refused", TerminalErrorType::NetworkError),
-            (r"(?mi)Connection\s+timed?\s+out", TerminalErrorType::NetworkError),
-            (r"(?mi)network\s+is\s+unreachable", TerminalErrorType::NetworkError),
+            (
+                r"(?mi)index\s+out\s+of\s+bounds",
+                TerminalErrorType::RuntimeError,
+            ),
+            (
+                r"(?mi)Permission\s+denied",
+                TerminalErrorType::PermissionDenied,
+            ),
+            (
+                r"(?mi)command\s+not\s+found",
+                TerminalErrorType::CommandNotFound,
+            ),
+            (
+                r"(?mi)no\s+such\s+file\s+or\s+directory",
+                TerminalErrorType::CommandNotFound,
+            ),
+            (
+                r"(?mi)Connection\s+refused",
+                TerminalErrorType::NetworkError,
+            ),
+            (
+                r"(?mi)Connection\s+timed?\s+out",
+                TerminalErrorType::NetworkError,
+            ),
+            (
+                r"(?mi)network\s+is\s+unreachable",
+                TerminalErrorType::NetworkError,
+            ),
             (r"(?mi)ETIMEDOUT", TerminalErrorType::Timeout),
             (r"(?mi)Timed?\s+out", TerminalErrorType::Timeout),
-            (r"(?mi)Cannot\s+allocate\s+memory", TerminalErrorType::OutOfMemory),
+            (
+                r"(?mi)Cannot\s+allocate\s+memory",
+                TerminalErrorType::OutOfMemory,
+            ),
             (r"(?mi)out\s+of\s+memory", TerminalErrorType::OutOfMemory),
             (r"(?mi)OOM", TerminalErrorType::OutOfMemory),
             (r"(?mi)warning:\s*", TerminalErrorType::LintWarning),
@@ -142,15 +181,16 @@ impl TerminalAnalyzer {
             if self.last_exit_code == Some(0) {
                 "Command completed successfully".to_string()
             } else if let Some(code) = self.last_exit_code {
-                format!("Command exited with code {} but no recognized error patterns found", code)
+                format!(
+                    "Command exited with code {} but no recognized error patterns found",
+                    code
+                )
             } else {
                 "No errors detected in terminal output".to_string()
             }
         } else {
-            let error_types: Vec<String> = errors
-                .iter()
-                .map(|e| e.error_type.to_string())
-                .collect();
+            let error_types: Vec<String> =
+                errors.iter().map(|e| e.error_type.to_string()).collect();
             format!(
                 "Found {} error(s): {}",
                 errors.len(),
@@ -229,14 +269,18 @@ impl TerminalAnalyzer {
                     });
                     suggestions.push(TerminalSuggestion {
                         action: "run_single_test".to_string(),
-                        description: "Run the specific failing test in isolation for clearer output".to_string(),
+                        description:
+                            "Run the specific failing test in isolation for clearer output"
+                                .to_string(),
                         confidence: 0.75,
                     });
                 }
                 TerminalErrorType::PermissionDenied => {
                     suggestions.push(TerminalSuggestion {
                         action: "check_permissions".to_string(),
-                        description: "Check file/directory permissions or run with appropriate privileges".to_string(),
+                        description:
+                            "Check file/directory permissions or run with appropriate privileges"
+                                .to_string(),
                         confidence: 0.85,
                     });
                 }
@@ -250,7 +294,8 @@ impl TerminalAnalyzer {
                 TerminalErrorType::NetworkError => {
                     suggestions.push(TerminalSuggestion {
                         action: "check_network".to_string(),
-                        description: "Check network connectivity and retry the operation".to_string(),
+                        description: "Check network connectivity and retry the operation"
+                            .to_string(),
                         confidence: 0.7,
                     });
                 }
@@ -271,7 +316,9 @@ impl TerminalAnalyzer {
                 TerminalErrorType::RuntimeError => {
                     suggestions.push(TerminalSuggestion {
                         action: "read_stack_trace".to_string(),
-                        description: "Read the stack trace to identify the source of the runtime error".to_string(),
+                        description:
+                            "Read the stack trace to identify the source of the runtime error"
+                                .to_string(),
                         confidence: 0.85,
                     });
                 }
@@ -292,7 +339,11 @@ impl TerminalAnalyzer {
             }
         }
 
-        suggestions.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal));
+        suggestions.sort_by(|a, b| {
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         suggestions.dedup_by(|a, b| a.action == b.action);
         suggestions
     }
@@ -332,7 +383,10 @@ mod tests {
         analyzer.push_output("Compiling myproject v0.1.0\nerror[E0425]: cannot find value `x` in this scope\n  --> src/main.rs:4:5");
         let analysis = analyzer.analyze();
         assert!(analysis.has_errors);
-        assert_eq!(analysis.errors[0].error_type, TerminalErrorType::CompilationError);
+        assert_eq!(
+            analysis.errors[0].error_type,
+            TerminalErrorType::CompilationError
+        );
     }
 
     #[test]
@@ -341,7 +395,10 @@ mod tests {
         analyzer.push_output("running 3 tests\nFAILED test_addition\nassertion failed");
         let analysis = analyzer.analyze();
         assert!(analysis.has_errors);
-        assert!(analysis.errors.iter().any(|e| e.error_type == TerminalErrorType::TestFailure));
+        assert!(analysis
+            .errors
+            .iter()
+            .any(|e| e.error_type == TerminalErrorType::TestFailure));
     }
 
     #[test]

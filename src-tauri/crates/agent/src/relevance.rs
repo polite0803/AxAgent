@@ -97,17 +97,10 @@ impl RelevanceEngine {
             .collect()
     }
 
-    pub fn rank_nodes(
-        &self,
-        graph: &LinkGraph,
-        node_ids: &[String],
-    ) -> Vec<(String, f64)> {
+    pub fn rank_nodes(&self, graph: &LinkGraph, node_ids: &[String]) -> Vec<(String, f64)> {
         let mut incoming_counts: HashMap<String, f64> = HashMap::new();
 
-        let all_edges = graph.build_relevance_edges(
-            &HashMap::new(),
-            0.0,
-        );
+        let all_edges = graph.build_relevance_edges(&HashMap::new(), 0.0);
 
         for edge in &all_edges {
             *incoming_counts.entry(edge.target.clone()).or_insert(0.0) += 1.0;
@@ -171,10 +164,7 @@ impl RelevanceEngine {
         signals
             .into_iter()
             .map(|(id, signal)| RankedPage {
-                title: graph
-                    .get_node_title(&id)
-                    .unwrap_or(&id)
-                    .to_string(),
+                title: graph.get_node_title(&id).unwrap_or(&id).to_string(),
                 score: signal.total_score(),
                 signal,
                 page_id: id,

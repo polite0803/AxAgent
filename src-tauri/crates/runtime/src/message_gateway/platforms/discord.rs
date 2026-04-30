@@ -1,8 +1,8 @@
+use futures::{SinkExt, StreamExt};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
-use futures::{SinkExt, StreamExt};
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::message_gateway::platform_config::PlatformConfig;
@@ -198,9 +198,8 @@ async fn run_discord_gateway(
                         last_heartbeat_ack = false;
                     }
                     10 => {
-                        heartbeat_interval = payload["d"]["heartbeat_interval"]
-                            .as_u64()
-                            .unwrap_or(41250);
+                        heartbeat_interval =
+                            payload["d"]["heartbeat_interval"].as_u64().unwrap_or(41250);
 
                         let identify = serde_json::json!({
                             "op": 2,
@@ -285,12 +284,8 @@ async fn handle_dispatch(
                         .await;
                     if let Some(reply_text) = reply {
                         let client = reqwest::Client::new();
-                        let url = format!(
-                            "https://discord.com/api/v10/channels/{}/messages",
-                            ch
-                        );
-                        let body =
-                            serde_json::json!({ "content": &reply_text[..2000.min(reply_text.len())] });
+                        let url = format!("https://discord.com/api/v10/channels/{}/messages", ch);
+                        let body = serde_json::json!({ "content": &reply_text[..2000.min(reply_text.len())] });
                         let _ = client
                             .post(&url)
                             .header("Authorization", format!("Bot {}", bot))

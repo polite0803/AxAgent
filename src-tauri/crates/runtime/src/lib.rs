@@ -9,15 +9,15 @@
 #![allow(clippy::wrong_self_convention)]
 
 pub mod adversarial_debate;
-pub mod benchmarks;
-pub mod cache_guard;
-pub mod collaboration;
 pub mod agent_orchestrator;
 pub mod agent_roles;
 mod bash;
 pub mod bash_validation;
+pub mod benchmarks;
 mod bootstrap;
 pub mod branch_lock;
+pub mod cache_guard;
+pub mod collaboration;
 mod compact;
 mod config;
 pub mod config_validate;
@@ -26,21 +26,16 @@ pub mod cron;
 pub mod dashboard_plugin;
 pub mod dashboard_registry;
 pub mod engine_bridge;
-pub mod general_engine;
-pub mod mode_selector;
-pub mod resource_governor;
-pub mod task_router;
-pub mod webhook_dispatcher;
-pub mod webhook_server;
-pub mod webhook_subscription;
 mod file_ops;
+pub mod general_engine;
 mod git_context;
 pub mod git_tools;
 pub mod green_contract;
-mod hooks;
 mod hook_chain;
 pub mod hook_config;
+mod hooks;
 mod json;
+pub mod lan_transfer;
 mod lane_events;
 pub mod lsp_client;
 pub mod lsp_process;
@@ -51,35 +46,42 @@ pub mod mcp_lifecycle_hardened;
 pub mod mcp_server;
 mod mcp_stdio;
 pub mod mcp_tool_bridge;
-pub mod module_switch;
-pub mod lan_transfer;
 pub mod message_gateway;
+pub mod mode_selector;
+pub mod module_switch;
 mod oauth;
 pub mod permission_enforcer;
 mod permissions;
 pub mod plugin_hooks;
 pub mod plugin_lifecycle;
+mod policy_engine;
 pub mod profile;
 pub mod profile_manager;
+mod prompt;
 pub mod prompt_cache;
 pub mod pty;
-mod policy_engine;
-mod prompt;
 pub mod recovery_recipes;
 mod remote;
+pub mod resource_governor;
 pub mod sandbox;
 mod session;
 pub mod session_control;
 pub mod shared_memory;
 pub mod shell_hooks;
+pub mod task_router;
 pub mod terminal_analyzer;
 pub mod tool_generator;
 pub mod transform_pipeline;
 pub mod transport_handlers;
 pub mod validation_executor;
+pub mod webhook_dispatcher;
+pub mod webhook_server;
+pub mod webhook_subscription;
 pub mod work_engine;
 pub mod workflow_engine;
 pub use session_control::SessionStore;
+pub mod session_search;
+pub mod shell_completer;
 mod sse;
 pub mod stale_base;
 pub mod stale_branch;
@@ -89,8 +91,6 @@ pub mod task_registry;
 pub mod team_cron_registry;
 pub mod terminal;
 pub mod theme_engine;
-pub mod session_search;
-pub mod shell_completer;
 
 #[cfg(test)]
 mod trust_resolver;
@@ -129,10 +129,10 @@ pub use file_ops::{
     WriteFileOutput,
 };
 pub use git_context::{GitCommitEntry, GitContext};
+pub use hook_chain::HookChain;
 pub use hooks::{
     HookAbortSignal, HookEvent, HookProgressEvent, HookProgressReporter, HookRunResult, HookRunner,
 };
-pub use hook_chain::HookChain;
 pub use lane_events::{
     dedupe_superseded_commit_events, LaneCommitProvenance, LaneEvent, LaneEventBlocker,
     LaneEventName, LaneEventStatus, LaneFailureClass,
@@ -178,7 +178,6 @@ pub use plugin_lifecycle::{
     DegradedMode, DiscoveryResult, PluginHealthcheck, PluginLifecycle, PluginLifecycleEvent,
     PluginState, ResourceInfo, ServerHealth, ServerStatus, ToolInfo,
 };
-pub use prompt_cache::{PendingChange, PromptCache, PromptCacheState};
 pub use policy_engine::{
     evaluate, DiffScope, GreenLevel, LaneBlocker, LaneContext, PolicyAction, PolicyCondition,
     PolicyEngine, PolicyRule, ReconcileReason, ReviewStatus,
@@ -187,6 +186,7 @@ pub use prompt::{
     load_system_prompt, prepend_bullets, ContextFile, ProjectContext, PromptBuildError,
     SystemPromptBuilder, TaskScene, FRONTIER_MODEL_NAME, SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 };
+pub use prompt_cache::{PendingChange, PromptCache, PromptCacheState};
 pub use recovery_recipes::{
     attempt_recovery, recipe_for, EscalationPolicy, FailureScenario, RecoveryContext,
     RecoveryEvent, RecoveryRecipe, RecoveryResult, RecoveryStep,
