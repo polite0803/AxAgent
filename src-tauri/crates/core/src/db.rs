@@ -5,6 +5,7 @@ use sea_orm::{
 use tracing::info;
 
 use crate::error::Result;
+use crate::preset_templates;
 use crate::repo::provider;
 use crate::types::*;
 
@@ -60,6 +61,12 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
 
     // Run SeaORM migrations
     axagent_migration::Migrator::up(&conn, None).await?;
+
+    // Seed built-in providers
+    seed_builtin_providers(&conn).await?;
+
+    // Seed preset templates
+    preset_templates::seed_preset_templates(&conn).await?;
 
     info!("Database initialized at {}", db_path);
     Ok(DbHandle { conn })
@@ -360,7 +367,6 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
     ]
 }
 
-#[allow(dead_code)]
 async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
     let existing = provider::list_providers(db).await?;
     if !existing.is_empty() {

@@ -2158,6 +2158,7 @@ fn create_llm_step_executor(
     api_key: String,
     provider_id: String,
     base_url: String,
+    db: Option<Arc<sea_orm::DatabaseConnection>>,
 ) -> StepExecutor {
     Arc::new(
         move |step: axagent_runtime::workflow_engine::WorkflowStep,
@@ -2167,6 +2168,7 @@ fn create_llm_step_executor(
             let api_key = api_key.clone();
             let provider_id = provider_id.clone();
             let base_url = base_url.clone();
+            let db = db.clone();
 
             async move {
                 let ctx = ProviderRequestContext {
@@ -2183,7 +2185,19 @@ fn create_llm_step_executor(
                     store_response: None,
                 };
 
-                let system_prompt = step.agent_role.system_prompt().to_string();
+                let system_prompt = if let (Some(ref expert_id), Some(db)) = (&step.expert_role_id, &db) {
+                    match axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                        .one(db.as_ref())
+                        .await
+                    {
+                        Ok(Some(expert)) if !expert.system_prompt.is_empty() => {
+                            expert.system_prompt
+                        }
+                        _ => step.agent_role.system_prompt().to_string(),
+                    }
+                } else {
+                    step.agent_role.system_prompt().to_string()
+                };
 
                 let mut user_message = format!("Task goal: {}\n\n", step.goal);
                 if !deps_results.is_empty() {
@@ -2606,6 +2620,7 @@ fn skill_steps_to_workflow_steps(
                 circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
                 skill_id: None,
                 skill_params: None,
+                expert_role_id: None,
             }
         })
         .collect()
@@ -2733,6 +2748,7 @@ async fn execute_skill_async(
                         ctx.provider_api_key.clone(),
                         ctx.provider_key_id.clone(),
                         "https://api.openai.com/v1".to_string(),
+                        None,
                     );
                     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
                         ctx.workflow_engine.clone(),
@@ -2777,6 +2793,7 @@ async fn execute_skill_async(
                         ctx.provider_api_key.clone(),
                         ctx.provider_key_id.clone(),
                         "https://api.openai.com/v1".to_string(),
+                        None,
                     );
                     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
                         ctx.workflow_engine.clone(),
@@ -3652,6 +3669,8 @@ pub struct WorkflowStepInput {
     /// Failure policy: "abort" (default) or "skip".
     #[serde(rename = "onFailure", default)]
     pub on_failure: String,
+    #[serde(rename = "expertRoleId", default)]
+    pub expert_role_id: Option<String>,
 }
 
 fn default_max_retries() -> u32 {
@@ -3700,6 +3719,7 @@ pub async fn workflow_create(
                 circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
                 skill_id: None,
                 skill_params: None,
+                expert_role_id: s.expert_role_id,
             }
         })
         .collect();
@@ -3769,7 +3789,7 @@ pub async fn workflow_execute(
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
 
     let step_executor =
-        create_llm_step_executor(adapter, key.id.clone(), api_key, prov.id.clone(), base_url);
+        create_llm_step_executor(adapter, key.id.clone(), api_key, prov.id.clone(), base_url, Some(Arc::new(app_state.sea_db.clone())));
 
     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
         app_state.workflow_engine.clone(),
@@ -3951,6 +3971,7 @@ pub async fn workflow_execute_with_session(
         api_key.clone(),
         prov.id.clone(),
         base_url,
+        Some(Arc::new(app_state.sea_db.clone())),
     );
 
     let skill_executor = create_skill_step_executor(

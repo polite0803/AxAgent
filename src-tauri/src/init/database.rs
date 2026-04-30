@@ -18,7 +18,7 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
     axagent_core::storage_paths::ensure_documents_dirs()
         .map_err(|e| format!("failed to create documents storage dirs: {}", e))?;
 
-    let db_path = format!("sqlite:{}/axagent_new.db", app_dir.display());
+    let db_path = format!("sqlite:{}/axagent.db", app_dir.display());
 
     let key_path = app_dir.join("master.key");
     let master_key = load_or_create_master_key(&key_path, &app_dir)?;
@@ -57,15 +57,15 @@ fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32]
         // key is returned (copy), bytes is zeroed and dropped
         Ok(key)
     } else {
-        let db_file = app_dir.join("axagent_new.db");
+        let db_file = app_dir.join("axagent.db");
         if db_file.exists() {
             return Err(format!(
-                "FATAL: axagent_new.db exists at '{}' but master.key is missing from '{}'.\n\
+                "FATAL: axagent.db exists at '{}' but master.key is missing from '{}'.\n\
                  Generating a new master key would render all encrypted database \
                  contents permanently unrecoverable.\n\n\
                  Options:\n\
                  • Restore master.key from a backup and restart.\n\
-                 • Remove axagent_new.db (and axagent_new.db-shm / axagent_new.db-wal if present) \
+                 • Remove axagent.db (and axagent.db-shm / axagent.db-wal if present) \
                    to start fresh — ALL DATA WILL BE LOST.",
                 db_file.display(),
                 key_path.display()

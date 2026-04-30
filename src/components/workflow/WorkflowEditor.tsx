@@ -14,6 +14,7 @@ import {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { useWorkflowEditorStore, SimilarWorkflow } from "@/stores";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import { Button, message, Modal, Spin } from "antd";
 import { useTranslation } from "react-i18next";
 import { BaseEdge } from "./Edges/BaseEdge";
@@ -44,7 +45,7 @@ import { SkillUpgradeModal } from "./SkillUpgradeModal";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { DebugPanel } from "./DebugPanel";
 import { ImportExportModal } from "./Templates/ImportExportModal";
-import { type AtomicSkillInfo, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
+import { type AtomicSkillInfo, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode, type AgentNode as AgentNodeType } from "./types";
 import { getDragPayload, clearDragPayload } from "./dndState";
 
 const nodeTypes = {
@@ -219,6 +220,25 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
             semanticMatch,
             onSemanticAction: applySemanticAction,
             onUpgradeRequest: handleUpgradeRequest,
+            ...(node.type === "agent" && (node as AgentNodeType).config
+              ? {
+                agentRole: (node as AgentNodeType).config.role,
+                systemPrompt: (node as AgentNodeType).config.system_prompt,
+                tools: (node as AgentNodeType).config.tools,
+                contextSources: (node as AgentNodeType).config.context_sources,
+                outputMode: (node as AgentNodeType).config.output_mode,
+                model: (node as AgentNodeType).config.model,
+                expertRoleId: (node as AgentNodeType).config.expertRoleId,
+                ...(function() {
+                  const roleId = (node as AgentNodeType).config.expertRoleId;
+                  if (roleId) {
+                    const role = useExpertStore.getState().getRoleById(roleId);
+                    return { expertIcon: role?.icon, expertName: role?.displayName };
+                  }
+                  return {};
+                })(),
+              }
+              : {}),
           },
         };
       });

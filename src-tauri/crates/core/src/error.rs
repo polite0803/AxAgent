@@ -195,6 +195,12 @@ impl From<&str> for AxAgentError {
     }
 }
 
+impl From<serde_json::Error> for AxAgentError {
+    fn from(err: serde_json::Error) -> Self {
+        AxAgentError::Internal(format!("JSON serialization error: {}", err))
+    }
+}
+
 /// Error type for health check operations
 ///
 /// Distinguishes between transient errors (which may succeed on retry)

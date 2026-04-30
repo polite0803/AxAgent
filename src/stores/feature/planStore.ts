@@ -46,6 +46,8 @@ interface PlanStore {
   cancelPlan: (conversationId: string, planId: string) => Promise<void>;
   /** Load plan history for a conversation */
   loadPlanHistory: (conversationId: string) => Promise<void>;
+  /** Load the active plan from DB (for app restart recovery) */
+  loadActivePlan: (conversationId: string) => Promise<void>;
   /** Clear active plan for a conversation */
   clearActivePlan: (conversationId: string) => void;
   /** Set loading state */
@@ -118,7 +120,18 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       await invoke("plan_cancel", {
         request: { conversationId, planId, reason: reason || "User rejected the plan" },
       });
-      get().clearActivePlan(conversationId);
+      // Move to history before clearing
+      set((s) => {
+        const plan = s.activePlans[conversationId];
+        const history = s.planHistory[conversationId] || [];
+        const { [conversationId]: _removed, ...restActive } = s.activePlans;
+        return {
+          activePlans: restActive,
+          planHistory: plan
+            ? { ...s.planHistory, [conversationId]: [{ ...plan, status: "cancelled" as const }, ...history] }
+            : s.planHistory,
+        };
+      });
     } catch (e) {
       console.error("[planStore] rejectPlan failed:", e);
     }
@@ -189,7 +202,17 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   cancelPlan: async (conversationId, planId) => {
     try {
       await invoke("plan_cancel", { request: { conversationId, planId } });
-      get().clearActivePlan(conversationId);
+      set((s) => {
+        const plan = s.activePlans[conversationId];
+        const history = s.planHistory[conversationId] || [];
+        const { [conversationId]: _removed, ...restActive } = s.activePlans;
+        return {
+          activePlans: restActive,
+          planHistory: plan
+            ? { ...s.planHistory, [conversationId]: [{ ...plan, status: "cancelled" as const }, ...history] }
+            : s.planHistory,
+        };
+      });
     } catch (e) {
       console.error("[planStore] cancelPlan failed:", e);
     }
@@ -205,6 +228,28 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }));
     } catch (e) {
       console.error("[planStore] loadPlanHistory failed:", e);
+    }
+  },
+
+  /** Load the active plan for a conversation from DB (used for app restart recovery). */
+  loadActivePlan: async (conversationId: string) => {
+    try {
+      const plans: Plan[] = await invoke("plan_list", {
+        request: { conversationId, includeCompleted: false },
+      });
+      // Find the first reviewing/executing plan
+      const activePlan = plans.find(
+        (p: Plan) => p.is_active && (p.status === "reviewing" || p.status === "executing" || p.status === "draft"),
+      );
+      if (activePlan) {
+        set((s) => ({
+          activePlans: { ...s.activePlans, [conversationId]: activePlan },
+          planHistory: { ...s.planHistory, [conversationId]: plans },
+        }));
+      }
+    } catch (e) {
+      // Silently ignore — plan loading is best-effort on startup
+      console.debug("[planStore] loadActivePlan skipped:", e);
     }
   },
 
@@ -227,10 +272,19 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
 
   handlePlanGenerated: (event) => {
     const { conversationId, plan } = event;
-    set((s) => ({
-      activePlans: { ...s.activePlans, [conversationId]: plan },
-      loading: { ...s.loading, [conversationId]: false },
-    }));
+    set((s) => {
+      const oldPlan = s.activePlans[conversationId];
+      const history = s.planHistory[conversationId] || [];
+      return {
+        // Archive old plan if present
+        activePlans: { ...s.activePlans, [conversationId]: plan },
+        // Move old plan to history (at the front)
+        planHistory: oldPlan
+          ? { ...s.planHistory, [conversationId]: [oldPlan, ...history] }
+          : s.planHistory,
+        loading: { ...s.loading, [conversationId]: false },
+      };
+    });
   },
 
   handlePlanStepUpdate: (event) => {

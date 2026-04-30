@@ -1,3 +1,4 @@
+use crate::error::Result;
 use crate::workflow_types::*;
 use chrono::Utc;
 use sea_orm::DatabaseConnection;
@@ -820,60 +821,107 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
     }
 }
 
-pub async fn seed_preset_templates(
-    db: &DatabaseConnection,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn seed_preset_templates(db: &DatabaseConnection) -> Result<()> {
     use crate::repo::workflow_template as repo;
 
     let presets = get_preset_templates();
 
     for preset in presets {
-        let template = convert_preset_to_workflow_template(&preset);
+        let existing = repo::get_workflow_template(db, preset.id).await?;
 
-        let active_model = crate::entity::workflow_template::ActiveModel {
-            id: sea_orm::Set(template.id.clone()),
-            name: sea_orm::Set(template.name.clone()),
-            description: sea_orm::Set(template.description.clone()),
-            icon: sea_orm::Set(template.icon.clone()),
-            tags: sea_orm::Set(Some(serde_json::to_string(&template.tags)?)),
-            version: sea_orm::Set(template.version),
-            is_preset: sea_orm::Set(template.is_preset),
-            is_editable: sea_orm::Set(template.is_editable),
-            is_public: sea_orm::Set(template.is_public),
-            trigger_config: sea_orm::Set(
-                template
-                    .trigger_config
-                    .as_ref()
-                    .and_then(|c| serde_json::to_string(c).ok()),
-            ),
-            nodes: sea_orm::Set(serde_json::to_string(&template.nodes)?),
-            edges: sea_orm::Set(serde_json::to_string(&template.edges)?),
-            input_schema: sea_orm::Set(
-                template
-                    .input_schema
-                    .as_ref()
-                    .and_then(|s| serde_json::to_string(s).ok()),
-            ),
-            output_schema: sea_orm::Set(
-                template
-                    .output_schema
-                    .as_ref()
-                    .and_then(|s| serde_json::to_string(s).ok()),
-            ),
-            variables: sea_orm::Set(Some(serde_json::to_string(&template.variables)?)),
-            error_config: sea_orm::Set(
-                template
-                    .error_config
-                    .as_ref()
-                    .and_then(|e| serde_json::to_string(e).ok()),
-            ),
-            composite_source: sea_orm::Set(None),
-            created_at: sea_orm::Set(template.created_at),
-            updated_at: sea_orm::Set(template.updated_at),
-        };
-
-        repo::upsert_workflow_template(db, active_model).await?;
-        println!("Seeded preset template: {}", preset.name);
+        match existing {
+            None => {
+                let template = convert_preset_to_workflow_template(&preset);
+                let active_model = crate::entity::workflow_template::ActiveModel {
+                    id: sea_orm::Set(template.id.clone()),
+                    name: sea_orm::Set(template.name.clone()),
+                    description: sea_orm::Set(template.description.clone()),
+                    icon: sea_orm::Set(template.icon.clone()),
+                    tags: sea_orm::Set(Some(serde_json::to_string(&template.tags)?)),
+                    version: sea_orm::Set(template.version),
+                    is_preset: sea_orm::Set(template.is_preset),
+                    is_editable: sea_orm::Set(template.is_editable),
+                    is_public: sea_orm::Set(template.is_public),
+                    trigger_config: sea_orm::Set(
+                        template
+                            .trigger_config
+                            .as_ref()
+                            .and_then(|c| serde_json::to_string(c).ok()),
+                    ),
+                    nodes: sea_orm::Set(serde_json::to_string(&template.nodes)?),
+                    edges: sea_orm::Set(serde_json::to_string(&template.edges)?),
+                    input_schema: sea_orm::Set(
+                        template
+                            .input_schema
+                            .as_ref()
+                            .and_then(|s| serde_json::to_string(s).ok()),
+                    ),
+                    output_schema: sea_orm::Set(
+                        template
+                            .output_schema
+                            .as_ref()
+                            .and_then(|s| serde_json::to_string(s).ok()),
+                    ),
+                    variables: sea_orm::Set(Some(serde_json::to_string(&template.variables)?)),
+                    error_config: sea_orm::Set(
+                        template
+                            .error_config
+                            .as_ref()
+                            .and_then(|e| serde_json::to_string(e).ok()),
+                    ),
+                    composite_source: sea_orm::Set(None),
+                    created_at: sea_orm::Set(template.created_at),
+                    updated_at: sea_orm::Set(template.updated_at),
+                };
+                repo::insert_workflow_template(db, active_model).await?;
+            }
+            Some(ref t) if t.nodes == "[]" || t.nodes.is_empty() => {
+                let template = convert_preset_to_workflow_template(&preset);
+                let active_model = crate::entity::workflow_template::ActiveModel {
+                    id: sea_orm::Set(template.id.clone()),
+                    name: sea_orm::Set(template.name.clone()),
+                    description: sea_orm::Set(template.description.clone()),
+                    icon: sea_orm::Set(template.icon.clone()),
+                    tags: sea_orm::Set(Some(serde_json::to_string(&template.tags)?)),
+                    version: sea_orm::Set(template.version),
+                    is_preset: sea_orm::Set(template.is_preset),
+                    is_editable: sea_orm::Set(template.is_editable),
+                    is_public: sea_orm::Set(template.is_public),
+                    trigger_config: sea_orm::Set(
+                        template
+                            .trigger_config
+                            .as_ref()
+                            .and_then(|c| serde_json::to_string(c).ok()),
+                    ),
+                    nodes: sea_orm::Set(serde_json::to_string(&template.nodes)?),
+                    edges: sea_orm::Set(serde_json::to_string(&template.edges)?),
+                    input_schema: sea_orm::Set(
+                        template
+                            .input_schema
+                            .as_ref()
+                            .and_then(|s| serde_json::to_string(s).ok()),
+                    ),
+                    output_schema: sea_orm::Set(
+                        template
+                            .output_schema
+                            .as_ref()
+                            .and_then(|s| serde_json::to_string(s).ok()),
+                    ),
+                    variables: sea_orm::Set(Some(serde_json::to_string(&template.variables)?)),
+                    error_config: sea_orm::Set(
+                        template
+                            .error_config
+                            .as_ref()
+                            .and_then(|e| serde_json::to_string(e).ok()),
+                    ),
+                    composite_source: sea_orm::Set(None),
+                    created_at: sea_orm::Set(template.created_at),
+                    updated_at: sea_orm::Set(template.updated_at),
+                };
+                repo::upsert_workflow_template(db, active_model).await?;
+            }
+            _ => {}
+        }
     }
 
     Ok(())

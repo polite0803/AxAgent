@@ -291,6 +291,10 @@
         "name": "知识库到代码",
         "description": "从业务知识库生成目标语言的完整代码实现，支持跨语言迁移。"
       },
+      "multiExpertCollab": {
+        "name": "多专家协作",
+        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
+      },
       "collectInputs": {
         "name": "收集用户输入",
         "description": "收集目标语言、框架、知识库ID、输出目录等项目信息。"

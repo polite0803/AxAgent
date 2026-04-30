@@ -4,8 +4,13 @@
 - Plan 定位为 **agent 模式的工作策略**（`work_strategy: "direct" | "plan"`），不是独立 mode
 - 原因：Plan 的二阶段特性（生成→审批→执行）不适合 conversation-level mode 切换模式
 - Plan 状态独立持久化（plans 表），切 chat 不丢失，切回 agent 可恢复
-- 执行阶段复用 agent 工具循环基础设施
-- 前端通过 PlanCard 组件实现步骤审批/可视化/进度跟踪
+- 执行阶段复用 agent 工具循环（SessionManager.run_turn_with_tools）
+- PlanCard 渲染条件：仅 `conversation.mode === "agent"` + `activePlans` 非空（不检查 work_strategy）
+- handlePlanGenerated 需将旧 plan 归档到 history 再替换
+- rejectPlan/cancelPlan 需移入 history(status=cancelled) 而非直接丢弃
+- loadActivePlan: 启动/会话切换时调用 plan_list(includeCompleted=false) 恢复活跃 plan
+- PlanHistoryPanel: 右侧 Drawer 面板，agent 模式下的 📋 入口，支持 Resume
+- handleWorkStrategyChange 需 isSwitchingStrategyRef 互斥防抖
 
 ## 2026-04-25 添加：复合技能分解全流程缺陷审查
 对"复合技能→原子技能→工作流→工具"全流程进行了审查，发现 14 个缺陷（8 高/4 中/2 低）。关键缺陷：

@@ -3,10 +3,11 @@ import { ChatView } from "@/components/chat/ChatView";
 import { TabBar } from "@/components/chat/TabBar";
 import { useConversationStore, useProviderStore, useTabStore } from "@/stores";
 import { theme } from "antd";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function ChatPage() {
   const { token } = theme.useToken();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const fetchConversations = useConversationStore((s) => s.fetchConversations);
   const conversationCount = useConversationStore((s) => s.conversations.length);
   const fetchProviders = useProviderStore((s) => s.fetchProviders);
@@ -98,13 +99,15 @@ export function ChatPage() {
   return (
     <div className="flex h-full" style={{ overflow: "hidden" }} data-testid="chat-view">
       <div
-        className="w-64 h-full"
+        className="h-full transition-all duration-200"
         style={{
+          width: sidebarCollapsed ? "48px" : "256px",
           borderRight: "1px solid var(--border-color)",
           backgroundColor: token.colorBgContainer,
+          flexShrink: 0,
         }}
       >
-        <ChatSidebar />
+        <ChatSidebar onCollapseChange={setSidebarCollapsed} />
       </div>
       <div
         style={{

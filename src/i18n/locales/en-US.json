@@ -291,6 +291,10 @@
         "name": "Knowledge to Code",
         "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
+      "multiExpertCollab": {
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
       "collectInputs": {
         "name": "Collect User Inputs",
         "description": "Collect target language, framework, knowledge base ID, output directory and other project information."

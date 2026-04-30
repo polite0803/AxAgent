@@ -16,6 +16,9 @@ interface AgentNodeData {
   contextSources?: string[];
   outputMode?: string;
   model?: string;
+  expertRoleId?: string;
+  expertIcon?: string;
+  expertName?: string;
 }
 
 const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected }) => {
@@ -98,7 +101,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
             background: `${color}15`,
           }}
         >
-          <span style={{ fontSize: 14 }}>{getRoleIcon(agentRole)}</span>
+          <span style={{ fontSize: 14 }}>{data.expertRoleId ? (data.expertIcon || "\uD83E\uDD16") : getRoleIcon(agentRole)}</span>
           <span
             style={{
               fontSize: 11,
@@ -106,7 +109,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
               fontWeight: 600,
             }}
           >
-            Agent · {getRoleLabel(agentRole)}
+            {data.expertRoleId ? (data.expertName || "专家") : `Agent \u00B7 ${getRoleLabel(agentRole)}`}
           </span>
           {data.model && (
             <Tag

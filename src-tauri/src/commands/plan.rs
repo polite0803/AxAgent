@@ -8,14 +8,12 @@
 //! 5. Final result emitted as `plan-execution-complete` event
 
 use crate::app_state::AppState;
-use axagent_core::entity;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction};
+use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, ProviderProxyConfig};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashSet;
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
 // ── Request / Response types ──────────────────────────────────────────
@@ -43,6 +41,7 @@ pub struct PlanCancelRequest {
     pub conversation_id: String,
     #[serde(rename = "planId")]
     pub plan_id: String,
+    #[allow(dead_code)]
     pub reason: Option<String>,
 }
 
@@ -404,7 +403,6 @@ async fn build_agent_context(
     provider_id: &str,
     model_id: &str,
 ) -> Result<AgentContext, String> {
-    use axagent_providers::registry::ProviderRegistry;
     use axagent_providers::{resolve_base_url_for_type, ProviderAdapter};
 
     let db = &state.sea_db;
@@ -485,8 +483,6 @@ async fn build_step_tools(
     agent_ctx: &AgentContext,
     db: &sea_orm::DatabaseConnection,
 ) -> (axagent_agent::AxAgentApiClient, axagent_agent::ToolRegistry) {
-    use axagent_core::entity;
-
     let mut tool_registry = axagent_agent::ToolRegistry::new();
     let mut chat_tools: Vec<ChatTool> = Vec::new();
 
@@ -626,9 +622,21 @@ async fn execute_step_with_agent(
         Ok((summary, _session)) => {
             let last_msg = summary.assistant_messages.last();
             let result_text = match last_msg {
-                Some(msg) => msg.content.clone(),
-                None => format!("Step '{}' completed ({} iterations, {} tokens)",
-                    step.title, summary.iterations, summary.usage.total_tokens),
+                Some(msg) => {
+                    let text_blocks = msg.blocks.iter().filter_map(|b| {
+                        if let axagent_runtime::ContentBlock::Text { text } = b {
+                            Some(text.clone())
+                        } else {
+                            None
+                        }
+                    }).collect::<Vec<_>>().join("\n");
+                    if text_blocks.is_empty() {
+                        format!("Step '{}' completed ({} iterations)", step.title, summary.iterations)
+                    } else {
+                        text_blocks
+                    }
+                },
+                None => format!("Step '{}' completed ({} iterations)", step.title, summary.iterations),
             };
 
             let _ = app.emit("plan-step-update", PlanStepUpdateEvent {
@@ -725,6 +733,7 @@ pub async fn plan_generate(
         status: Set("reviewing".to_string()),
         is_active: Set(1),
         created_under_strategy: Set(Some("plan".to_string())),
+        reason: Set(None),
         created_at: Set(plan.created_at),
         updated_at: Set(plan.updated_at),
     };
@@ -852,7 +861,7 @@ pub async fn plan_execute(
     am2.steps_json = Set(steps_json);
     am2.status = Set(final_status.to_string());
     am2.updated_at = Set(chrono::Utc::now().timestamp_millis());
-    am2.update(&db.conn).await.ok();
+    am2.update(db).await.ok();
 
     // Emit completion
     let _ = app.emit("plan-execution-complete", PlanExecutionCompleteEvent {

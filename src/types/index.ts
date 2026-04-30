@@ -136,6 +136,8 @@ export interface Conversation {
   updated_at: number;
   scenario?: string | null;
   enabled_skill_ids: string[];
+  /** Expert role identifier, references ExpertRole.id */
+  expert_role_id?: string | null;
 }
 
 export interface ToolCall {
@@ -262,6 +264,7 @@ export interface UpdateConversationInput {
   work_strategy?: "direct" | "plan" | null;
   scenario?: string | null;
   enabled_skill_ids?: string[];
+  expert_role_id?: string | null;
 }
 
 // === Gateway System ===

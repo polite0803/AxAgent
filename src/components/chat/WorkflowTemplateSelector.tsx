@@ -14,6 +14,7 @@ import {
   Search,
   Shield,
   TestTube,
+  Users,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -25,6 +26,8 @@ interface WorkflowStepDef {
   goal: string;
   role: string;
   needs: string[];
+  /** Expert role ID to use for this step (references ExpertRole.id) */
+  expertRoleId?: string;
 }
 
 interface WorkflowTemplate {
@@ -855,6 +858,52 @@ Please provide the following information to start:
       },
     ],
   },
+  {
+    id: "multi-expert-collab",
+    name: t("chat.workflow.multiExpertCollab.name"),
+    description: t("chat.workflow.multiExpertCollab.description"),
+    icon: <Users size={20} />,
+    tags: ["collaboration", "expert", "multi-agent"],
+    systemPrompt:
+      `你是一位多专家协作协调员。你使用 Task 工具启动多个不同领域的专家智能体，让他们并行或串行协作完成任务。
+
+## 协作原则
+
+1. **分而治之**: 将复杂任务拆分为子任务，分配给最合适的专家
+2. **并行优先**: 无依赖的子任务使用并行 Task 调用
+3. **结果合并**: 收集所有专家的输出，整合为统一报告
+4. **专家角色**: 每个 Task 智能体应使用对应的专家角色 system prompt
+
+## 可用专家类型
+
+- **explore**: 代码探索、文件搜索
+- **plan**: 方案设计、任务分解
+- **build/general**: 代码实现、文档生成
+- **review**: 审查、验证、质量检查
+
+## 协作模式
+
+### 并行审查模式
+启动 explore(扫描) + review(审查) 同时进行 → 合并结果
+
+### 流水线模式  
+explore(分析) → plan(设计) → build(实现) → review(验证)
+
+### 多视角模式
+同一问题启动多个 build agent，从不同角度解决，择最优方案
+
+## 输出格式
+
+每个 Task 完成后展示其输出，最后给出合并的总结报告。`,
+    initialMessage: "我将启动多专家协作来处理这个任务。请描述你需要完成的任务，我会分配最合适的专家团队。",
+    permissionMode: "accept_edits",
+    scenarios: ["coding", "analysis", "research"],
+    steps: [
+      { id: "analyze", goal: "Analyze the task and determine which experts are needed", role: "planner", needs: [] },
+      { id: "execute", goal: "Launch expert sub-agents in parallel to execute their assigned tasks", role: "developer", needs: ["analyze"] },
+      { id: "synthesize", goal: "Collect all expert results and synthesize into a unified deliverable", role: "synthesizer", needs: ["execute"] },
+    ],
+  },
 ];
 
 interface WorkflowTemplateSelectorProps {
@@ -862,6 +911,8 @@ interface WorkflowTemplateSelectorProps {
   onClose: () => void;
   onSelect: (template: WorkflowTemplate, workflowId?: string) => void;
   scenario?: string | null;
+  /** Expert category for template filtering/prioritization */
+  expertCategory?: string | null;
 }
 
 const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
@@ -869,12 +920,24 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
   onClose,
   onSelect,
   scenario,
+  expertCategory,
 }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [creatingWorkflow, setCreatingWorkflow] = useState<string | null>(null);
 
   const workflowTemplates = getWorkflowTemplates(t);
+
+  // Map expert category to matching scenario names
+  const EXPERT_TO_SCENARIO: Record<string, string> = {
+    development: "coding",
+    security: "coding",
+    data: "analysis",
+    devops: "coding",
+    design: "coding",
+    writing: "writing",
+    business: "analysis",
+  };
 
   const filteredTemplates = workflowTemplates.filter((template) => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -886,6 +949,18 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
       || template.scenarios.includes(scenario);
     return matchesSearch && matchesScenario;
   });
+
+  // Sort: matching expert category first, then others
+  if (expertCategory && !searchQuery.trim()) {
+    const targetScenario = EXPERT_TO_SCENARIO[expertCategory];
+    if (targetScenario) {
+      filteredTemplates.sort((a, b) => {
+        const aMatch = a.scenarios?.includes(targetScenario) ? 1 : 0;
+        const bMatch = b.scenarios?.includes(targetScenario) ? 1 : 0;
+        return bMatch - aMatch;
+      });
+    }
+  }
 
   const handleSelect = async (template: WorkflowTemplate) => {
     // If the template has workflow steps, create a backend workflow

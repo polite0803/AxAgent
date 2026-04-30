@@ -3,7 +3,7 @@ members = [".", "crates/core", "crates/providers", "crates/gateway", "crates/mig
 resolver = "2"
 
 [workspace.package]
-version = "1.2.7"
+version = "1.2.8"
 edition = "2021"
 license = "AGPL-3.0-only"
 
@@ -28,7 +28,7 @@ xcap = "0.9.4"
 
 [package]
 name = "axagent"
-version = "1.2.7"
+version = "1.2.8"
 description = "AxAgent - AI Chat Desktop App"
 authors = ["you"]
 license = "AGPL-3.0-only"

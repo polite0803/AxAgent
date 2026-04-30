@@ -14,6 +14,7 @@ pub struct Model {
     pub status: String,
     pub is_active: i32,
     pub created_under_strategy: Option<String>,
+    pub reason: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

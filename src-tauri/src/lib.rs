@@ -616,6 +616,10 @@ pub fn run() {
             commands::wiki::wiki_notes_sync_links,
             commands::wiki::wiki_notes_search,
             commands::wiki::get_wiki_graph,
+            commands::agency_expert::import_agency_experts,
+            commands::agency_expert::list_agency_experts,
+            commands::agency_expert::clear_agency_experts,
+            commands::agency_expert::extract_expert_structure,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

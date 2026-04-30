@@ -120,6 +120,7 @@ import {
   useStreamStore,
   useUserProfileStore,
 } from "@/stores";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import AskUserCard from "./AskUserCard";
@@ -2415,6 +2416,19 @@ function ChatViewInner() {
     contentRendererMessageIdsRef.current.clear();
   }, [activeConversationId]);
 
+  // Auto-load active plan from DB when conversation switches (for app restart recovery)
+  useEffect(() => {
+    if (!activeConversationId) { return; }
+    const conversation = conversations.find((c) => c.id === activeConversationId);
+    if (conversation?.mode === "agent") {
+      const { activePlans, loadActivePlan } = usePlanStore.getState();
+      // Only load if we don't already have a plan in memory
+      if (!activePlans[activeConversationId]) {
+        void loadActivePlan(activeConversationId);
+      }
+    }
+  }, [activeConversationId, conversations]);
+
   useEffect(() => {
     if (!streaming || !streamingMessageId) {
       return;
@@ -3032,10 +3046,37 @@ function ChatViewInner() {
   }, [deferredActiveMessages, deferredThinkingIds, deferredSearchContent]);
 
   // Append compressing placeholder when compression is in progress
+  const consumeSwitch = useExpertStore((s) => s.consumeSwitch);
+  const getRoleById = useExpertStore((s) => s.getRoleById);
+
+  // Expert switch separator — useEffect is the correct place for state mutation
+  const [expertSwitchBubble, setExpertSwitchBubble] = useState<BubbleItemType | null>(null);
+  useEffect(() => {
+    if (!activeConversationId) return;
+    const sw = consumeSwitch(activeConversationId);
+    if (!sw) return;
+    const role = getRoleById(sw.roleId);
+    const name = role?.displayName ?? "\u901A\u7528\u52A9\u624B";
+    const icon = role?.icon ?? "\uD83E\uDD16";
+    setExpertSwitchBubble({
+      key: `__expert-switch__${sw.roleId}__${Date.now()}`,
+      role: "expert-switch",
+      content: JSON.stringify({ icon, name: `\u5DF2\u5207\u6362\u81F3\uFF1A${name}` }),
+      variant: "borderless" as const,
+    } as BubbleItemType);
+  }, [activeConversationId, consumeSwitch, getRoleById]);
+
   const finalBubbleItems = useMemo(() => {
-    if (!compressing) { return bubbleItems; }
+    let items = bubbleItems;
+
+    // Append expert switch separator if present
+    if (expertSwitchBubble) {
+      items = [...items, expertSwitchBubble];
+    }
+
+    if (!compressing) { return items; }
     return [
-      ...bubbleItems,
+      ...items,
       {
         key: "__compressing__",
         role: "context-compressing",
@@ -3043,7 +3084,7 @@ function ChatViewInner() {
         variant: "borderless" as const,
       },
     ];
-  }, [bubbleItems, compressing]);
+  }, [bubbleItems, compressing, activeConversationId, expertSwitchBubble]);
 
   const lastBubbleKey = finalBubbleItems.length > 0
     ? String(finalBubbleItems[finalBubbleItems.length - 1].key)
@@ -3818,13 +3859,50 @@ function ChatViewInner() {
     };
   }, [t, token.colorPrimary, token.colorPrimaryBorder]);
 
+  const expertSwitchRole = useCallback((bubbleData: BubbleItemType) => {
+    let icon = "\uD83E\uDD16";
+    let name = "\u5DF2\u5207\u6362\u81F3\uFF1A\u901A\u7528\u52A9\u624B";
+    try {
+      const data = JSON.parse(String(bubbleData.content ?? "{}"));
+      icon = data.icon || icon;
+      name = data.name || name;
+    } catch { /* use defaults */ }
+    return {
+      placement: "start" as const,
+      variant: "borderless" as const,
+      className: "context-clear-bubble",
+      contentRender: () => (
+        <div
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px 0", width: "100%" }}
+        >
+          <div style={{ flex: 1, height: 1, borderTop: `1px dashed ${token.colorPrimaryBorder}` }} />
+          <span
+            style={{
+              margin: "0 12px",
+              color: token.colorPrimary,
+              fontSize: 12,
+              display: "inline-flex",
+              alignItems: "center",
+              whiteSpace: "nowrap",
+              userSelect: "none",
+            }}
+          >
+            <span style={{ marginRight: 4 }}>{icon}</span> {name}
+          </span>
+          <div style={{ flex: 1, height: 1, borderTop: `1px dashed ${token.colorPrimaryBorder}` }} />
+        </div>
+      ),
+    };
+  }, [token.colorPrimary, token.colorPrimaryBorder]);
+
   const roles: RoleType = useMemo(() => ({
     user: userRole,
     ai: aiRole,
     "context-clear": contextClearRole,
     "context-compressed": contextCompressedRole,
     "context-compressing": contextCompressingRole,
-  }), [aiRole, contextClearRole, contextCompressedRole, contextCompressingRole, userRole]);
+    "expert-switch": expertSwitchRole,
+  }), [aiRole, contextClearRole, contextCompressedRole, contextCompressingRole, expertSwitchRole, userRole]);
 
   // ── Render ─────────────────────────────────────────────────────────
   return (

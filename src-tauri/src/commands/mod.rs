@@ -1,3 +1,4 @@
+pub mod agency_expert;
 pub mod agent;
 pub mod agent_analytics;
 pub mod agent_insight;

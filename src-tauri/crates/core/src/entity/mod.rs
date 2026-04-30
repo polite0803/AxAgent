@@ -68,6 +68,7 @@ pub mod notes;
 pub mod note_links;
 pub mod note_backlinks;
 pub mod plans;
+pub mod agency_experts;
 pub mod wikis;
 pub mod wiki_sources;
 pub mod wiki_pages;

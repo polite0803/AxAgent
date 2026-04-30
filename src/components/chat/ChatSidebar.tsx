@@ -7,6 +7,8 @@ import type { ShortcutAction } from "@/lib/shortcuts";
 import { useCategoryStore, useConversationStore, useKnowledgeStore, useProviderStore, useSettingsStore, useStreamStore, useUIStore, useWorkflowEditorStore } from "@/stores";
 import type { AvatarType } from "@/stores";
 import type { Conversation, ConversationCategory, Message } from "@/types";
+import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import Conversations from "@ant-design/x/es/conversations";
 import type { ConversationItemType } from "@ant-design/x/es/conversations/interface";
 import {
@@ -42,6 +44,8 @@ import {
   Loader,
   MessageSquarePlus,
   MessageSquareText,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pencil,
   Pin,
   PinOff,
@@ -158,7 +162,7 @@ function SortableCategoryLabel({
   );
 }
 
-export function ChatSidebar() {
+export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapsed: boolean) => void }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { message: messageApi, modal } = App.useApp();
@@ -265,6 +269,7 @@ export function ChatSidebar() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ConversationCategory | null>(null);
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [archiveKbModalOpen, setArchiveKbModalOpen] = useState(false);
   const [archiveTargetId, setArchiveTargetId] = useState<string | null>(null);
   const [archiveTargetIds, setArchiveTargetIds] = useState<string[]>([]);
@@ -632,6 +637,24 @@ export function ChatSidebar() {
         }
       });
 
+      // Expert grouping: conversations with expert_role_id but no category_id
+      // are grouped by their expert category
+      const { getRoleById } = useExpertStore.getState();
+      const convsByExpertCat = new Map<string, Conversation[]>();
+      const trulyUncategorized: Conversation[] = [];
+      uncategorizedConvs.forEach((conv) => {
+        if (conv.expert_role_id) {
+          const role = getRoleById(conv.expert_role_id);
+          if (role) {
+            const arr = convsByExpertCat.get(role.category) ?? [];
+            arr.push(conv);
+            convsByExpertCat.set(role.category, arr);
+            return;
+          }
+        }
+        trulyUncategorized.push(conv);
+      });
+
       const hasChildren = (convId: string) => (childrenMap.get(convId)?.length ?? 0) > 0;
       const isExpanded = (convId: string) => expandedParentIds.has(convId);
 
@@ -741,8 +764,19 @@ export function ChatSidebar() {
         }
       });
 
-      // Add uncategorized conversations (pinned + time groups)
-      uncategorizedConvs.forEach((conv) => {
+      // Add expert category groups (for conversations with expert_role_id but no category_id)
+      const expertCategoryOrder: string[] = [
+        "development", "security", "data", "devops", "design", "writing", "business", "general",
+      ];
+      expertCategoryOrder.forEach((expertCat) => {
+        const expertConvs = convsByExpertCat.get(expertCat);
+        if (expertConvs && expertConvs.length > 0) {
+          expertConvs.forEach((conv) => pushConvWithChildren(conv, `expert:${expertCat}`));
+        }
+      });
+
+      // Add truly uncategorized conversations (no category_id, no expert_role_id)
+      trulyUncategorized.forEach((conv) => {
         const group = conv.is_pinned ? "pinned" : getDateGroup(conv.updated_at);
         pushConvWithChildren(conv, group);
       });
@@ -775,6 +809,10 @@ export function ChatSidebar() {
       categories.forEach((cat) => {
         labels[`cat:${cat.id}`] = cat.name;
       });
+      // Expert category labels
+      for (const [key, label] of Object.entries(EXPERT_CATEGORY_LABELS)) {
+        labels[`expert:${key}`] = label;
+      }
       return labels;
     },
     [t, categories],
@@ -876,9 +914,20 @@ export function ChatSidebar() {
           />
         );
       }
+      if (group.startsWith("expert:")) {
+        const label = groupLabels[group];
+        if (label) {
+          return (
+            <span style={{ fontSize: 12, fontWeight: 500, color: token.colorTextSecondary }}>
+              {label}
+            </span>
+          );
+        }
+        return group;
+      }
       return groupLabels[group] ?? group;
     },
-    [categories, groupLabels, t, handleDeleteCategory, handleNewConversation],
+    [categories, groupLabels, t, handleDeleteCategory, handleNewConversation, token],
   );
 
   const handleCreateCategory = useCallback(
@@ -1252,9 +1301,33 @@ export function ChatSidebar() {
     updateConversation,
   ]);
 
+  if (isCollapsed) {
+    return (
+      <div
+        className="flex flex-col items-center h-full"
+        style={{
+          width: "48px",
+          paddingTop: 8,
+        }}
+      >
+        <Tooltip title={t("common.expand")} placement="right">
+          <Button
+            type="text"
+            icon={<PanelLeftOpen size={16} />}
+            size="small"
+            onClick={() => {
+              setIsCollapsed(false);
+              onCollapseChange?.(false);
+            }}
+          />
+        </Tooltip>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Toolbar */}
+    <div className="flex flex-col h-full transition-all duration-200">
+        {/* Toolbar */}
       <div
         className="flex items-center justify-between"
         style={{
@@ -1358,6 +1431,17 @@ export function ChatSidebar() {
                     size="small"
                     onClick={() => {
                       void handleNewConversation();
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title={isCollapsed ? t("common.expand") : t("common.collapse")}>
+                  <Button
+                    type="text"
+                    icon={isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                    size="small"
+                    onClick={() => {
+                      setIsCollapsed((v) => !v);
+                      onCollapseChange?.(!isCollapsed);
                     }}
                   />
                 </Tooltip>

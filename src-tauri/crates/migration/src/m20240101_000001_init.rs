@@ -620,6 +620,22 @@ enum Plans {
     UpdatedAt,
 }
 
+#[derive(DeriveIden)]
+enum AgencyExperts {
+    Table,
+    Id,
+    Name,
+    Description,
+    Category,
+    SystemPrompt,
+    Color,
+    SourceDir,
+    IsEnabled,
+    ImportedAt,
+    RecommendedWorkflows,
+    RecommendedTools,
+}
+
 // ===========================================================================
 // Migration implementation
 // ===========================================================================
@@ -3013,6 +3029,35 @@ impl MigrationTrait for Migration {
         .await
         .ok(); // Silently ignore if column already exists
 
+        // Agency experts table — imported from agency-agents-zh
+        manager
+            .create_table(
+                Table::create()
+                    .table(AgencyExperts::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(AgencyExperts::Id).string().not_null().primary_key())
+                    .col(ColumnDef::new(AgencyExperts::Name).string().not_null())
+                    .col(ColumnDef::new(AgencyExperts::Description).string().null())
+                    .col(ColumnDef::new(AgencyExperts::Category).string().not_null())
+                    .col(ColumnDef::new(AgencyExperts::SystemPrompt).string().not_null())
+                    .col(ColumnDef::new(AgencyExperts::Color).string().null())
+                    .col(ColumnDef::new(AgencyExperts::SourceDir).string().not_null())
+                    .col(ColumnDef::new(AgencyExperts::IsEnabled).integer().not_null().default(1))
+                    .col(ColumnDef::new(AgencyExperts::ImportedAt).integer().not_null())
+                    .col(ColumnDef::new(AgencyExperts::RecommendedWorkflows).string().null())
+                    .col(ColumnDef::new(AgencyExperts::RecommendedTools).string().null())
+                    .to_owned(),
+            )
+            .await?;
+
+        // Add agency expert columns for existing databases
+        db.execute_unprepared(
+            "ALTER TABLE agency_experts ADD COLUMN recommended_workflows TEXT"
+        ).await.ok();
+        db.execute_unprepared(
+            "ALTER TABLE agency_experts ADD COLUMN recommended_tools TEXT"
+        ).await.ok();
+
         Ok(())
     }
 
@@ -3069,6 +3114,7 @@ impl MigrationTrait for Migration {
         drop_tbl!(Categories::Table);
         drop_tbl!(Messages::Table);
         drop_tbl!(Plans::Table);
+        drop_tbl!(AgencyExperts::Table);
         drop_tbl!(Conversations::Table);
         drop_tbl!(Models::Table);
         drop_tbl!(ProviderKeys::Table);

@@ -5,80 +5,9 @@ use tauri::{Emitter, State};
 
 #[tauri::command]
 pub async fn list_mcp_servers(state: State<'_, AppState>) -> Result<Vec<McpServer>, String> {
-    let servers = axagent_core::repo::mcp_server::list_mcp_servers(&state.sea_db)
+    axagent_core::repo::mcp_server::list_mcp_servers(&state.sea_db)
         .await
-        .map_err(|e| e.to_string())?;
-
-    let builtin_servers = {
-        let registry = state.local_tool_registry.lock().await;
-        let groups = registry.get_tool_groups();
-        groups
-            .into_iter()
-            .map(|g| {
-                let transport = if g.group_id == "builtin-fetch"
-                    || g.group_id == "builtin-search-file"
-                    || g.group_id == "builtin-filesystem"
-                    || g.group_id == "builtin-system"
-                    || g.group_id == "builtin-knowledge"
-                    || g.group_id == "builtin-storage"
-                    || g.group_id == "builtin-computer-control"
-                    || g.group_id == "builtin-browser"
-                    || g.group_id == "builtin-brave-search"
-                    || g.group_id == "builtin-sequential-thinking"
-                    || g.group_id == "builtin-python"
-                    || g.group_id == "builtin-dify-knowledge"
-                    || g.group_id == "builtin-workspace-memory"
-                    || g.group_id == "builtin-file-utils"
-                    || g.group_id == "builtin-cache"
-                    || g.group_id == "builtin-ocr"
-                    || g.group_id == "builtin-obsidian"
-                    || g.group_id == "builtin-export"
-                    || g.group_id == "builtin-remotefile"
-                    || g.group_id == "builtin-agent-control"
-                    || g.group_id == "builtin-memory"
-                    || g.group_id == "builtin-image-gen"
-                    || g.group_id == "builtin-chart-gen"
-                    || g.group_id == "builtin-code-edit"
-                    || g.group_id == "builtin-git"
-                    || g.group_id == "builtin-cron"
-                    || g.group_id == "builtin-skills"
-                    || g.group_id == "builtin-session"
-                    || g.group_id == "builtin-search"
-                {
-                    "builtin".to_string()
-                } else {
-                    "builtin".to_string()
-                };
-
-                McpServer {
-                    id: g.group_id.clone(),
-                    name: g.group_name.clone(),
-                    transport,
-                    command: None,
-                    args_json: None,
-                    endpoint: None,
-                    env_json: None,
-                    enabled: g.enabled,
-                    permission_policy: "allow_all".to_string(),
-                    source: "builtin".to_string(),
-                    discover_timeout_secs: None,
-                    execute_timeout_secs: None,
-                    headers_json: None,
-                    icon_type: None,
-                    icon_value: None,
-                }
-            })
-            .collect::<Vec<_>>()
-    };
-
-    let custom_servers: Vec<McpServer> = servers
-        .into_iter()
-        .filter(|s| s.source != "builtin")
-        .collect();
-
-    let mut all_servers = builtin_servers;
-    all_servers.extend(custom_servers);
-    Ok(all_servers)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

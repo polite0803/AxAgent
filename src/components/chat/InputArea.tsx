@@ -85,6 +85,10 @@ import ModelRoutingConfigPanel from "./ModelRoutingConfigPanel";
 import { ModelSelector } from "./ModelSelector";
 import { VoiceCall } from "./VoiceCall";
 import WorkflowTemplateSelector from "./WorkflowTemplateSelector";
+import { PlanHistoryPanel } from "./PlanHistoryPanel";
+import { ExpertSelector } from "./ExpertSelector";
+import { ExpertBadge } from "./ExpertBadge";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import type { WorkflowTemplate } from "./WorkflowTemplateSelector";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
@@ -163,6 +167,7 @@ export function InputArea() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelRoutingOpen, setModelRoutingOpen] = useState(false);
   const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [expertOpen, setExpertOpen] = useState(false);
   const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -288,14 +293,11 @@ export function InputArea() {
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const currentMode = activeConversation?.mode || "chat";
 
-  // Sync work strategy from conversation
+  // Sync work strategy from conversation (also fires on mode switch)
   useEffect(() => {
-    if (activeConversation?.work_strategy) {
-      setWorkStrategy(activeConversation.work_strategy as "direct" | "plan");
-    } else {
-      setWorkStrategy("direct");
-    }
-  }, [activeConversation?.id, activeConversation?.work_strategy]);
+    const strategy = activeConversation?.work_strategy as "direct" | "plan" | undefined;
+    setWorkStrategy(strategy || "direct");
+  }, [activeConversation?.work_strategy, activeConversation?.mode]);
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
@@ -710,9 +712,16 @@ export function InputArea() {
   }, [agentPermissionMode, t]);
 
   // ── Work Strategy ──────────────────────────────────────────────────
+  const isSwitchingStrategyRef = useRef(false);
+
   const handleWorkStrategyChange = useCallback(
     async (strategy: "direct" | "plan") => {
       if (!activeConversationId || !activeConversation) { return; }
+      if (isSwitchingStrategyRef.current) {
+        console.log("[WorkStrategy] Already switching, ignoring");
+        return;
+      }
+      isSwitchingStrategyRef.current = true;
       try {
         setWorkStrategy(strategy);
         await updateConversation(activeConversationId, { work_strategy: strategy });
@@ -720,6 +729,8 @@ export function InputArea() {
         console.warn("[WorkStrategy] Failed to update work strategy:", e);
         // Revert
         setWorkStrategy(activeConversation.work_strategy as "direct" | "plan" || "direct");
+      } finally {
+        isSwitchingStrategyRef.current = false;
       }
     },
     [activeConversationId, activeConversation, updateConversation],
@@ -2122,6 +2133,9 @@ export function InputArea() {
                 </Tooltip>
               </Dropdown>
             )}
+            {currentMode === "agent" && activeConversationId && (
+              <PlanHistoryPanel conversationId={activeConversationId} />
+            )}
             {currentMode === "agent" && (
               <Tooltip title={messages.length > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}>
                 <Button
@@ -2140,6 +2154,10 @@ export function InputArea() {
             )}
             {currentMode === "agent" && activeConversationId && (
               <>
+                <ExpertBadge
+                  expertRoleId={activeConversation?.expert_role_id ?? null}
+                  onClick={() => setExpertOpen(true)}
+                />
                 <Tooltip title={t("chat.modelRouting")}>
                   <Button type="text" size="small" icon={<Route size={14} />} onClick={() => setModelRoutingOpen(true)} />
                 </Tooltip>
@@ -2301,6 +2319,10 @@ export function InputArea() {
           open={workflowOpen}
           onClose={() => setWorkflowOpen(false)}
           scenario={activeConversation?.scenario}
+          expertCategory={(() => {
+            if (!activeConversation?.expert_role_id) return null;
+            return useExpertStore.getState().getRoleById(activeConversation.expert_role_id)?.category ?? null;
+          })()}
           onSelect={(template: WorkflowTemplate, workflowId?: string) => {
             setWorkflowOpen(false);
             // Set the template's system prompt and initial message
@@ -2321,6 +2343,48 @@ export function InputArea() {
                 `axagent:workflow-id:${activeConversationId}`,
                 workflowId,
               );
+            }
+          }}
+        />
+      )}
+
+      {currentMode === "agent" && activeConversationId && (
+        <ExpertSelector
+          open={expertOpen}
+          onClose={() => setExpertOpen(false)}
+          selectedRoleId={activeConversation?.expert_role_id ?? null}
+          onSelect={(roleId) => {
+            const store = useExpertStore.getState();
+            const role = store.getRoleById(roleId);
+            if (!role) return;
+
+            // Update conversation expert_role_id and system_prompt
+            updateConversation(activeConversationId, {
+              system_prompt: role.systemPrompt || undefined,
+              expert_role_id: roleId,
+            });
+
+            // Record the switch for ChatView separator rendering
+            const expertStore = useExpertStore.getState();
+            expertStore.recordSwitch(activeConversationId, roleId);
+
+            // Optionally apply suggested model settings
+            if (role.suggestedProviderId && role.suggestedModelId) {
+              updateConversation(activeConversationId, {
+                provider_id: role.suggestedProviderId,
+                model_id: role.suggestedModelId,
+              });
+            }
+            if (role.suggestedTemperature != null) {
+              updateConversation(activeConversationId, {
+                temperature: role.suggestedTemperature,
+              });
+            }
+
+            // Apply recommended permission mode for the agent session
+            if (role.recommendPermissionMode) {
+              const { updatePermissionMode } = useAgentStore.getState();
+              updatePermissionMode(activeConversationId, role.recommendPermissionMode);
             }
           }}
         />

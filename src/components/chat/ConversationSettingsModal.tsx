@@ -2,8 +2,9 @@ import { ModelParamSliders } from "@/components/common/ModelParamSliders";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { CONV_ICON_KEY, type ConvIcon, type ConvIconType } from "@/lib/convIcon";
 import { useConversationStore, useSettingsStore } from "@/stores";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import { ModelIcon } from "@lobehub/icons";
-import { Button, Card, Input, Modal, Slider, theme, Tooltip } from "antd";
+import { Button, Card, Input, Modal, Slider, Tag, theme, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import { Bot, Info, Undo2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -180,6 +181,19 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
         {/* System Prompt */}
         <div style={{ marginBottom: 16 }}>
           <div style={labelStyle}>{t("settings.systemPromptLabel")}</div>
+          {conversation.expert_role_id && (
+            <div style={{ marginBottom: 6 }}>
+              <Tag color="blue" style={{ fontSize: 11 }}>
+                {(() => {
+                  const role = useExpertStore.getState().getRoleById(conversation.expert_role_id!);
+                  return role ? `${role.icon} ${role.displayName}` : conversation.expert_role_id;
+                })()}
+              </Tag>
+              <span style={{ fontSize: 11, color: token.colorTextSecondary, marginLeft: 6 }}>
+                {t("settings.expertPromptNote") || "系统提示词已由专家角色预设"}
+              </span>
+            </div>
+          )}
           <Input.TextArea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}

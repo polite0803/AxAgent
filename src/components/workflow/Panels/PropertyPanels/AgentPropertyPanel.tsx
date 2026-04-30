@@ -1,7 +1,9 @@
-import { Divider, Input, InputNumber, Select } from "antd";
-import React, { useEffect, useMemo } from "react";
+import { Button, Divider, Input, InputNumber, Select, Tag } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ModelSelect } from "@/components/shared/ModelSelect";
+import { ExpertSelector } from "@/components/chat/ExpertSelector";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import { useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
 import type { AgentNode, AgentRole, OutputMode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
@@ -23,6 +25,10 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     tools: [],
     output_mode: "text" as OutputMode,
   };
+
+  const [expertSelectorOpen, setExpertSelectorOpen] = useState(false);
+  const getExpert = useExpertStore((s) => s.getRoleById);
+  const selectedExpert = config.expertRoleId ? getExpert(config.expertRoleId) : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
@@ -86,6 +92,42 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           ]}
         />
       </div>
+
+      <div>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.expertRole") || "专家角色"}</label>
+        {selectedExpert
+          ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Tag
+                closable
+                onClose={() => handleConfigChange("expertRoleId", undefined)}
+                style={{ margin: 0, fontSize: 12, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                {selectedExpert.icon} {selectedExpert.displayName}
+              </Tag>
+            </div>
+          )
+          : (
+            <Button
+              size="small"
+              type="dashed"
+              block
+              onClick={() => setExpertSelectorOpen(true)}
+            >
+              {t("workflow.props.selectExpert") || "选择专家"}
+            </Button>
+          )}
+      </div>
+
+      <ExpertSelector
+          open={expertSelectorOpen}
+          selectedRoleId={config.expertRoleId ?? null}
+          onSelect={(roleId) => {
+            handleConfigChange("expertRoleId", roleId);
+            setExpertSelectorOpen(false);
+          }}
+          onClose={() => setExpertSelectorOpen(false)}
+        />
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.systemPrompt")}</label>

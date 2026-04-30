@@ -85,6 +85,8 @@ export interface AgentNodeConfig {
   max_tokens?: number;
   tools: string[];
   output_mode: OutputMode;
+  /** Expert role ID from agency-agents-zh or built-in presets */
+  expertRoleId?: string;
 }
 
 export interface AgentNode extends WorkflowNodeBase {

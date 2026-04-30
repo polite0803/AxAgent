@@ -247,6 +247,10 @@ pub struct WorkflowStep {
     /// Parameters to pass to the skill executor.
     #[serde(default)]
     pub skill_params: Option<serde_json::Value>,
+    /// Expert role ID for this step. When set, the LLM executor will load
+    /// the expert's system prompt from agency_experts table.
+    #[serde(default)]
+    pub expert_role_id: Option<String>,
 }
 
 fn default_max_retries() -> u32 {
@@ -271,6 +275,7 @@ impl Default for WorkflowStep {
             circuit_breaker: CircuitBreaker::default(),
             skill_id: None,
             skill_params: None,
+            expert_role_id: None,
         }
     }
 }
