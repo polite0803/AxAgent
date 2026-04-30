@@ -1891,6 +1891,29 @@
     "viewDetails": "View details",
     "waitingForApproval": "Waiting for approval"
   },
+  "plan": {
+    "defaultTitle": "Execution Plan",
+    "strategyDirect": "Direct Execute",
+    "strategyPlan": "Plan First",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "running": "Running",
+      "completed": "Completed",
+      "error": "Error"
+    },
+    "approveAll": "Approve & Execute",
+    "approveStep": "Approve Step",
+    "reject": "Reject Plan",
+    "rejectStep": "Reject Step",
+    "cancel": "Cancel",
+    "resume": "Resume",
+    "executeApproved": "Execute Approved Steps",
+    "stepsApproved": "steps approved",
+    "reviewing": "Reviewing",
+    "executing": "Executing"
+  },
   "multiAgent": {
     "title": "Multi-Agent Status",
     "tabs": {

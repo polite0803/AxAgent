@@ -1891,6 +1891,29 @@
     "viewDetails": "查看详情",
     "waitingForApproval": "等待审批"
   },
+  "plan": {
+    "defaultTitle": "执行计划",
+    "strategyDirect": "直接执行",
+    "strategyPlan": "先规划再执行",
+    "status": {
+      "pending": "待执行",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "running": "执行中",
+      "completed": "已完成",
+      "error": "失败"
+    },
+    "approveAll": "批准并执行",
+    "approveStep": "批准此步骤",
+    "reject": "拒绝计划",
+    "rejectStep": "拒绝此步骤",
+    "cancel": "取消",
+    "resume": "恢复",
+    "executeApproved": "执行已批准步骤",
+    "stepsApproved": "个步骤已批准",
+    "reviewing": "审批中",
+    "executing": "执行中"
+  },
   "multiAgent": {
     "title": "多智能体状态",
     "tabs": {

@@ -3,12 +3,11 @@ import type { Plan, PlanStep, PlanStepStatus } from "@/types";
 import {
   CheckCircleFilled,
   CloseCircleFilled,
-  CloseOutlined,
   LoadingOutlined,
   PlayCircleOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import { Button, Collapse, Progress, Tag, theme, Tooltip } from "antd";
+import { Button, Progress, Tag, theme, Tooltip } from "antd";
 import { AlertTriangle, ClipboardList, Play, RotateCcw, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -69,7 +68,7 @@ interface PlanCardProps {
   onExecutionComplete?: () => void;
 }
 
-export function PlanCard({ plan, conversationId, isHistorical = false, onExecutionComplete }: PlanCardProps) {
+export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCardProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
@@ -91,7 +90,6 @@ export function PlanCard({ plan, conversationId, isHistorical = false, onExecuti
   const isReviewing = plan.status === "reviewing" || plan.status === "draft";
   const isExecuting = plan.status === "executing";
   const isCompleted = plan.status === "completed";
-  const canInteract = isReviewing && !isHistorical && !loading;
 
   const progress = calcProgress(localSteps);
 

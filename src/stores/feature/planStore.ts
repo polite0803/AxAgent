@@ -5,7 +5,6 @@ import type {
   PlanGeneratedEvent,
   PlanExecuteRequest,
   PlanModifyStepRequest,
-  PlanStep,
   PlanStepStatus,
   PlanStepUpdateEvent,
   PlanExecutionCompleteEvent,

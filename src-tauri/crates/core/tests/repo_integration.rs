@@ -441,6 +441,7 @@ async fn test_conversation_update_input() {
         category_id: None,
         parent_conversation_id: None,
         mode: None,
+        work_strategy: None,
         scenario: None,
         enabled_skill_ids: None,
     };
