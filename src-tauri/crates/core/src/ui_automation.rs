@@ -62,6 +62,7 @@ impl UIAutomation {
         }
     }
 
+    #[allow(unused_variables)]
     pub async fn click(x: f64, y: f64, button: MouseButton) -> Result<()> {
         #[cfg(target_os = "windows")]
         {
@@ -320,6 +321,7 @@ public class Mouse {{
         Ok(())
     }
 
+    #[allow(unused_variables)]
     pub async fn move_mouse(x: f64, y: f64) -> Result<()> {
         #[cfg(target_os = "windows")]
         {
