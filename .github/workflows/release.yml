@@ -128,9 +128,7 @@ jobs:
           echo "OPENSSL_LIB_DIR=$(arch -x86_64 brew --prefix openssl@3)/lib" >> $GITHUB_ENV
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        run: brew install protobuf
 
       - uses: actions/setup-node@v4
         with:
@@ -296,12 +294,8 @@ jobs:
             librsvg2-dev:arm64 \
             libssl-dev:arm64 \
             libpipewire-0.3-dev:arm64 \
-            patchelf:arm64
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+            patchelf:arm64 \
+            protobuf-compiler:arm64
 
       - uses: actions/setup-node@v4
         with:

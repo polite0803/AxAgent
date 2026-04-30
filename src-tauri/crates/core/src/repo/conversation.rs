@@ -33,6 +33,7 @@ fn conversation_from_entity(m: conversations::Model) -> Conversation {
         category_id: m.category_id,
         parent_conversation_id: m.parent_conversation_id,
         mode: m.mode,
+        work_strategy: m.work_strategy,
         scenario: m.scenario,
         enabled_skill_ids: parse_string_list(&m.enabled_skill_ids),
         created_at: m.created_at,
@@ -181,6 +182,9 @@ pub async fn update_conversation(
     }
     if let Some(mode) = input.mode {
         am.mode = Set(mode);
+    }
+    if let Some(work_strategy) = input.work_strategy {
+        am.work_strategy = Set(work_strategy);
     }
     if let Some(scenario) = input.scenario {
         am.scenario = Set(Some(scenario));

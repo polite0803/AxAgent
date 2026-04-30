@@ -35,6 +35,7 @@ import {
   ChartNoAxesColumn,
   Check,
   CircleOff,
+  ClipboardList,
   Code,
   Eraser,
   ExternalLink,
@@ -52,6 +53,7 @@ import {
   Mic,
   Music,
   Paperclip,
+  Play,
   Plug,
   Route,
   Scissors,
@@ -196,6 +198,7 @@ export function InputArea() {
   const cancelCurrentStream = useStreamStore((s) => s.cancelCurrentStream);
   const sendMessage = useConversationStore((s) => s.sendMessage);
   const sendAgentMessage = useConversationStore((s) => s.sendAgentMessage);
+  const sendPlanMessage = useConversationStore((s) => s.sendPlanMessage);
   const createConversation = useConversationStore((s) => s.createConversation);
   const messages = useConversationStore((s) => s.messages);
   const totalActiveCount = useConversationStore((s) => s.totalActiveCount);
@@ -251,6 +254,9 @@ export function InputArea() {
   // Agent working directory state
   const [agentCwd, setAgentCwd] = useState<string | null>(null);
 
+  // Work strategy state (for plan mode)
+  const [workStrategy, setWorkStrategy] = useState<"direct" | "plan">("direct");
+
   // Scenario selection state (only effective before conversation creation)
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
@@ -281,6 +287,15 @@ export function InputArea() {
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const currentMode = activeConversation?.mode || "chat";
+
+  // Sync work strategy from conversation
+  useEffect(() => {
+    if (activeConversation?.work_strategy) {
+      setWorkStrategy(activeConversation.work_strategy as "direct" | "plan");
+    } else {
+      setWorkStrategy("direct");
+    }
+  }, [activeConversation?.id, activeConversation?.work_strategy]);
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
@@ -694,6 +709,22 @@ export function InputArea() {
     }
   }, [agentPermissionMode, t]);
 
+  // ── Work Strategy ──────────────────────────────────────────────────
+  const handleWorkStrategyChange = useCallback(
+    async (strategy: "direct" | "plan") => {
+      if (!activeConversationId || !activeConversation) { return; }
+      try {
+        setWorkStrategy(strategy);
+        await updateConversation(activeConversationId, { work_strategy: strategy });
+      } catch (e) {
+        console.warn("[WorkStrategy] Failed to update work strategy:", e);
+        // Revert
+        setWorkStrategy(activeConversation.work_strategy as "direct" | "plan" || "direct");
+      }
+    },
+    [activeConversationId, activeConversation, updateConversation],
+  );
+
   // Agent CWD helpers
   const abbreviatePath = useCallback((path: string): string => {
     const segments = path.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -1095,7 +1126,9 @@ export function InputArea() {
           textareaRef.current.style.height = "auto";
         }
       });
-      if (currentMode === "agent") {
+      if (currentMode === "agent" && workStrategy === "plan") {
+        await sendPlanMessage(trimmed, attachments);
+      } else if (currentMode === "agent") {
         await sendAgentMessage(trimmed, attachments);
       } else if (companionModels.length > 0) {
         await sendMultiModelMessage(trimmed, companionModels, attachments, searchEnabled ? searchProviderId : null);
@@ -1125,6 +1158,7 @@ export function InputArea() {
     streaming,
     sendMessage,
     sendAgentMessage,
+    sendPlanMessage,
     sendMultiModelMessage,
     companionModels,
     activeConversationId,
@@ -1137,6 +1171,7 @@ export function InputArea() {
     searchEnabled,
     searchProviderId,
     currentMode,
+    workStrategy,
     selectedScenario,
     selectedGatewayId,
   ]);
@@ -2044,6 +2079,49 @@ export function InputArea() {
                 />
               </Tooltip>
             </Dropdown>
+            {currentMode === "agent" && (
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "direct",
+                      icon: <Play size={14} />,
+                      label: t("plan.strategyDirect", "Direct Execute"),
+                    },
+                    {
+                      key: "plan",
+                      icon: <ClipboardList size={14} />,
+                      label: (
+                        <>
+                          {t("plan.strategyPlan", "Plan First")}{" "}
+                          <Tag color="purple" style={{ fontSize: 10, lineHeight: "16px", padding: "0 3px", marginLeft: 2 }}>
+                            New
+                          </Tag>
+                        </>
+                      ),
+                    },
+                  ],
+                  onClick: ({ key }) => handleWorkStrategyChange(key as "direct" | "plan"),
+                  selectedKeys: [workStrategy],
+                }}
+                trigger={["click"]}
+                placement="topLeft"
+              >
+                <Tooltip title={workStrategy === "plan" ? t("plan.strategyPlan", "Plan First") : t("plan.strategyDirect", "Direct Execute")}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={workStrategy === "plan" ? <ClipboardList size={14} /> : <Play size={14} />}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      color: workStrategy === "plan" ? "#722ed1" : undefined,
+                    }}
+                  />
+                </Tooltip>
+              </Dropdown>
+            )}
             {currentMode === "agent" && (
               <Tooltip title={messages.length > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}>
                 <Button

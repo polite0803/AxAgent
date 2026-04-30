@@ -110,9 +110,11 @@ import { hasMultipleModelVersions } from "@/lib/chatMultiModel";
 import { parseSearchContent } from "@/lib/searchUtils";
 import {
   setupAgentEventListeners,
+  setupPlanEventListeners,
   useAgentStore,
   useCompressStore,
   useConversationStore,
+  usePlanStore,
   useProviderStore,
   useSettingsStore,
   useStreamStore,
@@ -149,6 +151,7 @@ import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from ".
 import PermissionCard from "./PermissionCard";
 import { ToolCallCard } from "./ToolCallCard";
 import { SubAgentCard } from "./SubAgentCard";
+import { PlanCard } from "./PlanCard";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
 import { WebSearchNode } from "./WebSearchNode";
@@ -2110,6 +2113,23 @@ function StatsPopoverContent({ stats, t, token }: {
 
 // ── Component ──────────────────────────────────────────────────────────
 
+// ── PlanCard Wrapper (subscribes to planStore) ────────────────────────
+
+function PlanCardWrapper({ conversationId }: { conversationId: string }) {
+  const plan = usePlanStore((s) => s.activePlans[conversationId]);
+
+  if (!plan) { return null; }
+
+  return (
+    <div style={{ padding: "0 16px" }}>
+      <PlanCard
+        plan={plan}
+        conversationId={conversationId}
+      />
+    </div>
+  );
+}
+
 function ChatViewInner() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -2429,10 +2449,14 @@ function ChatViewInner() {
     }
   }, [storeError, messageApi]);
 
-  // ── Agent event listeners ────────────────────────────────────────────
+  // ── Agent + Plan event listeners ──────────────────────────────────────
   useEffect(() => {
-    const cleanup = setupAgentEventListeners();
-    return cleanup;
+    const cleanupAgent = setupAgentEventListeners();
+    const cleanupPlan = setupPlanEventListeners();
+    return () => {
+      cleanupAgent();
+      cleanupPlan();
+    };
   }, []);
 
   const currentAgentStatus = useAgentStore(
@@ -4065,6 +4089,12 @@ function ChatViewInner() {
                     </div>
                   );
                 })()
+              )}
+              {/* Plan Card - visible in agent mode when a plan is active */}
+              {activeConversation?.mode === "agent" && activeConversationId && (
+                <PlanCardWrapper
+                  conversationId={activeConversationId}
+                />
               )}
               <Bubble.List
                 key={bubbleListThemeKey}

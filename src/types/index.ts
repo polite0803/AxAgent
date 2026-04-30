@@ -129,6 +129,8 @@ export interface Conversation {
   category_id: string | null;
   parent_conversation_id: string | null;
   mode: "chat" | "agent" | "gateway";
+  /** Agent work strategy: "direct" = execute immediately, "plan" = generate plan first, await approval, then execute */
+  work_strategy?: "direct" | "plan" | null;
   message_count: number;
   created_at: number;
   updated_at: number;
@@ -257,6 +259,7 @@ export interface UpdateConversationInput {
   category_id?: string | null;
   parent_conversation_id?: string | null;
   mode?: "chat" | "agent" | "gateway";
+  work_strategy?: "direct" | "plan" | null;
   scenario?: string | null;
   enabled_skill_ids?: string[];
 }
@@ -974,6 +977,76 @@ export interface ExecutionSummary {
   status: string;
   total_time_ms: number | null;
   created_at: number;
+}
+
+// ── Plan Mode (Agent Work Strategy) ──────────────────────────────────
+export type PlanStepStatus = "pending" | "approved" | "rejected" | "running" | "completed" | "error";
+
+export interface PlanStep {
+  id: string;
+  title: string;
+  description: string;
+  status: PlanStepStatus;
+  /** Estimated tools that will be used for this step */
+  estimated_tools?: string[];
+  /** Result summary after completion */
+  result?: string | null;
+}
+
+export type PlanStatus = "draft" | "reviewing" | "approved" | "executing" | "completed" | "cancelled";
+
+export interface Plan {
+  id: string;
+  conversation_id: string;
+  /** The user message that triggered this plan generation */
+  user_message_id: string;
+  title: string;
+  steps: PlanStep[];
+  status: PlanStatus;
+  is_active: boolean;
+  /** The work_strategy that was active when this plan was created, for restoration context */
+  created_under_strategy?: "direct" | "plan";
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PlanGeneratedEvent {
+  conversationId: string;
+  plan: Plan;
+}
+
+export interface PlanStepUpdateEvent {
+  conversationId: string;
+  planId: string;
+  stepId: string;
+  status: PlanStepStatus;
+  result?: string | null;
+}
+
+export interface PlanExecutionCompleteEvent {
+  conversationId: string;
+  planId: string;
+  status: "completed" | "cancelled";
+}
+
+export interface PlanGenerateRequest {
+  conversationId: string;
+  content: string;
+}
+
+export interface PlanExecuteRequest {
+  conversationId: string;
+  planId: string;
+  /** Optional: execute only specific step IDs, otherwise all approved steps */
+  stepIds?: string[];
+}
+
+export interface PlanModifyStepRequest {
+  planId: string;
+  stepId: string;
+  title?: string;
+  description?: string;
+  approved?: boolean;
 }
 
 export * from "./wiki";

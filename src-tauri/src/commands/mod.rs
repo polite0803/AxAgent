@@ -31,6 +31,7 @@ pub mod mcp;
 pub mod memory;
 pub mod messages;
 pub mod parallel_execution;
+pub mod plan;
 pub mod platform_integration;
 pub mod proactive;
 pub mod profile;

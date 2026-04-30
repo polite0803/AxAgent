@@ -82,6 +82,7 @@ enum Conversations {
     CategoryId,
     ParentConversationId,
     Mode,
+    WorkStrategy,
     Scenario,
     EnabledSkillIds,
 }
@@ -604,6 +605,21 @@ enum NoteBacklinks {
     CreatedAt,
 }
 
+#[derive(Iden)]
+enum Plans {
+    Table,
+    Id,
+    ConversationId,
+    UserMessageId,
+    Title,
+    StepsJson,
+    Status,
+    IsActive,
+    CreatedUnderStrategy,
+    CreatedAt,
+    UpdatedAt,
+}
+
 // ===========================================================================
 // Migration implementation
 // ===========================================================================
@@ -893,6 +909,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null()
                             .default("chat"),
+                    )
+                    .col(
+                        ColumnDef::new(Conversations::WorkStrategy)
+                            .string()
+                            .null(),
                     )
                     .col(
                         ColumnDef::new(Conversations::Scenario)
@@ -2955,6 +2976,43 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // =================================================================
+        // Plans table — stores execution plans for the plan work strategy
+        // =================================================================
+        manager
+            .create_table(
+                Table::create()
+                    .table(Plans::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(Plans::Id).string().not_null().primary_key())
+                    .col(ColumnDef::new(Plans::ConversationId).string().not_null())
+                    .col(ColumnDef::new(Plans::UserMessageId).string().not_null())
+                    .col(ColumnDef::new(Plans::Title).string().not_null())
+                    .col(ColumnDef::new(Plans::StepsJson).string().not_null().default("[]"))
+                    .col(ColumnDef::new(Plans::Status).string().not_null().default("draft"))
+                    .col(ColumnDef::new(Plans::IsActive).integer().not_null().default(1))
+                    .col(ColumnDef::new(Plans::CreatedUnderStrategy).string().null())
+                    .col(ColumnDef::new(Plans::CreatedAt).integer().not_null())
+                    .col(ColumnDef::new(Plans::UpdatedAt).integer().not_null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Plans::Table, Plans::ConversationId)
+                            .to(Conversations::Table, Conversations::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // Add work_strategy column for existing databases
+        // Use raw SQL to safely add the column if it doesn't exist
+        let db = manager.get_connection();
+        db.execute_unprepared(
+            "ALTER TABLE conversations ADD COLUMN work_strategy TEXT"
+        )
+        .await
+        .ok(); // Silently ignore if column already exists
+
         Ok(())
     }
 
@@ -3010,6 +3068,7 @@ impl MigrationTrait for Migration {
         drop_tbl!(Apps::Table);
         drop_tbl!(Categories::Table);
         drop_tbl!(Messages::Table);
+        drop_tbl!(Plans::Table);
         drop_tbl!(Conversations::Table);
         drop_tbl!(Models::Table);
         drop_tbl!(ProviderKeys::Table);

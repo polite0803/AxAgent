@@ -174,6 +174,8 @@ interface ConversationState {
   sendMessage: (content: string, attachments?: AttachmentInput[], searchProviderId?: string | null) => Promise<void>;
   /** Send a message in agent mode (non-streaming MVP) */
   sendAgentMessage: (content: string, attachments?: AttachmentInput[]) => Promise<void>;
+  /** Send a message in plan mode: generates plan first, awaits approval, then executes */
+  sendPlanMessage: (content: string, attachments?: AttachmentInput[]) => Promise<void>;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
   regenerateWithModel: (targetMessageId: string, providerId: string, model_id: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
@@ -1406,6 +1408,132 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       // Sync messages from DB so temp- prefixed user messages get replaced
       // with real backend IDs, enabling regenerate after an agent send failure.
+      window.setTimeout(() => {
+        void get().fetchMessages(conversationId);
+      }, 120);
+    }
+  },
+
+  sendPlanMessage: async (content, attachments = []) => {
+    const conversationId = get().activeConversationId;
+    if (!conversationId) { throw new Error("No active conversation"); }
+
+    const conversation = get().conversations.find((c) => c.id === conversationId);
+    if (!conversation) { throw new Error("Conversation not found"); }
+
+    // Guard: prevent duplicate sends while a stream is already active
+    if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+      console.warn("[sendPlanMessage] Ignoring duplicate send — stream already active for", conversationId);
+      return;
+    }
+
+    const providerId = conversation.provider_id;
+    const model_id = conversation.model_id;
+
+    // Optimistic user message
+    const optimisticUserMsg: Message = {
+      id: `temp-user-${Date.now()}`,
+      conversation_id: conversationId,
+      role: "user",
+      content,
+      provider_id: null,
+      model_id: null,
+      token_count: null,
+      attachments: attachments.map((a) => ({
+        id: `temp-att-${Date.now()}`,
+        file_name: a.file_name,
+        file_type: a.file_type,
+        file_path: "",
+        file_size: a.file_size,
+        data: a.data,
+      })),
+      thinking: null,
+      tool_calls_json: null,
+      tool_call_id: null,
+      created_at: Date.now(),
+      parent_message_id: null,
+      version_index: 0,
+      is_active: true,
+      status: "complete",
+    };
+
+    // Placeholder assistant message (will be replaced by PlanCard rendering)
+    let currentMsgId = `temp-plan-${Date.now()}`;
+    const placeholderAssistant: Message = {
+      id: currentMsgId,
+      conversation_id: conversationId,
+      role: "assistant",
+      content: "Generating plan...",
+      provider_id: providerId,
+      model_id: model_id,
+      token_count: null,
+      attachments: [],
+      thinking: null,
+      tool_calls_json: null,
+      tool_call_id: null,
+      created_at: Date.now(),
+      parent_message_id: optimisticUserMsg.id,
+      version_index: 0,
+      is_active: true,
+      status: "partial",
+    };
+
+    set((s) => ({
+      messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
+    }));
+    useStreamStore.setState((s) => ({
+      ...startConversationStream(s.activeStreams, conversationId, currentMsgId),
+      streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+    }));
+
+    try {
+      // Trigger plan generation on the backend - it emits plan-generated event via SSE
+      await invoke("plan_generate", {
+        request: { conversationId, content },
+      });
+
+      // Plan generation is async - the plan-generated event will trigger PlanCard rendering
+      // End the initial text stream so InputArea unblocks
+      useStreamStore.setState((s) => ({
+        ...stopConversationStream(s.activeStreams, conversationId),
+        streamingStartTimestamps: (() => {
+          const t = { ...s.streamingStartTimestamps };
+          delete t[conversationId];
+          return t;
+        })(),
+      }));
+
+      // Update placeholder message to indicate plan is ready for review
+      set((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === currentMsgId
+            ? { ...m, content: "Plan generated. Review the steps below.", status: "complete" as const }
+            : m
+        ),
+      }));
+
+      // Refresh messages after a short delay to get real IDs
+      window.setTimeout(() => {
+        void get().fetchMessages(conversationId);
+      }, 120);
+    } catch (e) {
+      useStreamStore.setState((s) => ({
+        ...stopConversationStream(s.activeStreams, conversationId),
+        streamingStartTimestamps: (() => {
+          const t = { ...s.streamingStartTimestamps };
+          delete t[conversationId];
+          return t;
+        })(),
+      }));
+      const errMsg = String(e);
+      console.error("[sendPlanMessage] error:", errMsg);
+      set((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === currentMsgId
+            ? { ...m, content: errMsg, status: "error" as const }
+            : m
+        ),
+      }));
       window.setTimeout(() => {
         void get().fetchMessages(conversationId);
       }, 120);

@@ -1,5 +1,12 @@
 # 长期记忆
 
+## 2026-04-30 Plan 模式架构决策
+- Plan 定位为 **agent 模式的工作策略**（`work_strategy: "direct" | "plan"`），不是独立 mode
+- 原因：Plan 的二阶段特性（生成→审批→执行）不适合 conversation-level mode 切换模式
+- Plan 状态独立持久化（plans 表），切 chat 不丢失，切回 agent 可恢复
+- 执行阶段复用 agent 工具循环基础设施
+- 前端通过 PlanCard 组件实现步骤审批/可视化/进度跟踪
+
 ## 2026-04-25 添加：复合技能分解全流程缺陷审查
 对"复合技能→原子技能→工作流→工具"全流程进行了审查，发现 14 个缺陷（8 高/4 中/2 低）。关键缺陷：
 - WorkEngine 与 WorkflowEngine 未桥接（高）

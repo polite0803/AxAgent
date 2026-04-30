@@ -27,6 +27,7 @@ export { useMcpStore } from "./feature/mcpStore";
 export type { DiscoveredMcpServer } from "./feature/mcpStore";
 export { useMemoryStore } from "./feature/memoryStore";
 export { useNudgeStore } from "./feature/nudgeStore";
+export { setupPlanEventListeners, usePlanStore } from "./feature/planStore";
 export { useProviderStore } from "./feature/providerStore";
 export { useRouterStore } from "./feature/routerStore";
 export type { ModelTier, RouteDecision } from "./feature/routerStore";

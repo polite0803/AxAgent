@@ -67,6 +67,7 @@ pub mod workflow_marketplace_review;
 pub mod notes;
 pub mod note_links;
 pub mod note_backlinks;
+pub mod plans;
 pub mod wikis;
 pub mod wiki_sources;
 pub mod wiki_pages;
