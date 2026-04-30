@@ -50,6 +50,7 @@ pub enum KeyModifier {
 pub struct UIAutomation;
 
 impl UIAutomation {
+    #[allow(unused_variables)]
     pub async fn get_accessible_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
         #[cfg(target_os = "windows")]
         {
@@ -72,6 +73,7 @@ impl UIAutomation {
         }
     }
 
+    #[allow(unused_variables)]
     pub async fn type_text(text: &str, x: Option<f64>, y: Option<f64>) -> Result<()> {
         #[cfg(target_os = "windows")]
         {
@@ -94,6 +96,7 @@ impl UIAutomation {
         }
     }
 
+    #[allow(unused_variables)]
     pub async fn scroll(x: f64, y: f64, delta: i32) -> Result<()> {
         #[cfg(target_os = "windows")]
         {

@@ -74,6 +74,7 @@ impl ScreenCapture {
         }
     }
 
+    #[allow(unused_variables)]
     pub async fn capture_window(&self, window_title: &str) -> Result<ScreenCaptureResult> {
         #[cfg(target_os = "windows")]
         {
