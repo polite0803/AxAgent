@@ -58,6 +58,11 @@ jobs:
         with:
           ref: master
 
+      - name: Setup Rust
+        run: |
+          rustup default stable
+          rustup component add rustfmt clippy
+
       - name: Show directory structure
         run: |
           pwd
@@ -69,12 +74,10 @@ jobs:
 
       - name: Check formatting
         run: |
-          rustup component add rustfmt
           cargo fmt --check --manifest-path src-tauri/Cargo.toml
 
       - name: Clippy
         run: |
-          rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings --manifest-path src-tauri/Cargo.toml
 
       - name: Check build
