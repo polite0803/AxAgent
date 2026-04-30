@@ -21,7 +21,9 @@ use tracing::info;
 fn estimate_cost_usd(model_id: &str, input_tokens: u64, output_tokens: u64) -> Option<f64> {
     // Try config-based pricing first
     if let Some((inp, out)) = lookup_pricing_from_config(model_id) {
-        return Some((input_tokens as f64 * inp / 1_000_000.0) + (output_tokens as f64 * out / 1_000_000.0));
+        return Some(
+            (input_tokens as f64 * inp / 1_000_000.0) + (output_tokens as f64 * out / 1_000_000.0),
+        );
     }
     // Fallback to heuristic for unknown models
     let (inp, out) = heuristic_pricing(model_id)?;
@@ -66,20 +68,22 @@ static PRICING_CONFIG: OnceLock<PricingConfigFile> = OnceLock::new();
 
 /// Initialize pricing from the config file. Called once during app startup.
 pub fn init_pricing_config(app: &tauri::AppHandle) {
-    let config = load_pricing_from_disk(app)
-        .unwrap_or_else(|e| {
-            tracing::warn!("Failed to load pricing.toml, using heuristic fallback: {}", e);
-            PricingConfigFile {
-                budget: BudgetConfig::default(),
-                models: Vec::new(),
-            }
-        });
+    let config = load_pricing_from_disk(app).unwrap_or_else(|e| {
+        tracing::warn!(
+            "Failed to load pricing.toml, using heuristic fallback: {}",
+            e
+        );
+        PricingConfigFile {
+            budget: BudgetConfig::default(),
+            models: Vec::new(),
+        }
+    });
     let _ = PRICING_CONFIG.set(config);
 }
 
 fn load_pricing_from_disk(app_handle: &tauri::AppHandle) -> Result<PricingConfigFile, String> {
-    use tauri::Manager;
     use std::fs;
+    use tauri::Manager;
     let resource_dir = app_handle
         .path()
         .resource_dir()
@@ -98,8 +102,8 @@ fn load_pricing_from_disk(app_handle: &tauri::AppHandle) -> Result<PricingConfig
     };
     let content = fs::read_to_string(&path)
         .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
-    let config: PricingConfigFile = toml::from_str(&content)
-        .map_err(|e| format!("Failed to parse pricing.toml: {}", e))?;
+    let config: PricingConfigFile =
+        toml::from_str(&content).map_err(|e| format!("Failed to parse pricing.toml: {}", e))?;
     tracing::info!(
         "Loaded pricing config with {} models, budget: tokens={}, daily=${}, session=${}",
         config.models.len(),
@@ -1334,9 +1338,7 @@ pub async fn agent_query(
     .await
     .ok()
     .flatten();
-    let workspace_root_for_prompt = db_session
-        .as_ref()
-        .and_then(|s| s.cwd.clone());
+    let workspace_root_for_prompt = db_session.as_ref().and_then(|s| s.cwd.clone());
 
     let system_prompt = build_agent_system_prompt(
         request.system_prompt.as_deref(),
@@ -1413,7 +1415,8 @@ pub async fn agent_query(
     }
 
     // Check token budget before expensive LLM call
-    let estimated_input_tokens = axagent_core::token_counter::estimate_tokens(&request.input) as u64;
+    let estimated_input_tokens =
+        axagent_core::token_counter::estimate_tokens(&request.input) as u64;
     if let Err(budget_err) = check_token_budget(estimated_input_tokens) {
         tracing::warn!("[agent_query] Token budget check failed: {}", budget_err);
         // Emit error to frontend
@@ -1591,8 +1594,13 @@ pub async fn agent_query(
                     axagent_runtime::ContentBlock::Text { text } => AgentContentBlock {
                         block_type: "text".to_string(),
                         text: Some(text.clone()),
-                        id: None, name: None, input: None,
-                        tool_use_id: None, tool_name: None, output: None, is_error: None,
+                        id: None,
+                        name: None,
+                        input: None,
+                        tool_use_id: None,
+                        tool_name: None,
+                        output: None,
+                        is_error: None,
                     },
                     axagent_runtime::ContentBlock::ToolUse { id, name, input } => AgentContentBlock {
                         block_type: "tool_use".to_string(),
@@ -1600,19 +1608,34 @@ pub async fn agent_query(
                         name: Some(name.clone()),
                         input: Some(input.clone()),
                         text: None,
-                        tool_use_id: None, tool_name: None, output: None, is_error: None,
+                        tool_use_id: None,
+                        tool_name: None,
+                        output: None,
+                        is_error: None,
                     },
-                    axagent_runtime::ContentBlock::ToolResult { tool_use_id, tool_name, output, is_error } => AgentContentBlock {
+                    axagent_runtime::ContentBlock::ToolResult {
+                        tool_use_id,
+                        tool_name,
+                        output,
+                        is_error,
+                    } => AgentContentBlock {
                         block_type: "tool_result".to_string(),
                         tool_use_id: Some(tool_use_id.clone()),
                         tool_name: Some(tool_name.clone()),
                         output: Some(output.clone()),
                         is_error: Some(*is_error),
-                        text: None, id: None, name: None, input: None,
+                        text: None,
+                        id: None,
+                        name: None,
+                        input: None,
                     },
                 })
                 .collect();
-            let blocks_opt = if blocks.is_empty() { None } else { Some(blocks) };
+            let blocks_opt = if blocks.is_empty() {
+                None
+            } else {
+                Some(blocks)
+            };
 
             let payload = AgentDonePayload {
                 conversation_id: conversation_id.clone(),
@@ -3788,8 +3811,14 @@ pub async fn workflow_execute(
 
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
 
-    let step_executor =
-        create_llm_step_executor(adapter, key.id.clone(), api_key, prov.id.clone(), base_url, Some(Arc::new(app_state.sea_db.clone())));
+    let step_executor = create_llm_step_executor(
+        adapter,
+        key.id.clone(),
+        api_key,
+        prov.id.clone(),
+        base_url,
+        Some(Arc::new(app_state.sea_db.clone())),
+    );
 
     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
         app_state.workflow_engine.clone(),

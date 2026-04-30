@@ -11,10 +11,7 @@
 //! - code: 24 hours
 //! - complex: 1 hour
 
-use sea_orm::{
-    ConnectionTrait, DatabaseBackend, DatabaseConnection,
-    Statement,
-};
+use sea_orm::{ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement};
 use sha2::{Digest, Sha256};
 
 // ─── Config ───
@@ -319,9 +316,7 @@ mod tests {
     #[test]
     fn test_hash_deterministic() {
         let h1 = SemanticCache::hash_prompt(&SemanticCache::normalize_prompt("Hello World"));
-        let h2 = SemanticCache::hash_prompt(&SemanticCache::normalize_prompt(
-            "  hello   world  ",
-        ));
+        let h2 = SemanticCache::hash_prompt(&SemanticCache::normalize_prompt("  hello   world  "));
         assert_eq!(h1, h2);
     }
 

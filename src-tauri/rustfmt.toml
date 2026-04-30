@@ -1,13 +1,28 @@
-[package]
 edition = "2021"
-
-[profile.release]
-lto = true
-opt-level = 3
-codegen-units = 1
-
-[profile.dev]
-debug = true
-
-[profile.dev.package."*"]
-opt-level = 0
+max_width = 100
+use_small_heuristics = "Max"
+format_strings = true
+reorder_imports = true
+group_imports = "StdExternalCrate"
+trailing_comma = "Vertical"
+match_block_trailing_comma = true
+blank_lines_upper_bound = 2
+brace_style = "SameLineWhere"
+control_brace_style = "AlwaysSameLine"
+fn_call_width = 80
+attr_fn_like_width = 80
+struct_lit_width = 18
+struct_variant_width = 35
+array_width = 60
+chain_width = 60
+single_line_if_else_max_width = 50
+wrap_comments = true
+comment_width = 100
+normalize_comments = true
+normalize_doc_attributes = true
+newline_style = "Unix"
+use_field_init_shorthand = true
+use_try_shorthand = true
+format_macro_matchers = true
+format_macro_bodies = true
+imports_granularity = "Crate"

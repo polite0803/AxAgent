@@ -18,6 +18,9 @@ export { ShortcutSettings } from "./ShortcutSettings";
 export { default as ToolManager } from "./ToolManager";
 export { default as SkillsHubSettings } from "./SkillsHubSettings";
 export { default as WebhookSettings } from "./WebhookSettings";
+export { GatewayConfigPanel } from "./GatewayConfigPanel";
+export { MessageChannelSettings } from "./MessageChannelSettings";
+export { PlatformStatusCard } from "./PlatformStatusCard";
 
 export { default as BackupCenter } from "./BackupCenter";
 export { SchedulerSettings } from "./SchedulerSettings";

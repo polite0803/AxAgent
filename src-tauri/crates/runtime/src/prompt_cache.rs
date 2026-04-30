@@ -173,6 +173,17 @@ impl PromptCache {
         !self.state.read().await.pending_changes.is_empty()
     }
 
+    /// Export the current cache state for persistence.
+    pub async fn export_state(&self) -> PromptCacheState {
+        self.state.read().await.clone()
+    }
+
+    /// Restore the cache state from a persisted snapshot.
+    pub async fn restore_state(&self, state: PromptCacheState) {
+        let mut current = self.state.write().await;
+        *current = state;
+    }
+
     pub async fn total_tokens_saved(&self) -> u64 {
         self.state.read().await.tokens_saved_estimate
     }

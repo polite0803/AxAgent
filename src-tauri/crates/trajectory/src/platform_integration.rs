@@ -6,34 +6,10 @@
 //! - Unified message handling and routing
 //! - Webhook-based event processing
 
+pub use axagent_core::platform_config::PlatformConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::sync::RwLock;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PlatformConfig {
-    pub telegram_enabled: bool,
-    pub telegram_bot_token: Option<String>,
-    pub telegram_webhook_secret: Option<String>,
-    pub discord_enabled: bool,
-    pub discord_bot_token: Option<String>,
-    pub discord_webhook_url: Option<String>,
-    pub auto_sync_messages: bool,
-}
-
-impl Default for PlatformConfig {
-    fn default() -> Self {
-        Self {
-            telegram_enabled: false,
-            telegram_bot_token: None,
-            telegram_webhook_secret: None,
-            discord_enabled: false,
-            discord_bot_token: None,
-            discord_webhook_url: None,
-            auto_sync_messages: true,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "platform")]
@@ -109,6 +85,14 @@ impl PlatformIntegrationService {
     pub fn new() -> Self {
         Self {
             config: RwLock::new(PlatformConfig::default()),
+            sessions: RwLock::new(HashMap::new()),
+            message_handlers: Vec::new(),
+        }
+    }
+
+    pub fn with_config(config: PlatformConfig) -> Self {
+        Self {
+            config: RwLock::new(config),
             sessions: RwLock::new(HashMap::new()),
             message_handlers: Vec::new(),
         }

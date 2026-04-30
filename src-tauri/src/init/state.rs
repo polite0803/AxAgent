@@ -90,6 +90,24 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         Arc::new(std::sync::RwLock::new(ms))
     };
 
+    let platform_manager = Arc::new(
+        axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
+    );
+
+    let platform_bridge = Arc::new(
+        axagent_runtime::message_gateway::platform_bridge::PlatformBridge::new(
+            sea_db.clone(),
+            master_key,
+            platform_manager.clone(),
+        ),
+    );
+
+    rt.block_on(async {
+        platform_manager
+            .set_message_callback(platform_bridge.clone())
+            .await;
+    });
+
     AppState {
         sea_db: sea_db.clone(),
         master_key,
@@ -168,9 +186,16 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         scheduled_task_service: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::ScheduledTaskService::new(100),
         )),
-        platform_integration_service: Arc::new(tokio::sync::RwLock::new(
-            axagent_trajectory::PlatformIntegrationService::new(),
-        )),
+        platform_integration_service: {
+            let platform_config = rt.block_on(
+                axagent_core::repo::platform_config::get_platform_config(&sea_db),
+            );
+            Arc::new(tokio::sync::RwLock::new(
+                axagent_trajectory::PlatformIntegrationService::with_config(platform_config),
+            ))
+        },
+        platform_manager: platform_manager.clone(),
+        platform_bridge: platform_bridge.clone(),
         user_profile: Arc::new(std::sync::RwLock::new(
             axagent_trajectory::UserProfile::new(),
         )),
@@ -193,14 +218,15 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         dashboard_registry: None,
         webhook_subscription_manager: None,
         semantic_cache: {
-            let cache = rt.block_on(async {
-                SemanticCache::new(sea_db.clone(), CacheConfig::default()).await
-            })
-            .unwrap_or_else(|e| {
-                tracing::error!("Failed to init semantic cache: {}", e);
-                // We can't easily recover here without a DB, so panic
-                panic!("Semantic cache initialization failed: {}", e);
-            });
+            let cache = rt
+                .block_on(async {
+                    SemanticCache::new(sea_db.clone(), CacheConfig::default()).await
+                })
+                .unwrap_or_else(|e| {
+                    tracing::error!("Failed to init semantic cache: {}", e);
+                    // We can't easily recover here without a DB, so panic
+                    panic!("Semantic cache initialization failed: {}", e);
+                });
             Arc::new(tokio::sync::Mutex::new(cache))
         },
     }

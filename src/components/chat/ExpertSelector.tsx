@@ -1,8 +1,9 @@
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
 import type { ExpertCategory } from "@/types/expert";
-import { Button, Card, Input, Modal, Popover, Space, Tag, Typography, App } from "antd";
-import { Check, Download, Trash2, FolderOpen, Info } from "lucide-react";
+import type { ExpertRole } from "@/types/expert";
+import { Button, Card, Input, Modal, Popover, Space, Tag, Typography, App, Select, Popconfirm } from "antd";
+import { Check, Download, Trash2, FolderOpen, Info, Pencil, FileDown, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const { Text } = Typography;
@@ -19,13 +20,27 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   const importAgencyExperts = useExpertStore((s) => s.importAgencyExperts);
   const loadAgencyRoles = useExpertStore((s) => s.loadAgencyRoles);
   const clearAgencyExperts = useExpertStore((s) => s.clearAgencyExperts);
+  const deleteAgencyExpert = useExpertStore((s) => s.deleteAgencyExpert);
+  const updateAgencyExpert = useExpertStore((s) => s.updateAgencyExpert);
+  const exportAgencyExperts = useExpertStore((s) => s.exportAgencyExperts);
   const agencyRoles = useExpertStore((s) => s.agencyRoles);
   const agencyLoaded = useExpertStore((s) => s.agencyLoaded);
+  const removeCustomRole = useExpertStore((s) => s.removeCustomRole);
+  const updateCustomRole = useExpertStore((s) => s.updateCustomRole);
+  const exportCustomRoles = useExpertStore((s) => s.exportCustomRoles);
+  const importCustomRoles = useExpertStore((s) => s.importCustomRoles);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [importPath, setImportPath] = useState("");
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [sortBy, setSortBy] = useState<"name" | "category" | "source">("category");
+  const [editingExpert, setEditingExpert] = useState<ExpertRole | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editPrompt, setEditPrompt] = useState("");
+  const [editCategory, setEditCategory] = useState<ExpertCategory>("general");
+  const [saving, setSaving] = useState(false);
   const app = App.useApp();
 
   // Load agency roles on mount
@@ -36,14 +51,30 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   }, []);
 
   const allRoles = getAllRoles();
-  const filteredRoles = searchQuery.trim()
-    ? allRoles.filter(
-      (r) =>
-        r.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-        || r.description.toLowerCase().includes(searchQuery.toLowerCase())
-        || r.tags.some((t) => t.includes(searchQuery.toLowerCase())),
-    )
-    : allRoles;
+  const filteredRoles = (() => {
+    let roles = allRoles;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      roles = roles.filter(
+        (r) =>
+          r.displayName.toLowerCase().includes(q)
+          || r.description.toLowerCase().includes(q)
+          || r.tags.some((t) => t.toLowerCase().includes(q)),
+      );
+    }
+    // Sort
+    const sorted = [...roles];
+    if (sortBy === "name") {
+      sorted.sort((a, b) => a.displayName.localeCompare(b.displayName, "zh"));
+    } else if (sortBy === "category") {
+      const order = Object.keys(EXPERT_CATEGORY_LABELS);
+      sorted.sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || a.displayName.localeCompare(b.displayName, "zh"));
+    } else if (sortBy === "source") {
+      const sourceOrder: Record<string, number> = { builtin: 0, agency: 1, custom: 2 };
+      sorted.sort((a, b) => (sourceOrder[a.source] ?? 3) - (sourceOrder[b.source] ?? 3) || a.displayName.localeCompare(b.displayName, "zh"));
+    }
+    return sorted;
+  })();
 
   const grouped: Partial<Record<ExpertCategory, typeof filteredRoles>> = {};
   for (const role of filteredRoles) {
@@ -85,6 +116,104 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
     app.message.success("已清除所有外部专家");
   };
 
+  const handleExport = async () => {
+    try {
+      const json = await exportAgencyExperts();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `agency-experts-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      app.message.success("导出成功");
+    } catch (e) {
+      app.message.error(`导出失败: ${String(e)}`);
+    }
+  };
+
+  const handleExportCustom = () => {
+    const json = exportCustomRoles();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `custom-experts-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    app.message.success("自定义专家已导出");
+  };
+
+  const handleImportCustom = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const result = importCustomRoles(text);
+        if (result.count > 0) {
+          app.message.success(`导入 ${result.count} 个自定义专家`);
+        }
+        if (result.errors.length > 0) {
+          app.message.warning(`${result.errors.length} 个导入失败: ${result.errors[0]}`);
+        }
+      } catch (err) {
+        app.message.error(`导入失败: ${String(err)}`);
+      }
+    };
+    input.click();
+  };
+
+  const handleDeleteExpert = async (role: ExpertRole) => {
+    if (role.source === "agency") {
+      await deleteAgencyExpert(role.id);
+      app.message.success(`已删除 "${role.displayName}"`);
+    } else if (role.source === "custom") {
+      removeCustomRole(role.id);
+      app.message.success(`已删除 "${role.displayName}"`);
+    }
+  };
+
+  const handleEditOpen = (role: ExpertRole) => {
+    setEditingExpert(role);
+    setEditName(role.displayName);
+    setEditDesc(role.description);
+    setEditPrompt(role.systemPrompt || "");
+    setEditCategory(role.category as ExpertCategory);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingExpert) return;
+    setSaving(true);
+    try {
+      if (editingExpert.source === "agency") {
+        await updateAgencyExpert(editingExpert.id, {
+          name: editName,
+          description: editDesc,
+          system_prompt: editPrompt,
+          category: editCategory,
+        });
+      } else if (editingExpert.source === "custom") {
+        updateCustomRole({
+          ...editingExpert,
+          displayName: editName,
+          description: editDesc,
+          systemPrompt: editPrompt,
+          category: editCategory,
+        });
+      }
+      app.message.success("专家已更新");
+      setEditingExpert(null);
+    } catch (e) {
+      app.message.error(`保存失败: ${String(e)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
     builtin: { label: "内置", color: "purple" },
     agency: { label: "外部", color: "blue" },
@@ -100,13 +229,29 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       width={720}
       destroyOnHidden
     >
-      <Input
-        placeholder="搜索专家..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        style={{ marginBottom: 12 }}
-        allowClear
-      />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
+        <Input
+          placeholder="搜索专家名称、描述、标签..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ flex: 1 }}
+          allowClear
+        />
+        <Select
+          size="small"
+          value={sortBy}
+          onChange={(v) => setSortBy(v)}
+          style={{ width: 100 }}
+          options={[
+            { value: "category", label: "按分类" },
+            { value: "name", label: "按名称" },
+            { value: "source", label: "按来源" },
+          ]}
+        />
+        <Button size="small" icon={<FileDown size={14} />} onClick={handleExport} title="导出外部专家" />
+        <Button size="small" icon={<Upload size={14} />} onClick={handleImportCustom} title="导入自定义专家" />
+        <Button size="small" icon={<Download size={14} />} onClick={handleExportCustom} title="导出自定义专家" />
+      </div>
 
       {/* Import section */}
       {!showImport ? (
@@ -184,6 +329,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               {roles!.map((role) => {
                 const isSelected = selectedRoleId === role.id;
                 const isDefault = role.id === "general-assistant";
+                const isBuiltin = role.source === "builtin";
                 const sourceInfo = SOURCE_LABELS[role.source] ?? SOURCE_LABELS.builtin;
 
                 return (
@@ -213,13 +359,40 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                             {sourceInfo.label}
                           </Tag>
                         </div>
-                        <Text
-                          type="secondary"
-                          style={{ fontSize: 11, display: "block", marginTop: 2, lineHeight: "1.4" }}
-                          ellipsis
-                        >
-                          {role.description}
-                        </Text>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 11, display: "block", marginTop: 2, lineHeight: "1.4", flex: 1 }}
+                            ellipsis
+                          >
+                            {role.description}
+                          </Text>
+                          {!isBuiltin && (
+                            <Space size={2} style={{ marginLeft: 4, flexShrink: 0 }} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<Pencil size={12} />}
+                                onClick={() => handleEditOpen(role)}
+                                style={{ padding: "0 2px", height: 20, minWidth: 20 }}
+                              />
+                              <Popconfirm
+                                title="确定删除该专家？"
+                                onConfirm={() => handleDeleteExpert(role)}
+                                okText="删除"
+                                cancelText="取消"
+                              >
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<Trash2 size={12} />}
+                                  style={{ padding: "0 2px", height: 20, minWidth: 20 }}
+                                />
+                              </Popconfirm>
+                            </Space>
+                          )}
+                        </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                           {role.recommendedWorkflows && role.recommendedWorkflows.length > 0 && (
                             <Tag
@@ -271,6 +444,51 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
           </div>
         ))}
       </div>
+
+      {/* Edit Expert Modal */}
+      <Modal
+        title={`编辑专家: ${editingExpert?.displayName || ""}`}
+        open={!!editingExpert}
+        onCancel={() => setEditingExpert(null)}
+        onOk={handleEditSave}
+        confirmLoading={saving}
+        okText="保存"
+        cancelText="取消"
+        width={560}
+        destroyOnClose
+      >
+        {editingExpert && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>名称</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} size="small" />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>描述</label>
+              <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} size="small" />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>分类</label>
+              <Select
+                value={editCategory}
+                onChange={(v) => setEditCategory(v)}
+                size="small"
+                style={{ width: "100%" }}
+                options={Object.entries(EXPERT_CATEGORY_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>系统提示词</label>
+              <Input.TextArea
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+                rows={10}
+                size="small"
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
     </Modal>
   );
 }

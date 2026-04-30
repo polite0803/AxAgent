@@ -487,6 +487,8 @@ pub fn run() {
             commands::platform_integration::deactivate_platform_session,
             commands::platform_integration::send_telegram_message,
             commands::platform_integration::send_discord_message,
+            commands::platform_integration::get_platform_statuses,
+            commands::platform_integration::reconcile_platforms,
             // Atomic Skill commands
             commands::atomic_skills::list_atomic_skills,
             commands::atomic_skills::get_atomic_skill,
@@ -620,6 +622,9 @@ pub fn run() {
             commands::agency_expert::list_agency_experts,
             commands::agency_expert::clear_agency_experts,
             commands::agency_expert::extract_expert_structure,
+            commands::agency_expert::update_agency_expert,
+            commands::agency_expert::delete_agency_expert,
+            commands::agency_expert::export_agency_experts,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

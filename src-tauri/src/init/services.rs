@@ -20,6 +20,7 @@ pub fn start_background_services(
     start_user_profile_persistence(state);
     start_skill_evolution(state);
     start_scheduled_task_executor(state);
+    start_platform_adapters(state);
 }
 
 fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
@@ -161,6 +162,37 @@ fn start_scheduled_task_executor(state: &AppState) {
                         }
                     }
                 }
+            }
+        }
+    });
+}
+
+fn start_platform_adapters(state: &AppState) {
+    let platform_manager = state.platform_manager.clone();
+    let db = state.sea_db.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let config = axagent_core::repo::platform_config::get_platform_config(&db).await;
+        match platform_manager.reconcile(&config).await {
+            Ok(report) => {
+                if !report.started.is_empty() {
+                    tracing::info!(
+                        "[PlatformManager] boot reconcile: started {:?}",
+                        report.started
+                    );
+                }
+                if !report.errors.is_empty() {
+                    for (name, err) in &report.errors {
+                        tracing::error!(
+                            "[PlatformManager] boot reconcile: {} error: {}",
+                            name,
+                            err
+                        );
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("[PlatformManager] boot reconcile failed: {}", e);
             }
         }
     });

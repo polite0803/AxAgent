@@ -112,14 +112,33 @@ fn is_complex_task(lower: &str, prompt_len: usize, line_count: usize) -> bool {
 
     // Explicit reasoning/design keywords
     let complex_keywords = [
-        "architect", "design pattern", "refactor", "refactoring",
-        "system design", "multi-step", "step by step reasoning",
-        "debug", "troubleshoot", "root cause", "performance optimization",
-        "security audit", "code review the entire", "migrate from",
-        "implement a", "build a", "create a full", "scalable",
-        "production-ready", "enterprise", "microservices",
-        "distributed system", "concurrency", "race condition",
-        "deadlock", "memory leak", "scale horizontally",
+        "architect",
+        "design pattern",
+        "refactor",
+        "refactoring",
+        "system design",
+        "multi-step",
+        "step by step reasoning",
+        "debug",
+        "troubleshoot",
+        "root cause",
+        "performance optimization",
+        "security audit",
+        "code review the entire",
+        "migrate from",
+        "implement a",
+        "build a",
+        "create a full",
+        "scalable",
+        "production-ready",
+        "enterprise",
+        "microservices",
+        "distributed system",
+        "concurrency",
+        "race condition",
+        "deadlock",
+        "memory leak",
+        "scale horizontally",
     ];
 
     for kw in &complex_keywords {
@@ -150,8 +169,13 @@ fn is_trivial_task(lower: &str, prompt_len: usize) -> bool {
 
     // Translation patterns
     let translation_patterns = [
-        "translate", "翻译", "traduire", "übersetzen",
-        "翻成", "译为", "翻訳",
+        "translate",
+        "翻译",
+        "traduire",
+        "übersetzen",
+        "翻成",
+        "译为",
+        "翻訳",
     ];
     for pat in &translation_patterns {
         if lower.contains(pat) {
@@ -161,9 +185,17 @@ fn is_trivial_task(lower: &str, prompt_len: usize) -> bool {
 
     // Summarization patterns
     let summary_patterns = [
-        "summarize", "summarise", "tldr", "tl;dr",
-        "总结", "摘要", "概括", "简述",
-        "in a few words", "brief summary", "key points",
+        "summarize",
+        "summarise",
+        "tldr",
+        "tl;dr",
+        "总结",
+        "摘要",
+        "概括",
+        "简述",
+        "in a few words",
+        "brief summary",
+        "key points",
     ];
     for pat in &summary_patterns {
         if lower.contains(pat) {
@@ -173,9 +205,15 @@ fn is_trivial_task(lower: &str, prompt_len: usize) -> bool {
 
     // Format conversion
     let format_patterns = [
-        "convert to json", "convert to yaml", "convert to csv",
-        "format as", "reformat", "pretty print",
-        "json to", "yaml to", "csv to",
+        "convert to json",
+        "convert to yaml",
+        "convert to csv",
+        "format as",
+        "reformat",
+        "pretty print",
+        "json to",
+        "yaml to",
+        "csv to",
     ];
     for pat in &format_patterns {
         if lower.contains(pat) {
@@ -186,10 +224,21 @@ fn is_trivial_task(lower: &str, prompt_len: usize) -> bool {
     // Simple single-line commands
     if prompt_len < 100 && !lower.contains("explain") && !lower.contains("why") {
         let simple_patterns = [
-            "what is", "who is", "when did", "where is",
-            "how to", "list", "show me", "find",
-            "是什么", "什么是", "怎么", "如何",
-            "列出", "显示", "查找",
+            "what is",
+            "who is",
+            "when did",
+            "where is",
+            "how to",
+            "list",
+            "show me",
+            "find",
+            "是什么",
+            "什么是",
+            "怎么",
+            "如何",
+            "列出",
+            "显示",
+            "查找",
         ];
         for pat in &simple_patterns {
             if lower.starts_with(pat) || lower.contains(&format!(" {} ", pat)) {
@@ -228,7 +277,8 @@ mod tests {
 
     #[test]
     fn test_moderate_question() {
-        let decision = classify_and_route("Explain how async/await works in JavaScript with examples");
+        let decision =
+            classify_and_route("Explain how async/await works in JavaScript with examples");
         assert_eq!(decision.tier, ModelTier::Balanced);
     }
 
@@ -237,14 +287,15 @@ mod tests {
         let decision = classify_and_route(
             "Design a microservices architecture for an e-commerce platform with \
              user authentication, product catalog, payment processing, and order tracking. \
-             Include database schema and API design."
+             Include database schema and API design.",
         );
         assert_eq!(decision.tier, ModelTier::Premium);
     }
 
     #[test]
     fn test_complex_refactor() {
-        let decision = classify_and_route("Refactor this monolithic codebase into a modular architecture");
+        let decision =
+            classify_and_route("Refactor this monolithic codebase into a modular architecture");
         assert_eq!(decision.tier, ModelTier::Premium);
     }
 

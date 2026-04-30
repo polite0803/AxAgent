@@ -192,7 +192,7 @@ async fn run_discord_gateway(
                 match op {
                     0 => {
                         let t = payload["t"].as_str().unwrap_or("");
-                        handle_dispatch(t, &payload["d"], allowed_channels).await;
+                        handle_dispatch(t, &payload["d"], allowed_channels, bot_token).await;
                     }
                     7 => {
                         last_heartbeat_ack = false;
@@ -240,6 +240,7 @@ async fn handle_dispatch(
     event_type: &str,
     data: &serde_json::Value,
     allowed_channels: &Option<Vec<String>>,
+    bot_token: &str,
 ) {
     match event_type {
         "MESSAGE_CREATE" => {
@@ -275,11 +276,29 @@ async fn handle_dispatch(
                 content
             );
 
-            if content == "!ping" {
-                if let Ok(url) = std::env::var("DISCORD_WEBHOOK_URL") {
-                    let body = serde_json::json!({ "content": "Pong!" });
-                    let _ = reqwest::Client::new().post(&url).json(&body).send().await;
-                }
+            if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
+                let bot = bot_token.to_string();
+                let ch = channel_id.clone();
+                tokio::spawn(async move {
+                    let reply = cb
+                        .on_message("discord", &author_id, Some(&author_username), &ch, &content)
+                        .await;
+                    if let Some(reply_text) = reply {
+                        let client = reqwest::Client::new();
+                        let url = format!(
+                            "https://discord.com/api/v10/channels/{}/messages",
+                            ch
+                        );
+                        let body =
+                            serde_json::json!({ "content": &reply_text[..2000.min(reply_text.len())] });
+                        let _ = client
+                            .post(&url)
+                            .header("Authorization", format!("Bot {}", bot))
+                            .json(&body)
+                            .send()
+                            .await;
+                    }
+                });
             }
         }
         "READY" => {

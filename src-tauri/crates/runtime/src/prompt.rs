@@ -100,6 +100,7 @@ pub struct SystemPromptBuilder {
     append_sections: Vec<String>,
     project_context: Option<ProjectContext>,
     config: Option<RuntimeConfig>,
+    task_scene: Option<TaskScene>,
 }
 
 impl SystemPromptBuilder {
@@ -135,6 +136,12 @@ impl SystemPromptBuilder {
     }
 
     #[must_use]
+    pub fn with_task_scene(mut self, scene: TaskScene) -> Self {
+        self.task_scene = Some(scene);
+        self
+    }
+
+    #[must_use]
     pub fn append_section(mut self, section: impl Into<String>) -> Self {
         self.append_sections.push(section.into());
         self
@@ -160,6 +167,12 @@ impl SystemPromptBuilder {
         }
         if let Some(config) = &self.config {
             sections.push(render_config_section(config));
+        }
+        if let Some(scene) = &self.task_scene {
+            let directive = scene.concise_directive();
+            if !directive.is_empty() {
+                sections.push(directive.to_string());
+            }
         }
         sections.extend(self.append_sections.iter().cloned());
         sections
@@ -426,6 +439,73 @@ fn collapse_blank_lines(content: &str) -> String {
         previous_blank = is_blank;
     }
     result
+}
+
+/// The task scene determines which prompt modules to load dynamically.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TaskScene {
+    /// General chat, document processing, system operations.
+    General,
+    /// Code reading, project modification, feature development, code search.
+    Code,
+    /// Research-oriented tasks: knowledge extraction, academic search.
+    Research,
+    /// Automatic mode inferred from context — no explicit scene chosen.
+    Auto,
+}
+
+impl TaskScene {
+    /// Infer the task scene from user input text.
+    pub fn infer(text: &str) -> Self {
+        let lowered = text.to_lowercase();
+
+        let code_keywords = [
+            "code", "function", "class", "impl", "compile", "build", "cargo",
+            "npm", "test", "debug", "error", "fix", "refactor", "rust", "typescript",
+            "javascript", "python", "golang", "java", "struct", "trait", "mod",
+            "import", "export", "component", "hook", "api", "endpoint",
+        ];
+        let research_keywords = [
+            "research", "analyze", "knowledge", "extract", "academic",
+            "paper", "search for", "find information", "learn about",
+            "explain concept",
+        ];
+
+        let code_score = code_keywords.iter().filter(|k| lowered.contains(*k)).count();
+        let research_score = research_keywords.iter().filter(|k| lowered.contains(*k)).count();
+
+        if code_score >= 2 {
+            TaskScene::Code
+        } else if research_score >= 2 {
+            TaskScene::Research
+        } else if code_score > 0 {
+            TaskScene::Code
+        } else {
+            TaskScene::General
+        }
+    }
+
+    /// The concise output directive injected for code-heavy scenes.
+    pub fn concise_directive(&self) -> &str {
+        match self {
+            TaskScene::Code => concat!(
+                "## Output Constraints for Code Mode\n",
+                "- Provide code solutions directly without lengthy explanations.\n",
+                "- Do not restate what the code does unless asked.\n",
+                "- Minimize commentary; focus on implementation.\n",
+                "- Include only essential comments in generated code.\n",
+                "- Skip boilerplate explanations (e.g., \"Here is how you...\").\n",
+                "- If the solution is short, output only the code."
+            ),
+            TaskScene::Research => concat!(
+                "## Output Constraints for Research Mode\n",
+                "- Provide thorough analysis with citations.\n",
+                "- Structure output with clear headings.\n",
+                "- Include trade-offs and alternatives where relevant."
+            ),
+            TaskScene::General | TaskScene::Auto => "",
+        }
+    }
 }
 
 /// Loads config and project context, then renders the system prompt text.

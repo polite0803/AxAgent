@@ -3871,6 +3871,18 @@ mod tests {
             platform_integration_service: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::PlatformIntegrationService::new(),
             )),
+            platform_manager: Arc::new(
+                axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
+            ),
+            platform_bridge: Arc::new(
+                axagent_runtime::message_gateway::platform_bridge::PlatformBridge::new(
+                    db.clone(),
+                    [0; 32],
+                    Arc::new(
+                        axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
+                    ),
+                ),
+            ),
             user_profile: Arc::new(std::sync::RwLock::new(
                 axagent_trajectory::UserProfile::new(),
             )),

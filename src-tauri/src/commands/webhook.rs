@@ -1,5 +1,5 @@
-use axagent_runtime::webhook_subscription::{WebhookEvent, WebhookSubscription};
 use crate::AppState;
+use axagent_runtime::webhook_subscription::{WebhookEvent, WebhookSubscription};
 use tauri::State;
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -19,7 +19,11 @@ impl From<WebhookSubscription> for WebhookSubscriptionResponse {
         Self {
             id: sub.id,
             url: sub.url,
-            events: sub.events.iter().map(|e: &WebhookEvent| e.as_str().to_string()).collect(),
+            events: sub
+                .events
+                .iter()
+                .map(|e: &WebhookEvent| e.as_str().to_string())
+                .collect(),
             secret: sub.secret,
             enabled: sub.enabled,
             created_at: sub.created_at.to_rfc3339(),

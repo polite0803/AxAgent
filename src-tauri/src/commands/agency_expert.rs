@@ -55,7 +55,8 @@ fn map_directory_to_category(dir: &str) -> &str {
         "devops" | "infrastructure" => "devops",
         "design" | "game-development" => "design",
         "marketing" | "writing" | "content" => "writing",
-        "legal" | "hr" | "sales" | "product" | "project-management" | "strategy" | "supply-chain" => "business",
+        "legal" | "hr" | "sales" | "product" | "project-management"
+        | "strategy" | "supply-chain" => "business",
         _ => "general",
     }
 }
@@ -84,7 +85,11 @@ fn parse_frontmatter(content: &str) -> (String, String, String, String) {
     let rest = &content[3..];
     let end_idx = rest.find("\n---").unwrap_or(0);
     let frontmatter = &rest[..end_idx];
-    let body = if end_idx > 0 { rest[end_idx + 4..].trim().to_string() } else { content.to_string() };
+    let body = if end_idx > 0 {
+        rest[end_idx + 4..].trim().to_string()
+    } else {
+        content.to_string()
+    };
 
     for line in frontmatter.lines() {
         let line = line.trim();
@@ -117,11 +122,20 @@ fn parse_workflow_from_prompt(prompt: &str, expert_id: &str) -> Vec<RecommendedW
         // Detect workflow section headers
         if trimmed.starts_with("## ") {
             let header = trimmed[3..].to_lowercase();
-            if header.contains("工作流程") || header.contains("协作模式") || header.contains("审查策略") || header.contains("执行步骤") || header.contains("workflow") {
+            if header.contains("工作流程")
+                || header.contains("协作模式")
+                || header.contains("审查策略")
+                || header.contains("执行步骤")
+                || header.contains("workflow")
+            {
                 // Save previous workflow if any
                 if !current_steps.is_empty() {
                     workflows.push(RecommendedWorkflow {
-                        name: if current_name.is_empty() { "默认流程".to_string() } else { current_name.clone() },
+                        name: if current_name.is_empty() {
+                            "默认流程".to_string()
+                        } else {
+                            current_name.clone()
+                        },
                         description: current_desc.clone(),
                         steps: current_steps.clone(),
                         expert_role_id: expert_id.to_string(),
@@ -150,7 +164,10 @@ fn parse_workflow_from_prompt(prompt: &str, expert_id: &str) -> Vec<RecommendedW
 
         if in_workflow_section {
             // Capture numbered steps: "1. xxx", "2. xxx"
-            if let Some(rest) = trimmed.strip_prefix(|c: char| c.is_ascii_digit()).and_then(|s| s.strip_prefix(". ")) {
+            if let Some(rest) = trimmed
+                .strip_prefix(|c: char| c.is_ascii_digit())
+                .and_then(|s| s.strip_prefix(". "))
+            {
                 current_steps.push(rest.to_string());
             } else if let Some(rest) = trimmed.strip_prefix("- ") {
                 if current_steps.is_empty() {
@@ -178,7 +195,10 @@ fn parse_workflow_from_prompt(prompt: &str, expert_id: &str) -> Vec<RecommendedW
         let mut steps: Vec<String> = Vec::new();
         for line in prompt.lines() {
             let trimmed = line.trim();
-            if let Some(rest) = trimmed.strip_prefix(|c: char| c.is_ascii_digit()).and_then(|s| s.strip_prefix(". ")) {
+            if let Some(rest) = trimmed
+                .strip_prefix(|c: char| c.is_ascii_digit())
+                .and_then(|s| s.strip_prefix(". "))
+            {
                 if steps.len() < 10 {
                     steps.push(rest.to_string());
                 }
@@ -201,15 +221,37 @@ fn parse_workflow_from_prompt(prompt: &str, expert_id: &str) -> Vec<RecommendedW
 /// Looks for patterns like: read_file, write_file, search_content, grep, browse, execute, etc.
 fn parse_tools_from_prompt(prompt: &str) -> Vec<String> {
     let tool_patterns = [
-        "read_file", "write_file", "edit_file", "delete_file",
-        "search_content", "search_file", "grep", "glob",
-        "execute_command", "bash", "shell", "terminal",
-        "web_search", "web_fetch", "browse", "url",
-        "list_files", "list_directory",
-        "run_tests", "cargo", "npm", "git",
-        "database", "sql", "query",
-        "docker", "kubectl", "deploy",
-        "agent", "task", "subagent",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "delete_file",
+        "search_content",
+        "search_file",
+        "grep",
+        "glob",
+        "execute_command",
+        "bash",
+        "shell",
+        "terminal",
+        "web_search",
+        "web_fetch",
+        "browse",
+        "url",
+        "list_files",
+        "list_directory",
+        "run_tests",
+        "cargo",
+        "npm",
+        "git",
+        "database",
+        "sql",
+        "query",
+        "docker",
+        "kubectl",
+        "deploy",
+        "agent",
+        "task",
+        "subagent",
     ];
 
     let prompt_lower = prompt.to_lowercase();
@@ -229,17 +271,12 @@ fn parse_tools_from_prompt(prompt: &str) -> Vec<String> {
 /// Generate workflow template IDs from parsed workflows.
 /// Stores the steps in agency_experts.recommended_workflows as JSON.
 /// Frontend can later create actual workflow templates from this data.
-fn generate_workflow_ids(
-    expert_id: &str,
-    workflows: &[RecommendedWorkflow],
-) -> Vec<String> {
+fn generate_workflow_ids(expert_id: &str, workflows: &[RecommendedWorkflow]) -> Vec<String> {
     workflows
         .iter()
         .enumerate()
         .filter(|(_, wf)| wf.steps.len() >= 2)
-        .map(|(i, _)| {
-            format!("auto-{}-wf{}", expert_id, i)
-        })
+        .map(|(i, _)| format!("auto-{}-wf{}", expert_id, i))
         .collect()
 }
 
@@ -266,10 +303,20 @@ pub async fn import_agency_experts(
     for entry in entries {
         let entry = entry.map_err(|e| format!("读取条目失败: {}", e))?;
         let entry_path = entry.path();
-        if !entry_path.is_dir() { continue; }
+        if !entry_path.is_dir() {
+            continue;
+        }
 
-        let dir_name = entry_path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        if dir_name.starts_with('.') || dir_name == "scripts" || dir_name == "examples" || dir_name == "integrations" {
+        let dir_name = entry_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        if dir_name.starts_with('.')
+            || dir_name == "scripts"
+            || dir_name == "examples"
+            || dir_name == "integrations"
+        {
             continue;
         }
 
@@ -279,25 +326,44 @@ pub async fn import_agency_experts(
         for md_entry in md_files {
             let md_entry = md_entry.map_err(|e| format!("读取文件条目失败: {}", e))?;
             let md_path = md_entry.path();
-            if md_path.extension().map_or(true, |ext| ext != "md") { continue; }
+            if md_path
+                .extension()
+                .map_or(true, |ext| ext != "md")
+            {
+                continue;
+            }
 
-            let file_stem = md_path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+            let file_stem = md_path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
             let content = match fs::read_to_string(&md_path) {
                 Ok(c) => c,
-                Err(e) => { errors.push(format!("读取文件失败 {}: {}", md_path.display(), e)); continue; }
+                Err(e) => {
+                    errors.push(format!("读取文件失败 {}: {}", md_path.display(), e));
+                    continue;
+                }
             };
 
             let (name, description, color, body) = parse_frontmatter(&content);
             let display_name = if name.is_empty() {
-                file_stem.strip_prefix(&format!("{}-", dir_name)).unwrap_or(&file_stem).replace('-', " ")
+                file_stem
+                    .strip_prefix(&format!("{}-", dir_name))
+                    .unwrap_or(&file_stem)
+                    .replace('-', " ")
             } else {
                 name.clone()
             };
 
-            if display_name.trim().is_empty() { continue; }
+            if display_name.trim().is_empty() {
+                continue;
+            }
 
             let id = format!("agency-{}-{}", dir_name, file_stem);
-            let final_category = map_color_to_category(&color).unwrap_or(category).to_string();
+            let final_category = map_color_to_category(&color)
+                .unwrap_or(category)
+                .to_string();
 
             // Parse workflows and tools
             let parsed_workflows = parse_workflow_from_prompt(&body, &id);
@@ -308,16 +374,32 @@ pub async fn import_agency_experts(
             let parsed_tools = parse_tools_from_prompt(&body);
             tools_matched += parsed_tools.len() as u32;
 
-            let recommended_workflows_json = if created_wf_ids.is_empty() { None } else { Some(serde_json::to_string(&created_wf_ids).unwrap_or_default()) };
-            let recommended_tools_json = if parsed_tools.is_empty() { None } else { Some(serde_json::to_string(&parsed_tools).unwrap_or_default()) };
+            let recommended_workflows_json = if created_wf_ids.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(&created_wf_ids).unwrap_or_default())
+            };
+            let recommended_tools_json = if parsed_tools.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(&parsed_tools).unwrap_or_default())
+            };
 
             let model = agency_experts::ActiveModel {
                 id: Set(id.clone()),
                 name: Set(display_name),
-                description: Set(if description.is_empty() { None } else { Some(description) }),
+                description: Set(if description.is_empty() {
+                    None
+                } else {
+                    Some(description)
+                }),
                 category: Set(final_category),
                 system_prompt: Set(body),
-                color: Set(if color.is_empty() { None } else { Some(color) }),
+                color: Set(if color.is_empty() {
+                    None
+                } else {
+                    Some(color)
+                }),
                 source_dir: Set(dir_name.clone()),
                 is_enabled: Set(1),
                 imported_at: Set(now),
@@ -327,16 +409,25 @@ pub async fn import_agency_experts(
 
             match model.save(db).await {
                 Ok(_) => count += 1,
-                Err(e) => { errors.push(format!("保存失败 {}: {}", id, e)); }
+                Err(e) => {
+                    errors.push(format!("保存失败 {}: {}", id, e));
+                }
             }
         }
     }
 
-    Ok(ImportResult { count, workflows_created, tools_matched, errors })
+    Ok(ImportResult {
+        count,
+        workflows_created,
+        tools_matched,
+        errors,
+    })
 }
 
 #[tauri::command]
-pub async fn list_agency_experts(state: State<'_, AppState>) -> Result<Vec<AgencyExpertRow>, String> {
+pub async fn list_agency_experts(
+    state: State<'_, AppState>,
+) -> Result<Vec<AgencyExpertRow>, String> {
     let db = &state.sea_db;
     let models = agency_experts::Entity::find()
         .filter(agency_experts::Column::IsEnabled.eq(1))
@@ -355,8 +446,12 @@ pub async fn list_agency_experts(state: State<'_, AppState>) -> Result<Vec<Agenc
             color: m.color,
             source_dir: m.source_dir,
             is_enabled: m.is_enabled != 0,
-            recommended_workflows: m.recommended_workflows.and_then(|s| serde_json::from_str(&s).ok()),
-            recommended_tools: m.recommended_tools.and_then(|s| serde_json::from_str(&s).ok()),
+            recommended_workflows: m
+                .recommended_workflows
+                .and_then(|s| serde_json::from_str(&s).ok()),
+            recommended_tools: m
+                .recommended_tools
+                .and_then(|s| serde_json::from_str(&s).ok()),
         })
         .collect();
 
@@ -398,13 +493,15 @@ fn extract_json_from_text(text: &str) -> Result<serde_json::Value, String> {
     if let Some(start) = text.find("```json") {
         let body = &text[start + 7..];
         if let Some(end) = body.find("```") {
-            return serde_json::from_str(&body[..end]).map_err(|e| format!("JSON parse error: {}", e));
+            return serde_json::from_str(&body[..end])
+                .map_err(|e| format!("JSON parse error: {}", e));
         }
     }
     if let Some(start) = text.find('{') {
         let trimmed = &text[start..];
         if let Some(end) = trimmed.rfind('}') {
-            return serde_json::from_str(&trimmed[..end + 1]).map_err(|e| format!("JSON parse error: {}", e));
+            return serde_json::from_str(&trimmed[..end + 1])
+                .map_err(|e| format!("JSON parse error: {}", e));
         }
     }
     Err("No JSON found in response".to_string())
@@ -425,7 +522,9 @@ pub async fn extract_expert_structure(
         .ok_or_else(|| format!("专家不存在: {}", request.expert_id))?;
 
     // Get default provider/model from settings
-    let settings = get_settings(db).await.map_err(|e| format!("加载设置失败: {}", e))?;
+    let settings = get_settings(db)
+        .await
+        .map_err(|e| format!("加载设置失败: {}", e))?;
     let provider_id = settings.default_provider_id.ok_or("未配置默认模型供应商")?;
     let model_id = settings.default_model_id.ok_or("未配置默认模型")?;
 
@@ -449,10 +548,16 @@ pub async fn extract_expert_structure(
         api_key,
         key_id: key_row.id.clone(),
         provider_id: provider_id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider_config.api_host, &provider_config.provider_type)),
+        base_url: Some(resolve_base_url_for_type(
+            &provider_config.api_host,
+            &provider_config.provider_type,
+        )),
         api_path: provider_config.api_path.clone(),
         proxy_config: provider_config.proxy_config.clone(),
-        custom_headers: provider_config.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider_config
+            .custom_headers
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -524,23 +629,26 @@ pub async fn extract_expert_structure(
         store: None,
     };
 
-    let response = adapter.chat(&ctx, chat_request)
+    let response = adapter
+        .chat(&ctx, chat_request)
         .await
         .map_err(|e| format!("LLM调用失败: {}", e))?;
 
-    let extracted = extract_json_from_text(&response.content)
-        .map_err(|e| {
-            let preview = &response.content[..200.min(response.content.len())];
-            format!("JSON解析失败: {}. 响应预览: {}", e, preview)
-        })?;
+    let extracted = extract_json_from_text(&response.content).map_err(|e| {
+        let preview = &response.content[..200.min(response.content.len())];
+        format!("JSON解析失败: {}. 响应预览: {}", e, preview)
+    })?;
 
-    let workflows: Vec<ExtractedWorkflow> = serde_json::from_value(
-        extracted["workflows"].clone()
-    ).unwrap_or_default();
+    let workflows: Vec<ExtractedWorkflow> =
+        serde_json::from_value(extracted["workflows"].clone()).unwrap_or_default();
 
     let tools: Vec<String> = extracted["tools"]
         .as_array()
-        .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
         .unwrap_or_default();
 
     Ok(ExtractExpertStructureResult { workflows, tools })
@@ -554,5 +662,105 @@ pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportRe
         .await
         .map_err(|e| format!("删除失败: {}", e))?;
 
-    Ok(ImportResult { count: result.rows_affected as u32, workflows_created: 0, tools_matched: 0, errors: vec![] })
+    Ok(ImportResult {
+        count: result.rows_affected as u32,
+        workflows_created: 0,
+        tools_matched: 0,
+        errors: vec![],
+    })
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateExpertRequest {
+    pub id: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub system_prompt: Option<String>,
+    pub is_enabled: Option<bool>,
+}
+
+#[tauri::command]
+pub async fn update_agency_expert(
+    state: State<'_, AppState>,
+    request: UpdateExpertRequest,
+) -> Result<(), String> {
+    let db = &state.sea_db;
+
+    let expert = agency_experts::Entity::find_by_id(&request.id)
+        .one(db)
+        .await
+        .map_err(|e| format!("查询失败: {}", e))?
+        .ok_or_else(|| format!("专家不存在: {}", request.id))?;
+
+    let mut am: agency_experts::ActiveModel = expert.into();
+
+    if let Some(name) = request.name {
+        am.name = Set(name);
+    }
+    if let Some(desc) = request.description {
+        am.description = Set(Some(desc));
+    }
+    if let Some(cat) = request.category {
+        am.category = Set(cat);
+    }
+    if let Some(sp) = request.system_prompt {
+        am.system_prompt = Set(sp);
+    }
+    if let Some(enabled) = request.is_enabled {
+        am.is_enabled = Set(if enabled { 1 } else { 0 });
+    }
+
+    am.update(db).await.map_err(|e| format!("更新失败: {}", e))?;
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeleteExpertRequest {
+    pub id: String,
+}
+
+#[tauri::command]
+pub async fn delete_agency_expert(
+    state: State<'_, AppState>,
+    request: DeleteExpertRequest,
+) -> Result<(), String> {
+    let db = &state.sea_db;
+    agency_experts::Entity::delete_by_id(&request.id)
+        .exec(db)
+        .await
+        .map_err(|e| format!("删除失败: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String, String> {
+    let db = &state.sea_db;
+    let models = agency_experts::Entity::find()
+        .filter(agency_experts::Column::IsEnabled.eq(1))
+        .all(db)
+        .await
+        .map_err(|e| format!("查询失败: {}", e))?;
+
+    let rows: Vec<AgencyExpertRow> = models
+        .into_iter()
+        .map(|m| AgencyExpertRow {
+            id: m.id,
+            name: m.name,
+            description: m.description,
+            category: m.category,
+            system_prompt: m.system_prompt,
+            color: m.color,
+            source_dir: m.source_dir,
+            is_enabled: m.is_enabled != 0,
+            recommended_workflows: m
+                .recommended_workflows
+                .and_then(|s| serde_json::from_str(&s).ok()),
+            recommended_tools: m
+                .recommended_tools
+                .and_then(|s| serde_json::from_str(&s).ok()),
+        })
+        .collect();
+
+    serde_json::to_string_pretty(&rows).map_err(|e| format!("序列化失败: {}", e))
 }

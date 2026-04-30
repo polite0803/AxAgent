@@ -1870,6 +1870,7 @@ mod tests {
         let result = runtime.compact(CompactionConfig {
             preserve_recent_messages: 2,
             max_estimated_tokens: 1,
+            ..Default::default()
         });
         assert!(result.summary.contains("Conversation summary"));
         assert_eq!(
@@ -1960,7 +1961,11 @@ mod tests {
 
     #[cfg(windows)]
     fn shell_snippet(script: &str) -> String {
-        script.replace('\'', "\"")
+        let script = script
+            .replace("printf '", "echo ")
+            .replace('\'', "")
+            .replace(";", "&");
+        script
     }
 
     #[cfg(not(windows))]
@@ -1999,6 +2004,23 @@ mod tests {
             crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
                 text: "four".to_string(),
             }]),
+            crate::session::ConversationMessage::user_text("five"),
+            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "six".to_string(),
+            }]),
+            crate::session::ConversationMessage::user_text("seven"),
+            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "eight".to_string(),
+            }]),
+            crate::session::ConversationMessage::user_text("nine"),
+            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "ten".to_string(),
+            }]),
+            crate::session::ConversationMessage::user_text("eleven"),
+            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "twelve".to_string(),
+            }]),
+            crate::session::ConversationMessage::user_text("thirteen"),
         ];
 
         let mut runtime = ConversationRuntime::new(
@@ -2017,7 +2039,7 @@ mod tests {
         assert_eq!(
             summary.auto_compaction,
             Some(AutoCompactionEvent {
-                removed_message_count: 2,
+                removed_message_count: 3,
             })
         );
         assert_eq!(runtime.session().messages[0].role, MessageRole::System);
@@ -2160,13 +2182,32 @@ mod tests {
     }
 
     #[test]
-    fn build_assistant_message_requires_message_stop_event() {
-        // given
-        let events = vec![AssistantEvent::TextDelta("hello".to_string())];
+    fn build_assistant_message_returns_partial_result_when_stream_has_no_stop_event() {
+        // given: text content without MessageStop (simulates interrupted stream)
+        let events = vec![AssistantEvent::TextDelta("partial".to_string())];
+
+        // when: stream recovery returns partial content instead of error
+        let result = build_assistant_message(events)
+            .expect("stream recovery should return partial result with content");
+
+        // then: partial content is preserved
+        let (msg, _usage, _cache, _thinking) = result;
+        let text = msg.blocks.iter().find_map(|b| match b {
+            ContentBlock::Text { text } => Some(text.clone()),
+            _ => None,
+        }).unwrap();
+        assert!(text.contains("partial"), "should contain original text");
+        assert!(text.contains("Stream was interrupted"), "should contain recovery marker");
+    }
+
+    #[test]
+    fn build_assistant_message_errors_when_stream_has_no_content_and_no_stop() {
+        // given: empty events (no content, no MessageStop)
+        let events: Vec<AssistantEvent> = vec![];
 
         // when
         let error = build_assistant_message(events)
-            .expect_err("assistant messages should require a stop event");
+            .expect_err("empty stream without stop event should error");
 
         // then
         assert!(error

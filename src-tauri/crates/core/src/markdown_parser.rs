@@ -9,7 +9,7 @@ pub struct ParsedLink {
     pub link_type: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ParsedFrontmatter {
     pub title: Option<String>,
     pub author: Option<String>,
@@ -18,20 +18,6 @@ pub struct ParsedFrontmatter {
     pub source: Option<String>,
     pub page_type: Option<String>,
     pub custom: std::collections::HashMap<String, serde_json::Value>,
-}
-
-impl Default for ParsedFrontmatter {
-    fn default() -> Self {
-        Self {
-            title: None,
-            author: None,
-            tags: Vec::new(),
-            created: None,
-            source: None,
-            page_type: None,
-            custom: std::collections::HashMap::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,7 +42,7 @@ impl MarkdownParser {
             link_regex: Regex::new(r"\[([^\]]+)\]\(([^\)]+)\)").unwrap(),
             wiki_link_regex: Regex::new(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]").unwrap(),
             frontmatter_regex: Regex::new(r"(?s)^---\n(.+?)\n---").unwrap(),
-            tag_regex: Regex::new(r"(?<!`)#([a-zA-Z0-9_-]+)").unwrap(),
+            tag_regex: Regex::new(r"(?:^|\s)#([a-zA-Z0-9_-]+)").unwrap(),
         }
     }
 
@@ -197,8 +183,8 @@ impl MarkdownParser {
 
         for line in content.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("# ") {
-                return Some(trimmed[2..].trim().to_string());
+            if let Some(stripped) = trimmed.strip_prefix("# ") {
+                return Some(stripped.trim().to_string());
             }
         }
 

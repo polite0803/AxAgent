@@ -28,6 +28,8 @@ dirs = "5"
 sea-orm = { workspace = true }
 axagent-core = { path = "../core" }
 axagent-trajectory = { path = "../trajectory" }
+axagent-providers = { path = "../providers" }
+sysinfo = "0.32"
 itertools = "0.14"
 portable-pty = "0.8"
 base64 = "0.22"

@@ -1,4 +1,6 @@
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
@@ -20,8 +22,6 @@ impl FeishuAdapter {
         }
     }
 }
-
-use std::sync::Arc;
 
 #[async_trait::async_trait]
 impl PlatformAdapter for FeishuAdapter {
@@ -54,45 +54,78 @@ impl PlatformAdapter for FeishuAdapter {
         let task = tokio::spawn(async move {
             let client = reqwest::Client::new();
 
-            // Fetch initial tenant_access_token
-            match fetch_tenant_access_token(&client, &app_id, &app_secret).await {
-                Ok(_token) => {
+            let token = match fetch_feishu_token(&client, &app_id, &app_secret).await {
+                Ok(t) => {
                     tracing::info!("Feishu: tenant_access_token obtained");
                     connected.store(true, Ordering::SeqCst);
-                    // Store token for send_message use
-                    // (in a production system this would be cached and refreshed)
+                    t
                 }
                 Err(e) => {
-                    tracing::error!("Feishu: failed to obtain tenant_access_token: {}", e);
+                    tracing::error!("Feishu: failed to obtain token: {}", e);
                     running.store(false, Ordering::SeqCst);
                     return;
                 }
-            }
+            };
 
-            // Status monitoring loop
-            // Feishu uses server-push (Event Subscription) for message receiving.
-            // This adapter monitors API health and maintains the connection state.
+            let mut seen_ids: HashSet<String> = HashSet::new();
+
             loop {
                 if !running.load(Ordering::SeqCst) {
                     break;
                 }
 
-                match verify_feishu_api_health(&client, &app_id, &app_secret).await {
-                    Ok(()) => {
-                        if !connected.load(Ordering::SeqCst) {
-                            connected.store(true, Ordering::SeqCst);
-                            tracing::info!("Feishu: connection restored");
+                match poll_feishu_messages(&client, &token, &mut seen_ids).await {
+                    Ok(msgs) => {
+                        for (user_id, text, chat_id, msg_id) in msgs {
+                            tracing::info!(
+                                "Feishu msg [{}]: {} (from {})",
+                                msg_id,
+                                text,
+                                user_id
+                            );
+
+                            if let Some(cb) =
+                                crate::message_gateway::platforms::get_message_callback()
+                            {
+                                let bt = token.clone();
+                                let uid = user_id.clone();
+                                let t = text.clone();
+                                let ch = chat_id.clone();
+                                tokio::spawn(async move {
+                                    let reply = cb
+                                        .on_message("feishu", &uid, None, &ch, &t)
+                                        .await;
+                                    if let Some(reply_text) = reply {
+                                        let _ = send_feishu_text_message(
+                                            &reqwest::Client::new(),
+                                            &bt,
+                                            &uid,
+                                            &reply_text,
+                                        )
+                                        .await;
+                                    }
+                                });
+                            }
                         }
                     }
                     Err(e) => {
-                        tracing::error!("Feishu: API health check failed: {}", e);
+                        tracing::warn!("Feishu: message poll failed: {}", e);
                         connected.store(false, Ordering::SeqCst);
-                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                        match fetch_feishu_token(&client, &app_id, &app_secret).await {
+                            Ok(_) => {
+                                connected.store(true, Ordering::SeqCst);
+                            }
+                            Err(e2) => {
+                                tracing::error!("Feishu: token refresh failed: {}", e2);
+                                tokio::time::sleep(std::time::Duration::from_secs(10))
+                                    .await;
+                            }
+                        }
                     }
                 }
 
                 if running.load(Ordering::SeqCst) {
-                    tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 }
             }
 
@@ -129,7 +162,7 @@ impl PlatformAdapter for FeishuAdapter {
         let app_secret = config.feishu_app_secret.clone().unwrap_or_default();
 
         let client = reqwest::Client::new();
-        let token = fetch_tenant_access_token(&client, &app_id, &app_secret).await?;
+        let token = fetch_feishu_token(&client, &app_id, &app_secret).await?;
 
         send_feishu_text_message(&client, &token, chat_id, text).await
     }
@@ -141,7 +174,7 @@ impl Default for FeishuAdapter {
     }
 }
 
-async fn fetch_tenant_access_token(
+async fn fetch_feishu_token(
     client: &reqwest::Client,
     app_id: &str,
     app_secret: &str,
@@ -171,26 +204,82 @@ async fn fetch_tenant_access_token(
         .ok_or_else(|| anyhow::anyhow!("Feishu: tenant_access_token not found in response"))
 }
 
-async fn verify_feishu_api_health(
+async fn poll_feishu_messages(
     client: &reqwest::Client,
-    app_id: &str,
-    app_secret: &str,
-) -> anyhow::Result<()> {
-    let _token = fetch_tenant_access_token(client, app_id, app_secret).await?;
-    let url = "https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal";
-    let body = serde_json::json!({
-        "app_id": app_id,
-        "app_secret": app_secret
-    });
+    token: &str,
+    seen_ids: &mut HashSet<String>,
+) -> anyhow::Result<Vec<(String, String, String, String)>> {
+    let url = format!(
+        "https://open.feishu.cn/open-apis/im/v1/messages\
+         ?receive_id_type=tenant\
+         &page_size=20\
+         &sort_type=ByCreateTimeDesc",
+    );
 
-    let resp = client.post(url).json(&body).send().await?;
+    let resp = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await?;
+
     let json: serde_json::Value = resp.json().await?;
+
     if let Some(code) = json.get("code").and_then(|v| v.as_i64()) {
         if code != 0 {
-            anyhow::bail!("Feishu health check failed: code={}", code);
+            let msg = json
+                .get("msg")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+            anyhow::bail!("Feishu list messages failed: code={}, msg={}", code, msg);
         }
     }
-    Ok(())
+
+    let mut results = Vec::new();
+
+    if let Some(items) = json["data"]["items"].as_array() {
+        for item in items {
+            let msg_id = item["message_id"].as_str().unwrap_or("");
+            let msg_type = item["msg_type"].as_str().unwrap_or("");
+            let chat_id = item["chat_id"].as_str().unwrap_or("");
+            let sender_id = item["sender"]["id"].as_str().unwrap_or("sender");
+
+            if seen_ids.contains(msg_id) {
+                continue;
+            }
+            seen_ids.insert(msg_id.to_string());
+
+            if seen_ids.len() > 5000 {
+                let to_remove: Vec<String> = seen_ids
+                    .iter()
+                    .take(2000)
+                    .cloned()
+                    .collect();
+                for old in to_remove {
+                    seen_ids.remove(&old);
+                }
+            }
+
+            let content = &item["body"]["content"];
+            let text = match msg_type {
+                "text" => content["text"].as_str().unwrap_or("").to_string(),
+                "post" => {
+                    content.as_str().unwrap_or("").to_string()
+                }
+                _ => continue,
+            };
+
+            if !text.is_empty() {
+                results.push((
+                    sender_id.to_string(),
+                    text,
+                    chat_id.to_string(),
+                    msg_id.to_string(),
+                ));
+            }
+        }
+    }
+
+    Ok(results)
 }
 
 async fn send_feishu_text_message(

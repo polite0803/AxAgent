@@ -82,6 +82,7 @@ fn test_serialize_deserialize_config() {
         slack_bot_token: None,
         slack_signing_secret: None,
         slack_workspace_id: None,
+        slack_app_token: None,
         whatsapp_enabled: false,
         whatsapp_phone_number_id: None,
         whatsapp_access_token: None,
@@ -131,4 +132,22 @@ fn test_allowed_users_filtering() {
     assert!(config.telegram_allowed_users.as_ref().unwrap().contains(&111));
     assert!(config.telegram_allowed_users.as_ref().unwrap().contains(&222));
     assert!(!config.telegram_allowed_users.as_ref().unwrap().contains(&333));
+}
+
+#[test]
+fn test_validate_slack_requires_app_token() {
+    let mut config = PlatformConfig::default();
+    config.slack_enabled = true;
+    let result = config.validate();
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Slack app token"));
+}
+
+#[test]
+fn test_validate_slack_with_app_token() {
+    let mut config = PlatformConfig::default();
+    config.slack_enabled = true;
+    config.slack_app_token = Some("xapp-test".to_string());
+    let result = config.validate();
+    assert!(result.is_ok());
 }

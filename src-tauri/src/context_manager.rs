@@ -248,7 +248,8 @@ fn relevance_score(message_text: &str, query_terms: &[String]) -> f64 {
     // Normalize: hits / (msg_length * term_count) with bonus for multiple matches
     let msg_len = msg_lower.len().max(1) as f64;
     let density = hits as f64 / msg_len;
-    let term_weight = total_term_weight as f64 / query_terms.iter().map(|t| t.len().max(1)).sum::<usize>() as f64;
+    let term_weight =
+        total_term_weight as f64 / query_terms.iter().map(|t| t.len().max(1)).sum::<usize>() as f64;
     (density * term_weight).min(1.0)
 }
 
@@ -268,13 +269,66 @@ fn extract_query_terms(query: &str) -> Vec<String> {
 fn is_stop_word(word: &str) -> bool {
     matches!(
         word,
-        "the" | "and" | "for" | "that" | "this" | "with" | "you" | "are" | "not"
-        | "but" | "from" | "have" | "has" | "was" | "were" | "can" | "will"
-        | "what" | "when" | "where" | "which" | "how" | "all" | "just" | "like"
-        | "very" | "been" | "would" | "could" | "should" | "about" | "also"
-        | "的" | "了" | "是" | "在" | "我" | "有" | "和" | "就" | "不" | "人"
-        | "都" | "一" | "一个" | "上" | "也" | "很" | "到" | "说" | "要" | "去"
-        | "你" | "会" | "着" | "没有" | "看" | "好" | "自己" | "这"
+        "the"
+            | "and"
+            | "for"
+            | "that"
+            | "this"
+            | "with"
+            | "you"
+            | "are"
+            | "not"
+            | "but"
+            | "from"
+            | "have"
+            | "has"
+            | "was"
+            | "were"
+            | "can"
+            | "will"
+            | "what"
+            | "when"
+            | "where"
+            | "which"
+            | "how"
+            | "all"
+            | "just"
+            | "like"
+            | "very"
+            | "been"
+            | "would"
+            | "could"
+            | "should"
+            | "about"
+            | "also"
+            | "的"
+            | "了"
+            | "是"
+            | "在"
+            | "我"
+            | "有"
+            | "和"
+            | "就"
+            | "不"
+            | "人"
+            | "都"
+            | "一"
+            | "一个"
+            | "上"
+            | "也"
+            | "很"
+            | "到"
+            | "说"
+            | "要"
+            | "去"
+            | "你"
+            | "会"
+            | "着"
+            | "没有"
+            | "看"
+            | "好"
+            | "自己"
+            | "这"
     )
 }
 
@@ -303,11 +357,7 @@ fn recency_weight(position_from_end: usize, total_messages: usize) -> f64 {
 /// 1. Always keep the most recent `RECENCY_WINDOW` messages (guaranteed recency)
 /// 2. Score remaining messages by combined relevance + recency
 /// 3. Greedily select highest-scoring messages until budget exhausted
-pub fn prune_by_relevance(
-    history: &[ChatMessage],
-    query: &str,
-    budget: usize,
-) -> Vec<ChatMessage> {
+pub fn prune_by_relevance(history: &[ChatMessage], query: &str, budget: usize) -> Vec<ChatMessage> {
     if history.is_empty() || budget == 0 {
         return Vec::new();
     }
@@ -322,7 +372,11 @@ pub fn prune_by_relevance(
     let n = history.len();
 
     // Always include the last RECENCY_WINDOW messages
-    let recency_start = if n <= RECENCY_WINDOW { 0 } else { n - RECENCY_WINDOW };
+    let recency_start = if n <= RECENCY_WINDOW {
+        0
+    } else {
+        n - RECENCY_WINDOW
+    };
 
     let mut selected: Vec<bool> = vec![false; n];
     let mut used_tokens = 0usize;
@@ -338,9 +392,13 @@ pub fn prune_by_relevance(
         let mut trimmed: Vec<ChatMessage> = Vec::new();
         let mut tokens = 0usize;
         for i in (0..n).rev() {
-            if !selected[i] { continue; }
+            if !selected[i] {
+                continue;
+            }
             let t = message_tokens(&history[i]);
-            if tokens + t > budget { break; }
+            if tokens + t > budget {
+                break;
+            }
             tokens += t;
             trimmed.push(history[i].clone());
         }

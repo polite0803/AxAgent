@@ -36,7 +36,9 @@ pub async fn git_get_branch() -> Result<String, String> {
 
 #[tauri::command]
 pub async fn git_status() -> Result<GitStatusInfo, String> {
-    let branch = git_get_branch().await.unwrap_or_else(|_| "unknown".to_string());
+    let branch = git_get_branch()
+        .await
+        .unwrap_or_else(|_| "unknown".to_string());
 
     let output = Command::new("git")
         .args(["status", "--porcelain"])

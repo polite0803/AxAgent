@@ -1,6 +1,6 @@
-use axagent_runtime::dashboard_registry::DashboardPluginInfo;
-use axagent_runtime::dashboard_plugin::{DashboardPluginAdapter, DashboardPluginManifest};
 use crate::AppState;
+use axagent_runtime::dashboard_plugin::{DashboardPluginAdapter, DashboardPluginManifest};
+use axagent_runtime::dashboard_registry::DashboardPluginInfo;
 use tauri::State;
 
 #[tauri::command]
@@ -26,9 +26,7 @@ pub async fn dashboard_register_plugin(
     let manifest: DashboardPluginManifest =
         serde_json::from_str(&manifest_json).map_err(|e| e.to_string())?;
 
-    let plugin = DashboardPluginAdapter::new(manifest, |_, _| {
-        "".to_string()
-    });
+    let plugin = DashboardPluginAdapter::new(manifest, |_, _| "".to_string());
 
     registry.register(Box::new(plugin)).await
 }

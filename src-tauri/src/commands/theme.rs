@@ -8,13 +8,18 @@ pub struct ThemeState {
 }
 
 #[tauri::command]
-pub async fn list_themes(state: State<'_, Arc<RwLock<ThemeState>>>) -> Result<Vec<ThemeMetadata>, String> {
+pub async fn list_themes(
+    state: State<'_, Arc<RwLock<ThemeState>>>,
+) -> Result<Vec<ThemeMetadata>, String> {
     let state = state.read().await;
     Ok(state.engine.list_themes())
 }
 
 #[tauri::command]
-pub async fn get_theme(state: State<'_, Arc<RwLock<ThemeState>>>, name: String) -> Result<Theme, String> {
+pub async fn get_theme(
+    state: State<'_, Arc<RwLock<ThemeState>>>,
+    name: String,
+) -> Result<Theme, String> {
     let state = state.read().await;
     state
         .engine
@@ -23,7 +28,10 @@ pub async fn get_theme(state: State<'_, Arc<RwLock<ThemeState>>>, name: String) 
 }
 
 #[tauri::command]
-pub async fn get_xterm_theme(state: State<'_, Arc<RwLock<ThemeState>>>, name: String) -> Result<XTermTheme, String> {
+pub async fn get_xterm_theme(
+    state: State<'_, Arc<RwLock<ThemeState>>>,
+    name: String,
+) -> Result<XTermTheme, String> {
     let state = state.read().await;
     let theme = state
         .engine
@@ -33,19 +41,27 @@ pub async fn get_xterm_theme(state: State<'_, Arc<RwLock<ThemeState>>>, name: St
 }
 
 #[tauri::command]
-pub async fn save_theme(state: State<'_, Arc<RwLock<ThemeState>>>, theme: Theme) -> Result<(), String> {
+pub async fn save_theme(
+    state: State<'_, Arc<RwLock<ThemeState>>>,
+    theme: Theme,
+) -> Result<(), String> {
     let state = state.read().await;
     state.engine.save_theme(&theme)
 }
 
 #[tauri::command]
-pub async fn delete_theme(state: State<'_, Arc<RwLock<ThemeState>>>, name: String) -> Result<(), String> {
+pub async fn delete_theme(
+    state: State<'_, Arc<RwLock<ThemeState>>>,
+    name: String,
+) -> Result<(), String> {
     let state = state.read().await;
     state.engine.delete_theme(&name)
 }
 
 #[tauri::command]
-pub async fn load_user_themes(state: State<'_, Arc<RwLock<ThemeState>>>) -> Result<Vec<Theme>, String> {
+pub async fn load_user_themes(
+    state: State<'_, Arc<RwLock<ThemeState>>>,
+) -> Result<Vec<Theme>, String> {
     let state = state.read().await;
     Ok(state.engine.load_user_themes())
 }

@@ -1,6 +1,10 @@
 use crate::AppState;
+use axagent_core::platform_config::PlatformConfig;
+use axagent_runtime::message_gateway::platform_manager::{
+    PlatformAdapterStatus, PlatformReconcileReport,
+};
 use axagent_trajectory::{
-    DiscordMessage, MessagePlatform, OutgoingMessage, PlatformConfig, PlatformMessage,
+    DiscordMessage, MessagePlatform, OutgoingMessage, PlatformMessage,
     PlatformSession, TelegramMessage,
 };
 use tauri::State;
@@ -15,10 +19,19 @@ pub async fn get_platform_config(state: State<'_, AppState>) -> Result<PlatformC
 pub async fn update_platform_config(
     state: State<'_, AppState>,
     config: PlatformConfig,
-) -> Result<(), String> {
-    let service = state.platform_integration_service.write().await;
-    service.update_config(config).await;
-    Ok(())
+) -> Result<PlatformReconcileReport, String> {
+    axagent_core::repo::platform_config::save_platform_config(&state.sea_db, &config)
+        .await
+        .map_err(|e| e.to_string())?;
+    {
+        let service = state.platform_integration_service.write().await;
+        service.update_config(config.clone()).await;
+    }
+    state
+        .platform_manager
+        .reconcile(&config)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -154,4 +167,30 @@ pub async fn send_discord_message(
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_platform_statuses(
+    state: State<'_, AppState>,
+) -> Result<Vec<PlatformAdapterStatus>, String> {
+    let config = {
+        let service = state.platform_integration_service.read().await;
+        service.get_config().await
+    };
+    Ok(state.platform_manager.get_statuses(&config).await)
+}
+
+#[tauri::command]
+pub async fn reconcile_platforms(
+    state: State<'_, AppState>,
+) -> Result<PlatformReconcileReport, String> {
+    let config = {
+        let service = state.platform_integration_service.read().await;
+        service.get_config().await
+    };
+    state
+        .platform_manager
+        .reconcile(&config)
+        .await
+        .map_err(|e| e.to_string())
 }

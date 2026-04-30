@@ -119,6 +119,59 @@ impl CacheStats {
     }
 }
 
+/// Serializable representation of a single vector search cache entry.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CacheEntrySnapshot {
+    pub key: String,
+    pub results_json: String,
+}
+
+impl VectorSearchCache {
+    /// Export all currently valid cache entries for persistence.
+    ///
+    /// Returns entries whose TTL has not yet expired, serialized as
+    /// `CacheEntrySnapshot` values that can be included in a
+    /// `CacheSnapshot`.
+    pub async fn export_snapshot(&self) -> Vec<CacheEntrySnapshot> {
+        let cache = self.cache.read().await;
+        cache
+            .iter()
+            .filter(|(_, entry)| entry.timestamp.elapsed() < self.ttl)
+            .map(|(key, entry)| {
+                let results_json =
+                    serde_json::to_string(&entry.results).unwrap_or_default();
+                CacheEntrySnapshot {
+                    key: key.clone(),
+                    results_json,
+                }
+            })
+            .collect()
+    }
+
+    /// Restore cached entries from a persisted snapshot.
+    ///
+    /// Entry timestamps are reset to `Instant::now()` so TTL starts fresh
+    /// after application restart.
+    pub async fn restore_from_snapshot(&self, entries: Vec<CacheEntrySnapshot>) {
+        let mut cache = self.cache.write().await;
+        for entry in entries {
+            let results: Vec<crate::vector_store::VectorSearchResult> =
+                match serde_json::from_str(&entry.results_json) {
+                    Ok(r) => r,
+                    Err(_) => continue,
+                };
+            cache.insert(
+                entry.key,
+                CacheEntry {
+                    results,
+                    timestamp: Instant::now(),
+                    query_hash: 0,
+                },
+            );
+        }
+    }
+}
+
 impl Default for VectorSearchCache {
     fn default() -> Self {
         Self::new(1000, 300)

@@ -8,7 +8,9 @@
 //! 5. Final result emitted as `plan-execution-complete` event
 
 use crate::app_state::AppState;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, ProviderProxyConfig};
+use axagent_core::types::{
+    ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, ProviderProxyConfig,
+};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -198,7 +200,7 @@ async fn generate_plan_via_llm(
 ) -> Result<Plan, String> {
     use axagent_core::repo::provider::{self, get_active_key};
     use axagent_providers::registry::ProviderRegistry;
-    use axagent_providers::{resolve_base_url_for_type};
+    use axagent_providers::resolve_base_url_for_type;
 
     let db = &state.sea_db;
 
@@ -782,7 +784,12 @@ pub async fn plan_execute(
     let steps_to_run: Vec<&PlanStep> = if let Some(ref step_ids) = request.step_ids {
         steps.iter().filter(|s| step_ids.contains(&s.id)).collect()
     } else {
-        steps.iter().filter(|s| s.status == PlanStepStatus::Approved || s.status == PlanStepStatus::Pending).collect()
+        steps
+            .iter()
+            .filter(|s| {
+                s.status == PlanStepStatus::Approved || s.status == PlanStepStatus::Pending
+            })
+            .collect()
     };
 
     if steps_to_run.is_empty() {
@@ -855,7 +862,11 @@ pub async fn plan_execute(
     let steps_json = serde_json::to_string(&updated_steps).unwrap_or_default();
 
     let has_errors = updated_steps.iter().any(|s| s.status == PlanStepStatus::Error);
-    let final_status = if has_errors { "completed" } else { "completed" };
+    let final_status = if has_errors {
+        "completed"
+    } else {
+        "completed"
+    };
 
     let mut am2: axagent_core::entity::plans::ActiveModel = plan_row.into();
     am2.steps_json = Set(steps_json);
@@ -1018,7 +1029,11 @@ pub async fn plan_modify_step(
             step.description = description.clone();
         }
         if let Some(approved) = request.approved {
-            step.status = if approved { PlanStepStatus::Approved } else { PlanStepStatus::Rejected };
+            step.status = if approved {
+                PlanStepStatus::Approved
+            } else {
+                PlanStepStatus::Rejected
+            };
         }
     }
 

@@ -93,12 +93,32 @@ impl PlatformAdapter for TelegramAdapter {
                                 let chat_id = msg.chat.id;
 
                                 if !text.is_empty() {
-                                    let response = handle_telegram_command(&text, &username, &user_id);
-                                    if let Some(resp) = response {
-                                        send_telegram_message(
-                                            &client, &bot_token, chat_id, &resp,
-                                        )
-                                        .await;
+                                    let cb =
+                                        crate::message_gateway::platforms::get_message_callback();
+                                    if let Some(cb) = cb {
+                                        let client = client.clone();
+                                        let bt = bot_token.clone();
+                                        let uid = user_id.clone();
+                                        let uname = username.clone();
+                                        let t = text.clone();
+                                        let ch = chat_id;
+                                        tokio::spawn(async move {
+                                            let reply = cb
+                                                .on_message(
+                                                    "telegram",
+                                                    &uid,
+                                                    uname.as_deref(),
+                                                    &ch.to_string(),
+                                                    &t,
+                                                )
+                                                .await;
+                                            if let Some(reply_text) = reply {
+                                                send_telegram_message(
+                                                    &client, &bt, ch, &reply_text,
+                                                )
+                                                .await;
+                                            }
+                                        });
                                     }
                                 }
                             }
@@ -179,6 +199,7 @@ impl Default for TelegramAdapter {
     }
 }
 
+#[allow(dead_code)]
 fn handle_telegram_command(text: &str, username: &Option<String>, user_id: &str) -> Option<String> {
     let name = username.as_deref().unwrap_or(user_id);
 

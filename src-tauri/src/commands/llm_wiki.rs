@@ -1,14 +1,19 @@
-use axagent_agent::{ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler};
-use axagent_core::entity::wiki_sync_queue;
-use axagent_core::repo::wiki;
-use axagent_core::types::{
-    ProviderProxyConfig, ProviderType,
-};
 use crate::AppState;
+use axagent_agent::{
+    ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler,
+};
+use axagent_core::{
+    entity::wiki_sync_queue,
+    repo::wiki,
+    types::{ProviderProxyConfig, ProviderType},
+};
 use axagent_providers::{
     resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext,
 };
-use sea_orm::{EntityTrait, ColumnTrait, QueryOrder, QuerySelect, ActiveModelTrait, IntoActiveModel, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
+    QuerySelect, Set,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
@@ -74,11 +79,12 @@ impl From<axagent_core::entity::wiki_operations::Model> for WikiOperationOutput 
 }
 
 #[tauri::command]
-pub async fn llm_wiki_list(
-    state: State<'_, AppState>,
-) -> Result<Vec<WikiOutput>, String> {
+pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>, String> {
     let wikis = axagent_core::entity::wikis::Entity::find()
-        .order_by(axagent_core::entity::wikis::Column::CreatedAt, sea_orm::Order::Desc)
+        .order_by(
+            axagent_core::entity::wikis::Column::CreatedAt,
+            sea_orm::Order::Desc,
+        )
         .all(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?;
@@ -126,10 +132,7 @@ pub async fn llm_wiki_create(
 }
 
 #[tauri::command]
-pub async fn llm_wiki_delete(
-    state: State<'_, AppState>,
-    wiki_id: String,
-) -> Result<(), String> {
+pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Result<(), String> {
     wiki::delete_wiki(&state.sea_db, &wiki_id)
         .await
         .map_err(|e| e.to_string())
@@ -142,13 +145,19 @@ pub async fn llm_wiki_operations_list(
 ) -> Result<Vec<WikiOperationOutput>, String> {
     let operations = axagent_core::entity::wiki_operations::Entity::find()
         .filter(axagent_core::entity::wiki_operations::Column::WikiId.eq(&wiki_id))
-        .order_by(axagent_core::entity::wiki_operations::Column::CreatedAt, sea_orm::Order::Desc)
+        .order_by(
+            axagent_core::entity::wiki_operations::Column::CreatedAt,
+            sea_orm::Order::Desc,
+        )
         .limit(100)
         .all(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(operations.into_iter().map(WikiOperationOutput::from).collect())
+    Ok(operations
+        .into_iter()
+        .map(WikiOperationOutput::from)
+        .collect())
 }
 
 #[derive(Debug, Deserialize)]
@@ -228,10 +237,12 @@ fn resolve_provider_adapter(
 ) -> Result<Arc<dyn ProviderAdapter>, String> {
     match provider_type {
         ProviderType::OpenAI => Ok(Arc::new(axagent_providers::openai::OpenAIAdapter::new())),
-        ProviderType::OpenAIResponses => {
-            Ok(Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new()))
-        }
-        ProviderType::Anthropic => Ok(Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())),
+        ProviderType::OpenAIResponses => Ok(Arc::new(
+            axagent_providers::openai_responses::OpenAIResponsesAdapter::new(),
+        )),
+        ProviderType::Anthropic => Ok(Arc::new(
+            axagent_providers::anthropic::AnthropicAdapter::new(),
+        )),
         ProviderType::Gemini => Ok(Arc::new(axagent_providers::gemini::GeminiAdapter::new())),
         ProviderType::OpenClaw => Ok(Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())),
         ProviderType::Hermes => Ok(Arc::new(axagent_providers::hermes::HermesAdapter::new())),
@@ -311,7 +322,10 @@ pub async fn llm_wiki_compile(
     let embedding_provider = wiki_model
         .embedding_provider
         .clone()
-        .ok_or_else(|| "Wiki has no embedding_provider configured. Set one in wiki settings.".to_string())?;
+        .ok_or_else(|| {
+            "Wiki has no embedding_provider configured. Set one in wiki settings."
+                .to_string()
+        })?;
 
     let (adapter, ctx, model) =
         build_llm_adapter(&state.sea_db, &state.master_key, &embedding_provider).await?;
@@ -594,7 +608,8 @@ pub async fn write_base64_to_file(
         .await
         .map_err(|e| e.to_string())?;
 
-    let _source_content = String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
+    let _source_content = String::from_utf8(bytes)
+        .unwrap_or_else(|_| "[Binary content]".to_string());
 
     let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.sea_db.clone()));
     let source = ingest_pipeline::IngestSource {
@@ -714,7 +729,10 @@ pub async fn wiki_sync_get_queue(
     }
 
     query
-        .order_by(wiki_sync_queue::Column::CreatedAt, sea_orm::Order::Desc)
+        .order_by(
+            wiki_sync_queue::Column::CreatedAt,
+            sea_orm::Order::Desc,
+        )
         .limit(100)
         .all(&state.sea_db)
         .await
@@ -722,10 +740,7 @@ pub async fn wiki_sync_get_queue(
 }
 
 #[tauri::command]
-pub async fn wiki_sync_process(
-    state: State<'_, AppState>,
-    queue_id: i64,
-) -> Result<(), String> {
+pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Result<(), String> {
     let model = wiki_sync_queue::Entity::find_by_id(queue_id)
         .one(&state.sea_db)
         .await
@@ -782,18 +797,11 @@ async fn process_sync_event(
             Ok(())
         }
         "source_ingested" => {
-            tracing::info!(
-                "Sync: source {} ingested for wiki {}",
-                model.target_id,
-                model.wiki_id
-            );
+            tracing::info!("Sync: source {} ingested for wiki {}", model.target_id, model.wiki_id);
             Ok(())
         }
         "schema_updated" => {
-            tracing::info!(
-                "Sync: schema updated for wiki {}",
-                model.wiki_id
-            );
+            tracing::info!("Sync: schema updated for wiki {}", model.wiki_id);
             Ok(())
         }
         "wiki_created" => {

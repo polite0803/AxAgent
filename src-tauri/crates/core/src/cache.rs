@@ -88,6 +88,15 @@ impl EmbeddingCache {
     pub fn clear(&self) {
         self.cache.clear();
     }
+
+    /// Batch-import entries from a persisted snapshot.
+    ///
+    /// Each entry is `(key, embedding_vector)`.
+    pub fn import_entries(&self, entries: Vec<(String, Vec<f32>)>) {
+        for (key, value) in entries {
+            self.cache.insert(key, value);
+        }
+    }
 }
 
 impl Default for EmbeddingCache {
@@ -156,6 +165,13 @@ impl TextHashCache {
     /// Clears all entries from the cache.
     pub fn clear(&self) {
         self.cache.clear();
+    }
+
+    /// Batch-import entries from a persisted snapshot.
+    pub fn import_entries(&self, entries: Vec<(String, String)>) {
+        for (key, value) in entries {
+            self.cache.insert(key, value);
+        }
     }
 }
 

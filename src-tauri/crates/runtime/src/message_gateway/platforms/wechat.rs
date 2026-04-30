@@ -1,4 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
@@ -20,8 +21,6 @@ impl WeChatAdapter {
         }
     }
 }
-
-use std::sync::Arc;
 
 #[async_trait::async_trait]
 impl PlatformAdapter for WeChatAdapter {
@@ -53,11 +52,13 @@ impl PlatformAdapter for WeChatAdapter {
 
         let task = tokio::spawn(async move {
             let client = reqwest::Client::new();
-            connected.store(true, Ordering::SeqCst);
 
-            // Step 1: Fetch access_token
-            let access_token = match fetch_wechat_token(&client, &app_id, &app_secret).await {
-                Some(token) => token,
+            let mut access_token = match fetch_wechat_token(&client, &app_id, &app_secret).await {
+                Some(t) => {
+                    tracing::info!("WeChat: access_token obtained");
+                    connected.store(true, Ordering::SeqCst);
+                    t
+                }
                 None => {
                     tracing::error!("WeChat: failed to obtain access_token");
                     connected.store(false, Ordering::SeqCst);
@@ -65,34 +66,61 @@ impl PlatformAdapter for WeChatAdapter {
                     return;
                 }
             };
-            tracing::info!("WeChat: access_token obtained");
 
-            // Step 2: Long-poll for messages using custom menu / callback wait
-            // WeChat Official Accounts use server-push (callback URL), so this adapter
-            // polls a lightweight status endpoint. For full message receiving, a public
-            // callback URL is needed. This adapter provides the send capability and
-            // status monitoring.
+            let mut token_expiry = chrono::Utc::now().timestamp() + 7000;
+
             loop {
                 if !running.load(Ordering::SeqCst) {
                     break;
                 }
 
-                match check_wechat_api_status(&client, &access_token).await {
-                    Ok(()) => {
-                        if !connected.load(Ordering::SeqCst) {
+                let now = chrono::Utc::now().timestamp();
+                if now > token_expiry {
+                    match fetch_wechat_token(&client, &app_id, &app_secret).await {
+                        Some(t) => {
+                            access_token = t;
+                            token_expiry = now + 7000;
                             connected.store(true, Ordering::SeqCst);
-                            tracing::info!("WeChat: connection restored");
+                            tracing::info!("WeChat: access_token refreshed");
+                        }
+                        None => {
+                            tracing::error!("WeChat: token refresh failed");
+                            connected.store(false, Ordering::SeqCst);
+                            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                            continue;
                         }
                     }
-                    Err(e) => {
-                        tracing::error!("WeChat: API check failed: {}", e);
-                        connected.store(false, Ordering::SeqCst);
-                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                }
+
+                if let Ok(msgs) =
+                    poll_wechat_cs_messages(&client, &access_token).await
+                {
+                    for (openid, text) in msgs {
+                        tracing::info!("WeChat msg: {} from {}", text, openid);
+
+                        if let Some(cb) =
+                            crate::message_gateway::platforms::get_message_callback()
+                        {
+                            let at = access_token.clone();
+                            let oid = openid.clone();
+                            let t = text.clone();
+                            tokio::spawn(async move {
+                                let reply = cb
+                                    .on_message("wechat", &oid, None, &oid, &t)
+                                    .await;
+                                if let Some(reply_text) = reply {
+                                    let _ = send_wechat_custom_message(
+                                        &at, &oid, &reply_text,
+                                    )
+                                    .await;
+                                }
+                            });
+                        }
                     }
                 }
 
                 if running.load(Ordering::SeqCst) {
-                    tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 }
             }
 
@@ -142,7 +170,11 @@ impl Default for WeChatAdapter {
     }
 }
 
-async fn fetch_wechat_token(client: &reqwest::Client, app_id: &str, app_secret: &str) -> Option<String> {
+async fn fetch_wechat_token(
+    client: &reqwest::Client,
+    app_id: &str,
+    app_secret: &str,
+) -> Option<String> {
     let url = format!(
         "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={}&secret={}",
         app_id, app_secret
@@ -154,22 +186,43 @@ async fn fetch_wechat_token(client: &reqwest::Client, app_id: &str, app_secret: 
         .map(|s| s.to_string())
 }
 
-async fn check_wechat_api_status(client: &reqwest::Client, access_token: &str) -> anyhow::Result<()> {
+async fn poll_wechat_cs_messages(
+    client: &reqwest::Client,
+    access_token: &str,
+) -> anyhow::Result<Vec<(String, String)>> {
     let url = format!(
-        "https://api.weixin.qq.com/cgi-bin/getcallbackip?access_token={}",
+        "https://api.weixin.qq.com/cgi-bin/message/custom/receive?access_token={}",
         access_token
     );
-    let resp = client.get(&url).send().await?;
-    let body: serde_json::Value = resp.json().await?;
-    if let Some(errcode) = body.get("errcode").and_then(|v| v.as_i64()) {
-        if errcode != 0 {
-            anyhow::bail!("WeChat API error: errcode={}, errmsg={:?}", errcode, body.get("errmsg"));
+
+    let body = serde_json::json!({
+        "action": "get_message",
+        "limit": 10
+    });
+
+    let resp = client.post(&url).json(&body).send().await?;
+    let json: serde_json::Value = resp.json().await?;
+
+    let mut results = Vec::new();
+
+    if let Some(records) = json["record_list"].as_array() {
+        for record in records {
+            let openid = record["openid"].as_str().unwrap_or("");
+            let text = record["text"]["content"].as_str().unwrap_or("");
+            if !openid.is_empty() && !text.is_empty() {
+                results.push((openid.to_string(), text.to_string()));
+            }
         }
     }
-    Ok(())
+
+    Ok(results)
 }
 
-async fn send_wechat_custom_message(access_token: &str, open_id: &str, text: &str) -> anyhow::Result<()> {
+async fn send_wechat_custom_message(
+    access_token: &str,
+    open_id: &str,
+    text: &str,
+) -> anyhow::Result<()> {
     let url = format!(
         "https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token={}",
         access_token

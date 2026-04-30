@@ -1,19 +1,25 @@
-use crate::message_gateway::platform_config::PlatformConfig;
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::Mutex;
+use tokio::task::JoinHandle;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WhatsAppConfig {
-    pub phone_number_id: String,
-    pub access_token: String,
-    pub business_account_id: String,
-}
+use crate::message_gateway::platform_config::PlatformConfig;
+use crate::message_gateway::platforms::PlatformAdapter;
 
 pub struct WhatsAppAdapter {
-    connected: Arc<RwLock<bool>>,
-    client: reqwest::Client,
+    connected: Arc<AtomicBool>,
+    poll_task: Mutex<Option<JoinHandle<()>>>,
+    running: Arc<AtomicBool>,
+}
+
+impl WhatsAppAdapter {
+    pub fn new() -> Self {
+        Self {
+            connected: Arc::new(AtomicBool::new(false)),
+            poll_task: Mutex::new(None),
+            running: Arc::new(AtomicBool::new(false)),
+        }
+    }
 }
 
 impl Default for WhatsAppAdapter {
@@ -22,39 +28,93 @@ impl Default for WhatsAppAdapter {
     }
 }
 
-impl WhatsAppAdapter {
-    pub fn new() -> Self {
-        Self {
-            connected: Arc::new(RwLock::new(false)),
-            client: reqwest::Client::new(),
-        }
-    }
-}
-
-#[async_trait]
-impl super::PlatformAdapter for WhatsAppAdapter {
+#[async_trait::async_trait]
+impl PlatformAdapter for WhatsAppAdapter {
     fn name(&self) -> &'static str {
         "whatsapp"
     }
 
     fn is_enabled(&self, config: &PlatformConfig) -> bool {
         config.whatsapp_enabled
+            && config.whatsapp_phone_number_id.is_some()
+            && config.whatsapp_access_token.is_some()
     }
 
-    async fn start(&self, _config: &PlatformConfig) -> anyhow::Result<()> {
-        *self.connected.write().await = true;
-        tracing::info!("WhatsApp adapter started");
+    async fn start(&self, config: &PlatformConfig) -> anyhow::Result<()> {
+        if !self.is_enabled(config) {
+            anyhow::bail!("WhatsApp is not enabled or missing credentials");
+        }
+        if self.running.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+
+        let phone_number_id = config
+            .whatsapp_phone_number_id
+            .clone()
+            .unwrap_or_default();
+        let access_token = config.whatsapp_access_token.clone().unwrap_or_default();
+
+        let connected = self.connected.clone();
+        let running = self.running.clone();
+
+        self.running.store(true, Ordering::SeqCst);
+
+        let task = tokio::spawn(async move {
+            let client = reqwest::Client::new();
+
+            match verify_whatsapp(&client, &phone_number_id, &access_token).await {
+                Ok(_) => {
+                    tracing::info!("WhatsApp: phone number verified");
+                    connected.store(true, Ordering::SeqCst);
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "WhatsApp: phone verification failed (webhook-only for messages): {}",
+                        e
+                    );
+                    connected.store(true, Ordering::SeqCst);
+                }
+            }
+
+            loop {
+                if !running.load(Ordering::SeqCst) {
+                    break;
+                }
+
+                if let Err(e) =
+                    verify_whatsapp(&client, &phone_number_id, &access_token).await
+                {
+                    tracing::warn!("WhatsApp: health check failed: {}", e);
+                    connected.store(false, Ordering::SeqCst);
+                } else if !connected.load(Ordering::SeqCst) {
+                    connected.store(true, Ordering::SeqCst);
+                }
+
+                if running.load(Ordering::SeqCst) {
+                    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+                }
+            }
+
+            connected.store(false, Ordering::SeqCst);
+            tracing::info!("WhatsApp health check loop stopped");
+        });
+
+        *self.poll_task.lock().await = Some(task);
         Ok(())
     }
 
     async fn stop(&self) -> anyhow::Result<()> {
-        *self.connected.write().await = false;
-        tracing::info!("WhatsApp adapter stopped");
+        self.running.store(false, Ordering::SeqCst);
+        if let Some(task) = self.poll_task.lock().await.take() {
+            task.abort();
+            let _ = task.await;
+        }
+        self.connected.store(false, Ordering::SeqCst);
         Ok(())
     }
 
     async fn is_connected(&self) -> bool {
-        *self.connected.read().await
+        self.connected.load(Ordering::SeqCst)
     }
 
     async fn send_message(
@@ -64,14 +124,18 @@ impl super::PlatformAdapter for WhatsAppAdapter {
         text: &str,
         _parse_mode: Option<&str>,
     ) -> anyhow::Result<()> {
-        let wa_config = WhatsAppConfig {
-            phone_number_id: _config.whatsapp_phone_number_id.clone().unwrap_or_default(),
-            access_token: _config.whatsapp_access_token.clone().unwrap_or_default(),
-            business_account_id: _config.whatsapp_business_account_id.clone().unwrap_or_default(),
-        };
+        let phone_number_id = _config
+            .whatsapp_phone_number_id
+            .clone()
+            .unwrap_or_default();
+        let access_token = _config
+            .whatsapp_access_token
+            .clone()
+            .unwrap_or_default();
+
         let url = format!(
             "https://graph.facebook.com/v18.0/{}/messages",
-            wa_config.phone_number_id
+            phone_number_id
         );
         let body = serde_json::json!({
             "messaging_product": "whatsapp",
@@ -81,18 +145,44 @@ impl super::PlatformAdapter for WhatsAppAdapter {
                 "body": text
             }
         });
-        let response = self
-            .client
+
+        let client = reqwest::Client::new();
+        let resp = client
             .post(&url)
-            .header("Authorization", format!("Bearer {}", wa_config.access_token))
+            .header("Authorization", format!("Bearer {}", access_token))
             .header("Content-Type", "application/json")
             .json(&body)
             .send()
             .await?;
-        if !response.status().is_success() {
-            return Err(anyhow::anyhow!("WhatsApp API error: {}", response.status()));
+
+        if !resp.status().is_success() {
+            return Err(anyhow::anyhow!("WhatsApp API error: {}", resp.status()));
         }
-        tracing::debug!("Message sent to WhatsApp recipient {}", recipient);
         Ok(())
     }
+}
+
+async fn verify_whatsapp(
+    client: &reqwest::Client,
+    phone_number_id: &str,
+    access_token: &str,
+) -> anyhow::Result<()> {
+    let url = format!(
+        "https://graph.facebook.com/v18.0/{}",
+        phone_number_id
+    );
+
+    let resp = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", access_token))
+        .send()
+        .await?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        anyhow::bail!("WhatsApp verify failed ({}): {}", status.as_u16(), body);
+    }
+
+    Ok(())
 }

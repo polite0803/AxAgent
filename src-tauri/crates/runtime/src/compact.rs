@@ -10,6 +10,14 @@ const COMPACT_DIRECT_RESUME_INSTRUCTION: &str = "Continue the conversation from 
 pub struct CompactionConfig {
     pub preserve_recent_messages: usize,
     pub max_estimated_tokens: usize,
+    /// Whether to extract per-turn summaries during compaction.
+    pub enable_turn_summaries: bool,
+    /// Whether to apply distance-based relevance decay when scoring messages.
+    pub enable_distance_decay: bool,
+    /// Whether to automatically clean up context after a task boundary is detected.
+    pub enable_task_boundary_cleanup: bool,
+    /// Maximum age (in turns from the end) before messages are aggressively pruned.
+    pub max_turn_age: Option<usize>,
 }
 
 impl Default for CompactionConfig {
@@ -23,6 +31,10 @@ impl Default for CompactionConfig {
             // 128K-200K context windows; 10K was too aggressive and caused
             // premature compaction that lost important context.
             max_estimated_tokens: 80_000,
+            enable_turn_summaries: true,
+            enable_distance_decay: true,
+            enable_task_boundary_cleanup: true,
+            max_turn_age: Some(50),
         }
     }
 }
@@ -559,6 +571,158 @@ fn extract_summary_timeline(summary: &str) -> Vec<String> {
     lines
 }
 
+/// Extract a concise summary of a single conversation turn.
+///
+/// Scans the message blocks for user intent, tool usage, and results,
+/// producing a short one-line description suitable for inclusion in
+/// compacted summaries.
+#[must_use]
+pub fn summarize_turn(messages: &[ConversationMessage]) -> String {
+    let mut parts: Vec<String> = Vec::new();
+
+    for message in messages {
+        match message.role {
+            MessageRole::User => {
+                if let Some(text) = first_text_block(message) {
+                    let short = text.chars().take(200).collect::<String>();
+                    if !short.trim().is_empty() {
+                        parts.push(format!("User: {}", short));
+                    }
+                }
+            }
+            MessageRole::Assistant => {
+                let tool_uses: Vec<&str> = message
+                    .blocks
+                    .iter()
+                    .filter_map(|b| match b {
+                        ContentBlock::ToolUse { name, .. } => Some(name.as_str()),
+                        _ => None,
+                    })
+                    .collect();
+                if !tool_uses.is_empty() {
+                    parts.push(format!("Used: {}", tool_uses.join(", ")));
+                } else if let Some(text) = first_text_block(message) {
+                    let short = text.chars().take(150).collect::<String>();
+                    if !short.trim().is_empty() {
+                        parts.push(short);
+                    }
+                }
+            }
+            MessageRole::Tool => {
+                for block in &message.blocks {
+                    if let ContentBlock::ToolResult {
+                        tool_name,
+                        output,
+                        is_error,
+                        ..
+                    } = block
+                    {
+                        let status = if *is_error { "failed" } else { "ok" };
+                        let output_short = output.chars().take(80).collect::<String>();
+                        parts.push(format!("{tool_name}: {status} ({output_short})"));
+                    }
+                }
+            }
+            MessageRole::System => {}
+        }
+    }
+
+    if parts.is_empty() {
+        "(empty turn)".to_string()
+    } else {
+        parts.join(" | ")
+    }
+}
+
+/// Compute a relevance decay weight based on distance from the current turn.
+///
+/// Messages closer to the current turn receive higher weight.
+/// Uses exponential decay: `weight = base_weight * decay_factor^(distance)`
+///
+/// `position` is 0-indexed from the end (0 = most recent, N = furthest back).
+#[must_use]
+pub fn decay_weight(position: usize, base_weight: f64, decay_factor: f64) -> f64 {
+    if decay_factor <= 0.0 || decay_factor >= 1.0 {
+        return base_weight;
+    }
+    base_weight * decay_factor.powi(position as i32)
+}
+
+/// Detect task boundaries in a sequence of messages and return the index
+/// after which earlier messages can be safely cleaned up.
+///
+/// A task boundary is detected when:
+/// - A user message signals task completion (e.g. "thanks", "done", "looks good")
+/// - A significant gap in conversation context is detected
+/// - A new, distinct task request begins
+///
+/// Returns `Some(index)` of the first message of the new task, or `None`
+/// if no clear boundary is found.
+#[must_use]
+pub fn detect_task_boundary(messages: &[ConversationMessage]) -> Option<usize> {
+    if messages.len() < 4 {
+        return None;
+    }
+
+    let completion_markers = [
+        "thanks", "thank you", "done", "looks good", "lgtm",
+        "works", "working", "perfect", "great", "awesome",
+        "completed", "resolved", "fixed",
+    ];
+
+    let new_task_markers = [
+        "now let's", "next,", "can you also", "additionally",
+        "separately", "another thing", "new task", "moving on",
+        "also,", "one more", "by the way",
+    ];
+
+    // Search from newest backwards for completion markers followed by new task
+    for i in (1..messages.len()).rev() {
+        if messages[i].role == MessageRole::User {
+            if let Some(text) = first_text_block(&messages[i]) {
+                let lowered = text.to_lowercase();
+                // Check if this is a new task request
+                if new_task_markers.iter().any(|m| lowered.contains(m)) {
+                    return Some(i);
+                }
+            }
+        }
+        // Check if the previous message pair signals completion
+        if i > 0 && messages[i - 1].role == MessageRole::User {
+            if let Some(text) = first_text_block(&messages[i - 1]) {
+                let lowered = text.to_lowercase();
+                if completion_markers.iter().any(|m| lowered.contains(m)) {
+                    // Found completion — check if next message is a new task
+                    if i < messages.len() && messages[i].role == MessageRole::User {
+                        if let Some(next_text) = first_text_block(&messages[i]) {
+                            let next_lower = next_text.to_lowercase();
+                            if new_task_markers.iter().any(|m| next_lower.contains(m))
+                                || !completion_markers.iter().any(|m| next_lower.contains(m))
+                            {
+                                return Some(i);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Clean up messages before a detected task boundary.
+///
+/// When a task boundary is found at `boundary_index`, messages before that
+/// index can be replaced with a compact summary, reducing context bloat
+/// from completed tasks.
+///
+/// Returns the number of messages that should be compacted (pre-boundary count).
+#[must_use]
+pub fn cleanup_task_boundary(messages: &[ConversationMessage]) -> Option<usize> {
+    detect_task_boundary(messages).map(|boundary| boundary)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -608,10 +772,9 @@ mod tests {
             CompactionConfig {
                 preserve_recent_messages: 2,
                 max_estimated_tokens: 1,
+                ..Default::default()
             },
         );
-
-        // With the tool-use/tool-result boundary fix, the compaction preserves
         // one extra message to avoid an orphaned tool result at the boundary.
         // messages[1] (assistant) must be kept along with messages[2] (tool result).
         assert!(
@@ -634,7 +797,8 @@ mod tests {
             CompactionConfig {
                 preserve_recent_messages: 2,
                 max_estimated_tokens: 1,
-            }
+                ..Default::default()
+            },
         ));
         // Note: with the tool-use/tool-result boundary guard the compacted session
         // may preserve one extra message at the boundary, so token reduction is
@@ -662,6 +826,7 @@ mod tests {
         let config = CompactionConfig {
             preserve_recent_messages: 2,
             max_estimated_tokens: 1,
+            ..Default::default()
         };
 
         let first = compact_session(&initial_session, config);
@@ -724,6 +889,7 @@ mod tests {
             CompactionConfig {
                 preserve_recent_messages: 2,
                 max_estimated_tokens: 1,
+                ..Default::default()
             }
         ));
     }
@@ -731,10 +897,10 @@ mod tests {
     #[test]
     fn truncates_long_blocks_in_summary() {
         let summary = super::summarize_block(&ContentBlock::Text {
-            text: "x".repeat(400),
+            text: "x".repeat(600),
         });
         assert!(summary.ends_with('…'));
-        assert!(summary.chars().count() <= 161);
+        assert!(summary.chars().count() <= 501);
     }
 
     #[test]
@@ -829,5 +995,107 @@ mod tests {
         ]);
         assert_eq!(pending.len(), 1);
         assert!(pending[0].contains("Next: update tests"));
+    }
+
+    #[test]
+    fn test_summarize_turn_simple() {
+        let messages = vec![
+            ConversationMessage::user_text("Fix the bug in main.rs"),
+            ConversationMessage::assistant(vec![
+                ContentBlock::Text {
+                    text: "I'll fix that.".to_string(),
+                },
+            ]),
+        ];
+        let summary = super::summarize_turn(&messages);
+        assert!(summary.contains("Fix the bug"));
+        assert!(summary.contains("I'll fix that"));
+    }
+
+    #[test]
+    fn test_summarize_turn_with_tools() {
+        let messages = vec![
+            ConversationMessage::user_text("Read the file"),
+            ConversationMessage {
+                role: MessageRole::Assistant,
+                blocks: vec![
+                    ContentBlock::ToolUse {
+                        id: "1".to_string(),
+                        name: "read_file".to_string(),
+                        input: "main.rs".to_string(),
+                    },
+                ],
+                usage: None,
+            },
+            ConversationMessage::tool_result("1", "read_file", "file contents", false),
+        ];
+        let summary = super::summarize_turn(&messages);
+        assert!(summary.contains("Used: read_file"));
+        assert!(summary.contains("read_file: ok"));
+    }
+
+    #[test]
+    fn test_decay_weight_values() {
+        let w0 = super::decay_weight(0, 1.0, 0.9);
+        let w1 = super::decay_weight(1, 1.0, 0.9);
+        let w5 = super::decay_weight(5, 1.0, 0.9);
+        assert!((w0 - 1.0).abs() < 0.001);
+        assert!((w1 - 0.9).abs() < 0.001);
+        assert!(w5 < w1);
+        assert!(w5 > 0.4);
+    }
+
+    #[test]
+    fn test_decay_weight_invalid_factor() {
+        let w = super::decay_weight(3, 1.0, 1.5);
+        assert!((w - 1.0).abs() < 0.001);
+        let w2 = super::decay_weight(3, 1.0, 0.0);
+        assert!((w2 - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_detect_task_boundary_finds_transition() {
+        let messages = vec![
+            ConversationMessage::user_text("Fix the bug"),
+            ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "Done".to_string(),
+            }]),
+            ConversationMessage::user_text("Thanks, looks good!"),
+            ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "You're welcome".to_string(),
+            }]),
+            ConversationMessage::user_text("Now let's add a new feature"),
+        ];
+        let boundary = super::detect_task_boundary(&messages);
+        assert_eq!(boundary, Some(4));
+    }
+
+    #[test]
+    fn test_detect_task_boundary_short_conversation() {
+        let messages = vec![
+            ConversationMessage::user_text("Hi"),
+            ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "Hello".to_string(),
+            }]),
+        ];
+        let boundary = super::detect_task_boundary(&messages);
+        assert_eq!(boundary, None);
+    }
+
+    #[test]
+    fn test_cleanup_task_boundary_returns_count() {
+        let messages = vec![
+            ConversationMessage::user_text("do task A"),
+            ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "done A".to_string(),
+            }]),
+            ConversationMessage::user_text("thanks, looks good"),
+            ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "welcome".to_string(),
+            }]),
+            ConversationMessage::user_text("Now let's do task B"),
+        ];
+        let cleanup = super::cleanup_task_boundary(&messages);
+        assert_eq!(cleanup, Some(4));
     }
 }

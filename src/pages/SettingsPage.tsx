@@ -7,6 +7,7 @@ import {
   GeneralSettings,
   LocalToolSettings,
   McpServerSettings,
+  MessageChannelSettings,
   ProviderSettings,
   ProxySettings,
   SchedulerSettings,
@@ -51,6 +52,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   skillsHub: SkillsHubSettings,
   dashboardPlugins: DashboardPluginsSettings,
   webhooks: WebhookSettings,
+  messageChannels: MessageChannelSettings,
 };
 
 export function SettingsPage() {

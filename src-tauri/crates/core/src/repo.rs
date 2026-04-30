@@ -20,6 +20,7 @@ pub mod local_tool;
 pub mod mcp_server;
 pub mod memory;
 pub mod message;
+pub mod platform_config;
 pub mod program_policy;
 pub mod provider;
 pub mod retrieval_hit;

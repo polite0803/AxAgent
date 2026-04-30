@@ -33,6 +33,7 @@ export const SETTINGS_ICON_COLORS: Record<string, string> = {
   Clock: "#14b8a6", // teal-500  — Scheduler
   CloudUpload: "#3b82f6", // blue-500  — Backup
   Workflow: "#8b5cf6", // violet-500 — Workflow
+  Send: "#3b82f6", // blue-500  — Message Channels
 };
 
 // ── Title bar icons ─────────────────────────────────────────────────

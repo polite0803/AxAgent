@@ -97,9 +97,18 @@ interface ExpertState {
   loadAgencyRoles: () => Promise<void>;
   /** Clear agency experts from DB */
   clearAgencyExperts: () => Promise<void>;
+  /** Delete a single agency expert */
+  deleteAgencyExpert: (id: string) => Promise<void>;
+  /** Update an agency expert's fields */
+  updateAgencyExpert: (id: string, fields: { name?: string; description?: string; category?: string; system_prompt?: string; is_enabled?: boolean }) => Promise<void>;
+  /** Export all agency experts as JSON */
+  exportAgencyExperts: () => Promise<string>;
 
   addCustomRole: (role: ExpertRole) => void;
+  updateCustomRole: (role: ExpertRole) => void;
   removeCustomRole: (id: string) => void;
+  exportCustomRoles: () => string;
+  importCustomRoles: (json: string) => { count: number; errors: string[] };
 }
 
 export const useExpertStore = create<ExpertState>((set, get) => ({
@@ -191,8 +200,40 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     }
   },
 
+  deleteAgencyExpert: async (id: string) => {
+    try {
+      await invoke("delete_agency_expert", { request: { id } });
+      const roles = get().agencyRoles.filter((r) => r.id !== id);
+      set({ agencyRoles: roles });
+    } catch (e) {
+      console.error("[expertStore] deleteAgencyExpert failed:", e);
+    }
+  },
+
+  updateAgencyExpert: async (id: string, fields) => {
+    try {
+      await invoke("update_agency_expert", { request: { id, ...fields } });
+      await get().loadAgencyRoles();
+    } catch (e) {
+      console.error("[expertStore] updateAgencyExpert failed:", e);
+    }
+  },
+
+  exportAgencyExperts: async () => {
+    const json = await invoke<string>("export_agency_experts");
+    return json;
+  },
+
   addCustomRole: (role) => {
     const updated = [...get().customRoles, role];
+    saveCustomRoles(updated);
+    set({ customRoles: updated });
+  },
+
+  updateCustomRole: (role) => {
+    const existing = get().customRoles.find((r) => r.id === role.id);
+    if (!existing) return;
+    const updated = get().customRoles.map((r) => (r.id === role.id ? role : r));
     saveCustomRoles(updated);
     set({ customRoles: updated });
   },
@@ -201,5 +242,38 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     const updated = get().customRoles.filter((r) => r.id !== id);
     saveCustomRoles(updated);
     set({ customRoles: updated });
+  },
+
+  exportCustomRoles: () => {
+    const customRoles = get().customRoles;
+    return JSON.stringify(customRoles, null, 2);
+  },
+
+  importCustomRoles: (json) => {
+    const errors: string[] = [];
+    try {
+      const parsed = JSON.parse(json);
+      if (!Array.isArray(parsed)) {
+        return { count: 0, errors: ["JSON 格式错误：期望一个数组"] };
+      }
+      const validRoles: ExpertRole[] = [];
+      for (const item of parsed) {
+        if (item.id && item.displayName && item.category) {
+          validRoles.push(item as ExpertRole);
+        } else {
+          errors.push(`跳过无效角色: ${JSON.stringify(item).slice(0, 50)}`);
+        }
+      }
+      if (validRoles.length > 0) {
+        const existingIds = new Set(get().customRoles.map((r) => r.id));
+        const newRoles = validRoles.filter((r) => !existingIds.has(r.id));
+        const updated = [...get().customRoles, ...newRoles];
+        saveCustomRoles(updated);
+        set({ customRoles: updated });
+      }
+      return { count: validRoles.length, errors };
+    } catch (e) {
+      return { count: 0, errors: [`JSON 解析失败: ${String(e)}`] };
+    }
   },
 }));

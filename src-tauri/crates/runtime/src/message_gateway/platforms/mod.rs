@@ -7,7 +7,21 @@ pub mod telegram;
 pub mod wechat;
 pub mod whatsapp;
 
+use std::sync::Arc;
+use std::sync::OnceLock;
+
 use crate::message_gateway::platform_config::PlatformConfig;
+use crate::message_gateway::platform_manager::PlatformMessageCallback;
+
+static MESSAGE_CALLBACK: OnceLock<Arc<dyn PlatformMessageCallback>> = OnceLock::new();
+
+pub fn set_message_callback(callback: Arc<dyn PlatformMessageCallback>) {
+    let _ = MESSAGE_CALLBACK.set(callback);
+}
+
+pub fn get_message_callback() -> Option<Arc<dyn PlatformMessageCallback>> {
+    MESSAGE_CALLBACK.get().cloned()
+}
 
 #[async_trait::async_trait]
 pub trait PlatformAdapter: Send + Sync {

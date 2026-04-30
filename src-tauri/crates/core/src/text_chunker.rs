@@ -10,6 +10,11 @@ pub const DEFAULT_CHUNK_SIZE: usize = 2000;
 /// Default overlap in characters (~50 tokens).
 pub const DEFAULT_OVERLAP: usize = 200;
 
+/// Code-specific chunk size in characters (~20-37 tokens for 80-150 chars).
+pub const CODE_CHUNK_SIZE: usize = 120;
+/// Code-specific overlap in characters (~12% overlap).
+pub const CODE_OVERLAP: usize = 12;
+
 /// Find the nearest char boundary at or before the given byte position.
 fn floor_char_boundary(s: &str, index: usize) -> usize {
     if index >= s.len() {
@@ -348,6 +353,88 @@ fn find_break_point(text: &str, start: usize, target: usize) -> usize {
     target
 }
 
+/// Find a good break point for code, preferring function/class boundaries and newlines.
+fn find_code_break_point(text: &str, start: usize, target: usize) -> usize {
+    let search_range = &text[start..target];
+    let min_chunk = (target - start) / 3;
+
+    if let Some(pos) = search_range.rfind("\n\n") {
+        if pos >= min_chunk {
+            return start + pos + 2;
+        }
+    }
+
+    if let Some(pos) = search_range.rfind('\n') {
+        if pos >= min_chunk {
+            return start + pos + 1;
+        }
+    }
+
+    // Prefer breaking after semicolons (statement end) or closing braces
+    let bytes = search_range.as_bytes();
+    for i in (min_chunk..bytes.len()).rev() {
+        if matches!(bytes[i], b';' | b'}') {
+            return start + i + 1;
+        }
+    }
+
+    target
+}
+
+/// Chunk code text with code-optimized parameters (80-150 char chunks, ~10% overlap).
+///
+/// Uses `CODE_CHUNK_SIZE` (120) and `CODE_OVERLAP` (12) as defaults, but allows
+/// the caller to override via the optional `config` parameter.
+pub fn chunk_for_code(text: &str, chunk_size: Option<usize>, overlap: Option<usize>) -> Vec<TextChunk> {
+    let chunk_size = chunk_size.unwrap_or(CODE_CHUNK_SIZE);
+    let overlap = overlap.unwrap_or(CODE_OVERLAP);
+    let text = text.trim();
+    if text.is_empty() {
+        return vec![];
+    }
+    if text.len() <= chunk_size {
+        return vec![TextChunk {
+            index: 0,
+            content: text.to_string(),
+        }];
+    }
+
+    let mut chunks = Vec::new();
+    let mut start = 0;
+
+    while start < text.len() {
+        let end = floor_char_boundary(text, (start + chunk_size).min(text.len()));
+
+        let actual_end = if end >= text.len() {
+            text.len()
+        } else {
+            find_code_break_point(text, start, end)
+        };
+
+        let chunk_content = text[start..actual_end].trim();
+        if !chunk_content.is_empty() {
+            chunks.push(TextChunk {
+                index: chunks.len() as i32,
+                content: chunk_content.to_string(),
+            });
+        }
+
+        let advance = if actual_end - start > overlap {
+            actual_end - start - overlap
+        } else {
+            actual_end - start
+        };
+
+        start = ceil_char_boundary(text, start + advance.max(1));
+
+        if start >= text.len() || text.len() - start < overlap {
+            break;
+        }
+    }
+
+    chunks
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,5 +482,25 @@ mod tests {
         for chunk in &chunks {
             assert!(!chunk.content.is_empty());
         }
+    }
+
+    #[test]
+    fn test_code_chunking_small_chunks() {
+        let code = "fn main() {\n    let x = 1;\n    let y = 2;\n    println!(\"{}\", x + y);\n}\n";
+        let repeated = code.repeat(30);
+        let chunks = chunk_for_code(&repeated, None, None);
+        assert!(chunks.len() > 5);
+        for chunk in &chunks {
+            assert!(chunk.content.len() <= CODE_CHUNK_SIZE + 50);
+        }
+    }
+
+    #[test]
+    fn test_code_chunking_preserves_statements() {
+        let code = "fn hello() { println!(\"hello\"); }\nfn world() { println!(\"world\"); }\n";
+        let chunks = chunk_for_code(code, None, None);
+        let joined: String = chunks.iter().map(|c| c.content.as_str()).collect();
+        assert!(joined.contains("fn hello"));
+        assert!(joined.contains("fn world"));
     }
 }

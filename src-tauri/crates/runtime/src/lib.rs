@@ -25,6 +25,11 @@ mod conversation;
 pub mod cron;
 pub mod dashboard_plugin;
 pub mod dashboard_registry;
+pub mod engine_bridge;
+pub mod general_engine;
+pub mod mode_selector;
+pub mod resource_governor;
+pub mod task_router;
 pub mod webhook_dispatcher;
 pub mod webhook_server;
 pub mod webhook_subscription;
@@ -46,6 +51,7 @@ pub mod mcp_lifecycle_hardened;
 pub mod mcp_server;
 mod mcp_stdio;
 pub mod mcp_tool_bridge;
+pub mod module_switch;
 pub mod lan_transfer;
 pub mod message_gateway;
 mod oauth;
@@ -96,8 +102,9 @@ pub use bootstrap::{BootstrapPhase, BootstrapPlan};
 pub use branch_lock::{detect_branch_lock_collisions, BranchLockCollision, BranchLockIntent};
 pub use cache_guard::CacheGuard;
 pub use compact::{
-    compact_session, estimate_session_tokens, format_compact_summary,
-    get_compact_continuation_message, should_compact, CompactionConfig, CompactionResult,
+    cleanup_task_boundary, compact_session, decay_weight, detect_task_boundary,
+    estimate_session_tokens, format_compact_summary, get_compact_continuation_message,
+    should_compact, summarize_turn, CompactionConfig, CompactionResult,
 };
 pub use config::{
     ConfigEntry, ConfigError, ConfigLoader, ConfigSource, McpConfigCollection,
@@ -178,7 +185,7 @@ pub use policy_engine::{
 };
 pub use prompt::{
     load_system_prompt, prepend_bullets, ContextFile, ProjectContext, PromptBuildError,
-    SystemPromptBuilder, FRONTIER_MODEL_NAME, SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+    SystemPromptBuilder, TaskScene, FRONTIER_MODEL_NAME, SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 };
 pub use recovery_recipes::{
     attempt_recovery, recipe_for, EscalationPolicy, FailureScenario, RecoveryContext,

@@ -434,7 +434,7 @@ fn extract_version_prefix(url: &str) -> Option<String> {
     }
 }
 
-pub(crate) fn parse_base64_data_url(url: &str) -> Option<(String, String)> {
+pub fn parse_base64_data_url(url: &str) -> Option<(String, String)> {
     let rest = url.strip_prefix("data:")?;
     let (mime_type, data) = rest.split_once(";base64,")?;
     if mime_type.is_empty() || data.is_empty() {

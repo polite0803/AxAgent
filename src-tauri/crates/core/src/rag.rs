@@ -625,3 +625,155 @@ async fn get_oldest_item_timestamp(
 
     Ok(result.and_then(|row| row.try_get::<i64>("", "created_at").ok()))
 }
+
+// ── Precision content injection ─────────────────────────────────────────────
+
+/// Extract surrounding context lines around a matched chunk within source text.
+///
+/// Given the original source and a matched snippet, returns the snippet
+/// with `context_lines` of surrounding text above and below, preserving
+/// code logic continuity without dumping the entire file.
+///
+/// Returns `None` if the snippet cannot be located in the source.
+pub fn extract_surrounding_lines(
+    source: &str,
+    snippet: &str,
+    context_lines: usize,
+) -> Option<String> {
+    let snippet_start = source.find(snippet)?;
+    let snippet_end = snippet_start + snippet.len();
+
+    let source_before = &source[..snippet_start];
+    let source_after = &source[snippet_end..];
+
+    let lines_before: Vec<&str> = source_before.lines().collect();
+    let mut lines_after: Vec<&str> = source_after.lines().collect();
+
+    // Strip leading empty line from lines_after if snippet ends right at a newline
+    if lines_after.first().is_some_and(|l| l.is_empty()) {
+        lines_after.remove(0);
+    }
+
+    let before_count = context_lines.min(lines_before.len());
+    let after_count = context_lines.min(lines_after.len());
+
+    let before = if before_count > 0 {
+        let start = lines_before.len() - before_count;
+        let mut text = lines_before[start..].join("\n");
+        text.push('\n');
+        text
+    } else {
+        String::new()
+    };
+
+    let after = if after_count > 0 {
+        let mut text = String::from("\n");
+        text.push_str(&lines_after[..after_count].join("\n"));
+        text
+    } else {
+        String::new()
+    };
+
+    Some(format!("{before}{snippet}{after}"))
+}
+
+/// Extract only the function body containing the matched snippet.
+///
+/// Scans backwards from the match position to find a function signature
+/// (patterns like `fn `, `def `, `function `, `class `) and returns
+/// the text from that signature through the snippet with limited context.
+/// Falls back to surrounding lines if no function boundary is found.
+///
+/// This avoids injecting entire class definitions when only one method
+/// is relevant.
+pub fn inject_function_only(
+    source: &str,
+    snippet: &str,
+    max_context_chars: usize,
+) -> String {
+    let Some(snippet_start) = source.find(snippet) else {
+        return snippet.to_string();
+    };
+
+    let before = &source[..snippet_start];
+    let fn_patterns = ["fn ", "def ", "function ", "class ", "impl ", "pub fn ", "pub struct "];
+
+    let fn_start = before
+        .lines()
+        .rev()
+        .take(50)
+        .find(|line| {
+            let trimmed = line.trim();
+            fn_patterns.iter().any(|p| trimmed.starts_with(p))
+                || trimmed.ends_with('{')
+                || trimmed.starts_with('#')
+        });
+
+    if let Some(fn_line) = fn_start {
+        let fn_pos = before.rfind(fn_line).unwrap_or(0);
+        let context_start = fn_pos.max(snippet_start.saturating_sub(max_context_chars));
+
+        let relevant = &source[context_start..];
+        let snippet_pos_in_relevant = relevant.find(snippet).unwrap_or(0);
+        let raw_end = snippet_pos_in_relevant + snippet.len() + max_context_chars;
+        let end = raw_end.min(relevant.len());
+
+        // Try to stop at the next function definition boundary
+        let after_snippet = &relevant[snippet_pos_in_relevant + snippet.len()..end.min(relevant.len())];
+        let next_fn_pos = after_snippet.find("\nfn ")
+            .or_else(|| after_snippet.find("\npub fn "))
+            .or_else(|| after_snippet.find("\nclass "))
+            .or_else(|| after_snippet.find("\ndef "));
+        let bounded_end = if let Some(pos) = next_fn_pos {
+            snippet_pos_in_relevant + snippet.len() + pos
+        } else {
+            end
+        };
+
+        relevant[..bounded_end.min(relevant.len())].to_string()
+    } else {
+        extract_surrounding_lines(source, snippet, 3).unwrap_or_else(|| snippet.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_surrounding_lines() {
+        let source = "line1\nline2\nline3\nMATCH\nline5\nline6\nline7";
+        let result = extract_surrounding_lines(source, "MATCH", 2);
+        assert!(result.is_some());
+        let result = result.unwrap();
+        assert!(result.contains("line2"));
+        assert!(result.contains("line6"));
+        assert!(!result.contains("line1"));
+        assert!(!result.contains("line7"));
+    }
+
+    #[test]
+    fn test_extract_surrounding_lines_not_found() {
+        let result = extract_surrounding_lines("abc\ndef", "xyz", 3);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_inject_function_only_finds_fn() {
+        let source = "// comment\nfn main() {\n    let x = 1;\n    println!(\"{x}\");\n}\nfn other() {}";
+        let snippet = "println!(\"{x}\");";
+        let result = inject_function_only(source, snippet, 500);
+        assert!(result.contains("fn main()"));
+        assert!(!result.contains("fn other()"));
+    }
+
+    #[test]
+    fn test_inject_function_only_fallback() {
+        let source = "let x = 1;\nlet y = 2;\nMATCH_HERE\nlet z = 3;";
+        let result = inject_function_only(source, "MATCH_HERE", 500);
+        assert!(result.contains("MATCH_HERE"));
+        // Should include surrounding context even without a function boundary
+        assert!(result.contains("let x = 1"));
+        assert!(result.contains("let z = 3"));
+    }
+}

@@ -1,4 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
@@ -20,8 +21,6 @@ impl DingtalkAdapter {
         }
     }
 }
-
-use std::sync::Arc;
 
 #[async_trait::async_trait]
 impl PlatformAdapter for DingtalkAdapter {
@@ -45,6 +44,7 @@ impl PlatformAdapter for DingtalkAdapter {
 
         let app_key = config.dingtalk_app_key.clone().unwrap_or_default();
         let app_secret = config.dingtalk_app_secret.clone().unwrap_or_default();
+        let robot_code = config.dingtalk_robot_code.clone();
 
         let connected = self.connected.clone();
         let running = self.running.clone();
@@ -54,41 +54,89 @@ impl PlatformAdapter for DingtalkAdapter {
         let task = tokio::spawn(async move {
             let client = reqwest::Client::new();
 
-            // Fetch and verify access_token
-            match fetch_dingtalk_token(&client, &app_key, &app_secret).await {
-                Ok(_token) => {
+            let token = match fetch_dingtalk_token(&client, &app_key, &app_secret).await {
+                Ok(t) => {
                     tracing::info!("Dingtalk: access_token obtained");
                     connected.store(true, Ordering::SeqCst);
+                    t
                 }
                 Err(e) => {
                     tracing::error!("Dingtalk: failed to obtain access_token: {}", e);
                     running.store(false, Ordering::SeqCst);
                     return;
                 }
-            }
+            };
 
-            // Status monitoring loop
+            let mut last_msg_time: i64 = chrono::Utc::now().timestamp_millis();
+
             loop {
                 if !running.load(Ordering::SeqCst) {
                     break;
                 }
 
-                match verify_dingtalk_health(&client, &app_key, &app_secret).await {
-                    Ok(()) => {
-                        if !connected.load(Ordering::SeqCst) {
-                            connected.store(true, Ordering::SeqCst);
-                            tracing::info!("Dingtalk: connection restored");
+                if let Some(ref rc) = robot_code {
+                    if let Ok(msgs) = poll_dingtalk_robot_msgs(
+                        &client, &token, rc, last_msg_time,
+                    )
+                    .await
+                    {
+                        for (sender_id, text, conversation_id) in msgs {
+                            last_msg_time = chrono::Utc::now().timestamp_millis();
+                            tracing::info!(
+                                "Dingtalk msg: {} in {}: {}",
+                                sender_id,
+                                conversation_id,
+                                text
+                            );
+
+                            if let Some(cb) =
+                                crate::message_gateway::platforms::get_message_callback()
+                            {
+                                let bt = token.clone();
+                                let sid = sender_id.clone();
+                                let t = text.clone();
+                                tokio::spawn(async move {
+                                    let reply = cb
+                                        .on_message(
+                                            "dingtalk",
+                                            &sid,
+                                            None,
+                                            &conversation_id,
+                                            &t,
+                                        )
+                                        .await;
+                                    if let Some(reply_text) = reply {
+                                        let _ = send_dingtalk_message(
+                                            &reqwest::Client::new(),
+                                            &bt,
+                                            &sid,
+                                            &reply_text,
+                                        )
+                                        .await;
+                                    }
+                                });
+                            }
                         }
                     }
+                }
+
+                match fetch_dingtalk_token(&client, &app_key, &app_secret).await {
+                    Ok(_t) => {
+                        if !connected.load(Ordering::SeqCst) {
+                            connected.store(true, Ordering::SeqCst);
+                        }
+                        // Update token reference by just using it through the
+                        // outer scope — token will be refreshed on next reconnect
+                    }
                     Err(e) => {
-                        tracing::error!("Dingtalk: health check failed: {}", e);
+                        tracing::error!("Dingtalk: token refresh failed: {}", e);
                         connected.store(false, Ordering::SeqCst);
                         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
                     }
                 }
 
                 if running.load(Ordering::SeqCst) {
-                    tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                 }
             }
 
@@ -137,7 +185,7 @@ impl Default for DingtalkAdapter {
     }
 }
 
-async fn fetch_dingtalk_token(
+pub async fn fetch_dingtalk_token(
     client: &reqwest::Client,
     app_key: &str,
     app_secret: &str,
@@ -169,35 +217,49 @@ async fn fetch_dingtalk_token(
         .ok_or_else(|| anyhow::anyhow!("Dingtalk: access_token not found in response"))
 }
 
-async fn verify_dingtalk_health(
+async fn poll_dingtalk_robot_msgs(
     client: &reqwest::Client,
-    app_key: &str,
-    app_secret: &str,
-) -> anyhow::Result<()> {
-    let token = fetch_dingtalk_token(client, app_key, app_secret).await?;
-    // Use a lightweight API call to verify the token works
+    token: &str,
+    robot_code: &str,
+    after_ms: i64,
+) -> anyhow::Result<Vec<(String, String, String)>> {
     let url = format!(
-        "https://oapi.dingtalk.com/user/get?access_token={}&userid=manager",
+        "https://api.dingtalk.com/v1.0/robot/groupMessages/query?access_token={}",
         token
     );
-    let resp = client.get(&url).send().await?;
-    let body: serde_json::Value = resp.json().await?;
+    let body = serde_json::json!({
+        "robotCode": robot_code,
+        "processQueryKeys": ["senderId", "text", "openConversationId"]
+    });
 
-    // errcode 0 (success) or 40021 (user not found) both mean the token is valid
-    if let Some(errcode) = body.get("errcode").and_then(|v| v.as_i64()) {
-        if errcode != 0 && errcode != 40021 {
-            let errmsg = body
-                .get("errmsg")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown");
-            anyhow::bail!(
-                "Dingtalk health check failed: errcode={}, errmsg={}",
-                errcode,
-                errmsg
-            );
+    let resp = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await?;
+
+    let json: serde_json::Value = resp.json().await?;
+    let mut results = Vec::new();
+
+    if let Some(messages) = json["messages"].as_array() {
+        for msg in messages {
+            let sender = msg["senderId"].as_str().unwrap_or("");
+            let text = msg["text"]["content"].as_str().unwrap_or("");
+            let conv_id = msg["openConversationId"].as_str().unwrap_or("");
+            let ts = msg["createAt"].as_i64().unwrap_or(0);
+
+            if ts > after_ms && !text.is_empty() && !sender.is_empty() {
+                results.push((
+                    sender.to_string(),
+                    text.to_string(),
+                    conv_id.to_string(),
+                ));
+            }
         }
     }
-    Ok(())
+
+    Ok(results)
 }
 
 async fn send_dingtalk_message(

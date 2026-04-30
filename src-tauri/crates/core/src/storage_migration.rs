@@ -183,6 +183,8 @@ mod tests {
             provider_id TEXT,
             model_id TEXT,
             token_count INTEGER,
+            prompt_tokens INTEGER,
+            completion_tokens INTEGER,
             attachments TEXT NOT NULL DEFAULT '[]',
             thinking TEXT,
             created_at INTEGER NOT NULL DEFAULT 0,
@@ -191,7 +193,11 @@ mod tests {
             version_index INTEGER NOT NULL DEFAULT 0,
             is_active INTEGER NOT NULL DEFAULT 1,
             tool_calls_json TEXT,
-            tool_call_id TEXT
+            tool_call_id TEXT,
+            status TEXT NOT NULL DEFAULT 'complete',
+            tokens_per_second REAL,
+            first_token_latency_ms INTEGER,
+            parts TEXT
         )";
 
     async fn test_db() -> DatabaseConnection {

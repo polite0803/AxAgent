@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Palette,
   Search,
+  Send,
   Settings,
   ShoppingBag,
   User,
@@ -47,6 +48,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   skillsHub: <ShoppingBag size={16} color={SETTINGS_ICON_COLORS.ShoppingBag} />,
   dashboardPlugins: <LayoutDashboard size={16} color={SETTINGS_ICON_COLORS.LayoutDashboard} />,
   webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
+  messageChannels: <Send size={16} color={SETTINGS_ICON_COLORS.Send} />,
 };
 
 const SECTION_KEYS: SettingsSection[] = [
@@ -59,6 +61,7 @@ const SECTION_KEYS: SettingsSection[] = [
   "tools",
   "skillsHub",
   "dashboardPlugins",
+  "messageChannels",
   "webhooks",
   "proxy",
   "shortcuts",

@@ -1,4 +1,6 @@
-use axagent_trajectory::{SkillsHubClient, SkillsHubAdapter, SkillsHubSearchResult, Skill, SkillsHubConfig};
+use axagent_trajectory::{
+    Skill, SkillsHubAdapter, SkillsHubClient, SkillsHubConfig, SkillsHubSearchResult,
+};
 use crate::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -58,29 +60,31 @@ pub async fn skills_hub_search(
 ) -> Result<SkillsHubSearchResponse, String> {
     let client = SkillsHubClient::new(SkillsHubConfig::default());
     let result = client
-        .search(&query, category.as_deref(), page as usize, page_size as usize)
+        .search(
+            &query,
+            category.as_deref(),
+            page as usize,
+            page_size as usize,
+        )
         .await?;
     Ok(result.into())
 }
 
 #[tauri::command]
-pub async fn skills_hub_install(_state: State<'_, AppState>, skill_id: String) -> Result<(), String> {
+pub async fn skills_hub_install(
+    _state: State<'_, AppState>,
+    skill_id: String,
+) -> Result<(), String> {
     let client = SkillsHubClient::new(SkillsHubConfig::default());
     let mut adapter = SkillsHubAdapter::new();
 
-    let skill = client
-        .get_skill(&skill_id)
-        .await?;
+    let skill = client.get_skill(&skill_id).await?;
 
     adapter.parse_hermes_skill_md(skill.readme_url.as_deref().unwrap_or_default())?;
 
-    let axagent_skill = adapter
-        .to_axagent_skill()?;
+    let axagent_skill = adapter.to_axagent_skill()?;
 
-    tracing::info!(
-        "Installing skill '{}' from Skills Hub",
-        axagent_skill.name
-    );
+    tracing::info!("Installing skill '{}' from Skills Hub", axagent_skill.name);
 
     Ok(())
 }

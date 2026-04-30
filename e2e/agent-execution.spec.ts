@@ -24,9 +24,9 @@ test.describe("Agent Execution Flow", () => {
     const sendBtn = page.locator('[data-testid="send-btn"]');
     await sendBtn.click();
 
-    await page.waitForTimeout(5000);
-
+    // 等待至少一条聊天消息出现（含重试机制，最大等待60秒）
     const messages = page.locator('[data-testid="chat-message"]');
+    await messages.first().waitFor({ state: "visible", timeout: 60000 });
     const count = await messages.count();
     expect(count).toBeGreaterThan(0);
   });
@@ -42,7 +42,9 @@ test.describe("Agent Execution Flow", () => {
     const sendBtn = page.locator('[data-testid="send-btn"]');
     await sendBtn.click();
 
-    await page.waitForTimeout(8000);
+    // 等待响应出现，而不是固定延时
+    const messages = page.locator('[data-testid="chat-message"]');
+    await messages.first().waitFor({ state: "visible", timeout: 60000 });
 
     // Check if tool call cards appear
     const toolCall = page.locator('[data-testid="tool-call-card"]');

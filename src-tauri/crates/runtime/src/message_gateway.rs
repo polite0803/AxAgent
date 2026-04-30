@@ -8,6 +8,8 @@
 //! - Heartbeat and keepalive
 
 pub mod platform_config;
+pub mod platform_manager;
+pub mod platform_bridge;
 pub mod platforms;
 pub mod session_router;
 

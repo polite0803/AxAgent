@@ -1,7 +1,5 @@
 use crate::AppState;
-use axagent_core::repo::note::{
-    CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput,
-};
+use axagent_core::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
 use axagent_core::types::NoteSearchResult;
 use tauri::State;
 
@@ -16,10 +14,7 @@ pub async fn wiki_notes_list(
 }
 
 #[tauri::command]
-pub async fn wiki_notes_get(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<Note, String> {
+pub async fn wiki_notes_get(state: State<'_, AppState>, id: String) -> Result<Note, String> {
     axagent_core::repo::note::get_note(&state.sea_db, &id)
         .await
         .map_err(|e| e.to_string())
@@ -58,10 +53,7 @@ pub async fn wiki_notes_update(
 }
 
 #[tauri::command]
-pub async fn wiki_notes_delete(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_core::repo::note::delete_note(&state.sea_db, &id)
         .await
         .map_err(|e| e.to_string())
@@ -94,14 +86,9 @@ pub async fn wiki_notes_sync_links(
     source_note_id: String,
     links: Vec<(String, String, String)>,
 ) -> Result<(), String> {
-    axagent_core::repo::note::sync_note_links(
-        &state.sea_db,
-        &vault_id,
-        &source_note_id,
-        links,
-    )
-    .await
-    .map_err(|e| e.to_string())
+    axagent_core::repo::note::sync_note_links(&state.sea_db, &vault_id, &source_note_id, links)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -121,7 +108,9 @@ pub async fn wiki_notes_search(
         .into_iter()
         .filter_map(|note| {
             let content_lower = note.content.to_lowercase();
-            if content_lower.contains(&query_lower) || note.title.to_lowercase().contains(&query_lower) {
+            if content_lower.contains(&query_lower)
+                || note.title.to_lowercase().contains(&query_lower)
+            {
                 let snippet_start = content_lower.find(&query_lower).unwrap_or(0);
                 let snippet = note.content.chars()
                     .skip(snippet_start.saturating_sub(50))
@@ -138,7 +127,11 @@ pub async fn wiki_notes_search(
         })
         .collect();
 
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     results.truncate(top_k);
 
     Ok(results)

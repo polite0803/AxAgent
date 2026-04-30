@@ -1,15 +1,10 @@
 import { usePlatformStore } from "@/stores";
+import { ALL_PLATFORMS } from "@/types/platform";
 import { Card, Tag, Typography } from "antd";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
 const { Text } = Typography;
-
-const platformMeta: Record<string, { label: string; icon: string }> = {
-  telegram: { label: "Telegram", icon: "✈️" },
-  discord: { label: "Discord", icon: "💬" },
-  api_server: { label: "API Server", icon: "🔌" },
-};
 
 export function PlatformStatusCard() {
   const statuses = usePlatformStore((s) => s.statuses);
@@ -21,12 +16,14 @@ export function PlatformStatusCard() {
     return () => clearInterval(interval);
   }, [loadStatuses]);
 
+  const metaMap = new Map(ALL_PLATFORMS.map(p => [p.name, p]));
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {statuses.map((s) => {
-        const meta = platformMeta[s.name] ?? { label: s.name, icon: "?" };
+        const meta = metaMap.get(s.name);
         return (
-          <Card key={s.name} size="small" title={`${meta.icon} ${meta.label}`}>
+          <Card key={s.name} size="small" title={`${meta?.icon ?? "?"} ${meta?.label ?? s.name}`}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="flex items-center justify-between">
                 <Text type="secondary">Status</Text>
