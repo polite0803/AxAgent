@@ -48,6 +48,7 @@ docs/
 playwright-report/
 .workbuddy/
 artifacts/
+test-results/
 
 # Local git worktrees
 .worktrees/
