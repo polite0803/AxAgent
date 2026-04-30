@@ -47,6 +47,7 @@ progress.md
 docs/
 playwright-report/
 .workbuddy/
+artifacts/
 
 # Local git worktrees
 .worktrees/
