@@ -25,7 +25,6 @@ import {
   invoke,
   isTauri,
   listen,
-  type InvokeMetricsSnapshot,
 } from "../invoke";
 
 // ─── 辅助函数 ──────────────────────────────────────────────────────
@@ -321,7 +320,6 @@ describe("invoke.ts", () => {
   describe("getInvokeMetrics 分位数", () => {
     it("p50/p95/p99 在无数据时应为 0", () => {
       const metrics = getInvokeMetrics();
-      const cmd = metrics.byCommand[0];
       // 无数据时 byCommand 为空
       expect(metrics.byCommand.length).toBe(0);
     });

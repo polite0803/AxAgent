@@ -6,7 +6,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import { invoke } from "@tauri-apps/api/core";
-import { codeExecutor, type CodeExecutorOptions, type ExecutionResult } from "../codeExecutor";
+import { codeExecutor } from "../codeExecutor";
 
 const mockedInvoke = vi.mocked(invoke);
 

@@ -102,7 +102,7 @@ describe("shouldRenderStandaloneAssistantError", () => {
   it("assistant 但 status 非 error 时应返回 false", () => {
     expect(
       shouldRenderStandaloneAssistantError(
-        msg({ role: "assistant", status: "sent" }),
+        msg({ role: "assistant", status: "complete" }),
       ),
     ).toBe(false);
   });
@@ -126,7 +126,7 @@ describe("shouldRenderStandaloneAssistantError", () => {
   it("assistant 且 status=streaming 时应返回 false", () => {
     expect(
       shouldRenderStandaloneAssistantError(
-        msg({ role: "assistant", status: "streaming" }),
+        msg({ role: "assistant", status: "partial" }),
       ),
     ).toBe(false);
   });

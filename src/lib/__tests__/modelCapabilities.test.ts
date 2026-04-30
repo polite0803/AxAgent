@@ -12,23 +12,33 @@ import {
 import type { Model, ProviderConfig } from "@/types";
 
 const mockModel = (overrides: Partial<Model> = {}): Model => ({
-  id: "m-1",
   model_id: "gpt-4",
-  display_name: "GPT-4",
+  name: "GPT-4",
   model_type: "Chat",
   provider_id: "p-1",
   capabilities: ["Vision", "FunctionCalling", "Reasoning"],
+  max_tokens: 4096,
   enabled: true,
+  param_overrides: null,
   ...overrides,
 });
 
 const mockProvider = (overrides: Partial<ProviderConfig> = {}): ProviderConfig => ({
   id: "p-1",
   name: "OpenAI",
-  provider_type: "OpenAI",
-  models: [mockModel(), mockModel({ model_id: "gpt-3.5", capabilities: ["FunctionCalling"] })],
-  api_key: "",
+  provider_type: "openai",
+  api_host: "https://api.openai.com",
+  api_path: null,
   enabled: true,
+  models: [mockModel(), mockModel({ model_id: "gpt-3.5", capabilities: ["FunctionCalling"] })],
+  keys: [],
+  proxy_config: null,
+  custom_headers: null,
+  icon: null,
+  builtin_id: null,
+  sort_order: 0,
+  created_at: 0,
+  updated_at: 0,
   ...overrides,
 });
 
@@ -42,7 +52,7 @@ describe("getEditableCapabilities", () => {
 
   it("returns empty array for non-Chat types", () => {
     expect(getEditableCapabilities("Embedding")).toEqual([]);
-    expect(getEditableCapabilities("TTS")).toEqual([]);
+    expect(getEditableCapabilities("Voice")).toEqual([]);
   });
 
   it("returns CHAT_MODEL_CAPABILITIES when type is null/undefined", () => {
