@@ -1146,7 +1146,7 @@ pub async fn agent_query(
     };
     // Format working memory from MemoryService
     let working_memory_text = {
-        let ms = app_state.memory_service.read().unwrap();
+        let ms = app_state.memory_service.read().await;
         let wm = ms.format_for_prompt();
         if wm.is_empty() {
             None
@@ -1196,7 +1196,7 @@ pub async fn agent_query(
 
     // P3: Generate insight messages from LearningInsightSystem for prompt injection
     let insight_messages: Vec<String> = {
-        let is = app_state.insight_system.read().unwrap();
+        let is = app_state.insight_system.read().await;
         let insights = is.get_insights();
         insights
             .iter()
@@ -1224,7 +1224,7 @@ pub async fn agent_query(
 
     // P5: Generate pattern messages from PatternLearner for prompt injection
     let pattern_messages: Vec<String> = {
-        let pl = app_state.pattern_learner.read().unwrap();
+        let pl = app_state.pattern_learner.read().await;
         let high_value = pl.get_high_value_patterns(0.5);
         let all_patterns = pl.get_patterns_by_type(axagent_trajectory::PatternType::ToolSequence);
         let failure_patterns: Vec<_> = all_patterns
@@ -1258,7 +1258,7 @@ pub async fn agent_query(
 
     // P8: Format user profile and adaptation hint for system prompt injection
     let user_profile_text = {
-        let profile = app_state.user_profile.read().unwrap();
+        let profile = app_state.user_profile.read().await;
         let text = profile.format_for_prompt();
         if text.is_empty() {
             None
@@ -1758,7 +1758,7 @@ pub async fn agent_query(
                 // P6: Inject known patterns into trajectory for reward computation
                 let mut trajectory = trajectory;
                 {
-                    let pl = app_state.pattern_learner.read().unwrap();
+                    let pl = app_state.pattern_learner.read().await;
                     let high_value = pl.get_high_value_patterns(0.3);
                     for p in &high_value {
                         trajectory.patterns.push(p.id.clone());
@@ -1777,7 +1777,7 @@ pub async fn agent_query(
 
                     // P5: Real-time pattern learning — learn from this trajectory immediately
                     {
-                        let mut pl = app_state.pattern_learner.write().unwrap();
+                        let mut pl = app_state.pattern_learner.write().await;
                         let new_patterns = pl.learn_from_trajectory(&trajectory);
                         if !new_patterns.is_empty() {
                             tracing::debug!(
@@ -1795,7 +1795,7 @@ pub async fn agent_query(
 
                     // P6: Real-time RL reward computation for this trajectory
                     {
-                        let rl = app_state.rl_engine.read().unwrap();
+                        let rl = app_state.rl_engine.read().await;
                         let mut traj_for_rl = trajectory.clone();
                         let rewards = rl.compute_rewards(&mut traj_for_rl);
                         if !rewards.is_empty() {
@@ -1816,11 +1816,11 @@ pub async fn agent_query(
                     // P4-Skill: Analyze trajectory and propose new skills if applicable
                     {
                         let mut proposal_service =
-                            app_state.skill_proposal_service.write().unwrap();
+                            app_state.skill_proposal_service.write().await;
                         if let Some(proposal) = proposal_service.analyze_and_propose(&trajectory) {
                             tracing::info!("[P4-Skill] Proposed new skill '{}' from trajectory {} (confidence={:.2})",
                                 proposal.suggested_name, &trajectory.id[..8], proposal.confidence);
-                            let mut is = app_state.insight_system.write().unwrap();
+                            let mut is = app_state.insight_system.write().await;
                             is.add_insight(axagent_trajectory::LearningInsight {
                                 id: format!(
                                     "skill_proposal_{}",
@@ -1877,7 +1877,7 @@ pub async fn agent_query(
                     // P8: Compute adaptation and update user profile
                     let adaptation = rl.compute_adaptation();
                     if let Some(ref style) = adaptation.response_style {
-                        let mut profile = app_state.user_profile.write().unwrap();
+                        let mut profile = app_state.user_profile.write().await;
                         let verbosity = style
                             .verbosity
                             .unwrap_or(axagent_trajectory::Verbosity::Unchanged);
@@ -4401,7 +4401,7 @@ pub async fn agent_estimate_complexity(input: String) -> Result<String, String> 
 /// List all sub-agents in the registry
 #[tauri::command]
 pub async fn sub_agent_list(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
-    let registry = app_state.sub_agent_registry.read().unwrap();
+    let registry = app_state.sub_agent_registry.read().await;
     let agents = registry.list_all();
     Ok(agents
         .iter()
@@ -4415,7 +4415,7 @@ pub async fn sub_agent_get(
     app_state: State<'_, AppState>,
     agent_id: String,
 ) -> Result<Value, String> {
-    let registry = app_state.sub_agent_registry.read().unwrap();
+    let registry = app_state.sub_agent_registry.read().await;
     let agent = registry
         .get(&agent_id)
         .ok_or_else(|| "Agent not found".to_string())?;
@@ -4428,7 +4428,7 @@ pub async fn sub_agent_get_children(
     app_state: State<'_, AppState>,
     parent_id: String,
 ) -> Result<Vec<Value>, String> {
-    let registry = app_state.sub_agent_registry.read().unwrap();
+    let registry = app_state.sub_agent_registry.read().await;
     let children = registry.get_children(&parent_id);
     Ok(children
         .iter()
@@ -4442,7 +4442,7 @@ pub async fn sub_agent_get_messages(
     app_state: State<'_, AppState>,
     agent_id: String,
 ) -> Result<Vec<Value>, String> {
-    let registry = app_state.sub_agent_registry.read().unwrap();
+    let registry = app_state.sub_agent_registry.read().await;
     let messages = registry.message_bus().peek_all(&agent_id);
     Ok(messages
         .iter()
@@ -4456,7 +4456,7 @@ pub async fn shared_memory_list(
     app_state: State<'_, AppState>,
     namespace: String,
 ) -> Result<Vec<Value>, String> {
-    let mem = app_state.shared_memory.read().unwrap();
+    let mem = app_state.shared_memory.read().await;
     let entries = mem.list(&namespace);
     Ok(entries
         .iter()
@@ -4471,7 +4471,7 @@ pub async fn shared_memory_get(
     key: String,
     namespace: String,
 ) -> Result<Value, String> {
-    let mem = app_state.shared_memory.read().unwrap();
+    let mem = app_state.shared_memory.read().await;
     let entry = mem.get(&key, &namespace).map_err(|e| e.to_string())?;
     serde_json::to_value(entry).map_err(|e| e.to_string())
 }
@@ -4479,7 +4479,7 @@ pub async fn shared_memory_get(
 /// Get shared memory stats
 #[tauri::command]
 pub async fn shared_memory_stats(app_state: State<'_, AppState>) -> Result<Value, String> {
-    let mem = app_state.shared_memory.read().unwrap();
+    let mem = app_state.shared_memory.read().await;
     let stats = mem.stats();
     serde_json::to_value(stats).map_err(|e| e.to_string())
 }
@@ -4710,7 +4710,7 @@ pub async fn memory_flush(
     let _valid_category = category.as_deref().unwrap_or("insight");
 
     // Use MemoryService to persist the memory
-    let ms = app_state.memory_service.read().unwrap();
+    let ms = app_state.memory_service.read().await;
     let result = ms.add_memory(valid_target, &content);
     serde_json::to_value(result).map_err(|e| e.to_string())
 }
@@ -4769,7 +4769,7 @@ pub async fn pattern_list(
     pattern_type: Option<String>,
     min_success_rate: Option<f64>,
 ) -> Result<Vec<Value>, String> {
-    let pl = app_state.pattern_learner.read().unwrap();
+    let pl = app_state.pattern_learner.read().await;
     let patterns = if let Some(pt) = pattern_type {
         let ptype = match pt.as_str() {
             "tool_sequence" => axagent_trajectory::PatternType::ToolSequence,
@@ -4808,7 +4808,7 @@ pub async fn pattern_list(
 /// Get cross-session insights
 #[tauri::command]
 pub async fn cross_session_insights(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
-    let csl = app_state.cross_session_learner.read().unwrap();
+    let csl = app_state.cross_session_learner.read().await;
     let insights = csl.get_cross_session_insights();
     Ok(insights
         .iter()
@@ -4903,7 +4903,7 @@ pub async fn skill_evolution_status(app_state: State<'_, AppState>) -> Result<Va
 /// Get the current user profile
 #[tauri::command]
 pub async fn user_profile_get(app_state: State<'_, AppState>) -> Result<Value, String> {
-    let profile = app_state.user_profile.read().unwrap();
+    let profile = app_state.user_profile.read().await;
     Ok(serde_json::to_value(&*profile).unwrap_or_else(|_| serde_json::json!({})))
 }
 
@@ -4914,7 +4914,7 @@ pub async fn user_profile_set_preference(
     key: String,
     value: String,
 ) -> Result<(), String> {
-    let mut profile = app_state.user_profile.write().unwrap();
+    let mut profile = app_state.user_profile.write().await;
     profile.set_preference(key, value);
     Ok(())
 }
@@ -4933,7 +4933,7 @@ pub async fn user_profile_set_expertise(
         "expert" => axagent_trajectory::ExpertiseLevel::Expert,
         _ => return Err(format!("Unknown expertise level: {}", level)),
     };
-    let mut profile = app_state.user_profile.write().unwrap();
+    let mut profile = app_state.user_profile.write().await;
     profile.set_expertise(domain, expertise);
     Ok(())
 }
@@ -4941,7 +4941,7 @@ pub async fn user_profile_set_expertise(
 /// Export user profile as USER.md
 #[tauri::command]
 pub async fn user_profile_export_md(app_state: State<'_, AppState>) -> Result<String, String> {
-    let profile = app_state.user_profile.read().unwrap();
+    let profile = app_state.user_profile.read().await;
     Ok(profile.to_user_md())
 }
 

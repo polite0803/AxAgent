@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Card, Input, Space, Typography, message, Table } from "antd";
 import { Globe, Image, MousePointer, Keyboard, Search, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface NavigateResult {
@@ -23,6 +23,8 @@ interface ExtractedElement {
 
 export function BrowserAutomationPanel() {
   const { t } = useTranslation();
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const [url, setUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -83,7 +85,7 @@ export function BrowserAutomationPanel() {
     try {
       await invoke("browser_click", { selector: sel });
       message.success(t("browser.clickSuccess"));
-      setTimeout(() => handleScreenshot(), 500);
+      setTimeout(() => { if (mountedRef.current) handleScreenshot(); }, 500);
     } catch (e) {
       message.error(String(e));
     }

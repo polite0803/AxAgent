@@ -154,7 +154,7 @@ fn profile_to_response(_profile: &UserProfile) -> TrajectoryProfileResponse {
 pub async fn get_user_profile(
     app_state: State<'_, AppState>,
 ) -> Result<TrajectoryProfileResponse, String> {
-    let profile = app_state.user_profile.read().unwrap();
+    let profile = app_state.user_profile.read().await;
     Ok(profile_to_response(&profile))
 }
 
@@ -164,7 +164,7 @@ pub async fn update_user_profile(
     app_state: State<'_, AppState>,
     updates: UserProfileUpdates,
 ) -> Result<TrajectoryProfileResponse, String> {
-    let mut profile = app_state.user_profile.write().unwrap();
+    let mut profile = app_state.user_profile.write().await;
 
     if let Some(ref coding_style) = updates.coding_style {
         profile.set_preference(
@@ -202,14 +202,14 @@ pub async fn update_user_profile(
     }
 
     drop(profile);
-    let profile = app_state.user_profile.read().unwrap();
+    let profile = app_state.user_profile.read().await;
     Ok(profile_to_response(&profile))
 }
 
 /// Clear user profile data (compatible with frontend store)
 #[tauri::command]
 pub async fn clear_user_profile_data(app_state: State<'_, AppState>) -> Result<(), String> {
-    let mut profile = app_state.user_profile.write().unwrap();
+    let mut profile = app_state.user_profile.write().await;
     profile.set_preference("reset".to_string(), "true".to_string());
     Ok(())
 }
@@ -359,7 +359,7 @@ pub async fn style_apply_code(
     user_id: String,
 ) -> Result<String, String> {
     let _ = user_id;
-    let _profile = app_state.user_profile.read().unwrap();
+    let _profile = app_state.user_profile.read().await;
 
     let extractor = StyleExtractor::new();
     let vectorizer = StyleVectorizer::new();
@@ -386,7 +386,7 @@ pub async fn style_apply_document(
     user_id: String,
 ) -> Result<String, String> {
     let _ = user_id;
-    let _profile = app_state.user_profile.read().unwrap();
+    let _profile = app_state.user_profile.read().await;
 
     let extractor = StyleExtractor::new();
     let vectorizer = StyleVectorizer::new();
@@ -413,7 +413,7 @@ pub async fn style_learn_code(
     samples: Vec<CodeSampleInput>,
 ) -> Result<UserStyleProfileResponse, String> {
     let _ = user_id;
-    let mut profile = app_state.user_profile.write().unwrap();
+    let mut profile = app_state.user_profile.write().await;
 
     for sample in &samples {
         profile.set_preference(
@@ -433,7 +433,7 @@ pub async fn style_learn_messages(
     messages: Vec<MessageSampleInput>,
 ) -> Result<DocumentStyleProfileResponse, String> {
     let _ = user_id;
-    let mut profile = app_state.user_profile.write().unwrap();
+    let mut profile = app_state.user_profile.write().await;
 
     for msg in &messages {
         profile.set_preference(
@@ -458,7 +458,7 @@ pub async fn style_export_profile(
     user_id: String,
 ) -> Result<String, String> {
     let _ = user_id;
-    let profile = app_state.user_profile.read().unwrap();
+    let profile = app_state.user_profile.read().await;
     serde_json::to_string_pretty(&*profile).map_err(|e| e.to_string())
 }
 
@@ -471,7 +471,7 @@ pub async fn style_import_profile(
 ) -> Result<(), String> {
     let _ = user_id;
     let imported: UserProfile = serde_json::from_str(&json).map_err(|e| e.to_string())?;
-    let mut profile = app_state.user_profile.write().unwrap();
+    let mut profile = app_state.user_profile.write().await;
     *profile = imported;
     Ok(())
 }
@@ -481,7 +481,7 @@ pub async fn style_import_profile(
 pub async fn style_get_stats(
     app_state: State<'_, AppState>,
 ) -> Result<StyleMigratorStatsResponse, String> {
-    let _profile = app_state.user_profile.read().unwrap();
+    let _profile = app_state.user_profile.read().await;
 
     Ok(StyleMigratorStatsResponse {
         total_profiles: 1,

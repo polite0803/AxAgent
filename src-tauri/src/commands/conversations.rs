@@ -2148,7 +2148,7 @@ pub async fn send_message(
 
     // Inject working memory (system memory + user preferences) into Q&A mode
     {
-        let ms = state.memory_service.read().unwrap();
+        let ms = state.memory_service.read().await;
         let wm = ms.format_for_prompt();
         if !wm.is_empty() {
             chat_messages.push(ChatMessage {
@@ -2553,7 +2553,7 @@ pub async fn regenerate_message(
         }
         // Inject working memory (consistent with send_message)
         {
-            let ms = state.memory_service.read().unwrap();
+            let ms = state.memory_service.read().await;
             let wm = ms.format_for_prompt();
             if !wm.is_empty() {
                 chat_messages.push(ChatMessage {
@@ -2895,7 +2895,7 @@ pub async fn regenerate_with_model(
         }
         // Inject working memory (consistent with send_message)
         {
-            let ms = state.memory_service.read().unwrap();
+            let ms = state.memory_service.read().await;
             let wm = ms.format_for_prompt();
             if !wm.is_empty() {
                 chat_messages.push(ChatMessage {

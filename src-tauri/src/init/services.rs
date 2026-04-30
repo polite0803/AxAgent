@@ -322,7 +322,7 @@ fn start_insight_generation(state: &AppState) {
                     "[insight] Generated {} learning insights from feedback",
                     new_insights.len()
                 );
-                let mut is = insight_system.write().unwrap();
+                let mut is = insight_system.write().await;
                 for insight in new_insights {
                     is.add_insight(insight);
                 }
@@ -349,7 +349,7 @@ fn start_pattern_learning(state: &AppState) {
             if trajectories.is_empty() {
                 continue;
             }
-            let mut pl = pattern_learner.write().unwrap();
+            let mut pl = pattern_learner.write().await;
             let new_patterns = pl.update_from_batch(&trajectories);
             drop(pl);
             if !new_patterns.is_empty() {
@@ -397,7 +397,7 @@ fn start_cross_session_learning(state: &AppState) {
             if by_session.len() < 2 {
                 continue;
             }
-            let mut csl = cross_session_learner.write().unwrap();
+            let mut csl = cross_session_learner.write().await;
             let new_patterns = csl.learn_from_sessions(by_session);
             drop(csl);
             if !new_patterns.is_empty() {
@@ -405,7 +405,7 @@ fn start_cross_session_learning(state: &AppState) {
                     "[cross_session] Discovered {} cross-session patterns",
                     new_patterns.len()
                 );
-                let mut is = insight_system.write().unwrap();
+                let mut is = insight_system.write().await;
                 for pattern in &new_patterns {
                     if let Err(e) = trajectory_storage.save_pattern(pattern) {
                         tracing::warn!("[cross_session] Failed to persist pattern: {}", e);
@@ -450,7 +450,7 @@ fn start_rl_reward_computation(state: &AppState) {
             if trajectories.is_empty() {
                 continue;
             }
-            let rl = rl_engine.read().unwrap();
+            let rl = rl_engine.read().await;
             let mut total_rewards = 0;
             let mut total_advantages = 0;
             for trajectory in &mut trajectories {
@@ -508,7 +508,7 @@ fn start_rl_reward_computation(state: &AppState) {
                         .iter()
                         .filter(|t| t.rewards.iter().map(|r| r.value).sum::<f64>() > avg_reward)
                         .count();
-                    let mut is = insight_system.write().unwrap();
+                    let mut is = insight_system.write().await;
                     is.add_insight(axagent_trajectory::LearningInsight {
                         id: format!("rl_{}", chrono::Utc::now().timestamp_millis()),
                         category: if avg_reward > 0.0 { axagent_trajectory::InsightCategory::Pattern } else { axagent_trajectory::InsightCategory::Warning },
@@ -550,7 +550,7 @@ fn start_batch_processing(state: &AppState) {
                 continue;
             }
             let analysis = bp.analyze_batch(&quality_filtered);
-            let mut is = insight_system.write().unwrap();
+            let mut is = insight_system.write().await;
             is.add_insight(axagent_trajectory::LearningInsight {
                 id: format!("batch_{}", chrono::Utc::now().timestamp_millis()),
                 category: axagent_trajectory::InsightCategory::Improvement,
@@ -576,7 +576,7 @@ fn start_user_profile_persistence(state: &AppState) {
         let interval = std::time::Duration::from_secs(10 * 60);
         loop {
             tokio::time::sleep(interval).await;
-            let profile = user_profile.read().unwrap();
+            let profile = user_profile.read().await;
             let md_content = profile.to_user_md();
             drop(profile);
             if let Some(home) = dirs::home_dir() {
@@ -659,7 +659,7 @@ fn start_skill_evolution(state: &AppState) {
                         if let Err(e) = trajectory_storage.save_skill(&updated_skill) {
                             tracing::warn!("[evolution] Failed to save evolved skill: {}", e);
                         }
-                        let mut is = insight_system.write().unwrap();
+                        let mut is = insight_system.write().await;
                         is.add_insight(axagent_trajectory::LearningInsight {
                             id: format!("evo_{}", chrono::Utc::now().timestamp_millis()),
                             category: axagent_trajectory::InsightCategory::Improvement,

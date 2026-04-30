@@ -28,7 +28,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       );
       set({ workspaceSnapshot: snapshot, loading: false });
       return snapshot;
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e), loading: false });
       return null;
     }
@@ -42,7 +42,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
           ? { ...state.workspaceSnapshot, ...snapshot }
           : null,
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -53,7 +53,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
         conversationId,
         fromMessageId: fromMessageId ?? null,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
       return null;
     }
@@ -65,7 +65,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
         leftMessageId,
         rightMessageId,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
       return null;
     }

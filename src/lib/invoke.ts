@@ -174,6 +174,17 @@ async function withTimeout<T>(
   }
 }
 
+/**
+ * 创建统一的 IPC 错误日志回调，替代散布各处的 .catch(() => {})
+ * 用法: invoke("command", args).catch(logIpcError("操作描述"))
+ */
+export function logIpcError(context: string): (err: unknown) => void {
+  return (err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[IPC] ${context}: ${message}`);
+  };
+}
+
 export async function listen<T>(
   event: string,
   handler: (event: { payload: T }) => void,

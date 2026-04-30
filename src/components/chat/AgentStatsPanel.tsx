@@ -53,7 +53,7 @@ const AgentStatsPanel: React.FC = () => {
     // Initial fetch
     invoke<RuntimeStats>("agent_runtime_stats", {
       conversationId: activeConversationId,
-    }).then(setStats).catch(() => {});
+    }).then(setStats).catch((e: unknown) => { console.warn('[IPC]', e); });
 
     return () => clearInterval(interval);
   }, [streaming, activeConversationId]);

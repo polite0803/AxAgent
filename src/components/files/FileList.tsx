@@ -35,7 +35,7 @@ function useThumbnailSrc(storagePath: string | undefined, missing: boolean | und
       .then((dataUrl) => {
         if (!cancelled) { setSrc(dataUrl); }
       })
-      .catch(() => {});
+      .catch((e: unknown) => { console.warn('[IPC]', e); });
     return () => {
       cancelled = true;
     };

@@ -672,10 +672,12 @@ pub fn run() {
                 if user_md_path.exists() {
                     if let Ok(content) = std::fs::read_to_string(&user_md_path) {
                         if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
-                            let mut p = state.user_profile.write().unwrap();
-                            *p = profile;
-                            tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
-                                p.preferences.len(), p.expertise.len());
+                            let _ = rt.block_on(async {
+                                let mut p = state.user_profile.write().await;
+                                *p = profile;
+                                tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
+                                    p.preferences.len(), p.expertise.len());
+                            });
                         }
                     }
                 }
@@ -683,8 +685,9 @@ pub fn run() {
 
             if let Ok(persisted) = state.trajectory_storage.get_patterns() as Result<Vec<axagent_trajectory::TrajectoryPattern>, _> {
                 if !persisted.is_empty() {
-                    let mut pl = state.pattern_learner.write().unwrap();
-                    for pattern in &persisted {
+                    let _ = rt.block_on(async {
+                        let mut pl = state.pattern_learner.write().await;
+                        for pattern in &persisted {
                         pl.learn_from_trajectory(&axagent_trajectory::Trajectory {
                             id: pattern.id.clone(),
                             session_id: String::new(),
@@ -713,6 +716,7 @@ pub fn run() {
                             last_replay_at: None,
                         });
                     }
+                    });
                     tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", persisted.len());
                 }
             }

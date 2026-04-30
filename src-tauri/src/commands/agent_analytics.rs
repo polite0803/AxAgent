@@ -27,7 +27,7 @@ pub async fn trajectory_list(
 
 #[tauri::command]
 pub async fn pattern_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let pl = app_state.pattern_learner.read().unwrap();
+    let pl = app_state.pattern_learner.read().await;
     let stats = pl.get_statistics();
     serde_json::to_value(stats).map_err(|e| e.to_string())
 }
@@ -41,13 +41,13 @@ pub async fn closed_loop_status(
     let pattern_count = app_state
         .pattern_learner
         .read()
-        .unwrap()
+        .await
         .get_statistics()
         .total_patterns;
     let insight_count = app_state
         .insight_system
         .read()
-        .unwrap()
+        .await
         .get_insights()
         .len();
     Ok(serde_json::json!({
@@ -60,7 +60,7 @@ pub async fn closed_loop_status(
 
 #[tauri::command]
 pub async fn rl_config(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let rl = app_state.rl_engine.read().unwrap();
+    let rl = app_state.rl_engine.read().await;
     Ok(serde_json::json!({
         "config": rl.config(),
         "weights": rl.weights(),
@@ -101,7 +101,7 @@ pub async fn rl_compute_rewards(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Trajectory {} not found", trajectory_id))?;
 
-    let rl = app_state.rl_engine.read().unwrap();
+    let rl = app_state.rl_engine.read().await;
     let rewards = rl.compute_rewards(&mut trajectory);
     let values = rl.estimate_value_function(&trajectory);
     let advantages = if !values.is_empty() {

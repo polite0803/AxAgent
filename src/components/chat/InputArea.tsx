@@ -344,7 +344,7 @@ export function InputArea() {
             setAgentCwd(session.cwd || null);
           }
         })
-        .catch(() => {});
+        .catch((e: unknown) => { console.warn('[IPC]', e); });
     }
   }, [currentMode, activeConversationId]);
 
@@ -1013,7 +1013,7 @@ export function InputArea() {
         if (errorMsg.includes("Not found: Conversation")) {
           console.warn("[ModeSwitch] Conversation no longer exists, refreshing conversation list");
           messageApi.warning(t("chat.conversationNotFound"));
-          await useConversationStore.getState().fetchConversations().catch(() => {});
+          await useConversationStore.getState().fetchConversations().catch((e: unknown) => { console.warn('[IPC]', e); });
           const { conversations } = useConversationStore.getState();
           if (conversations.length > 0) {
             useConversationStore.getState().setActiveConversation(conversations[0].id);

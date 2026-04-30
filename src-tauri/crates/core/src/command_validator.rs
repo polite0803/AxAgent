@@ -20,36 +20,16 @@ impl Default for CommandValidator {
 impl CommandValidator {
     pub fn new() -> Self {
         Self {
+            // 仅保留明确的命令注入向量，移除对合法 Shell 字符的过度封锁
+            // (、)、{、}、[、]、#、~、%、^、\ 等字符在常规命令中大量出现，不应误拒
             dangerous_patterns: vec![
-                ";".to_string(),
-                "|".to_string(),
-                "&".to_string(),
-                "`".to_string(),
-                "$(".to_string(),
-                "${".to_string(),
-                "\n".to_string(),
-                "\r".to_string(),
-                ">".to_string(),
-                "<".to_string(),
-                ">>".to_string(),
-                "<<".to_string(),
-                "2>".to_string(),
-                "2>&1".to_string(),
-                "&&".to_string(),
-                "||".to_string(),
-                "(".to_string(),
-                ")".to_string(),
-                "{".to_string(),
-                "}".to_string(),
-                "[".to_string(),
-                "]".to_string(),
-                "#".to_string(),
-                "~".to_string(),
-                "%".to_string(),
-                "^".to_string(),
-                "\\".to_string(),
+                "$(".to_string(),       // 命令替换
+                "${".to_string(),       // 变量展开中的命令替换
+                "`".to_string(),       // 反引号命令替换
+                "\n".to_string(),      // 换行符可用于命令分隔
+                "\r".to_string(),      // 回车符可用于命令注入
             ],
-            max_length: 10000,
+            max_length: 4096,          // 4KB 限制，防止 DoS
         }
     }
 
@@ -132,9 +112,10 @@ impl CommandValidator {
     }
 
     pub fn sanitize(&self, command: &str) -> String {
+        // 仅替换明确的命令注入字符，保留合法 Shell 语法
         let mut result = command.to_string();
 
-        for pattern in &[";", "|", "&", "`", "$", ">", "<", "\n", "\r"] {
+        for pattern in &["`", "$(", "\n", "\r"] {
             result = result.replace(pattern, " ");
         }
 
@@ -168,20 +149,50 @@ pub fn get_platform_blocked_commands() -> Vec<&'static str> {
     }
 }
 
+/// 安全命令前缀白名单：只允许以已知安全命令开头的命令执行
+/// 白名单（allowlist）比黑名单（blocklist）更安全可靠
+pub fn is_command_allowed(command: &str) -> bool {
+    let allowed_prefixes: &[&str] = &[
+        "ls", "cat", "head", "tail", "grep", "find", "wc",
+        "echo", "date", "whoami", "pwd", "env", "printenv",
+        "git", "npm", "node", "python", "python3", "cargo",
+        "rustc", "gcc", "g++", "make", "cmake", "docker",
+        "curl", "wget", "ssh", "scp", "tar", "zip", "unzip",
+        "df", "du", "ps", "top", "kill", "ping",
+        "mkdir", "touch", "cp", "mv", "rm", "chmod",
+        "sort", "uniq", "awk", "sed", "cut", "tr",
+        "npx", "pnpm", "yarn",
+    ];
+    let first_word = command
+        .trim_start()
+        .split_whitespace()
+        .next()
+        .unwrap_or("");
+    allowed_prefixes.iter().any(|p| *p == first_word)
+}
+
 pub fn validate_command(command: &str) -> Result<(), String> {
+    // 第一层：命令前缀白名单（allowlist），只允许已知安全命令
+    if !is_command_allowed(command) {
+        return Err(format!(
+            "命令 '{}' 不在允许列表中。安全策略仅允许执行常用开发工具命令。",
+            command.trim_start().split_whitespace().next().unwrap_or("")
+        ));
+    }
+
     let validator = CommandValidator::new();
     let result = validator.validate(command);
 
     if !result.is_safe {
         return Err(format!(
-            "Command contains dangerous patterns: {:?}",
+            "命令包含危险模式: {:?}。如果这是合法命令，请使用 shell_parser AST 审计白名单。",
             result.dangerous_patterns
         ));
     }
 
     for blocked in get_platform_blocked_commands() {
         if command.contains(blocked) {
-            return Err(format!("Command blocked for security reasons: {}", blocked));
+            return Err(format!("命令因安全原因被封锁: {}", blocked));
         }
     }
 

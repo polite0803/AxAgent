@@ -96,7 +96,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
         loading: false,
       }));
       return id;
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e), loading: false });
       throw e;
     }
@@ -110,7 +110,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
           s.id === id ? { ...s, status: "exited" as PtySessionStatus } : s,
         ),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -131,7 +131,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
           analysis: newAnalysis,
         };
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -141,7 +141,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
   writeToSession: async (id, data) => {
     try {
       await invoke("pty_write", { id, data });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -154,7 +154,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
           s.id === id ? { ...s, rows, cols } : s,
         ),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -163,7 +163,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
     try {
       const sessions = await invoke<PtySessionInfo[]>("pty_list_sessions");
       set({ sessions });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -202,7 +202,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
         analysis: { ...state.analysis, [id]: analysis },
       }));
       return analysis;
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
       throw e;
     }
@@ -211,7 +211,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
   getSuggestions: async (id) => {
     try {
       return await invoke<TerminalSuggestion[]>("pty_get_suggestions", { id });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
       return [];
     }

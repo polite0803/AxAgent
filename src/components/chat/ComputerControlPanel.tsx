@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Card, Input, Space, Switch, Tooltip, Typography, message } from "antd";
 import { Search, Scissors } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface CaptureResult {
   image_base64: string;
@@ -17,6 +17,8 @@ interface UIElement {
 }
 
 export function ComputerControlPanel() {
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [autoMode, setAutoMode] = useState(false);
   const [elements, setElements] = useState<UIElement[]>([]);
@@ -63,7 +65,7 @@ export function ComputerControlPanel() {
     try {
       await invoke("mouse_click", { x, y, button: "left" });
       message.success(`点击 (${x}, ${y})`);
-      setTimeout(handleCapture, 500);
+      setTimeout(() => { if (mountedRef.current) handleCapture(); }, 500);
     } catch (e) {
       message.error(String(e));
     }

@@ -261,7 +261,7 @@ function AttachmentPreview({ att, themeColor }: { att: Attachment; themeColor: s
             okText: t("chat.attachmentOk"),
             cancelText: t("chat.attachmentRevealLocation"),
             onCancel: () => {
-              invoke("reveal_attachment_file", { filePath: att.file_path }).catch(() => {});
+              invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => { console.warn('[IPC]', e); });
             },
           });
         })
@@ -310,13 +310,13 @@ function AttachmentPreview({ att, themeColor }: { att: Attachment; themeColor: s
 
   const handleOpen = () => {
     if (att.file_path) {
-      invoke("open_attachment_file", { filePath: att.file_path }).catch(() => {});
+      invoke("open_attachment_file", { filePath: att.file_path }).catch((e: unknown) => { console.warn('[IPC]', e); });
     }
   };
 
   const handleReveal = () => {
     if (att.file_path) {
-      invoke("reveal_attachment_file", { filePath: att.file_path }).catch(() => {});
+      invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => { console.warn('[IPC]', e); });
     }
   };
 

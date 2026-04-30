@@ -219,6 +219,32 @@ export function resetMultiModelState() {
   _multiModelDoneResolve = null;
 }
 
+/** 完整重置所有模块级可变状态。仅供测试使用。
+ *
+ * 注意：这些变量故意放在模块级而非 Zustand store 中，
+ * 因为流式处理是性能关键路径（每 50ms 到达一个 chunk），
+ * Zustand 的不可变更新周期会显著增加 CPU 开销。
+ * 当前以 setter/getter 函数封装，resetStreamRuntime 保证测试隔离。 */
+export function resetStreamRuntime() {
+  _unlisten?.();
+  _unlisten = null;
+  _listenerGen = 0;
+  _streamBuffer = null;
+  _orphanedBuffers.clear();
+  _streamPrefix = "";
+  _pendingConversationRefresh.clear();
+  cancelScheduledFlush();
+  _pendingUiChunk = null;
+  if (_streamUiFlushTimer !== null) {
+    clearTimeout(_streamUiFlushTimer);
+    _streamUiFlushTimer = null;
+  }
+  _activeMessageLoadSeq = 0;
+  _messageIndex.clear();
+  _conversationStoreRef = null;
+  resetMultiModelState();
+}
+
 // ─── Generic type for set/get that can update messages ───
 // These helpers need to update `messages` which lives in conversationStore,
 // so they accept set/get typed generically rather than tied to StreamState.
@@ -571,11 +597,11 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     // Tell the backend to cancel the stream — fire and forget
     if (isTauri()) {
-      invoke("cancel_stream", { conversationId: activeConvId }).catch(() => {});
+      invoke("cancel_stream", { conversationId: activeConvId }).catch((e: unknown) => { console.warn('[IPC]', e); });
       // Also cancel the agent if in agent mode
       const conv = convRef?.getState().conversations?.find((c: any) => c.id === activeConvId);
       if (conv?.mode === "agent") {
-        invoke("agent_cancel", { request: { conversationId: activeConvId } }).catch(() => {});
+        invoke("agent_cancel", { request: { conversationId: activeConvId } }).catch((e: unknown) => { console.warn('[IPC]', e); });
       }
     }
 

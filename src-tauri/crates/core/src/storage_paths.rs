@@ -41,9 +41,12 @@ pub fn documents_root() -> PathBuf {
 }
 
 /// The platform default documents root: `~/Documents/axagent/`.
+/// 在无头环境（CI/Docker/无图形界面Linux）下优雅降级到 home 目录
 pub fn default_documents_root() -> PathBuf {
     dirs::document_dir()
-        .expect("Could not determine Documents directory")
+        .unwrap_or_else(|| {
+            dirs::home_dir().unwrap_or_else(|| PathBuf::from("."))
+        })
         .join("axagent")
 }
 

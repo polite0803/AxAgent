@@ -19,5 +19,5 @@ sea-orm = { workspace = true }
 futures = "0.3"
 async-trait = "0.1"
 tokio-stream = "0.1"
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { workspace = true, features = ["stream"] }
 prometheus = "0.13"

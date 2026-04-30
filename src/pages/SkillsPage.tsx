@@ -91,7 +91,7 @@ const INSTALL_TARGETS = [
 const openExternalUrl = (url: string) => {
   import("@tauri-apps/plugin-opener")
     .then(({ openUrl }) => openUrl(url))
-    .catch(() => window.open(url, "_blank"));
+    .catch(() => window.open(url, "_blank", "noopener,noreferrer"));
 };
 
 const { Text, Paragraph } = Typography;

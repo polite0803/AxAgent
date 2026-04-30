@@ -24,7 +24,7 @@ export function DisplaySettings() {
 
   useEffect(() => {
     if (!isTauri()) { return; }
-    invoke<string[]>("list_system_fonts").then(setSystemFonts).catch(() => {});
+    invoke<string[]>("list_system_fonts").then(setSystemFonts).catch((e: unknown) => { console.warn('[IPC]', e); });
   }, []);
 
   const rowStyle = { padding: "4px 0" };

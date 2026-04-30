@@ -55,7 +55,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
         totalActiveCount: page.total_active_count,
         loading: false,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e), loading: false });
     }
   },
@@ -80,7 +80,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
         oldestLoadedMessageId: page.messages.length > 0 ? page.messages[0].id : state.oldestLoadedMessageId,
         loadingOlder: false,
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e), loadingOlder: false });
     }
   },
@@ -91,7 +91,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
       set((state) => ({
         messages: state.messages.filter((m) => m.id !== messageId),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -104,7 +104,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
           (m) => m.id !== userMessageId && m.parent_message_id !== userMessageId,
         ),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -117,7 +117,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
           m.id === messageId ? { ...m, content } : m,
         ),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -131,7 +131,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
         beforeId: null,
       });
       set({ messages: page.messages });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -142,7 +142,7 @@ export const useMessageListStore = create<MessageListState>((set, get) => ({
         conversationId,
         parentMessageId,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
       return [];
     }

@@ -45,7 +45,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
         totalActiveCount: result.total_count,
         loading: false,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e), loading: false });
     }
   },
@@ -54,7 +54,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
     try {
       const result = await invoke<Conversation[]>("list_archived_conversations");
       set({ archivedConversations: result });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -62,7 +62,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
   searchConversations: async (query) => {
     try {
       return await invoke<ConversationSearchResult[]>("search_conversations", { query });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
       return [];
     }
@@ -76,7 +76,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
           c.id === id ? { ...c, title } : c,
         ),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -88,7 +88,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
         conversations: state.conversations.filter((c) => c.id !== id),
         totalActiveCount: Math.max(0, state.totalActiveCount - 1),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -105,7 +105,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
           ),
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -117,7 +117,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
         conversations: state.conversations.filter((c) => c.id !== id),
         totalActiveCount: Math.max(0, state.totalActiveCount - 1),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -125,7 +125,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
   archiveToKnowledgeBase: async (id, knowledgeBaseId) => {
     try {
       await invoke("archive_conversation_to_knowledge_base", { id, knowledge_base_id: knowledgeBaseId });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -139,7 +139,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
         conversations: state.conversations.filter((c) => !ids.includes(c.id)),
         totalActiveCount: Math.max(0, state.totalActiveCount - ids.length),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },
@@ -153,7 +153,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
         conversations: state.conversations.filter((c) => !ids.includes(c.id)),
         totalActiveCount: Math.max(0, state.totalActiveCount - ids.length),
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e) });
     }
   },

@@ -1336,7 +1336,7 @@ pub async fn get_skill_proposals(
     let service = state
         .skill_proposal_service
         .read()
-        .map_err(|e| e.to_string())?;
+        .await;
     Ok(service.get_proposals())
 }
 
@@ -1359,7 +1359,7 @@ pub async fn create_skill_from_proposal(
         let mut service = state
             .skill_proposal_service
             .write()
-            .map_err(|e| e.to_string())?;
+            .await;
         service.clear_proposal(&name);
         Ok(result.message)
     } else {

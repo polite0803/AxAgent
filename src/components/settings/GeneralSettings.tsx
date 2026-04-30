@@ -82,7 +82,7 @@ export function GeneralSettings() {
             onChange={(checked) => {
               saveSettings({ always_on_top: checked });
               if (inTauri) {
-                invoke("set_always_on_top", { enabled: checked }).catch(() => {});
+                invoke("set_always_on_top", { enabled: checked }).catch((e: unknown) => { console.warn('[IPC]', e); });
               }
             }}
             disabled={!inTauri}
@@ -108,7 +108,7 @@ export function GeneralSettings() {
             onChange={(checked) => {
               saveSettings({ minimize_to_tray: checked });
               if (inTauri) {
-                invoke("set_close_to_tray", { enabled: checked }).catch(() => {});
+                invoke("set_close_to_tray", { enabled: checked }).catch((e: unknown) => { console.warn('[IPC]', e); });
               }
             }}
           />

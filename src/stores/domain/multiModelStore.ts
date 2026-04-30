@@ -44,7 +44,7 @@ export const useMultiModelStore = create<MultiModelState>((set) => ({
         attachments: attachments ?? [],
         searchProviderId: searchProviderId ?? null,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ error: String(e), loading: false });
     }
   },
