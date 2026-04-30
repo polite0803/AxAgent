@@ -86,6 +86,7 @@ impl UIAutomation {
         }
     }
 
+    #[allow(unused_variables)]
     pub async fn press_key(key: &str, modifiers: Vec<KeyModifier>) -> Result<()> {
         #[cfg(target_os = "windows")]
         {
