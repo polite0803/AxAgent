@@ -49,11 +49,11 @@ impl TaskContext {
             RouteDecision::Code => {
                 self.consecutive_code_turns += 1;
                 self.consecutive_general_turns = 0;
-            }
+            },
             RouteDecision::General => {
                 self.consecutive_general_turns += 1;
                 self.consecutive_code_turns = 0;
-            }
+            },
         }
     }
 }

@@ -292,11 +292,11 @@ fn build_responses_input(
                         Some(existing) => {
                             existing.push('\n');
                             existing.push_str(&text);
-                        }
+                        },
                         None => instructions = Some(text),
                     }
                 }
-            }
+            },
             "user" => {
                 let mut item = serde_json::Map::new();
                 item.insert(
@@ -308,7 +308,7 @@ fn build_responses_input(
                     convert_content_to_value(&msg.content),
                 );
                 input_items.push(serde_json::Value::Object(item));
-            }
+            },
             "assistant" => {
                 if let Some(ref tool_calls) = msg.tool_calls {
                     // Emit text part if present, stripping :::mcp blocks
@@ -368,7 +368,7 @@ fn build_responses_input(
                     item.insert("content".to_string(), serde_json::Value::String(text));
                     input_items.push(serde_json::Value::Object(item));
                 }
-            }
+            },
             "tool" => {
                 let mut item = serde_json::Map::new();
                 item.insert(
@@ -384,7 +384,7 @@ fn build_responses_input(
                     serde_json::Value::String(extract_text_content(&msg.content)),
                 );
                 input_items.push(serde_json::Value::Object(item));
-            }
+            },
             _ => {
                 let mut item = serde_json::Map::new();
                 item.insert(
@@ -396,7 +396,7 @@ fn build_responses_input(
                     convert_content_to_value(&msg.content),
                 );
                 input_items.push(serde_json::Value::Object(item));
-            }
+            },
         }
     }
 
@@ -485,7 +485,7 @@ fn parse_response_output(output: &[serde_json::Value]) -> (String, Option<Vec<To
                         }
                     }
                 }
-            }
+            },
             "function_call" => {
                 let call_id = obj
                     .get("call_id")
@@ -508,8 +508,8 @@ fn parse_response_output(output: &[serde_json::Value]) -> (String, Option<Vec<To
                     call_type: "function".to_string(),
                     function: ToolCallFunction { name, arguments },
                 });
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -615,13 +615,13 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                         super::diagnose_http_status("OpenAI Responses", s, &t),
                     )));
                     return;
-                }
+                },
                 Err(e) => {
                     let _ = tx.unbounded_send(Err(AxAgentError::Provider(
                         super::diagnose_reqwest_error(&e),
                     )));
                     return;
-                }
+                },
             };
 
             let mut byte_stream = resp.bytes_stream();
@@ -709,7 +709,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             }));
                                         }
                                     }
-                                }
+                                },
                                 "response.reasoning.delta"
                                 | "response.reasoning_summary_text.delta" => {
                                     if let Ok(evt) =
@@ -726,7 +726,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             }));
                                         }
                                     }
-                                }
+                                },
                                 "response.output_item.added" => {
                                     if let Ok(evt) =
                                         serde_json::from_str::<StreamOutputItemAdded>(data)
@@ -747,7 +747,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             }
                                         }
                                     }
-                                }
+                                },
                                 "response.function_call_arguments.delta" => {
                                     if let Ok(evt) =
                                         serde_json::from_str::<StreamFunctionCallArgsDelta>(data)
@@ -766,7 +766,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             }
                                         }
                                     }
-                                }
+                                },
                                 "response.function_call_arguments.done" => {
                                     if let Ok(evt) =
                                         serde_json::from_str::<StreamFunctionCallArgsDone>(data)
@@ -784,7 +784,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             }
                                         }
                                     }
-                                }
+                                },
                                 "response.completed" => {
                                     // Try full deserialization first
                                     let (usage, mut extra_tool_calls) = if let Ok(evt) =
@@ -884,7 +884,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                         tool_calls,
                                     }));
                                     return;
-                                }
+                                },
                                 "response.failed" | "response.incomplete" => {
                                     // Extract error message if possible
                                     let err_msg = serde_json::from_str::<serde_json::Value>(data)
@@ -910,7 +910,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                     );
                                     let _ = tx.unbounded_send(Err(AxAgentError::Provider(err_msg)));
                                     return;
-                                }
+                                },
                                 // Known event types we intentionally skip
                                 "response.created"
                                 | "response.in_progress"
@@ -922,7 +922,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                 | "response.reasoning_summary_text.done"
                                 | "response.reasoning_summary_part.added"
                                 | "response.reasoning_summary_part.done"
-                                | "response.function_call_arguments.delta.done" => {}
+                                | "response.function_call_arguments.delta.done" => {},
                                 _ => {
                                     if !current_event_type.is_empty() {
                                         tracing::debug!(
@@ -930,16 +930,16 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             current_event_type
                                         );
                                     }
-                                }
+                                },
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
-                    }
+                    },
                 }
             }
 

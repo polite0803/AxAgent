@@ -116,7 +116,7 @@ pub async fn add_memory_item(
                 Err(e) => {
                     tracing::error!("Memory embedding failed for item {}: {}", item_id, e);
                     ("failed", Some(e.to_string()))
-                }
+                },
             };
             let _ = axagent_core::repo::memory::update_item_index_status(
                 &db,
@@ -238,7 +238,7 @@ pub async fn update_memory_item(
                     Err(e) => {
                         tracing::error!("Memory re-embedding failed for item {}: {}", item_id, e);
                         ("failed", Some(e.to_string()))
-                    }
+                    },
                 };
                 let _ = axagent_core::repo::memory::update_item_index_status(
                     &db,
@@ -362,7 +362,7 @@ pub async fn rebuild_memory_index(
                 Err(e) => {
                     tracing::error!("Memory re-indexing failed for item {}: {}", item.id, e);
                     ("failed", Some(e.to_string()))
-                }
+                },
             };
             let _ = axagent_core::repo::memory::update_item_index_status(
                 &db,
@@ -488,7 +488,7 @@ pub async fn reindex_memory_item(
             Err(e) => {
                 tracing::error!("Memory reindex failed for item {}: {}", iid, e);
                 ("failed", Some(e.to_string()))
-            }
+            },
         };
         let _ = axagent_core::repo::memory::update_item_index_status(
             &db,

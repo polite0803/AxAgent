@@ -69,17 +69,17 @@ impl CommandValidator {
                     crate::shell_parser::SecuritySeverity::Critical => {
                         dangerous_patterns.push(format!("CRITICAL: {desc}"));
                         warnings.push(format!("CRITICAL: {desc}"));
-                    }
+                    },
                     crate::shell_parser::SecuritySeverity::High => {
                         dangerous_patterns.push(format!("HIGH: {desc}"));
                         warnings.push(format!("HIGH: {desc}"));
-                    }
+                    },
                     crate::shell_parser::SecuritySeverity::Medium => {
                         warnings.push(format!("MEDIUM: {desc}"));
-                    }
+                    },
                     crate::shell_parser::SecuritySeverity::Low => {
                         warnings.push(format!("LOW: {desc}"));
-                    }
+                    },
                 }
             }
         }

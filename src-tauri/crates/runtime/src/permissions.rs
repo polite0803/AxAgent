@@ -201,7 +201,7 @@ impl PermissionPolicy {
                         ToOwned::to_owned,
                     ),
                 };
-            }
+            },
             Some(PermissionOverride::Ask) => {
                 let reason = context.override_reason().map_or_else(
                     || format!("tool '{tool_name}' requires approval due to hook guidance"),
@@ -215,7 +215,7 @@ impl PermissionPolicy {
                     Some(reason),
                     prompter,
                 );
-            }
+            },
             Some(PermissionOverride::Allow) => {
                 if let Some(rule) = ask_rule {
                     let reason = format!(
@@ -237,8 +237,8 @@ impl PermissionPolicy {
                 {
                     return PermissionOutcome::Allow;
                 }
-            }
-            None => {}
+            },
+            None => {},
         }
 
         if let Some(rule) = ask_rule {
@@ -383,7 +383,7 @@ impl PermissionRule {
             PermissionRuleMatcher::Any => true,
             PermissionRuleMatcher::Exact(expected) => {
                 extract_permission_subject(input).is_some_and(|candidate| candidate == *expected)
-            }
+            },
             PermissionRuleMatcher::Prefix(prefix) => extract_permission_subject(input)
                 .is_some_and(|candidate| candidate.starts_with(prefix)),
         }

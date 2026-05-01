@@ -88,7 +88,7 @@ impl WebDavClient {
             StatusCode::NOT_FOUND => {
                 self.mkdir().await?;
                 Ok(true)
-            }
+            },
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Err(AxAgentError::Gateway(
                 "WebDAV authentication failed".to_string(),
             )),
@@ -131,13 +131,13 @@ impl WebDavClient {
 
             // CREATED=success, METHOD_NOT_ALLOWED=already exists
             match response.status() {
-                StatusCode::CREATED | StatusCode::OK | StatusCode::METHOD_NOT_ALLOWED => {}
+                StatusCode::CREATED | StatusCode::OK | StatusCode::METHOD_NOT_ALLOWED => {},
                 status => {
                     return Err(AxAgentError::Gateway(format!(
                         "WebDAV mkdir failed for '{}': HTTP {}",
                         current, status
                     )));
-                }
+                },
             }
         }
         Ok(())

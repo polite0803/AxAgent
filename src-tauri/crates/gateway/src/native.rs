@@ -57,10 +57,10 @@ impl NativeProtocol {
                         | &ProviderType::Hermes
                         | &ProviderType::Ollama
                 )
-            }
+            },
             NativeProtocol::AnthropicMessages | NativeProtocol::AnthropicCountTokens => {
                 matches!(provider_type, &ProviderType::Anthropic)
-            }
+            },
             NativeProtocol::GeminiModels
             | NativeProtocol::GeminiGenerateContent
             | NativeProtocol::GeminiStreamGenerateContent
@@ -85,7 +85,7 @@ impl NativeProtocol {
             NativeProtocol::AnthropicCountTokens => extract_anthropic_count_tokens_usage(value),
             NativeProtocol::GeminiGenerateContent | NativeProtocol::GeminiStreamGenerateContent => {
                 extract_gemini_generate_content_usage(value)
-            }
+            },
             NativeProtocol::GeminiCountTokens => extract_gemini_count_tokens_usage(value),
             NativeProtocol::GeminiModels => None,
         }
@@ -95,13 +95,13 @@ impl NativeProtocol {
         match self {
             NativeProtocol::OpenAiResponses => {
                 StreamUsageObserver::OpenAiResponses(OpenAiResponsesStreamState::default())
-            }
+            },
             NativeProtocol::AnthropicMessages => {
                 StreamUsageObserver::AnthropicMessages(AnthropicMessagesStreamState::default())
-            }
+            },
             NativeProtocol::GeminiStreamGenerateContent => {
                 StreamUsageObserver::Gemini(GeminiStreamState::default())
-            }
+            },
             _ => StreamUsageObserver::None,
         }
     }
@@ -193,15 +193,15 @@ impl AnthropicMessagesStreamState {
                     .and_then(|usage| usage.get("input_tokens"))
                     .and_then(|value| value.as_u64())
                     .map(|value| value as u32);
-            }
+            },
             Some("message_delta") => {
                 self.completion_tokens = value
                     .get("usage")
                     .and_then(|usage| usage.get("output_tokens"))
                     .and_then(|value| value.as_u64())
                     .map(|value| value as u32);
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -243,7 +243,7 @@ enum StreamUsageObserver {
 impl StreamUsageObserver {
     fn observe_line(&mut self, line: &str) {
         match self {
-            StreamUsageObserver::None => {}
+            StreamUsageObserver::None => {},
             StreamUsageObserver::OpenAiResponses(state) => state.observe_sse_line(line),
             StreamUsageObserver::AnthropicMessages(state) => state.observe_sse_line(line),
             StreamUsageObserver::Gemini(state) => state.observe_sse_line(line),
@@ -673,7 +673,7 @@ async fn proxy_buffered_response(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to read upstream response: {e}"),
             );
-        }
+        },
     };
 
     let usage = if status.is_success() {
@@ -732,7 +732,7 @@ fn build_upstream_request(
                 StatusCode::METHOD_NOT_ALLOWED,
                 "Unsupported native gateway method",
             ));
-        }
+        },
     };
 
     for (name, value) in headers.iter() {
@@ -744,17 +744,17 @@ fn build_upstream_request(
     match protocol {
         NativeProtocol::OpenAiResponses => {
             request = request.header(header::AUTHORIZATION, format!("Bearer {api_key}"));
-        }
+        },
         NativeProtocol::AnthropicMessages | NativeProtocol::AnthropicCountTokens => {
             request = request.header("x-api-key", api_key);
             if !headers.contains_key("anthropic-version") {
                 request = request.header("anthropic-version", ANTHROPIC_VERSION);
             }
-        }
+        },
         NativeProtocol::GeminiModels
         | NativeProtocol::GeminiGenerateContent
         | NativeProtocol::GeminiStreamGenerateContent
-        | NativeProtocol::GeminiCountTokens => {}
+        | NativeProtocol::GeminiCountTokens => {},
     }
 
     if *method != Method::GET {
@@ -793,11 +793,11 @@ async fn proxy_stream_response(
                     if tx.send(Ok(bytes)).await.is_err() {
                         break;
                     }
-                }
+                },
                 Err(e) => {
                     stream_error = Some(format!("Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."));
                     break;
-                }
+                },
             }
         }
 
@@ -845,7 +845,7 @@ async fn handle_native_request(
                 StatusCode::BAD_REQUEST,
                 &format!("Failed to read request body: {e}"),
             )
-        }
+        },
     };
 
     let body_json = if body.is_empty() {
@@ -855,7 +855,7 @@ async fn handle_native_request(
             Ok(value) => Some(value),
             Err(e) => {
                 return error_response(StatusCode::BAD_REQUEST, &format!("Invalid JSON body: {e}"))
-            }
+            },
         }
     };
 
@@ -867,7 +867,7 @@ async fn handle_native_request(
                 Ok(model) => Some(model),
                 Err(response) => return response,
             }
-        }
+        },
         NativeProtocol::GeminiGenerateContent
         | NativeProtocol::GeminiStreamGenerateContent
         | NativeProtocol::GeminiCountTokens => gemini_model.clone(),
@@ -908,7 +908,7 @@ async fn handle_native_request(
             )
             .await;
             return error_response(StatusCode::BAD_GATEWAY, &e.to_string());
-        }
+        },
     };
     let request_builder = match build_upstream_request(
         client,
@@ -940,7 +940,7 @@ async fn handle_native_request(
             )
             .await;
             return error_response(StatusCode::BAD_GATEWAY, &e.to_string());
-        }
+        },
     };
 
     if is_event_stream(response.headers()) {

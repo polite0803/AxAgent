@@ -95,7 +95,7 @@ impl BatchProcessor {
                         e
                     );
                     errors.push(e);
-                }
+                },
             }
         }
 
@@ -136,7 +136,7 @@ impl BatchProcessor {
                     .take(sample_size)
                     .cloned()
                     .collect()
-            }
+            },
             SamplingStrategy::TopK(k) => {
                 let mut trajectories: Vec<_> = trajectories.iter().collect();
                 trajectories.sort_by(|a, b| {
@@ -146,7 +146,7 @@ impl BatchProcessor {
                         .unwrap_or(std::cmp::Ordering::Equal)
                 });
                 trajectories.into_iter().take(k).cloned().collect()
-            }
+            },
             SamplingStrategy::Threshold(threshold) => trajectories
                 .iter()
                 .filter(|t| t.quality.overall >= threshold)
@@ -183,7 +183,7 @@ impl BatchProcessor {
                 sampled.extend(failure.into_iter().take(failure_count));
 
                 sampled
-            }
+            },
             SamplingStrategy::DiversityBased => self.diversity_sample(trajectories, sample_size),
         }
     }
@@ -342,7 +342,7 @@ impl BatchProcessor {
                     .map(|t| serde_json::to_string(t).unwrap_or_default())
                     .collect();
                 Ok(jsonl.join("\n"))
-            }
+            },
             ExportFormat::RlTraining => {
                 let entries: Vec<RLTrainingEntry> =
                     filtered.iter().map(|t| t.export_as_rl()).collect();
@@ -351,7 +351,7 @@ impl BatchProcessor {
                     .map(|e| serde_json::to_string(e).unwrap_or_default())
                     .collect();
                 Ok(jsonl.join("\n"))
-            }
+            },
             ExportFormat::Compressed => {
                 let compressed: Vec<serde_json::Value> = filtered
                     .iter()
@@ -369,7 +369,7 @@ impl BatchProcessor {
                     })
                     .collect();
                 Ok(serde_json::to_string_pretty(&compressed)?)
-            }
+            },
         }
     }
 

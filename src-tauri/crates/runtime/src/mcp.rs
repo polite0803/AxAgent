@@ -68,14 +68,14 @@ pub fn mcp_server_signature(config: &McpServerConfig) -> Option<String> {
             let mut command = vec![config.command.clone()];
             command.extend(config.args.clone());
             Some(format!("stdio:{}", render_command_signature(&command)))
-        }
+        },
         McpServerConfig::Sse(config) | McpServerConfig::Http(config) => {
             Some(format!("url:{}", unwrap_ccr_proxy_url(&config.url)))
-        }
+        },
         McpServerConfig::Ws(config) => Some(format!("url:{}", unwrap_ccr_proxy_url(&config.url))),
         McpServerConfig::ManagedProxy(config) => {
             Some(format!("url:{}", unwrap_ccr_proxy_url(&config.url)))
-        }
+        },
         McpServerConfig::Sdk(_) => None,
     }
 }
@@ -115,7 +115,7 @@ pub fn scoped_mcp_config_hash(config: &ScopedMcpServerConfig) -> String {
         McpServerConfig::Sdk(sdk) => format!("sdk|{}", sdk.name),
         McpServerConfig::ManagedProxy(proxy) => {
             format!("claudeai-proxy|{}|{}", proxy.url, proxy.id)
-        }
+        },
     };
     stable_hex_hash(&rendered)
 }
@@ -190,15 +190,15 @@ fn percent_decode(value: &str) -> String {
                 }
                 decoded.push(bytes[index]);
                 index += 1;
-            }
+            },
             b'+' => {
                 decoded.push(b' ');
                 index += 1;
-            }
+            },
             byte => {
                 decoded.push(byte);
                 index += 1;
-            }
+            },
         }
     }
     String::from_utf8_lossy(&decoded).into_owned()

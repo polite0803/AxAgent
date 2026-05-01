@@ -53,7 +53,7 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                         } else {
                             interval_secs
                         }
-                    }
+                    },
                     _ => interval_secs,
                 };
 
@@ -122,7 +122,7 @@ fn start_scheduled_task_executor(state: &AppState) {
                                     0,
                                 );
                                 service.record_execution(&task_id, result).await;
-                            }
+                            },
                             Err(e) => {
                                 tracing::warn!(
                                     "[scheduled_task_executor] Workflow '{}' failed: {:?}",
@@ -134,7 +134,7 @@ fn start_scheduled_task_executor(state: &AppState) {
                                     0,
                                 );
                                 service.record_execution(&task_id, result).await;
-                            }
+                            },
                         }
                     }
                 } else {
@@ -153,13 +153,13 @@ fn start_scheduled_task_executor(state: &AppState) {
                                     result.error
                                 );
                             }
-                        }
+                        },
                         None => {
                             tracing::warn!(
                                 "[scheduled_task_executor] Failed to execute task: {}",
                                 task_id
                             );
-                        }
+                        },
                     }
                 }
             }
@@ -190,10 +190,10 @@ fn start_platform_adapters(state: &AppState) {
                         );
                     }
                 }
-            }
+            },
             Err(e) => {
                 tracing::error!("[PlatformManager] boot reconcile failed: {}", e);
-            }
+            },
         }
     });
 }
@@ -224,7 +224,7 @@ fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                             } else {
                                 interval_secs
                             }
-                        }
+                        },
                         _ => interval_secs,
                     };
 
@@ -344,7 +344,7 @@ fn start_pattern_learning(state: &AppState) {
                     Err(e) => {
                         tracing::warn!("[pattern] Failed to fetch trajectories: {}", e);
                         continue;
-                    }
+                    },
                 };
             if trajectories.is_empty() {
                 continue;
@@ -382,7 +382,7 @@ fn start_cross_session_learning(state: &AppState) {
                     Err(e) => {
                         tracing::warn!("[cross_session] Failed to fetch trajectories: {}", e);
                         continue;
-                    }
+                    },
                 };
             if trajectories.len() < 3 {
                 continue;
@@ -445,7 +445,7 @@ fn start_rl_reward_computation(state: &AppState) {
                     Err(e) => {
                         tracing::warn!("[rl] Failed to fetch trajectories: {}", e);
                         continue;
-                    }
+                    },
                 };
             if trajectories.is_empty() {
                 continue;
@@ -607,7 +607,7 @@ fn start_skill_evolution(state: &AppState) {
                 Err(e) => {
                     tracing::warn!("[evolution] Failed to fetch skills: {}", e);
                     continue;
-                }
+                },
             };
             let weak_skills: Vec<_> = skills
                 .into_iter()

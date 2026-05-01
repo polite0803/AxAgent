@@ -138,7 +138,7 @@ async fn run_qq_gateway(
             Ok(Some(Err(e))) => {
                 tracing::error!("QQ ws error: {}", e);
                 break;
-            }
+            },
             Ok(None) => break,
             Err(_) => {
                 if !identified {
@@ -156,7 +156,7 @@ async fn run_qq_gateway(
                 }
                 last_heartbeat_ack = false;
                 continue;
-            }
+            },
         };
 
         match msg {
@@ -166,7 +166,7 @@ async fn run_qq_gateway(
                     Err(e) => {
                         tracing::warn!("QQ: invalid JSON: {}", e);
                         continue;
-                    }
+                    },
                 };
 
                 let op = payload["op"].as_i64().unwrap_or(-1);
@@ -181,11 +181,11 @@ async fn run_qq_gateway(
                             "READY" => {
                                 connected.store(true, Ordering::SeqCst);
                                 tracing::info!("QQ: ready");
-                            }
+                            },
                             "RESUMED" => {
                                 connected.store(true, Ordering::SeqCst);
                                 tracing::info!("QQ: session resumed");
-                            }
+                            },
                             "AT_MESSAGE_CREATE"
                             | "MESSAGE_CREATE"
                             | "DIRECT_MESSAGE_CREATE"
@@ -228,13 +228,13 @@ async fn run_qq_gateway(
                                         });
                                     }
                                 }
-                            }
-                            _ => {}
+                            },
+                            _ => {},
                         }
-                    }
+                    },
                     7 => {
                         last_heartbeat_ack = false;
-                    }
+                    },
                     10 => {
                         heartbeat_interval =
                             payload["d"]["heartbeat_interval"].as_u64().unwrap_or(41250);
@@ -257,18 +257,18 @@ async fn run_qq_gateway(
                             identified = true;
                             tracing::info!("QQ: identify sent");
                         }
-                    }
+                    },
                     11 => {
                         last_heartbeat_ack = true;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-            }
+            },
             Message::Close(_) => {
                 tracing::info!("QQ ws close frame received");
                 break;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 

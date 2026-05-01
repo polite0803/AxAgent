@@ -71,10 +71,10 @@ impl AtomicSkillExecutor {
             EntryType::Mcp => Self::execute_mcp(&skill.entry_ref, input, mcp_call_fn).await,
             EntryType::Local => {
                 Self::execute_local(&skill.entry_ref, input, local_execute_fn).await
-            }
+            },
             EntryType::Plugin => {
                 Self::execute_plugin(&skill.entry_ref, input, plugin_call_fn).await
-            }
+            },
         };
 
         let execution_time_ms = start.elapsed().as_millis() as u64;

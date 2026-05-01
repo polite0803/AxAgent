@@ -163,7 +163,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicM
                         "content": extract_text_content(&msg.content)
                     }]),
                 });
-            }
+            },
             "assistant" if msg.tool_calls.is_some() => {
                 let mut blocks: Vec<serde_json::Value> = Vec::new();
                 let text = extract_text_content(&msg.content);
@@ -186,7 +186,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicM
                     role: "assistant".to_string(),
                     content: serde_json::json!(blocks),
                 });
-            }
+            },
             _ => {
                 let content = match &msg.content {
                     ChatContent::Text(text) => serde_json::Value::String(text.clone()),
@@ -220,14 +220,14 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicM
                             })
                             .collect();
                         serde_json::Value::Array(blocks)
-                    }
+                    },
                 };
 
                 result.push(AnthropicMessage {
                     role: msg.role.clone(),
                     content,
                 });
-            }
+            },
         }
     }
 
@@ -373,13 +373,13 @@ impl ProviderAdapter for AnthropicAdapter {
                     if let Some(t) = &block.text {
                         content.push_str(t);
                     }
-                }
+                },
                 "thinking" => {
                     if let Some(t) = &block.thinking {
                         let prev = thinking.unwrap_or_default();
                         thinking = Some(format!("{prev}{t}"));
                     }
-                }
+                },
                 "tool_use" => {
                     if let (Some(id), Some(name)) = (&block.id, &block.name) {
                         let arguments = block
@@ -396,8 +396,8 @@ impl ProviderAdapter for AnthropicAdapter {
                             },
                         });
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -488,13 +488,13 @@ impl ProviderAdapter for AnthropicAdapter {
                         super::diagnose_http_status("Anthropic", s, &t),
                     )));
                     return;
-                }
+                },
                 Err(e) => {
                     let _ = tx.unbounded_send(Err(AxAgentError::Provider(
                         super::diagnose_reqwest_error(&e),
                     )));
                     return;
-                }
+                },
             };
 
             let mut byte_stream = resp.bytes_stream();
@@ -538,7 +538,7 @@ impl ProviderAdapter for AnthropicAdapter {
                                         &data[..data.len().min(200)]
                                     );
                                     continue;
-                                }
+                                },
                             };
 
                             let event_type =
@@ -554,7 +554,7 @@ impl ProviderAdapter for AnthropicAdapter {
                                     {
                                         accumulated_prompt_tokens = input as u32;
                                     }
-                                }
+                                },
                                 "content_block_start" => {
                                     if let Some(cb) = json.get("content_block") {
                                         if cb.get("type").and_then(|t| t.as_str())
@@ -577,7 +577,7 @@ impl ProviderAdapter for AnthropicAdapter {
                                             });
                                         }
                                     }
-                                }
+                                },
                                 "content_block_delta" => {
                                     if let Some(delta) = json.get("delta") {
                                         let dt = delta
@@ -617,17 +617,17 @@ impl ProviderAdapter for AnthropicAdapter {
                                                     }
                                                 }
                                                 continue; // Don't send a ChatStreamChunk for JSON delta
-                                            }
+                                            },
                                             _ => continue,
                                         };
                                         let _ = tx.unbounded_send(Ok(chunk));
                                     }
-                                }
+                                },
                                 "content_block_stop" => {
                                     if let Some(tu) = current_tool_use.take() {
                                         pending_tool_uses.push(tu);
                                     }
-                                }
+                                },
                                 "message_delta" => {
                                     if let Some(u) = json.get("usage") {
                                         let out = u
@@ -649,7 +649,7 @@ impl ProviderAdapter for AnthropicAdapter {
                                             tool_calls: None,
                                         }));
                                     }
-                                }
+                                },
                                 "message_stop" => {
                                     let tool_calls = if pending_tool_uses.is_empty() {
                                         None
@@ -690,17 +690,17 @@ impl ProviderAdapter for AnthropicAdapter {
                                         tool_calls,
                                     }));
                                     return;
-                                }
-                                _ => {}
+                                },
+                                _ => {},
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
-                    }
+                    },
                 }
             }
 

@@ -696,7 +696,7 @@ impl std::fmt::Display for WorkflowError {
                     "Step '{}' depends on non-existent '{}'",
                     step, missing_dep
                 )
-            }
+            },
             Self::WorkflowNotFound => write!(f, "Workflow not found"),
             Self::StepNotFound => write!(f, "Step not found"),
             Self::LockError => write!(f, "Failed to acquire lock"),
@@ -855,13 +855,13 @@ impl WorkflowRunner {
                         running_ids.remove(&sid);
                         running_count -= 1;
                         vec![outcome]
-                    }
+                    },
                     Err(e) => {
                         running_count -= 1;
                         // JoinError — 任务 panic，无法知道 step_id
                         tracing::warn!("Workflow 步骤 panic: {}", e);
                         vec![]
-                    }
+                    },
                 }
             };
 
@@ -937,7 +937,7 @@ impl WorkflowRunner {
                                 None,
                             )
                             .ok();
-                    }
+                    },
                     Err(e) => {
                         // Record failure in circuit breaker
                         {
@@ -983,7 +983,7 @@ impl WorkflowRunner {
                                             Some(e),
                                         )
                                         .ok();
-                                }
+                                },
                                 OnStepFailure::Abort => {
                                     self.engine
                                         .update_step_status(
@@ -994,10 +994,10 @@ impl WorkflowRunner {
                                             Some(e),
                                         )
                                         .ok();
-                                }
+                                },
                             }
                         }
-                    }
+                    },
                 }
             }
 
@@ -1011,7 +1011,7 @@ impl WorkflowRunner {
                 | Some(WorkflowStatus::PartiallyCompleted)
                 | Some(WorkflowStatus::Failed)
                 | Some(WorkflowStatus::Cancelled) => break,
-                _ => {}
+                _ => {},
             }
         }
 

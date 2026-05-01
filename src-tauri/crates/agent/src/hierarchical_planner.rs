@@ -307,7 +307,7 @@ impl HierarchicalPlanner {
                     pending_tasks: 0,
                     percentage: 0.0,
                 }
-            }
+            },
         };
 
         let total_phases = plan.phases.len();

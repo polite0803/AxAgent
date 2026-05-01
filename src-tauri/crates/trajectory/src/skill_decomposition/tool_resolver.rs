@@ -61,7 +61,7 @@ impl ToolResolver {
                                 None,
                             )
                         }
-                    }
+                    },
                     "local" => {
                         if installed_local_tools.contains(&dep.name) {
                             (ToolDependencyStatus::Satisfied, None, None)
@@ -69,7 +69,7 @@ impl ToolResolver {
                             // Local tools that aren't installed need generation
                             (ToolDependencyStatus::NeedsGeneration, None, None)
                         }
-                    }
+                    },
                     "plugin" => {
                         if installed_plugin_tools.contains(&dep.name) {
                             (ToolDependencyStatus::Satisfied, None, None)
@@ -80,15 +80,15 @@ impl ToolResolver {
                                 None,
                             )
                         }
-                    }
+                    },
                     "builtin" => {
                         // Builtin tools are always available
                         (ToolDependencyStatus::Satisfied, None, None)
-                    }
+                    },
                     _ => {
                         // Unknown tool type: needs generation
                         (ToolDependencyStatus::NeedsGeneration, None, None)
-                    }
+                    },
                 };
 
                 ToolDependencyCheckResult {

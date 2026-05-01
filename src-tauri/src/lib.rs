@@ -855,7 +855,7 @@ pub fn run() {
                 }
             }
             std::process::exit(1);
-        }
+        },
     };
 
     app.run(|_app, _event| {

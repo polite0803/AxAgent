@@ -201,7 +201,7 @@ async fn embed_with_retry(
                         e
                     );
                 }
-            }
+            },
         }
     }
 

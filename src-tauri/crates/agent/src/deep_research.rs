@@ -267,7 +267,7 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
                             query,
                             results: search_results,
                         }
-                    }
+                    },
                     Err(_) => ResearchFinding {
                         query,
                         results: Vec::new(),

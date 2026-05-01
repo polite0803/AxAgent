@@ -779,7 +779,7 @@ impl WorkflowMigrator {
                             output_var: tool_node.config.output_var.clone(),
                         },
                     }))
-                }
+                },
                 WorkflowNode::Code(code_node) => {
                     has_changes = true;
                     let skill_id = uuid::Uuid::new_v4().to_string();
@@ -801,7 +801,7 @@ impl WorkflowMigrator {
                             output_var: code_node.config.output_var.clone(),
                         },
                     }))
-                }
+                },
                 _ => None,
             };
 

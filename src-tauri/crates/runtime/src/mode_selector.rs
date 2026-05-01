@@ -197,7 +197,7 @@ impl ModeSelector {
             ),
             ActiveMode::General => {
                 format!("{} — 全功能开启，保留完整通用能力", mode.display_name())
-            }
+            },
         }
     }
 }

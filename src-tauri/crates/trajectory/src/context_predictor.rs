@@ -211,11 +211,11 @@ impl ContextPredictor {
             PredictionCondition::ErrorDetected => !features.detected_errors.is_empty(),
             PredictionCondition::KeywordInContext { keywords } => {
                 self.has_keywords(features, keywords)
-            }
+            },
             PredictionCondition::ActivityLevel { level } => features.user_activity_level == *level,
             PredictionCondition::TimeInRange { start, end } => {
                 features.time_of_day >= *start && features.time_of_day <= *end
-            }
+            },
             PredictionCondition::Always => true,
         };
 

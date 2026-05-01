@@ -211,7 +211,7 @@ impl PlatformMessageHandler for TelegramHandler {
                     content: response,
                     parse_mode: Some("Markdown".to_string()),
                 })
-            }
+            },
             PlatformMessage::Discord(_) => None,
         }
     }
@@ -265,7 +265,7 @@ impl PlatformMessageHandler for DiscordHandler {
                     content: response,
                     parse_mode: None,
                 })
-            }
+            },
             PlatformMessage::Telegram(_) => None,
         }
     }

@@ -112,7 +112,7 @@ pub async fn discover_mcp_tools(
             .await
             .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
             .map_err(|e| e.to_string())?
-        }
+        },
         "http" => {
             let endpoint = server
                 .endpoint
@@ -125,7 +125,7 @@ pub async fn discover_mcp_tools(
             .await
             .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
             .map_err(|e| e.to_string())?
-        }
+        },
         "sse" => {
             let endpoint = server
                 .endpoint
@@ -138,7 +138,7 @@ pub async fn discover_mcp_tools(
             .await
             .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
             .map_err(|e| e.to_string())?
-        }
+        },
         other => return Err(format!("Unsupported transport: {}", other)),
     };
 
@@ -252,7 +252,7 @@ async fn discover_mcp_tools_inner(
             .await
             .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
             .map_err(|e| e.to_string())?
-        }
+        },
         "http" => {
             let endpoint = server
                 .endpoint
@@ -265,7 +265,7 @@ async fn discover_mcp_tools_inner(
             .await
             .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
             .map_err(|e| e.to_string())?
-        }
+        },
         "sse" => {
             let endpoint = server
                 .endpoint
@@ -278,7 +278,7 @@ async fn discover_mcp_tools_inner(
             .await
             .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
             .map_err(|e| e.to_string())?
-        }
+        },
         other => return Err(format!("Unsupported transport: {}", other)),
     };
 

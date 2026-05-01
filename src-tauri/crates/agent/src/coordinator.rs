@@ -520,7 +520,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
                     }),
                 )
                 .await;
-            }
+            },
             Err(e) => {
                 *status = AgentStatus::Failed(e.to_string());
                 self.emit_event(
@@ -532,7 +532,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
                     }),
                 )
                 .await;
-            }
+            },
         }
 
         result

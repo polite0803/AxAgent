@@ -163,21 +163,21 @@ impl PreferenceLearner {
             "naming_convention" => {
                 serde_json::to_value(&self.profile.coding_style.naming_convention)
                     .unwrap_or_default()
-            }
+            },
             "indentation_style" => {
                 serde_json::to_value(&self.profile.coding_style.indentation_style)
                     .unwrap_or_default()
-            }
+            },
             "comment_style" => {
                 serde_json::to_value(&self.profile.coding_style.comment_style).unwrap_or_default()
-            }
+            },
             "detail_level" => {
                 serde_json::to_value(&self.profile.communication.detail_level).unwrap_or_default()
-            }
+            },
             "tone" => serde_json::to_value(&self.profile.communication.tone).unwrap_or_default(),
             "language" => {
                 serde_json::to_value(&self.profile.communication.language).unwrap_or_default()
-            }
+            },
             _ => serde_json::Value::Null,
         };
 
@@ -188,39 +188,39 @@ impl PreferenceLearner {
                 {
                     self.profile.coding_style.naming_convention = nc;
                 }
-            }
+            },
             "indentation_style" => {
                 if let Ok(is) =
                     serde_json::from_value::<crate::user_profile::IndentationStyle>(value.clone())
                 {
                     self.profile.coding_style.indentation_style = is;
                 }
-            }
+            },
             "comment_style" => {
                 if let Ok(cs) =
                     serde_json::from_value::<crate::user_profile::CommentStyle>(value.clone())
                 {
                     self.profile.coding_style.comment_style = cs;
                 }
-            }
+            },
             "detail_level" => {
                 if let Ok(dl) =
                     serde_json::from_value::<crate::user_profile::DetailLevel>(value.clone())
                 {
                     self.profile.communication.detail_level = dl;
                 }
-            }
+            },
             "tone" => {
                 if let Ok(t) = serde_json::from_value::<crate::user_profile::Tone>(value.clone()) {
                     self.profile.communication.tone = t;
                 }
-            }
+            },
             "language" => {
                 if let Ok(lang) = serde_json::from_value::<String>(value.clone()) {
                     self.profile.communication.language = lang;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         self.profile

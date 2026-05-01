@@ -40,7 +40,7 @@ pub async fn auth_middleware(
                 })),
             )
                 .into_response();
-        }
+        },
     };
 
     match axagent_core::repo::gateway::verify_key(&pool, token).await {
@@ -54,7 +54,7 @@ pub async fn auth_middleware(
 
             request.extensions_mut().insert(AuthenticatedKey(key));
             next.run(request).await
-        }
+        },
         Err(_) => (
             StatusCode::UNAUTHORIZED,
             Json(json!({

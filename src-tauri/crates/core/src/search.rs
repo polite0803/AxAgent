@@ -70,7 +70,7 @@ pub async fn execute_search(
                 "Unsupported provider type: {}",
                 provider_type
             )));
-        }
+        },
     };
 
     let latency = start.elapsed().as_millis() as u64;

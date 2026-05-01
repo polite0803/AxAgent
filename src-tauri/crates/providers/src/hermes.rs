@@ -52,11 +52,11 @@ impl HermesAdapter {
                 "chat_completions" | "chatcompletions" => return ApiMode::ChatCompletions,
                 "codex_responses" | "responses" | "openai_responses" => {
                     return ApiMode::CodexResponses
-                }
+                },
                 "anthropic_messages" | "anthropic" | "messages" => {
                     return ApiMode::AnthropicMessages
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 

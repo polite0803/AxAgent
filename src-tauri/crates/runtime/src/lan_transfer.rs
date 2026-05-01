@@ -72,7 +72,7 @@ impl LanDiscovery {
                 Err(e) => {
                     tracing::error!("LAN discovery bind failed: {}", e);
                     return;
-                }
+                },
             };
             let _ = socket.set_read_timeout(Some(Duration::from_secs(2)));
 
@@ -88,7 +88,7 @@ impl LanDiscovery {
                         }
                         // Received discovery request, send reply
                         let _ = socket.send_to(&peer_data, src);
-                    }
+                    },
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => continue,
                     Err(_) => continue,
                 }
@@ -136,7 +136,7 @@ impl LanDiscovery {
                             found.push(peer);
                         }
                     }
-                }
+                },
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
                 Err(_) => break,
             }
@@ -198,10 +198,10 @@ impl LanFileServer {
                         tokio::spawn(async move {
                             handle_transfer_connection(&mut stream, &dir).await;
                         });
-                    }
+                    },
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(Duration::from_millis(100));
-                    }
+                    },
                     Err(_) => break,
                 }
             }
@@ -269,7 +269,7 @@ async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::pa
             Err(_) => {
                 let _ = send_msg(stream, &LanMessage::TransferRejected("Read error".into()));
                 return;
-            }
+            },
         };
 
         let _ = send_msg(stream, &LanMessage::TransferAccepted);
@@ -357,10 +357,10 @@ impl LanFileClient {
                 // Read transfer complete
                 let _ = recv_msg(&mut stream).await;
                 Ok(())
-            }
+            },
             LanMessage::TransferRejected(reason) => {
                 anyhow::bail!("Transfer rejected: {}", reason)
-            }
+            },
             _ => anyhow::bail!("Unexpected response"),
         }
     }

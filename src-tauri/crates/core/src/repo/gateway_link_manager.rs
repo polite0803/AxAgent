@@ -375,7 +375,7 @@ where
             Ok(result) => {
                 backoff.reset();
                 return Ok(result);
-            }
+            },
             Err(e) => {
                 last_error = Some(e);
                 if attempt < max_attempts - 1 {
@@ -390,7 +390,7 @@ where
                     );
                     tokio::time::sleep(delay).await;
                 }
-            }
+            },
         }
     }
 

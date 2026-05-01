@@ -267,7 +267,7 @@ impl SessionStore {
                             .as_ref()
                             .and_then(|fork| fork.branch_name.clone()),
                     }
-                }
+                },
                 Err(_) => ManagedSessionSummary {
                     id: path
                         .file_stem()
@@ -854,7 +854,7 @@ mod tests {
             SessionControlError::WorkspaceMismatch { expected, actual } => {
                 assert_eq!(expected, workspace_b);
                 assert_eq!(actual, workspace_a);
-            }
+            },
             other => panic!("expected workspace mismatch, got {other:?}"),
         }
         fs::remove_dir_all(base).expect("temp dir should clean up");

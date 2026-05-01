@@ -264,20 +264,20 @@ fn sanitize_fts5_query(query: &str) -> String {
             | '#'
             | '*' => {
                 sanitized.push(c);
-            }
+            },
             '"' => {
                 in_phrase = !in_phrase;
                 sanitized.push(c);
-            }
+            },
             '(' | ')' => {
                 sanitized.push(c);
-            }
+            },
             _ => {
                 // 保留 Unicode 字母、表意文字（中日韩等），确保非 ASCII 搜索可用
                 if c.is_alphabetic() || c.is_alphanumeric() {
                     sanitized.push(c);
                 }
-            }
+            },
         }
     }
 

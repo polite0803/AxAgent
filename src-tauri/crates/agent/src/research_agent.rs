@@ -678,7 +678,7 @@ impl DefaultLlmContentGenerator {
                     .map_err(|e| ResearchError::LlmFailed(e.to_string()))?;
 
                 Ok(response.content)
-            }
+            },
             _ => Err(ResearchError::LlmFailed(
                 "No LLM adapter configured".to_string(),
             )),

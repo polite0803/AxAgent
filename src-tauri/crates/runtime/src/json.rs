@@ -48,7 +48,7 @@ impl JsonValue {
                     .collect::<Vec<_>>()
                     .join(",");
                 format!("[{rendered}]")
-            }
+            },
             Self::Object(entries) => {
                 let rendered = entries
                     .iter()
@@ -56,7 +56,7 @@ impl JsonValue {
                     .collect::<Vec<_>>()
                     .join(",");
                 format!("{{{rendered}}}")
-            }
+            },
         }
     }
 

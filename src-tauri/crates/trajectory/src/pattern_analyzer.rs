@@ -122,7 +122,7 @@ impl PatternAnalyzer {
                     } else {
                         *indentation_counts.entry("compact".to_string()).or_insert(0) += 1;
                     }
-                }
+                },
                 BehaviorEventType::FileEdited {
                     edit_type,
                     lines_changed,
@@ -137,8 +137,8 @@ impl PatternAnalyzer {
                     if *edit_type == "refactor" {
                         *naming_counts.entry("refactoring".to_string()).or_insert(0) += 1;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -304,16 +304,16 @@ impl PatternAnalyzer {
             let topic = match &event.event_type {
                 BehaviorEventType::CodeGeneration { language, .. } => {
                     format!("code:{}", language)
-                }
+                },
                 BehaviorEventType::SearchQuery { query_type, .. } => {
                     format!("search:{}", query_type)
-                }
+                },
                 BehaviorEventType::ConversationStart { intent, .. } => {
                     intent.clone().unwrap_or_else(|| "general".to_string())
-                }
+                },
                 BehaviorEventType::ArtifactCreation { artifact_type, .. } => {
                     format!("artifact:{}", artifact_type)
-                }
+                },
                 _ => return Vec::new(),
             };
 
@@ -353,14 +353,14 @@ impl PatternAnalyzer {
                     } else if pattern.value.contains("kebab") {
                         profile.naming_convention = NamingConvention::KebabCase;
                     }
-                }
+                },
                 PatternType::Indentation => {
                     if pattern.value == "spacious" {
                         profile.indentation_style = IndentationStyle::FourSpaces;
                     } else {
                         profile.indentation_style = IndentationStyle::TwoSpaces;
                     }
-                }
+                },
                 PatternType::Comment => {
                     if pattern.value == "extensive" {
                         profile.comment_style = CommentStyle::Extensive;
@@ -369,8 +369,8 @@ impl PatternAnalyzer {
                     } else {
                         profile.comment_style = CommentStyle::Moderate;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -391,7 +391,7 @@ impl PatternAnalyzer {
                 match feedback_type {
                     crate::behavior_tracker::UserFeedbackType::Positive => feedback_positive += 1,
                     crate::behavior_tracker::UserFeedbackType::Negative => feedback_negative += 1,
-                    _ => {}
+                    _ => {},
                 }
             }
 
@@ -435,9 +435,9 @@ impl PatternAnalyzer {
             match pattern.pattern_type {
                 TemporalPatternType::PeakHours => {
                     profile.active_hours = pattern.time_range.clone();
-                }
-                TemporalPatternType::PreferredDays => {}
-                _ => {}
+                },
+                TemporalPatternType::PreferredDays => {},
+                _ => {},
             }
         }
 

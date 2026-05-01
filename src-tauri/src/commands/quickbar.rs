@@ -13,7 +13,7 @@ fn quickbar_url(app: &AppHandle) -> WebviewUrl {
                     .parse()
                     .expect("valid quickbar dev URL"),
             )
-        }
+        },
         None => WebviewUrl::App("index.html".into()),
     }
 }

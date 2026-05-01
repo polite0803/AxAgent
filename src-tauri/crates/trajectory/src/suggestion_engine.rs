@@ -240,7 +240,7 @@ impl SuggestionEngine {
         let suggestion_type = match &prediction.predicted_intent {
             PredictedIntent::CodeCompletion { language, .. } => {
                 self.create_completion_suggestion(language)
-            }
+            },
             PredictedIntent::Refactoring { target } => self.create_refactor_suggestion(target),
             PredictedIntent::Documentation { topic } => self.create_documentation_suggestion(topic),
             PredictedIntent::TestGeneration { target } => self.create_test_suggestion(target),
@@ -248,7 +248,7 @@ impl SuggestionEngine {
             PredictedIntent::Search { .. } => self.create_search_suggestion(),
             PredictedIntent::Unknown => {
                 vec![]
-            }
+            },
         };
 
         suggestions.extend(suggestion_type);

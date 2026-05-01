@@ -130,7 +130,7 @@ fn build_gateway_url_for_protocol(
             let https_port =
                 https_port.ok_or_else(|| "HTTPS is unavailable for quick connect".to_string())?;
             Ok(format!("https://{}:{}{}", host, https_port, base_path))
-        }
+        },
     }
 }
 

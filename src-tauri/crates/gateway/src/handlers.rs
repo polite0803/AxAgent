@@ -32,7 +32,7 @@ pub async fn detailed_health_check(State(state): State<GatewayAppState>) -> impl
         Err(e) => {
             tracing::warn!("Database health check failed: {}", e);
             "disconnected"
-        }
+        },
     };
 
     let providers_count = match axagent_core::repo::provider::list_providers(&state.db).await {
@@ -85,7 +85,7 @@ pub async fn get_response(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -95,7 +95,7 @@ pub async fn get_response(
                 StatusCode::BAD_GATEWAY,
                 "No Responses API provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -106,7 +106,7 @@ pub async fn get_response(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -114,7 +114,7 @@ pub async fn get_response(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -147,7 +147,7 @@ pub async fn get_response(
                 StatusCode::BAD_GATEWAY,
                 "No Responses API adapter available",
             );
-        }
+        },
     };
 
     match adapter.get_response(&ctx, &response_id).await {
@@ -179,7 +179,7 @@ pub async fn get_response(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -202,7 +202,7 @@ pub async fn get_response(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to get response: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -231,7 +231,7 @@ pub async fn delete_response(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -241,7 +241,7 @@ pub async fn delete_response(
                 StatusCode::BAD_GATEWAY,
                 "No Responses API provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -252,7 +252,7 @@ pub async fn delete_response(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -260,7 +260,7 @@ pub async fn delete_response(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -293,7 +293,7 @@ pub async fn delete_response(
                 StatusCode::BAD_GATEWAY,
                 "No Responses API adapter available",
             );
-        }
+        },
     };
 
     match adapter.delete_response(&ctx, &response_id).await {
@@ -316,7 +316,7 @@ pub async fn delete_response(
             .await;
 
             Json(json!({ "deleted": true, "id": response_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -339,7 +339,7 @@ pub async fn delete_response(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to delete response: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -364,7 +364,7 @@ pub async fn list_jobs(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -374,7 +374,7 @@ pub async fn list_jobs(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -385,7 +385,7 @@ pub async fn list_jobs(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -393,7 +393,7 @@ pub async fn list_jobs(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -423,7 +423,7 @@ pub async fn list_jobs(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.list_jobs(&ctx).await {
@@ -455,7 +455,7 @@ pub async fn list_jobs(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -478,7 +478,7 @@ pub async fn list_jobs(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to list jobs: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -504,7 +504,7 @@ pub async fn create_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -514,7 +514,7 @@ pub async fn create_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -525,7 +525,7 @@ pub async fn create_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -533,7 +533,7 @@ pub async fn create_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -563,7 +563,7 @@ pub async fn create_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     let job_data_str = serde_json::to_string(&job_data).unwrap_or_default();
@@ -597,7 +597,7 @@ pub async fn create_job(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -620,7 +620,7 @@ pub async fn create_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to create job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -646,7 +646,7 @@ pub async fn get_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -656,7 +656,7 @@ pub async fn get_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -667,7 +667,7 @@ pub async fn get_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -675,7 +675,7 @@ pub async fn get_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -705,7 +705,7 @@ pub async fn get_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.get_job(&ctx, &job_id).await {
@@ -737,7 +737,7 @@ pub async fn get_job(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -760,7 +760,7 @@ pub async fn get_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to get job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -787,7 +787,7 @@ pub async fn update_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -797,7 +797,7 @@ pub async fn update_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -808,7 +808,7 @@ pub async fn update_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -816,7 +816,7 @@ pub async fn update_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -846,7 +846,7 @@ pub async fn update_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     let job_data_str = serde_json::to_string(&job_data).unwrap_or_default();
@@ -880,7 +880,7 @@ pub async fn update_job(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -903,7 +903,7 @@ pub async fn update_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to update job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -929,7 +929,7 @@ pub async fn delete_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -939,7 +939,7 @@ pub async fn delete_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -950,7 +950,7 @@ pub async fn delete_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -958,7 +958,7 @@ pub async fn delete_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -988,7 +988,7 @@ pub async fn delete_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.delete_job(&ctx, &job_id).await {
@@ -1011,7 +1011,7 @@ pub async fn delete_job(
             .await;
 
             Json(json!({ "deleted": true, "id": job_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1034,7 +1034,7 @@ pub async fn delete_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to delete job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -1060,7 +1060,7 @@ pub async fn pause_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -1070,7 +1070,7 @@ pub async fn pause_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -1081,7 +1081,7 @@ pub async fn pause_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -1089,7 +1089,7 @@ pub async fn pause_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -1119,7 +1119,7 @@ pub async fn pause_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.pause_job(&ctx, &job_id).await {
@@ -1142,7 +1142,7 @@ pub async fn pause_job(
             .await;
 
             Json(json!({ "paused": true, "id": job_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1165,7 +1165,7 @@ pub async fn pause_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to pause job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -1191,7 +1191,7 @@ pub async fn resume_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -1201,7 +1201,7 @@ pub async fn resume_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -1212,7 +1212,7 @@ pub async fn resume_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -1220,7 +1220,7 @@ pub async fn resume_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -1250,7 +1250,7 @@ pub async fn resume_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.resume_job(&ctx, &job_id).await {
@@ -1273,7 +1273,7 @@ pub async fn resume_job(
             .await;
 
             Json(json!({ "resumed": true, "id": job_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1296,7 +1296,7 @@ pub async fn resume_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to resume job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -1322,7 +1322,7 @@ pub async fn trigger_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -1332,7 +1332,7 @@ pub async fn trigger_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -1343,7 +1343,7 @@ pub async fn trigger_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -1351,7 +1351,7 @@ pub async fn trigger_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -1381,7 +1381,7 @@ pub async fn trigger_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.trigger_job(&ctx, &job_id).await {
@@ -1404,7 +1404,7 @@ pub async fn trigger_job(
             .await;
 
             Json(json!({ "triggered": true, "id": job_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1427,7 +1427,7 @@ pub async fn trigger_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to trigger job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -1453,7 +1453,7 @@ pub async fn list_runs(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -1463,7 +1463,7 @@ pub async fn list_runs(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -1474,7 +1474,7 @@ pub async fn list_runs(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -1482,7 +1482,7 @@ pub async fn list_runs(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -1512,7 +1512,7 @@ pub async fn list_runs(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.list_runs(&ctx, &job_id).await {
@@ -1544,7 +1544,7 @@ pub async fn list_runs(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1566,7 +1566,7 @@ pub async fn list_runs(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to list runs: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -1593,7 +1593,7 @@ pub async fn trigger_run(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -1603,7 +1603,7 @@ pub async fn trigger_run(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -1614,7 +1614,7 @@ pub async fn trigger_run(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -1622,7 +1622,7 @@ pub async fn trigger_run(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -1652,7 +1652,7 @@ pub async fn trigger_run(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     let params_str = serde_json::to_string(&params).unwrap_or_default();
@@ -1686,7 +1686,7 @@ pub async fn trigger_run(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1708,7 +1708,7 @@ pub async fn trigger_run(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to trigger run: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -1734,7 +1734,7 @@ pub async fn get_run(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -1744,7 +1744,7 @@ pub async fn get_run(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -1755,7 +1755,7 @@ pub async fn get_run(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -1763,7 +1763,7 @@ pub async fn get_run(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -1793,7 +1793,7 @@ pub async fn get_run(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.get_run(&ctx, &job_id, &run_id).await {
@@ -1825,7 +1825,7 @@ pub async fn get_run(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1847,7 +1847,7 @@ pub async fn get_run(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to get run: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -1873,7 +1873,7 @@ pub async fn cancel_run(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -1883,7 +1883,7 @@ pub async fn cancel_run(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -1894,7 +1894,7 @@ pub async fn cancel_run(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -1902,7 +1902,7 @@ pub async fn cancel_run(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -1932,7 +1932,7 @@ pub async fn cancel_run(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.cancel_run(&ctx, &job_id, &run_id).await {
@@ -1954,7 +1954,7 @@ pub async fn cancel_run(
             )
             .await;
             Json(json!({ "cancelled": true, "job_id": job_id, "run_id": run_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -1976,7 +1976,7 @@ pub async fn cancel_run(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to cancel run: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -2002,7 +2002,7 @@ pub async fn get_run_logs(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -2012,7 +2012,7 @@ pub async fn get_run_logs(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -2023,7 +2023,7 @@ pub async fn get_run_logs(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -2031,7 +2031,7 @@ pub async fn get_run_logs(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -2061,7 +2061,7 @@ pub async fn get_run_logs(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.get_run_logs(&ctx, &job_id, &run_id).await {
@@ -2093,7 +2093,7 @@ pub async fn get_run_logs(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -2115,7 +2115,7 @@ pub async fn get_run_logs(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to get run logs: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -2141,7 +2141,7 @@ pub async fn retry_run(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -2151,7 +2151,7 @@ pub async fn retry_run(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -2162,7 +2162,7 @@ pub async fn retry_run(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -2170,7 +2170,7 @@ pub async fn retry_run(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -2200,7 +2200,7 @@ pub async fn retry_run(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.retry_run(&ctx, &job_id, &run_id).await {
@@ -2232,7 +2232,7 @@ pub async fn retry_run(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -2254,7 +2254,7 @@ pub async fn retry_run(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to retry run: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -2280,7 +2280,7 @@ pub async fn get_job_schedule(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -2290,7 +2290,7 @@ pub async fn get_job_schedule(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -2301,7 +2301,7 @@ pub async fn get_job_schedule(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -2309,7 +2309,7 @@ pub async fn get_job_schedule(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -2339,7 +2339,7 @@ pub async fn get_job_schedule(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.get_job_schedule(&ctx, &job_id).await {
@@ -2371,7 +2371,7 @@ pub async fn get_job_schedule(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -2393,7 +2393,7 @@ pub async fn get_job_schedule(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to get job schedule: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -2420,7 +2420,7 @@ pub async fn update_job_schedule(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -2430,7 +2430,7 @@ pub async fn update_job_schedule(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -2441,7 +2441,7 @@ pub async fn update_job_schedule(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -2449,7 +2449,7 @@ pub async fn update_job_schedule(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -2479,7 +2479,7 @@ pub async fn update_job_schedule(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     let schedule_str = serde_json::to_string(&schedule).unwrap_or_default();
@@ -2516,7 +2516,7 @@ pub async fn update_job_schedule(
                         "Failed to build response",
                     )
                 })
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -2538,7 +2538,7 @@ pub async fn update_job_schedule(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to update job schedule: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -2564,7 +2564,7 @@ pub async fn enable_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -2574,7 +2574,7 @@ pub async fn enable_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -2585,7 +2585,7 @@ pub async fn enable_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -2593,7 +2593,7 @@ pub async fn enable_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -2623,7 +2623,7 @@ pub async fn enable_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.enable_job(&ctx, &job_id).await {
@@ -2645,7 +2645,7 @@ pub async fn enable_job(
             )
             .await;
             Json(json!({ "enabled": true, "id": job_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -2667,7 +2667,7 @@ pub async fn enable_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to enable job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -2693,7 +2693,7 @@ pub async fn disable_job(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
 
     let provider = match providers.first() {
@@ -2703,7 +2703,7 @@ pub async fn disable_job(
                 StatusCode::BAD_GATEWAY,
                 "No Hermes/OpenClaw provider configured",
             );
-        }
+        },
     };
 
     let provider_key =
@@ -2714,7 +2714,7 @@ pub async fn disable_job(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -2722,7 +2722,7 @@ pub async fn disable_job(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.db)
@@ -2752,7 +2752,7 @@ pub async fn disable_job(
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
-        }
+        },
     };
 
     match adapter.disable_job(&ctx, &job_id).await {
@@ -2774,7 +2774,7 @@ pub async fn disable_job(
             )
             .await;
             Json(json!({ "disabled": true, "id": job_id })).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -2796,7 +2796,7 @@ pub async fn disable_job(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to disable job: {}", e),
             )
-        }
+        },
     }
 }
 
@@ -2819,7 +2819,7 @@ pub async fn list_models(State(state): State<GatewayAppState>) -> impl IntoRespo
                 Json(json!({ "error": { "message": e.to_string() } })),
             )
                 .into_response();
-        }
+        },
     };
 
     let display_map = build_model_display_map(&providers);
@@ -2884,7 +2884,7 @@ pub async fn chat_completions(
                 .collect(),
             Err(e) => {
                 return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            }
+            },
         };
     let public_id_map = build_provider_public_id_map(&providers);
     let known_public_ids: HashSet<String> = public_id_map.values().cloned().collect();
@@ -2909,7 +2909,7 @@ pub async fn chat_completions(
                     StatusCode::BAD_GATEWAY,
                     &format!("No active API key for provider '{}'", provider.name),
                 );
-            }
+            },
         };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
@@ -2917,7 +2917,7 @@ pub async fn chat_completions(
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
             return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        }
+        },
     };
 
     let provider_type_str = provider_type_to_str(&provider.provider_type);
@@ -2959,9 +2959,9 @@ pub async fn chat_completions(
                         StatusCode::BAD_GATEWAY,
                         &format!("No adapter for provider type '{}'", provider_type_str),
                     );
-                }
+                },
             }
-        }
+        },
     };
 
     if request.stream {
@@ -3033,7 +3033,7 @@ async fn handle_non_stream(
             .await;
 
             Json(build_non_stream_response_body(&response)).into_response()
-        }
+        },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             let _ = axagent_core::repo::gateway_request_log::record_request_log(
@@ -3053,7 +3053,7 @@ async fn handle_non_stream(
             .await;
 
             error_response(StatusCode::BAD_GATEWAY, &e.to_string())
-        }
+        },
     }
 }
 
@@ -3112,7 +3112,7 @@ async fn handle_stream(
                             break;
                         }
                     }
-                }
+                },
                 Err(e) => {
                     stream_error = Some(e.to_string());
                     let data = json!({
@@ -3120,7 +3120,7 @@ async fn handle_stream(
                     });
                     let _ = tx.send(Ok(Event::default().data(data.to_string()))).await;
                     break;
-                }
+                },
             }
         }
 
@@ -3408,7 +3408,7 @@ pub(crate) fn resolve_provider_for_model(
             }
 
             Ok(((*provider).clone(), parsed.model_id.clone()))
-        }
+        },
         None => {
             // Bare model_id: find matching enabled providers.
             let matching: Vec<&&ProviderConfig> = enabled
@@ -3427,7 +3427,7 @@ pub(crate) fn resolve_provider_for_model(
                 )),
                 _ => Ok(((*matching[0]).clone(), parsed.model_id.clone())),
             }
-        }
+        },
     }
 }
 

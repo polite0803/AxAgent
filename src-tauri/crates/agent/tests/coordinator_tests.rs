@@ -122,7 +122,7 @@ async fn test_coordinator_execute_failure() {
     match result {
         Err(AgentError::ExecutionFailed(msg)) => {
             assert!(msg.contains("simulated failure"));
-        }
+        },
         _ => panic!("Expected ExecutionFailed error"),
     }
 }

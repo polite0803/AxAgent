@@ -51,7 +51,7 @@ impl CachePersister {
             Err(e) => {
                 tracing::warn!("Failed to read cache snapshot: {e}");
                 return None;
-            }
+            },
         };
         match serde_json::from_str::<CacheSnapshot>(&data) {
             Ok(snapshot) => {
@@ -63,11 +63,11 @@ impl CachePersister {
                     snapshot.vector_search_cache.len(),
                 );
                 Some(snapshot)
-            }
+            },
             Err(e) => {
                 tracing::warn!("Failed to parse cache snapshot: {e}");
                 None
-            }
+            },
         }
     }
 

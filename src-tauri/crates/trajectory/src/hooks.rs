@@ -159,7 +159,7 @@ impl HooksService {
             HookEvent::PostToolUse => self.store.post_tool_use.push(new_hook.clone()),
             HookEvent::PostToolUseFailure => {
                 self.store.post_tool_use_failure.push(new_hook.clone())
-            }
+            },
         }
 
         new_hook

@@ -243,7 +243,7 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
                     }),
                 )
                 .await;
-            }
+            },
             Err(e) => {
                 *status = AgentStatus::Failed(e.to_string());
                 self.emit(
@@ -253,7 +253,7 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
                     }),
                 )
                 .await;
-            }
+            },
         }
 
         let final_status = self.status.read().await.clone();

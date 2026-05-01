@@ -61,7 +61,7 @@ pub async fn restore_backup(
 
             #[allow(unreachable_code)]
             Ok(serde_json::json!({ "restarted": true }))
-        }
+        },
         "json" => {
             let strategy = match strategy.as_deref() {
                 Some("merge") => axagent_core::types::RestoreStrategy::Merge,
@@ -74,7 +74,7 @@ pub async fn restore_backup(
                 .map_err(|e| e.to_string())?;
 
             Ok(serde_json::to_value(&report).map_err(|e| e.to_string())?)
-        }
+        },
         other => Err(format!(
             "不支持的备份格式: {}。仅支持 sqlite 和 json 格式。",
             other
@@ -185,7 +185,7 @@ async fn restart_auto_backup(
             } else {
                 interval_secs
             }
-        }
+        },
         _ => interval_secs,
     };
 
@@ -199,7 +199,7 @@ async fn restart_auto_backup(
                 Ok(s) => {
                     let decoded = axagent_core::path_vars::decode_path_opt(&s.backup_dir);
                     backup::resolve_backup_dir(decoded.as_deref(), &app_dir)
-                }
+                },
                 Err(_) => backup::resolve_backup_dir(None, &app_dir),
             };
 

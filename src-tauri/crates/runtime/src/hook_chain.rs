@@ -47,15 +47,15 @@ impl HookChain {
                             reason
                         );
                         return Some(decision);
-                    }
+                    },
                     HookDecision::Modify { .. } => {
                         tracing::debug!(
                             "Hook '{}' modified tool {} context",
                             hook.name(),
                             ctx.tool_name
                         );
-                    }
-                    HookDecision::Allow => {}
+                    },
+                    HookDecision::Allow => {},
                 }
             }
         }

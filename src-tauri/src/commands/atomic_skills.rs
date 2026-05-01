@@ -379,7 +379,7 @@ pub async fn execute_atomic_skill(
     let result = match skill.entry_type {
         axagent_trajectory::EntryType::Builtin => {
             axagent_trajectory::AtomicSkillExecutor::execute_builtin(&skill.entry_ref, input).await
-        }
+        },
         _ => Err(axagent_trajectory::AtomicSkillError {
             error_type: "not_implemented".to_string(),
             message: format!(

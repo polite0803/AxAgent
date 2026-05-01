@@ -422,7 +422,7 @@ mod tests {
                     failed_servers[0].last_error.as_deref(),
                     Some("connection refused")
                 );
-            }
+            },
             other => panic!("expected degraded state, got {other:?}"),
         }
         assert!(discovery.partial);
@@ -466,7 +466,7 @@ mod tests {
                     vec!["alpha".to_string(), "beta".to_string()]
                 );
                 assert!(failed_servers.is_empty());
-            }
+            },
             other => panic!("expected degraded state, got {other:?}"),
         }
     }
@@ -497,7 +497,7 @@ mod tests {
         match &healthcheck.state {
             PluginState::Failed { reason } => {
                 assert_eq!(reason, "all 2 servers failed");
-            }
+            },
             other => panic!("expected failed state, got {other:?}"),
         }
         assert!(!discovery.partial);

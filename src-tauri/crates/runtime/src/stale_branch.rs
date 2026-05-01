@@ -268,7 +268,7 @@ mod tests {
                 assert_eq!(missing_fixes.len(), 2);
                 assert_eq!(missing_fixes[0], "fix: handle null pointer");
                 assert_eq!(missing_fixes[1], "fix: resolve timeout");
-            }
+            },
             other => panic!("expected Stale, got {other:?}"),
         }
 
@@ -299,7 +299,7 @@ mod tests {
                 assert_eq!(ahead, 1);
                 assert_eq!(behind, 1);
                 assert_eq!(missing_fixes, vec!["main fix".to_string()]);
-            }
+            },
             other => panic!("expected Diverged, got {other:?}"),
         }
 
@@ -335,7 +335,7 @@ mod tests {
                 assert!(message.contains("3 commit(s) behind"));
                 assert!(message.contains("fix: timeout"));
                 assert!(message.contains("fix: null ptr"));
-            }
+            },
             other => panic!("expected Warn, got {other:?}"),
         }
     }
@@ -355,7 +355,7 @@ mod tests {
         match action {
             StaleBranchAction::Block { message } => {
                 assert!(message.contains("1 commit(s) behind"));
-            }
+            },
             other => panic!("expected Block, got {other:?}"),
         }
     }
@@ -410,7 +410,7 @@ mod tests {
                 assert!(message.contains("3 commit(s) ahead"));
                 assert!(message.contains("1 commit(s) behind"));
                 assert!(message.contains("main hotfix"));
-            }
+            },
             other => panic!("expected Warn, got {other:?}"),
         }
     }

@@ -173,7 +173,7 @@ impl ToolRecommender {
                 if tool.categories.contains(&"web".to_string()) {
                     score += 0.3;
                 }
-            }
+            },
             TaskType::CodeGeneration => {
                 if tool.categories.contains(&"code_generation".to_string()) {
                     score += 0.5;
@@ -181,7 +181,7 @@ impl ToolRecommender {
                 if tool.categories.contains(&"execution".to_string()) {
                     score += 0.3;
                 }
-            }
+            },
             TaskType::DataAnalysis => {
                 if tool.categories.contains(&"data_analysis".to_string()) {
                     score += 0.5;
@@ -189,12 +189,12 @@ impl ToolRecommender {
                 if tool.categories.contains(&"processing".to_string()) {
                     score += 0.3;
                 }
-            }
+            },
             TaskType::FileOperation => {
                 if tool.categories.contains(&"file_operation".to_string()) {
                     score += 0.6;
                 }
-            }
+            },
             TaskType::WebInteraction => {
                 if tool.categories.contains(&"web_interaction".to_string()) {
                     score += 0.5;
@@ -202,10 +202,10 @@ impl ToolRecommender {
                 if tool.categories.contains(&"automation".to_string()) {
                     score += 0.3;
                 }
-            }
+            },
             TaskType::ContentCreation | TaskType::ProblemSolving => {
                 score += 0.3;
-            }
+            },
         }
 
         for entity in &context.entities {
@@ -214,18 +214,18 @@ impl ToolRecommender {
                     if tool.categories.contains(&"web".to_string()) {
                         score += 0.2;
                     }
-                }
+                },
                 EntityType::FilePath => {
                     if tool.categories.contains(&"file_operation".to_string()) {
                         score += 0.2;
                     }
-                }
+                },
                 EntityType::Language => {
                     if tool.categories.contains(&"code_generation".to_string()) {
                         score += 0.2;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 

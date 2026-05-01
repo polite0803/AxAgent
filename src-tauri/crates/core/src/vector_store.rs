@@ -306,11 +306,11 @@ impl VectorStore {
             Ok(()) => {
                 self.exec("COMMIT").await?;
                 Ok(())
-            }
+            },
             Err(e) => {
                 let _ = self.exec("ROLLBACK").await;
                 Err(e)
-            }
+            },
         }
     }
 
@@ -445,7 +445,7 @@ impl VectorStore {
             Err(e) => {
                 tracing::error!("Vector store: search query failed for {name}: {e}");
                 return Ok(vec![]);
-            }
+            },
         };
 
         let mut results = Vec::with_capacity(rows.len());

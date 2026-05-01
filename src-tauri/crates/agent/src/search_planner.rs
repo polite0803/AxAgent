@@ -75,17 +75,17 @@ impl SearchPlanner {
         match depth {
             ResearchDepth::Surface => {
                 queries.extend(self.generate_surface_queries(topic));
-            }
+            },
             ResearchDepth::Standard => {
                 queries.extend(self.generate_base_queries(topic));
                 queries.extend(self.generate_aspect_queries(topic));
-            }
+            },
             ResearchDepth::Deep => {
                 queries.extend(self.generate_base_queries(topic));
                 queries.extend(self.generate_aspect_queries(topic));
                 queries.extend(self.generate_source_specific_queries(topic));
                 queries.extend(self.generate_comparative_queries(topic));
-            }
+            },
         }
 
         queries.truncate(self.config.max_queries_per_phase * 4);

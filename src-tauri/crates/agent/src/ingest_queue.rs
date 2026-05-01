@@ -184,7 +184,7 @@ impl IngestQueue {
                         task.status = IngestTaskStatus::Completed;
                         task.completed_at = Some(chrono::Utc::now().timestamp());
                         task.result = Some(ingest_result.clone());
-                    }
+                    },
                     Err(e) => {
                         task.retry_count += 1;
                         task.error_message = Some(e.clone());
@@ -193,7 +193,7 @@ impl IngestQueue {
                         } else {
                             task.status = IngestTaskStatus::Pending;
                         }
-                    }
+                    },
                 }
             }
         }

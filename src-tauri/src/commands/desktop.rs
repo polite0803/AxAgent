@@ -99,7 +99,7 @@ pub async fn test_proxy(
         Ok(Ok(_stream)) => {
             let latency = start.elapsed().as_millis();
             Ok(serde_json::json!({ "ok": true, "latency_ms": latency }))
-        }
+        },
         Ok(Err(e)) => Ok(serde_json::json!({ "ok": false, "error": e.to_string() })),
         Err(_) => Ok(serde_json::json!({ "ok": false, "error": "Connection timed out (5s)" })),
     }

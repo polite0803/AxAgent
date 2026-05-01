@@ -290,7 +290,7 @@ impl DreamConsolidator {
             Ok(lock) => lock,
             Err(_) => {
                 return DreamConsolidationResult::skipped("无法获取巩固锁（超时）");
-            }
+            },
         };
 
         let started_at = Utc::now();

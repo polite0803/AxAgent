@@ -260,7 +260,7 @@ impl TerminalAnalyzer {
                         description: "Read the full compilation error output to identify the exact location and cause".to_string(),
                         confidence: 0.7,
                     });
-                }
+                },
                 TerminalErrorType::TestFailure => {
                     suggestions.push(TerminalSuggestion {
                         action: "read_test_output".to_string(),
@@ -274,7 +274,7 @@ impl TerminalAnalyzer {
                                 .to_string(),
                         confidence: 0.75,
                     });
-                }
+                },
                 TerminalErrorType::PermissionDenied => {
                     suggestions.push(TerminalSuggestion {
                         action: "check_permissions".to_string(),
@@ -283,14 +283,14 @@ impl TerminalAnalyzer {
                                 .to_string(),
                         confidence: 0.85,
                     });
-                }
+                },
                 TerminalErrorType::CommandNotFound => {
                     suggestions.push(TerminalSuggestion {
                         action: "install_dependency".to_string(),
                         description: "The command was not found. Install the required tool or check the command name".to_string(),
                         confidence: 0.9,
                     });
-                }
+                },
                 TerminalErrorType::NetworkError => {
                     suggestions.push(TerminalSuggestion {
                         action: "check_network".to_string(),
@@ -298,21 +298,21 @@ impl TerminalAnalyzer {
                             .to_string(),
                         confidence: 0.7,
                     });
-                }
+                },
                 TerminalErrorType::Timeout => {
                     suggestions.push(TerminalSuggestion {
                         action: "increase_timeout".to_string(),
                         description: "The operation timed out. Consider increasing the timeout or optimizing the operation".to_string(),
                         confidence: 0.75,
                     });
-                }
+                },
                 TerminalErrorType::OutOfMemory => {
                     suggestions.push(TerminalSuggestion {
                         action: "reduce_memory_usage".to_string(),
                         description: "The process ran out of memory. Try processing data in smaller chunks or increasing available memory".to_string(),
                         confidence: 0.8,
                     });
-                }
+                },
                 TerminalErrorType::RuntimeError => {
                     suggestions.push(TerminalSuggestion {
                         action: "read_stack_trace".to_string(),
@@ -321,21 +321,21 @@ impl TerminalAnalyzer {
                                 .to_string(),
                         confidence: 0.85,
                     });
-                }
+                },
                 TerminalErrorType::LintWarning => {
                     suggestions.push(TerminalSuggestion {
                         action: "fix_lint_warning".to_string(),
                         description: "Address the lint warning to improve code quality".to_string(),
                         confidence: 0.6,
                     });
-                }
+                },
                 TerminalErrorType::Unknown => {
                     suggestions.push(TerminalSuggestion {
                         action: "investigate".to_string(),
                         description: "Investigate the unrecognized error pattern".to_string(),
                         confidence: 0.3,
                     });
-                }
+                },
             }
         }
 

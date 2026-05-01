@@ -384,8 +384,8 @@ fn find_matching_brace(s: &str) -> Result<usize, String> {
                 if depth == 0 {
                     return Ok(i);
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
     Err("No matching closing brace found".to_string())
@@ -454,25 +454,25 @@ async fn build_agent_context(
     let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
         axagent_core::types::ProviderType::OpenAI => {
             Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::OpenAIResponses => {
             Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Anthropic => {
             Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Gemini => {
             Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::OpenClaw => {
             Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Hermes => {
             Arc::new(axagent_providers::hermes::HermesAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        }
+        },
     };
 
     let conversation = axagent_core::repo::conversation::get_conversation(db, conversation_id)
@@ -652,7 +652,7 @@ async fn execute_step_with_agent(
                     } else {
                         text_blocks
                     }
-                }
+                },
                 None => format!(
                     "Step '{}' completed ({} iterations)",
                     step.title, summary.iterations
@@ -671,7 +671,7 @@ async fn execute_step_with_agent(
             );
 
             Ok(result_text)
-        }
+        },
         Err(e) => {
             let err_text = format!("Step failed: {}", e);
 
@@ -687,7 +687,7 @@ async fn execute_step_with_agent(
             );
 
             Err(err_text)
-        }
+        },
     }
 }
 
@@ -869,7 +869,7 @@ pub async fn plan_execute(
             Err(err) => {
                 step_results.push((step.id.clone(), err));
                 // Continue with remaining steps even if one fails
-            }
+            },
         }
     }
 
@@ -981,7 +981,7 @@ pub async fn plan_get(
                 created_at: row.created_at,
                 updated_at: row.updated_at,
             }))
-        }
+        },
         None => Ok(None),
     }
 }

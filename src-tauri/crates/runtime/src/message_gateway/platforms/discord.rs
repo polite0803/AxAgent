@@ -155,7 +155,7 @@ async fn run_discord_gateway(
             Ok(Some(Err(e))) => {
                 tracing::error!("Discord ws error: {}", e);
                 break;
-            }
+            },
             Ok(None) => break,
             Err(_) => {
                 if !identified {
@@ -173,7 +173,7 @@ async fn run_discord_gateway(
                 }
                 last_heartbeat_ack = false;
                 continue;
-            }
+            },
         };
 
         match msg {
@@ -183,7 +183,7 @@ async fn run_discord_gateway(
                     Err(e) => {
                         tracing::warn!("Discord: invalid JSON: {}", e);
                         continue;
-                    }
+                    },
                 };
 
                 let op = payload["op"].as_i64().unwrap_or(-1);
@@ -193,10 +193,10 @@ async fn run_discord_gateway(
                     0 => {
                         let t = payload["t"].as_str().unwrap_or("");
                         handle_dispatch(t, &payload["d"], allowed_channels, bot_token).await;
-                    }
+                    },
                     7 => {
                         last_heartbeat_ack = false;
-                    }
+                    },
                     10 => {
                         heartbeat_interval =
                             payload["d"]["heartbeat_interval"].as_u64().unwrap_or(41250);
@@ -216,18 +216,18 @@ async fn run_discord_gateway(
                         let id_str = serde_json::to_string(&identify)?;
                         ws_stream.send(Message::Text(id_str.into())).await?;
                         identified = true;
-                    }
+                    },
                     11 => {
                         last_heartbeat_ack = true;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-            }
+            },
             Message::Close(_) => {
                 tracing::info!("Discord ws close frame received");
                 break;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -295,12 +295,12 @@ async fn handle_dispatch(
                     }
                 });
             }
-        }
+        },
         "READY" => {
             let username = data["user"]["username"].as_str().unwrap_or("unknown");
             tracing::info!("Discord bot connected as {}", username);
-        }
-        _ => {}
+        },
+        _ => {},
     }
 }
 

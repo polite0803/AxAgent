@@ -55,7 +55,7 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
                     let structure = results.first().map(|r: &String| r.as_str()).unwrap_or("{}");
                     let contents = Self::build_file_contents_for_classify(&parsed_files);
                     PromptTemplates::format_turn2_user_content(structure, &contents)
-                }
+                },
                 3 => {
                     let language = Self::detect_primary_language(&parsed_files);
                     PromptTemplates::format_turn3_user_content(
@@ -63,16 +63,16 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
                         &language,
                         &Self::extract_code_from_files(&parsed_files),
                     )
-                }
+                },
                 4 => {
                     let analysis = results.get(2).map(|r: &String| r.as_str()).unwrap_or("{}");
                     PromptTemplates::format_turn4_user_content(analysis, "[]", "[]")
-                }
+                },
                 5 => {
                     let workflow = results.get(3).map(|r: &String| r.as_str()).unwrap_or("{}");
                     let analysis = results.get(2).map(|r: &String| r.as_str()).unwrap_or("{}");
                     PromptTemplates::format_turn5_user_content(workflow, analysis)
-                }
+                },
                 _ => template.user_template.clone(),
             };
 

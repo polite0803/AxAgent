@@ -164,14 +164,14 @@ impl CrdtEngine {
                         .collect::<String>(),
                 );
                 result
-            }
+            },
             OperationType::Delete { length } => {
                 let start = op.position.min(chars.len());
                 let end = (start + length).min(chars.len());
                 let mut result: String = chars[..start].iter().collect();
                 result.push_str(&chars[end..].iter().collect::<String>());
                 result
-            }
+            },
             OperationType::Replace { text, length } => {
                 let start = op.position.min(chars.len());
                 let end = (start + length).min(chars.len());
@@ -179,7 +179,7 @@ impl CrdtEngine {
                 result.push_str(text);
                 result.push_str(&chars[end..].iter().collect::<String>());
                 result
-            }
+            },
         }
     }
 }

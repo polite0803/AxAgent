@@ -176,7 +176,7 @@ impl GatewayServer {
                     rustls,
                     addr,
                 })
-            }
+            },
             None => None,
         };
 
@@ -261,7 +261,7 @@ impl GatewayServer {
                     tracing::info!("Gateway HTTPS server stopped");
                 });
                 Some(task)
-            }
+            },
             _ => None,
         };
 

@@ -208,7 +208,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
   ingestSource: async (wikiId, sourceType, path, url, title) => {
     try {
       const result = await invoke<IngestResult>('llm_wiki_ingest', {
-        input: { wiki_id: wikiId, source_type: sourceType, path, url, title },
+        wikiId, sourceType, path, url, title,
       });
       return result;
     } catch (e) {
@@ -220,7 +220,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
   compileWiki: async (wikiId, sourceIds) => {
     try {
       const result = await invoke<CompileResult>('llm_wiki_compile', {
-        input: { wiki_id: wikiId, source_ids: sourceIds },
+        wikiId, sourceIds,
       });
       return result;
     } catch (e) {
@@ -232,7 +232,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
   queryWiki: async (wikiId, query, limit, offset) => {
     try {
       const result = await invoke<QueryResult>('llm_wiki_query', {
-        input: { wiki_id: wikiId, query, limit, offset },
+        wikiId, query, limit, offset,
       });
       return result;
     } catch (e) {
@@ -271,7 +271,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
   validateFrontmatter: async (wikiId, frontmatter) => {
     try {
       return await invoke<string[]>('llm_wiki_validate_frontmatter', {
-        input: { wiki_id: wikiId, frontmatter },
+        wikiId, frontmatter,
       });
     } catch (e) {
       set({ error: String(e) });

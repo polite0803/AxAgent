@@ -152,7 +152,7 @@ async fn run_slack_socket_mode(
             Ok(Some(Err(e))) => {
                 tracing::error!("Slack ws error: {}", e);
                 break;
-            }
+            },
             Ok(None) => break,
             Err(_) => continue,
         };
@@ -164,7 +164,7 @@ async fn run_slack_socket_mode(
                     Err(e) => {
                         tracing::warn!("Slack: invalid JSON: {}", e);
                         continue;
-                    }
+                    },
                 };
 
                 let envelope_id = payload["envelope_id"].as_str().unwrap_or("");
@@ -173,11 +173,11 @@ async fn run_slack_socket_mode(
                 match msg_type {
                     "hello" => {
                         tracing::info!("Slack Socket Mode connected");
-                    }
+                    },
                     "disconnect" => {
                         tracing::info!("Slack Socket Mode: server requested disconnect");
                         break;
-                    }
+                    },
                     "events_api" => {
                         let ack = serde_json::json!({
                             "envelope_id": envelope_id
@@ -219,15 +219,15 @@ async fn run_slack_socket_mode(
                                 }
                             }
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-            }
+            },
             Message::Close(_) => {
                 tracing::info!("Slack ws close frame received");
                 break;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 

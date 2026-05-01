@@ -87,7 +87,7 @@ pub fn check_installed_version(tool: CliTool) -> Option<String> {
             } else {
                 None
             }
-        }
+        },
         _ => run_version_command(tool.command_name(), tool.version_arg()),
     }
 }
@@ -204,7 +204,7 @@ fn config_paths(tool: CliTool) -> Result<Vec<PathBuf>> {
             {
                 Ok(vec![home.join(".config/Cursor/User/settings.json")])
             }
-        }
+        },
     }
 }
 
@@ -404,11 +404,11 @@ fn check_gemini_connected(
             match k.trim() {
                 "GEMINI_API_BASE_URL" => {
                     base_url_ok = v.trim().trim_matches('"') == gateway_url;
-                }
+                },
                 "GEMINI_API_KEY" => {
                     key_ok = !v.trim().trim_matches('"').is_empty();
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
     }
@@ -471,14 +471,14 @@ fn rollback_to_backup(tool: CliTool) {
         for p in &paths {
             let filename = p.file_name().and_then(|n| n.to_str()).unwrap_or("config");
             match restore_file(tool, filename, p) {
-                Ok(true) => {}
+                Ok(true) => {},
                 Ok(false) => {
                     // No backup existed — the file was newly created; remove it.
                     if p.exists() {
                         let _ = std::fs::remove_file(p);
                     }
-                }
-                Err(_) => {}
+                },
+                Err(_) => {},
             }
         }
     }
@@ -518,7 +518,7 @@ pub fn connect(tool: CliTool, gateway_url: &str, api_key: &str) -> Result<()> {
                 "Post-write validation failed for {}: config does not appear connected after write (rolled back)",
                 tool.display_name()
             )))
-        }
+        },
         Err(e) => {
             rollback_to_backup(tool);
             Err(AxAgentError::Gateway(format!(
@@ -526,7 +526,7 @@ pub fn connect(tool: CliTool, gateway_url: &str, api_key: &str) -> Result<()> {
                 tool.display_name(),
                 e
             )))
-        }
+        },
     }
 }
 
@@ -819,7 +819,7 @@ fn disconnect_remove_fields(tool: CliTool, gateway_url: &str) -> Result<()> {
             let settings_result = remove_claude_settings_gateway_fields(&paths[0], gateway_url);
             let config_result = remove_claude_config_primary_api_key(&paths[1]);
             settings_result.and(config_result)
-        }
+        },
         CliTool::Codex => {
             // Two-file operation: remove auth.json then clean config.toml.
             let auth_result = if paths[0].exists() {
@@ -830,7 +830,7 @@ fn disconnect_remove_fields(tool: CliTool, gateway_url: &str) -> Result<()> {
                 Ok(())
             };
             auth_result.and_then(|_| remove_toml_axagent_config(&paths[1]))
-        }
+        },
         CliTool::Gemini => {
             let env_result = remove_env_keys(
                 &paths[0],
@@ -838,7 +838,7 @@ fn disconnect_remove_fields(tool: CliTool, gateway_url: &str) -> Result<()> {
             );
             let settings_result = remove_gemini_settings_selected_type(&paths[1]);
             env_result.and(settings_result)
-        }
+        },
         CliTool::OpenCode => remove_json_provider(&paths[0], "axagent"),
         CliTool::Cursor => remove_json_fields(&paths[0], &["openai.apiBaseUrl", "openai.apiKey"]),
     };
@@ -861,7 +861,7 @@ fn disconnect_remove_fields(tool: CliTool, gateway_url: &str) -> Result<()> {
                 "Disconnect validation failed for {}: gateway config still present after field removal (rolled back)",
                 tool.display_name()
             )))
-        }
+        },
         Err(e) => {
             rollback_to_backup(tool);
             Err(AxAgentError::Gateway(format!(
@@ -869,7 +869,7 @@ fn disconnect_remove_fields(tool: CliTool, gateway_url: &str) -> Result<()> {
                 tool.display_name(),
                 e
             )))
-        }
+        },
     }
 }
 

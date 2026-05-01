@@ -201,7 +201,7 @@ impl ReActEngine {
                                         ThoughtStep::new(ReasoningState::Reflecting, nudge_message);
                                     chain.add_step(step);
                                 }
-                            }
+                            },
                             TokenBudgetDecision::Stop { completion_event } => {
                                 if let Some(event) = completion_event {
                                     let reason = if event.diminishing_returns {
@@ -228,10 +228,10 @@ impl ReActEngine {
                                     );
                                 }
                                 break;
-                            }
+                            },
                         }
                     }
-                }
+                },
                 Err(e) => {
                     self.emit(ThoughtEvent::Error(e.to_string()));
                     consecutive_failures += 1;
@@ -247,7 +247,7 @@ impl ReActEngine {
                     }
 
                     state = ReasoningState::Thinking;
-                }
+                },
             }
         }
 
@@ -290,7 +290,7 @@ impl ReActEngine {
                 ));
 
                 Ok((ReasoningState::Thinking, true))
-            }
+            },
 
             ReasoningState::Thinking => {
                 let reasoning = self.generate_reasoning(user_input, context);
@@ -302,7 +302,7 @@ impl ReActEngine {
                 ));
 
                 Ok((ReasoningState::Planning, true))
-            }
+            },
 
             ReasoningState::Planning => {
                 let plan = self.create_plan(user_input, context);
@@ -322,7 +322,7 @@ impl ReActEngine {
                 ));
 
                 Ok((ReasoningState::Acting, true))
-            }
+            },
 
             ReasoningState::Acting => {
                 if let Some(latest) = chain.latest_step_mut() {
@@ -339,18 +339,18 @@ impl ReActEngine {
                                 latest.observation = Some(action_result.to_observation());
                                 self.emit(ThoughtEvent::StepCompleted(latest.clone()));
                                 return Ok((ReasoningState::Observing, action_result.is_success()));
-                            }
+                            },
                             Err(e) => {
                                 latest.result = Some(format!("Error: {}", e));
                                 latest.observation = Some(format!("Error: {}", e));
                                 self.emit(ThoughtEvent::StepCompleted(latest.clone()));
                                 return Err(ReActError::ActionError(e.to_string()));
-                            }
+                            },
                         }
                     }
                 }
                 Ok((ReasoningState::Thinking, false))
-            }
+            },
 
             ReasoningState::Observing => {
                 if let Some(latest) = chain.latest_step() {
@@ -379,7 +379,7 @@ impl ReActEngine {
                 } else {
                     Ok((ReasoningState::Finished, true))
                 }
-            }
+            },
 
             ReasoningState::Reflecting => {
                 let reflection = self.generate_reflection(chain, context);
@@ -393,7 +393,7 @@ impl ReActEngine {
                 self.adjust_strategy(context);
 
                 Ok((ReasoningState::Thinking, true))
-            }
+            },
 
             ReasoningState::Finished | ReasoningState::Failed => Ok((state, false)),
         }

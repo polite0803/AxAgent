@@ -206,7 +206,7 @@ impl McpLifecycleState {
         match self.phase_results.last() {
             Some(McpPhaseResult::Failure { error, .. } | McpPhaseResult::Timeout { error, .. }) => {
                 error.recoverable
-            }
+            },
             _ => false,
         }
     }
@@ -287,7 +287,7 @@ impl McpLifecycleValidator {
             (_, McpLifecyclePhase::Shutdown) => from != McpLifecyclePhase::Cleanup,
             (_, McpLifecyclePhase::ErrorSurfacing) => {
                 from != McpLifecyclePhase::Cleanup && from != McpLifecyclePhase::Shutdown
-            }
+            },
             _ => false,
         }
     }
@@ -568,7 +568,7 @@ mod tests {
                     Some("server_registration")
                 );
                 assert_eq!(error.context.get("to").map(String::as_str), Some("ready"));
-            }
+            },
             other => panic!("expected failure result, got {other:?}"),
         }
         assert_eq!(
@@ -610,7 +610,7 @@ mod tests {
                         error.recoverable,
                         phase == McpLifecyclePhase::ResourceDiscovery
                     );
-                }
+                },
                 other => panic!("expected failure result, got {other:?}"),
             }
             assert_eq!(validator.state().errors_for_phase(phase).len(), 1);
@@ -642,7 +642,7 @@ mod tests {
                 assert_eq!(actual, waited);
                 assert!(error.recoverable);
                 assert_eq!(error.server_name.as_deref(), Some("alpha"));
-            }
+            },
             other => panic!("expected timeout result, got {other:?}"),
         }
         let errors = validator
@@ -798,7 +798,7 @@ mod tests {
                 assert_eq!(phase, McpLifecyclePhase::Ready);
                 assert!(!error.recoverable);
                 assert!(error.message.contains("non-recoverable"));
-            }
+            },
             other => panic!("expected failure result, got {other:?}"),
         }
         assert_eq!(

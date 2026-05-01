@@ -141,7 +141,7 @@ pub fn apply_search_filter(
                 .into_iter()
                 .filter(|e| e.display_name.to_lowercase().contains(&q))
                 .collect()
-        }
+        },
     }
 }
 
@@ -315,13 +315,13 @@ pub async fn list_files_page_entries(
             } else {
                 build_file_entries(&all_files)
             }
-        }
+        },
         "backups" => {
             let manifests = axagent_core::repo::backup::list_backups(&state.sea_db)
                 .await
                 .map_err(|e| e.to_string())?;
             build_backup_entries(&manifests)
-        }
+        },
         _ => return Err(format!("Unknown category: {}", category)),
     };
 
@@ -359,7 +359,7 @@ pub async fn cleanup_missing_files_page_entry(
             let file_store = axagent_core::file_store::FileStore::new();
             super::file_cleanup::delete_attachment_reference(&state.sea_db, &file_store, record_id)
                 .await
-        }
+        },
         "backup_manifest" => axagent_core::repo::backup::delete_backup(&state.sea_db, record_id)
             .await
             .map_err(|e| e.to_string()),

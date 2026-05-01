@@ -104,7 +104,7 @@ impl PolicyAction {
                 for action in chained {
                     action.flatten_into(actions);
                 }
-            }
+            },
             _ => actions.push(self.clone()),
         }
     }

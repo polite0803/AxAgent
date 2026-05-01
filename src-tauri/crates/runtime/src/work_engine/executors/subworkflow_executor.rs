@@ -152,7 +152,7 @@ impl SubWorkflowExecutor {
                     if attempts <= self.config.max_retries {
                         tokio::time::sleep(Duration::from_millis(100 * attempts as u64)).await;
                     }
-                }
+                },
             }
         }
 
@@ -194,7 +194,7 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
                     "Expected SubWorkflow node, got {:?}",
                     node
                 )));
-            }
+            },
         };
 
         let timeout = Duration::from_secs(self.config.timeout_secs);

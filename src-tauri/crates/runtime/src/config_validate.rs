@@ -36,7 +36,7 @@ impl std::fmt::Display for ConfigDiagnostic {
         match &self.kind {
             DiagnosticKind::UnknownKey { suggestion: None } => {
                 write!(f, "{}: unknown key \"{}\"{location}", self.path, self.field)
-            }
+            },
             DiagnosticKind::UnknownKey {
                 suggestion: Some(hint),
             } => {
@@ -45,21 +45,21 @@ impl std::fmt::Display for ConfigDiagnostic {
                     "{}: unknown key \"{}\"{location}. Did you mean \"{}\"?",
                     self.path, self.field, hint
                 )
-            }
+            },
             DiagnosticKind::WrongType { expected, got } => {
                 write!(
                     f,
                     "{}: field \"{}\" must be {expected}, got {got}{location}",
                     self.path, self.field
                 )
-            }
+            },
             DiagnosticKind::Deprecated { replacement } => {
                 write!(
                     f,
                     "{}: field \"{}\" is deprecated{location}. Use \"{replacement}\" instead",
                     self.path, self.field
                 )
-            }
+            },
         }
     }
 }

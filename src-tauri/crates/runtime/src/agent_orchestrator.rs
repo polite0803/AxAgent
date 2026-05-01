@@ -319,7 +319,7 @@ impl AgentOrchestrator {
                                     "result": serde_json::to_string(&result).unwrap_or_default(),
                                 }),
                             );
-                        }
+                        },
                         Err(e) => {
                             let mut agents = self.active_agents.write().await;
                             if let Some(agent) = agents.get_mut(&agent_id) {
@@ -338,7 +338,7 @@ impl AgentOrchestrator {
                                     "error": e,
                                 }),
                             );
-                        }
+                        },
                     }
                 }
             }
@@ -513,7 +513,7 @@ impl AgentOrchestrator {
                         .cloned()
                         .unwrap_or(serde_json::json!(null))
                 })
-            }
+            },
             ConsensusStrategy::MajorityVote => {
                 let mut vote_counts: HashMap<String, usize> = HashMap::new();
                 for result in results.values() {
@@ -529,7 +529,7 @@ impl AgentOrchestrator {
                 } else {
                     serde_json::json!(null)
                 }
-            }
+            },
             ConsensusStrategy::WeightedVote { weights } => {
                 let mut weighted_scores: HashMap<String, f32> = HashMap::new();
                 for (agent_id, result) in results {
@@ -546,7 +546,7 @@ impl AgentOrchestrator {
                 } else {
                     serde_json::json!(null)
                 }
-            }
+            },
             ConsensusStrategy::FirstResponse => results
                 .values()
                 .next()
@@ -570,7 +570,7 @@ impl AgentOrchestrator {
                         "results": results.values().collect::<Vec<_>>()
                     })
                 }
-            }
+            },
         }
     }
 
@@ -591,7 +591,7 @@ impl AgentOrchestrator {
                         .collect();
                     unique_results.len() == 1
                 }
-            }
+            },
             ConsensusStrategy::MajorityVote => {
                 let total = results.len() + failures.len();
                 if total == 0 {
@@ -604,10 +604,10 @@ impl AgentOrchestrator {
                     *vote_counts.entry(key).or_insert(0) += 1;
                 }
                 vote_counts.values().any(|&count| count > majority)
-            }
+            },
             ConsensusStrategy::LeaderDecides { leader_agent_id } => {
                 results.contains_key(leader_agent_id)
-            }
+            },
             ConsensusStrategy::WeightedVote { .. } => !results.is_empty(),
             ConsensusStrategy::FirstResponse => !results.is_empty(),
         }
@@ -832,7 +832,7 @@ impl AgentOrchestrator {
                         );
 
                         results.insert(worker_id, result);
-                    }
+                    },
                     Ok((_wid, _tid, Err(e))) => {
                         let mut agents = self.active_agents.write().await;
                         if let Some(agent) = agents.get_mut(&worker_id) {
@@ -855,7 +855,7 @@ impl AgentOrchestrator {
                         );
 
                         failures.push((worker_id, e));
-                    }
+                    },
                     Err(e) => {
                         self.emit(
                             "worker-failed",
@@ -869,7 +869,7 @@ impl AgentOrchestrator {
                             }),
                         );
                         failures.push(("spawn_error".to_string(), e.to_string()));
-                    }
+                    },
                 }
             }
         }

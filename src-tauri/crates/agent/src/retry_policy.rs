@@ -138,7 +138,7 @@ where
         match f().await {
             Ok(result) => {
                 return Ok(result);
-            }
+            },
             Err(error) => {
                 let error_str = error.to_string();
                 let error_type = classifier.classify(&error_str);
@@ -165,7 +165,7 @@ where
                 }
 
                 tokio::time::sleep(delay).await;
-            }
+            },
         }
     }
 }

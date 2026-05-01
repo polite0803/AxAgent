@@ -1004,7 +1004,7 @@ impl Display for PluginError {
                     write!(f, "{error}")?;
                 }
                 Ok(())
-            }
+            },
             Self::LoadFailures(failures) => {
                 for (index, failure) in failures.iter().enumerate() {
                     if index > 0 {
@@ -1013,7 +1013,7 @@ impl Display for PluginError {
                     write!(f, "{failure}")?;
                 }
                 Ok(())
-            }
+            },
             Self::InvalidManifest(message)
             | Self::NotFound(message)
             | Self::CommandFailed(message) => write!(f, "{message}"),
@@ -1261,7 +1261,7 @@ impl PluginManager {
                         seen_paths.insert(install_path);
                         discovery.push_plugin(plugin);
                     }
-                }
+                },
                 Err(error) => {
                     discovery.push_failure(PluginLoadFailure::new(
                         install_path,
@@ -1269,7 +1269,7 @@ impl PluginManager {
                         source,
                         error,
                     ));
-                }
+                },
             }
         }
 
@@ -1294,7 +1294,7 @@ impl PluginManager {
                         seen_paths.insert(record.install_path.clone());
                         discovery.push_plugin(plugin);
                     }
-                }
+                },
                 Err(error) => {
                     discovery.push_failure(PluginLoadFailure::new(
                         record.install_path.clone(),
@@ -1302,7 +1302,7 @@ impl PluginManager {
                         source,
                         error,
                     ));
-                }
+                },
             }
         }
 
@@ -1339,7 +1339,7 @@ impl PluginManager {
                         {
                             discovery.push_plugin(plugin);
                         }
-                    }
+                    },
                     Err(error) => {
                         discovery.push_failure(PluginLoadFailure::new(
                             root,
@@ -1347,7 +1347,7 @@ impl PluginManager {
                             source.clone(),
                             error,
                         ));
-                    }
+                    },
                 }
             }
         }
@@ -1485,7 +1485,7 @@ impl PluginManager {
             Ok(contents) => Ok(serde_json::from_str(&contents)?),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 Ok(InstalledPluginRegistry::default())
-            }
+            },
             Err(error) => Err(PluginError::Io(error)),
         }
     }
@@ -1509,10 +1509,10 @@ impl PluginManager {
             match enabled {
                 Some(value) => {
                     enabled_plugins.insert(plugin_id.to_string(), Value::Bool(value));
-                }
+                },
                 None => {
                     enabled_plugins.remove(plugin_id);
-                }
+                },
             }
         })
     }
@@ -2202,7 +2202,7 @@ fn materialize_source(
                 )));
             }
             Ok(destination)
-        }
+        },
     }
 }
 
@@ -2218,7 +2218,7 @@ fn discover_plugin_dirs(root: &Path) -> Result<Vec<PathBuf>, PluginError> {
             }
             paths.sort();
             Ok(paths)
-        }
+        },
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
         Err(error) => Err(PluginError::Io(error)),
     }
@@ -2635,7 +2635,7 @@ mod tests {
                     PluginManifestValidationError::DuplicateEntry { kind, name }
                     if *kind == "command" && name == "sync"
                 )));
-            }
+            },
             other => panic!("expected manifest validation errors, got {other}"),
         }
 
@@ -2735,7 +2735,7 @@ mod tests {
                     if *kind == "lifecycle command"
                         && path.ends_with(Path::new("lifecycle/shutdown.sh"))
                 )));
-            }
+            },
             other => panic!("expected manifest validation errors, got {other}"),
         }
 
@@ -2776,7 +2776,7 @@ mod tests {
                     PluginManifestValidationError::PathIsDirectory { kind, path }
                     if *kind == "command" && path.ends_with(Path::new("commands/sync-dir"))
                 )));
-            }
+            },
             other => panic!("expected manifest validation errors, got {other}"),
         }
 
@@ -2804,7 +2804,7 @@ mod tests {
                     PluginManifestValidationError::InvalidPermission { permission }
                     if permission == "admin"
                 )));
-            }
+            },
             other => panic!("expected manifest validation errors, got {other}"),
         }
 
@@ -2847,7 +2847,7 @@ mod tests {
                         permission
                     } if tool_name == "echo_tool" && permission == "admin"
                 )));
-            }
+            },
             other => panic!("expected manifest validation errors, got {other}"),
         }
 
@@ -2889,7 +2889,7 @@ mod tests {
                     PluginManifestValidationError::InvalidPermission { permission }
                     if permission == "admin"
                 )));
-            }
+            },
             other => panic!("expected manifest validation errors, got {other}"),
         }
 
@@ -3322,7 +3322,7 @@ mod tests {
             PluginError::LoadFailures(failures) => {
                 assert_eq!(failures.len(), 1);
                 assert!(failures[0].plugin_root.ends_with(Path::new("broken")));
-            }
+            },
             other => panic!("expected load failures, got {other}"),
         }
 
@@ -3637,15 +3637,15 @@ mod tests {
                                         }
                                     }
                                 }
-                            }
+                            },
                             Err(_) => {
                                 error_count.fetch_add(1, AtomicOrdering::Relaxed);
-                            }
+                            },
                         }
-                    }
+                    },
                     Err(_) => {
                         error_count.fetch_add(1, AtomicOrdering::Relaxed);
-                    }
+                    },
                 }
             });
             handles.push(handle);

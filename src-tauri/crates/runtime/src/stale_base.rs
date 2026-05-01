@@ -97,7 +97,7 @@ pub fn format_stale_base_warning(state: &BaseCommitState) -> Option<String> {
         )),
         BaseCommitState::NotAGitRepo => {
             Some("warning: stale-base check skipped — not inside a git repository.".to_string())
-        }
+        },
         BaseCommitState::Matches | BaseCommitState::NoExpectedBase => None,
     }
 }

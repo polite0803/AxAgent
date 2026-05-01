@@ -30,11 +30,11 @@ impl IngestSourceType {
             "text/markdown" | "text/plain" => Some(Self::RawMarkdown),
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => {
                 Some(Self::Docx)
-            }
+            },
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" => Some(Self::Xlsx),
             "application/vnd.openxmlformats-officedocument.presentationml.presentation" => {
                 Some(Self::Pptx)
-            }
+            },
             _ => None,
         }
     }
@@ -264,13 +264,13 @@ impl IngestPipeline {
             IngestSourceType::Pdf => "application/pdf",
             IngestSourceType::Docx => {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            }
+            },
             IngestSourceType::Xlsx => {
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            }
+            },
             IngestSourceType::Pptx => {
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            }
+            },
             IngestSourceType::WebArticle => "text/html",
             _ => "text/markdown",
         };
@@ -585,14 +585,14 @@ Each page must be valid JSON inside a ```json fenced code block with these field
                     if !page.title.is_empty() && !page.content.is_empty() {
                         pages.push(page);
                     }
-                }
+                },
                 Err(e) => {
                     tracing::warn!(
                         "Failed to parse generated page: {}. Raw: {}",
                         e,
                         &clean[..clean.len().min(200)]
                     );
-                }
+                },
             }
         }
 
@@ -768,7 +768,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
                         .await
                         .map_err(|e| e.to_string())
                 }
-            }
+            },
             IngestSourceType::RawMarkdown => tokio::fs::read_to_string(&source.path)
                 .await
                 .map_err(|e| e.to_string()),
@@ -903,13 +903,13 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             IngestSourceType::Pdf => "application/pdf",
             IngestSourceType::Docx => {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            }
+            },
             IngestSourceType::Xlsx => {
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            }
+            },
             IngestSourceType::Pptx => {
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            }
+            },
             IngestSourceType::WebArticle => "text/html",
             _ => "text/markdown",
         };

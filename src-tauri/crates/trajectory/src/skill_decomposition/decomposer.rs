@@ -64,7 +64,7 @@ impl CodeBlock {
                         }
                     }
                 }
-            }
+            },
             Some("javascript") | Some("js") | Some("typescript") | Some("ts") => {
                 for line in self.content.lines() {
                     let trimmed = line.trim();
@@ -94,7 +94,7 @@ impl CodeBlock {
                         }
                     }
                 }
-            }
+            },
             Some("yaml") | Some("yml") | Some("json") => {
                 for line in self.content.lines() {
                     let trimmed = line.trim();
@@ -102,8 +102,8 @@ impl CodeBlock {
                         continue;
                     }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         deps
@@ -115,13 +115,13 @@ impl CodeBlock {
                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&self.content) {
                     return Some(parsed);
                 }
-            }
+            },
             Some("yaml") | Some("yml") => {
                 if let Ok(parsed) = serde_yaml::from_str::<serde_json::Value>(&self.content) {
                     return Some(parsed);
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
         None
     }
@@ -1394,7 +1394,7 @@ impl SkillDecomposer {
                 step = step.with_condition(expr);
                 step =
                     step.with_branches(llm_step.then_branch.clone(), llm_step.else_branch.clone());
-            }
+            },
             StepType::Loop => {
                 step = step.with_loop(llm_step.loop_items_var.clone(), llm_step.max_iterations);
                 if let Some(body) = &llm_step.loop_body {
@@ -1415,7 +1415,7 @@ impl SkillDecomposer {
                         body_steps,
                     );
                 }
-            }
+            },
             StepType::Parallel => {
                 if let Some(branches) = &llm_step.parallel_branches {
                     let pb: Vec<ParallelBranch> = branches
@@ -1428,8 +1428,8 @@ impl SkillDecomposer {
                         .collect();
                     step = step.with_parallel(pb);
                 }
-            }
-            StepType::Atomic | StepType::Generic => {}
+            },
+            StepType::Atomic | StepType::Generic => {},
         }
 
         step = step.with_schema(

@@ -53,7 +53,7 @@ impl SkillProposalService {
             TrajectoryOutcome::Success => *count >= MIN_SUCCESSFUL_TRAJECTORIES,
             TrajectoryOutcome::Failure | TrajectoryOutcome::Abandoned => {
                 *count >= 1 && step_count >= 5
-            }
+            },
             TrajectoryOutcome::Partial => *count >= MIN_SUCCESSFUL_TRAJECTORIES,
         };
 
@@ -180,7 +180,7 @@ impl SkillProposalService {
         match trajectory.outcome {
             TrajectoryOutcome::Success => confidence += 0.15,
             TrajectoryOutcome::Partial => confidence += 0.05,
-            _ => {}
+            _ => {},
         }
 
         confidence.min(1.0)

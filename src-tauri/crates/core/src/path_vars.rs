@@ -145,8 +145,8 @@ pub async fn migrate_hardcoded_paths(db: &sea_orm::DatabaseConnection) {
                         tracing::info!("path_vars: migrated '{}': {} → {}", key, value, encoded);
                     }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 

@@ -168,7 +168,7 @@ impl PtySession {
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             let _ = output_tx.send(event);
-                        }
+                        },
                     }
                 }
             }
@@ -246,7 +246,7 @@ impl PtySession {
                     .flush()
                     .map_err(|e| format!("Failed to flush PTY: {}", e))?;
                 Ok(())
-            }
+            },
             None => Err("PTY session not available".to_string()),
         }
     }
@@ -283,7 +283,7 @@ impl PtySession {
                 let mut s = self.status.write().await;
                 *s = PtySessionStatus::Exited;
                 Ok(())
-            }
+            },
             None => Err("PTY session not available".to_string()),
         }
     }

@@ -122,7 +122,7 @@ pub async fn change_documents_root(
                         Err(_) => {
                             result.files_failed += 1;
                             continue;
-                        }
+                        },
                     };
                     if !meta.is_file() {
                         continue;
@@ -145,7 +145,7 @@ pub async fn change_documents_root(
                         Ok(_) => {
                             let _ = std::fs::remove_file(&src);
                             result.files_moved += 1;
-                        }
+                        },
                         Err(e) => {
                             tracing::warn!(
                                 src = %src.display(),
@@ -154,7 +154,7 @@ pub async fn change_documents_root(
                                 "failed to move file during documents root change"
                             );
                             result.files_failed += 1;
-                        }
+                        },
                     }
                 }
             }

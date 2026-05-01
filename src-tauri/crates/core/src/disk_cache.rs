@@ -151,7 +151,7 @@ impl DiskCache {
                 cached.hit_count += 1;
                 cached.last_accessed_at = Self::now_secs();
                 Ok(Some(cached))
-            }
+            },
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(format!("get search results: {e}")),
         }

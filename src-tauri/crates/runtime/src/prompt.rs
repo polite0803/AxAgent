@@ -241,7 +241,7 @@ fn push_context_file(files: &mut Vec<ContextFile>, path: PathBuf) -> std::io::Re
         Ok(content) if !content.trim().is_empty() => {
             files.push(ContextFile { path, content });
             Ok(())
-        }
+        },
         Ok(_) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error),

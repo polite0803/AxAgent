@@ -384,7 +384,7 @@ impl HookRunner {
                         });
                     }
                     merge_parsed_hook_output(&mut result, parsed);
-                }
+                },
                 HookCommandOutcome::Deny { parsed } => {
                     if let Some(reporter) = reporter.as_deref_mut() {
                         reporter.on_event(&HookProgressEvent::Completed {
@@ -397,7 +397,7 @@ impl HookRunner {
                     merge_parsed_hook_output(&mut result, parsed);
                     result.denied = true;
                     return result;
-                }
+                },
                 HookCommandOutcome::Failed { parsed } => {
                     if let Some(reporter) = reporter.as_deref_mut() {
                         reporter.on_event(&HookProgressEvent::Completed {
@@ -410,7 +410,7 @@ impl HookRunner {
                     merge_parsed_hook_output(&mut result, parsed);
                     result.failed = true;
                     return result;
-                }
+                },
                 HookCommandOutcome::Cancelled { message } => {
                     if let Some(reporter) = reporter.as_deref_mut() {
                         reporter.on_event(&HookProgressEvent::Cancelled {
@@ -423,7 +423,7 @@ impl HookRunner {
                     result.cancelled = true;
                     result.messages.push(message);
                     return result;
-                }
+                },
             }
         }
 
@@ -466,7 +466,7 @@ impl HookRunner {
                         } else {
                             HookCommandOutcome::Allow { parsed }
                         }
-                    }
+                    },
                     Some(2) => HookCommandOutcome::Deny {
                         parsed: parsed.with_fallback_message(format!(
                             "{} hook denied tool `{tool_name}`",
@@ -489,7 +489,7 @@ impl HookRunner {
                         )),
                     },
                 }
-            }
+            },
             Ok(CommandExecution::Cancelled) => HookCommandOutcome::Cancelled {
                 message: format!(
                     "{} hook `{command}` cancelled while handling `{tool_name}`",

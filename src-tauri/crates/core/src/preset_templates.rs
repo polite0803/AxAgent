@@ -874,7 +874,7 @@ pub async fn seed_preset_templates(db: &DatabaseConnection) -> Result<()> {
                     updated_at: sea_orm::Set(template.updated_at),
                 };
                 repo::insert_workflow_template(db, active_model).await?;
-            }
+            },
             Some(ref t) if t.nodes == "[]" || t.nodes.is_empty() => {
                 let template = convert_preset_to_workflow_template(&preset);
                 let active_model = crate::entity::workflow_template::ActiveModel {
@@ -919,8 +919,8 @@ pub async fn seed_preset_templates(db: &DatabaseConnection) -> Result<()> {
                     updated_at: sea_orm::Set(template.updated_at),
                 };
                 repo::upsert_workflow_template(db, active_model).await?;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 

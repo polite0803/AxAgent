@@ -329,7 +329,7 @@ impl SourceClassifier {
                 "blog" => return SourceType::Blog,
                 "wiki" => return SourceType::Wikipedia,
                 "news" => return SourceType::News,
-                _ => {}
+                _ => {},
             }
         }
 

@@ -320,7 +320,7 @@ impl std::fmt::Display for McpServerManagerError {
             ),
             Self::UnknownTool { qualified_name } => {
                 write!(f, "unknown MCP tool `{qualified_name}`")
-            }
+            },
             Self::UnknownServer { server_name } => write!(f, "unknown MCP server `{server_name}`"),
         }
     }
@@ -421,10 +421,10 @@ impl McpServerManagerError {
             ]),
             Self::UnknownTool { qualified_name } => {
                 BTreeMap::from([("qualified_tool".to_string(), qualified_name.clone())])
-            }
+            },
             Self::UnknownServer { server_name } => {
                 BTreeMap::from([("server".to_string(), server_name.clone())])
-            }
+            },
         }
     }
 }
@@ -573,11 +573,11 @@ impl McpServerManager {
                         );
                         discovered_tools.push(tool);
                     }
-                }
+                },
                 Err(error) => {
                     self.clear_routes_for_server(&server_name);
                     failed_servers.push(error.discovery_failure(&server_name));
-                }
+                },
             }
         }
 
@@ -685,13 +685,13 @@ impl McpServerManager {
                 Err(error) if attempts == 0 && Self::is_retryable_error(&error) => {
                     self.reset_server(server_name).await?;
                     attempts += 1;
-                }
+                },
                 Err(error) => {
                     if Self::should_reset_server(&error) {
                         self.reset_server(server_name).await?;
                     }
                     return Err(error);
-                }
+                },
             }
         }
     }
@@ -709,13 +709,13 @@ impl McpServerManager {
                 Err(error) if attempts == 0 && Self::is_retryable_error(&error) => {
                     self.reset_server(server_name).await?;
                     attempts += 1;
-                }
+                },
                 Err(error) => {
                     if Self::should_reset_server(&error) {
                         self.reset_server(server_name).await?;
                     }
                     return Err(error);
-                }
+                },
             }
         }
     }
@@ -792,13 +792,13 @@ impl McpServerManager {
                 Err(error) if attempts == 0 && Self::is_retryable_error(&error) => {
                     self.reset_server(server_name).await?;
                     attempts += 1;
-                }
+                },
                 Err(error) => {
                     if Self::should_reset_server(&error) {
                         self.reset_server(server_name).await?;
                     }
                     return Err(error);
-                }
+                },
             }
         }
     }
@@ -1030,7 +1030,7 @@ impl McpServerManager {
                     method,
                     details: error.to_string(),
                 })
-            }
+            },
             Ok(Err(source)) => Err(McpServerManagerError::Transport {
                 server_name: server_name.to_string(),
                 method,
@@ -1105,13 +1105,13 @@ impl McpServerManager {
                     self.reset_server(server_name).await?;
                     attempts += 1;
                     continue;
-                }
+                },
                 Err(error) => {
                     if Self::should_reset_server(&error) {
                         self.reset_server(server_name).await?;
                     }
                     return Err(error);
-                }
+                },
             };
 
             if let Some(error) = response.error {
@@ -1358,8 +1358,8 @@ impl McpStdioProcess {
     async fn shutdown(&mut self) -> io::Result<()> {
         if self.child.try_wait()?.is_none() {
             match self.child.kill().await {
-                Ok(()) => {}
-                Err(error) if error.kind() == io::ErrorKind::InvalidInput => {}
+                Ok(()) => {},
+                Err(error) if error.kind() == io::ErrorKind::InvalidInput => {},
                 Err(error) => return Err(error),
             }
         }
@@ -2359,7 +2359,7 @@ mod tests {
                     assert_eq!(server_name, "slow");
                     assert_eq!(method, "tools/call");
                     assert_eq!(timeout_ms, 25);
-                }
+                },
                 other => panic!("expected timeout error, got {other:?}"),
             }
 
@@ -2414,7 +2414,7 @@ mod tests {
                     assert!(
                         details.contains("expected ident") || details.contains("expected value")
                     );
-                }
+                },
                 other => panic!("expected invalid response error, got {other:?}"),
             }
 
@@ -2463,7 +2463,7 @@ mod tests {
                     assert_eq!(server_name, "alpha");
                     assert_eq!(method, "tools/call");
                     assert_eq!(source.kind(), ErrorKind::UnexpectedEof);
-                }
+                },
                 other => panic!("expected transport error, got {other:?}"),
             }
 
@@ -2593,7 +2593,7 @@ mod tests {
                     assert_eq!(server_name, "alpha");
                     assert_eq!(method, "tools/call");
                     assert_eq!(source.kind(), ErrorKind::UnexpectedEof);
-                }
+                },
                 other => panic!("expected transport error, got {other:?}"),
             }
 
@@ -2939,7 +2939,7 @@ mod tests {
             match error {
                 McpServerManagerError::UnknownTool { qualified_name } => {
                     assert_eq!(qualified_name, mcp_tool_name("alpha", "missing"));
-                }
+                },
                 other => panic!("expected unknown tool error, got {other:?}"),
             }
 

@@ -50,7 +50,7 @@ pub fn message_tokens(msg: &ChatMessage) -> usize {
                     .join(" "),
             ) + parts.iter().filter(|p| p.image_url.is_some()).count() * 85
                 + 4;
-        }
+        },
     };
     token_counter::estimate_message_tokens(&msg.role, text)
 }
@@ -177,11 +177,11 @@ pub fn build_context_with_query(
                 total_used,
                 ctx_window
             );
-        }
+        },
         None => {
             // No known context limit — include all history messages
             out.extend(history_messages.iter().cloned());
-        }
+        },
     }
 
     out

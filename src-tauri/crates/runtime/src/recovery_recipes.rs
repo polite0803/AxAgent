@@ -293,13 +293,13 @@ pub fn attempt_recovery(scenario: &FailureScenario, ctx: &mut RecoveryContext) -
     match &result {
         RecoveryResult::Recovered { .. } => {
             ctx.events.push(RecoveryEvent::RecoverySucceeded);
-        }
+        },
         RecoveryResult::PartialRecovery { .. } => {
             ctx.events.push(RecoveryEvent::RecoveryFailed);
-        }
+        },
         RecoveryResult::EscalationRequired { .. } => {
             ctx.events.push(RecoveryEvent::Escalated);
-        }
+        },
     }
 
     result
@@ -409,7 +409,7 @@ mod tests {
                     remaining[0],
                     RecoveryStep::RetryMcpHandshake { .. }
                 ));
-            }
+            },
             other => panic!("expected PartialRecovery, got {other:?}"),
         }
         assert!(ctx
@@ -468,7 +468,7 @@ mod tests {
                 assert_eq!(recipe.scenario, scenario);
                 assert!(!recipe.steps.is_empty());
                 assert!(matches!(result, RecoveryResult::Recovered { .. }));
-            }
+            },
             _ => unreachable!(),
         }
 

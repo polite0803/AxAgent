@@ -429,7 +429,7 @@ impl TrajectoryStorage {
                 traj.steps = steps;
                 traj.rewards = rewards;
                 Ok(Some(traj))
-            }
+            },
             Ok(None) => Ok(None),
             Err(e) => Err(anyhow::anyhow!("Failed to get trajectory: {}", e)),
         }

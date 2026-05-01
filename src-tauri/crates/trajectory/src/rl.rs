@@ -267,7 +267,7 @@ impl RLEngine {
             TrajectoryOutcome::Partial => {
                 let completion_ratio = trajectory.quality.task_completion;
                 0.3 + completion_ratio * 0.4
-            }
+            },
             TrajectoryOutcome::Failure => {
                 let error_count = trajectory
                     .steps
@@ -280,7 +280,7 @@ impl RLEngine {
                     })
                     .count();
                 (-0.5f64).max(-1.0 + error_count as f64 * 0.1)
-            }
+            },
             TrajectoryOutcome::Abandoned => -0.2,
         }
     }
@@ -393,7 +393,7 @@ impl RLEngine {
                     } else {
                         0.0
                     }
-                }
+                },
                 RewardType::ReasoningQuality => self.config.entropy_coefficient * 0.05,
                 RewardType::ErrorRecovery => 0.2 * self.config.entropy_coefficient,
                 RewardType::UserFeedback => 0.1 * self.config.entropy_coefficient,

@@ -2086,6 +2086,7 @@
       "gatewayDesc": "管理远程连接"
     },
     "result": {
+      "noWikiSelected": "请先在知识库中选择一个 Wiki",
       "noKnowledge": "未找到相关知识。",
       "noMemory": "未找到相关记忆。",
       "savedWiki": "已存入知识库",

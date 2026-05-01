@@ -27,22 +27,22 @@ impl From<&TrajProactiveSuggestion> for ProactiveSuggestion {
         let action = match &s.action {
             SuggestionAction::PrefetchCompletion { language, context } => {
                 serde_json::json!({ "type": "PrefetchCompletion", "language": language, "context": context })
-            }
+            },
             SuggestionAction::ShowRefactorOptions { target } => {
                 serde_json::json!({ "type": "ShowRefactorOptions", "target": target })
-            }
+            },
             SuggestionAction::GenerateDocs { topic } => {
                 serde_json::json!({ "type": "GenerateDocs", "topic": topic })
-            }
+            },
             SuggestionAction::GenerateTests { target } => {
                 serde_json::json!({ "type": "GenerateTests", "target": target })
-            }
+            },
             SuggestionAction::ShowOptimizations { target } => {
                 serde_json::json!({ "type": "ShowOptimizations", "target": target })
-            }
+            },
             SuggestionAction::ShowLearningResources { topic } => {
                 serde_json::json!({ "type": "ShowLearningResources", "topic": topic })
-            }
+            },
         };
 
         let suggestion_type = match s.suggestion_type {
@@ -90,25 +90,25 @@ impl From<&axagent_trajectory::ContextPrediction> for ContextPrediction {
         let predicted_intent = match &p.predicted_intent {
             axagent_trajectory::PredictedIntent::CodeCompletion { language, context } => {
                 serde_json::json!({ "type": "CodeCompletion", "language": language, "context": context })
-            }
+            },
             axagent_trajectory::PredictedIntent::Documentation { topic } => {
                 serde_json::json!({ "type": "Documentation", "topic": topic })
-            }
+            },
             axagent_trajectory::PredictedIntent::Search { query_type } => {
                 serde_json::json!({ "type": "Search", "query_type": query_type })
-            }
+            },
             axagent_trajectory::PredictedIntent::Refactoring { target } => {
                 serde_json::json!({ "type": "Refactoring", "target": target })
-            }
+            },
             axagent_trajectory::PredictedIntent::Debug { error } => {
                 serde_json::json!({ "type": "Debug", "error": error })
-            }
+            },
             axagent_trajectory::PredictedIntent::TestGeneration { target } => {
                 serde_json::json!({ "type": "TestGeneration", "target": target })
-            }
+            },
             axagent_trajectory::PredictedIntent::Unknown => {
                 serde_json::json!({ "type": "Unknown" })
-            }
+            },
         };
 
         let suggested_actions: Vec<serde_json::Value> = p
@@ -425,7 +425,7 @@ pub async fn proactive_add_reminder(
                 frequency,
                 interval: r.interval,
             })
-        }
+        },
         None => None,
     };
 

@@ -153,7 +153,7 @@ fn parse_llm_response(
                     base,
                     config: agent_config,
                 })
-            }
+            },
             "llm" => {
                 let llm_config: LLMNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(LLMNodeConfig {
@@ -169,7 +169,7 @@ fn parse_llm_response(
                     base,
                     config: llm_config,
                 })
-            }
+            },
             "condition" => {
                 let cond_config: ConditionNodeConfig = serde_json::from_value(
                     llm_node.config.clone(),
@@ -182,7 +182,7 @@ fn parse_llm_response(
                     base,
                     config: cond_config,
                 })
-            }
+            },
             "parallel" => {
                 let para_config: ParallelNodeConfig =
                     serde_json::from_value(llm_node.config.clone()).unwrap_or(ParallelNodeConfig {
@@ -194,7 +194,7 @@ fn parse_llm_response(
                     base,
                     config: para_config,
                 })
-            }
+            },
             "loop" => {
                 let loop_config: LoopNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(LoopNodeConfig {
@@ -210,7 +210,7 @@ fn parse_llm_response(
                     base,
                     config: loop_config,
                 })
-            }
+            },
             "tool" => {
                 let tool_config: ToolNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(ToolNodeConfig {
@@ -222,7 +222,7 @@ fn parse_llm_response(
                     base,
                     config: tool_config,
                 })
-            }
+            },
             "code" => {
                 let code_config: CodeNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(CodeNodeConfig {
@@ -234,7 +234,7 @@ fn parse_llm_response(
                     base,
                     config: code_config,
                 })
-            }
+            },
             "end" => {
                 let end_config: EndNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(EndNodeConfig { output_var: None });
@@ -242,7 +242,7 @@ fn parse_llm_response(
                     base,
                     config: end_config,
                 })
-            }
+            },
             _ => WorkflowNode::Agent(AgentNode {
                 base,
                 config: AgentNodeConfig {

@@ -295,10 +295,10 @@ pub fn validate_mode(command: &str, mode: PermissionMode) -> ValidationResult {
                 };
             }
             ValidationResult::Allow
-        }
+        },
         PermissionMode::DangerFullAccess | PermissionMode::Allow | PermissionMode::Prompt => {
             ValidationResult::Allow
-        }
+        },
     }
 }
 
@@ -670,7 +670,7 @@ fn extract_sudo_inner(command: &str) -> &str {
                 }
             }
             ""
-        }
+        },
         None => "",
     }
 }

@@ -149,7 +149,7 @@ impl HookRunner {
                     if let Some(message) = message {
                         messages.push(message);
                     }
-                }
+                },
                 HookCommandOutcome::Deny { message } => {
                     messages.push(message.unwrap_or_else(|| {
                         format!("{} hook denied tool `{tool_name}`", event.as_str())
@@ -159,7 +159,7 @@ impl HookRunner {
                         failed: false,
                         messages,
                     };
-                }
+                },
                 HookCommandOutcome::Failed { message } => {
                     messages.push(message);
                     return HookRunResult {
@@ -167,7 +167,7 @@ impl HookRunner {
                         failed: true,
                         messages,
                     };
-                }
+                },
             }
         }
 
@@ -219,7 +219,7 @@ impl HookRunner {
                         ),
                     },
                 }
-            }
+            },
             Err(error) => HookCommandOutcome::Failed {
                 message: format!(
                     "{} hook `{command}` failed to start for `{tool_name}`: {error}",
@@ -356,8 +356,8 @@ impl CommandWithStdin {
             // child exits; Linux pipes do not, so the race shows up
             // deterministically on ubuntu runners.
             match child_stdin.write_all(stdin) {
-                Ok(()) => {}
-                Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
+                Ok(()) => {},
+                Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {},
                 Err(error) => return Err(error),
             }
         }

@@ -191,7 +191,7 @@ pub fn read_token(path: &Path) -> io::Result<Option<String>> {
             } else {
                 Ok(Some(token.to_string()))
             }
-        }
+        },
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(error),
     }

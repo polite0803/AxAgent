@@ -272,7 +272,7 @@ pub async fn rebuild_knowledge_index(
                         }),
                     );
                     continue;
-                }
+                },
             };
 
             if chunks.is_empty() {
@@ -338,7 +338,7 @@ pub async fn rebuild_knowledge_index(
                             }),
                         );
                     }
-                }
+                },
                 Err(e) => {
                     let err_msg = e.to_string();
                     tracing::error!("Failed to embed doc {} during rebuild: {}", doc.id, err_msg);
@@ -357,7 +357,7 @@ pub async fn rebuild_knowledge_index(
                             "error": err_msg,
                         }),
                     );
-                }
+                },
             }
         }
 
@@ -829,7 +829,7 @@ pub async fn rebuild_knowledge_document(
                         }),
                     );
                 }
-            }
+            },
             Err(e) => {
                 let err_msg = e.to_string();
                 tracing::error!("Failed to embed doc {}: {}", doc_id, err_msg);
@@ -848,7 +848,7 @@ pub async fn rebuild_knowledge_document(
                         "error": err_msg,
                     }),
                 );
-            }
+            },
         }
     });
 

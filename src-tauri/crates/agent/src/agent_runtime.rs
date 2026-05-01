@@ -138,13 +138,13 @@ where
                     iterations: summary.iterations,
                     tool_call_count,
                 })
-            }
+            },
             Err(e) => {
                 self.emit(AgentEvent::Error {
                     error: e.to_string(),
                 });
                 Err(AgentRuntimeError::RuntimeError(e.to_string()))
-            }
+            },
         }
     }
 

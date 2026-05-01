@@ -722,20 +722,20 @@ impl ToolRegistry {
                                         return Ok(result.content);
                                     }
                                     last_error = Some(result.content);
-                                }
+                                },
                                 Ok(Err(e)) => last_error = Some(e.to_string()),
                                 Err(_) => {
                                     last_error = Some(format!(
                                         "Tool timed out after {}s",
                                         timeout_duration.as_secs()
                                     ))
-                                }
+                                },
                             }
                         }
                         Err(ToolError::new(
                             last_error.unwrap_or("All retry attempts failed".to_string()),
                         ))
-                    }
+                    },
                     "http" => {
                         let endpoint = server_config.endpoint.ok_or_else(|| {
                             ToolError::new("HTTP server has no endpoint configured")
@@ -757,7 +757,7 @@ impl ToolRegistry {
                         })?
                         .map_err(|e| ToolError::new(e.to_string()))
                         .map(|r| r.content)
-                    }
+                    },
                     "sse" => {
                         let endpoint = server_config.endpoint.ok_or_else(|| {
                             ToolError::new("SSE server has no endpoint configured")
@@ -779,7 +779,7 @@ impl ToolRegistry {
                         })?
                         .map_err(|e| ToolError::new(e.to_string()))
                         .map(|r| r.content)
-                    }
+                    },
                     other => Err(ToolError::new(format!("Unsupported transport '{}'", other))),
                 };
 
@@ -892,12 +892,12 @@ impl ToolExecutor for ToolRegistry {
                         output.len()
                     );
                 }
-            }
+            },
             Err(e) => {
                 self.record_result_sync(&execution_id, false, &e.to_string(), duration_ms);
                 self.usage_stats
                     .record_execution(tool_name, category, execution_time_ms, false);
-            }
+            },
         }
 
         result

@@ -66,10 +66,10 @@ impl PauseState {
                             }
                         }
                     }
-                }
+                },
                 Err(_) => {
                     return;
-                }
+                },
             }
         }
     }
@@ -537,14 +537,14 @@ where
                                         return Err(retry_error);
                                     }
                                     // Continue retrying
-                                }
+                                },
                             }
                         }
                     } else {
                         self.record_turn_failed(iterations, &error);
                         return Err(error);
                     }
-                }
+                },
             };
             let (assistant_message, usage, turn_prompt_cache_events, turn_thinking) =
                 match build_assistant_message(events) {
@@ -552,7 +552,7 @@ where
                     Err(error) => {
                         self.record_turn_failed(iterations, &error);
                         return Err(error);
-                    }
+                    },
                 };
             if !turn_thinking.is_empty() {
                 if !thinking.is_empty() {
@@ -570,7 +570,7 @@ where
                 .filter_map(|block| match block {
                     ContentBlock::ToolUse { id, name, input } => {
                         Some((id.clone(), name.clone(), input.clone()))
-                    }
+                    },
                     _ => None,
                 })
                 .collect::<Vec<_>>();
@@ -698,7 +698,7 @@ where
                                             e
                                         ))));
                                         return rx.recv_timeout(tool_timeout);
-                                    }
+                                    },
                                 };
                                 let result =
                                     tool_executor.execute(&tool_name_owned, &effective_input_owned);
@@ -715,13 +715,13 @@ where
                                         "Tool '{}' timed out after {:?}",
                                         tool_name, tool_timeout
                                     )))
-                                }
+                                },
                                 Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
                                     Err(RuntimeError::new(format!(
                                         "Tool '{}' execution thread panicked (disconnected)",
                                         tool_name
                                     )))
-                                }
+                                },
                             };
                             match first_result {
                                 Ok(output) => (output, false),
@@ -778,7 +778,7 @@ where
                                                             format!("Lock error: {}", e),
                                                         )));
                                                         return rx.recv_timeout(tool_timeout);
-                                                    }
+                                                    },
                                                 };
                                                 let result = executor
                                                     .execute(&retry_tool_name, &retry_input);
@@ -820,13 +820,13 @@ where
                                                         break (retry_str, true);
                                                     }
                                                     // Continue retrying
-                                                }
+                                                },
                                             }
                                         }
                                     } else {
                                         (err_str, true)
                                     }
-                                }
+                                },
                             }
                         };
                         output = merge_hook_feedback(pre_hook_result.messages(), output, false);
@@ -862,7 +862,7 @@ where
                         );
 
                         ConversationMessage::tool_result(tool_use_id, tool_name, output, is_error)
-                    }
+                    },
                     PermissionOutcome::Deny { reason } => ConversationMessage::tool_result(
                         tool_use_id,
                         tool_name,
@@ -1175,12 +1175,12 @@ fn build_assistant_message(
             AssistantEvent::ToolUse { id, name, input } => {
                 flush_text_block(&mut text, &mut blocks);
                 blocks.push(ContentBlock::ToolUse { id, name, input });
-            }
+            },
             AssistantEvent::Usage(value) => usage = Some(value),
             AssistantEvent::PromptCache(event) => prompt_cache_events.push(event),
             AssistantEvent::MessageStop => {
                 finished = true;
-            }
+            },
         }
     }
 
@@ -1350,7 +1350,7 @@ mod tests {
                         }),
                         AssistantEvent::MessageStop,
                     ])
-                }
+                },
                 2 => {
                     let last_message = request
                         .messages
@@ -1376,7 +1376,7 @@ mod tests {
                         }),
                         AssistantEvent::MessageStop,
                     ])
-                }
+                },
                 _ => unreachable!("extra API call"),
             }
         }
@@ -1686,7 +1686,7 @@ mod tests {
                             AssistantEvent::TextDelta("done".to_string()),
                             AssistantEvent::MessageStop,
                         ])
-                    }
+                    },
                     _ => unreachable!("extra API call"),
                 }
             }
@@ -1761,7 +1761,7 @@ mod tests {
                             AssistantEvent::TextDelta("done".to_string()),
                             AssistantEvent::MessageStop,
                         ])
-                    }
+                    },
                     _ => unreachable!("extra API call"),
                 }
             }

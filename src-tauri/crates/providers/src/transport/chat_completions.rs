@@ -143,7 +143,7 @@ impl TransportProvider for ChatCompletionsTransport {
                 Ok(bytes) => {
                     let text = String::from_utf8_lossy(&bytes).to_string();
                     parse_sse_chunk(&text).transpose()
-                }
+                },
                 Err(e) => Some(Err(anyhow::anyhow!("Stream error: {}", e))),
             };
             std::future::ready(result)

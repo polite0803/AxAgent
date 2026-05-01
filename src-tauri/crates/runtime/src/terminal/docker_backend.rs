@@ -84,10 +84,10 @@ impl TerminalBackend for DockerBackend {
                 let mut c = self.connected.write().await;
                 *c = true;
                 Ok(())
-            }
+            },
             Err(e) => {
                 anyhow::bail!("Docker daemon not reachable: {}", e);
-            }
+            },
         }
     }
 

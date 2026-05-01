@@ -87,7 +87,7 @@ impl MarkdownParser {
                         "page_type" => frontmatter.page_type = Some(value.to_string()),
                         "tags" => {
                             frontmatter.tags = self.parse_tags_list(value);
-                        }
+                        },
                         _ => {
                             if !value.is_empty() {
                                 frontmatter.custom.insert(
@@ -95,7 +95,7 @@ impl MarkdownParser {
                                     serde_json::Value::String(value.to_string()),
                                 );
                             }
-                        }
+                        },
                     }
                 }
             }

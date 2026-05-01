@@ -101,11 +101,11 @@ impl MemoryService {
             match memory.memory_type.as_str() {
                 "memory" => {
                     working.memory.insert(entry.id.clone(), entry);
-                }
+                },
                 "user" => {
                     working.user.insert(entry.id.clone(), entry);
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -157,17 +157,17 @@ impl MemoryService {
             match target {
                 "memory" => {
                     mem.memory.insert(entry.id.clone(), entry);
-                }
+                },
                 "user" => {
                     mem.user.insert(entry.id.clone(), entry);
-                }
+                },
                 _ => {
                     return MemoryActionResult {
                         success: false,
                         message: "无效的记忆类型".to_string(),
                         new_usage: None,
                     }
-                }
+                },
             }
         }
 
@@ -202,7 +202,7 @@ impl MemoryService {
                     message: "无效的记忆类型".to_string(),
                     new_usage: None,
                 }
-            }
+            },
         };
 
         let mut found = None;
@@ -272,7 +272,7 @@ impl MemoryService {
                     message: "无效的记忆类型".to_string(),
                     new_usage: None,
                 }
-            }
+            },
         };
 
         let mut found = None;

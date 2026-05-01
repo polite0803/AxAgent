@@ -1283,7 +1283,7 @@ pub fn init_builtin_handlers() {
                                 ));
                             }
                         }
-                    }
+                    },
                     "dall-e" | "dalle" | "DALL-E" => {
                         let key = api_key.ok_or_else(|| {
                             AxAgentError::Gateway("API key required for DALL-E".to_string())
@@ -1329,7 +1329,7 @@ pub fn init_builtin_handlers() {
                             "revised_prompt": revised_prompt,
                             "elapsed_ms": 0
                         }))
-                    }
+                    },
                     _ => Err(AxAgentError::Gateway(format!(
                         "Unknown provider: {}",
                         provider_name
@@ -2326,7 +2326,7 @@ async fn web_search(
                     is_error: true,
                 })
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Search error: {}", e),
             is_error: true,
@@ -2401,7 +2401,7 @@ async fn read_file(path: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     match tokio::fs::read_to_string(&resolved_path).await {
@@ -2411,7 +2411,7 @@ async fn read_file(path: &str) -> Result<McpToolResult> {
                 content: truncated,
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error reading file '{}': {}", path, e),
             is_error: true,
@@ -2434,7 +2434,7 @@ async fn list_directory(path: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let mut entries = match tokio::fs::read_dir(&resolved_path).await {
@@ -2444,7 +2444,7 @@ async fn list_directory(path: &str) -> Result<McpToolResult> {
                 content: format!("Error listing directory '{}': {}", path, e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let mut items = Vec::new();
@@ -2832,7 +2832,7 @@ async fn skill_manage(
                 content: lines.join("\n"),
                 is_error: false,
             })
-        }
+        },
         "view" => {
             if name.is_empty() {
                 return Ok(McpToolResult {
@@ -2851,7 +2851,7 @@ async fn skill_manage(
                     is_error: true,
                 }),
             }
-        }
+        },
         "create" | "edit" | "patch" => {
             if name.is_empty() {
                 return Ok(McpToolResult {
@@ -2910,7 +2910,7 @@ async fn skill_manage(
                 ),
                 is_error: false,
             })
-        }
+        },
         "delete" => {
             if name.is_empty() {
                 return Ok(McpToolResult {
@@ -2934,7 +2934,7 @@ async fn skill_manage(
                 content: format!("Skill '{}' deleted", name),
                 is_error: false,
             })
-        }
+        },
         _ => Ok(McpToolResult {
             content: format!(
                 "Unknown action '{}'. Use: list, view, create, edit, patch, delete",
@@ -2965,20 +2965,20 @@ fn sanitize_fts5_query(query: &str) -> Result<String> {
         match c {
             'a'..='z' | 'A'..='Z' | '0'..='9' | ' ' | '\t' | '\n' | '-' | '_' | '.' | '@' | '#' => {
                 sanitized.push(c);
-            }
+            },
             '"' => {
                 in_phrase = !in_phrase;
                 sanitized.push(c);
-            }
+            },
             '*' => {
                 if !in_phrase {
                     sanitized.push(c);
                 }
-            }
+            },
             '(' | ')' => {
                 sanitized.push(c);
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
     if in_phrase {
@@ -3008,7 +3008,7 @@ async fn session_search(query: &str, limit: i32, _db_path: &str) -> Result<McpTo
                 content: "Session search unavailable: database path not configured".into(),
                 is_error: true,
             });
-        }
+        },
     };
 
     // Convert "sqlite:/path/to/db" to just "/path/to/db"
@@ -3047,21 +3047,21 @@ async fn session_search(query: &str, limit: i32, _db_path: &str) -> Result<McpTo
                                                 Ok(rows) => rows.filter_map(|r| r.ok()).collect(),
                                                 Err(_) => Vec::new(),
                                             }
-                                        }
+                                        },
                                         Err(_) => Vec::new(),
                                     }
-                                }
+                                },
                                 Err(_) => Vec::new(),
                             }
-                        }
+                        },
                     }
-                }
+                },
                 Err(e) => {
                     return Ok(McpToolResult {
                         content: format!("Session search error (FTS5 not available): {}", e),
                         is_error: true,
                     });
-                }
+                },
             };
 
             if rows.is_empty() {
@@ -3080,7 +3080,7 @@ async fn session_search(query: &str, limit: i32, _db_path: &str) -> Result<McpTo
                     is_error: false,
                 })
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Session search error: cannot open database: {}", e),
             is_error: true,
@@ -3104,7 +3104,7 @@ async fn memory_flush(content: &str, target: &str, category: &str) -> Result<Mcp
                 content: "Memory flush unavailable: database path not configured".into(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let db_file = db_path_str.strip_prefix("sqlite:").unwrap_or(&db_path_str);
@@ -3173,9 +3173,9 @@ async fn memory_flush(content: &str, target: &str, category: &str) -> Result<Mcp
                             is_error: true,
                         }),
                     }
-                }
+                },
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Memory flush error: cannot open database: {}", e),
             is_error: true,
@@ -3366,7 +3366,7 @@ async fn write_file(path: &str, content: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let path_str = resolved_path.to_string_lossy();
@@ -3414,7 +3414,7 @@ async fn edit_file(path: &str, old_str: &str, new_str: &str) -> Result<McpToolRe
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let path_str = resolved_path.to_string_lossy();
@@ -3472,7 +3472,7 @@ async fn search_replace_file(
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let path_str = resolved_path.to_string_lossy();
@@ -3576,7 +3576,7 @@ async fn delete_file(path: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let path_str = resolved_path.to_string_lossy();
@@ -3612,7 +3612,7 @@ async fn move_file(source: &str, destination: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let resolved_dest = match validate_and_resolve_path(destination, "workspace") {
@@ -3622,7 +3622,7 @@ async fn move_file(source: &str, destination: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let source_str = resolved_source.to_string_lossy();
@@ -3662,7 +3662,7 @@ async fn create_directory(path: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let path_str = resolved_path.to_string_lossy();
@@ -3691,7 +3691,7 @@ async fn file_exists(path: &str) -> Result<McpToolResult> {
                 content: format!("{}: does not exist (outside allowed directories)", path),
                 is_error: false,
             });
-        }
+        },
     };
 
     let path_str = resolved_path.to_string_lossy();
@@ -3721,7 +3721,7 @@ async fn get_file_info(path: &str) -> Result<McpToolResult> {
                 content: format!("Error: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let path_str = resolved_path.to_string_lossy();
@@ -3826,13 +3826,13 @@ async fn run_command(command: &str, timeout_secs: u64) -> Result<McpToolResult> 
                     content: format!("Error executing command: {}", e),
                     is_error: true,
                 });
-            }
+            },
             Err(_) => {
                 return Ok(McpToolResult {
                     content: format!("Error: Command timed out after {} seconds", timeout_secs),
                     is_error: true,
                 });
-            }
+            },
         };
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -3900,7 +3900,7 @@ async fn list_processes(limit: usize) -> Result<McpToolResult> {
                 },
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error listing processes: {}", e),
             is_error: true,
@@ -3970,7 +3970,7 @@ fn list_knowledge_bases() -> Result<McpToolResult> {
                 content: "Knowledge bases unavailable: database not initialized".to_string(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
@@ -4018,7 +4018,7 @@ fn list_knowledge_bases() -> Result<McpToolResult> {
                     is_error: false,
                 })
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error opening database: {}", e),
             is_error: true,
@@ -4063,7 +4063,7 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                         is_error: false,
                     })
                 }
-            }
+            },
             Err(e) => Ok(McpToolResult {
                 content: format!("Knowledge search error: {}", e),
                 is_error: true,
@@ -4078,7 +4078,7 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                     content: "Knowledge search unavailable: database not initialized".to_string(),
                     is_error: true,
                 });
-            }
+            },
         };
 
         let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
@@ -4120,7 +4120,7 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                                 is_error: false,
                             })
                         }
-                    }
+                    },
                     Err(e) => Ok(McpToolResult {
                         content: format!(
                             "Knowledge base '{}' may not exist or has no indexed content: {}",
@@ -4129,7 +4129,7 @@ async fn search_knowledge(base_id: String, query: String, top_k: usize) -> Resul
                         is_error: true,
                     }),
                 }
-            }
+            },
             Err(e) => Ok(McpToolResult {
                 content: format!("Error opening database: {}", e),
                 is_error: true,
@@ -4178,7 +4178,7 @@ async fn create_knowledge_entity_tool(
                 content: "Error: database not initialized".to_string(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
@@ -4225,7 +4225,7 @@ async fn create_knowledge_entity_tool(
                     is_error: true,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error opening database: {}", e),
             is_error: true,
@@ -4266,7 +4266,7 @@ async fn create_knowledge_flow_tool(
                 content: "Error: database not initialized".to_string(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
@@ -4320,7 +4320,7 @@ async fn create_knowledge_flow_tool(
                     is_error: true,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error opening database: {}", e),
             is_error: true,
@@ -4360,7 +4360,7 @@ async fn create_knowledge_interface_tool(
                 content: "Error: database not initialized".to_string(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
@@ -4407,7 +4407,7 @@ async fn create_knowledge_interface_tool(
                     is_error: true,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error opening database: {}", e),
             is_error: true,
@@ -4446,7 +4446,7 @@ async fn add_knowledge_document_tool(
                 content: "Error: database not initialized".to_string(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
@@ -4498,14 +4498,14 @@ async fn add_knowledge_document_tool(
                     is_error: true,
                 }),
             }
-        }
+        },
         Err(e) => {
             let _ = std::fs::remove_file(&file_path);
             Ok(McpToolResult {
                 content: format!("Error opening database: {}", e),
                 is_error: true,
             })
-        }
+        },
     }
 }
 
@@ -4533,7 +4533,7 @@ async fn git_status_tool(repo_path: &str) -> Result<McpToolResult> {
                 content: serde_json::to_string(&output).unwrap_or_default(),
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error: {}", e),
             is_error: true,
@@ -4767,7 +4767,7 @@ async fn brave_web_search(query: &str, api_key: &str, count: usize) -> Result<Mc
                 content: results,
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Brave Search request failed: {}", e),
             is_error: true,
@@ -4825,7 +4825,7 @@ async fn brave_local_search(query: &str, api_key: &str, count: usize) -> Result<
                 content: results,
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Brave Local Search request failed: {}", e),
             is_error: true,
@@ -4841,7 +4841,7 @@ fn parse_brave_web_results(json: &str) -> String {
                 "Unable to parse search results. Raw response: {}",
                 truncate_text(json, 1000)
             )
-        }
+        },
     };
 
     let web = match parsed.get("web") {
@@ -4886,7 +4886,7 @@ fn parse_brave_local_results(json: &str) -> String {
                 "Unable to parse results. Raw response: {}",
                 truncate_text(json, 1000)
             )
-        }
+        },
     };
 
     let results = match parsed.get("results") {
@@ -5076,7 +5076,7 @@ async fn python_execute(script: &str, timeout_secs: u64) -> Result<McpToolResult
                 content: result,
                 is_error: !output.status.success(),
             })
-        }
+        },
         Ok(Err(e)) => Ok(McpToolResult {
             content: format!(
                 "Failed to execute Python: {}. Is Python installed and in PATH?",
@@ -5129,7 +5129,7 @@ async fn dify_list_bases(api_base: &str, api_key: &str) -> Result<McpToolResult>
                 content: results,
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Dify API request failed: {}", e),
             is_error: true,
@@ -5209,7 +5209,7 @@ async fn dify_search(
                 content: results,
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Dify API request failed: {}", e),
             is_error: true,
@@ -5225,7 +5225,7 @@ fn parse_dify_datasets(json_str: &str) -> String {
                 "Unable to parse Dify response. Raw: {}",
                 truncate_text(json_str, 1000)
             )
-        }
+        },
     };
 
     let data = match parsed.get("data") {
@@ -5271,7 +5271,7 @@ fn parse_dify_search_results(json_str: &str) -> String {
                 "Unable to parse search results. Raw: {}",
                 truncate_text(json_str, 1000)
             )
-        }
+        },
     };
 
     let records = match parsed.get("records") {
@@ -5362,7 +5362,7 @@ async fn workspace_read(filename: &str, workspace_path: &str) -> Result<McpToolR
                     is_error: false,
                 })
             }
-        }
+        },
         Err(e) => {
             if e.kind() == std::io::ErrorKind::NotFound {
                 Ok(McpToolResult { content: format!("Memory file '{}' does not exist yet in {}. Use workspace_write to create it.", safe_name, workspace_path), is_error: false })
@@ -5372,7 +5372,7 @@ async fn workspace_read(filename: &str, workspace_path: &str) -> Result<McpToolR
                     is_error: true,
                 })
             }
-        }
+        },
     }
 }
 
@@ -5455,7 +5455,7 @@ async fn workspace_write(
                 )
             };
             std::fs::write(&file_path, new_content)
-        }
+        },
     };
 
     match result {
@@ -5505,7 +5505,7 @@ async fn pdf_info_tool(file_path: &str) -> Result<McpToolResult> {
                     content: info,
                     is_error: false,
                 })
-            }
+            },
             Err(e) => Ok(McpToolResult {
                 content: format!("Failed to extract text from PDF: {}", e),
                 is_error: true,
@@ -5587,9 +5587,9 @@ async fn detect_encoding_tool(file_path: &str) -> Result<McpToolResult> {
                         ),
                         is_error: false,
                     })
-                }
+                },
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Failed to read file: {}", e),
             is_error: true,
@@ -5646,7 +5646,7 @@ async fn base64_image_tool(file_path: &str) -> Result<McpToolResult> {
                 ),
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Failed to read file: {}", e),
             is_error: true,
@@ -5725,7 +5725,7 @@ fn clear_directory(path: &std::path::Path) -> std::result::Result<u64, String> {
                         let _ = std::fs::remove_file(&p);
                     }
                 }
-            }
+            },
             Err(e) => return Err(format!("{}: {}", path.display(), e).into()),
         }
     }
@@ -5789,7 +5789,7 @@ async fn ocr_image_tool(file_path: &str, lang: &str) -> Result<McpToolResult> {
                 content: format!("Error reading file metadata: {}", e),
                 is_error: true,
             })
-        }
+        },
     };
     if meta.len() > 50 * 1024 * 1024 {
         return Ok(McpToolResult {
@@ -5838,7 +5838,7 @@ async fn ocr_image_tool(file_path: &str, lang: &str) -> Result<McpToolResult> {
                 content: trimmed.to_string(),
                 is_error: false,
             })
-        }
+        },
         Ok(Err(e)) => {
             if e.kind() == std::io::ErrorKind::NotFound {
                 Ok(McpToolResult {
@@ -5851,7 +5851,7 @@ async fn ocr_image_tool(file_path: &str, lang: &str) -> Result<McpToolResult> {
                     is_error: true,
                 })
             }
-        }
+        },
         Err(_) => Ok(McpToolResult {
             content: "OCR timed out after 120 seconds".into(),
             is_error: true,
@@ -5897,7 +5897,7 @@ async fn ocr_detect_langs_tool() -> Result<McpToolResult> {
                 content: result,
                 is_error: false,
             })
-        }
+        },
         Ok(Err(e)) => {
             if e.kind() == std::io::ErrorKind::NotFound {
                 Ok(McpToolResult {
@@ -5910,7 +5910,7 @@ async fn ocr_detect_langs_tool() -> Result<McpToolResult> {
                     is_error: true,
                 })
             }
-        }
+        },
         Err(_) => Ok(McpToolResult {
             content: "OCR language detection timed out".into(),
             is_error: true,
@@ -6114,7 +6114,7 @@ fn obsidian_read_file_tool(vault_path: &str, file_path: &str) -> Result<McpToolR
                 content: truncated,
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Error reading file: {}", e),
             is_error: true,
@@ -6232,7 +6232,7 @@ async fn remotefile_upload_tool(
                 content: format!("Error reading file: {}", e),
                 is_error: true,
             })
-        }
+        },
     };
     if data.len() > 100 * 1024 * 1024 {
         return Ok(McpToolResult {
@@ -6352,13 +6352,13 @@ async fn upload_to_gemini(
                         content: format!("Uploaded to Gemini: {} (uri: {})", name, uri),
                         is_error: false,
                     })
-                }
+                },
                 Err(_) => Ok(McpToolResult {
                     content: format!("Gemini upload response: {}", truncate_text(&text, 1000)),
                     is_error: false,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Gemini upload failed: {}", e),
             is_error: true,
@@ -6398,13 +6398,13 @@ async fn list_gemini_files(client: &reqwest::Client, api_key: &str) -> Result<Mc
                         content: lines.join("\n"),
                         is_error: false,
                     })
-                }
+                },
                 Err(_) => Ok(McpToolResult {
                     content: format!("Gemini response: {}", truncate_text(&text, 1000)),
                     is_error: false,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Gemini list failed: {}", e),
             is_error: true,
@@ -6434,7 +6434,7 @@ async fn delete_gemini_file(
                     is_error: true,
                 })
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Gemini delete failed: {}", e),
             is_error: true,
@@ -6484,13 +6484,13 @@ async fn upload_to_openai(
                         ),
                         is_error: false,
                     })
-                }
+                },
                 Err(_) => Ok(McpToolResult {
                     content: format!("OpenAI response: {}", truncate_text(&text, 1000)),
                     is_error: false,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("OpenAI upload failed: {}", e),
             is_error: true,
@@ -6532,13 +6532,13 @@ async fn list_openai_files(client: &reqwest::Client, api_key: &str) -> Result<Mc
                         content: lines.join("\n"),
                         is_error: false,
                     })
-                }
+                },
                 Err(_) => Ok(McpToolResult {
                     content: format!("OpenAI response: {}", truncate_text(&text, 1000)),
                     is_error: false,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("OpenAI list failed: {}", e),
             is_error: true,
@@ -6570,7 +6570,7 @@ async fn delete_openai_file(
                     is_error: true,
                 })
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("OpenAI delete failed: {}", e),
             is_error: true,
@@ -6617,13 +6617,13 @@ async fn upload_to_mistral(
                         content: format!("Uploaded to Mistral: {} (id: {})", display_name, id),
                         is_error: false,
                     })
-                }
+                },
                 Err(_) => Ok(McpToolResult {
                     content: format!("Mistral response: {}", truncate_text(&text, 1000)),
                     is_error: false,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Mistral upload failed: {}", e),
             is_error: true,
@@ -6665,13 +6665,13 @@ async fn list_mistral_files(client: &reqwest::Client, api_key: &str) -> Result<M
                         content: lines.join("\n"),
                         is_error: false,
                     })
-                }
+                },
                 Err(_) => Ok(McpToolResult {
                     content: format!("Mistral response: {}", truncate_text(&text, 1000)),
                     is_error: false,
                 }),
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Mistral list failed: {}", e),
             is_error: true,
@@ -6703,7 +6703,7 @@ async fn delete_mistral_file(
                     is_error: true,
                 })
             }
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Mistral delete failed: {}", e),
             is_error: true,
@@ -6770,7 +6770,7 @@ fn agent_checkpoint_tool(action: &str, checkpoint_id: &str, label: &str) -> Resu
                 content: format!("Checkpoint saved: {} (label: {})", id, display_label),
                 is_error: false,
             })
-        }
+        },
         "list" => {
             let checkpoints = CHECKPOINTS.lock().unwrap();
             if checkpoints.is_empty() {
@@ -6787,7 +6787,7 @@ fn agent_checkpoint_tool(action: &str, checkpoint_id: &str, label: &str) -> Resu
                 content: lines.join("\n"),
                 is_error: false,
             })
-        }
+        },
         "restore" => {
             if checkpoint_id.is_empty() {
                 return Ok(McpToolResult {
@@ -6804,7 +6804,7 @@ fn agent_checkpoint_tool(action: &str, checkpoint_id: &str, label: &str) -> Resu
                 }),
                 None => Ok(McpToolResult { content: format!("Checkpoint '{}' not found. Use action='list' to see available checkpoints.", checkpoint_id), is_error: true }),
             }
-        }
+        },
         _ => Ok(McpToolResult {
             content: format!("Unknown action: {}. Use save, list, or restore.", action),
             is_error: true,
@@ -6885,7 +6885,7 @@ async fn task_tool_handler(
                 content: "Error: task tool requires a parent conversation context".into(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let child_id = Uuid::new_v4().to_string();
@@ -6898,7 +6898,7 @@ async fn task_tool_handler(
                 content: "Error: database not available for task tool".into(),
                 is_error: true,
             });
-        }
+        },
     };
 
     let db_file = db_path_str.strip_prefix("sqlite:").unwrap_or(&db_path_str);
@@ -6910,7 +6910,7 @@ async fn task_tool_handler(
                 content: format!("Error opening database: {}", e),
                 is_error: true,
             });
-        }
+        },
     };
 
     let result = conn.execute(
@@ -6932,7 +6932,7 @@ async fn task_tool_handler(
                 content: output.to_string(),
                 is_error: false,
             })
-        }
+        },
         Err(e) => Ok(McpToolResult {
             content: format!("Failed to create child conversation: {}", e),
             is_error: true,

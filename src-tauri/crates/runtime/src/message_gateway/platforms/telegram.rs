@@ -126,13 +126,13 @@ impl PlatformAdapter for TelegramAdapter {
                                 }
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         tracing::error!("Telegram poll error: {}", e);
                         connected.store(false, Ordering::SeqCst);
                         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                         connected.store(true, Ordering::SeqCst);
-                    }
+                    },
                 }
 
                 if running.load(Ordering::SeqCst) {
@@ -227,7 +227,7 @@ fn handle_telegram_command(text: &str, username: &Option<String>, user_id: &str)
             } else {
                 Some(format!("I received: \"{}\". Processing...", text))
             }
-        }
+        },
     }
 }
 

@@ -58,13 +58,13 @@ impl PlatformAdapter for WeChatAdapter {
                     tracing::info!("WeChat: access_token obtained");
                     connected.store(true, Ordering::SeqCst);
                     t
-                }
+                },
                 None => {
                     tracing::error!("WeChat: failed to obtain access_token");
                     connected.store(false, Ordering::SeqCst);
                     running.store(false, Ordering::SeqCst);
                     return;
-                }
+                },
             };
 
             let mut token_expiry = chrono::Utc::now().timestamp() + 7000;
@@ -82,13 +82,13 @@ impl PlatformAdapter for WeChatAdapter {
                             token_expiry = now + 7000;
                             connected.store(true, Ordering::SeqCst);
                             tracing::info!("WeChat: access_token refreshed");
-                        }
+                        },
                         None => {
                             tracing::error!("WeChat: token refresh failed");
                             connected.store(false, Ordering::SeqCst);
                             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
                             continue;
-                        }
+                        },
                     }
                 }
 

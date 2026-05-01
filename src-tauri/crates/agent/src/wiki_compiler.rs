@@ -102,7 +102,7 @@ impl WikiCompiler {
                     if let Err(e) = self.update_quality_score(&note, &page_clone).await {
                         tracing::warn!("Failed to update quality score: {}", e);
                     }
-                }
+                },
                 Err(e) => result.errors.push(e),
             }
         }
@@ -347,14 +347,14 @@ impl WikiCompiler {
                             }
                         }
                     }
-                }
+                },
                 Err(e) => {
                     tracing::warn!(
                         "Failed to parse JSON block: {}. Raw: {}",
                         e,
                         &clean_json[..clean_json.len().min(200)]
                     );
-                }
+                },
             }
         }
 

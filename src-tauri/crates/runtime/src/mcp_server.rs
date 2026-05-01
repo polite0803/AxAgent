@@ -108,7 +108,7 @@ impl McpServer {
                     };
                     write_response(&mut self.stdout, &response).await?;
                     continue;
-                }
+                },
             };
 
             if message.get("id").is_none() {
@@ -132,7 +132,7 @@ impl McpServer {
                     };
                     write_response(&mut self.stdout, &response).await?;
                     continue;
-                }
+                },
             };
 
             let response = self.dispatch(request);
@@ -201,7 +201,7 @@ impl McpServer {
             Ok(value) => value,
             Err(error) => {
                 return invalid_params_response(id, &format!("invalid tools/call params: {error}"));
-            }
+            },
         };
         let arguments = call.arguments.unwrap_or_else(|| json!({}));
         let tool_result = (self.spec.tool_handler)(&call.name, &arguments);

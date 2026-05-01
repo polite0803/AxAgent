@@ -63,11 +63,11 @@ pub fn create_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::e
                     let _ = w.show();
                     let _ = w.set_focus();
                 }
-            }
+            },
             "quit" => {
                 app.exit(0);
-            }
-            _ => {}
+            },
+            _ => {},
         })
         .on_tray_icon_event(|tray, event| {
             if let tauri::tray::TrayIconEvent::Click {

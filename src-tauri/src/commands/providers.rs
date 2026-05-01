@@ -188,7 +188,7 @@ pub async fn validate_provider_key(
                 axagent_core::repo::provider::update_key_validation(&state.sea_db, &key_id, false)
                     .await;
             return Err(e.to_string());
-        }
+        },
     };
     // Update validation timestamp
     axagent_core::repo::provider::update_key_validation(&state.sea_db, &key_id, valid)

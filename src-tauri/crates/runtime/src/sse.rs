@@ -75,7 +75,7 @@ impl IncrementalSseParser {
             "data" => self.data_lines.push(value.to_owned()),
             "id" => self.id = Some(value.to_owned()),
             "retry" => self.retry = value.parse::<u64>().ok(),
-            _ => {}
+            _ => {},
         }
     }
 

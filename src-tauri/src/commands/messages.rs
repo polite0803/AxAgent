@@ -99,7 +99,7 @@ pub async fn export_conversation(
                 md.push_str(&format!("## {}\n\n{}\n\n", role, msg.content));
             }
             Ok(md)
-        }
+        },
         _ => Err(format!("Unsupported export format: {}", format)),
     }
 }

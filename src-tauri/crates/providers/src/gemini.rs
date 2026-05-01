@@ -268,7 +268,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                         }),
                     }],
                 });
-            }
+            },
             "assistant" if msg.tool_calls.is_some() => {
                 let mut parts = Vec::new();
                 let text = extract_text_content(&msg.content);
@@ -299,7 +299,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                     role: Some("model".to_string()),
                     parts,
                 });
-            }
+            },
             _ => {
                 let parts = match &msg.content {
                     ChatContent::Text(text) => vec![GeminiPart {
@@ -343,7 +343,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                     role: Some(role.to_string()),
                     parts,
                 });
-            }
+            },
         }
     }
 
@@ -565,13 +565,13 @@ impl ProviderAdapter for GeminiAdapter {
                         super::diagnose_http_status("Gemini", s, &t),
                     )));
                     return;
-                }
+                },
                 Err(e) => {
                     let _ = tx.unbounded_send(Err(AxAgentError::Provider(
                         super::diagnose_reqwest_error(&e),
                     )));
                     return;
-                }
+                },
             };
 
             let mut byte_stream = resp.bytes_stream();
@@ -662,23 +662,23 @@ impl ProviderAdapter for GeminiAdapter {
                                         usage,
                                         tool_calls,
                                     }));
-                                }
+                                },
                                 Err(e) => {
                                     tracing::warn!(
                                         "Failed to parse SSE event JSON: {}. Data: {}",
                                         e,
                                         &data[..data.len().min(200)]
                                     );
-                                }
+                                },
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
-                    }
+                    },
                 }
             }
 

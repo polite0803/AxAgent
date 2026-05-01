@@ -300,10 +300,10 @@ impl Skill {
         match trajectory.outcome {
             TrajectoryOutcome::Failure => {
                 content += "- An error occurred during execution, ensure proper error handling\n";
-            }
+            },
             _ => {
                 content += "- No known issues\n";
-            }
+            },
         }
 
         content += "\n## Verification\n";
@@ -317,11 +317,11 @@ impl Skill {
         match execution.outcome {
             SkillOutcome::Success => {
                 self.successful_usages += 1;
-            }
+            },
             SkillOutcome::Partial => {
                 self.successful_usages += 1;
-            }
-            SkillOutcome::Failure => {}
+            },
+            SkillOutcome::Failure => {},
         }
 
         let n = self.total_usages as f64;
@@ -442,7 +442,7 @@ impl Skill {
                     missing_dependencies: Vec::new(),
                     satisfied_dependencies: Vec::new(),
                 }
-            }
+            },
         };
 
         let mut missing = Vec::new();

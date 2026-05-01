@@ -132,7 +132,7 @@ impl TerminalBackend for LocalBackend {
                             data,
                             timestamp: chrono::Utc::now().timestamp_millis(),
                         });
-                    }
+                    },
                 }
             }
         });

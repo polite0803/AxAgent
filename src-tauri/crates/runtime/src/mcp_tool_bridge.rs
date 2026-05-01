@@ -132,7 +132,7 @@ impl McpToolRegistry {
                     ));
                 }
                 Ok(state.resources.clone())
-            }
+            },
             None => Err(format!("server '{}' not found", server_name)),
         }
     }
@@ -169,7 +169,7 @@ impl McpToolRegistry {
                     ));
                 }
                 Ok(state.tools.clone())
-            }
+            },
             None => Err(format!("server '{}' not found", server_name)),
         }
     }

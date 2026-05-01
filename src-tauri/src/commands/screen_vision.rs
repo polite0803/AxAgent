@@ -177,7 +177,7 @@ pub async fn execute_vision_action(
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
                 .await
                 .map_err(|e| format!("Click failed: {}", e))?;
-        }
+        },
         "double_click" | "doubleclick" => {
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
                 .await
@@ -186,27 +186,27 @@ pub async fn execute_vision_action(
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
                 .await
                 .map_err(|e| format!("Double click failed: {}", e))?;
-        }
+        },
         "right_click" | "rightclick" => {
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Right)
                 .await
                 .map_err(|e| format!("Right click failed: {}", e))?;
-        }
+        },
         "type" | "input" => {
             if let Some(text) = text {
                 UIAutomation::type_text(&text, Some(x), Some(y))
                     .await
                     .map_err(|e| format!("Type failed: {}", e))?;
             }
-        }
+        },
         "hover" => {
             UIAutomation::move_mouse(x, y)
                 .await
                 .map_err(|e| format!("Hover failed: {}", e))?;
-        }
+        },
         _ => {
             return Err(format!("Unknown action type: {}", action_type));
-        }
+        },
     }
 
     Ok(())

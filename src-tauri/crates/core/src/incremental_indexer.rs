@@ -109,7 +109,7 @@ impl IncrementalIndexer {
                         tracing::warn!("Failed to reindex {:?}: {e}", path);
                     }
                 }
-            }
+            },
             EventKind::Remove(_) => {
                 for path in paths {
                     if let Ok(rel) = path.strip_prefix(root) {
@@ -119,8 +119,8 @@ impl IncrementalIndexer {
                         tracing::debug!("Removed index entry for {:?}", rel);
                     }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -215,7 +215,7 @@ impl IncrementalIndexer {
                         Ok(count) => ast_count += count,
                         Err(e) => {
                             tracing::debug!("AST index skipped for {}: {e}", entry.path);
-                        }
+                        },
                     }
                 }
             }

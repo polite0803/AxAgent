@@ -72,10 +72,10 @@ impl SecurityWarning {
         match self {
             Self::PipeDownloadToShell | Self::DangerousRm | Self::UntrustedExecution => {
                 SecuritySeverity::Critical
-            }
+            },
             Self::SudoExecution | Self::ChmodUnsafe | Self::CriticalPathWrite => {
                 SecuritySeverity::High
-            }
+            },
             Self::EvalUsage => SecuritySeverity::Medium,
         }
     }
@@ -126,29 +126,29 @@ pub fn parse_shell(input: &str) -> Result<ParsedShell, String> {
                     commands.push(cmd);
                 }
                 operators.push(ShellOperator::Pipe);
-            }
+            },
             "&&" => {
                 if let Some(cmd) = current_cmd.take() {
                     commands.push(cmd);
                 }
                 operators.push(ShellOperator::And);
-            }
+            },
             "||" => {
                 if let Some(cmd) = current_cmd.take() {
                     commands.push(cmd);
                 }
                 operators.push(ShellOperator::Or);
-            }
+            },
             ";" => {
                 if let Some(cmd) = current_cmd.take() {
                     commands.push(cmd);
                 }
                 operators.push(ShellOperator::Semicolon);
-            }
+            },
             _ if token.starts_with('$') => {
                 // Subshell: $(...) - skip
                 operators.push(ShellOperator::Subshell);
-            }
+            },
             _ => {
                 if current_cmd.is_none() {
                     current_cmd = Some(ShellCommand {
@@ -159,7 +159,7 @@ pub fn parse_shell(input: &str) -> Result<ParsedShell, String> {
                 } else {
                     current_cmd.as_mut().unwrap().args.push(token.clone());
                 }
-            }
+            },
         }
     }
 
@@ -191,13 +191,13 @@ fn tokenize(input: &str) -> Vec<String> {
                 current.push(ch);
                 i += 1;
                 continue;
-            }
+            },
             '"' if !in_single_quote => {
                 in_double_quote = !in_double_quote;
                 current.push(ch);
                 i += 1;
                 continue;
-            }
+            },
             '\\' if !in_single_quote => {
                 // Escape next character
                 current.push(ch);
@@ -207,8 +207,8 @@ fn tokenize(input: &str) -> Vec<String> {
                 }
                 i += 1;
                 continue;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         if !in_single_quote && !in_double_quote && ch.is_ascii_whitespace() {

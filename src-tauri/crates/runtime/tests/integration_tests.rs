@@ -182,7 +182,7 @@ fn stale_branch_apply_policy_warn_only() {
         StaleBranchAction::Warn { message } => {
             assert!(message.contains("2 commit(s) behind main"));
             assert!(message.contains("fix-456"));
-        }
+        },
         _ => panic!("expected Warn action, got {:?}", action),
     }
 }

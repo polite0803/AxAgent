@@ -414,7 +414,7 @@ pub fn resolve_chat_url(
                 }
                 format!("{}{}", base, p)
             }
-        }
+        },
         _ => format!("{}{}", base, default_suffix),
     }
 }
@@ -454,7 +454,7 @@ pub fn build_http_client(proxy_config: Option<&ProviderProxyConfig>) -> Result<r
         match config.proxy_type.as_deref() {
             Some("system") => {
                 // Don't call .no_proxy() — let reqwest auto-detect system proxy
-            }
+            },
             Some(proxy_type) if proxy_type != "none" => {
                 if let (Some(addr), Some(port)) = (&config.proxy_address, &config.proxy_port) {
                     if !addr.is_empty() {
@@ -474,10 +474,10 @@ pub fn build_http_client(proxy_config: Option<&ProviderProxyConfig>) -> Result<r
                 } else {
                     builder = builder.no_proxy();
                 }
-            }
+            },
             _ => {
                 builder = builder.no_proxy();
-            }
+            },
         }
     } else {
         builder = builder.no_proxy();

@@ -362,7 +362,7 @@ fn read_credentials_root(path: &PathBuf) -> io::Result<Map<String, Value>> {
                         "credentials file must contain a JSON object",
                     )
                 })
-        }
+        },
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(Map::new()),
         Err(error) => Err(error),
     }
@@ -398,14 +398,14 @@ fn base64url_encode(bytes: &[u8]) -> String {
             let block = u32::from(bytes[index]) << 16;
             output.push(TABLE[((block >> 18) & 0x3F) as usize] as char);
             output.push(TABLE[((block >> 12) & 0x3F) as usize] as char);
-        }
+        },
         2 => {
             let block = (u32::from(bytes[index]) << 16) | (u32::from(bytes[index + 1]) << 8);
             output.push(TABLE[((block >> 18) & 0x3F) as usize] as char);
             output.push(TABLE[((block >> 12) & 0x3F) as usize] as char);
             output.push(TABLE[((block >> 6) & 0x3F) as usize] as char);
-        }
-        _ => {}
+        },
+        _ => {},
     }
     output
 }
@@ -416,11 +416,11 @@ fn percent_encode(value: &str) -> String {
         match byte {
             b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
                 encoded.push(char::from(byte));
-            }
+            },
             _ => {
                 use std::fmt::Write as _;
                 let _ = write!(&mut encoded, "%{byte:02X}");
-            }
+            },
         }
     }
     encoded
@@ -437,15 +437,15 @@ fn percent_decode(value: &str) -> Result<String, String> {
                 let lo = decode_hex(bytes[index + 2])?;
                 decoded.push((hi << 4) | lo);
                 index += 3;
-            }
+            },
             b'+' => {
                 decoded.push(b' ');
                 index += 1;
-            }
+            },
             byte => {
                 decoded.push(byte);
                 index += 1;
-            }
+            },
         }
     }
     String::from_utf8(decoded).map_err(|error| error.to_string())

@@ -130,7 +130,7 @@ async fn execute_bash_async(
                     persisted_output_size: None,
                     sandbox_status: Some(sandbox_status),
                 });
-            }
+            },
         }
     } else {
         (command.output().await?, false)

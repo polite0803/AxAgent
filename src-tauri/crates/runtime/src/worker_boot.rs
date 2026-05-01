@@ -285,7 +285,7 @@ impl WorkerRegistry {
                     format!(
                         "worker prompt landed in shell instead of coding agent: {prompt_preview}"
                     )
-                }
+                },
                 WorkerPromptTarget::WrongTarget => format!(
                     "worker prompt landed in the wrong target instead of {}: {}",
                     worker.cwd, prompt_preview

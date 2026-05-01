@@ -97,7 +97,7 @@ pub async fn update_review(
         Ok(id) => id,
         Err((status, msg)) => {
             return Err((status, Json(serde_json::json!({ "error": msg }))));
-        }
+        },
     };
 
     let existing =
@@ -108,7 +108,7 @@ pub async fn update_review(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(serde_json::json!({ "error": e })),
                 ));
-            }
+            },
         };
 
     match existing {
@@ -117,14 +117,14 @@ pub async fn update_review(
                 StatusCode::FORBIDDEN,
                 Json(serde_json::json!({ "error": "Cannot update another user's review" })),
             ));
-        }
+        },
         None => {
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Review not found" })),
             ));
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     let req = UpdateReviewRequest {
@@ -152,7 +152,7 @@ pub async fn delete_review(
         Ok(id) => id,
         Err((status, msg)) => {
             return Err((status, Json(serde_json::json!({ "error": msg }))));
-        }
+        },
     };
 
     let existing =
@@ -163,17 +163,17 @@ pub async fn delete_review(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(serde_json::json!({ "error": "Database error" })),
                 ));
-            }
+            },
         };
 
     match existing {
-        Some(r) if r.id == review_id => {}
+        Some(r) if r.id == review_id => {},
         _ => {
             return Err((
                 StatusCode::FORBIDDEN,
                 Json(serde_json::json!({ "error": "Cannot delete another user's review" })),
             ));
-        }
+        },
     }
 
     match MarketplaceService::delete_review(&state.db, &review_id).await {

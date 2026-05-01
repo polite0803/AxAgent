@@ -99,7 +99,7 @@ impl ShellHookExecutor {
                             modified_input: None,
                         },
                     }
-                }
+                },
                 Err(e) => ShellHookOutput {
                     exit_code: -1,
                     stdout: String::new(),

@@ -51,11 +51,11 @@ impl OpenClawAdapter {
                 "chat_completions" | "chatcompletions" => return OpenClawApiMode::ChatCompletions,
                 "codex_responses" | "responses" | "openai_responses" => {
                     return OpenClawApiMode::CodexResponses
-                }
+                },
                 "anthropic_messages" | "anthropic" | "messages" => {
                     return OpenClawApiMode::AnthropicMessages
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 

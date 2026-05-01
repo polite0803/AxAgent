@@ -731,7 +731,7 @@ fn extract_variable_declaration(line: &str, lang: &str) -> Option<(String, Optio
             } else {
                 None
             }
-        }
+        },
         "typescript" | "javascript" => {
             if line.starts_with("let ") || line.starts_with("var ") || line.starts_with("const ") {
                 let after = line
@@ -752,7 +752,7 @@ fn extract_variable_declaration(line: &str, lang: &str) -> Option<(String, Optio
             } else {
                 None
             }
-        }
+        },
         "python" => {
             if line.contains('=')
                 && !line.starts_with("if ")
@@ -769,7 +769,7 @@ fn extract_variable_declaration(line: &str, lang: &str) -> Option<(String, Optio
             } else {
                 None
             }
-        }
+        },
         _ => None,
     }
 }

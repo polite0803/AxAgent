@@ -216,7 +216,7 @@ impl AutoMemoryExtractor {
                     source_trajectory: trajectory.id.clone(),
                     extraction_reason: "Successful task completion".to_string(),
                 });
-            }
+            },
             TrajectoryOutcome::Failure => {
                 let error_tools: usize = trajectory
                     .steps
@@ -242,7 +242,7 @@ impl AutoMemoryExtractor {
                         extraction_reason: "Failed task with error indicators".to_string(),
                     });
                 }
-            }
+            },
             TrajectoryOutcome::Partial => {
                 memories.push(ExtractedMemory {
                     memory_type: MemoryType::Context,
@@ -254,8 +254,8 @@ impl AutoMemoryExtractor {
                     source_trajectory: trajectory.id.clone(),
                     extraction_reason: "Partial task completion".to_string(),
                 });
-            }
-            TrajectoryOutcome::Abandoned => {}
+            },
+            TrajectoryOutcome::Abandoned => {},
         }
 
         let deduplicated: Vec<_> = memories

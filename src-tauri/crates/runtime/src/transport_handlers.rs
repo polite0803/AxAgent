@@ -324,12 +324,12 @@ impl HTTPTransportHandler {
                         endpoint: endpoint.agent_id.clone(),
                         reason: format!("HTTP error: {}", resp.status()),
                     });
-                }
+                },
                 Err(e) => {
                     last_error = Some(GatewayError::TransportError {
                         reason: e.to_string(),
                     });
-                }
+                },
             }
 
             if attempt < self.config.max_retries - 1 {

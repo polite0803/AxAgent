@@ -302,7 +302,7 @@ pub async fn connect_gateway_link(
                 .await?
                 .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
             Ok(link_from_entity(updated))
-        }
+        },
         Err(e) => {
             let now = now_ts();
             let mut am: gateway_links::ActiveModel = link.into();
@@ -324,7 +324,7 @@ pub async fn connect_gateway_link(
                 .await?
                 .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
             Ok(link_from_entity(updated))
-        }
+        },
     }
 }
 
@@ -555,7 +555,7 @@ pub async fn get_gateway_link_skill_syncs(
                 }
             }
             Ok(vec![])
-        }
+        },
         Err(_) => Ok(vec![]),
     }
 }
@@ -682,7 +682,7 @@ pub async fn save_gateway_link_policy(
             }
             let updated = am.update(db).await?;
             Ok(policy_from_entity(updated))
-        }
+        },
         None => {
             let id = gen_id();
             gateway_link_policies::ActiveModel {
@@ -718,7 +718,7 @@ pub async fn save_gateway_link_policy(
                 .await?
                 .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLinkPolicy {}", id)))?;
             Ok(policy_from_entity(row))
-        }
+        },
     }
 }
 
@@ -809,7 +809,7 @@ pub async fn check_gateway_health(
                 "GatewayLink {} not found",
                 link_id
             )))
-        }
+        },
     };
     let timeouts = GatewayLinkTimeouts::default();
     let client = build_health_check_client(&timeouts, &link.endpoint, api_key);
@@ -865,7 +865,7 @@ pub async fn connect_gateway_link_with_retry(
                     );
                     tokio::time::sleep(delay).await;
                 }
-            }
+            },
         }
     }
 

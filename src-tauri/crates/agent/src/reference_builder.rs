@@ -287,7 +287,7 @@ impl ReferenceBuilder {
                     output.push_str(&format!("[^{}]", &citation.id[..8]));
                 }
                 output
-            }
+            },
             ReferenceFormat::Html => {
                 let mut output = String::new();
                 for citation in citations {
@@ -298,7 +298,7 @@ impl ReferenceBuilder {
                     ));
                 }
                 output
-            }
+            },
             _ => String::new(),
         }
     }

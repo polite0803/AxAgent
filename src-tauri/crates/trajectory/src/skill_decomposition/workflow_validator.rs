@@ -252,7 +252,7 @@ impl WorkflowValidator {
                         );
                     }
                 }
-            }
+            },
             "agent" => {
                 if let Some(role) = config.get("role").and_then(|v| v.as_str()) {
                     if !VALID_AGENT_ROLES.contains(&role) {
@@ -286,7 +286,7 @@ impl WorkflowValidator {
                         );
                     }
                 }
-            }
+            },
             "condition" => {
                 if let Some(conditions) = config.get_mut("conditions") {
                     if let Some(conditions_arr) = conditions.as_array_mut() {
@@ -333,7 +333,7 @@ impl WorkflowValidator {
                         );
                     }
                 }
-            }
+            },
             "loop" => {
                 if let Some(loop_type) = config.get("loop_type").and_then(|v| v.as_str()) {
                     if !VALID_LOOP_TYPES.contains(&loop_type) {
@@ -351,8 +351,8 @@ impl WorkflowValidator {
                         );
                     }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         issues

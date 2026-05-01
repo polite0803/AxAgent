@@ -106,7 +106,7 @@ impl PlatformMessageCallback for PlatformBridge {
             Err(e) => {
                 tracing::error!("[PlatformBridge] process failed: {}", e);
                 None
-            }
+            },
         }
     }
 }

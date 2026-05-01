@@ -199,21 +199,21 @@ impl EvaluationRunner {
             EvaluationMetric::SemanticSimilarity => {
                 let base = levenshtein_similarity(expected, response);
                 base * 0.8 + 0.2
-            }
+            },
             EvaluationMetric::ToolCorrectness => {
                 if task.id == "tool_001" && response == "3" {
                     1.0
                 } else {
                     0.5
                 }
-            }
+            },
             EvaluationMetric::OutputFormat => {
                 if expected.is_empty() {
                     1.0
                 } else {
                     0.8
                 }
-            }
+            },
             EvaluationMetric::Performance => 1.0,
         }
     }

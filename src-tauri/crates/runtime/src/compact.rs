@@ -649,7 +649,7 @@ pub fn summarize_turn(messages: &[ConversationMessage]) -> String {
                         parts.push(format!("User: {}", short));
                     }
                 }
-            }
+            },
             MessageRole::Assistant => {
                 let tool_uses: Vec<&str> = message
                     .blocks
@@ -667,7 +667,7 @@ pub fn summarize_turn(messages: &[ConversationMessage]) -> String {
                         parts.push(short);
                     }
                 }
-            }
+            },
             MessageRole::Tool => {
                 for block in &message.blocks {
                     if let ContentBlock::ToolResult {
@@ -682,8 +682,8 @@ pub fn summarize_turn(messages: &[ConversationMessage]) -> String {
                         parts.push(format!("{tool_name}: {status} ({output_short})"));
                     }
                 }
-            }
-            MessageRole::System => {}
+            },
+            MessageRole::System => {},
         }
     }
 

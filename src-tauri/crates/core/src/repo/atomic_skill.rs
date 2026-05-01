@@ -181,19 +181,19 @@ pub async fn check_semantic_uniqueness(
     match input_schema {
         Some(s) => {
             query = query.filter(atomic_skills::Column::InputSchema.eq(s));
-        }
+        },
         None => {
             query = query.filter(atomic_skills::Column::InputSchema.is_null());
-        }
+        },
     }
 
     match output_schema {
         Some(s) => {
             query = query.filter(atomic_skills::Column::OutputSchema.eq(s));
-        }
+        },
         None => {
             query = query.filter(atomic_skills::Column::OutputSchema.is_null());
-        }
+        },
     }
 
     let existing = query.one(db).await?;

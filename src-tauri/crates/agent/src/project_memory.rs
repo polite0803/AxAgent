@@ -100,7 +100,7 @@ impl ProjectMemory {
                     "Common Commands" => memory.common_commands.push(item),
                     "Architecture" => memory.architecture_notes.push(item),
                     "User Preferences" => memory.user_preferences.push(item),
-                    _ => {}
+                    _ => {},
                 }
             }
         }

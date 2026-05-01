@@ -56,7 +56,7 @@ impl PermissionEnforcer {
                     required_mode: required_mode.as_str().to_owned(),
                     reason,
                 }
-            }
+            },
         }
     }
 
@@ -129,7 +129,7 @@ impl PermissionEnforcer {
                         ),
                     }
                 }
-            }
+            },
             // Allow and DangerFullAccess permit all writes
             PermissionMode::Allow | PermissionMode::DangerFullAccess => EnforcementResult::Allowed,
             PermissionMode::Prompt => EnforcementResult::Denied {
@@ -160,7 +160,7 @@ impl PermissionEnforcer {
                         ),
                     }
                 }
-            }
+            },
             PermissionMode::Prompt => EnforcementResult::Denied {
                 tool: "bash".to_owned(),
                 active_mode: mode.as_str().to_owned(),
@@ -222,19 +222,19 @@ fn is_read_only_command(command: &str) -> bool {
                 ';' | '|' | '`' if !in_single && !in_double => {
                     found = true;
                     break;
-                }
+                },
                 '&' if !in_single && !in_double && prev == '&' => {
                     found = true;
                     break;
-                }
+                },
                 '$' if !in_single => {
                     let next = chars.clone().next();
                     if next == Some('(') {
                         found = true;
                         break;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
             prev = c;
         }
@@ -493,7 +493,7 @@ mod tests {
                 assert_eq!(active_mode, "read-only");
                 assert_eq!(required_mode, "workspace-write");
                 assert!(reason.contains("requires workspace-write permission"));
-            }
+            },
             other => panic!("expected denied result, got {other:?}"),
         }
     }
@@ -617,7 +617,7 @@ mod tests {
                 assert_eq!(active_mode, "prompt");
                 assert_eq!(required_mode, "danger-full-access");
                 assert_eq!(reason, "bash requires confirmation in prompt mode");
-            }
+            },
             other => panic!("expected denied result, got {other:?}"),
         }
     }
@@ -642,7 +642,7 @@ mod tests {
                 assert_eq!(active_mode, "read-only");
                 assert_eq!(required_mode, "workspace-write");
                 assert!(reason.contains("file writes are not allowed"));
-            }
+            },
             other => panic!("expected denied result, got {other:?}"),
         }
     }

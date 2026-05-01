@@ -32,7 +32,7 @@ impl ActionExecutor {
                 ))?;
                 let input = action.tool_input.clone().unwrap_or(serde_json::json!({}));
                 self.execute_tool(tool_name, input).await
-            }
+            },
             ActionType::LlmCall => {
                 let prompt = action
                     .llm_prompt
@@ -41,15 +41,15 @@ impl ActionExecutor {
                         "LlmCall action missing prompt".to_string(),
                     ))?;
                 Ok(ActionResult::LlmResponse(prompt.to_string()))
-            }
+            },
             ActionType::UserConfirm => {
                 let message = action.llm_prompt.clone().unwrap_or_default();
                 Ok(ActionResult::UserConfirmationRequired(message))
-            }
+            },
             ActionType::Validate => {
                 let description = action.llm_prompt.clone().unwrap_or_default();
                 Ok(ActionResult::Validation(description))
-            }
+            },
             ActionType::Analyze => Ok(ActionResult::Analysis(
                 action.llm_prompt.clone().unwrap_or_default(),
             )),
@@ -132,28 +132,28 @@ impl ActionResult {
         match self {
             ActionResult::ToolSuccess(output, tool) => {
                 format!("Tool '{}' returned: {}", tool, truncate_string(output, 500))
-            }
+            },
             ActionResult::LlmResponse(text) => {
                 format!("LLM response: {}", truncate_string(text, 500))
-            }
+            },
             ActionResult::UserConfirmationRequired(msg) => {
                 format!("Awaiting user confirmation: {}", msg)
-            }
+            },
             ActionResult::Validation(desc) => {
                 format!("Validation: {}", desc)
-            }
+            },
             ActionResult::Analysis(desc) => {
                 format!("Analysis: {}", desc)
-            }
+            },
             ActionResult::Planning(desc) => {
                 format!("Planning: {}", desc)
-            }
+            },
             ActionResult::Reflection(desc) => {
                 format!("Reflection: {}", desc)
-            }
+            },
             ActionResult::Synthesis(desc) => {
                 format!("Synthesis: {}", desc)
-            }
+            },
         }
     }
 }

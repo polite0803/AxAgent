@@ -239,7 +239,7 @@ impl HealthCheckError {
             500..=599 => HealthCheckError::Transient(format!("Server error {}: {}", status, body)),
             _ if (400..500).contains(&status) => {
                 HealthCheckError::Permanent(format!("Client error {}: {}", status, body))
-            }
+            },
             _ => HealthCheckError::Transient(format!("HTTP error {}: {}", status, body)),
         }
     }
@@ -278,7 +278,7 @@ mod tests {
                 context,
             } => {
                 assert!(context.contains("workflow execution failed"));
-            }
+            },
             _ => panic!("Expected Workflow error with source"),
         }
     }

@@ -661,14 +661,14 @@ pub async fn wiki_sync_process_pending(
                 am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
                 am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
                 processed += 1;
-            }
+            },
             Err(e) => {
                 let mut am = item_clone.clone().into_active_model();
                 am.status = Set("failed".to_string());
                 am.error_message = Set(Some(e.to_string()));
                 am.retry_count = Set(item_clone.retry_count + 1);
                 am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
-            }
+            },
         }
     }
 
@@ -751,7 +751,7 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
             am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
             Ok(())
-        }
+        },
         Err(e) => {
             let mut am = model_clone.clone().into_active_model();
             am.status = Set("failed".to_string());
@@ -759,7 +759,7 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             am.retry_count = Set(model_clone.retry_count + 1);
             am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
             Err(e.to_string())
-        }
+        },
     }
 }
 
@@ -777,7 +777,7 @@ async fn process_sync_event(
                 model.wiki_id
             );
             Ok(())
-        }
+        },
         "note_deleted" => {
             tracing::info!(
                 "Sync: removing note {} from vector store for wiki {}",
@@ -785,7 +785,7 @@ async fn process_sync_event(
                 model.wiki_id
             );
             Ok(())
-        }
+        },
         "source_ingested" => {
             tracing::info!(
                 "Sync: source {} ingested for wiki {}",
@@ -793,23 +793,23 @@ async fn process_sync_event(
                 model.wiki_id
             );
             Ok(())
-        }
+        },
         "schema_updated" => {
             tracing::info!("Sync: schema updated for wiki {}", model.wiki_id);
             Ok(())
-        }
+        },
         "wiki_created" => {
             tracing::info!("Sync: wiki {} created", model.wiki_id);
             Ok(())
-        }
+        },
         "wiki_deleted" => {
             tracing::info!("Sync: wiki {} deleted, cleaning up", model.wiki_id);
             Ok(())
-        }
+        },
         _ => {
             tracing::warn!("Sync: unknown event type '{}'", model.event_type);
             Ok(())
-        }
+        },
     }
 }
 

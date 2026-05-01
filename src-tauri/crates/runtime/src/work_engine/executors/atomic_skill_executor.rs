@@ -32,7 +32,7 @@ impl NodeExecutorTrait for AtomicSkillExecutor {
         match node {
             WorkflowNode::AtomicSkill(skill_node) => {
                 Self::execute_atomic_skill(skill_node, context).await
-            }
+            },
             _ => Err(NodeError::UnsupportedNodeType(format!(
                 "Expected AtomicSkill node, got {:?}",
                 node

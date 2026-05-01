@@ -146,8 +146,8 @@ impl TaskRegistry {
                     "task {task_id} is already in terminal state: {}",
                     task.status
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         task.status = TaskStatus::Stopped;

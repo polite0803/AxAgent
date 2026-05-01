@@ -202,7 +202,7 @@ impl TaskExecutor {
             ExecutionError::InvalidGraph(match e {
                 TopologicalSortError::CircularDependency(tasks) => {
                     format!("Circular dependency detected: {:?}", tasks)
-                }
+                },
             })
         })?;
 
@@ -230,17 +230,17 @@ impl TaskExecutor {
                 match task.status {
                     TaskStatus::Running => {
                         self.emit(ExecutionEvent::TaskStarted(task.id.clone()));
-                    }
+                    },
                     TaskStatus::Completed => {
                         self.emit(ExecutionEvent::TaskCompleted(task.id.clone()));
-                    }
+                    },
                     TaskStatus::Failed => {
                         self.emit(ExecutionEvent::TaskFailed(
                             task.id.clone(),
                             task.error.clone().unwrap_or_default(),
                         ));
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
 
@@ -288,7 +288,7 @@ impl TaskExecutor {
                 Ok(ctx) => ctx,
                 Err(e) => {
                     return Err(e);
-                }
+                },
             };
 
             let handle = self.spawn_task(task_id.clone(), context);
@@ -300,13 +300,13 @@ impl TaskExecutor {
             match handle.await {
                 Ok((task_id, Ok(result))) => {
                     results.push((task_id, result));
-                }
+                },
                 Ok((task_id, Err(e))) => {
                     results.push((task_id, TaskResult::failed(e.to_string())));
-                }
+                },
                 Err(e) => {
                     tracing::error!("Task panicked: {:?}", e);
-                }
+                },
             }
         }
 
@@ -431,28 +431,28 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
                     "output": format!("Executed tool call: {}", context.task_id),
                     "task_id": context.task_id,
                 }))
-            }
+            },
             crate::task::TaskType::Reasoning => {
                 tokio::time::sleep(Duration::from_millis(50)).await;
                 Ok(serde_json::json!({
                     "output": format!("Reasoning completed for: {}", context.task_id),
                     "task_id": context.task_id,
                 }))
-            }
+            },
             crate::task::TaskType::Query => {
                 tokio::time::sleep(Duration::from_millis(150)).await;
                 Ok(serde_json::json!({
                     "output": format!("Query executed: {}", context.task_id),
                     "task_id": context.task_id,
                 }))
-            }
+            },
             crate::task::TaskType::Validation => {
                 tokio::time::sleep(Duration::from_millis(75)).await;
                 Ok(serde_json::json!({
                     "output": format!("Validation passed: {}", context.task_id),
                     "task_id": context.task_id,
                 }))
-            }
+            },
         }
     }
 }

@@ -268,11 +268,11 @@ impl SkillManager {
                 Some(SkillContentResult::Formatted(
                     self.format_skill_content(skill),
                 ))
-            }
+            },
             2 => {
                 let skill = self.get_skill(id)?;
                 Some(SkillContentResult::Full(skill.clone()))
-            }
+            },
             _ => Some(SkillContentResult::List(self.list_skills(None))),
         }
     }

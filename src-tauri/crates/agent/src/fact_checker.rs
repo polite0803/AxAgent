@@ -289,7 +289,7 @@ impl FactChecker {
             ),
             FactCheckStatus::Unsupported => {
                 "No relevant sources found to verify this claim".to_string()
-            }
+            },
             FactCheckStatus::Disproven => format!(
                 "Disproven by {} high-credibility contradicting source(s)",
                 contradicting.len()

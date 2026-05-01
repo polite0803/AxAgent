@@ -1,5 +1,6 @@
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { useProviderStore, useSettingsStore } from "@/stores";
+import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { Input, theme, Tooltip, Typography } from "antd";
 import {
   ArrowDownCircle,
@@ -132,6 +133,7 @@ function pushRecent(query: string) {
 export function QuickBarPage() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const selectedWikiId = useLlmWikiStore((s) => s.selectedWikiId);
 
   /* Resolve i18n labels into CommandDef */
   const COMMANDS: CommandDef[] = useMemo(
@@ -287,7 +289,14 @@ export function QuickBarPage() {
     if (!body.trim()) return;
     setLoading(true); setResult("");
     try {
-      await invoke("llm_wiki_ingest", { title: `QuickBar - ${new Date().toLocaleString()}`, content: body });
+      if (!selectedWikiId) { setResult(t("quickbar.result.noWikiSelected")); setLoading(false); return; }
+      const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
+      await invoke("llm_wiki_ingest", {
+        wikiId: selectedWikiId,
+        sourceType: "markdown",
+        path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
+        title: safeTitle,
+      });
       setResult(`✅ ${t("quickbar.result.savedWiki")}`);
     } catch (e) { setResult(`${t("quickbar.result.saveWikiFailed")}: ${String(e)}`); }
     setLoading(false);
@@ -665,7 +674,14 @@ export function QuickBarPage() {
               if (!result.trim()) return;
               setLoading(true);
               try {
-                await invoke("llm_wiki_ingest", { title: `QuickBar - ${new Date().toLocaleString()}`, content: result });
+                if (!selectedWikiId) { setResult((p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected")); setLoading(false); return; }
+                const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
+                await invoke("llm_wiki_ingest", {
+                  wikiId: selectedWikiId,
+                  sourceType: "markdown",
+                  path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
+                  title: safeTitle,
+                });
                 setResult((p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`);
               } catch (e) { setResult((p) => p + `\n\n❌ ${String(e)}`); }
               setLoading(false);

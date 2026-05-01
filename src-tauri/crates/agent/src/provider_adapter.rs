@@ -195,7 +195,7 @@ impl AxAgentApiClient {
                             });
                         }
                     }
-                }
+                },
                 MessageRole::Assistant => {
                     let text_parts: String = message
                         .blocks
@@ -244,7 +244,7 @@ impl AxAgentApiClient {
                         },
                         tool_call_id: None,
                     });
-                }
+                },
                 _ => {
                     // User / System messages: simple text conversion
                     let content = message
@@ -297,7 +297,7 @@ impl AxAgentApiClient {
                         tool_calls: None,
                         tool_call_id: None,
                     });
-                }
+                },
             }
         }
 
@@ -406,10 +406,10 @@ impl ApiClient for AxAgentApiClient {
                             events.push(event);
                             break;
                         }
-                    }
+                    },
                     Err(e) => {
                         return Err(RuntimeError::new(e.to_string()));
-                    }
+                    },
                 }
             }
 

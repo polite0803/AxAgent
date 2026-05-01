@@ -1090,7 +1090,7 @@ fn optional_u16(
                 ConfigError::Parse(format!("{context}: field {key} is out of range"))
             })?;
             Ok(Some(number))
-        }
+        },
         None => Ok(None),
     }
 }
@@ -1111,7 +1111,7 @@ fn optional_u32(
                 ConfigError::Parse(format!("{context}: field {key} is out of range"))
             })?;
             Ok(Some(number))
-        }
+        },
         None => Ok(None),
     }
 }
@@ -1132,7 +1132,7 @@ fn optional_u64(
                 ConfigError::Parse(format!("{context}: field {key} is out of range"))
             })?;
             Ok(Some(number))
-        }
+        },
         None => Ok(None),
     }
 }
@@ -1178,7 +1178,7 @@ fn optional_string_array(
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .map(Some)
-        }
+        },
         None => Ok(None),
     }
 }
@@ -1208,7 +1208,7 @@ fn optional_string_map(
                 })
                 .collect::<Result<BTreeMap<_, _>, _>>()
                 .map(Some)
-        }
+        },
         None => Ok(None),
     }
 }
@@ -1221,10 +1221,10 @@ fn deep_merge_objects(
         match (target.get_mut(key), value) {
             (Some(JsonValue::Object(existing)), JsonValue::Object(incoming)) => {
                 deep_merge_objects(existing, incoming);
-            }
+            },
             _ => {
                 target.insert(key.clone(), value.clone());
-            }
+            },
         }
     }
 }
@@ -1592,7 +1592,7 @@ mod tests {
                     config.headers.get("X-Env").map(String::as_str),
                     Some("local")
                 );
-            }
+            },
             other => panic!("expected ws config, got {other:?}"),
         }
 
@@ -1635,7 +1635,7 @@ mod tests {
         match &remote_server.config {
             McpServerConfig::Http(config) => {
                 assert_eq!(config.url, "https://example.test/mcp");
-            }
+            },
             other => panic!("expected http config, got {other:?}"),
         }
 

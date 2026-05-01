@@ -325,7 +325,7 @@ impl LinkGraph {
             match (&type_a, &type_b) {
                 (PageType::Entity, PageType::Concept) | (PageType::Concept, PageType::Entity) => {
                     0.5
-                }
+                },
                 _ => 0.0,
             }
         }

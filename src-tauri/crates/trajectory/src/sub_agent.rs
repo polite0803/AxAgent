@@ -699,14 +699,14 @@ impl SubAgentRegistry {
             match child.status {
                 SubAgentStatus::Completed | SubAgentStatus::Failed => {
                     results.push(SubAgentResult::from(child));
-                }
+                },
                 SubAgentStatus::Pending | SubAgentStatus::Running => {
                     pending.push(child.id.clone());
-                }
+                },
                 SubAgentStatus::Cancelled => {
                     // Treat cancelled as completed with no result
                     results.push(SubAgentResult::from(child));
-                }
+                },
             }
         }
 

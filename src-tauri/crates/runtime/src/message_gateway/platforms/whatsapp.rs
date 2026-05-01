@@ -63,14 +63,14 @@ impl PlatformAdapter for WhatsAppAdapter {
                 Ok(_) => {
                     tracing::info!("WhatsApp: phone number verified");
                     connected.store(true, Ordering::SeqCst);
-                }
+                },
                 Err(e) => {
                     tracing::warn!(
                         "WhatsApp: phone verification failed (webhook-only for messages): {}",
                         e
                     );
                     connected.store(true, Ordering::SeqCst);
-                }
+                },
             }
 
             loop {

@@ -47,7 +47,7 @@ impl NodeDispatcher {
                     "Node type {:?} is handled by the DAG engine directly",
                     node
                 )));
-            }
+            },
         };
 
         let executor = self.executors.get(node_type).ok_or_else(|| {

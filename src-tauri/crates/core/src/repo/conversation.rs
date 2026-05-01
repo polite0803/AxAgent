@@ -642,7 +642,7 @@ pub async fn upsert_summary(
             am.model_used = Set(model_used.map(|s| s.to_string()));
             am.updated_at = Set(now);
             am.update(db).await?;
-        }
+        },
         None => {
             let id = gen_id();
             conversation_summaries::ActiveModel {
@@ -659,7 +659,7 @@ pub async fn upsert_summary(
             }
             .insert(db)
             .await?;
-        }
+        },
     }
 
     get_summary(db, conversation_id).await?.ok_or_else(|| {

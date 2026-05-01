@@ -521,7 +521,7 @@ pub async fn call_tool_stdio_pooled(
             pool.touch(&key).await;
             let (content, is_error) = extract_call_result(&result);
             Ok(McpToolResult { content, is_error })
-        }
+        },
         Err(e) => {
             let err_str = e.to_string();
             // If the call failed with a transport/connection error, evict the
@@ -543,7 +543,7 @@ pub async fn call_tool_stdio_pooled(
                 "MCP tool call failed: {}",
                 err_str
             )))
-        }
+        },
     }
 }
 
@@ -946,16 +946,16 @@ where
                 return Err(AxAgentError::Gateway(
                     "SSE stream ended before response".into(),
                 ))
-            }
+            },
             Ok(Some(Err(e))) => {
                 return Err(AxAgentError::Gateway(format!("SSE read error: {}", e)))
-            }
+            },
             Ok(Some(Ok(chunk))) => {
                 let text = String::from_utf8_lossy(chunk.as_ref())
                     .replace("\r\n", "\n")
                     .replace('\r', "\n");
                 buffer.push_str(&text);
-            }
+            },
         }
     }
 }

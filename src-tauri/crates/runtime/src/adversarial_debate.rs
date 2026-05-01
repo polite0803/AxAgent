@@ -150,7 +150,7 @@ impl DebateManager {
         match side {
             DebateSide::Pro => debate.pro_score += strength,
             DebateSide::Con => debate.con_score += strength,
-            DebateSide::Neutral => {}
+            DebateSide::Neutral => {},
         }
 
         debate.rounds.push(round);

@@ -252,7 +252,7 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
                     .await
                     .map_err(|e| e.to_string())?;
                 count += 1;
-            }
+            },
             // Template exists with empty nodes (upgrade from old data) → update with full data
             Some(ref t) if t.nodes == "[]" || t.nodes.is_empty() => {
                 let mut template = convert_preset_to_workflow_template(&preset);
@@ -265,9 +265,9 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
                     .await
                     .map_err(|e| e.to_string())?;
                 count += 1;
-            }
+            },
             // Template exists with nodes → user may have edited it, keep as-is
-            _ => {}
+            _ => {},
         }
     }
 

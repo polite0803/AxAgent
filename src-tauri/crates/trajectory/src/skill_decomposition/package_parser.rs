@@ -89,17 +89,17 @@ impl SkillPackageParser {
         match file_type {
             FileType::Python => {
                 refs.extend(Self::extract_python_imports(path, content));
-            }
+            },
             FileType::JavaScript | FileType::TypeScript => {
                 refs.extend(Self::extract_js_imports(path, content));
-            }
+            },
             FileType::Markdown => {
                 refs.extend(Self::extract_markdown_refs(path, content));
-            }
+            },
             FileType::Json | FileType::Yaml => {
                 refs.extend(Self::extract_config_refs(path, content));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         refs

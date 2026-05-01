@@ -59,12 +59,12 @@ impl PlatformAdapter for FeishuAdapter {
                     tracing::info!("Feishu: tenant_access_token obtained");
                     connected.store(true, Ordering::SeqCst);
                     t
-                }
+                },
                 Err(e) => {
                     tracing::error!("Feishu: failed to obtain token: {}", e);
                     running.store(false, Ordering::SeqCst);
                     return;
-                }
+                },
             };
 
             let mut seen_ids: HashSet<String> = HashSet::new();
@@ -100,20 +100,20 @@ impl PlatformAdapter for FeishuAdapter {
                                 });
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         tracing::warn!("Feishu: message poll failed: {}", e);
                         connected.store(false, Ordering::SeqCst);
                         match fetch_feishu_token(&client, &app_id, &app_secret).await {
                             Ok(_) => {
                                 connected.store(true, Ordering::SeqCst);
-                            }
+                            },
                             Err(e2) => {
                                 tracing::error!("Feishu: token refresh failed: {}", e2);
                                 tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-                            }
+                            },
                         }
-                    }
+                    },
                 }
 
                 if running.load(Ordering::SeqCst) {

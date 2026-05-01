@@ -60,10 +60,10 @@ pub async fn create_backup(
     match format {
         "sqlite" => {
             create_sqlite_backup(db, &file_path).await?;
-        }
+        },
         _ => {
             create_json_backup(db, &file_path).await?;
-        }
+        },
     }
 
     let file_size = std::fs::metadata(&file_path)
@@ -237,14 +237,14 @@ fn json_value_to_sea_value(v: &serde_json::Value) -> Value {
             } else {
                 Value::BigInt(None)
             }
-        }
+        },
         serde_json::Value::String(s) => Value::String(Some(Box::new(s.clone()))),
         serde_json::Value::Array(a) => {
             Value::String(Some(Box::new(serde_json::to_string(a).unwrap_or_default())))
-        }
+        },
         serde_json::Value::Object(o) => {
             Value::String(Some(Box::new(serde_json::to_string(o).unwrap_or_default())))
-        }
+        },
     }
 }
 
@@ -357,7 +357,7 @@ pub async fn restore_json_backup(
                 None => {
                     errored += 1;
                     continue;
-                }
+                },
             };
 
             let columns: Vec<&str> = obj.keys().map(|k| k.as_str()).collect();
@@ -397,7 +397,7 @@ pub async fn restore_json_backup(
                 Err(e) => {
                     tracing::warn!("恢复表 {} 的行失败 (列: {:?}): {}", table_name, columns, e);
                     errored += 1;
-                }
+                },
             }
         }
 

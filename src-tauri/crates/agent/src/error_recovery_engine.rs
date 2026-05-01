@@ -152,14 +152,14 @@ impl ErrorRecoveryEngine {
                     .with_exponential_backoff(*exponential_backoff);
 
                 self.retry_with_policy(f, &policy, start).await
-            }
+            },
             RecoveryStrategy::AdjustAndRetry {
                 max_attempts,
                 adjustments,
             } => {
                 self.adjust_and_retry(f, *max_attempts, adjustments, start)
                     .await
-            }
+            },
             RecoveryStrategy::Fallback { fallback_value } => {
                 self.emit(RecoveryEvent::RecoveryFailed {
                     error: "Using fallback".to_string(),
@@ -171,10 +171,10 @@ impl ErrorRecoveryEngine {
                     format!("Fallback value: {}", fallback_value),
                     start.elapsed().as_millis() as u64,
                 )
-            }
+            },
             RecoveryStrategy::SkipTask => {
                 RecoveryResult::skipped(start.elapsed().as_millis() as u64)
-            }
+            },
             RecoveryStrategy::Fail => RecoveryResult::failure(
                 "Fail",
                 0,
@@ -206,14 +206,14 @@ impl ErrorRecoveryEngine {
                                 final_error: None,
                                 recovery_time_ms: start.elapsed().as_millis() as u64,
                             };
-                        }
+                        },
                         Err(e) => {
                             last_error = e;
                             self.emit(RecoveryEvent::AttemptCompleted {
                                 attempt,
                                 success: false,
                             });
-                        }
+                        },
                     }
                 }
                 self.emit(RecoveryEvent::RecoveryFailed {
@@ -225,7 +225,7 @@ impl ErrorRecoveryEngine {
                     last_error,
                     start.elapsed().as_millis() as u64,
                 )
-            }
+            },
         }
     }
 
@@ -259,7 +259,7 @@ impl ErrorRecoveryEngine {
                     });
 
                     return RecoveryResult::success(attempts, start.elapsed().as_millis() as u64);
-                }
+                },
                 Err(e) => {
                     errors.push(e.clone());
                     self.emit(RecoveryEvent::AttemptCompleted {
@@ -275,7 +275,7 @@ impl ErrorRecoveryEngine {
                         });
                         tokio::time::sleep(delay).await;
                     }
-                }
+                },
             }
         }
 
@@ -326,7 +326,7 @@ impl ErrorRecoveryEngine {
                             attempts,
                             start.elapsed().as_millis() as u64,
                         );
-                    }
+                    },
                     Err(_e) => {
                         self.emit(RecoveryEvent::AttemptCompleted {
                             attempt: attempts,
@@ -336,14 +336,14 @@ impl ErrorRecoveryEngine {
                         if current_adjustment_idx < adjustments.len() - 1 {
                             current_adjustment_idx += 1;
                         }
-                    }
+                    },
                 },
                 Err(_) => {
                     self.emit(RecoveryEvent::AttemptCompleted {
                         attempt: attempts,
                         success: false,
                     });
-                }
+                },
             }
 
             if attempts < max_attempts {

@@ -51,7 +51,7 @@ impl WebhookDispatcher {
                     self.subscription_manager
                         .reset_failures(&subscription.id)
                         .await;
-                }
+                },
                 Err(e) => {
                     failure_count += 1;
                     errors.push(e.clone());
@@ -59,7 +59,7 @@ impl WebhookDispatcher {
                         .increment_failure(&subscription.id)
                         .await;
                     tracing::error!("Webhook dispatch failed for {}: {}", subscription.id, e);
-                }
+                },
             }
         }
         DispatchResult {

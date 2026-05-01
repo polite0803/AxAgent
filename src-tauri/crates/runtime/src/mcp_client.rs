@@ -168,7 +168,7 @@ mod tests {
                     Some("secret")
                 );
                 assert_eq!(transport.tool_call_timeout_ms, Some(15_000));
-            }
+            },
             other => panic!("expected stdio transport, got {other:?}"),
         }
     }
@@ -202,10 +202,10 @@ mod tests {
                 match transport.auth {
                     McpClientAuth::OAuth(oauth) => {
                         assert_eq!(oauth.client_id.as_deref(), Some("client-id"));
-                    }
+                    },
                     other @ McpClientAuth::None => panic!("expected oauth auth, got {other:?}"),
                 }
-            }
+            },
             other => panic!("expected http transport, got {other:?}"),
         }
     }
@@ -232,7 +232,7 @@ mod tests {
             McpClientTransport::WebSocket(transport) => {
                 assert_eq!(transport.url, "wss://vendor.example/mcp");
                 assert!(!transport.auth.requires_user_auth());
-            }
+            },
             other => panic!("expected websocket transport, got {other:?}"),
         }
 
@@ -241,7 +241,7 @@ mod tests {
         match sdk_bootstrap.transport {
             McpClientTransport::Sdk(transport) => {
                 assert_eq!(transport.name, "sdk-server");
-            }
+            },
             other => panic!("expected sdk transport, got {other:?}"),
         }
     }

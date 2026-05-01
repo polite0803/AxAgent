@@ -376,7 +376,7 @@ impl SchemaManager {
             ("date", serde_json::Value::String(s)) => {
                 chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok()
                     || chrono::DateTime::parse_from_rfc3339(s).is_ok()
-            }
+            },
             ("tags", serde_json::Value::Array(arr)) => arr.iter().all(|v| v.is_string()),
             _ => true,
         }

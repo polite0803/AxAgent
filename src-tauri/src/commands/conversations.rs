@@ -811,7 +811,7 @@ async fn consume_stream(
                 if is_done {
                     break;
                 }
-            }
+            },
             Err(e) => {
                 let err_msg = format!("{}", e);
                 let _ = app.emit(
@@ -825,7 +825,7 @@ async fn consume_stream(
                 tracing::error!("Stream error: {}", e);
                 stream_error = Some(err_msg);
                 break;
-            }
+            },
         }
     }
 
@@ -863,7 +863,7 @@ async fn consume_stream(
             } else {
                 None
             }
-        }
+        },
         _ => None,
     };
 
@@ -920,7 +920,7 @@ async fn execute_tool_call(
                 ),
                 true,
             );
-        }
+        },
     };
 
     let arguments: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
@@ -947,9 +947,9 @@ async fn execute_tool_call(
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
                     )
-                }
+                },
             }
-        }
+        },
         "stdio" => {
             let command = match &server.command {
                 Some(cmd) => cmd.clone(),
@@ -983,9 +983,9 @@ async fn execute_tool_call(
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
                     )
-                }
+                },
             }
-        }
+        },
         "http" => {
             let endpoint = match &server.endpoint {
                 Some(ep) => ep.clone(),
@@ -1007,9 +1007,9 @@ async fn execute_tool_call(
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
                     )
-                }
+                },
             }
-        }
+        },
         "sse" => {
             let endpoint = match &server.endpoint {
                 Some(ep) => ep.clone(),
@@ -1031,9 +1031,9 @@ async fn execute_tool_call(
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
                     )
-                }
+                },
             }
-        }
+        },
         other => return (format!("Error: Unsupported transport '{}'", other), true),
     };
 
@@ -1093,7 +1093,7 @@ pub async fn generate_ai_title(
                     umc,
                 )
                 .await;
-            }
+            },
         };
         let key_row = match axagent_core::repo::provider::get_active_key(db, pid).await {
             Ok(k) => k,
@@ -1113,7 +1113,7 @@ pub async fn generate_ai_title(
                     umc,
                 )
                 .await;
-            }
+            },
         };
         let dk = match axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key) {
             Ok(dk) => dk,
@@ -1130,7 +1130,7 @@ pub async fn generate_ai_title(
                     umc,
                 )
                 .await;
-            }
+            },
         };
         let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, settings);
         let ctx = ProviderRequestContext {
@@ -1245,7 +1245,7 @@ async fn generate_ai_title_with(
             let err = format!("Adapter not found for provider type: {}", registry_key);
             tracing::error!("[title-gen] {}", err);
             return Err(err);
-        }
+        },
     };
 
     let response = adapter.chat(ctx, request).await.map_err(|e| {
@@ -1402,7 +1402,7 @@ pub async fn regenerate_conversation_title(
                         },
                     );
                 }
-            }
+            },
             Err(err) => {
                 tracing::warn!("Title regeneration failed: {}", err);
                 let _ = app_clone.emit(
@@ -1413,7 +1413,7 @@ pub async fn regenerate_conversation_title(
                         error: Some(err),
                     },
                 );
-            }
+            },
         }
     });
 
@@ -1513,7 +1513,7 @@ fn spawn_stream_task(
                     },
                 );
                 return;
-            }
+            },
         };
 
         const MAX_TOOL_ITERATIONS: usize = 10;
@@ -1646,7 +1646,7 @@ fn spawn_stream_task(
                     // list_messages).
                     final_tool_calls_json = None;
                     break;
-                }
+                },
             };
 
             // Save the tool_calls JSON for the final message
@@ -1948,7 +1948,7 @@ fn spawn_stream_task(
                             },
                         );
                     }
-                }
+                },
                 Err(err) => {
                     tracing::warn!("Auto title generation failed: {}", err);
                     let _ = app.emit(
@@ -1959,7 +1959,7 @@ fn spawn_stream_task(
                             error: Some(err),
                         },
                     );
-                }
+                },
             }
         }
 
@@ -3232,7 +3232,7 @@ async fn do_compress(
                             .and_then(|m| m.param_overrides)
                             .and_then(|po| po.use_max_completion_tokens);
                         (p, dk, kid, proxy, mid.clone(), override_umc)
-                    }
+                    },
                     None => {
                         tracing::warn!("Compression model provider has no key, falling back to conversation model");
                         (
@@ -3243,9 +3243,9 @@ async fn do_compress(
                             model_id.to_string(),
                             use_max_completion_tokens,
                         )
-                    }
+                    },
                 }
-            }
+            },
             Err(_) => {
                 tracing::warn!(
                     "Compression model provider not found, falling back to conversation model"
@@ -3258,7 +3258,7 @@ async fn do_compress(
                     model_id.to_string(),
                     use_max_completion_tokens,
                 )
-            }
+            },
         }
     } else {
         (
@@ -3621,7 +3621,7 @@ mod tests {
                     parts[1].image_url.as_ref().map(|img| img.url.as_str()),
                     Some("data:image/png;base64,YWJj")
                 );
-            }
+            },
             ChatContent::Text(_) => panic!("expected multipart content"),
         }
     }
@@ -3679,7 +3679,7 @@ mod tests {
                     parts[1].image_url.as_ref().map(|img| img.url.as_str()),
                     Some("data:image/png;base64,YWJj")
                 );
-            }
+            },
             ChatContent::Text(_) => panic!("expected multipart content"),
         }
     }

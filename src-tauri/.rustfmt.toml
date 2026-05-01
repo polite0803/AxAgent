@@ -1,8 +1,5 @@
-[workspace]
-
 # Maximum line length
 max_width = 100
-ideal_width = 80
 
 # Formatting
 tab_spaces = 4
@@ -15,11 +12,9 @@ group_imports = "StdExternalCrate"
 
 # Match formatting
 match_block_trailing_comma = true
-match_spacing = true
 
 # Control flow
 control_brace_style = "AlwaysNextLine"
 
 # Items
 fn_args_layout = "Tall"
-fn_return_style = "WithType"

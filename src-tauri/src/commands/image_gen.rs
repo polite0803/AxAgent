@@ -34,13 +34,13 @@ pub async fn generate_image(
                 api_key.ok_or_else(|| "API key required for Flux provider".to_string())?;
             let provider = FluxProvider::new(api_token);
             provider.generate(request).await.map_err(|e| e.to_string())
-        }
+        },
         "dall-e" | "dalle" | "DALL-E" => {
             let api_key =
                 api_key.ok_or_else(|| "API key required for DALL-E provider".to_string())?;
             let provider = DallEProvider::new(api_key, None);
             provider.generate(request).await.map_err(|e| e.to_string())
-        }
+        },
         _ => Err(format!(
             "Unknown provider: {}. Use 'flux' or 'dall-e'",
             provider_name

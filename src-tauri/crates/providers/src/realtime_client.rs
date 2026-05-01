@@ -241,38 +241,38 @@ impl RealtimeClient {
                         match server_msg {
                             RealtimeServerMessage::SessionCreated { session_id } => {
                                 return Ok((session_id, Ok(())));
-                            }
+                            },
                             RealtimeServerMessage::Error { error } => {
                                 return Ok((
                                     String::new(),
                                     Err(RealtimeClientError::ProviderError(error.message)),
                                 ));
-                            }
+                            },
                             _ => continue,
                         }
                     }
-                }
+                },
                 Ok(Some(Ok(Message::Close(_)))) | Ok(None) => {
                     return Err(RealtimeClientError::ConnectionClosed);
-                }
+                },
                 Ok(Some(Ok(Message::Ping(_)))) => {
                     continue;
-                }
+                },
                 Ok(Some(Ok(Message::Pong(_)))) => {
                     continue;
-                }
+                },
                 Ok(Some(Ok(Message::Binary(_)))) => {
                     continue;
-                }
+                },
                 Ok(Some(Ok(Message::Frame(_)))) => {
                     continue;
-                }
+                },
                 Ok(Some(Err(e))) => {
                     return Err(RealtimeClientError::ReadError(e.to_string()));
-                }
+                },
                 Err(_) => {
                     return Err(RealtimeClientError::Timeout);
-                }
+                },
             }
         }
     }
@@ -376,10 +376,10 @@ impl RealtimeStreamHandler {
                 RealtimeConnectionState::Connected => {
                     self.client.reset_reconnect_attempts().await;
                     tokio::time::sleep(Duration::from_millis(100)).await;
-                }
+                },
                 RealtimeConnectionState::Connecting => {
                     tokio::time::sleep(Duration::from_millis(100)).await;
-                }
+                },
                 RealtimeConnectionState::Reconnecting => {
                     let attempts = *self.client.reconnect_attempts.read().await;
                     if attempts >= self.client.config.max_reconnect_attempts {
@@ -402,7 +402,7 @@ impl RealtimeStreamHandler {
                             break;
                         }
                     }
-                }
+                },
                 RealtimeConnectionState::Disconnected | RealtimeConnectionState::Failed(_) => {
                     let attempts = self.client.increment_reconnect_attempts().await;
                     if attempts > self.client.config.max_reconnect_attempts {
@@ -431,7 +431,7 @@ impl RealtimeStreamHandler {
                             break;
                         }
                     }
-                }
+                },
             }
         }
         Ok(())

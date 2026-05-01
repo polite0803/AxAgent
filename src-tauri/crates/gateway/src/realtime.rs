@@ -63,7 +63,7 @@ pub async fn realtime_handler(
                     r#"{"error":{"message":"Missing api_key query parameter","type":"invalid_request_error","code":"invalid_api_key"}}"#,
                 ))
                 .unwrap();
-        }
+        },
     };
 
     // Verify key before upgrading
@@ -99,7 +99,7 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
             Err(e) => {
                 tracing::debug!("WebSocket recv error: {}", e);
                 break;
-            }
+            },
         };
 
         let text = match msg {
@@ -110,7 +110,7 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
                     break;
                 }
                 continue;
-            }
+            },
             _ => continue,
         };
 
@@ -125,7 +125,7 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
                 )
                 .await;
                 continue;
-            }
+            },
         };
 
         match client_msg {
@@ -143,7 +143,7 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
                 {
                     break;
                 }
-            }
+            },
 
             RealtimeClientMessage::AudioAppend { audio } => {
                 if !session_created {
@@ -157,7 +157,7 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
                     continue;
                 }
                 audio_buffer.push(audio);
-            }
+            },
 
             RealtimeClientMessage::AudioCommit => {
                 if !session_created {
@@ -189,12 +189,12 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
                 if !send_ok {
                     break;
                 }
-            }
+            },
 
             RealtimeClientMessage::SessionClose => {
                 let _ = socket.send(Message::Close(None)).await;
                 break;
-            }
+            },
         }
     }
 

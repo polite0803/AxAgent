@@ -84,13 +84,13 @@ impl PlatformManager {
                             running.push(name.clone());
                             report.started.push(name.clone());
                             tracing::info!("[PlatformManager] {} started", name);
-                        }
+                        },
                         Err(e) => {
                             report
                                 .errors
                                 .push((name.clone(), format!("start failed: {}", e)));
                             tracing::error!("[PlatformManager] {} start failed: {}", name, e);
-                        }
+                        },
                     }
                 }
             } else if running.contains(name) {
@@ -99,13 +99,13 @@ impl PlatformManager {
                         running.retain(|n| n != name);
                         report.stopped.push(name.clone());
                         tracing::info!("[PlatformManager] {} stopped", name);
-                    }
+                    },
                     Err(e) => {
                         report
                             .errors
                             .push((name.clone(), format!("stop failed: {}", e)));
                         tracing::error!("[PlatformManager] {} stop failed: {}", name, e);
-                    }
+                    },
                 }
             }
         }

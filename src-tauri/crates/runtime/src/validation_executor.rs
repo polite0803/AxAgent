@@ -73,7 +73,7 @@ impl ValidationExecutor {
                 } else {
                     Err(format!("Expected '{}' but got '{}'", expected, actual_str))
                 }
-            }
+            },
             AssertionType::Contains => {
                 let expected = assertion
                     .expected
@@ -90,7 +90,7 @@ impl ValidationExecutor {
                 } else {
                     Err(format!("'{}' does not contain '{}'", actual_str, expected))
                 }
-            }
+            },
             AssertionType::Matches => {
                 let pattern = assertion.expected.as_ref().ok_or("Missing regex pattern")?;
                 let actual_path = assertion.actual.as_ref().ok_or("Missing actual path")?;
@@ -109,10 +109,10 @@ impl ValidationExecutor {
                                 actual_str, pattern
                             ))
                         }
-                    }
+                    },
                     Err(_) => Err(format!("Invalid regex pattern: {}", pattern)),
                 }
-            }
+            },
             AssertionType::Exists => {
                 let actual_path = assertion.actual.as_ref().ok_or("Missing path")?;
                 if context.get(actual_path).is_some() {
@@ -120,7 +120,7 @@ impl ValidationExecutor {
                 } else {
                     Err(format!("Path '{}' does not exist", actual_path))
                 }
-            }
+            },
             AssertionType::Custom => Err("Custom assertions require sandbox execution".to_string()),
         }
     }

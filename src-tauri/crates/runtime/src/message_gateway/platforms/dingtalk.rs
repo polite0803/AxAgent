@@ -59,12 +59,12 @@ impl PlatformAdapter for DingtalkAdapter {
                     tracing::info!("Dingtalk: access_token obtained");
                     connected.store(true, Ordering::SeqCst);
                     t
-                }
+                },
                 Err(e) => {
                     tracing::error!("Dingtalk: failed to obtain access_token: {}", e);
                     running.store(false, Ordering::SeqCst);
                     return;
-                }
+                },
             };
 
             let mut last_msg_time: i64 = chrono::Utc::now().timestamp_millis();
@@ -119,12 +119,12 @@ impl PlatformAdapter for DingtalkAdapter {
                         }
                         // Update token reference by just using it through the
                         // outer scope — token will be refreshed on next reconnect
-                    }
+                    },
                     Err(e) => {
                         tracing::error!("Dingtalk: token refresh failed: {}", e);
                         connected.store(false, Ordering::SeqCst);
                         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-                    }
+                    },
                 }
 
                 if running.load(Ordering::SeqCst) {

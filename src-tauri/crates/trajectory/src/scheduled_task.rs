@@ -75,7 +75,7 @@ impl ScheduledTask {
                     self.next_run_at = self.last_run_at.unwrap_or(now)
                         + chrono::Duration::seconds(interval as i64);
                 }
-            }
+            },
             ScheduleType::Daily
             | ScheduleType::Weekly
             | ScheduleType::Monthly
@@ -130,7 +130,7 @@ impl ScheduledTask {
                     }
                     break;
                 }
-            }
+            },
         }
     }
 
@@ -345,7 +345,7 @@ impl TaskTemplate {
         match self {
             TaskTemplate::DailySummary => {
                 "Generate a daily summary of conversations and activities"
-            }
+            },
             TaskTemplate::WeeklySummary => "Generate a weekly summary report",
             TaskTemplate::ConversationStats => "Analyze conversation patterns and statistics",
             TaskTemplate::KnowledgeGraphUpdate => "Update and optimize the knowledge graph",
@@ -1248,7 +1248,7 @@ impl ScheduledTaskService {
                     ),
                     start.elapsed().as_millis() as u64,
                 )
-            }
+            },
             None => {
                 tracing::info!(
                     "[scheduled_task] Executing task '{}' (type: {:?}) - no definition found",
@@ -1259,7 +1259,7 @@ impl ScheduledTaskService {
                     format!("Task '{}' executed (no prompt template defined)", name),
                     start.elapsed().as_millis() as u64,
                 )
-            }
+            },
         };
 
         {

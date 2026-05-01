@@ -355,7 +355,7 @@ impl std::fmt::Display for MemoryError {
                     "Version conflict: expected {}, actual {}",
                     expected, actual
                 )
-            }
+            },
         }
     }
 }

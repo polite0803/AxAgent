@@ -186,7 +186,7 @@ impl std::fmt::Display for GatewayError {
             Self::NotFound { entity } => write!(f, "Not found: {}", entity),
             Self::ConnectionFailed { endpoint, reason } => {
                 write!(f, "Connection failed to {}: {}", endpoint, reason)
-            }
+            },
             Self::SerializationError { reason } => write!(f, "Serialization error: {}", reason),
         }
     }

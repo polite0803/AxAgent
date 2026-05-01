@@ -24,6 +24,6 @@ pub async fn metrics_handler() -> impl IntoResponse {
                 "Failed to convert metrics",
             )
                 .into_response()
-        }
+        },
     }
 }

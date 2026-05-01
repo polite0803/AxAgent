@@ -367,7 +367,7 @@ fn merge_scenarios(
                 }
             }
             merged
-        }
+        },
         _ => manifest_scenarios,
     }
 }
@@ -948,11 +948,11 @@ pub async fn search_marketplace(
         "github" => {
             search_github_marketplace(&query, sort_order, page_num, per_page_num, &installed_refs)
                 .await?
-        }
+        },
         _ => {
             search_skillhub_marketplace(&query, sort_order, page_num, per_page_num, &installed_refs)
                 .await?
-        }
+        },
     };
 
     {

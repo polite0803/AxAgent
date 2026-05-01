@@ -143,7 +143,7 @@ impl TaskPrefetcher {
         match &prediction.predicted_intent {
             PredictedIntent::CodeCompletion { language, context } => {
                 self.prefetch_code_context(language, context)
-            }
+            },
             PredictedIntent::Search { query_type } => self.prefetch_search_results(query_type),
             PredictedIntent::Documentation { topic } => self.prefetch_documentation(topic),
             PredictedIntent::Refactoring { target } => self.prefetch_refactor_context(target),

@@ -627,25 +627,25 @@ pub async fn agent_query(
     let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
         axagent_core::types::ProviderType::OpenAI => {
             Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::OpenAIResponses => {
             Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Anthropic => {
             Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Gemini => {
             Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::OpenClaw => {
             Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Hermes => {
             Arc::new(axagent_providers::hermes::HermesAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        }
+        },
     };
 
     // Load MCP tools for enabled servers (same logic as Q&A mode)
@@ -698,7 +698,7 @@ pub async fn agent_query(
                             }),
                         );
                         return None;
-                    }
+                    },
                 };
 
                 let mut chat_tools = Vec::new();
@@ -784,7 +784,7 @@ pub async fn agent_query(
                         Some(encrypted) if !encrypted.is_empty() => {
                             axagent_core::crypto::decrypt_key(encrypted, &app_state.master_key)
                                 .unwrap_or_default()
-                        }
+                        },
                         _ => String::new(),
                     };
 
@@ -906,7 +906,7 @@ pub async fn agent_query(
                                 text: text.clone(),
                             },
                         );
-                    }
+                    },
                     axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
                         let _ = stream_app.emit(
                             "agent-stream-thinking",
@@ -916,7 +916,7 @@ pub async fn agent_query(
                                 thinking: thinking.clone(),
                             },
                         );
-                    }
+                    },
                     axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
                         let _ = stream_app.emit(
                             "agent-tool-use",
@@ -930,8 +930,8 @@ pub async fn agent_query(
                                 execution_id: None,
                             },
                         );
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 },
             ))
     } else {
@@ -954,7 +954,7 @@ pub async fn agent_query(
                                 text: text.clone(),
                             },
                         );
-                    }
+                    },
                     axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
                         let _ = stream_app.emit(
                             "agent-stream-thinking",
@@ -964,7 +964,7 @@ pub async fn agent_query(
                                 thinking: thinking.clone(),
                             },
                         );
-                    }
+                    },
                     axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
                         let _ = stream_app.emit(
                             "agent-tool-use",
@@ -978,8 +978,8 @@ pub async fn agent_query(
                                 execution_id: None,
                             },
                         );
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 },
             ))
     };
@@ -1101,7 +1101,7 @@ pub async fn agent_query(
                     auto_role
                 );
                 Some(auto_role)
-            }
+            },
             axagent_trajectory::Complexity::Medium => {
                 // Medium complexity: use Developer role for implementation tasks
                 let auto_role = axagent_runtime::agent_roles::AgentRole::Developer;
@@ -1110,11 +1110,11 @@ pub async fn agent_query(
                     auto_role
                 );
                 Some(auto_role)
-            }
+            },
             axagent_trajectory::Complexity::Low => {
                 // Low complexity: no role filtering needed, use all tools
                 None
-            }
+            },
         }
     } else {
         resolved_role
@@ -1304,36 +1304,36 @@ pub async fn agent_query(
                 match v {
                     axagent_trajectory::Verbosity::Shorter => {
                         parts.push("Use shorter, more concise responses")
-                    }
+                    },
                     axagent_trajectory::Verbosity::Longer => {
                         parts.push("Provide more detailed explanations")
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
             if let Some(ref t) = style.technical_level {
                 match t {
                     axagent_trajectory::TechnicalLevel::Simpler => {
                         parts.push("Use simpler language and concepts")
-                    }
+                    },
                     axagent_trajectory::TechnicalLevel::MoreDetailed => {
                         parts.push("Use more technical depth")
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
             if let Some(ref f) = style.format {
                 match f {
                     axagent_trajectory::ContentFormat::List => {
                         parts.push("Prefer list/bullet format")
-                    }
+                    },
                     axagent_trajectory::ContentFormat::Paragraph => {
                         parts.push("Prefer paragraph format")
-                    }
+                    },
                     axagent_trajectory::ContentFormat::Code => {
                         parts.push("Prefer code-first responses")
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
             if !parts.is_empty() {
@@ -1642,7 +1642,7 @@ pub async fn agent_query(
                             output: None,
                             is_error: None,
                         }
-                    }
+                    },
                     axagent_runtime::ContentBlock::ToolResult {
                         tool_use_id,
                         tool_name,
@@ -1718,14 +1718,14 @@ pub async fn agent_query(
                         match block {
                             axagent_runtime::ContentBlock::Text { text: t } => {
                                 content_parts.push(t.clone());
-                            }
+                            },
                             axagent_runtime::ContentBlock::ToolUse { id, name, input } => {
                                 tool_calls_vec.push(axagent_trajectory::ToolCall {
                                     id: id.clone(),
                                     name: name.clone(),
                                     arguments: input.to_string(),
                                 });
-                            }
+                            },
                             axagent_runtime::ContentBlock::ToolResult {
                                 tool_use_id,
                                 tool_name,
@@ -1738,7 +1738,7 @@ pub async fn agent_query(
                                     output: result_content.clone(),
                                     is_error: *is_error,
                                 });
-                            }
+                            },
                         }
                     }
 
@@ -1923,7 +1923,7 @@ pub async fn agent_query(
                 conversation_id,
                 assistant_message_id: assistant_message.id,
             })
-        }
+        },
         Err(e) => {
             let error_msg = e.to_string();
 
@@ -1938,7 +1938,7 @@ pub async fn agent_query(
             );
 
             Err(error_msg)
-        }
+        },
     }
 }
 
@@ -2245,7 +2245,7 @@ fn create_llm_step_executor(
                         {
                             Ok(Some(expert)) if !expert.system_prompt.is_empty() => {
                                 expert.system_prompt
-                            }
+                            },
                             _ => step.agent_role.system_prompt().to_string(),
                         }
                     } else {
@@ -2352,7 +2352,7 @@ fn create_skill_step_executor(
                             .execute_mcp_tool(&skill_model.entry_ref, &args_json)
                             .map_err(|e| format!("MCP tool execution failed: {}", e))?;
                         Ok(result)
-                    }
+                    },
                     axagent_trajectory::EntryType::Local => {
                         let registry = local_tool_registry.lock().await;
                         let result = registry
@@ -2360,11 +2360,11 @@ fn create_skill_step_executor(
                             .await
                             .map_err(|e| format!("Local tool execution failed: {}", e))?;
                         Ok(result)
-                    }
+                    },
                     axagent_trajectory::EntryType::Plugin => {
                         Err("Plugin skill execution not implemented in workflow context"
                             .to_string())
-                    }
+                    },
                 }
             }
             .boxed()
@@ -2815,13 +2815,13 @@ async fn execute_skill_async(
                                 completed_workflow.steps.len(),
                                 task
                             );
-                        }
+                        },
                         Err(e) => {
                             message = format!(
                                 "Skill '{}' formal workflow execution failed: {}. Task: {}",
                                 skill_name, e, task
                             );
-                        }
+                        },
                     }
                 } else {
                     let workflow_steps = skill_steps_to_workflow_steps(skill_steps.clone());
@@ -2865,20 +2865,20 @@ async fn execute_skill_async(
                                         completed_workflow.steps.len(),
                                         task
                                     );
-                            }
+                            },
                             Err(e) => {
                                 message = format!(
                                     "Skill '{}' workflow execution failed: {}. Task: {}",
                                     skill_name, e, task
                                 );
-                            }
+                            },
                         },
                         Err(e) => {
                             message = format!(
                                 "Skill '{}' failed to create workflow: {}. Task: {}",
                                 skill_name, e, task
                             );
-                        }
+                        },
                     }
                 }
             } else {
@@ -2887,7 +2887,7 @@ async fn execute_skill_async(
                     skill_name, task
                 );
             }
-        }
+        },
         "mcp" => {
             if let Some(ref mcp_call) = mcp_tool_call {
                 match execute_mcp_tool_call(&mcp_call.tool_name, mcp_call.arguments.clone(), ctx)
@@ -2899,22 +2899,22 @@ async fn execute_skill_async(
                             "Skill '{}' executed MCP tool '{}' successfully. Result: {}. Task: {}",
                             skill_name, mcp_call.tool_name, result, task
                         );
-                    }
+                    },
                     Err(e) => {
                         message = format!(
                             "Skill '{}' attempted to execute MCP tool '{}' but failed: {}. Task: {}",
                             skill_name, mcp_call.tool_name, e, task
                         );
-                    }
+                    },
                 }
             }
-        }
+        },
         _ => {
             message = format!(
                 "Skill '{}' returned content for LLM to process. Task: {}",
                 skill_name, task
             );
-        }
+        },
     }
 
     let result = SkillExecutionResult {
@@ -3818,25 +3818,25 @@ pub async fn workflow_execute(
     let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
         axagent_core::types::ProviderType::OpenAI => {
             Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::OpenAIResponses => {
             Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Anthropic => {
             Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Gemini => {
             Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        }
+        },
         _ => {
             return Err(format!(
                 "Unsupported provider type: {:?}",
                 prov.provider_type
             ))
-        }
+        },
     };
 
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
@@ -3915,7 +3915,7 @@ impl axagent_runtime::workflow_engine::SessionCallback for TauriSessionCallback 
                         "result": text,
                     }),
                 );
-            }
+            },
             Err(e) => {
                 let _ = self.app.emit(
                     "agent-stream-text",
@@ -3927,7 +3927,7 @@ impl axagent_runtime::workflow_engine::SessionCallback for TauriSessionCallback 
                         "error": e,
                     }),
                 );
-            }
+            },
         }
     }
 
@@ -4001,25 +4001,25 @@ pub async fn workflow_execute_with_session(
     let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
         axagent_core::types::ProviderType::OpenAI => {
             Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::OpenAIResponses => {
             Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Anthropic => {
             Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Gemini => {
             Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        }
+        },
         axagent_core::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        }
+        },
         _ => {
             return Err(format!(
                 "Unsupported provider type: {:?}",
                 prov.provider_type
             ))
-        }
+        },
     };
 
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
@@ -4065,11 +4065,11 @@ pub async fn workflow_execute_with_session(
         match runner.run(&wid).await {
             Ok(_) => {
                 cap.on_workflow_complete(&wid, true);
-            }
+            },
             Err(e) => {
                 tracing::error!("[workflow] Execution failed: {}", e);
                 cap.on_workflow_complete(&wid, false);
-            }
+            },
         }
     });
 
@@ -4902,7 +4902,7 @@ pub async fn skill_evolution_start(
                 "quality_delta": modification.validation_result.as_ref().map(|v| v.quality_delta),
                 "stats": engine.get_stats(),
             }))
-        }
+        },
         None => Ok(serde_json::json!({
             "skill_id": skill_id,
             "improved": false,

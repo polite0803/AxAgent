@@ -15,17 +15,17 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
         // DOCX — basic XML extraction without external crate
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => {
             extract_docx(file_path)
-        }
+        },
 
         // XLSX — extract cell values from shared strings and sheet XML
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" => {
             extract_xlsx(file_path)
-        }
+        },
 
         // PPTX — extract text from PowerPoint presentations
         "application/vnd.openxmlformats-officedocument.presentationml.presentation" => {
             extract_pptx(file_path)
-        }
+        },
 
         _ => {
             // Try reading as plain text as fallback
@@ -35,7 +35,7 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
                     mime_type
                 ))
             })
-        }
+        },
     }
 }
 
@@ -156,7 +156,7 @@ fn extract_xlsx(file_path: &Path) -> Result<String> {
                 entry.read_to_string(&mut xml).map_err(|e| {
                     AxAgentError::Provider(format!("Failed to read {}: {e}", sheet_path))
                 })?;
-            }
+            },
             Err(_) => break, // No more sheets
         }
 
@@ -265,7 +265,7 @@ fn extract_pptx(file_path: &Path) -> Result<String> {
                 if !slide_text.is_empty() {
                     result.push_str(&slide_text);
                 }
-            }
+            },
             Err(_) => break,
         }
 

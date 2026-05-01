@@ -55,7 +55,7 @@ impl FrontendEventAdapter {
             FrontendEventFilter::All => self.event_bus.subscribe("frontend", vec![]),
             FrontendEventFilter::Specific(event_types) => {
                 self.event_bus.subscribe("frontend", event_types)
-            }
+            },
         };
 
         tokio::spawn({
@@ -143,7 +143,7 @@ impl From<AgentEventType> for FrontendEventType {
             AgentEventType::LlmGenerationStarted => FrontendEventType::AgentLlmGenerationStarted,
             AgentEventType::LlmGenerationCompleted => {
                 FrontendEventType::AgentLlmGenerationCompleted
-            }
+            },
             AgentEventType::PermissionRequest => FrontendEventType::AgentPermissionRequest,
             AgentEventType::PermissionGranted => FrontendEventType::AgentPermissionGranted,
             AgentEventType::PermissionDenied => FrontendEventType::AgentPermissionDenied,

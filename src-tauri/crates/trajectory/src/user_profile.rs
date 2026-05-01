@@ -224,35 +224,35 @@ impl UserProfile {
             Verbosity::Shorter => {
                 self.communication.detail_level = DetailLevel::Minimal;
                 self.communication.response_length_pref = ResponseLength::Short;
-            }
+            },
             Verbosity::Longer => {
                 self.communication.detail_level = DetailLevel::Comprehensive;
                 self.communication.response_length_pref = ResponseLength::Long;
-            }
-            Verbosity::Unchanged => {}
+            },
+            Verbosity::Unchanged => {},
         }
 
         match technical_level {
             TechnicalLevel::Simpler => {
                 self.communication.explanation_depth = ExplanationDepth::Brief;
-            }
+            },
             TechnicalLevel::MoreDetailed => {
                 self.communication.explanation_depth = ExplanationDepth::Detailed;
-            }
-            TechnicalLevel::Unchanged => {}
+            },
+            TechnicalLevel::Unchanged => {},
         }
 
         match format {
             ContentFormat::List => {
                 self.communication.format_preference.use_bullets = true;
-            }
+            },
             ContentFormat::Paragraph => {
                 self.communication.format_preference.use_bullets = false;
-            }
+            },
             ContentFormat::Code => {
                 self.communication.format_preference.include_code_blocks = true;
-            }
-            ContentFormat::Unchanged => {}
+            },
+            ContentFormat::Unchanged => {},
         }
 
         self.update_timestamp();

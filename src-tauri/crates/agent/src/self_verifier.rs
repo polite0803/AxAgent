@@ -95,7 +95,7 @@ impl SelfVerifier {
                 } else {
                     self.verify_tool_result(step).await?
                 }
-            }
+            },
             Some(ActionType::LlmCall) => self.verify_llm_result(step).await?,
             _ => VerificationResult::uncertain(0.5, "Unknown action type"),
         };

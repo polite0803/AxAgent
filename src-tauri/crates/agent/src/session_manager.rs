@@ -70,7 +70,7 @@ fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime::ContentBlock])
                 estimate_tokens_from_text(id)
                     + estimate_tokens_from_text(name)
                     + estimate_tokens_from_text(input)
-            }
+            },
             axagent_runtime::ContentBlock::ToolResult {
                 tool_use_id,
                 tool_name,
@@ -80,7 +80,7 @@ fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime::ContentBlock])
                 estimate_tokens_from_text(tool_use_id)
                     + estimate_tokens_from_text(tool_name)
                     + estimate_tokens_from_text(output)
-            }
+            },
         })
         .sum()
 }
@@ -461,7 +461,7 @@ impl SessionManager {
                             axagent_runtime::ContentBlock::Text { text } => text.clone(),
                             axagent_runtime::ContentBlock::ToolUse { name, input, .. } => {
                                 format!("[ToolUse: {} {}]", name, input)
-                            }
+                            },
                             axagent_runtime::ContentBlock::ToolResult {
                                 tool_name, output, ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
@@ -500,7 +500,7 @@ impl SessionManager {
                             axagent_runtime::ContentBlock::Text { text } => text.clone(),
                             axagent_runtime::ContentBlock::ToolUse { name, input, .. } => {
                                 format!("[ToolUse: {} {}]", name, input)
-                            }
+                            },
                             axagent_runtime::ContentBlock::ToolResult {
                                 tool_name, output, ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
@@ -895,7 +895,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                 // The "always" handling is done in the agent_approve command before
                 // calling deliver_decision.
                 decision
-            }
+            },
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                 info!(
                     "[ChannelPermissionPrompter] Permission request for '{}' timed out after {}s, auto-denying",
@@ -920,7 +920,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                         PERMISSION_TIMEOUT_SECS
                     ),
                 }
-            }
+            },
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
                 // Sender was dropped (e.g. agent cancelled) — deny by default
                 // Clean up the pending entry
@@ -930,7 +930,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                 PermissionPromptDecision::Deny {
                     reason: "Permission request cancelled (agent disconnected)".to_string(),
                 }
-            }
+            },
         }
     }
 }
@@ -970,7 +970,7 @@ impl HookProgressReporter for TauriHookProgressReporter {
                         "assistantMessageId": "",
                     }),
                 );
-            }
+            },
             HookProgressEvent::Completed {
                 event: HookEvent::PostToolUse,
                 tool_name,
@@ -989,7 +989,7 @@ impl HookProgressReporter for TauriHookProgressReporter {
                         "assistantMessageId": "",
                     }),
                 );
-            }
+            },
             HookProgressEvent::Cancelled {
                 event: HookEvent::PostToolUse,
                 tool_name,
@@ -1014,8 +1014,8 @@ impl HookProgressReporter for TauriHookProgressReporter {
                         "assistantMessageId": "",
                     }),
                 );
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }

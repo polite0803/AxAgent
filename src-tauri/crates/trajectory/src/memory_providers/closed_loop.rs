@@ -208,10 +208,10 @@ impl ClosedLoopService {
                         match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {
                             Ok(_) => {
                                 tracing::info!("Updated skill file at {}", skill_dir.display());
-                            }
+                            },
                             Err(e) => {
                                 tracing::warn!("Failed to update skill file: {}", e);
-                            }
+                            },
                         }
                     }
                 } else {
@@ -453,7 +453,7 @@ impl ClosedLoopService {
                                 &auto_action.target[..auto_action.target.len().min(50)]
                             );
                         }
-                    }
+                    },
                     "create_skill" => {
                         if let Ok(proposal) =
                             serde_json::from_str::<SkillCreationProposal>(&auto_action.target)
@@ -518,19 +518,19 @@ impl ClosedLoopService {
                                                     "Created skill file at {}",
                                                     skill_dir.display()
                                                 );
-                                            }
+                                            },
                                             Err(e) => {
                                                 tracing::warn!("Failed to write skill file: {}", e);
-                                            }
+                                            },
                                         }
-                                    }
+                                    },
                                     Err(e) => {
                                         tracing::warn!("Failed to create skill directory: {}", e);
-                                    }
+                                    },
                                 }
                             }
                         }
-                    }
+                    },
                     "upgrade_skill" => {
                         if let Ok(proposal) =
                             serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target)
@@ -592,10 +592,10 @@ impl ClosedLoopService {
                                                 "Updated skill file at {}",
                                                 skill_dir.display()
                                             );
-                                        }
+                                        },
                                         Err(e) => {
                                             tracing::warn!("Failed to update skill file: {}", e);
-                                        }
+                                        },
                                     }
                                 }
                             } else {
@@ -605,10 +605,10 @@ impl ClosedLoopService {
                                 );
                             }
                         }
-                    }
+                    },
                     _ => {
                         tracing::debug!("Unknown auto action type: {}", auto_action.action_type);
-                    }
+                    },
                 }
             }
         }

@@ -144,13 +144,13 @@ impl SearchOrchestrator {
             match handle.await {
                 Ok(Ok((query_id, query_results))) => {
                     results.insert(query_id, query_results);
-                }
+                },
                 Ok(Err(e)) => {
                     tracing::warn!("Query failed: {}", e);
-                }
+                },
                 Err(e) => {
                     tracing::warn!("Task join error: {}", e);
-                }
+                },
             }
         }
 

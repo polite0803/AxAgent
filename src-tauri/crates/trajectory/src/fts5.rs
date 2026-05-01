@@ -271,7 +271,7 @@ impl FTS5Search {
                     ORDER BY rank
                     LIMIT ?2 OFFSET ?3
                     "#
-                }
+                },
                 "memories_fts" => {
                     r#"
                     SELECT 
@@ -288,7 +288,7 @@ impl FTS5Search {
                     ORDER BY rank
                     LIMIT ?2 OFFSET ?3
                     "#
-                }
+                },
                 "skills_fts" => {
                     r#"
                     SELECT 
@@ -305,7 +305,7 @@ impl FTS5Search {
                     ORDER BY rank
                     LIMIT ?2 OFFSET ?3
                     "#
-                }
+                },
                 "messages_fts" => {
                     r#"
                     SELECT 
@@ -322,7 +322,7 @@ impl FTS5Search {
                     ORDER BY rank
                     LIMIT ?2 OFFSET ?3
                     "#
-                }
+                },
                 _ => continue,
             };
 

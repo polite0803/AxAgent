@@ -243,13 +243,13 @@ pub fn prepare_chunks(
                 .into_iter()
                 .map(|c| (format!("{}_{}", item_id, c.index), c.content, c.index))
                 .collect())
-        }
+        },
         ChunkStrategy::Direct => {
             // Caller provides content directly; we don't read from strategy.
             // The actual content is passed to `index()` separately.
             // Return a placeholder that the caller fills in.
             Ok(vec![])
-        }
+        },
         ChunkStrategy::FromText {
             text,
             chunk_size,
@@ -272,7 +272,7 @@ pub fn prepare_chunks(
                 .into_iter()
                 .map(|c| (format!("{}_{}", item_id, c.index), c.content, c.index))
                 .collect())
-        }
+        },
     }
 }
 
@@ -426,14 +426,14 @@ pub async fn collect_rag_context(
                     container_id: src_ref.container_id.clone(),
                     items,
                 });
-            }
+            },
             Ok(_) => {
                 tracing::warn!(
                     "RAG search returned no results for {} {}",
                     source.collection_prefix(),
                     src_ref.container_id,
                 );
-            }
+            },
             Err(e) => {
                 tracing::warn!(
                     "RAG search failed for {} {}: {}",
@@ -441,7 +441,7 @@ pub async fn collect_rag_context(
                     src_ref.container_id,
                     e
                 );
-            }
+            },
         }
     }
 
@@ -466,10 +466,10 @@ pub async fn collect_rag_context(
                             item.document_name = titles.get(&item.document_id).cloned();
                         }
                     }
-                }
+                },
                 Err(e) => {
                     tracing::warn!("Failed to lookup document titles: {e}");
-                }
+                },
             }
         }
     }

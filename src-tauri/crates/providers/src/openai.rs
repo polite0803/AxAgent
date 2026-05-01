@@ -194,7 +194,7 @@ fn extract_text_from_json(value: &serde_json::Value) -> Option<String> {
                 for item in items {
                     collect_text(item, out);
                 }
-            }
+            },
             serde_json::Value::Object(map) => {
                 for key in [
                     "text",
@@ -213,8 +213,8 @@ fn extract_text_from_json(value: &serde_json::Value) -> Option<String> {
                         }
                     }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -721,13 +721,13 @@ impl ProviderAdapter for OpenAIAdapter {
                         super::diagnose_http_status("OpenAI", s, &t),
                     )));
                     return;
-                }
+                },
                 Err(e) => {
                     let _ = tx.unbounded_send(Err(AxAgentError::Provider(
                         super::diagnose_reqwest_error(&e),
                     )));
                     return;
-                }
+                },
             };
 
             let mut byte_stream = resp.bytes_stream();
@@ -774,7 +774,7 @@ impl ProviderAdapter for OpenAIAdapter {
                             &data[..data.len().min(200)]
                         );
                         return false;
-                    }
+                    },
                 };
 
                 if let Some(choice) = parsed.choices.first() {
@@ -915,13 +915,13 @@ impl ProviderAdapter for OpenAIAdapter {
                                 event_data_lines.push(d.to_string());
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
-                    }
+                    },
                 }
             }
 

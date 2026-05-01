@@ -46,7 +46,7 @@ impl VisionTask {
             VisionTask::Ocr => "Extract all text from this image.",
             VisionTask::UiElementDetection => {
                 "Analyze this UI screenshot and list all interactive elements."
-            }
+            },
             VisionTask::ChartAnalysis => "Analyze this chart and extract the data and insights.",
             VisionTask::CodeScreenshotReading => "Read the code in this screenshot.",
         }

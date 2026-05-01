@@ -372,7 +372,7 @@ impl CredibilityEvaluator {
                 } else {
                     0.5
                 }
-            }
+            },
             None => 0.5,
         };
 

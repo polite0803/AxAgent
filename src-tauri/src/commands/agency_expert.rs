@@ -340,7 +340,7 @@ pub async fn import_agency_experts(
                 Err(e) => {
                     errors.push(format!("读取文件失败 {}: {}", md_path.display(), e));
                     continue;
-                }
+                },
             };
 
             let (name, description, color, body) = parse_frontmatter(&content);
@@ -404,7 +404,7 @@ pub async fn import_agency_experts(
                 Ok(_) => count += 1,
                 Err(e) => {
                     errors.push(format!("保存失败 {}: {}", id, e));
-                }
+                },
             }
         }
     }

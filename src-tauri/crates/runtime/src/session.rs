@@ -220,7 +220,7 @@ impl Session {
                     .is_some_and(|object| object.contains_key("messages")) =>
             {
                 Self::from_json(&value)?
-            }
+            },
             Err(_) | Ok(_) => Self::from_jsonl(&contents)?,
         };
         Ok(session.with_persistence_path(path.to_path_buf()))
@@ -455,7 +455,7 @@ impl Session {
                         .get("model")
                         .and_then(JsonValue::as_str)
                         .map(String::from);
-                }
+                },
                 "message" => {
                     let message_value = object.get("message").ok_or_else(|| {
                         SessionError::Format(format!(
@@ -464,25 +464,25 @@ impl Session {
                         ))
                     })?;
                     messages.push(ConversationMessage::from_json(message_value)?);
-                }
+                },
                 "compaction" => {
                     compaction = Some(SessionCompaction::from_json(&JsonValue::Object(
                         object.clone(),
                     ))?);
-                }
+                },
                 "prompt_history" => {
                     if let Some(entry) =
                         SessionPromptEntry::from_json_opt(&JsonValue::Object(object.clone()))
                     {
                         prompt_history.push(entry);
                     }
-                }
+                },
                 other => {
                     return Err(SessionError::Format(format!(
                         "unsupported JSONL record type at line {}: {other}",
                         line_number + 1
                     )))
-                }
+                },
             }
         }
 
@@ -710,7 +710,7 @@ impl ConversationMessage {
                 return Err(SessionError::Format(format!(
                     "unsupported message role: {other}"
                 )))
-            }
+            },
         };
         let blocks = object
             .get("blocks")
@@ -736,7 +736,7 @@ impl ContentBlock {
             Self::Text { text } => {
                 object.insert("type".to_string(), JsonValue::String("text".to_string()));
                 object.insert("text".to_string(), JsonValue::String(text.clone()));
-            }
+            },
             Self::ToolUse { id, name, input } => {
                 object.insert(
                     "type".to_string(),
@@ -745,7 +745,7 @@ impl ContentBlock {
                 object.insert("id".to_string(), JsonValue::String(id.clone()));
                 object.insert("name".to_string(), JsonValue::String(name.clone()));
                 object.insert("input".to_string(), JsonValue::String(input.clone()));
-            }
+            },
             Self::ToolResult {
                 tool_use_id,
                 tool_name,
@@ -766,7 +766,7 @@ impl ContentBlock {
                 );
                 object.insert("output".to_string(), JsonValue::String(output.clone()));
                 object.insert("is_error".to_string(), JsonValue::Bool(*is_error));
-            }
+            },
         }
         JsonValue::Object(object)
     }
