@@ -171,7 +171,7 @@ jobs:
 
       - name: Upload Windows portable to release
         if: contains(matrix.target, 'windows')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: nightly-${{ steps.timestamp.outputs.BUILD_TIME }}
           draft: false
@@ -295,7 +295,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Upload Linux ARM64 artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: nightly-${{ steps.timestamp.outputs.BUILD_TIME }}
           name: 'AxAgent Nightly ${{ steps.timestamp.outputs.BUILD_TIME }}'

@@ -63,7 +63,7 @@ jobs:
           CLIFF_REPO: ${{ github.repository }}
 
       - name: Create draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: 'AxAgent ${{ github.ref_name }}'
@@ -219,7 +219,7 @@ jobs:
 
       - name: Upload Windows artifacts to release
         if: contains(matrix.target, 'windows')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
@@ -244,7 +244,7 @@ jobs:
 
       - name: Upload Linux x86_64 artifacts
         if: matrix.target == 'x86_64-unknown-linux-gnu'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
@@ -255,7 +255,7 @@ jobs:
 
       - name: Upload macOS artifacts
         if: contains(matrix.target, 'apple-darwin')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
@@ -359,7 +359,7 @@ jobs:
           fi
 
       - name: Upload Linux ARM64 artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: 'AxAgent ${{ github.ref_name }}'
@@ -379,7 +379,7 @@ jobs:
       contents: write
     steps:
       - name: Publish draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           draft: false
