@@ -48,6 +48,7 @@ pub mod storage_inventory;
 pub mod storage_migration;
 pub mod storage_paths;
 pub mod text_chunker;
+pub mod token_budget;
 pub mod token_counter;
 pub mod types;
 pub mod ui_automation;

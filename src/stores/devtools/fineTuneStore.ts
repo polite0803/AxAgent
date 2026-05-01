@@ -250,4 +250,22 @@ export const useFineTuneStore = create<{
       set({ error: error instanceof Error ? error.message : "Failed to fetch LoRA adapters" });
     }
   },
+
+  setActiveModel: async (modelId: string, adapterId?: string) => {
+    try {
+      await invoke("set_active_model", { modelId, adapterId });
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : "Failed to set active model" });
+    }
+  },
+
+  getActiveModel: async () => {
+    try {
+      const info = await invoke<{ modelId: string; adapterId?: string }>("get_active_model");
+      return info;
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : "Failed to get active model" });
+      return null;
+    }
+  },
 }));

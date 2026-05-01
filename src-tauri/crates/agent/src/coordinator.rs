@@ -7,6 +7,293 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 
+// ---------------------------------------------------------------------------
+// 工作者（Worker）Agent 模式
+// 移植自 claude-code-main 的协调者/工作者模式
+// ---------------------------------------------------------------------------
+
+/// 协调者内部编排工具列表，工作者不可使用这些工具。
+///
+/// 工作者只能使用常规工具（文件操作、搜索、Web 请求等），
+/// 不能创建子 Agent、发送跨 Agent 消息或生成综合输出。
+pub const INTERNAL_ORCH_TOOLS: &[&str] = &[
+    "agent_create",
+    "agent_delete",
+    "send_message",
+    "synthetic_output",
+];
+
+/// 工作者 Agent 的定义。
+///
+/// 由协调者创建，指定工具集和系统提示，用于执行独立的并行任务。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerDefinition {
+    /// Agent 类型标识（通常为 "worker"）
+    pub agent_type: String,
+    /// 何时使用此工作者的描述（用于协调者决策）
+    pub when_to_use: String,
+    /// 受限工具集（不包含 INTERNAL_ORCH_TOOLS）
+    pub tools: Vec<String>,
+    /// 工作者的系统提示
+    pub system_prompt: String,
+}
+
+impl WorkerDefinition {
+    /// 创建一个新的工作者定义，自动过滤掉内部编排工具。
+    pub fn new(
+        agent_type: impl Into<String>,
+        when_to_use: impl Into<String>,
+        tools: Vec<String>,
+        system_prompt: impl Into<String>,
+    ) -> Self {
+        // 自动过滤掉内部编排工具
+        let filtered_tools: Vec<String> = tools
+            .into_iter()
+            .filter(|t| !INTERNAL_ORCH_TOOLS.contains(&t.as_str()))
+            .collect();
+
+        Self {
+            agent_type: agent_type.into(),
+            when_to_use: when_to_use.into(),
+            tools: filtered_tools,
+            system_prompt: system_prompt.into(),
+        }
+    }
+
+    /// 验证工作者定义是否合法。
+    pub fn validate(&self) -> Result<(), String> {
+        if self.agent_type.is_empty() {
+            return Err("agent_type 不能为空".to_string());
+        }
+        if self.tools.is_empty() {
+            return Err("tools 不能为空".to_string());
+        }
+        if self.system_prompt.is_empty() {
+            return Err("system_prompt 不能为空".to_string());
+        }
+        Ok(())
+    }
+}
+
+/// 工作者与协调者之间的消息类型。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkerMessageType {
+    /// 进度更新
+    Progress,
+    /// 最终结果
+    Result,
+    /// 错误信息
+    Error,
+    /// 任务完成通知
+    Completion,
+}
+
+impl std::fmt::Display for WorkerMessageType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WorkerMessageType::Progress => write!(f, "progress"),
+            WorkerMessageType::Result => write!(f, "result"),
+            WorkerMessageType::Error => write!(f, "error"),
+            WorkerMessageType::Completion => write!(f, "completion"),
+        }
+    }
+}
+
+/// 工作者发送给协调者的消息。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerMessage {
+    /// 工作者唯一标识
+    pub worker_id: String,
+    /// 任务唯一标识
+    pub task_id: String,
+    /// 消息类型
+    pub message_type: WorkerMessageType,
+    /// 消息内容
+    pub content: String,
+    /// 附加元数据
+    pub metadata: serde_json::Value,
+}
+
+impl WorkerMessage {
+    pub fn new(
+        worker_id: impl Into<String>,
+        task_id: impl Into<String>,
+        message_type: WorkerMessageType,
+        content: impl Into<String>,
+    ) -> Self {
+        Self {
+            worker_id: worker_id.into(),
+            task_id: task_id.into(),
+            message_type,
+            content: content.into(),
+            metadata: serde_json::json!({}),
+        }
+    }
+
+    pub fn with_metadata(mut self, metadata: serde_json::Value) -> Self {
+        self.metadata = metadata;
+        self
+    }
+
+    pub fn progress(worker_id: &str, task_id: &str, content: &str) -> Self {
+        Self::new(worker_id, task_id, WorkerMessageType::Progress, content)
+    }
+
+    pub fn result(worker_id: &str, task_id: &str, content: &str) -> Self {
+        Self::new(worker_id, task_id, WorkerMessageType::Result, content)
+    }
+
+    pub fn error(worker_id: &str, task_id: &str, content: &str) -> Self {
+        Self::new(worker_id, task_id, WorkerMessageType::Error, content)
+    }
+
+    pub fn completion(worker_id: &str, task_id: &str, content: &str) -> Self {
+        Self::new(worker_id, task_id, WorkerMessageType::Completion, content)
+    }
+}
+
+/// 工作者的运行时状态。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkerStatus {
+    /// 已创建，等待调度
+    Created,
+    /// 正在运行
+    Running,
+    /// 已成功完成
+    Completed,
+    /// 失败
+    Failed(String),
+    /// 被取消
+    Cancelled,
+}
+
+impl std::fmt::Display for WorkerStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WorkerStatus::Created => write!(f, "created"),
+            WorkerStatus::Running => write!(f, "running"),
+            WorkerStatus::Completed => write!(f, "completed"),
+            WorkerStatus::Failed(_) => write!(f, "failed"),
+            WorkerStatus::Cancelled => write!(f, "cancelled"),
+        }
+    }
+}
+
+/// 工作者执行结果。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerResult {
+    /// 工作者 ID
+    pub worker_id: String,
+    /// 任务 ID
+    pub task_id: String,
+    /// 执行状态
+    pub status: WorkerStatus,
+    /// 输出内容
+    pub output: Option<String>,
+    /// 收到的消息历史
+    pub messages: Vec<WorkerMessage>,
+    /// 执行耗时（毫秒）
+    pub duration_ms: u64,
+}
+
+impl WorkerResult {
+    pub fn success(worker_id: &str, task_id: &str, output: &str, duration_ms: u64) -> Self {
+        Self {
+            worker_id: worker_id.to_string(),
+            task_id: task_id.to_string(),
+            status: WorkerStatus::Completed,
+            output: Some(output.to_string()),
+            messages: vec![WorkerMessage::completion(
+                worker_id,
+                task_id,
+                output,
+            )],
+            duration_ms,
+        }
+    }
+
+    pub fn failure(
+        worker_id: &str,
+        task_id: &str,
+        error: &str,
+        messages: Vec<WorkerMessage>,
+        duration_ms: u64,
+    ) -> Self {
+        Self {
+            worker_id: worker_id.to_string(),
+            task_id: task_id.to_string(),
+            status: WorkerStatus::Failed(error.to_string()),
+            output: None,
+            messages,
+            duration_ms,
+        }
+    }
+}
+
+#[cfg(test)]
+mod worker_tests {
+    use super::*;
+
+    #[test]
+    fn test_worker_definition_filters_internal_tools() {
+        let tools = vec![
+            "read_file".to_string(),
+            "write_file".to_string(),
+            "agent_create".to_string(),
+            "bash".to_string(),
+            "send_message".to_string(),
+        ];
+        let def = WorkerDefinition::new(
+            "worker",
+            "For parallel tasks",
+            tools,
+            "You are a worker agent.",
+        );
+
+        assert!(!def.tools.contains(&"agent_create".to_string()));
+        assert!(!def.tools.contains(&"send_message".to_string()));
+        assert!(def.tools.contains(&"read_file".to_string()));
+        assert!(def.tools.contains(&"write_file".to_string()));
+        assert!(def.tools.contains(&"bash".to_string()));
+    }
+
+    #[test]
+    fn test_worker_definition_validate() {
+        let valid = WorkerDefinition::new(
+            "worker",
+            "For parallel tasks",
+            vec!["read_file".to_string()],
+            "You are a worker.",
+        );
+        assert!(valid.validate().is_ok());
+
+        let empty_type = WorkerDefinition::new("", "", vec!["t".to_string()], "prompt");
+        assert!(empty_type.validate().is_err());
+    }
+
+    #[test]
+    fn test_worker_message_constructors() {
+        let msg = WorkerMessage::progress("w1", "t1", "50% done");
+        assert_eq!(msg.message_type, WorkerMessageType::Progress);
+
+        let msg = WorkerMessage::result("w1", "t1", "completed successfully");
+        assert_eq!(msg.message_type, WorkerMessageType::Result);
+
+        let msg = WorkerMessage::error("w1", "t1", "something went wrong");
+        assert_eq!(msg.message_type, WorkerMessageType::Error);
+    }
+
+    #[test]
+    fn test_worker_result_success() {
+        let result = WorkerResult::success("w1", "t1", "done", 1500);
+        assert!(matches!(result.status, WorkerStatus::Completed));
+        assert_eq!(result.output, Some("done".to_string()));
+        assert_eq!(result.duration_ms, 1500);
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AgentStatus {
     Idle,

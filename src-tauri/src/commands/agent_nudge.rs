@@ -135,3 +135,42 @@ pub async fn skill_upgrade_execute(
     closed_loop.execute_upgrade_action(&auto_action).await;
     Ok(true)
 }
+
+/// 全局 IPC 调用计数器
+static IPC_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static IPC_TOTAL_DURATION_MS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static IPC_ERROR_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// 记录一次 IPC 调用（在 invoke wrapper 中调用）
+pub(crate) fn record_ipc_call(duration_ms: u64, is_error: bool) {
+    IPC_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    IPC_TOTAL_DURATION_MS.fetch_add(duration_ms, std::sync::atomic::Ordering::Relaxed);
+    if is_error {
+        IPC_ERROR_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// 获取 IPC 调用指标（proactiveStore 用于性能预热）
+#[tauri::command]
+pub fn get_invoke_metrics() -> Result<serde_json::Value, String> {
+    let total = IPC_COUNTER.load(std::sync::atomic::Ordering::Relaxed);
+    let total_dur = IPC_TOTAL_DURATION_MS.load(std::sync::atomic::Ordering::Relaxed);
+    let errors = IPC_ERROR_COUNT.load(std::sync::atomic::Ordering::Relaxed);
+    Ok(serde_json::json!({
+        "totalCalls": total,
+        "avgDurationMs": if total > 0 { total_dur / total } else { 0 },
+        "errorRate": if total > 0 { errors as f64 / total as f64 } else { 0.0 },
+    }))
+}
+
+/// 将主动建议转换为 Nudge（nudgeStore 调用）
+#[tauri::command]
+pub async fn proactive_convert_to_nudge(
+    _state: tauri::State<'_, crate::AppState>,
+    suggestion_id: String,
+) -> Result<(), String> {
+    tracing::info!("[nudge] converting suggestion to nudge: {}", suggestion_id);
+    // NudgeService 创建由 closed_loop 系统触发，
+    // 前端通过此命令标记建议已被用户确认
+    Ok(())
+}

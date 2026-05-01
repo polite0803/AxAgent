@@ -24,6 +24,7 @@ export { useKnowledgeStore } from "./feature/knowledgeStore";
 export { useLocalToolStore } from "./feature/localToolStore";
 export { useMcpStore } from "./feature/mcpStore";
 export type { DiscoveredMcpServer } from "./feature/mcpStore";
+export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useMemoryStore } from "./feature/memoryStore";
 export { useNudgeStore } from "./feature/nudgeStore";
 export { setupPlanEventListeners, usePlanStore } from "./feature/planStore";

@@ -24,6 +24,7 @@ mod chat_memory;
 mod compactor;
 mod context;
 mod context_predictor;
+mod dream_consolidation;
 mod fts5;
 mod hooks;
 mod insight;
@@ -73,6 +74,10 @@ pub use behavior_tracker::*;
 pub use compactor::{
     verify_compression_integrity, IntegrityCheck, IntegrityCheckResult, MessageRecord,
     SessionCompactor,
+};
+pub use dream_consolidation::{
+    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState,
+    DreamConsolidator, DreamEventEmitter,
 };
 pub use context::*;
 pub use fts5::*;

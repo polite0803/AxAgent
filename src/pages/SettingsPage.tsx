@@ -1,3 +1,4 @@
+import { AdvancedSettings } from "@/components/settings/AdvancedSettings";
 import {
   AboutPage,
   BackupCenter,
@@ -53,6 +54,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   dashboardPlugins: DashboardPluginsSettings,
   webhooks: WebhookSettings,
   messageChannels: MessageChannelSettings,
+  advanced: AdvancedSettings,
 };
 
 export function SettingsPage() {

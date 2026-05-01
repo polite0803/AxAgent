@@ -85,6 +85,10 @@ pub struct ReActConfig {
     pub reflection_threshold: usize,
     pub enable_analyzing: bool,
     pub enable_reflection: bool,
+    /// 是否启用 token 预算跟踪（检测收益递减并防止上下文窗口耗尽）
+    pub token_budget_enabled: bool,
+    /// Token 预算上限（None = 使用模型上下文窗口大小）
+    pub token_budget_limit: Option<u64>,
 }
 
 impl Default for ReActConfig {
@@ -98,6 +102,8 @@ impl Default for ReActConfig {
             reflection_threshold: 5,
             enable_analyzing: true,
             enable_reflection: true,
+            token_budget_enabled: true,
+            token_budget_limit: Some(180_000),
         }
     }
 }
@@ -113,6 +119,8 @@ impl ReActConfig {
             reflection_threshold: 3,
             enable_analyzing: false,
             enable_reflection: false,
+            token_budget_enabled: false,
+            token_budget_limit: None,
         }
     }
 
@@ -126,6 +134,8 @@ impl ReActConfig {
             reflection_threshold: 10,
             enable_analyzing: true,
             enable_reflection: true,
+            token_budget_enabled: true,
+            token_budget_limit: Some(200_000),
         }
     }
 }

@@ -17,6 +17,7 @@ const LazyPromptTemplatesPage = lazy(() => import("@/pages/PromptTemplatesPage")
 const LazyTraceExplorer = lazy(() => import("@/pages/DevTools/TraceExplorer").then((m) => ({ default: m.TraceExplorer })));
 const LazyBenchmarkRunner = lazy(() => import("@/pages/DevTools/BenchmarkRunner").then((m) => ({ default: m.BenchmarkRunner })));
 const LazyToolRecommender = lazy(() => import("@/pages/DevTools/ToolRecommender").then((m) => ({ default: m.ToolRecommender })));
+const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.default })));
 const LazyWikiPage = lazy(() => import("@/pages/WikiPage").then((m) => ({ default: m.WikiPage })));
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 
@@ -57,6 +58,7 @@ export function ContentArea() {
       <Route path="/devtools/trace-explorer" element={<SafeLazyPage Page={LazyTraceExplorer} />} />
       <Route path="/devtools/benchmark" element={<SafeLazyPage Page={LazyBenchmarkRunner} />} />
       <Route path="/devtools/tool-recommender" element={<SafeLazyPage Page={LazyToolRecommender} />} />
+      <Route path="/devtools/fine-tune" element={<SafeLazyPage Page={LazyFineTune} />} />
     </Routes>
   );
 }

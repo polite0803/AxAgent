@@ -488,11 +488,26 @@ pub async fn proactive_update_config(
 #[tauri::command]
 pub async fn proactive_prefetch(
     _state: State<'_, AppState>,
-    _predictions: Vec<ContextPrediction>,
+    predictions: Vec<serde_json::Value>,
 ) -> Result<PrefetchResults, String> {
+    let mut results = Vec::new();
+    let start = std::time::Instant::now();
+
+    for pred in &predictions {
+        let intent = pred.get("intent").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let id = pred.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let prefetched = matches!(intent, "code_completion" | "file_access" | "search");
+        results.push(serde_json::json!({
+            "prediction_id": id,
+            "prefetched": prefetched,
+            "resource_type": intent,
+            "duration_ms": 0,
+        }));
+    }
+
     Ok(PrefetchResults {
-        results: Vec::new(),
-        total_estimated_time_ms: 0,
-        critical_path: Vec::new(),
+        results: vec![],
+        total_estimated_time_ms: start.elapsed().as_millis() as i64,
+        critical_path: vec![],
     })
 }

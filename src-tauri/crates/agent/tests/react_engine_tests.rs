@@ -19,14 +19,14 @@ async fn test_react_engine_with_config() {
 
 #[tokio::test]
 async fn test_react_run_basic() {
-    let engine = ReActEngine::new();
+    let mut engine = ReActEngine::new();
     let result = engine.run("Hello").await;
     assert!(!result.final_response.is_empty() || result.error.is_some());
 }
 
 #[tokio::test]
 async fn test_react_run_empty_input() {
-    let engine = ReActEngine::new();
+    let mut engine = ReActEngine::new();
     let result = engine.run("").await;
     assert!(result.iterations > 0);
 }
@@ -37,14 +37,14 @@ async fn test_react_run_with_max_iterations_constraint() {
         max_iterations: 1,
         ..Default::default()
     };
-    let engine = ReActEngine::new().with_config(config);
+    let mut engine = ReActEngine::new().with_config(config);
     let result = engine.run("Do something").await;
     assert!(result.iterations > 0);
 }
 
 #[tokio::test]
 async fn test_react_result_contains_context() {
-    let engine = ReActEngine::new();
+    let mut engine = ReActEngine::new();
     let result = engine.run("Test").await;
     // thought_chain should at least exist
     let _ = &result.thought_chain;

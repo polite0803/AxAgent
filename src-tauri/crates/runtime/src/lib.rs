@@ -19,6 +19,8 @@ pub mod branch_lock;
 pub mod cache_guard;
 pub mod collaboration;
 mod compact;
+pub mod compact_thresholds;
+pub mod compact_warning;
 mod config;
 pub mod config_validate;
 mod conversation;
@@ -60,6 +62,7 @@ pub mod profile_manager;
 mod prompt;
 pub mod prompt_cache;
 pub mod pty;
+pub mod reactive_compact;
 pub mod recovery_recipes;
 mod remote;
 pub mod resource_governor;
@@ -80,6 +83,7 @@ pub mod webhook_subscription;
 pub mod work_engine;
 pub mod workflow_engine;
 pub use session_control::SessionStore;
+pub mod session_memory_compact;
 pub mod session_search;
 pub mod shell_completer;
 mod sse;
@@ -102,9 +106,20 @@ pub use bootstrap::{BootstrapPhase, BootstrapPlan};
 pub use branch_lock::{detect_branch_lock_collisions, BranchLockCollision, BranchLockIntent};
 pub use cache_guard::CacheGuard;
 pub use compact::{
-    cleanup_task_boundary, compact_session, decay_weight, detect_task_boundary,
-    estimate_session_tokens, format_compact_summary, get_compact_continuation_message,
-    should_compact, summarize_turn, CompactionConfig, CompactionResult,
+    adaptive_compaction_config, cleanup_task_boundary, compact_session, decay_weight,
+    detect_task_boundary, estimate_message_tokens, estimate_session_tokens,
+    evaluate_compact_threshold, format_compact_summary, get_compact_continuation_message,
+    should_compact, smart_compact, summarize_turn, CompactionConfig, CompactionResult,
+};
+pub use compact_thresholds::{
+    recommended_compaction_config, should_auto_compact, should_reactive_compact,
+    AutoCompactTracking, CompactThresholdState, AUTOCOMPACT_BUFFER_TOKENS,
+    ERROR_THRESHOLD_BUFFER_TOKENS, MANUAL_COMPACT_BUFFER_TOKENS,
+    MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES, WARNING_THRESHOLD_BUFFER_TOKENS,
+};
+pub use compact_warning::{
+    compute_warning_level, CompactWarning, CompactWarningState, WarningLevel,
+    DEFAULT_SUPPRESSION_TTL_SECS, MIN_WARNING_INTERVAL_SECS,
 };
 pub use config::{
     ConfigEntry, ConfigError, ConfigLoader, ConfigSource, McpConfigCollection,
@@ -186,7 +201,13 @@ pub use prompt::{
     load_system_prompt, prepend_bullets, ContextFile, ProjectContext, PromptBuildError,
     SystemPromptBuilder, TaskScene, FRONTIER_MODEL_NAME, SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 };
-pub use prompt_cache::{PendingChange, PromptCache, PromptCacheState};
+pub use prompt_cache::{
+    CacheBreakSummary, CacheReadEvent, PendingChange, PromptCache, PromptCacheState,
+};
+pub use reactive_compact::{
+    classify_trigger, is_context_overflow_error, is_media_size_error, try_reactive_compact,
+    ReactiveCompactResult, ReactiveTrigger,
+};
 pub use recovery_recipes::{
     attempt_recovery, recipe_for, EscalationPolicy, FailureScenario, RecoveryContext,
     RecoveryEvent, RecoveryRecipe, RecoveryResult, RecoveryStep,
@@ -205,6 +226,10 @@ pub use sandbox::{
 pub use session::{
     ContentBlock, ConversationMessage, MessageRole, Session, SessionCompaction, SessionError,
     SessionFork, SessionPromptEntry,
+};
+pub use session_memory_compact::{
+    try_session_memory_compact, to_compaction_result, SessionMemoryCompactConfig,
+    SessionMemoryCompactResult, StructuredMemory,
 };
 pub use session_search::{
     IndexedMessage, SearchQuery as RuntimeSearchQuery, SearchResult, SessionSearchEngine,

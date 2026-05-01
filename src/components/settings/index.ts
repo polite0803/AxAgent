@@ -1,3 +1,4 @@
+export { AdvancedSettings } from "./AdvancedSettings";
 export { AboutPage } from "./AboutPage";
 export { DataManager } from "./DataManager";
 export { default as DashboardPluginsSettings } from "./DashboardPluginsSettings";

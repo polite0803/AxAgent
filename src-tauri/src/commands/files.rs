@@ -74,3 +74,17 @@ pub async fn delete_file(state: State<'_, AppState>, file_id: String) -> Result<
     let file_store = axagent_core::file_store::FileStore::new();
     super::file_cleanup::delete_attachment_reference(&state.sea_db, &file_store, &file_id).await
 }
+
+/// 撤销文件授权（前端 FilePermissionDialog 调用）
+#[tauri::command]
+pub async fn file_revoke_authorization(
+    _state: State<'_, AppState>,
+    file_id: String,
+) -> Result<(), String> {
+    let authorizer = axagent_core::file_authorizer::FileAuthorizer::new();
+    if authorizer.revoke_authorization(&file_id) {
+        Ok(())
+    } else {
+        Err(format!("Authorization not found: {}", file_id))
+    }
+}

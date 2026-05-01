@@ -4999,3 +4999,26 @@ pub struct ClassifyRouteRequest {
 pub fn classify_route(request: ClassifyRouteRequest) -> crate::smart_router::RouteDecision {
     crate::smart_router::classify_and_route(&request.prompt)
 }
+
+/// 前端 SteerInput 推送方向指令。暂存供 agent_query 注入。
+static STEER_QUEUE: std::sync::OnceLock<tokio::sync::Mutex<Vec<String>>> = std::sync::OnceLock::new();
+
+fn steer_queue() -> &'static tokio::sync::Mutex<Vec<String>> {
+    STEER_QUEUE.get_or_init(|| tokio::sync::Mutex::new(Vec::new()))
+}
+
+/// 获取并清空待注入的 steer 指令（由 agent_query 调用）
+pub(crate) async fn drain_steer_instructions() -> Vec<String> {
+    let mut queue = steer_queue().lock().await;
+    std::mem::take(&mut *queue)
+}
+
+#[tauri::command]
+pub async fn agent_steer(
+    _state: tauri::State<'_, AppState>,
+    instruction: String,
+) -> Result<(), String> {
+    tracing::info!("[agent_steer] instruction queued: {}", instruction);
+    steer_queue().lock().await.push(instruction);
+    Ok(())
+}

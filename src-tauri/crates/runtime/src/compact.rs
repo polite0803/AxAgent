@@ -68,6 +68,67 @@ pub fn should_compact(session: &Session, config: CompactionConfig) -> bool {
             >= config.max_estimated_tokens
 }
 
+/// 使用多层阈值系统判断是否需要压缩（增强版）。
+///
+/// 与 `should_compact` 不同，此函数：
+/// - 考虑有效上下文窗口大小
+/// - 使用四层阈值（warning / auto_compact / error / blocking_limit）
+/// - 返回详细的阈值状态而非简单布尔值
+///
+/// # 参数
+/// - `session`: 当前会话
+/// - `effective_window`: 模型的有效上下文窗口 token 数
+#[must_use]
+pub fn evaluate_compact_threshold(
+    session: &Session,
+    effective_window: u64,
+) -> crate::compact_thresholds::CompactThresholdState {
+    crate::compact_thresholds::CompactThresholdState::compute(session, effective_window)
+}
+
+/// 获取建议的压缩配置，根据当前阈值状态自动调整激进程度。
+///
+/// 越接近上下文窗口限制，配置越激进（保留更少的最近消息）。
+#[must_use]
+pub fn adaptive_compaction_config(
+    session: &Session,
+    effective_window: u64,
+) -> CompactionConfig {
+    crate::compact_thresholds::recommended_compaction_config(session, effective_window)
+}
+
+/// 智能压缩：优先尝试会话记忆压缩，失败时回退到传统 LLM 压缩。
+///
+/// 此函数将 session_memory_compact 和传统的 compact_session 串联起来：
+/// 1. 如果有结构化记忆可用，先尝试 session_memory_compact
+/// 2. 如果记忆压缩成功，返回其结果
+/// 3. 如果记忆压缩不适用或失败，回退到传统 compact_session
+///
+/// # 参数
+/// - `session`: 要压缩的会话
+/// - `config`: 基础压缩配置
+/// - `memories`: 从轨迹系统提取的结构化记忆（可为空）
+#[must_use]
+pub fn smart_compact(
+    session: &Session,
+    config: CompactionConfig,
+    memories: &[crate::session_memory_compact::StructuredMemory],
+) -> CompactionResult {
+    // 尝试会话记忆压缩
+    let sm_config = crate::session_memory_compact::SessionMemoryCompactConfig::default();
+    if let Some(sm_result) = crate::session_memory_compact::try_session_memory_compact(
+        session,
+        memories,
+        &sm_config,
+        config,
+    ) {
+        return crate::session_memory_compact::to_compaction_result(&sm_result, session);
+    }
+
+    // 回退到传统 LLM 压缩
+    compact_session(session, config)
+}
+
 /// Normalizes a compaction summary into user-facing continuation text.
 #[must_use]
 pub fn format_compact_summary(summary: &str) -> String {
@@ -460,7 +521,12 @@ fn truncate_summary(content: &str, max_chars: usize) -> String {
     truncated
 }
 
-fn estimate_message_tokens(message: &ConversationMessage) -> usize {
+/// Estimate tokens for a single conversation message.
+///
+/// Uses character-based heuristics: ~4 chars per token for text,
+/// with per-block computation for structured content.
+#[must_use]
+pub fn estimate_message_tokens(message: &ConversationMessage) -> usize {
     message
         .blocks
         .iter()

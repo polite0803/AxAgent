@@ -148,4 +148,15 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
       throw new Error(`Unknown platform: ${platform}`);
     }
   },
+
+  createSession: async (platform: string, chatId: string) => {
+    const session = await invoke<PlatformSession>("create_platform_session", { platform, chatId });
+    set((s) => ({ sessions: [...s.sessions, session] }));
+    return session;
+  },
+
+  processMessage: async (platform: string, payload: unknown) => {
+    const cmd = platform === "telegram" ? "process_telegram_message" : "process_discord_message";
+    return await invoke(cmd, { payload });
+  },
 }));

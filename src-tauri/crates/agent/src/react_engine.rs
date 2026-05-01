@@ -2,6 +2,8 @@ use crate::action_executor::ActionExecutor;
 use crate::reasoning_state::{ActionType, ReActConfig, ReasoningContext, ReasoningState};
 use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
+use axagent_core::token_budget::{TokenBudgetDecision, TokenBudgetTracker};
+use axagent_core::token_counter::estimate_tokens;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;
@@ -74,6 +76,7 @@ pub struct ReActEngine {
     verifier: Arc<SelfVerifier>,
     config: ReActConfig,
     event_sender: broadcast::Sender<ThoughtEvent>,
+    token_budget: TokenBudgetTracker,
 }
 
 impl ReActEngine {
@@ -87,6 +90,7 @@ impl ReActEngine {
             verifier,
             config: ReActConfig::default(),
             event_sender,
+            token_budget: TokenBudgetTracker::new(),
         }
     }
 
@@ -95,11 +99,16 @@ impl ReActEngine {
         self
     }
 
+    /// 重置 token 预算跟踪器（新会话开始时调用）。
+    pub fn reset_token_budget(&mut self) {
+        self.token_budget.reset();
+    }
+
     pub fn subscribe(&self) -> broadcast::Receiver<ThoughtEvent> {
         self.event_sender.subscribe()
     }
 
-    pub async fn run(&self, user_input: &str) -> ReActResult {
+    pub async fn run(&mut self, user_input: &str) -> ReActResult {
         let start = std::time::Instant::now();
         let mut chain = ThoughtChain::new();
         let mut context = ReasoningContext::new(user_input);
@@ -175,6 +184,55 @@ impl ReActEngine {
 
                     if state.is_terminal() {
                         break;
+                    }
+
+                    // Token 预算检查：防止无效循环耗尽上下文窗口
+                    if self.config.token_budget_enabled {
+                        let estimated_tokens = estimate_chain_tokens(&chain);
+                        let decision = self.token_budget.check(
+                            self.config.token_budget_limit,
+                            estimated_tokens,
+                        );
+
+                        match decision {
+                            TokenBudgetDecision::Continue { nudge_message, .. } => {
+                                // 在接近预算上限时向链中添加提示
+                                if context.iteration > 0 && context.iteration % 5 == 0 {
+                                    let step = ThoughtStep::new(
+                                        ReasoningState::Reflecting,
+                                        nudge_message,
+                                    );
+                                    chain.add_step(step);
+                                }
+                            }
+                            TokenBudgetDecision::Stop { completion_event } => {
+                                if let Some(event) = completion_event {
+                                    let reason = if event.diminishing_returns {
+                                        format!(
+                                            "Token budget exhausted: diminishing returns detected after {} continuations ({}% of {} tokens used in {}ms)",
+                                            event.continuation_count,
+                                            event.pct_used,
+                                            event.budget,
+                                            event.duration_ms,
+                                        )
+                                    } else {
+                                        format!(
+                                            "Token budget exhausted: {}% of {} tokens used",
+                                            event.pct_used, event.budget,
+                                        )
+                                    };
+                                    self.emit(ThoughtEvent::Error(reason.clone()));
+                                    return ReActResult::failure(
+                                        reason,
+                                        chain.to_summary(),
+                                        context.iteration,
+                                        start.elapsed(),
+                                        context,
+                                    );
+                                }
+                                break;
+                            }
+                        }
                     }
                 }
                 Err(e) => {
@@ -435,6 +493,21 @@ impl Default for ReActEngine {
     }
 }
 
+/// 从 ThoughtChain 估算 token 数量，用于预算跟踪。
+fn estimate_chain_tokens(chain: &ThoughtChain) -> u64 {
+    let mut total: usize = 0;
+    for step in &chain.steps {
+        total += estimate_tokens(&step.reasoning);
+        if let Some(ref result) = step.result {
+            total += estimate_tokens(result);
+        }
+        if let Some(ref observation) = step.observation {
+            total += estimate_tokens(observation);
+        }
+    }
+    total as u64
+}
+
 fn truncate_string(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
         s.to_string()
@@ -449,7 +522,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_react_engine_basic() {
-        let engine = ReActEngine::new();
+        let mut engine = ReActEngine::new();
         let result = engine.run("Hello, how are you?").await;
 
         assert!(result.iterations > 0);
@@ -458,7 +531,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_react_engine_with_analyzing_disabled() {
-        let engine = ReActEngine::new().with_config(ReActConfig::for_simple_task());
+        let mut engine = ReActEngine::new().with_config(ReActConfig::for_simple_task());
         let result = engine.run("Simple question").await;
 
         assert!(result.success || result.error.is_some());

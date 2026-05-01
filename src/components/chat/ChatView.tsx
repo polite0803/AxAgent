@@ -111,6 +111,7 @@ import { hasMultipleModelVersions } from "@/lib/chatMultiModel";
 import { parseSearchContent } from "@/lib/searchUtils";
 import {
   setupAgentEventListeners,
+  setupDreamEventListeners,
   setupPlanEventListeners,
   useAgentStore,
   useCompressStore,
@@ -152,12 +153,11 @@ import { ModelSelector } from "./ModelSelector";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
 import PermissionCard from "./PermissionCard";
 import { ToolCallCard } from "./ToolCallCard";
-import { SubAgentCard } from "./SubAgentCard";
+import { AgentPoolPanel } from "./AgentPoolPanel";
 import { PlanCard } from "./PlanCard";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
 import { WebSearchNode } from "./WebSearchNode";
-import WorkflowProgressPanel from "./WorkflowProgressPanel";
 
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { invoke } from "@/lib/invoke";
@@ -2473,13 +2473,15 @@ function ChatViewInner() {
     }
   }, [storeError, messageApi]);
 
-  // ── Agent + Plan event listeners ──────────────────────────────────────
+  // ── Agent + Plan + Dream event listeners ──────────────────────────────
   useEffect(() => {
     const cleanupAgent = setupAgentEventListeners();
     const cleanupPlan = setupPlanEventListeners();
+    const cleanupDream = setupDreamEventListeners();
     return () => {
       cleanupAgent();
       cleanupPlan();
+      cleanupDream();
     };
   }, []);
 
@@ -2490,7 +2492,6 @@ function ChatViewInner() {
   const agentToolCalls = useAgentStore((s) => s.toolCalls);
   const agentPendingPermissions = useAgentStore((s) => s.pendingPermissions);
   const agentPendingAskUser = useAgentStore((s) => s.pendingAskUser);
-  const agentSubAgentCards = useAgentStore((s) => s.subAgentCards);
 
   const handleTitleClick = useCallback(() => {
     if (!activeConversation) { return; }
@@ -4213,23 +4214,9 @@ function ChatViewInner() {
           )
           : (
             <>
-              {/* Workflow Progress Panel - shows DAG execution status */}
-              {activeConversation?.mode === "agent" && <WorkflowProgressPanel />}
-              {/* Sub-agent cards for this conversation */}
+              {/* Agent Pool Panel — 统一子Agent + 工作者 + 工作流步骤 */}
               {activeConversation?.mode === "agent" && activeConversationId && (
-                (() => {
-                  const cards = Object.values(agentSubAgentCards).filter(
-                    c => c.conversationId === activeConversationId
-                  );
-                  if (cards.length === 0) return null;
-                  return (
-                    <div className="sub-agent-cards-bar" style={{ padding: "0 16px" }}>
-                      {cards.map(card => (
-                        <SubAgentCard key={card.id} card={card} />
-                      ))}
-                    </div>
-                  );
-                })()
+                <AgentPoolPanel conversationId={activeConversationId} />
               )}
               {/* Plan Card - visible in agent mode when a plan is active */}
               {activeConversation?.mode === "agent" && activeConversationId && (

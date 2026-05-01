@@ -123,10 +123,10 @@ pub fn run() {
             commands::context_sources::add_context_source,
             commands::context_sources::remove_context_source,
             commands::context_sources::toggle_context_source,
-            // commands::search::list_search_providers,        // TODO: implement
+            commands::search::list_search_providers,
             // commands::search::create_search_provider,       // TODO: implement
             // commands::search::update_search_provider,       // TODO: implement
-            // commands::search::delete_search_provider,       // TODO: implement
+            commands::search::delete_search_provider,
             // commands::search::test_search_provider,         // TODO: implement
             // commands::search::execute_search,               // TODO: implement
             commands::mcp::list_mcp_servers,
@@ -291,6 +291,7 @@ pub fn run() {
             commands::agent::agent_get_session,
             commands::agent::agent_ensure_workspace,
             commands::agent::classify_route,
+            commands::agent::agent_steer,
             commands::agent::agent_approve,
             commands::agent::agent_respond_ask,
             commands::agent::agent_backup_and_clear_sdk_context,
@@ -471,7 +472,7 @@ pub fn run() {
             // commands::workflow_template::validate_workflow_template,
             // commands::workflow_template::export_workflow_template,
             // commands::workflow_template::import_workflow_template,
-            // commands::workflow_template::seed_preset_templates,
+            commands::workflow_template::seed_preset_templates,
             // commands::workflow_template::get_template_versions,
             // commands::workflow_template::get_template_by_version,
             // Workflow AI commands
@@ -626,6 +627,17 @@ pub fn run() {
             commands::agency_expert::update_agency_expert,
             commands::agency_expert::delete_agency_expert,
             commands::agency_expert::export_agency_experts,
+            // Plugin commands
+            commands::plugin::list_plugin_tools,
+            commands::plugin::plugin_enable,
+            commands::plugin::plugin_disable,
+            commands::plugin::plugin_install,
+            commands::plugin::plugin_uninstall,
+            // File authorizer
+            commands::files::file_revoke_authorization,
+            // Metrics
+            commands::agent_nudge::get_invoke_metrics,
+            commands::agent_nudge::proactive_convert_to_nudge,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

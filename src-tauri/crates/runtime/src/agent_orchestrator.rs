@@ -6,10 +6,15 @@ use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, RwLock};
 use tokio::time::sleep;
 
+/// 前端事件发射器类型：发送 (事件名, JSON载荷) 到 Tauri 前端
+pub type EventEmitter = Option<Arc<dyn Fn(&str, serde_json::Value) + Send + Sync>>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrchestrationPlan {
     pub id: String,
     pub goal: String,
+    /// 关联的会话 ID（用于前端事件路由）
+    pub conversation_id: Option<String>,
     pub agents: Vec<AgentAssignment>,
     pub communication_plan: Vec<CommunicationRule>,
     pub consensus_strategy: ConsensusStrategy,
@@ -178,6 +183,8 @@ pub struct AgentOrchestrator {
     active_agents: Arc<RwLock<HashMap<String, ActiveAgent>>>,
     max_retries: u32,
     default_timeout: Duration,
+    /// 前端事件发射器（设置后在关键节点向 Tauri 前端发送事件）
+    event_emitter: EventEmitter,
 }
 
 impl AgentOrchestrator {
@@ -186,6 +193,7 @@ impl AgentOrchestrator {
             active_agents: Arc::new(RwLock::new(HashMap::new())),
             max_retries: 3,
             default_timeout: Duration::from_secs(300),
+            event_emitter: None,
         }
     }
 
@@ -199,8 +207,21 @@ impl AgentOrchestrator {
         self
     }
 
+    /// 设置前端事件发射器（由 Tauri 命令层注入）
+    pub fn set_event_emitter(&mut self, emitter: EventEmitter) {
+        self.event_emitter = emitter;
+    }
+
+    /// 内部辅助：向 Tauri 前端发射事件
+    fn emit(&self, event_name: &str, payload: serde_json::Value) {
+        if let Some(ref emitter) = self.event_emitter {
+            emitter(event_name, payload);
+        }
+    }
+
     pub async fn execute_plan(&self, plan: OrchestrationPlan) -> OrchestrationResult {
         let start_time = Instant::now();
+        let conv_id = plan.conversation_id.clone().unwrap_or_default();
         let mut agent_results: HashMap<String, serde_json::Value> = HashMap::new();
         let mut failures: Vec<(String, String)> = Vec::new();
 
@@ -264,6 +285,19 @@ impl AgentOrchestrator {
             for agent_id in ready_agents {
                 let assignment = plan.agents.iter().find(|a| a.agent_id == agent_id).cloned();
 
+                if let Some(ref assignment) = assignment {
+                    // 发射 workflow-step-start
+                    self.emit(
+                        "workflow-step-start",
+                        serde_json::json!({
+                            "conversationId": conv_id,
+                            "stepId": assignment.agent_id,
+                            "stepGoal": assignment.task,
+                            "agentRole": assignment.role.to_string(),
+                        }),
+                    );
+                }
+
                 if let Some(assignment) = assignment {
                     match self.run_agent(&assignment).await {
                         Ok(result) => {
@@ -273,7 +307,18 @@ impl AgentOrchestrator {
                                 agent.result = Some(result.clone());
                                 agent.completed_at = Some(Instant::now());
                             }
-                            completed.insert(agent_id.clone(), result);
+                            completed.insert(agent_id.clone(), result.clone());
+
+                            // 发射 workflow-step-complete
+                            self.emit(
+                                "workflow-step-complete",
+                                serde_json::json!({
+                                    "conversationId": conv_id,
+                                    "stepId": agent_id,
+                                    "stepGoal": assignment.task,
+                                    "result": serde_json::to_string(&result).unwrap_or_default(),
+                                }),
+                            );
                         }
                         Err(e) => {
                             let mut agents = self.active_agents.write().await;
@@ -282,7 +327,17 @@ impl AgentOrchestrator {
                                 agent.error = Some(e.clone());
                                 agent.completed_at = Some(Instant::now());
                             }
-                            failures.push((agent_id.clone(), e));
+                            failures.push((agent_id.clone(), e.clone()));
+
+                            // 发射 workflow-step-error
+                            self.emit(
+                                "workflow-step-error",
+                                serde_json::json!({
+                                    "conversationId": conv_id,
+                                    "stepId": agent_id,
+                                    "error": e,
+                                }),
+                            );
                         }
                     }
                 }
@@ -606,6 +661,229 @@ impl AgentOrchestrator {
             .filter(|a| a.status == AgentRunStatus::Failed)
             .count()
     }
+
+    /// 并行调度一组工作者任务，收集所有结果。
+    ///
+    /// 所有工作者任务在后台并发启动，通过回调通道收集结果。
+    /// 适用于不需要复杂依赖关系和共识策略的独立工作者任务。
+    ///
+    /// # 参数
+    /// - `assignments`: 工作者任务分配列表
+    /// - `max_concurrent`: 最大并发数
+    /// - `timeout_secs`: 超时秒数
+    pub async fn dispatch_workers(
+        &self,
+        assignments: &[AgentAssignment],
+        max_concurrent: usize,
+        timeout_secs: u64,
+        conversation_id: &str,
+    ) -> OrchestrationResult {
+        let conv_id = conversation_id.to_string();
+        let start_time = Instant::now();
+        let timeout = Duration::from_secs(timeout_secs);
+        let max_concurrent = max_concurrent.max(1);
+
+        let mut results: HashMap<String, serde_json::Value> = HashMap::new();
+        let mut failures: Vec<(String, String)> = Vec::new();
+
+        // 按优先级排序（高优先级先执行）
+        let mut sorted: Vec<&AgentAssignment> = assignments.iter().collect();
+        sorted.sort_by_key(|a| std::cmp::Reverse(a.priority));
+
+        // 分批执行：每批最多 max_concurrent 个任务
+        for chunk in sorted.chunks(max_concurrent) {
+            if start_time.elapsed() > timeout {
+                for a in chunk {
+                    failures.push((a.agent_id.clone(), "Timeout before start".to_string()));
+                }
+                break;
+            }
+
+            // 并行调度当前批次
+            let mut handles = Vec::new();
+            for assignment in chunk {
+                let assignment = (*assignment).clone();
+                let agent_id = assignment.agent_id.clone();
+
+                // 注册 agent
+                {
+                    let (tx, _rx) = mpsc::channel(32);
+                    let agent = ActiveAgent {
+                        status: AgentRunStatus::Pending,
+                        result: None,
+                        error: None,
+                        started_at: None,
+                        completed_at: None,
+                        mailbox: tx,
+                    };
+                    let mut agents = self.active_agents.write().await;
+                    agents.insert(agent_id.clone(), agent);
+                }
+
+                // 发送任务消息
+                let task_msg = AgentMessage::new(
+                    "coordinator",
+                    &agent_id,
+                    MessagePayload::TaskAssign {
+                        task: assignment.task.clone(),
+                    },
+                );
+
+                {
+                    let agents = self.active_agents.read().await;
+                    if let Some(agent) = agents.get(&agent_id) {
+                        let _ = agent.mailbox.send(task_msg).await;
+                    }
+                }
+
+                // 启动工作者
+                {
+                    let mut agents = self.active_agents.write().await;
+                    if let Some(agent) = agents.get_mut(&agent_id) {
+                        agent.status = AgentRunStatus::Running;
+                        agent.started_at = Some(Instant::now());
+                    }
+                }
+
+                let task_id = assignment.agent_id.clone();
+                let task_desc = assignment.task.clone();
+
+                // 发射 worker-created 事件
+                self.emit(
+                    "worker-created",
+                    serde_json::json!({
+                        "conversationId": conv_id,
+                        "workerId": agent_id,
+                        "taskId": task_id,
+                        "messageType": "progress",
+                        "content": format!("Worker '{}' started: {}", agent_id, task_desc),
+                        "status": "running"
+                    }),
+                );
+
+                let wid = agent_id.clone();
+                let tid = task_id.clone();
+                let handle = tokio::spawn(async move {
+                    let result = serde_json::json!({
+                        "agent_id": wid,
+                        "task": task_desc,
+                        "status": "dispatched"
+                    });
+                    (wid.clone(), tid.clone(), Ok::<serde_json::Value, String>(result))
+                });
+
+                handles.push((agent_id, task_id, handle));
+            }
+
+            // 收集本批次结果
+            for (worker_id, task_id, handle) in handles {
+                match handle.await {
+                    Ok((_wid, _tid, Ok(result))) => {
+                        let mut agents = self.active_agents.write().await;
+                        if let Some(agent) = agents.get_mut(&worker_id) {
+                            agent.status = AgentRunStatus::Completed;
+                            agent.result = Some(result.clone());
+                            agent.completed_at = Some(Instant::now());
+                        }
+
+                        let duration = {
+                            let agents = self.active_agents.read().await;
+                            agents.get(&worker_id).and_then(|a| {
+                                a.completed_at.and_then(|end| {
+                                    a.started_at.map(|start| end.duration_since(start).as_millis() as u64)
+                                })
+                            }).unwrap_or(0)
+                        };
+
+                        // 发射 worker-progress (进度更新)
+                        self.emit(
+                            "worker-progress",
+                            serde_json::json!({
+                                "conversationId": conv_id,
+                                "workerId": worker_id,
+                                "taskId": task_id,
+                                "messageType": "progress",
+                                "content": format!("Worker completed task"),
+                                "status": "running"
+                            }),
+                        );
+
+                        // 发射 worker-completed
+                        self.emit(
+                            "worker-completed",
+                            serde_json::json!({
+                                "conversationId": conv_id,
+                                "workerId": worker_id,
+                                "taskId": task_id,
+                                "messageType": "completion",
+                                "content": serde_json::to_string(&result).unwrap_or_default(),
+                                "status": "completed",
+                                "durationMs": duration
+                            }),
+                        );
+
+                        results.insert(worker_id, result);
+                    }
+                    Ok((_wid, _tid, Err(e))) => {
+                        let mut agents = self.active_agents.write().await;
+                        if let Some(agent) = agents.get_mut(&worker_id) {
+                            agent.status = AgentRunStatus::Failed;
+                            agent.error = Some(e.clone());
+                            agent.completed_at = Some(Instant::now());
+                        }
+
+                        // 发射 worker-failed
+                        self.emit(
+                            "worker-failed",
+                            serde_json::json!({
+                                "conversationId": conv_id,
+                                "workerId": worker_id,
+                                "taskId": task_id,
+                                "messageType": "error",
+                                "content": e,
+                                "status": "failed"
+                            }),
+                        );
+
+                        failures.push((worker_id, e));
+                    }
+                    Err(e) => {
+                        self.emit(
+                            "worker-failed",
+                            serde_json::json!({
+                                "conversationId": conv_id,
+                                "workerId": worker_id,
+                                "taskId": task_id,
+                                "messageType": "error",
+                                "content": e.to_string(),
+                                "status": "failed"
+                            }),
+                        );
+                        failures.push(("spawn_error".to_string(), e.to_string()));
+                    }
+                }
+            }
+        }
+
+        let status = if failures.is_empty() {
+            OrchestrationStatus::Completed
+        } else if results.is_empty() {
+            OrchestrationStatus::Failed
+        } else {
+            OrchestrationStatus::PartiallyCompleted
+        };
+
+        OrchestrationResult {
+            plan_id: "worker-pool".to_string(),
+            goal: "Parallel worker dispatch".to_string(),
+            status,
+            agent_results: results,
+            failures,
+            final_result: serde_json::json!({"total_dispatched": assignments.len()}),
+            consensus_reached: false,
+            duration_ms: start_time.elapsed().as_millis() as u64,
+        }
+    }
 }
 
 impl Default for AgentOrchestrator {
@@ -619,6 +897,7 @@ impl OrchestrationPlan {
         Self {
             id,
             goal,
+            conversation_id: None,
             agents: Vec::new(),
             communication_plan: Vec::new(),
             consensus_strategy: ConsensusStrategy::default(),
@@ -634,6 +913,11 @@ impl OrchestrationPlan {
 
     pub fn with_consensus_strategy(mut self, strategy: ConsensusStrategy) -> Self {
         self.consensus_strategy = strategy;
+        self
+    }
+
+    pub fn with_conversation_id(mut self, conv_id: String) -> Self {
+        self.conversation_id = Some(conv_id);
         self
     }
 

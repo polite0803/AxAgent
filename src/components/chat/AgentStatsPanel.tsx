@@ -1,6 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import { useAgentStore, useConversationStore, useStreamStore } from "@/stores";
 import { Activity, Clock, Pause, Play, Shield, Wrench } from "lucide-react";
+import { DreamStatusIndicator } from "./DreamStatusIndicator";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -121,6 +122,9 @@ const AgentStatsPanel: React.FC = () => {
       <div className="text-blue-500/50">
         {stats.activeSessions} {t("chat.agentStats.session")}
       </div>
+
+      {/* Dream consolidation status */}
+      <DreamStatusIndicator />
 
       {/* Pause/Resume button */}
       <button

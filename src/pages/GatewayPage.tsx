@@ -9,8 +9,9 @@ import {
 } from "@/components/gateway";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { useGatewayStore } from "@/stores";
+import { GatewayMonitor } from "@/components/gateway/GatewayMonitor";
 import { Tabs } from "antd";
-import { BarChart3, Gauge, Key, ScrollText, Settings } from "lucide-react";
+import { Activity, BarChart3, Gauge, Key, ScrollText, Settings } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -60,6 +61,12 @@ export function GatewayPage() {
       label: t("gateway.settings"),
       icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
       children: <GatewaySettings />,
+    },
+    {
+      key: "monitor",
+      label: "监控",
+      icon: <Activity size={16} color={CHAT_ICON_COLORS.Settings} />,
+      children: <GatewayMonitor />,
     },
   ];
 

@@ -1,0 +1,66 @@
+/* ── DreamStatusIndicator ──────────────────────────────────── */
+
+.dream-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: opacity 0.3s ease;
+}
+
+.dream-indicator--running {
+  color: #722ed1;
+  background: rgba(114, 45, 209, 0.08);
+  border: 1px solid rgba(114, 45, 209, 0.15);
+}
+
+.dream-indicator--completed {
+  color: #52c41a;
+  background: rgba(82, 196, 26, 0.08);
+  border: 1px solid rgba(82, 196, 26, 0.15);
+  animation: dream-fade-in 0.3s ease;
+}
+
+.dream-indicator--idle {
+  color: var(--text-tertiary, #bfbfbf);
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+@keyframes dream-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dream-indicator__icon {
+  flex-shrink: 0;
+}
+
+.dream-indicator__icon--pulse {
+  animation: dream-pulse 1.8s ease-in-out infinite;
+  color: #722ed1;
+}
+
+.dream-indicator__icon--done {
+  color: #52c41a;
+  font-size: 13px;
+}
+
+@keyframes dream-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+
+.dream-indicator__text {
+  line-height: 1;
+}
+
+.dream-indicator__duration {
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.7;
+}

@@ -632,7 +632,8 @@ export type SettingsSection =
   | "skillsHub"
   | "dashboardPlugins"
   | "webhooks"
-  | "messageChannels";
+  | "messageChannels"
+  | "advanced";
 
 // === Generated Tool ===
 export interface GeneratedToolInfo {

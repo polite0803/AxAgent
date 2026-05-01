@@ -21,6 +21,7 @@ import {
   Send,
   Settings,
   ShoppingBag,
+  SlidersHorizontal,
   User,
   Wrench,
   Zap,
@@ -49,6 +50,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   dashboardPlugins: <LayoutDashboard size={16} color={SETTINGS_ICON_COLORS.LayoutDashboard} />,
   webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
   messageChannels: <Send size={16} color={SETTINGS_ICON_COLORS.Send} />,
+  advanced: <SlidersHorizontal size={16} color={SETTINGS_ICON_COLORS.Settings} />,
 };
 
 const SECTION_KEYS: SettingsSection[] = [
@@ -71,6 +73,7 @@ const SECTION_KEYS: SettingsSection[] = [
   "backup",
   "workflow",
   "userProfile",
+  "advanced",
   "about",
 ];
 

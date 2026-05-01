@@ -103,6 +103,8 @@ interface ExpertState {
   updateAgencyExpert: (id: string, fields: { name?: string; description?: string; category?: string; system_prompt?: string; is_enabled?: boolean }) => Promise<void>;
   /** Export all agency experts as JSON */
   exportAgencyExperts: () => Promise<string>;
+  /** Extract expert structure from text (AI-powered) */
+  extractStructure: (text: string) => Promise<ExpertRole | null>;
 
   addCustomRole: (role: ExpertRole) => void;
   updateCustomRole: (role: ExpertRole) => void;
@@ -222,6 +224,17 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   exportAgencyExperts: async () => {
     const json = await invoke<string>("export_agency_experts");
     return json;
+  },
+
+  extractStructure: async (text: string) => {
+    try {
+      const row = await invoke<AgencyExpertRow>("extract_expert_structure", { text });
+      if (!row) return null;
+      return agencyRowToRole(row);
+    } catch (e) {
+      console.error("[expertStore] extractStructure failed:", e);
+      return null;
+    }
   },
 
   addCustomRole: (role) => {

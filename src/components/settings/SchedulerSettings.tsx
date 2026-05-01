@@ -14,12 +14,27 @@ import {
   Switch,
   Tag,
   TimePicker,
+  Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { Edit2, Pause, Play, Plus, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Edit2,
+  History,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  Rocket,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
+
+const { Text } = Typography;
 
 const rowStyle: React.CSSProperties = { padding: "4px 0" };
 
@@ -100,6 +115,17 @@ export function SchedulerSettings() {
   const backupSettings = useBackupStore((s) => s.backupSettings);
   const updateBackupSettings = useBackupStore((s) => s.updateBackupSettings);
 
+  interface ExecutionRecord {
+    id: string;
+    task_id: string;
+    started_at: string;
+    completed_at: string | null;
+    success: boolean;
+    output: string | null;
+    error: string | null;
+    duration_ms: number;
+  }
+
   const [customTasks, setCustomTasks] = useState<ScheduledTask[]>([]);
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -107,13 +133,9 @@ export function SchedulerSettings() {
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
   const [form] = Form.useForm<TaskFormData>();
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (inTauri) {
-      loadCustomTasks();
-      loadTemplates();
-    }
-  }, [inTauri]);
+  const [executing, setExecuting] = useState<Record<string, boolean>>({});
+  const [historyMap, setHistoryMap] = useState<Record<string, ExecutionRecord[]>>({});
+  const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
 
   const loadCustomTasks = async () => {
     try {
@@ -132,6 +154,14 @@ export function SchedulerSettings() {
       console.warn("Failed to load task templates:", e);
     }
   };
+
+  useEffect(() => {
+    if (inTauri) {
+      loadCustomTasks();
+      loadTemplates();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inTauri]);
 
   const handleAutoBackupChange = async (enabled: boolean) => {
     if (!backupSettings) { return; }
@@ -446,6 +476,71 @@ export function SchedulerSettings() {
     }
   };
 
+  // 手动执行任务
+  const handleExecuteNow = async (taskId: string) => {
+    try {
+      setExecuting((prev) => ({ ...prev, [taskId]: true }));
+      await invoke("execute_scheduled_task", { taskId });
+      message.success(t("settings.scheduler.executed") + " - OK");
+      await loadCustomTasks();
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setExecuting((prev) => ({ ...prev, [taskId]: false }));
+    }
+  };
+
+  // 加载执行历史
+  const handleLoadHistory = async (taskId: string) => {
+    const isExpanded = expandedHistory[taskId];
+    if (isExpanded) {
+      setExpandedHistory((prev) => ({ ...prev, [taskId]: false }));
+      return;
+    }
+    try {
+      const records = await invoke<ExecutionRecord[]>("get_task_execution_history", { taskId });
+      setHistoryMap((prev) => ({ ...prev, [taskId]: records }));
+      setExpandedHistory((prev) => ({ ...prev, [taskId]: true }));
+    } catch (e) {
+      console.warn("Failed to load history:", e);
+    }
+  };
+
+  // 快速创建模板任务
+  const handleQuickCreate = async (templateType: string) => {
+    try {
+      setLoading(true);
+      const cmdMap: Record<string, string> = {
+        daily_summary: "create_daily_summary_task",
+        backup: "create_backup_task",
+        cleanup: "create_cleanup_task",
+      };
+      const cmd = cmdMap[templateType];
+      if (!cmd) {
+        message.error("Unknown template type");
+        return;
+      }
+      await invoke(cmd);
+      message.success(t("settings.scheduler.quickCreated") + " - OK");
+      await loadCustomTasks();
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 刷新所有任务
+  const handleRefreshAll = async () => {
+    try {
+      await invoke("load_scheduled_tasks_from_db");
+      await loadCustomTasks();
+      message.success(t("settings.scheduler.refreshed"));
+    } catch (e) {
+      message.error(String(e));
+    }
+  };
+
   return (
     <div>
       <SettingsGroup title={t("settings.scheduler.autoBackup")}>
@@ -575,14 +670,23 @@ export function SchedulerSettings() {
       <SettingsGroup
         title={t("settings.scheduler.customTasks")}
         extra={
-          <Button
-            type="primary"
-            size="small"
-            icon={<Plus size={14} />}
-            onClick={openCreateModal}
-          >
-            {t("settings.scheduler.addTask")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="small" icon={<RefreshCw size={14} />} onClick={handleRefreshAll}>
+              刷新
+            </Button>
+            <Button size="small" icon={<Zap size={14} />} onClick={() => handleQuickCreate("daily_summary")}>
+              日报
+            </Button>
+            <Button size="small" icon={<Calendar size={14} />} onClick={() => handleQuickCreate("backup")}>
+              备份
+            </Button>
+            <Button size="small" icon={<Rocket size={14} />} onClick={() => handleQuickCreate("cleanup")}>
+              清理
+            </Button>
+            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateModal}>
+              {t("settings.scheduler.addTask")}
+            </Button>
+          </div>
         }
       >
         {customTasks.length === 0
@@ -595,50 +699,48 @@ export function SchedulerSettings() {
             customTasks.map((task) => (
               <div key={task.id}>
                 <div style={rowStyle} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontWeight: 500 }}>{task.name}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {task.name}
+                    </span>
                     <Tag color={getStatusColor(task.status)}>{getStatusText(task.status)}</Tag>
+                    {task.last_result && (
+                      <Tag color={task.last_result.success ? "green" : "red"} style={{ fontSize: 10 }}>
+                        {task.last_result.success ? "✓" : "✗"} {task.last_result.duration_ms}ms
+                      </Tag>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    {task.status === "active"
-                      ? (
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<Pause size={14} />}
-                          onClick={() => handlePauseTask(task.id)}
-                          title={t("settings.scheduler.pauseTask")}
-                        />
-                      )
-                      : (
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<Play size={14} />}
-                          onClick={() => handleResumeTask(task.id)}
-                          title={t("settings.scheduler.resumeTask")}
-                        />
-                      )}
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <Button
                       type="text"
                       size="small"
-                      icon={<Edit2 size={14} />}
-                      onClick={() => openEditModal(task)}
-                      title={t("settings.scheduler.editTask")}
+                      icon={executing[task.id] ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                      onClick={() => handleExecuteNow(task.id)}
+                      loading={executing[task.id]}
+                      title="立即执行"
                     />
-                    <Popconfirm
-                      title={t("settings.scheduler.deleteTaskConfirm")}
+                    {task.status === "active"
+                      ? (
+                        <Button type="text" size="small" icon={<Pause size={14} />}
+                          onClick={() => handlePauseTask(task.id)}
+                          title={t("settings.scheduler.pauseTask")} />
+                      )
+                      : (
+                        <Button type="text" size="small" icon={<Play size={14} />}
+                          onClick={() => handleResumeTask(task.id)}
+                          title={t("settings.scheduler.resumeTask")} />
+                      )}
+                    <Button type="text" size="small" icon={<History size={14} />}
+                      onClick={() => handleLoadHistory(task.id)}
+                      title="执行历史" />
+                    <Button type="text" size="small" icon={<Edit2 size={14} />}
+                      onClick={() => openEditModal(task)}
+                      title={t("settings.scheduler.editTask")} />
+                    <Popconfirm title={t("settings.scheduler.deleteTaskConfirm")}
                       onConfirm={() => handleDeleteTask(task.id)}
-                      okText="Yes"
-                      cancelText="No"
-                    >
-                      <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<Trash2 size={14} />}
-                        title={t("settings.scheduler.deleteTask")}
-                      />
+                      okText="Yes" cancelText="No">
+                      <Button type="text" size="small" danger icon={<Trash2 size={14} />}
+                        title={t("settings.scheduler.deleteTask")} />
                     </Popconfirm>
                   </div>
                 </div>
@@ -647,12 +749,46 @@ export function SchedulerSettings() {
                     {task.description}
                   </div>
                 )}
-                <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 4 }}>
+                  <Clock size={12} style={{ display: "inline", marginRight: 4 }} />
                   <span>{t("settings.scheduler.schedule")}: {formatScheduleDescription(task)}</span>
                   <span style={{ marginLeft: 16 }}>
                     {t("settings.scheduler.nextRunAt")}: {formatNextRun(task.next_run_at)}
                   </span>
                 </div>
+
+                {/* 执行历史 */}
+                {expandedHistory[task.id] && (
+                  <div style={{ marginTop: 8, marginBottom: 8 }}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>执行历史</Text>
+                    {historyMap[task.id]?.length === 0 ? (
+                      <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>暂无记录</div>
+                    ) : (
+                      <div style={{ maxHeight: 200, overflowY: "auto", marginTop: 4 }}>
+                        {(historyMap[task.id] || []).slice(0, 20).map((rec) => (
+                          <div key={rec.id}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 8,
+                              padding: "3px 6px", fontSize: 11,
+                              borderBottom: "1px solid var(--color-border)",
+                              backgroundColor: rec.success ? undefined : "#fff2f0",
+                            }}>
+                            <Tag color={rec.success ? "green" : "red"} style={{ fontSize: 10, margin: 0 }}>
+                              {rec.success ? "成功" : "失败"}
+                            </Tag>
+                            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {rec.output || rec.error || "-"}
+                            </span>
+                            <span style={{ color: "#888", whiteSpace: "nowrap" }}>{rec.duration_ms}ms</span>
+                            <span style={{ color: "#bbb", whiteSpace: "nowrap", fontSize: 10 }}>
+                              {rec.started_at ? new Date(rec.started_at).toLocaleString() : "-"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Divider style={{ margin: "4px 0" }} />
               </div>
             ))

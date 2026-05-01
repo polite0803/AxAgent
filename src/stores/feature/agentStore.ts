@@ -5,6 +5,8 @@ import type {
   AgentCancelledEvent,
   AgentDoneEvent,
   AgentErrorEvent,
+  AgentPoolItem,
+  AgentPoolSummary,
   AgentRateLimitEvent,
   AgentSession,
   AgentStatusEvent,
@@ -16,6 +18,7 @@ import type {
   ToolResultEvent,
   ToolStartEvent,
   ToolUseEvent,
+  WorkerMessage,
 } from "@/types/agent";
 import type { ToolExecution } from "@/types/mcp";
 import { create } from "zustand";
@@ -41,6 +44,22 @@ interface AgentStore {
   rateLimitInfo: Record<string, AgentRateLimitEvent>; // conversationId → rate limit event
   pausedConversations: Set<string>; // conversationIds that are paused
   subAgentCards: Record<string, SubAgentCardData>; // cardId → card data
+
+  // Unified Agent Pool — 子Agent + 工作者 + 工作流步骤
+  agentPool: Record<string, AgentPoolItem[]>; // conversationId → pool items
+
+  // Pool actions
+  upsertPoolItem: (item: AgentPoolItem) => void;
+  removePoolItem: (conversationId: string, itemId: string) => void;
+  getPoolSummary: (conversationId: string) => AgentPoolSummary;
+  handleWorkerEvent: (event: {
+    conversationId: string;
+    workerId: string;
+    taskId: string;
+    messageType: string;
+    content: string;
+    status?: string;
+  }) => void;
 
   // Actions
   fetchSession: (conversationId: string) => Promise<AgentSession | null>;
@@ -91,6 +110,105 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   rateLimitInfo: {},
   pausedConversations: new Set<string>(),
   subAgentCards: {},
+  agentPool: {},
+
+  // --- AgentPool actions ---
+
+  upsertPoolItem: (item) => {
+    set((s) => {
+      const pool = [...(s.agentPool[item.conversationId] || [])];
+      const idx = pool.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        pool[idx] = { ...pool[idx], ...item };
+      } else {
+        pool.push(item);
+      }
+      return { agentPool: { ...s.agentPool, [item.conversationId]: pool } };
+    });
+  },
+
+  removePoolItem: (conversationId, itemId) => {
+    set((s) => {
+      const pool = (s.agentPool[conversationId] || []).filter(
+        (p) => p.id !== itemId,
+      );
+      return { agentPool: { ...s.agentPool, [conversationId]: pool } };
+    });
+  },
+
+  getPoolSummary: (conversationId) => {
+    const pool = get().agentPool[conversationId] || [];
+    const total = pool.length;
+    const completed = pool.filter((p) => p.status === "completed").length;
+    const running = pool.filter((p) => p.status === "running").length;
+    const pending = pool.filter((p) => p.status === "pending").length;
+    const failed = pool.filter((p) => p.status === "failed").length;
+    return {
+      total,
+      completed,
+      running,
+      pending,
+      failed,
+      pctComplete: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+  },
+
+  handleWorkerEvent: (event) => {
+    const poolId = `worker-${event.workerId}`;
+    const msg: WorkerMessage = {
+      workerId: event.workerId,
+      taskId: event.taskId,
+      messageType: (event.messageType || "progress") as WorkerMessage["messageType"],
+      content: event.content,
+      timestamp: Date.now(),
+    };
+
+    set((s) => {
+      const pool = [...(s.agentPool[event.conversationId] || [])];
+      const idx = pool.findIndex((p) => p.id === poolId);
+
+      const statusMap: Record<string, AgentPoolItem["status"]> = {
+        progress: "running",
+        result: "completed",
+        completion: "completed",
+        error: "failed",
+      };
+
+      const newStatus = (event.status ||
+        statusMap[event.messageType] ||
+        "running") as AgentPoolItem["status"];
+
+      if (idx >= 0) {
+        const existing = pool[idx];
+        pool[idx] = {
+          ...existing,
+          status: newStatus,
+          summary:
+            event.messageType === "progress"
+              ? event.content
+              : existing.summary,
+          error: event.messageType === "error" ? event.content : existing.error,
+          messages: [...(existing.messages || []), msg],
+          duration: existing.startedAt
+            ? Date.now() - existing.startedAt
+            : undefined,
+        };
+      } else {
+        pool.push({
+          id: poolId,
+          conversationId: event.conversationId,
+          type: "worker",
+          name: event.workerId,
+          status: "running",
+          taskDescription: event.taskId,
+          messages: [msg],
+          startedAt: Date.now(),
+        });
+      }
+
+      return { agentPool: { ...s.agentPool, [event.conversationId]: pool } };
+    });
+  },
 
   fetchSession: async (conversationId) => {
     try {
@@ -408,9 +526,32 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       childConversationId: event.childConversationId,
       childSessionId: event.childSessionId,
     };
-    set((s) => ({
-      subAgentCards: { ...s.subAgentCards, [cardId]: card },
-    }));
+    // 同时写入 agentPool
+    const poolItem: AgentPoolItem = {
+      id: cardId,
+      conversationId: event.conversationId,
+      type: "sub_agent",
+      name: event.agentName || event.agentType,
+      status: event.status === "failed" ? "failed" : event.status === "completed" ? "completed" : "running",
+      agentType: event.agentType,
+      childConversationId: event.childConversationId,
+      childSessionId: event.childSessionId,
+      summary: event.description,
+      startedAt: Date.now(),
+    };
+    set((s) => {
+      const pool = [...(s.agentPool[event.conversationId] || [])];
+      const idx = pool.findIndex((p) => p.id === cardId);
+      if (idx >= 0) {
+        pool[idx] = { ...pool[idx], ...poolItem };
+      } else {
+        pool.push(poolItem);
+      }
+      return {
+        subAgentCards: { ...s.subAgentCards, [cardId]: card },
+        agentPool: { ...s.agentPool, [event.conversationId]: pool },
+      };
+    });
   },
 
   expirePendingPermissions: (conversationId) => {
@@ -666,6 +807,115 @@ export function setupAgentEventListeners(): () => void {
   unlisteners.push(
     listen<SubAgentCardEvent>("agent-subagent-card", (event) => {
       store.handleSubAgentCard(event.payload);
+    }),
+  );
+
+  // Worker events
+  unlisteners.push(
+    listen<{
+      conversationId: string;
+      workerId: string;
+      taskId: string;
+      messageType: string;
+      content: string;
+      status?: string;
+    }>("worker-created", (event) => {
+      store.handleWorkerEvent({ ...event.payload, messageType: "progress", content: "Worker created" });
+    }),
+  );
+
+  unlisteners.push(
+    listen<{
+      conversationId: string;
+      workerId: string;
+      taskId: string;
+      messageType: string;
+      content: string;
+      status?: string;
+    }>("worker-progress", (event) => {
+      store.handleWorkerEvent(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<{
+      conversationId: string;
+      workerId: string;
+      taskId: string;
+      messageType: string;
+      content: string;
+      status?: string;
+    }>("worker-completed", (event) => {
+      store.handleWorkerEvent({ ...event.payload, messageType: "completion", status: "completed" });
+    }),
+  );
+
+  unlisteners.push(
+    listen<{
+      conversationId: string;
+      workerId: string;
+      taskId: string;
+      messageType: string;
+      content: string;
+      status?: string;
+    }>("worker-failed", (event) => {
+      store.handleWorkerEvent({ ...event.payload, messageType: "error", status: "failed" });
+    }),
+  );
+
+  // Workflow step events → sync to agentPool
+  unlisteners.push(
+    listen<{
+      conversationId: string;
+      stepId: string;
+      stepGoal: string;
+      agentRole: string;
+    }>("workflow-step-start", (event) => {
+      const item: AgentPoolItem = {
+        id: event.payload.stepId,
+        conversationId: event.payload.conversationId,
+        type: "workflow_step",
+        name: event.payload.stepGoal,
+        status: "running",
+        agentRole: event.payload.agentRole,
+        startedAt: Date.now(),
+      };
+      store.upsertPoolItem(item);
+    }),
+  );
+
+  unlisteners.push(
+    listen<{
+      conversationId: string;
+      stepId: string;
+      stepGoal: string;
+      result: string;
+    }>("workflow-step-complete", (event) => {
+      store.upsertPoolItem({
+        id: event.payload.stepId,
+        conversationId: event.payload.conversationId,
+        type: "workflow_step",
+        name: event.payload.stepGoal,
+        status: "completed",
+        summary: event.payload.result,
+      });
+    }),
+  );
+
+  unlisteners.push(
+    listen<{
+      conversationId: string;
+      stepId: string;
+      error: string;
+    }>("workflow-step-error", (event) => {
+      store.upsertPoolItem({
+        id: event.payload.stepId,
+        conversationId: event.payload.conversationId,
+        type: "workflow_step",
+        name: event.payload.stepId,
+        status: "failed",
+        error: event.payload.error,
+      });
     }),
   );
 

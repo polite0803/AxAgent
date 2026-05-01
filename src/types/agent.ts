@@ -212,3 +212,79 @@ export interface SubAgentCardData {
   childConversationId?: string;
   childSessionId?: string;
 }
+
+// ---------------------------------------------------------------------------
+// 统一 AgentPool — 子Agent + 工作者 + 工作流步骤
+// ---------------------------------------------------------------------------
+
+/** AgentPool 中的条目类型 */
+export type AgentPoolItemType = "sub_agent" | "worker" | "workflow_step";
+
+/** AgentPool 中的条目状态 */
+export type AgentPoolItemStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+/** 工作者消息类型 */
+export type WorkerMessageType = "progress" | "result" | "error" | "completion";
+
+/** 工作者发送给协调者的消息 */
+export interface WorkerMessage {
+  workerId: string;
+  taskId: string;
+  messageType: WorkerMessageType;
+  content: string;
+  metadata?: Record<string, unknown>;
+  timestamp?: number;
+}
+
+/** 统一的 AgentPool 条目 */
+export interface AgentPoolItem {
+  id: string;
+  conversationId: string;
+  type: AgentPoolItemType;
+  name: string;
+  status: AgentPoolItemStatus;
+  /** 进度 0-100（workflow_step 和 worker 使用） */
+  progress?: number;
+  /** 状态摘要文本 */
+  summary?: string;
+  /** 错误信息 */
+  error?: string;
+  /** 依赖的前置任务 ID 列表 */
+  dependsOn?: string[];
+  /** 开始时间（毫秒时间戳） */
+  startedAt?: number;
+  /** 持续时间（毫秒） */
+  duration?: number;
+
+  // -- sub_agent 专用 --
+  agentType?: string;
+  childConversationId?: string;
+  childSessionId?: string;
+
+  // -- worker 专用 --
+  taskDescription?: string;
+  messages?: WorkerMessage[];
+
+  // -- workflow_step 专用 --
+  stepIndex?: number;
+  agentRole?: string;
+  maxRetries?: number;
+  attempts?: number;
+  onFailure?: "abort" | "skip";
+  canRetry?: boolean;
+}
+
+/** AgentPool 汇总统计 */
+export interface AgentPoolSummary {
+  total: number;
+  completed: number;
+  running: number;
+  pending: number;
+  failed: number;
+  pctComplete: number; // 0-100
+}
