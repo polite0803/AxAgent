@@ -72,10 +72,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         .expect("failed to create documents storage dirs (custom root)");
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
-        let storage = axagent_trajectory::TrajectoryStorage::new().unwrap_or_else(|e| {
-            tracing::warn!("Failed to create shared TrajectoryStorage: {}", e);
-            axagent_trajectory::TrajectoryStorage::new().unwrap()
-        });
+        let storage = axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()));
         Arc::new(storage)
     };
 

@@ -19,7 +19,6 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     QueryFilter, QueryOrder, Set,
 };
-use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -154,7 +153,7 @@ impl TrajectoryStorage {
             let mut q = trajectories::Entity::find();
             if let Some(ref sid) = query.session_id { q = q.filter(trajectories::Column::SessionId.eq(sid)); }
             if let Some(ref uid) = query.user_id { q = q.filter(trajectories::Column::UserId.eq(uid)); }
-            if let Some(ref topic) = query.topic { q = q.filter(trajectories::Column::Topic.like(&format!("%{}%", topic))); }
+            if let Some(ref topic) = query.topic { q = q.filter(trajectories::Column::Topic.like(format!("%{}%", topic))); }
             if let Some(mq) = query.min_quality { q = q.filter(trajectories::Column::QualityOverall.gte(mq)); }
             if let Some(mv) = query.min_value_score { q = q.filter(trajectories::Column::ValueScore.gte(mv)); }
             if let Some(ref outcome) = query.outcome { q = q.filter(trajectories::Column::Outcome.eq(format!("{:?}", outcome))); }
@@ -280,7 +279,7 @@ impl TrajectoryStorage {
     pub fn get_skills(&self) -> Result<Vec<Skill>> {
         Self::rt().block_on(async {
             Ok(trajectory_skills::Entity::find().order_by_desc(trajectory_skills::Column::UsageCount)
-                .all(self.db.as_ref()).await?.iter().map(|s| model_to_skill(s)).collect())
+                .all(self.db.as_ref()).await?.iter().map(model_to_skill).collect())
         })
     }
 
@@ -350,15 +349,15 @@ impl TrajectoryStorage {
     pub fn get_all_entities(&self) -> Result<Vec<Entity>> {
         Self::rt().block_on(async {
             Ok(trajectory_entities::Entity::find().order_by_desc(trajectory_entities::Column::LastSeenAt)
-                .all(self.db.as_ref()).await?.iter().map(|e| model_to_entity(e)).collect())
+                .all(self.db.as_ref()).await?.iter().map(model_to_entity).collect())
         })
     }
 
     pub fn search_entities(&self, query: &str, limit: usize) -> Result<Vec<Entity>> {
         Self::rt().block_on(async {
             Ok(trajectory_entities::Entity::find()
-                .filter(trajectory_entities::Column::Name.like(&format!("%{}%", query)))
-                .all(self.db.as_ref()).await?.iter().take(limit).map(|e| model_to_entity(e)).collect())
+                .filter(trajectory_entities::Column::Name.like(format!("%{}%", query)))
+                .all(self.db.as_ref()).await?.iter().take(limit).map(model_to_entity).collect())
         })
     }
 
@@ -388,14 +387,14 @@ impl TrajectoryStorage {
             Ok(trajectory_relationships::Entity::find()
                 .filter(trajectory_relationships::Column::SourceId.eq(eid)
                     .or(trajectory_relationships::Column::TargetId.eq(eid)))
-                .all(self.db.as_ref()).await?.iter().map(|r| model_to_relationship(r)).collect())
+                .all(self.db.as_ref()).await?.iter().map(model_to_relationship).collect())
         })
     }
 
     pub fn get_all_relationships(&self) -> Result<Vec<Relationship>> {
         Self::rt().block_on(async {
             Ok(trajectory_relationships::Entity::find().order_by_desc(trajectory_relationships::Column::CreatedAt)
-                .all(self.db.as_ref()).await?.iter().map(|r| model_to_relationship(r)).collect())
+                .all(self.db.as_ref()).await?.iter().map(model_to_relationship).collect())
         })
     }
 
@@ -431,7 +430,7 @@ impl TrajectoryStorage {
     pub fn get_all_sessions(&self) -> Result<Vec<Session>> {
         Self::rt().block_on(async {
             Ok(trajectory_sessions::Entity::find().order_by_desc(trajectory_sessions::Column::UpdatedAt)
-                .all(self.db.as_ref()).await?.iter().map(|s| model_to_sess(s)).collect())
+                .all(self.db.as_ref()).await?.iter().map(model_to_sess).collect())
         })
     }
 
@@ -471,16 +470,16 @@ impl TrajectoryStorage {
         Self::rt().block_on(async {
             Ok(trajectory_messages::Entity::find().filter(trajectory_messages::Column::SessionId.eq(sid))
                 .order_by_asc(trajectory_messages::Column::CreatedAt)
-                .all(self.db.as_ref()).await?.iter().map(|m| model_to_msg(m)).collect())
+                .all(self.db.as_ref()).await?.iter().map(model_to_msg).collect())
         })
     }
 
     pub fn search_messages(&self, query: &str, limit: usize) -> Result<Vec<Message>> {
         Self::rt().block_on(async {
             Ok(trajectory_messages::Entity::find()
-                .filter(trajectory_messages::Column::Content.like(&format!("%{}%", query)))
+                .filter(trajectory_messages::Column::Content.like(format!("%{}%", query)))
                 .order_by_desc(trajectory_messages::Column::CreatedAt)
-                .all(self.db.as_ref()).await?.iter().take(limit).map(|m| model_to_msg(m)).collect())
+                .all(self.db.as_ref()).await?.iter().take(limit).map(model_to_msg).collect())
         })
     }
 

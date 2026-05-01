@@ -330,10 +330,8 @@ impl AstIndex {
             let rows = stmt
                 .query_map(params![&pattern, limit], |row| row.get::<_, String>(0))
                 .map_err(|e| format!("query {table}: {e}"))?;
-            for row in rows {
-                if let Ok(path) = row {
-                    results.insert(path);
-                }
+            for path in rows.flatten() {
+                results.insert(path);
             }
         }
 
@@ -496,7 +494,7 @@ fn extract_call_edges(content: &str, file_path: &str, functions: &[FunctionDef])
             {
                 let caller = functions
                     .iter()
-                    .find(|f| f.line_start <= line_num + 1 && f.line_end >= line_num + 1);
+                    .find(|f| f.line_start <= line_num + 1 && f.line_end > line_num);
                 if let Some(caller_fn) = caller {
                     edges.push(CallEdge {
                         caller_file: file_path.to_string(),

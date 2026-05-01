@@ -138,7 +138,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   fetchModelSyncs: async (linkId) => {
     try {
-      const modelSyncs = await invoke<GatewayLinkModelSync[]>("get_gateway_link_model_syncs", { linkId });
+      const modelSyncs = await invoke<GatewayLinkModelSync[]>("get_gateway_link_model_syncs", { link_id: linkId });
       set({ modelSyncs, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -147,7 +147,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   pushModels: async (linkId, modelIds) => {
     try {
-      await invoke("push_gateway_link_models", { linkId, modelIds });
+      await invoke("push_gateway_link_models", { link_id: linkId, model_ids: modelIds });
       await get().fetchModelSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });
@@ -157,7 +157,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   syncAllModels: async (linkId) => {
     try {
-      await invoke("sync_all_gateway_link_models", { linkId });
+      await invoke("sync_all_gateway_link_models", { link_id: linkId });
       await get().fetchModelSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });
@@ -167,7 +167,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   fetchSkillSyncs: async (linkId) => {
     try {
-      const skillSyncs = await invoke<GatewayLinkSkillSync[]>("get_gateway_link_skill_syncs", { linkId });
+      const skillSyncs = await invoke<GatewayLinkSkillSync[]>("get_gateway_link_skill_syncs", { link_id: linkId });
       set({ skillSyncs, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -176,7 +176,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   pushSkills: async (linkId, skillNames) => {
     try {
-      await invoke("push_gateway_link_skills", { linkId, skillNames });
+      await invoke("push_gateway_link_skills", { link_id: linkId, skill_names: skillNames });
       await get().fetchSkillSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });
@@ -186,7 +186,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   syncAllSkills: async (linkId) => {
     try {
-      await invoke("sync_all_gateway_link_skills", { linkId });
+      await invoke("sync_all_gateway_link_skills", { link_id: linkId });
       await get().fetchSkillSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });
@@ -196,7 +196,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   fetchPolicy: async (linkId) => {
     try {
-      const policy = await invoke<GatewayLinkPolicy | null>("get_gateway_link_policy", { linkId });
+      const policy = await invoke<GatewayLinkPolicy | null>("get_gateway_link_policy", { link_id: linkId });
       set({ policy, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -205,7 +205,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   savePolicy: async (linkId, policyUpdate) => {
     try {
-      const policy = await invoke<GatewayLinkPolicy>("save_gateway_link_policy", { linkId, input: policyUpdate });
+      const policy = await invoke<GatewayLinkPolicy>("save_gateway_link_policy", { link_id: linkId, input: policyUpdate });
       set({ policy, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -217,8 +217,8 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
     try {
       const updatedLink = await invoke<GatewayLink>("update_gateway_link_sync_settings", {
         id: linkId,
-        autoSyncModels,
-        autoSyncSkills,
+        auto_sync_models: autoSyncModels,
+        auto_sync_skills: autoSyncSkills,
       });
       set((s) => ({
         links: s.links.map((l) => (l.id === linkId ? updatedLink : l)),
@@ -232,7 +232,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   fetchActivities: async (linkId) => {
     try {
-      const activities = await invoke<GatewayLinkActivity[]>("get_gateway_link_activities", { linkId });
+      const activities = await invoke<GatewayLinkActivity[]>("get_gateway_link_activities", { link_id: linkId });
       set({ activities, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -241,7 +241,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   createGatewayConversation: async (linkId) => {
     try {
-      const conversationId = await invoke<string>("create_gateway_conversation", { linkId });
+      const conversationId = await invoke<string>("create_gateway_conversation", { link_id: linkId });
       return conversationId;
     } catch (e) {
       set({ error: String(e) });

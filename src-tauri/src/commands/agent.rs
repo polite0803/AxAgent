@@ -5016,12 +5016,6 @@ fn steer_queue() -> &'static tokio::sync::Mutex<Vec<String>> {
     STEER_QUEUE.get_or_init(|| tokio::sync::Mutex::new(Vec::new()))
 }
 
-/// 获取并清空待注入的 steer 指令（由 agent_query 调用）
-pub(crate) async fn drain_steer_instructions() -> Vec<String> {
-    let mut queue = steer_queue().lock().await;
-    std::mem::take(&mut *queue)
-}
-
 #[tauri::command]
 pub async fn agent_steer(
     _state: tauri::State<'_, AppState>,

@@ -141,15 +141,6 @@ static IPC_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64:
 static IPC_TOTAL_DURATION_MS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 static IPC_ERROR_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-/// 记录一次 IPC 调用（在 invoke wrapper 中调用）
-pub(crate) fn record_ipc_call(duration_ms: u64, is_error: bool) {
-    IPC_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    IPC_TOTAL_DURATION_MS.fetch_add(duration_ms, std::sync::atomic::Ordering::Relaxed);
-    if is_error {
-        IPC_ERROR_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-}
-
 /// 获取 IPC 调用指标（proactiveStore 用于性能预热）
 #[tauri::command]
 pub fn get_invoke_metrics() -> Result<serde_json::Value, String> {

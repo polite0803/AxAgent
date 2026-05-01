@@ -306,7 +306,7 @@ mod tests {
         let medium_session = make_session_with_token_estimate(180_000);
         let large_session = make_session_with_token_estimate(195_000);
 
-        let config1 = recommended_compaction_config(&small_session, 200_000);
+        let _config1 = recommended_compaction_config(&small_session, 200_000);
         let config2 = recommended_compaction_config(&medium_session, 200_000);
         let config3 = recommended_compaction_config(&large_session, 200_000);
 

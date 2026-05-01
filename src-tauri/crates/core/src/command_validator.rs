@@ -159,8 +159,8 @@ pub fn is_command_allowed(command: &str) -> bool {
         "ps", "top", "kill", "ping", "mkdir", "touch", "cp", "mv", "rm", "chmod", "sort", "uniq",
         "awk", "sed", "cut", "tr", "npx", "pnpm", "yarn",
     ];
-    let first_word = command.trim_start().split_whitespace().next().unwrap_or("");
-    allowed_prefixes.iter().any(|p| *p == first_word)
+    let first_word = command.split_whitespace().next().unwrap_or("");
+    allowed_prefixes.contains(&first_word)
 }
 
 pub fn validate_command(command: &str) -> Result<(), String> {
@@ -168,7 +168,7 @@ pub fn validate_command(command: &str) -> Result<(), String> {
     if !is_command_allowed(command) {
         return Err(format!(
             "命令 '{}' 不在允许列表中。安全策略仅允许执行常用开发工具命令。",
-            command.trim_start().split_whitespace().next().unwrap_or("")
+            command.split_whitespace().next().unwrap_or("")
         ));
     }
 

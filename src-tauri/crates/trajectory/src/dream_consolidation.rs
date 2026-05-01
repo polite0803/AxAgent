@@ -114,6 +114,7 @@ impl DreamConsolidationResult {
 
 /// Dream 巩固的运行状态。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct DreamConsolidationState {
     /// 上次巩固完成时间
     pub last_consolidation_at: Option<DateTime<Utc>>,
@@ -129,18 +130,6 @@ pub struct DreamConsolidationState {
     pub is_running: bool,
 }
 
-impl Default for DreamConsolidationState {
-    fn default() -> Self {
-        Self {
-            last_consolidation_at: None,
-            sessions_since_last: 0,
-            total_consolidations: 0,
-            total_memories_extracted: 0,
-            total_consolidation_secs: 0,
-            is_running: false,
-        }
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Dream 巩固调度器
@@ -250,10 +239,7 @@ impl DreamConsolidator {
         }
 
         // 检查锁是否可用（非阻塞检查）
-        match self.consolidation_lock.try_lock() {
-            Ok(_) => true,   // 锁可用，可以运行
-            Err(_) => false, // 锁被占用，已有巩固在运行
-        }
+        self.consolidation_lock.try_lock().is_ok()
     }
 
     /// 执行一次 Dream 巩固周期。
@@ -314,35 +300,32 @@ impl DreamConsolidator {
         let mut suggestions_generated = 0usize;
 
         // 1. 记忆提取巩固
-        if config.run_memory_extraction {
-            if Utc::now() < deadline {
+        if config.run_memory_extraction
+            && Utc::now() < deadline {
                 // 调用记忆提取逻辑（由外部注入）
                 if let Some(callback) = on_memories {
                     callback(0); // 实际数量由回调填充
                 }
                 memories_extracted += 1; // 占位：实际实现需对接 auto_memory
             }
-        }
 
         // 2. 跨会话模式发现
-        if config.run_pattern_learning {
-            if Utc::now() < deadline {
+        if config.run_pattern_learning
+            && Utc::now() < deadline {
                 if let Some(callback) = on_patterns {
                     callback(0);
                 }
                 patterns_discovered += 1;
             }
-        }
 
         // 3. 主动建议生成
-        if config.run_proactive_suggestions {
-            if Utc::now() < deadline {
+        if config.run_proactive_suggestions
+            && Utc::now() < deadline {
                 if let Some(callback) = on_suggestions {
                     callback(0);
                 }
                 suggestions_generated += 1;
             }
-        }
 
         let duration_secs = (Utc::now() - started_at).num_seconds().max(0) as u64;
 

@@ -4,13 +4,12 @@ use crate::builtin_tools_registry::{
 use crate::command_validator::CommandValidator;
 use crate::entity::{
     knowledge_documents, knowledge_entities, knowledge_flows, knowledge_interfaces,
-    memory_items, memory_namespaces,
 };
 use crate::error::{AxAgentError, Result};
 use crate::mcp_client::McpToolResult;
 use base64::Engine;
 use regex::Regex;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
@@ -1766,7 +1765,7 @@ Rules:
                     .get("script")
                     .and_then(|v| v.as_str())
                     .unwrap_or_default();
-                let timeout = args.get("timeout").and_then(|v| v.as_u64()).unwrap_or(30) as u64;
+                let timeout = args.get("timeout").and_then(|v| v.as_u64()).unwrap_or(30);
                 python_execute(script, timeout).await
             })
         }),
@@ -4881,11 +4880,7 @@ async fn sequential_thinking(
             thought_number, total_thoughts
         )
     } else {
-        let remaining = if total_thoughts > thought_number {
-            total_thoughts - thought_number
-        } else {
-            0
-        };
+        let remaining = total_thoughts.saturating_sub(thought_number);
         format!(
             "\n\n[Thought {}/{} completed. Estimated {} remaining. Continue with more thoughts.]",
             thought_number, total_thoughts, remaining
@@ -5311,7 +5306,7 @@ async fn workspace_write(
     let result = match mode {
         "overwrite" => std::fs::write(
             &file_path,
-            &format!(
+            format!(
                 "{}
 
 [Last updated: {}]
@@ -5459,7 +5454,7 @@ async fn detect_encoding_tool(file_path: &str) -> Result<McpToolResult> {
                     is_error: false,
                 }),
                 Err(_) => {
-                    let printable = data.iter().filter(|&&b| b >= 32 && b < 127).count();
+                    let printable = data.iter().filter(|&&b| (32..127).contains(&b)).count();
                     let ratio = printable as f64 / data.len() as f64 * 100.0;
                     let guess = if ratio > 85.0 {
                         "ASCII or Latin-1"
@@ -5614,7 +5609,7 @@ fn clear_directory(path: &std::path::Path) -> std::result::Result<u64, String> {
                     }
                 }
             },
-            Err(e) => return Err(format!("{}: {}", path.display(), e).into()),
+            Err(e) => return Err(format!("{}: {}", path.display(), e)),
         }
     }
     Ok(total)
@@ -5899,7 +5894,7 @@ fn count_md_files(dir: &std::path::Path) -> u64 {
             let path = entry.path();
             if path.is_dir() {
                 count += count_md_files(&path);
-            } else if path.extension().map_or(false, |e| e == "md") {
+            } else if path.extension().is_some_and(|e| e == "md") {
                 count += 1;
             }
         }
@@ -5964,7 +5959,7 @@ fn list_md_files(
             }
             if path.is_dir() {
                 list_md_files(root, &path, files, depth + 1, max);
-            } else if path.extension().map_or(false, |e| e == "md") {
+            } else if path.extension().is_some_and(|e| e == "md") {
                 let rel = path
                     .strip_prefix(root)
                     .unwrap_or(&path)
@@ -6064,7 +6059,7 @@ fn export_word_tool(markdown: &str, output_path: &str, title: &str) -> Result<Mc
             );
         } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
             doc = doc.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_text(&format!("• {}", &trimmed[2..]))),
+                Paragraph::new().add_run(Run::new().add_text(format!("• {}", &trimmed[2..]))),
             );
         } else if trimmed.starts_with("> ") {
             doc = doc.add_paragraph(

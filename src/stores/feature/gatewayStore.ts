@@ -310,7 +310,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   connectCliTool: async (tool, keyId, protocol) => {
     try {
-      await invoke("connect_cli_tool", { tool, keyId, protocol });
+      await invoke("connect_cli_tool", { tool, key_id: keyId, protocol });
       // Refresh statuses after connect
       const cliTools = await invoke<CliToolInfo[]>("get_all_cli_tool_statuses");
       set({ cliTools, error: null });
@@ -322,7 +322,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   disconnectCliTool: async (tool, restoreBackup) => {
     try {
-      await invoke("disconnect_cli_tool", { tool, restoreBackup });
+      await invoke("disconnect_cli_tool", { tool, restore_backup: restoreBackup });
       // Refresh statuses after disconnect
       const cliTools = await invoke<CliToolInfo[]>("get_all_cli_tool_statuses");
       set({ cliTools, error: null });

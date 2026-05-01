@@ -2,6 +2,7 @@ use crate::AppState;
 use axagent_core::repo::workflow_template as db_repo;
 use axagent_core::workflow_types::*;
 use sea_orm::{ActiveModelTrait, Set};
+use serde::Deserialize;
 use tauri::State;
 
 fn model_to_active_model(
