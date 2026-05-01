@@ -31,7 +31,7 @@ axagent-trajectory = { path = "../trajectory" }
 axagent-providers = { path = "../providers" }
 sysinfo = "0.32"
 itertools = "0.14"
-portable-pty = "0.8"
+portable-pty = "0.9"
 base64 = "0.22"
 axum = "0.8"
 hex = "0.4"
