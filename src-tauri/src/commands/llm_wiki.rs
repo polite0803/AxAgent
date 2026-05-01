@@ -91,6 +91,7 @@ pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[allow(dead_code)]
 pub struct CreateWikiInput {
     pub name: String,

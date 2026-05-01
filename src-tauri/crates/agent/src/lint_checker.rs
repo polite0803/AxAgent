@@ -411,7 +411,7 @@ impl LintChecker {
             }
         }
 
-        score.max(0.0).min(1.0)
+        score.clamp(0.0, 1.0)
     }
 
     pub async fn update_quality_score(&self, note_id: &str) -> Result<f64, String> {

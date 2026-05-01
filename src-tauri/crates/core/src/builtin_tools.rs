@@ -4728,7 +4728,7 @@ async fn brave_web_search(query: &str, api_key: &str, count: usize) -> Result<Mc
         return Ok(McpToolResult { content: "Error: Brave Search API key is not configured. Please set your BRAVE_API_KEY in Settings.".into(), is_error: true });
     }
 
-    let count = count.min(20).max(1);
+    let count = count.clamp(1, 20);
     let url = format!(
         "https://api.search.brave.com/res/v1/web/search?q={}&count={}",
         url_encode(query),
@@ -4786,7 +4786,7 @@ async fn brave_local_search(query: &str, api_key: &str, count: usize) -> Result<
         return Ok(McpToolResult { content: "Error: Brave Search API key is not configured. Please set your BRAVE_API_KEY in Settings.".into(), is_error: true });
     }
 
-    let count = count.min(20).max(1);
+    let count = count.clamp(1, 20);
     let url = format!(
         "https://api.search.brave.com/res/v1/local/pois/search?q={}&count={}",
         url_encode(query),
@@ -5028,7 +5028,7 @@ async fn python_execute(script: &str, timeout_secs: u64) -> Result<McpToolResult
         });
     }
 
-    let timeout = std::time::Duration::from_secs(timeout_secs.min(120).max(1));
+    let timeout = std::time::Duration::from_secs(timeout_secs.clamp(1, 120));
 
     // Try python3 first, fall back to python
     let python_cmd = if which::which("python3").is_ok() {
@@ -5173,7 +5173,7 @@ async fn dify_search(
         "retrieval_model": {
             "search_method": "hybrid_search",
             "reranking_enable": false,
-            "top_k": top_k.max(1).min(20),
+            "top_k": top_k.clamp(1, 20),
             "score_threshold_enabled": false
         }
     });

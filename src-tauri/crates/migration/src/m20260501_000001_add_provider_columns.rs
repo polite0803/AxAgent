@@ -16,10 +16,7 @@ impl MigrationName for Migration {
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // 添加 custom_headers 列
-        if !manager
-            .has_column("providers", "custom_headers")
-            .await?
-        {
+        if !manager.has_column("providers", "custom_headers").await? {
             manager
                 .alter_table(
                     Table::alter()

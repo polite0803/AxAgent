@@ -179,8 +179,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             if let Err(e) = auto_ms.initialize() {
                 tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
             }
-            let auto_ms = Arc::new(std::sync::RwLock::new(auto_ms));
-            let auto_pl = Arc::new(std::sync::RwLock::new(
+            let auto_ms = Arc::new(tokio::sync::RwLock::new(auto_ms));
+            let auto_pl = Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::PatternLearner::new(
                     axagent_trajectory::PatternConfig::default(),
                 ),

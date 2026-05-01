@@ -60,9 +60,9 @@ pub struct MemoryExtractionResult {
 pub struct AutoMemoryExtractor {
     #[allow(dead_code)]
     storage: Arc<TrajectoryStorage>,
-    memory_service: Arc<std::sync::RwLock<MemoryService>>,
+    memory_service: Arc<tokio::sync::RwLock<MemoryService>>,
     #[allow(dead_code)]
-    pattern_learner: Arc<std::sync::RwLock<PatternLearner>>,
+    pattern_learner: Arc<tokio::sync::RwLock<PatternLearner>>,
     recent_extractions: Vec<ExtractedMemory>,
     extraction_cache: HashMap<String, Vec<ExtractedMemory>>,
 }
@@ -70,8 +70,8 @@ pub struct AutoMemoryExtractor {
 impl AutoMemoryExtractor {
     pub fn new(
         storage: Arc<TrajectoryStorage>,
-        memory_service: Arc<std::sync::RwLock<MemoryService>>,
-        pattern_learner: Arc<std::sync::RwLock<PatternLearner>>,
+        memory_service: Arc<tokio::sync::RwLock<MemoryService>>,
+        pattern_learner: Arc<tokio::sync::RwLock<PatternLearner>>,
     ) -> Self {
         Self {
             storage,
@@ -309,10 +309,7 @@ impl AutoMemoryExtractor {
     }
 
     pub fn apply_memories_to_service(&self, memories: &[ExtractedMemory]) -> anyhow::Result<usize> {
-        let memory_service = self
-            .memory_service
-            .write()
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        let memory_service = self.memory_service.blocking_write();
         let mut applied = 0;
 
         for memory in memories {
