@@ -610,7 +610,7 @@ dependencies = [
  "futures-util",
  "md5",
  "parking_lot",
- "pdf-extract 0.8.2",
+ "pdf-extract",
  "regex",
  "regex-lite",
  "reqwest 0.12.28",
@@ -660,7 +660,7 @@ dependencies = [
  "image",
  "libsqlite3-sys",
  "notify",
- "pdf-extract 0.7.12",
+ "pdf-extract",
  "quick_cache",
  "regex",
  "reqwest 0.13.2",
@@ -5500,21 +5500,6 @@ checksum = "f8ed6a7761f76e3b9f92dfb0a60a6a6477c61024b775147ff0973a02653abaf2"
 dependencies = [
  "digest",
  "hmac",
-]
-
-[[package]]
-name = "pdf-extract"
-version = "0.7.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbb3a5387b94b9053c1e69d8abfd4dd6dae7afda65a5c5279bc1f42ab39df575"
-dependencies = [
- "adobe-cmap-parser",
- "encoding_rs",
- "euclid",
- "lopdf",
- "postscript",
- "type1-encoding-parser",
- "unicode-normalization",
 ]
 
 [[package]]
