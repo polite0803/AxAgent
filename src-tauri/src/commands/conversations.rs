@@ -3790,9 +3790,9 @@ mod tests {
             if let Err(e) = ms.initialize() {
                 panic!("Failed to initialize MemoryService: {}", e);
             }
-            Arc::new(std::sync::RwLock::new(ms))
+            Arc::new(tokio::sync::RwLock::new(ms))
         };
-        let pattern_learner = Arc::new(std::sync::RwLock::new(
+        let pattern_learner = Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default()),
         ));
         let trajectory_storage = Arc::new(
@@ -3828,10 +3828,10 @@ mod tests {
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
-            shared_memory: Arc::new(std::sync::RwLock::new(
+            shared_memory: Arc::new(tokio::sync::RwLock::new(
                 axagent_runtime::shared_memory::SharedMemory::new(),
             )),
-            sub_agent_registry: Arc::new(std::sync::RwLock::new(
+            sub_agent_registry: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
             )),
             trajectory_storage,
@@ -3850,17 +3850,17 @@ mod tests {
                     std::sync::Arc::new(storage),
                 ))
             },
-            insight_system: Arc::new(std::sync::RwLock::new(
+            insight_system: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
             )),
             realtime_learning: Arc::new(tokio::sync::Mutex::new(
                 axagent_trajectory::RealTimeLearning::new(),
             )),
             pattern_learner: pattern_learner.clone(),
-            cross_session_learner: Arc::new(std::sync::RwLock::new(
+            cross_session_learner: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::CrossSessionLearner::new(),
             )),
-            rl_engine: Arc::new(std::sync::RwLock::new(axagent_trajectory::RLEngine::new(
+            rl_engine: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::RLEngine::new(
                 axagent_trajectory::RLConfig::default(),
                 axagent_trajectory::RewardWeights::default(),
             ))),
@@ -3879,12 +3879,12 @@ mod tests {
             skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
                 axagent_trajectory::SkillEvolutionEngine::new(),
             )),
-            skill_proposal_service: Arc::new(std::sync::RwLock::new(
+            skill_proposal_service: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::SkillProposalService::new(Arc::new(
                     axagent_trajectory::TrajectoryStorage::new().unwrap(),
                 )),
             )),
-            auto_memory_extractor: Arc::new(std::sync::RwLock::new(
+            auto_memory_extractor: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::AutoMemoryExtractor::new(
                     Arc::new(axagent_trajectory::TrajectoryStorage::new().unwrap()),
                     memory_service.clone(),
@@ -3912,7 +3912,7 @@ mod tests {
                     ),
                 ),
             ),
-            user_profile: Arc::new(std::sync::RwLock::new(
+            user_profile: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::UserProfile::new(),
             )),
             local_tool_registry: Arc::new(tokio::sync::Mutex::new(
@@ -3928,6 +3928,7 @@ mod tests {
             dashboard_registry: None,
             webhook_subscription_manager: None,
             semantic_cache,
+            browser_client: Arc::new(tokio::sync::Mutex::new(None)),
         };
 
         let attachments = vec![AttachmentInput {
