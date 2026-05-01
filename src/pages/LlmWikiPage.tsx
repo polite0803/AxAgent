@@ -260,6 +260,14 @@ export function LlmWikiPage() {
           >
             {t('wiki.llm.compile')}
           </Button>
+          {selectedWikiId && (
+            <Button
+              icon={<FileTextOutlined />}
+              onClick={() => navigate(`/wiki?wikiId=${selectedWikiId}`)}
+            >
+              {t('wiki.llm.viewNotes', 'View Notes')}
+            </Button>
+          )}
         </Space>
       }
     >

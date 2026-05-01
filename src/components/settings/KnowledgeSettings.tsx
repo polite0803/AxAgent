@@ -240,10 +240,8 @@ function formatBytes(bytes: number): string {
 
 function KnowledgeBaseDetail({
   base,
-  onDeleted,
 }: {
   base: KnowledgeBase;
-  onDeleted: () => void;
 }) {
   const { t } = useTranslation();
   const { documents, loading, updateBase, loadDocuments, addDocument, deleteDocument } = useKnowledgeStore();
@@ -1248,7 +1246,6 @@ export default function KnowledgeSettings() {
             <KnowledgeBaseDetail
               key={selectedBase.id}
               base={selectedBase}
-              onDeleted={() => setSelectedId(null)}
             />
           )
           : (

@@ -4,14 +4,20 @@ import { useEffect, useState } from "react";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
 import { WikiEditorPage } from "./WikiEditorPage";
 import { NoteSearchResult } from "@/types";
-import { Input, List, Empty } from "antd";
+import { Input, List, Empty, Button, Space } from "antd";
 import { useTranslation } from "react-i18next";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { BookOpen } from "lucide-react";
 
 const DEFAULT_VAULT_ID = "default";
 
 export function WikiPage() {
   const { token } = theme.useToken();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const wikiIdFromUrl = searchParams.get("wikiId");
+
   const {
     notes,
     selectedNoteId,
@@ -29,11 +35,13 @@ export function WikiPage() {
   const [searchResults, setSearchResults] = useState<NoteSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // 集成修复：从 URL 参数获取 wikiId 并作为 vault_id 加载笔记
   useEffect(() => {
-    if (!selectedVaultId) {
-      setSelectedVaultId(DEFAULT_VAULT_ID);
+    const vaultId = wikiIdFromUrl || DEFAULT_VAULT_ID;
+    if (vaultId !== selectedVaultId) {
+      setSelectedVaultId(vaultId);
     }
-  }, [selectedVaultId, setSelectedVaultId]);
+  }, [wikiIdFromUrl]);
 
   useEffect(() => {
     if (selectedVaultId) {
@@ -64,7 +72,14 @@ export function WikiPage() {
 
   const handleCreateNote = () => {
     if (!selectedVaultId) return;
-    createNote(selectedVaultId);
+    const now = Date.now();
+    createNote({
+      vaultId: selectedVaultId,
+      title: `Untitled ${new Date(now).toLocaleString()}`,
+      filePath: `/untitled-${now}.md`,
+      content: "",
+      author: "user",
+    });
   };
 
   const handleBack = () => {
@@ -90,13 +105,32 @@ export function WikiPage() {
           )}
           <div className="flex-1 flex flex-col overflow-hidden border-l" style={{ borderColor: token.colorBorderSecondary }}>
             <div className="p-4 border-b" style={{ borderColor: token.colorBorderSecondary }}>
-              <Input.Search
-                placeholder={t("wiki.searchPlaceholder", "Search notes...")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                loading={isSearching}
-                allowClear
-              />
+              <Space className="w-full" direction="vertical" size="small">
+                <div className="flex items-center gap-2">
+                  <Input.Search
+                    placeholder={t("wiki.searchPlaceholder", "Search notes...")}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    loading={isSearching}
+                    allowClear
+                    className="flex-1"
+                  />
+                  {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
+                    <Button
+                      size="small"
+                      icon={<BookOpen size={14} />}
+                      onClick={() => navigate(`/llm-wiki?wikiId=${wikiIdFromUrl}`)}
+                    >
+                      {t("wiki.manage", "Manage")}
+                    </Button>
+                  )}
+                </div>
+                {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
+                  <div className="text-xs" style={{ color: token.colorTextSecondary }}>
+                    {t("wiki.viewingWiki", "Viewing Wiki: {{id}}", { id: wikiIdFromUrl })}
+                  </div>
+                )}
+              </Space>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               {displayNotes.length === 0 ? (

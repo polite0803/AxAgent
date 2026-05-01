@@ -649,7 +649,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     try {
       const updated = await invoke<Conversation>("archive_conversation_to_knowledge_base", {
         id,
-        knowledgeBaseId,
+        knowledge_base_id: knowledgeBaseId,
       });
       // Archive succeeded — move from active list to archived list
       set((s) => ({

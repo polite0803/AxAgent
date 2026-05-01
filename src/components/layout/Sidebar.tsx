@@ -5,7 +5,7 @@ import type { ShortcutAction } from "@/lib/shortcuts";
 import { useSettingsStore, useUserProfileStore } from "@/stores";
 import type { PageKey } from "@/types";
 import { Avatar, theme, Tooltip } from "antd";
-import { BookOpen, Brain, FileText, FolderOpen, Link2, MessageSquare, Router, Sparkles, Store, User } from "lucide-react";
+import { BookOpen, Brain, FileText, FolderOpen, Library, Link2, MessageSquare, Router, Sparkles, Store, User } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   link: "/link",
   gateway: "/gateway",
   files: "/files",
+  wiki: "/wiki",
   settings: "/settings",
 };
 
@@ -37,6 +38,7 @@ const mainNavItems: { key: PageKey; icon: React.ReactNode; labelKey: string }[] 
   { key: "marketplace", icon: <Store size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.marketplace" },
   { key: "prompts", icon: <FileText size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.prompts" },
   { key: "knowledge", icon: <BookOpen size={18} color={NAV_ICON_COLORS.BookOpen} />, labelKey: "nav.knowledge" },
+  { key: "wiki", icon: <Library size={18} color={NAV_ICON_COLORS.Library} />, labelKey: "nav.wiki" },
   { key: "memory", icon: <Brain size={18} color={NAV_ICON_COLORS.Brain} />, labelKey: "nav.memory" },
   { key: "link", icon: <Link2 size={18} color={NAV_ICON_COLORS.Link2} />, labelKey: "nav.link" },
   { key: "gateway", icon: <Router size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.gateway" },

@@ -9,6 +9,7 @@ export const NAV_ICON_COLORS: Record<string, string> = {
   MessageSquare: "#3b82f6", // blue-500  — Chat
   Sparkles: "#f59e0b", // amber-500 — Skills
   BookOpen: "#10b981", // emerald-500 — Knowledge
+  Library: "#14b8a6", // teal-500 — Wiki
   Brain: "#8b5cf6", // violet-500 — Memory
   Link2: "#06b6d4", // cyan-500 — Link
   Router: "#f97316", // orange-500 — Gateway

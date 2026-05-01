@@ -75,4 +75,18 @@ pub mod wiki_sources;
 pub mod wiki_sync_queue;
 pub mod wikis;
 
+pub mod trajectories;
+pub mod trajectory_entities;
+pub mod trajectory_learned_patterns;
+pub mod trajectory_memories;
+pub mod trajectory_messages;
+pub mod trajectory_patterns;
+pub mod trajectory_preferences;
+pub mod trajectory_relationships;
+pub mod trajectory_rewards;
+pub mod trajectory_sessions;
+pub mod trajectory_skill_executions;
+pub mod trajectory_skills;
+pub mod trajectory_steps;
+
 pub use sea_orm;

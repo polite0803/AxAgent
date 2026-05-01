@@ -11,6 +11,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   link: "/link",
   gateway: "/gateway",
   files: "/files",
+  wiki: "/wiki",
   settings: "/settings",
 };
 

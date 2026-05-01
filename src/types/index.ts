@@ -609,7 +609,7 @@ export interface GatewayLinkActivity {
 }
 
 // === UI State ===
-export type PageKey = "chat" | "knowledge" | "memory" | "link" | "gateway" | "files" | "settings" | "skills" | "marketplace" | "prompts";
+export type PageKey = "chat" | "knowledge" | "memory" | "link" | "gateway" | "files" | "settings" | "skills" | "marketplace" | "prompts" | "wiki";
 export type SettingsSection =
   | "providers"
   | "defaultModel"
