@@ -66,7 +66,7 @@
     "react-router-dom": "^7.14.2",
     "reactflow": "^11.11.4",
     "stream-markdown": "^0.0.15",
-    "stream-markdown-parser": "^0.0.88",
+    "stream-markdown-parser": "^0.0.90",
     "stream-monaco": "^0.0.38",
     "zustand": "^5.0.12"
   },
