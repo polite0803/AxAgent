@@ -1538,6 +1538,51 @@ pub struct ConversationBranch {
 }
 
 // Backup & Migration
+
+/// JSON 备份恢复策略
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RestoreStrategy {
+    /// 清空现有数据后导入
+    Overwrite,
+    /// 合并导入，跳过已存在的记录
+    Merge,
+    /// 仅验证备份文件完整性，不实际修改数据
+    DryRun,
+}
+
+impl std::fmt::Display for RestoreStrategy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RestoreStrategy::Overwrite => write!(f, "overwrite"),
+            RestoreStrategy::Merge => write!(f, "merge"),
+            RestoreStrategy::DryRun => write!(f, "dry_run"),
+        }
+    }
+}
+
+/// 单个表的恢复结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TableRestoreResult {
+    pub table: String,
+    pub rows_imported: usize,
+    pub rows_skipped: usize,
+    pub rows_errored: usize,
+}
+
+/// JSON 备份恢复报告
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreReport {
+    pub backup_version: String,
+    pub strategy: String,
+    pub tables_restored: Vec<TableRestoreResult>,
+    pub total_imported: usize,
+    pub total_skipped: usize,
+    pub total_errored: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupManifest {

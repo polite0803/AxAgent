@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::sync::RwLock as TokioRwLock;
 
 use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
@@ -87,7 +88,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         if let Err(e) = ms.initialize() {
             tracing::warn!("Failed to initialize MemoryService: {}", e);
         }
-        Arc::new(std::sync::RwLock::new(ms))
+        Arc::new(TokioRwLock::new(ms))
     };
 
     let platform_manager =
@@ -128,10 +129,10 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
         workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
-        shared_memory: Arc::new(std::sync::RwLock::new(
+        shared_memory: Arc::new(TokioRwLock::new(
             axagent_runtime::shared_memory::SharedMemory::new(),
         )),
-        sub_agent_registry: Arc::new(std::sync::RwLock::new(
+        sub_agent_registry: Arc::new(TokioRwLock::new(
             axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
         )),
         memory_service: memory_service.clone(),
@@ -142,19 +143,19 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         closed_loop_service: Arc::new(axagent_trajectory::ClosedLoopService::new(
             shared_trajectory_storage.clone(),
         )),
-        insight_system: Arc::new(std::sync::RwLock::new(
+        insight_system: Arc::new(TokioRwLock::new(
             axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
         )),
         realtime_learning: Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::RealTimeLearning::new(),
         )),
-        pattern_learner: Arc::new(std::sync::RwLock::new(
-            axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default()),
-        )),
-        cross_session_learner: Arc::new(std::sync::RwLock::new(
+        pattern_learner: Arc::new(TokioRwLock::new(axagent_trajectory::PatternLearner::new(
+            axagent_trajectory::PatternConfig::default(),
+        ))),
+        cross_session_learner: Arc::new(TokioRwLock::new(
             axagent_trajectory::CrossSessionLearner::new(),
         )),
-        rl_engine: Arc::new(std::sync::RwLock::new(axagent_trajectory::RLEngine::new(
+        rl_engine: Arc::new(TokioRwLock::new(axagent_trajectory::RLEngine::new(
             axagent_trajectory::RLConfig::default(),
             axagent_trajectory::RewardWeights::default(),
         ))),
@@ -165,20 +166,33 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::SkillEvolutionEngine::new(),
         )),
-        skill_proposal_service: Arc::new(std::sync::RwLock::new(
+        skill_proposal_service: Arc::new(TokioRwLock::new(
             axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
         )),
-        auto_memory_extractor: Arc::new(std::sync::RwLock::new(
-            axagent_trajectory::AutoMemoryExtractor::new(
-                shared_trajectory_storage.clone(),
-                memory_service.clone(),
-                Arc::new(std::sync::RwLock::new(
-                    axagent_trajectory::PatternLearner::new(
-                        axagent_trajectory::PatternConfig::default(),
-                    ),
-                )),
-            ),
-        )),
+        auto_memory_extractor: {
+            // AutoMemoryExtractor 内部使用同步锁，创建独立的 std::sync::RwLock 包装
+            let auto_ms = axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
+                .unwrap_or_else(|e| {
+                    tracing::warn!("Failed to create MemoryService for AutoMemory: {}", e);
+                    panic!("MemoryService is required");
+                });
+            if let Err(e) = auto_ms.initialize() {
+                tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
+            }
+            let auto_ms = Arc::new(std::sync::RwLock::new(auto_ms));
+            let auto_pl = Arc::new(std::sync::RwLock::new(
+                axagent_trajectory::PatternLearner::new(
+                    axagent_trajectory::PatternConfig::default(),
+                ),
+            ));
+            Arc::new(TokioRwLock::new(
+                axagent_trajectory::AutoMemoryExtractor::new(
+                    shared_trajectory_storage.clone(),
+                    auto_ms,
+                    auto_pl,
+                ),
+            ))
+        },
         parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::ParallelExecutionService::new(10),
         )),
@@ -195,9 +209,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         },
         platform_manager: platform_manager.clone(),
         platform_bridge: platform_bridge.clone(),
-        user_profile: Arc::new(std::sync::RwLock::new(
-            axagent_trajectory::UserProfile::new(),
-        )),
+        user_profile: Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new())),
         local_tool_registry: {
             let mut registry = axagent_agent::LocalToolRegistry::init_from_registry();
             // Load enabled state synchronously in the runtime block
@@ -228,5 +240,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                 });
             Arc::new(tokio::sync::Mutex::new(cache))
         },
+        // 浏览器客户端从全局 static mut 迁移到 AppState 管理，使用 tokio::sync::Mutex 保证并发安全
+        browser_client: Arc::new(tokio::sync::Mutex::new(None)),
     }
 }

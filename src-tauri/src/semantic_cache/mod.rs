@@ -118,8 +118,12 @@ impl SemanticCache {
         format!("{:x}", hasher.finalize())
     }
 
-    /// Check the cache for a matching prompt.
-    pub async fn check(&self, prompt: &str) -> Result<Option<CacheEntry>, String> {
+    /// Check the cache for a matching prompt and model.
+    pub async fn check(
+        &self,
+        prompt: &str,
+        model_id: Option<&str>,
+    ) -> Result<Option<CacheEntry>, String> {
         let normalized = Self::normalize_prompt(prompt);
         let hash = Self::hash_prompt(&normalized);
         let now = std::time::SystemTime::now()
@@ -133,9 +137,9 @@ impl SemanticCache {
                 DatabaseBackend::Sqlite,
                 "SELECT id, response, model_id, token_count, hit_count \
                  FROM semantic_cache \
-                 WHERE prompt_hash = ?1 AND (created_at + ttl_secs) > ?2 \
+                 WHERE prompt_hash = ?1 AND model_id IS NOT DISTINCT FROM ?2 AND (created_at + ttl_secs) > ?3 \
                  LIMIT 1",
-                vec![hash.clone().into(), now.into()],
+                vec![hash.clone().into(), model_id.map(|s| s.to_string()).into(), now.into()],
             ))
             .await
             .map_err(|e| format!("Query error: {}", e))?;

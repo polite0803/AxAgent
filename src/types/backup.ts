@@ -17,6 +17,27 @@ export type WebDavFileInfo = {
   hostname: string;
 };
 
+/** JSON 备份恢复策略 */
+export type RestoreStrategy = "overwrite" | "merge" | "dry_run";
+
+/** 单表恢复结果 */
+export type TableRestoreResult = {
+  table: string;
+  rowsImported: number;
+  rowsSkipped: number;
+  rowsErrored: number;
+};
+
+/** JSON 备份恢复报告 */
+export type RestoreReport = {
+  backupVersion: string;
+  strategy: string;
+  tablesRestored: TableRestoreResult[];
+  totalImported: number;
+  totalSkipped: number;
+  totalErrored: number;
+};
+
 export type BackupManifest = {
   id: string;
   version: string;

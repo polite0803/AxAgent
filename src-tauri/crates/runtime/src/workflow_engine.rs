@@ -753,19 +753,21 @@ impl WorkflowRunner {
             }
         }
 
-        // Track currently running step IDs and their join handles
-        let mut running: HashMap<String, tokio::task::JoinHandle<StepOutcome>> = HashMap::new();
+        // 追踪正在运行的步骤
+        let mut running_ids: HashSet<String> = HashSet::new();
+        let mut joinset = tokio::task::JoinSet::new();
+        let mut running_count: usize = 0;
 
         loop {
-            // 1. Collect ready steps (excluding already running ones)
+            // 1. 收集就绪步骤（排除已在运行的）
             let ready_steps = self.engine.get_ready_steps(workflow_id)?;
             let schedulable: Vec<String> = ready_steps
                 .into_iter()
-                .filter(|id| !running.contains_key(id))
-                .take(self.max_concurrent.saturating_sub(running.len()))
+                .filter(|id| !running_ids.contains(id))
+                .take(self.max_concurrent.saturating_sub(running_count))
                 .collect();
 
-            // 2. Launch new steps up to max_concurrent
+            // 2. 启动新步骤，最多 max_concurrent 个
             for step_id in schedulable {
                 // Set step to Running
                 self.engine
@@ -778,7 +780,9 @@ impl WorkflowRunner {
                 let sid = step_id.clone();
                 let step_timeout = self.step_timeout;
 
-                let handle = tokio::spawn(async move {
+                running_ids.insert(step_id.clone());
+                running_count += 1;
+                joinset.spawn(async move {
                     // Read the step definition
                     let step = {
                         let workflows = engine_clone.workflows.read().ok();
@@ -789,10 +793,13 @@ impl WorkflowRunner {
                     };
 
                     let Some(step) = step else {
-                        return StepOutcome {
-                            step_id: sid,
-                            result: Err("Step not found".to_string()),
-                        };
+                        return (
+                            sid.clone(),
+                            StepOutcome {
+                                step_id: sid,
+                                result: Err("Step not found".to_string()),
+                            },
+                        );
                     };
 
                     // Get only the dependency results (P1-9: selective result passing)
@@ -808,54 +815,54 @@ impl WorkflowRunner {
                     .await;
 
                     match timeout_result {
-                        Ok(Ok(result)) => StepOutcome {
-                            step_id: sid,
-                            result: Ok(result),
-                        },
-                        Ok(Err(e)) => StepOutcome {
-                            step_id: sid,
-                            result: Err(e),
-                        },
-                        Err(_) => StepOutcome {
-                            step_id: sid,
-                            result: Err("Step timed out".to_string()),
-                        },
+                        Ok(Ok(result)) => (
+                            sid.clone(),
+                            StepOutcome {
+                                step_id: sid,
+                                result: Ok(result),
+                            },
+                        ),
+                        Ok(Err(e)) => (
+                            sid.clone(),
+                            StepOutcome {
+                                step_id: sid,
+                                result: Err(e),
+                            },
+                        ),
+                        Err(_) => (
+                            sid.clone(),
+                            StepOutcome {
+                                step_id: sid,
+                                result: Err("Step timed out".to_string()),
+                            },
+                        ),
                     }
                 });
-
-                running.insert(step_id, handle);
             }
 
-            // 3. If nothing is running and nothing is schedulable, we're done
-            if running.is_empty() {
+            // 3. 无运行任务且无可调度任务 → 结束
+            if running_count == 0 {
                 break;
             }
 
-            // 4. Wait for ANY running step to complete (pipeline: don't wait for all)
-            // Use tokio::select! to wait for the first completion
-            let completed_outcome = {
-                let handles: Vec<(String, tokio::task::JoinHandle<StepOutcome>)> =
-                    running.drain().collect();
-                if handles.is_empty() {
+            // 4. 等待任意一个步骤完成（JoinSet 语义：先完成先返回）
+            let completed_outcome: Vec<StepOutcome> = {
+                let Some(next) = joinset.join_next().await else {
                     break;
-                }
-
-                // We need to poll all handles and find the first that's ready.
-                // Since we can't use select! dynamically, we use a simple approach:
-                // join_all but process results one at a time.
-                // For true pipeline semantics, we join the first available.
-                // A practical approach: join all currently running, then process all results.
-                let mut outcomes: Vec<StepOutcome> = Vec::new();
-                for (sid, handle) in handles {
-                    match handle.await {
-                        Ok(outcome) => outcomes.push(outcome),
-                        Err(_) => outcomes.push(StepOutcome {
-                            step_id: sid,
-                            result: Err("Task panicked".to_string()),
-                        }),
+                };
+                match next {
+                    Ok((sid, outcome)) => {
+                        running_ids.remove(&sid);
+                        running_count -= 1;
+                        vec![outcome]
+                    }
+                    Err(e) => {
+                        running_count -= 1;
+                        // JoinError — 任务 panic，无法知道 step_id
+                        tracing::warn!("Workflow 步骤 panic: {}", e);
+                        vec![]
                     }
                 }
-                outcomes
             };
 
             // 5. Process completed step outcomes

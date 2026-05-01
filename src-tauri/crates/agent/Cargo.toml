@@ -20,13 +20,13 @@ futures = "0.3"
 futures-util = "0.3.30"
 uuid = { version = "1.6.1", features = ["v4"] }
 parking_lot = "0.12"
-thiserror = "1.0"
+thiserror = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 regex-lite = "0.1"
 regex = "1"
 fastrand = "2.0"
 urlencoding = "2.1"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { workspace = true }
 scraper = "0.20"
 url = "2.4"
 pdf-extract = "0.8"

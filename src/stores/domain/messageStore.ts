@@ -11,7 +11,7 @@ import { _activeMessageLoadSeq } from "./streamStore";
 
 // ─── Constants ───
 
-export const MESSAGE_PAGE_SIZE = 10;
+export const MESSAGE_PAGE_SIZE = 50;
 
 // ─── Helper functions ───
 
@@ -94,6 +94,13 @@ interface MessageState {
   updateMessageContent: (messageId: string, content: string) => Promise<void>;
   deleteMessageGroup: (conversationId: string, userMessageId: string) => Promise<void>;
 
+  // 直接内存操作（用于流式更新等高频场景，无需 IPC）
+  setMessages: (messages: Message[]) => void;
+  appendMessage: (message: Message) => void;
+  updateMessage: (messageId: string, updates: Partial<Message>) => void;
+  removeMessage: (messageId: string) => void;
+  clearError: () => void;
+
   // Workspace / Fork
   workspaceSnapshot: ConversationWorkspaceSnapshot | null;
   loadWorkspaceSnapshot: (conversationId: string) => Promise<ConversationWorkspaceSnapshot | null>;
@@ -120,7 +127,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         content: "<!-- context-clear -->",
       });
       set((s) => ({ messages: [...s.messages, msg] }));
-      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch(() => {});
+      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
     } catch {
       const localMsg: Message = {
         id: `ctx-clear-${Date.now()}`,
@@ -155,7 +162,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       await invoke("delete_message", { id: messageId });
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       if (conversationId) {
-        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch(() => {});
+        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
       }
     } catch (e) {
       set({ error: String(e) });
@@ -354,6 +361,32 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       set({ error: String(e) });
     }
   },
+
+  // ── 直接内存操作（无 IPC，用于流式更新等高频场景）──
+
+  setMessages: (messages) => set({ messages }),
+
+  appendMessage: (message) => {
+    set((state) => ({
+      messages: [...state.messages, message],
+    }));
+  },
+
+  updateMessage: (messageId, updates) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === messageId ? { ...m, ...updates } : m,
+      ),
+    }));
+  },
+
+  removeMessage: (messageId) => {
+    set((state) => ({
+      messages: state.messages.filter((m) => m.id !== messageId),
+    }));
+  },
+
+  clearError: () => set({ error: null }),
 
   workspaceSnapshot: null,
 

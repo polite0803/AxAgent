@@ -5,7 +5,8 @@ import {
   FileTextOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { CredibilityBadge } from './CredibilityBadge';
 
 const { Text, Title } = Typography;
@@ -107,20 +108,37 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
     </pre>
   );
 
-  const renderHtmlPreview = () => (
-    <div
-      style={{
-        background: '#fff',
-        padding: '16px',
-        borderRadius: '8px',
-        border: '1px solid #f0f0f0',
-        maxHeight: '500px',
-        overflow: 'auto',
-      }}
-    >
-      <div dangerouslySetInnerHTML={{ __html: report.content.replace(/#\s+(.+)/g, '<h1>$1</h1>').replace(/##\s+(.+)/g, '<h2>$1</h2>').replace(/\n/g, '<br/>') }} />
-    </div>
-  );
+  const renderHtmlPreview = () => {
+    // 净化 LLM 生成的 HTML 内容，防止 XSS 攻击（如 <script>、onclick 等）
+    const sanitizedHtml = useMemo(() => {
+      const rawHtml = report.content
+        .replace(/#\s+(.+)/g, '<h1>$1</h1>')
+        .replace(/##\s+(.+)/g, '<h2>$1</h2>')
+        .replace(/\n/g, '<br/>');
+      return DOMPurify.sanitize(rawHtml, {
+        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
+          'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 's', 'a',
+          'code', 'pre', 'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+          'span', 'div', 'img', 'sub', 'sup'],
+        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel'],
+      });
+    }, [report.content]);
+
+    return (
+      <div
+        style={{
+          background: '#fff',
+          padding: '16px',
+          borderRadius: '8px',
+          border: '1px solid #f0f0f0',
+          maxHeight: '500px',
+          overflow: 'auto',
+        }}
+      >
+        <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+      </div>
+    );
+  };
 
   const tabItems = [
     {

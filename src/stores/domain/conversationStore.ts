@@ -2,6 +2,7 @@ import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
 import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
 import { useSearchStore } from "@/stores";
+import { useProviderStore } from "@/stores/feature/providerStore";
 import type {
   AgentDoneEvent,
   AgentErrorEvent,
@@ -99,11 +100,11 @@ function buildFallbackChain(
 ): FallbackModel[] {
   const chain: FallbackModel[] = [];
   try {
-    // Access provider store — dynamic import avoids circular dependency
-    const { useProviderStore } = require("@/stores");
     const providers = useProviderStore.getState().providers ?? [];
-    const { usePreferenceStore } = require("@/stores/domain/preferenceStore");
-    const { defaultProviderId, defaultModelId } = usePreferenceStore.getState();
+    // 默认模型优先级的元数据尚未在 store 中实现，
+    // 此处保留占位以维持 fallback 链的优先级结构
+    const defaultProviderId: string | undefined = undefined;
+    const defaultModelId: string | undefined = undefined;
 
     for (const p of providers) {
       for (const m of p.models ?? []) {
@@ -294,7 +295,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
       set((s) => ({ messages: [...s.messages, msg] }));
       // Backup and clear agent SDK context (no-op if no agent session exists)
-      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch(() => {});
+      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
     } catch {
       // If backend command doesn't exist yet, add optimistic local message
       const localMsg: Message = {
@@ -330,7 +331,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       // Restore agent SDK context from backup (no-op if no agent session or no backup)
       if (conversationId) {
-        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch(() => {});
+        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
       }
     } catch (e) {
       set({ error: String(e) });
@@ -2023,7 +2024,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             conversation_id: conversationId,
             parent_message_id: parentId,
             message_id: targetMessageId,
-          }).catch(() => {});
+          }).catch((e: unknown) => { console.warn('[IPC]', e); });
         }
       } else if (parentId && userSelectedMessageId) {
         // User manually selected a version — sync that to backend
@@ -2031,7 +2032,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           conversation_id: conversationId,
           parent_message_id: parentId,
           message_id: userSelectedMessageId,
-        }).catch(() => {});
+        }).catch((e: unknown) => { console.warn('[IPC]', e); });
       }
 
       await get().fetchMessages(conversationId);
@@ -2135,7 +2136,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const errorMessage = String(e);
       if (errorMessage.includes("Not found: Conversation")) {
         console.warn("Conversation no longer exists on backend, clearing active selection:", conversationId);
-        await get().fetchConversations().catch(() => {});
+        await get().fetchConversations().catch((e: unknown) => { console.warn('[IPC]', e); });
         const nextConversation = get().conversations[0] ?? get().archivedConversations[0] ?? null;
         if (nextConversation) {
           get().setActiveConversation(nextConversation.id);
@@ -2550,11 +2551,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const streamState = useStreamStore.getState();
     const conversationId = streamState.streamingConversationId ?? get().activeConversationId;
     if (conversationId && isTauri()) {
-      invoke("cancel_stream", { conversationId }).catch(() => {});
+      invoke("cancel_stream", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
       // Also cancel the agent if in agent mode
       const conv = get().conversations.find((c) => c.id === conversationId);
       if (conv?.mode === "agent") {
-        invoke("agent_cancel", { request: { conversationId } }).catch(() => {});
+        invoke("agent_cancel", { request: { conversationId } }).catch((e: unknown) => { console.warn('[IPC]', e); });
       }
     }
     if (!conversationId) { return; }

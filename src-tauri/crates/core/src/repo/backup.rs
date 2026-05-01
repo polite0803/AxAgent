@@ -224,6 +224,202 @@ pub async fn restore_sqlite_backup(backup_path: &str, current_db_path: &str) -> 
     Ok(())
 }
 
+/// 将 JSON 值转换为 sea_orm Value 以便动态构建 INSERT
+fn json_value_to_sea_value(v: &serde_json::Value) -> Value {
+    match v {
+        serde_json::Value::Null => Value::String(None),
+        serde_json::Value::Bool(b) => Value::Bool(Some(*b)),
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Value::BigInt(Some(i))
+            } else if let Some(f) = n.as_f64() {
+                Value::Double(Some(f))
+            } else {
+                Value::BigInt(None)
+            }
+        }
+        serde_json::Value::String(s) => Value::String(Some(Box::new(s.clone()))),
+        serde_json::Value::Array(a) => {
+            Value::String(Some(Box::new(serde_json::to_string(a).unwrap_or_default())))
+        }
+        serde_json::Value::Object(o) => {
+            Value::String(Some(Box::new(serde_json::to_string(o).unwrap_or_default())))
+        }
+    }
+}
+
+/// 从 JSON 备份恢复数据到数据库
+///
+/// # 参数
+/// - `db`: 数据库连接
+/// - `backup_path`: JSON 备份文件路径
+/// - `strategy`: 恢复策略（Overwrite 清空后导入, Merge 跳过已存在, DryRun 仅验证）
+///
+/// # 恢复顺序
+/// 按外键依赖顺序导入: settings → providers → provider_keys → models →
+/// gateway_keys → conversations → messages
+pub async fn restore_json_backup(
+    db: &DatabaseConnection,
+    backup_path: &str,
+    strategy: &crate::types::RestoreStrategy,
+) -> Result<crate::types::RestoreReport> {
+    use crate::types::{RestoreReport, TableRestoreResult};
+
+    let path = Path::new(backup_path);
+    if !path.exists() {
+        return Err(AxAgentError::NotFound(format!(
+            "备份文件未找到: {}",
+            backup_path
+        )));
+    }
+
+    let data = std::fs::read_to_string(path)
+        .map_err(|e| AxAgentError::Gateway(format!("读取备份文件失败: {}", e)))?;
+
+    let backup: serde_json::Value = serde_json::from_str(&data)
+        .map_err(|e| AxAgentError::Gateway(format!("解析备份 JSON 失败: {}", e)))?;
+
+    let version = backup["version"].as_str().unwrap_or("unknown").to_string();
+
+    let tables = backup["tables"]
+        .as_object()
+        .ok_or_else(|| AxAgentError::Gateway("备份文件格式无效：缺少 tables 字段".to_string()))?;
+
+    // 按外键依赖顺序恢复
+    let table_order = [
+        "settings",
+        "providers",
+        "provider_keys",
+        "models",
+        "gateway_keys",
+        "conversations",
+        "messages",
+    ];
+
+    let mut report = RestoreReport {
+        backup_version: version,
+        strategy: format!("{}", strategy),
+        tables_restored: Vec::new(),
+        total_imported: 0,
+        total_skipped: 0,
+        total_errored: 0,
+    };
+
+    if matches!(strategy, crate::types::RestoreStrategy::DryRun) {
+        // 空跑模式：仅统计行数
+        for table_name in &table_order {
+            if let Some(rows) = tables.get(*table_name).and_then(|v| v.as_array()) {
+                report.tables_restored.push(TableRestoreResult {
+                    table: String::from(*table_name),
+                    rows_imported: rows.len(),
+                    rows_skipped: 0,
+                    rows_errored: 0,
+                });
+            }
+        }
+        report.total_imported = report.tables_restored.iter().map(|t| t.rows_imported).sum();
+        return Ok(report);
+    }
+
+    // 开始事务
+    let txn = db
+        .begin()
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("开始事务失败: {}", e)))?;
+
+    for table_name in &table_order {
+        let rows = match tables.get(*table_name).and_then(|v| v.as_array()) {
+            Some(r) => r,
+            None => continue,
+        };
+
+        if rows.is_empty() {
+            continue;
+        }
+
+        // Overwrite 策略：先清空表
+        if matches!(strategy, crate::types::RestoreStrategy::Overwrite) {
+            txn.execute(Statement::from_string(
+                DatabaseBackend::Sqlite,
+                format!("DELETE FROM \"{}\"", table_name),
+            ))
+            .await
+            .map_err(|e| AxAgentError::Gateway(format!("清空表 {} 失败: {}", table_name, e)))?;
+        }
+
+        let mut imported = 0usize;
+        let skipped = 0usize;
+        let mut errored = 0usize;
+
+        for row in rows {
+            let obj = match row.as_object() {
+                Some(o) => o,
+                None => {
+                    errored += 1;
+                    continue;
+                }
+            };
+
+            let columns: Vec<&str> = obj.keys().map(|k| k.as_str()).collect();
+            if columns.is_empty() {
+                errored += 1;
+                continue;
+            }
+
+            let placeholders: Vec<&str> = vec!["?"; columns.len()];
+            let conflict_clause = match strategy {
+                crate::types::RestoreStrategy::Merge => "OR IGNORE",
+                _ => "OR REPLACE",
+            };
+
+            let sql = format!(
+                "INSERT {} INTO \"{}\" ({}) VALUES ({})",
+                conflict_clause,
+                table_name,
+                columns.join(", "),
+                placeholders.join(", "),
+            );
+
+            let values: Vec<Value> = columns
+                .iter()
+                .map(|col| json_value_to_sea_value(&obj[*col]))
+                .collect();
+
+            match txn
+                .execute(Statement::from_sql_and_values(
+                    DatabaseBackend::Sqlite,
+                    &sql,
+                    values,
+                ))
+                .await
+            {
+                Ok(_) => imported += 1,
+                Err(e) => {
+                    tracing::warn!("恢复表 {} 的行失败 (列: {:?}): {}", table_name, columns, e);
+                    errored += 1;
+                }
+            }
+        }
+
+        report.tables_restored.push(TableRestoreResult {
+            table: String::from(*table_name),
+            rows_imported: imported,
+            rows_skipped: skipped,
+            rows_errored: errored,
+        });
+    }
+
+    txn.commit()
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("提交事务失败: {}", e)))?;
+
+    report.total_imported = report.tables_restored.iter().map(|t| t.rows_imported).sum();
+    report.total_skipped = report.tables_restored.iter().map(|t| t.rows_skipped).sum();
+    report.total_errored = report.tables_restored.iter().map(|t| t.rows_errored).sum();
+
+    Ok(report)
+}
+
 /// Clean up old backups exceeding max_count (keeps most recent)
 pub async fn cleanup_old_backups(db: &DatabaseConnection, max_count: u32) -> Result<u32> {
     let all = list_backups(db).await?;

@@ -369,7 +369,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       .then(() => {
         markPrefetched("compressionSummary", [conversationId]);
       })
-      .catch(() => {});
+      .catch((e: unknown) => { console.warn('[IPC]', e); });
   },
 
   prefetchModelCosts: (_providerId: string, _modelId: string) => {
@@ -383,7 +383,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       .then(() => {
         markPrefetched(type, ["metrics"]);
       })
-      .catch(() => {});
+      .catch((e: unknown) => { console.warn('[IPC]', e); });
   },
 
   predictAndPrefetch: (inputText: string): IntentPrediction[] => {
@@ -401,19 +401,19 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
           // Warm up search provider
           invoke("list_search_providers", {})
             .then(() => markPrefetched(type, ["searchProviders"]))
-            .catch(() => {});
+            .catch((e: unknown) => { console.warn('[IPC]', e); });
           break;
         case "codeGeneration":
           // Pre-warm code executor
           invoke("list_local_tools", {})
             .then(() => markPrefetched(type, ["localTools"]))
-            .catch(() => {});
+            .catch((e: unknown) => { console.warn('[IPC]', e); });
           break;
         case "translation":
           // Pre-warm language models list
           invoke("list_providers", {})
             .then(() => markPrefetched(type, ["providers"]))
-            .catch(() => {});
+            .catch((e: unknown) => { console.warn('[IPC]', e); });
           break;
         default:
           break;

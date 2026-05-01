@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { AttachmentInput } from "@/types";
+import type { AttachmentInput, Message } from "@/types";
 import { create } from "zustand";
 
 interface MultiModelState {
@@ -33,18 +33,46 @@ export const useMultiModelStore = create<MultiModelState>((set) => ({
     content,
     companionModels,
     attachments,
-    searchProviderId,
+    _searchProviderId,
   ) => {
-    set({ loading: true, error: null, pendingCompanionModels: companionModels, multiModelDoneMessageIds: [] });
+    set({
+      loading: true,
+      error: null,
+      pendingCompanionModels: companionModels,
+      multiModelDoneMessageIds: [],
+    });
+
     try {
-      await invoke("send_multi_model_message", {
+      // 步骤 1: 创建用户消息并启动主模型响应
+      const userMessage = await invoke<Message>("send_message", {
         conversationId,
         content,
-        companionModels,
         attachments: attachments ?? [],
-        searchProviderId: searchProviderId ?? null,
+        enabledMcpServerIds: null,
+        thinkingBudget: null,
+        enabledKnowledgeBaseIds: null,
+        enabledMemoryNamespaceIds: null,
       });
-    } catch (e: any) {
+
+      // 步骤 2: 并发启动所有伴随模型响应
+      const companionPromises = companionModels.map((companion) =>
+        invoke("regenerate_with_model", {
+          conversationId,
+          userMessageId: userMessage.id,
+          targetProviderId: companion.providerId,
+          targetModelId: companion.model_id,
+          enabledMcpServerIds: null,
+          thinkingBudget: null,
+          enabledKnowledgeBaseIds: null,
+          enabledMemoryNamespaceIds: null,
+          isCompanion: true,
+        })
+      );
+
+      await Promise.allSettled(companionPromises);
+
+      set({ loading: false });
+    } catch (e: unknown) {
       set({ error: String(e), loading: false });
     }
   },

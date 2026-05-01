@@ -1333,10 +1333,7 @@ fn find_frontmatter_end(content: &str) -> Option<usize> {
 pub async fn get_skill_proposals(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_trajectory::SkillProposal>, String> {
-    let service = state
-        .skill_proposal_service
-        .read()
-        .map_err(|e| e.to_string())?;
+    let service = state.skill_proposal_service.read().await;
     Ok(service.get_proposals())
 }
 
@@ -1356,10 +1353,7 @@ pub async fn create_skill_from_proposal(
     )
     .await?;
     if result.can_create {
-        let mut service = state
-            .skill_proposal_service
-            .write()
-            .map_err(|e| e.to_string())?;
+        let mut service = state.skill_proposal_service.write().await;
         service.clear_proposal(&name);
         Ok(result.message)
     } else {

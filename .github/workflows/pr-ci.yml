@@ -7,12 +7,17 @@ on:
       - develop
   push:
     branches:
-      - '**'
+      - master
+      - develop
     tags-ignore:
       - 'v*.*.*'
       - 'test-v*.*.*'
 
-permissions: write-all
+# 最小权限原则：仅授予各 Job 实际需要的权限
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
 
 env:
   CARGO_INCREMENTAL: 0
@@ -34,8 +39,6 @@ jobs:
         with:
           node-version: '20'
 
-      # 使用npm包替代本地构建的依赖
-
       - name: Install frontend dependencies
         run: npm install
 
@@ -53,8 +56,6 @@ jobs:
       image: rust:1.75
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: master
 
       - name: Setup Rust
         run: |
@@ -87,8 +88,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: master
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -125,7 +124,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
           submodules: recursive
 
       - name: Install Rust

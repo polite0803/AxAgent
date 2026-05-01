@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(cargo check *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Read(//proc/**)",
+      "Read(//tmp/**)",
+      "Bash(grep \"src\\\\\\\\\")",
+      "Bash(grep \"--> src\")",
+      "Bash(sed -i 's/^thiserror = \"1.0\"$/thiserror = { workspace = true }/' crates/agent/Cargo.toml)",
+      "Bash(sed -i 's/^reqwest = { version = \"0.12\", features = \\\\[\"json\"\\\\] }$/reqwest = { workspace = true }/' crates/agent/Cargo.toml)",
+      "Bash(sed -i 's/^reqwest = { version = \"0.12\", features = \\\\[\"json\"\\\\] }$/reqwest = { workspace = true }/' crates/runtime/Cargo.toml)",
+      "Bash(sed -i 's/^thiserror = \"1\"$/thiserror = { workspace = true }/' crates/runtime/Cargo.toml)",
+      "Bash(sed -i 's/^reqwest = { version = \"0.12\", features = \\\\[\"json\", \"stream\", \"socks\", \"rustls-tls\"\\\\] }$/reqwest = { workspace = true, features = [\"stream\", \"socks\", \"rustls-tls\"] }/' crates/providers/Cargo.toml)",
+      "Bash(sed -i 's/^thiserror = \"1\"$/thiserror = { workspace = true }/' crates/providers/Cargo.toml)",
+      "Bash(sed -i 's/^thiserror = \"1\"$/thiserror = { workspace = true }/' crates/trajectory/Cargo.toml)",
+      "Bash(sed -i 's/^reqwest = { version = \"0.12\", features = \\\\[\"json\"\\\\] }$/reqwest = { workspace = true }/' crates/trajectory/Cargo.toml)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --title 全面代码审查与安全修复：异步锁、XSS、CI、依赖统一 --body ' *)",
+      "Bash(where gh *)",
+      "Read(//c/Program Files/GitHub CLI/**)",
+      "Bash(cmd.exe /c \"where gh\")",
+      "Bash(gh auth *)",
+      "mcp__Claude_Preview__preview_start",
+      "Read(//d/OneManager/AxAgent/**)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)",
+      "Bash(cargo fmt *)",
+      "Bash(cargo test *)",
+      "Bash(git ls-remote *)",
+      "Bash(gh api *)",
+      "Bash(cargo clippy *)"
+    ]
+  }
+}

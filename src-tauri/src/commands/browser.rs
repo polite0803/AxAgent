@@ -1,38 +1,40 @@
 use axagent_core::browser_automation::{ExtractedElement, NavigateResult, ScreenshotResult};
+use tauri::State;
 
-#[allow(static_mut_refs)]
-static mut BROWSER_CLIENT: Option<axagent_core::browser_automation::PlaywrightClient> = None;
+use crate::AppState;
 
-#[allow(static_mut_refs)]
-fn get_browser_client(
-) -> Result<&'static mut axagent_core::browser_automation::PlaywrightClient, String> {
-    unsafe {
-        if BROWSER_CLIENT.is_none() {
-            let client = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .map_err(|e| e.to_string())?
-                .block_on(async {
-                    axagent_core::browser_automation::PlaywrightClient::launch().await
-                })
-                .map_err(|e| e.to_string())?;
-            BROWSER_CLIENT = Some(client);
-        }
-        BROWSER_CLIENT
-            .as_mut()
-            .ok_or_else(|| "Browser client not initialized".to_string())
+/// 懒初始化浏览器客户端（如果尚未启动的话）
+/// 从 AppState 管理生命周期，替代原来不安全的 static mut 全局变量
+async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
+    let mut client_guard = state.browser_client.lock().await;
+    if client_guard.is_none() {
+        let client = axagent_core::browser_automation::PlaywrightClient::launch()
+            .await
+            .map_err(|e| e.to_string())?;
+        *client_guard = Some(client);
     }
+    Ok(())
 }
 
 #[tauri::command]
-pub async fn browser_navigate(url: String) -> Result<NavigateResult, String> {
-    let client = get_browser_client()?;
+pub async fn browser_navigate(
+    state: State<'_, AppState>,
+    url: String,
+) -> Result<NavigateResult, String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client.navigate(&url).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn browser_screenshot(full_page: Option<bool>) -> Result<ScreenshotResult, String> {
-    let client = get_browser_client()?;
+pub async fn browser_screenshot(
+    state: State<'_, AppState>,
+    full_page: Option<bool>,
+) -> Result<ScreenshotResult, String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client
         .screenshot(full_page.unwrap_or(false))
         .await
@@ -40,14 +42,22 @@ pub async fn browser_screenshot(full_page: Option<bool>) -> Result<ScreenshotRes
 }
 
 #[tauri::command]
-pub async fn browser_click(selector: String) -> Result<(), String> {
-    let client = get_browser_client()?;
+pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Result<(), String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client.click(&selector).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn browser_fill(selector: String, value: String) -> Result<(), String> {
-    let client = get_browser_client()?;
+pub async fn browser_fill(
+    state: State<'_, AppState>,
+    selector: String,
+    value: String,
+) -> Result<(), String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client
         .fill(&selector, &value)
         .await
@@ -55,8 +65,14 @@ pub async fn browser_fill(selector: String, value: String) -> Result<(), String>
 }
 
 #[tauri::command]
-pub async fn browser_type(selector: String, text: String) -> Result<(), String> {
-    let client = get_browser_client()?;
+pub async fn browser_type(
+    state: State<'_, AppState>,
+    selector: String,
+    text: String,
+) -> Result<(), String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client
         .type_text(&selector, &text)
         .await
@@ -64,8 +80,13 @@ pub async fn browser_type(selector: String, text: String) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub async fn browser_extract_text(selector: String) -> Result<String, String> {
-    let client = get_browser_client()?;
+pub async fn browser_extract_text(
+    state: State<'_, AppState>,
+    selector: String,
+) -> Result<String, String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client
         .extract_text(&selector)
         .await
@@ -73,8 +94,13 @@ pub async fn browser_extract_text(selector: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn browser_extract_all(selector: String) -> Result<Vec<ExtractedElement>, String> {
-    let client = get_browser_client()?;
+pub async fn browser_extract_all(
+    state: State<'_, AppState>,
+    selector: String,
+) -> Result<Vec<ExtractedElement>, String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client
         .extract_all(&selector)
         .await
@@ -82,14 +108,22 @@ pub async fn browser_extract_all(selector: String) -> Result<Vec<ExtractedElemen
 }
 
 #[tauri::command]
-pub async fn browser_get_content() -> Result<String, String> {
-    let client = get_browser_client()?;
+pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client.get_content().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn browser_wait_for(selector: String, timeout: Option<u32>) -> Result<(), String> {
-    let client = get_browser_client()?;
+pub async fn browser_wait_for(
+    state: State<'_, AppState>,
+    selector: String,
+    timeout: Option<u32>,
+) -> Result<(), String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client
         .wait_for(&selector, timeout)
         .await
@@ -97,8 +131,14 @@ pub async fn browser_wait_for(selector: String, timeout: Option<u32>) -> Result<
 }
 
 #[tauri::command]
-pub async fn browser_select(selector: String, value: String) -> Result<(), String> {
-    let client = get_browser_client()?;
+pub async fn browser_select(
+    state: State<'_, AppState>,
+    selector: String,
+    value: String,
+) -> Result<(), String> {
+    ensure_browser_client(&state).await?;
+    let mut guard = state.browser_client.lock().await;
+    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
     client
         .select_option(&selector, &value)
         .await
@@ -106,12 +146,10 @@ pub async fn browser_select(selector: String, value: String) -> Result<(), Strin
 }
 
 #[tauri::command]
-pub async fn browser_close() -> Result<(), String> {
-    #[allow(static_mut_refs)]
-    unsafe {
-        if let Some(mut client) = BROWSER_CLIENT.take() {
-            client.close().await.map_err(|e| e.to_string())?;
-        }
-        Ok(())
+pub async fn browser_close(state: State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.browser_client.lock().await;
+    if let Some(mut client) = guard.take() {
+        client.close().await.map_err(|e| e.to_string())?;
     }
+    Ok(())
 }

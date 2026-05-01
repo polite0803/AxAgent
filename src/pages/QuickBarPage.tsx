@@ -343,8 +343,8 @@ export function QuickBarPage() {
         case "new": await runNewConversation(); break;
         case "continue": break;
         case "model": setShowModelList(true); break;
-        case "settings": window.open("/settings", "_blank"); break;
-        case "gateway": window.open("/gateway", "_blank"); break;
+        case "settings": window.open("/settings", "_blank", "noopener,noreferrer"); break;
+        case "gateway": window.open("/gateway", "_blank", "noopener,noreferrer"); break;
       }
     }
   }, [runNewConversation]);
@@ -373,8 +373,8 @@ export function QuickBarPage() {
       case "files": await runSearch(body); break;
       case "new": await runNewConversation(); break;
       case "model": setShowModelList(true); break;
-      case "settings": window.open("/settings", "_blank"); break;
-      case "gateway": window.open("/gateway", "_blank"); break;
+      case "settings": window.open("/settings", "_blank", "noopener,noreferrer"); break;
+      case "gateway": window.open("/gateway", "_blank", "noopener,noreferrer"); break;
       default: break;
     }
   }, [input, COMMANDS, runChat, runAgent, runUrl, runSearch, runWiki, runCalc, runTranslate, runSummarizeUrl, runCode, runMemorySearch, runNewConversation]);

@@ -35,32 +35,51 @@ pub async fn restore_backup(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
     backup_id: String,
-) -> Result<(), String> {
+    strategy: Option<String>,
+) -> Result<serde_json::Value, String> {
     let manifest = backup::get_backup(&state.sea_db, &backup_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    if manifest.version != "sqlite" {
-        return Err("Only SQLite backups can be restored directly".to_string());
-    }
-
     let backup_path = manifest.file_path.ok_or("Backup file path not available")?;
-    let db_path = state
-        .db_path
-        .strip_prefix("sqlite:")
-        .unwrap_or(&state.db_path);
-    backup::restore_sqlite_backup(&backup_path, db_path)
-        .await
-        .map_err(|e| e.to_string())?;
-    // Remove stale WAL/SHM files so SQLite doesn't replay an incompatible journal on restart
-    let _ = std::fs::remove_file(format!("{}-wal", db_path));
-    let _ = std::fs::remove_file(format!("{}-shm", db_path));
 
-    // Auto-restart to pick up the restored database
-    app.restart();
+    match manifest.version.as_str() {
+        "sqlite" => {
+            let db_path = state
+                .db_path
+                .strip_prefix("sqlite:")
+                .unwrap_or(&state.db_path);
+            backup::restore_sqlite_backup(&backup_path, db_path)
+                .await
+                .map_err(|e| e.to_string())?;
+            // 移除残留的 WAL/SHM 文件，防止 SQLite 在重启后回放不兼容的日志
+            let _ = std::fs::remove_file(format!("{}-wal", db_path));
+            let _ = std::fs::remove_file(format!("{}-shm", db_path));
 
-    #[allow(unreachable_code)]
-    Ok(())
+            // SQLite 恢复后需要重启应用
+            app.restart();
+
+            #[allow(unreachable_code)]
+            Ok(serde_json::json!({ "restarted": true }))
+        }
+        "json" => {
+            let strategy = match strategy.as_deref() {
+                Some("merge") => axagent_core::types::RestoreStrategy::Merge,
+                Some("dry_run") => axagent_core::types::RestoreStrategy::DryRun,
+                _ => axagent_core::types::RestoreStrategy::Overwrite,
+            };
+
+            let report = backup::restore_json_backup(&state.sea_db, &backup_path, &strategy)
+                .await
+                .map_err(|e| e.to_string())?;
+
+            Ok(serde_json::to_value(&report).map_err(|e| e.to_string())?)
+        }
+        other => Err(format!(
+            "不支持的备份格式: {}。仅支持 sqlite 和 json 格式。",
+            other
+        )),
+    }
 }
 
 #[tauri::command]

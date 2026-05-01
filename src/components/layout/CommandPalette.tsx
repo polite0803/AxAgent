@@ -11,7 +11,7 @@ export interface CommandPaletteProps {
   onClose: () => void;
 }
 
-interface Command {
+export interface Command {
   id: string;
   label: string;
   icon: React.ReactNode;
@@ -20,31 +20,80 @@ interface Command {
   action: () => void;
 }
 
+// ─── 动态命令注册表 ───
+const commandRegistry: Command[] = [];
+
+export function registerCommand(cmd: Command) {
+  if (!commandRegistry.find((c) => c.id === cmd.id)) {
+    commandRegistry.push(cmd);
+  }
+}
+
+export function unregisterCommand(id: string) {
+  const idx = commandRegistry.findIndex((c) => c.id === id);
+  if (idx !== -1) commandRegistry.splice(idx, 1);
+}
+
+// ─── 使用频率持久化 ───
+const USE_COUNT_KEY = "axagent:cmd-use-count";
+function loadUseCounts(): Map<string, number> {
+  try {
+    const raw = localStorage.getItem(USE_COUNT_KEY);
+    if (raw) return new Map(JSON.parse(raw));
+  } catch { /* ignore */ }
+  return new Map();
+}
+function saveUseCounts(counts: Map<string, number>) {
+  try {
+    localStorage.setItem(USE_COUNT_KEY, JSON.stringify([...counts]));
+  } catch { /* ignore */ }
+}
+
+// ─── 简易模糊匹配评分 ───
+function fuzzyScore(text: string, query: string): number {
+  const lower = text.toLowerCase();
+  const q = query.toLowerCase();
+  if (lower === q) return 100;
+  if (lower.startsWith(q)) return 80;
+  if (lower.includes(q)) return 50;
+
+  // 字符序列匹配（abc 匹配 "a.*b.*c"）
+  let qi = 0;
+  let score = 0;
+  for (let i = 0; i < lower.length && qi < q.length; i++) {
+    if (lower[i] === q[qi]) {
+      score += 10 - qi * 2; // 越靠前的匹配得分越高
+      qi++;
+    }
+  }
+  return qi === q.length ? score : 0;
+}
+
 export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const [useCounts, setUseCounts] = useState<Map<string, number>>(() => loadUseCounts());
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+
+  // 基础命令 + 注册的动态命令
   const commands = useMemo<Command[]>(() => {
     const nav = t("commandPalette.navigation");
     const actions = t("commandPalette.actions");
     const settings = t("commandPalette.settings");
 
-    return [
+    const builtin: Command[] = [
       {
         id: "go-chat",
         label: t("commandPalette.goToChat"),
         icon: <MessageSquare size={16} color={CHAT_ICON_COLORS.MessageSquare} />,
         category: nav,
-        action: () => {
-          navigate("/");
-          onClose();
-        },
+        action: () => { navigate("/"); onClose(); },
       },
       {
         id: "go-settings",
@@ -52,30 +101,21 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         shortcut: "⌘,",
         category: nav,
-        action: () => {
-          navigate("/settings");
-          onClose();
-        },
+        action: () => { navigate("/settings"); onClose(); },
       },
       {
         id: "go-gateway",
         label: t("commandPalette.goToGateway"),
         icon: <Network size={16} color={CHAT_ICON_COLORS.Network} />,
         category: nav,
-        action: () => {
-          navigate("/gateway");
-          onClose();
-        },
+        action: () => { navigate("/gateway"); onClose(); },
       },
       {
         id: "go-skills",
         label: t("commandPalette.goToSkills"),
         icon: <Sparkles size={16} color={CHAT_ICON_COLORS.Sparkles} />,
         category: nav,
-        action: () => {
-          navigate("/skills");
-          onClose();
-        },
+        action: () => { navigate("/skills"); onClose(); },
       },
       {
         id: "new-conversation",
@@ -83,20 +123,14 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         icon: <Plus size={16} color={CHAT_ICON_COLORS.Plus} />,
         shortcut: "⌘N",
         category: actions,
-        action: () => {
-          navigate("/");
-          onClose();
-        },
+        action: () => { navigate("/"); onClose(); },
       },
       {
         id: "toggle-sidebar",
         label: t("commandPalette.toggleSidebar"),
         icon: <PanelLeftClose size={16} color={CHAT_ICON_COLORS.PanelLeftClose} />,
         category: actions,
-        action: () => {
-          toggleSidebar();
-          onClose();
-        },
+        action: () => { toggleSidebar(); onClose(); },
       },
       {
         id: "search-conversations",
@@ -104,41 +138,49 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         icon: <Search size={16} color={CHAT_ICON_COLORS.Search} />,
         shortcut: "⌘F",
         category: actions,
-        action: () => {
-          navigate("/");
-          onClose();
-        },
+        action: () => { navigate("/"); onClose(); },
       },
       {
         id: "settings-search",
         label: `${t("commandPalette.goToSettings")} → ${t("settings.searchProviders.title")}`,
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         category: settings,
-        action: () => {
-          navigate("/settings");
-          onClose();
-        },
+        action: () => { navigate("/settings"); onClose(); },
       },
       {
         id: "settings-mcp",
         label: `${t("commandPalette.goToSettings")} → ${t("settings.mcpServers.title")}`,
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         category: settings,
-        action: () => {
-          navigate("/settings");
-          onClose();
-        },
+        action: () => { navigate("/settings"); onClose(); },
       },
     ];
+
+    // 合并动态注册的命令（去重）
+    const ids = new Set(builtin.map((c) => c.id));
+    const extra = commandRegistry.filter((c) => !ids.has(c.id));
+    return [...builtin, ...extra];
   }, [t, navigate, setSettingsSection, toggleSidebar, onClose]);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) { return commands; }
-    const q = query.toLowerCase();
-    return commands.filter(
-      (c) => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q),
-    );
-  }, [commands, query]);
+    if (!query.trim()) {
+      // 无搜索时按使用频率降序排列
+      return [...commands].sort((a, b) => {
+        const ua = useCounts.get(a.id) ?? 0;
+        const ub = useCounts.get(b.id) ?? 0;
+        return ub - ua;
+      });
+    }
+    const q = query.trim();
+    const scored = commands
+      .map((c) => ({
+        cmd: c,
+        score: fuzzyScore(c.label, q) + fuzzyScore(c.category, q) * 0.5,
+      }))
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored.map((s) => s.cmd);
+  }, [commands, query, useCounts]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -151,6 +193,17 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
   }, [open]);
 
+  // 执行命令时记录使用次数
+  const executeCommand = useCallback((cmd: Command) => {
+    setUseCounts((prev) => {
+      const next = new Map(prev);
+      next.set(cmd.id, (next.get(cmd.id) ?? 0) + 1);
+      saveUseCounts(next);
+      return next;
+    });
+    cmd.action();
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "ArrowDown") {
@@ -161,10 +214,10 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         setActiveIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
       } else if (e.key === "Enter" && filtered.length > 0) {
         e.preventDefault();
-        filtered[activeIndex]?.action();
+        executeCommand(filtered[activeIndex]);
       }
     },
-    [filtered, activeIndex],
+    [filtered, activeIndex, executeCommand],
   );
 
   // Group commands by category for display
@@ -231,7 +284,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                   return (
                     <List.Item
                       key={cmd.id}
-                      onClick={cmd.action}
+                      onClick={() => executeCommand(cmd)}
                       style={{
                         cursor: "pointer",
                         padding: "8px 16px",
@@ -256,11 +309,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
               />
             </div>
           ))}
-          {filtered.length === 0 && (
-            <div style={{ padding: 24, textAlign: "center" }}>
-              <Typography.Text type="secondary">{t("common.noData")}</Typography.Text>
-            </div>
-          )}
         </div>
       </div>
     </Modal>

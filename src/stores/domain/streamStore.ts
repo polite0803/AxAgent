@@ -10,6 +10,67 @@ export let _unlisten: UnlistenFn | null = null;
  *  (fixes React StrictMode double-effect causing duplicate stream processing) */
 export let _listenerGen = 0;
 
+// ─── 卡住的流看门狗 ───
+
+/** 流超过此时间（毫秒）无更新则视为卡住，自动取消 */
+const STUCK_STREAM_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
+/** 看门狗检查间隔 */
+const WATCHDOG_INTERVAL_MS = 30 * 1000; // 30 秒
+
+let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * 启动卡住的流看门狗。
+ * 定期检查 streamingStartTimestamps，如果某个流超过 STUCK_STREAM_TIMEOUT_MS
+ * 仍未结束，自动取消该流并标记消息为错误状态。
+ */
+export function startStreamWatchdog() {
+  if (_watchdogTimer !== null) return;
+
+  _watchdogTimer = setInterval(() => {
+    const state = useStreamStore.getState();
+    const now = Date.now();
+    const stuckConversationIds: string[] = [];
+
+    for (const [convId, startTime] of Object.entries(state.streamingStartTimestamps)) {
+      if (now - startTime > STUCK_STREAM_TIMEOUT_MS) {
+        stuckConversationIds.push(convId);
+      }
+    }
+
+    for (const convId of stuckConversationIds) {
+      console.warn(
+        `[StreamWatchdog] 流卡住: conversationId=${convId}, 已运行 ${Math.round((now - state.streamingStartTimestamps[convId]) / 1000)}s，自动取消`,
+      );
+
+      // 标记消息为错误
+      const msgId = state.activeStreams[convId];
+      if (msgId && _conversationStoreRef) {
+        _conversationStoreRef.setState((s: any) => ({
+          messages: s.messages.map((m: Message) =>
+            m.id === msgId
+              ? { ...m, content: m.content + "\n\n> ⚠️ 流式响应超时（5分钟无更新），已自动中断", status: "error" as const }
+              : m,
+          ),
+        }));
+      }
+
+      // 取消该流
+      state.cancelCurrentStream(convId);
+    }
+  }, WATCHDOG_INTERVAL_MS);
+}
+
+/**
+ * 停止卡住的流看门狗（应用退出或不再需要时调用）
+ */
+export function stopStreamWatchdog() {
+  if (_watchdogTimer !== null) {
+    clearInterval(_watchdogTimer);
+    _watchdogTimer = null;
+  }
+}
+
 // ─── Stream buffer ───
 
 /** Buffer for streaming content — persists across conversation switches
@@ -70,27 +131,21 @@ export const _pendingConversationRefresh = new Set<string>();
 export const STREAM_UI_FLUSH_INTERVAL_MS = 50;
 export const STREAM_MAX_CHUNK_SIZE = 500;
 
-let _rafId: number | null = null;
-let _needsFlush = false;
+let _flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function scheduleFlush(set: GenericSet<unknown>, get: GenericGet<unknown>) {
-  _needsFlush = true;
-  if (_rafId === null) {
-    _rafId = requestAnimationFrame(() => {
-      _rafId = null;
-      if (_needsFlush) {
-        _needsFlush = false;
-        flushPendingStreamChunk(set as GenericSet<ConversationStoreLike>, get as GenericGet<ConversationStoreLike>);
-      }
-    });
+  if (_flushTimer === null) {
+    _flushTimer = setTimeout(() => {
+      _flushTimer = null;
+      flushPendingStreamChunk(set as GenericSet<ConversationStoreLike>, get as GenericGet<ConversationStoreLike>);
+    }, 0);
   }
 }
 
 export function cancelScheduledFlush() {
-  _needsFlush = false;
-  if (_rafId !== null) {
-    cancelAnimationFrame(_rafId);
-    _rafId = null;
+  if (_flushTimer !== null) {
+    clearTimeout(_flushTimer);
+    _flushTimer = null;
   }
 }
 
@@ -217,6 +272,32 @@ export function resetMultiModelState() {
   _multiModelFirstMessageId = null;
   _userManuallySelectedVersion = false;
   _multiModelDoneResolve = null;
+}
+
+/** 完整重置所有模块级可变状态。仅供测试使用。
+ *
+ * 注意：这些变量故意放在模块级而非 Zustand store 中，
+ * 因为流式处理是性能关键路径（每 50ms 到达一个 chunk），
+ * Zustand 的不可变更新周期会显著增加 CPU 开销。
+ * 当前以 setter/getter 函数封装，resetStreamRuntime 保证测试隔离。 */
+export function resetStreamRuntime() {
+  _unlisten?.();
+  _unlisten = null;
+  _listenerGen = 0;
+  _streamBuffer = null;
+  _orphanedBuffers.clear();
+  _streamPrefix = "";
+  _pendingConversationRefresh.clear();
+  cancelScheduledFlush();
+  _pendingUiChunk = null;
+  if (_streamUiFlushTimer !== null) {
+    clearTimeout(_streamUiFlushTimer);
+    _streamUiFlushTimer = null;
+  }
+  _activeMessageLoadSeq = 0;
+  _messageIndex.clear();
+  _conversationStoreRef = null;
+  resetMultiModelState();
 }
 
 // ─── Generic type for set/get that can update messages ───
@@ -571,11 +652,11 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     // Tell the backend to cancel the stream — fire and forget
     if (isTauri()) {
-      invoke("cancel_stream", { conversationId: activeConvId }).catch(() => {});
+      invoke("cancel_stream", { conversationId: activeConvId }).catch((e: unknown) => { console.warn('[IPC]', e); });
       // Also cancel the agent if in agent mode
       const conv = convRef?.getState().conversations?.find((c: any) => c.id === activeConvId);
       if (conv?.mode === "agent") {
-        invoke("agent_cancel", { request: { conversationId: activeConvId } }).catch(() => {});
+        invoke("agent_cancel", { request: { conversationId: activeConvId } }).catch((e: unknown) => { console.warn('[IPC]', e); });
       }
     }
 

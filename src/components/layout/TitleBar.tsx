@@ -190,7 +190,7 @@ export function TitleBar() {
           }
         }
       })
-      .catch(() => {});
+      .catch((e: unknown) => { console.warn('[IPC]', e); });
 
     invoke<Array<{ createdAt: string }>>("list_backups")
       .then((list) => {
@@ -200,7 +200,7 @@ export function TitleBar() {
           if (!Number.isNaN(d.getTime())) { setLastLocalBackup(d.toLocaleString()); }
         }
       })
-      .catch(() => {});
+      .catch((e: unknown) => { console.warn('[IPC]', e); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backupPopoverOpen]);
 
@@ -334,9 +334,9 @@ export function TitleBar() {
     if (key === "feature") { url = `${GITHUB_REPO}/issues/new?labels=enhancement&template=feature_request.yml`; }
     else if (key === "bug") { url = `${GITHUB_REPO}/issues/new?labels=bug&template=bug_report.yml`; }
     if (isTauri()) {
-      import("@tauri-apps/plugin-opener").then(({ openUrl }) => openUrl(url)).catch(() => window.open(url, "_blank"));
+      import("@tauri-apps/plugin-opener").then(({ openUrl }) => openUrl(url)).catch(() => window.open(url, "_blank", "noopener,noreferrer"));
     } else {
-      window.open(url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 

@@ -5,7 +5,9 @@ on:
     tags:
       - 'v*.*.*'
 
-permissions: write-all
+permissions:
+  contents: write
+  id-token: write
 
 env:
   CARGO_INCREMENTAL: 0
@@ -154,7 +156,7 @@ jobs:
         run: npm install
 
       - name: Build with Tauri
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v0.5
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

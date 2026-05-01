@@ -188,6 +188,12 @@ impl FileAuthorizer {
             return false;
         }
 
+        // 防止符号链接遍历攻击：检查路径本身不是符号链接
+        // canonicalize() 会跟随符号链接，攻击者可创建 legit_dir -> /etc/passwd 绕过
+        if path.is_symlink() {
+            return false;
+        }
+
         let normalized = std::fs::canonicalize(path).ok();
         if let Some(normalized) = normalized {
             let normalized_str = normalized.to_string_lossy();
