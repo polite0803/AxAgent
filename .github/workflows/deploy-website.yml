@@ -2,7 +2,7 @@ name: Deploy Website to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
     paths:
       - "website/**"
 
@@ -29,22 +29,19 @@ jobs:
         with:
           ref: main
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: website/pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: website/package-lock.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
         working-directory: website
 
       - name: Build VitePress site
-        run: pnpm build
+        run: npm run build
         working-directory: website
 
       - name: Setup Pages
