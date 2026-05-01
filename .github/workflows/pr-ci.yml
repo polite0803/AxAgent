@@ -57,17 +57,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Rust
+        run: |
+          rustup default stable
+          rustup component add rustfmt clippy
+
+      - name: Show directory structure
+        run: |
+          pwd
+          ls -la
+          ls -la src-tauri/ || echo "src-tauri not found"
+
       - name: Install system dependencies
         run: apt-get update && apt-get install -y libglib2.0-dev libgtk-3-dev libsoup-3.0-dev protobuf-compiler
 
       - name: Check formatting
         run: |
-          rustup component add rustfmt
           cargo fmt --check --manifest-path src-tauri/Cargo.toml
 
       - name: Clippy
         run: |
-          rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings --manifest-path src-tauri/Cargo.toml
 
       - name: Check build
