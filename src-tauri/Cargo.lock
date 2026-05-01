@@ -8589,13 +8589,14 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-mcp-bridge"
-version = "0.2.2"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7267a192597eae383e37b23ba3de787e0261288f54ab65feb792f09383ec6719"
+checksum = "e711daea388cdb3c4219cba25ed93ea1013be8237bc795341e82369909bbbf4f"
 dependencies = [
  "base64 0.22.1",
  "block2 0.5.1",
  "futures-util",
+ "image",
  "jni",
  "objc2 0.5.2",
  "objc2-app-kit 0.2.2",
