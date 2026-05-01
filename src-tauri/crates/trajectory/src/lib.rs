@@ -75,11 +75,11 @@ pub use compactor::{
     verify_compression_integrity, IntegrityCheck, IntegrityCheckResult, MessageRecord,
     SessionCompactor,
 };
-pub use dream_consolidation::{
-    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState,
-    DreamConsolidator, DreamEventEmitter,
-};
 pub use context::*;
+pub use dream_consolidation::{
+    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamConsolidator,
+    DreamEventEmitter,
+};
 pub use fts5::*;
 pub use hooks::*;
 pub use insight::*;

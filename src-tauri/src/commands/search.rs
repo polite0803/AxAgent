@@ -17,12 +17,14 @@ pub async fn list_search_providers(
     Ok(providers
         .into_iter()
         .filter(|p| p.provider_type == "search")
-        .map(|p| serde_json::json!({
-            "id": p.id,
-            "name": p.name,
-            "provider_type": p.provider_type,
-            "api_host": p.api_host,
-        }))
+        .map(|p| {
+            serde_json::json!({
+                "id": p.id,
+                "name": p.name,
+                "provider_type": p.provider_type,
+                "api_host": p.api_host,
+            })
+        })
         .collect())
 }
 

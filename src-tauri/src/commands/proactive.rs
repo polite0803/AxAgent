@@ -494,7 +494,10 @@ pub async fn proactive_prefetch(
     let start = std::time::Instant::now();
 
     for pred in &predictions {
-        let intent = pred.get("intent").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let intent = pred
+            .get("intent")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
         let id = pred.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
         let prefetched = matches!(intent, "code_completion" | "file_access" | "search");
         results.push(serde_json::json!({

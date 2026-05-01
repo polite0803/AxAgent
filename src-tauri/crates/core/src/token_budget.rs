@@ -54,8 +54,7 @@ impl TokenBudgetTracker {
 
     /// 记录一轮新的 token 消耗（不计入预算检查，仅更新内部状态）。
     pub fn record_tokens(&mut self, global_turn_tokens: u64) {
-        self.last_delta_tokens =
-            global_turn_tokens.saturating_sub(self.last_global_turn_tokens);
+        self.last_delta_tokens = global_turn_tokens.saturating_sub(self.last_global_turn_tokens);
         self.last_global_turn_tokens = global_turn_tokens;
     }
 }
@@ -107,11 +106,7 @@ impl TokenBudgetTracker {
     /// 2. 检测收益递减（连续 3+ 次 continuation 且 delta < 500 tokens）→ 停止
     /// 3. 消耗 < 90% 预算 → 继续
     /// 4. 消耗 >= 90% 预算 → 停止
-    pub fn check(
-        &mut self,
-        budget: Option<u64>,
-        global_turn_tokens: u64,
-    ) -> TokenBudgetDecision {
+    pub fn check(&mut self, budget: Option<u64>, global_turn_tokens: u64) -> TokenBudgetDecision {
         let Some(budget) = budget else {
             return TokenBudgetDecision::Stop {
                 completion_event: None,
@@ -134,9 +129,7 @@ impl TokenBudgetTracker {
             && self.last_delta_tokens < DIMINISHING_DELTA_THRESHOLD;
 
         // 未达到阈值且非递减 → 继续
-        if !is_diminishing
-            && (turn_tokens as f64) < budget as f64 * COMPLETION_THRESHOLD
-        {
+        if !is_diminishing && (turn_tokens as f64) < budget as f64 * COMPLETION_THRESHOLD {
             self.continuation_count += 1;
             self.last_delta_tokens = delta;
             self.last_global_turn_tokens = global_turn_tokens;
@@ -191,14 +184,24 @@ mod tests {
     fn test_no_budget_returns_stop() {
         let mut tracker = TokenBudgetTracker::new();
         let decision = tracker.check(None, 100);
-        assert!(matches!(decision, TokenBudgetDecision::Stop { completion_event: None }));
+        assert!(matches!(
+            decision,
+            TokenBudgetDecision::Stop {
+                completion_event: None
+            }
+        ));
     }
 
     #[test]
     fn test_zero_budget_returns_stop() {
         let mut tracker = TokenBudgetTracker::new();
         let decision = tracker.check(Some(0), 0);
-        assert!(matches!(decision, TokenBudgetDecision::Stop { completion_event: None }));
+        assert!(matches!(
+            decision,
+            TokenBudgetDecision::Stop {
+                completion_event: None
+            }
+        ));
     }
 
     #[test]
@@ -218,7 +221,10 @@ mod tests {
         // 95_000 tokens out of 100_000 budget = 95%, above 90%
         let decision = tracker.check(Some(100_000), 95_000);
         assert!(matches!(decision, TokenBudgetDecision::Stop { .. }));
-        if let TokenBudgetDecision::Stop { completion_event: Some(event) } = decision {
+        if let TokenBudgetDecision::Stop {
+            completion_event: Some(event),
+        } = decision
+        {
             assert_eq!(event.pct_used, 95);
             assert!(!event.diminishing_returns);
         }
@@ -245,9 +251,15 @@ mod tests {
         // continuation_count=3 >= 3, delta < 500, last_delta < 500 → diminishing!
         let decision4 = tracker.check(Some(100_000), 5_600);
         assert!(
-            matches!(decision4, TokenBudgetDecision::Stop {
-                completion_event: Some(BudgetCompletionEvent { diminishing_returns: true, .. })
-            }),
+            matches!(
+                decision4,
+                TokenBudgetDecision::Stop {
+                    completion_event: Some(BudgetCompletionEvent {
+                        diminishing_returns: true,
+                        ..
+                    })
+                }
+            ),
             "应该在连续 3 次 continuation 后（第 4 次调用）检测到收益递减"
         );
     }

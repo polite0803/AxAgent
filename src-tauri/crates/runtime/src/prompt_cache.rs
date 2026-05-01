@@ -304,7 +304,8 @@ impl PromptCache {
         let expected = state.expected_cache_read_tokens;
         // 仅当显式调用了 invalidate() 且不是新建状态时，才标记为"主动失效"
         // cache_valid 在新建时默认为 false，但这不代表我们主动失效了缓存
-        let was_explicitly_invalidated = state.last_invalidation_reason.is_some() && !state.cache_valid;
+        let was_explicitly_invalidated =
+            state.last_invalidation_reason.is_some() && !state.cache_valid;
         let reason = state.last_invalidation_reason.clone();
 
         let event = CacheReadEvent {
@@ -388,8 +389,7 @@ impl PromptCache {
         let system_tokens = (system_prompt.len() / 4) as u64;
         let tools_chars: usize = tool_names.iter().map(|n| n.len() + 10).sum(); // +10 for JSON overhead
         let tools_tokens = (tools_chars / 3) as u64;
-        let messages_tokens =
-            (prefix_message_count * avg_chars_per_message / 4) as u64;
+        let messages_tokens = (prefix_message_count * avg_chars_per_message / 4) as u64;
 
         system_tokens + tools_tokens + messages_tokens
     }
@@ -538,10 +538,10 @@ mod cache_break_tests {
         let cache = PromptCache::new();
         let tokens = cache
             .estimate_cacheable_tokens(
-                "You are a helpful assistant.", // system prompt
+                "You are a helpful assistant.",                       // system prompt
                 &["read_file".to_string(), "write_file".to_string()], // tools
-                5,       // prefix messages
-                500,     // avg chars per message
+                5,                                                    // prefix messages
+                500,                                                  // avg chars per message
             )
             .await;
 

@@ -90,10 +90,7 @@ pub fn evaluate_compact_threshold(
 ///
 /// 越接近上下文窗口限制，配置越激进（保留更少的最近消息）。
 #[must_use]
-pub fn adaptive_compaction_config(
-    session: &Session,
-    effective_window: u64,
-) -> CompactionConfig {
+pub fn adaptive_compaction_config(session: &Session, effective_window: u64) -> CompactionConfig {
     crate::compact_thresholds::recommended_compaction_config(session, effective_window)
 }
 
@@ -117,10 +114,7 @@ pub fn smart_compact(
     // 尝试会话记忆压缩
     let sm_config = crate::session_memory_compact::SessionMemoryCompactConfig::default();
     if let Some(sm_result) = crate::session_memory_compact::try_session_memory_compact(
-        session,
-        memories,
-        &sm_config,
-        config,
+        session, memories, &sm_config, config,
     ) {
         return crate::session_memory_compact::to_compaction_result(&sm_result, session);
     }

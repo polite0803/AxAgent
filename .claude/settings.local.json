@@ -35,7 +35,8 @@
       "Bash(gh api *)",
       "Bash(cargo clippy *)",
       "Bash(set RUSTC_WORKSPACE_WRAPPER=)",
-      "Bash(findstr /n \"invoke\" \"D:\\\\OneManager\\\\AxAgent\\\\src\\\\stores\\\\feature\\\\llmWikiStore.ts\")"
+      "Bash(findstr /n \"invoke\" \"D:\\\\OneManager\\\\AxAgent\\\\src\\\\stores\\\\feature\\\\llmWikiStore.ts\")",
+      "Bash(git tag *)"
     ]
   }
 }

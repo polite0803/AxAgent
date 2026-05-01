@@ -251,7 +251,7 @@ impl DreamConsolidator {
 
         // 检查锁是否可用（非阻塞检查）
         match self.consolidation_lock.try_lock() {
-            Ok(_) => true, // 锁可用，可以运行
+            Ok(_) => true,   // 锁可用，可以运行
             Err(_) => false, // 锁被占用，已有巩固在运行
         }
     }

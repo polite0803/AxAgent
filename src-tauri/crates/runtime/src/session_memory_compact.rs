@@ -117,8 +117,7 @@ pub fn try_session_memory_compact(
     // 调整索引导避免割裂 tool_use/tool_result 配对
     let adjusted_start = adjust_index_to_preserve_pairs(&session.messages, start_index);
 
-    let messages_to_keep: Vec<ConversationMessage> =
-        session.messages[adjusted_start..].to_vec();
+    let messages_to_keep: Vec<ConversationMessage> = session.messages[adjusted_start..].to_vec();
 
     // 估算压缩后的 token 数
     let post_compact_tokens = messages_to_keep
@@ -239,7 +238,8 @@ fn compute_compact_start_index(
         let msg_tokens = crate::compact::estimate_message_tokens(msg) as u64;
 
         // 检查是否超过 max
-        if accumulated_tokens + msg_tokens > max_tokens && text_block_messages >= min_text_block_messages
+        if accumulated_tokens + msg_tokens > max_tokens
+            && text_block_messages >= min_text_block_messages
         {
             keep_from = i + 1;
             break;
@@ -248,7 +248,11 @@ fn compute_compact_start_index(
         accumulated_tokens += msg_tokens;
 
         // 检查文本块
-        if msg.blocks.iter().any(|b| matches!(b, ContentBlock::Text { .. })) {
+        if msg
+            .blocks
+            .iter()
+            .any(|b| matches!(b, ContentBlock::Text { .. }))
+        {
             text_block_messages += 1;
         }
 
@@ -269,10 +273,7 @@ fn compute_compact_start_index(
 /// 如果在边界处第一条保留消息是 tool_result 但其前一条消息没有 tool_use，
 /// 向下调整边界以包含配对的 tool_use 消息。这避免在 OpenAI 兼容 API 上产生
 /// 孤立的 'tool' 角色消息（会导致 400 错误）。
-fn adjust_index_to_preserve_pairs(
-    messages: &[ConversationMessage],
-    start_index: usize,
-) -> usize {
+fn adjust_index_to_preserve_pairs(messages: &[ConversationMessage], start_index: usize) -> usize {
     if start_index == 0 || start_index >= messages.len() {
         return start_index;
     }
@@ -392,9 +393,9 @@ mod tests {
                     .unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![
-                        ContentBlock::Text { text },
-                    ]))
+                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
                     .unwrap();
             }
         }
@@ -421,12 +422,8 @@ mod tests {
     fn test_no_memories_returns_none() {
         let session = make_test_session(20);
         let config = SessionMemoryCompactConfig::default();
-        let result = try_session_memory_compact(
-            &session,
-            &[],
-            &config,
-            CompactionConfig::default(),
-        );
+        let result =
+            try_session_memory_compact(&session, &[], &config, CompactionConfig::default());
         assert!(result.is_none());
     }
 

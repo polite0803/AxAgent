@@ -228,7 +228,7 @@ pub use session::{
     SessionFork, SessionPromptEntry,
 };
 pub use session_memory_compact::{
-    try_session_memory_compact, to_compaction_result, SessionMemoryCompactConfig,
+    to_compaction_result, try_session_memory_compact, SessionMemoryCompactConfig,
     SessionMemoryCompactResult, StructuredMemory,
 };
 pub use session_search::{

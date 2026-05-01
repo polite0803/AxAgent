@@ -201,10 +201,7 @@ pub fn should_reactive_compact(session: &Session, effective_window: u64) -> bool
 /// 获取推荐的压缩配置，基于当前阈值状态。
 ///
 /// 越接近硬阻止限制，配置越激进。
-pub fn recommended_compaction_config(
-    session: &Session,
-    effective_window: u64,
-) -> CompactionConfig {
+pub fn recommended_compaction_config(session: &Session, effective_window: u64) -> CompactionConfig {
     let state = CompactThresholdState::compute(session, effective_window);
 
     if state.is_at_blocking_limit {
@@ -250,10 +247,11 @@ mod tests {
                     .push_message(ConversationMessage::user_text(&text))
                     .unwrap();
             } else {
-                session.push_message(ConversationMessage::assistant(vec![
-                    ContentBlock::Text { text },
-                ]))
-                .unwrap();
+                session
+                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
+                    .unwrap();
             }
         }
         session

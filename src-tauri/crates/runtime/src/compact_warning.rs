@@ -289,8 +289,7 @@ mod tests {
 
     #[test]
     fn test_ttl_expiry() {
-        let mut state = CompactWarningState::new()
-            .with_ttl(0); // 立即过期
+        let mut state = CompactWarningState::new().with_ttl(0); // 立即过期
         state.suppress();
         state.check_expiry();
         assert!(!state.suppressed);

@@ -769,7 +769,11 @@ impl AgentOrchestrator {
                         "task": task_desc,
                         "status": "dispatched"
                     });
-                    (wid.clone(), tid.clone(), Ok::<serde_json::Value, String>(result))
+                    (
+                        wid.clone(),
+                        tid.clone(),
+                        Ok::<serde_json::Value, String>(result),
+                    )
                 });
 
                 handles.push((agent_id, task_id, handle));
@@ -788,11 +792,16 @@ impl AgentOrchestrator {
 
                         let duration = {
                             let agents = self.active_agents.read().await;
-                            agents.get(&worker_id).and_then(|a| {
-                                a.completed_at.and_then(|end| {
-                                    a.started_at.map(|start| end.duration_since(start).as_millis() as u64)
+                            agents
+                                .get(&worker_id)
+                                .and_then(|a| {
+                                    a.completed_at.and_then(|end| {
+                                        a.started_at.map(|start| {
+                                            end.duration_since(start).as_millis() as u64
+                                        })
+                                    })
                                 })
-                            }).unwrap_or(0)
+                                .unwrap_or(0)
                         };
 
                         // 发射 worker-progress (进度更新)

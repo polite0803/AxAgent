@@ -205,11 +205,7 @@ impl WorkerResult {
             task_id: task_id.to_string(),
             status: WorkerStatus::Completed,
             output: Some(output.to_string()),
-            messages: vec![WorkerMessage::completion(
-                worker_id,
-                task_id,
-                output,
-            )],
+            messages: vec![WorkerMessage::completion(worker_id, task_id, output)],
             duration_ms,
         }
     }

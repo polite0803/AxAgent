@@ -16,9 +16,7 @@ pub enum ReactiveCompactResult {
         trigger: ReactiveTrigger,
     },
     /// 压缩失败，附带失败原因
-    Failed {
-        reason: String,
-    },
+    Failed { reason: String },
     /// 压缩被跳过（不适用或已禁用）
     Skipped,
 }
@@ -107,10 +105,7 @@ pub fn try_reactive_compact(
         };
     }
 
-    ReactiveCompactResult::Compacted {
-        result,
-        trigger,
-    }
+    ReactiveCompactResult::Compacted { result, trigger }
 }
 
 /// 从 API 错误消息中检测是否需要响应式压缩。
@@ -162,10 +157,11 @@ mod tests {
                     .push_message(ConversationMessage::user_text(&text))
                     .unwrap();
             } else {
-                session.push_message(ConversationMessage::assistant(vec![
-                    ContentBlock::Text { text },
-                ]))
-                .unwrap();
+                session
+                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
+                    .unwrap();
             }
         }
         session
@@ -190,10 +186,7 @@ mod tests {
             CompactionConfig::default(),
             ReactiveTrigger::PromptTooLong,
         );
-        assert!(matches!(
-            result,
-            ReactiveCompactResult::Compacted { .. }
-        ));
+        assert!(matches!(result, ReactiveCompactResult::Compacted { .. }));
         if let ReactiveCompactResult::Compacted { result, .. } = result {
             assert!(result.removed_message_count > 0);
         }
@@ -201,7 +194,9 @@ mod tests {
 
     #[test]
     fn test_context_overflow_detection() {
-        assert!(is_context_overflow_error("prompt_too_long: input exceeds maximum length"));
+        assert!(is_context_overflow_error(
+            "prompt_too_long: input exceeds maximum length"
+        ));
         assert!(is_context_overflow_error("context_length_exceeded error"));
         assert!(is_context_overflow_error("exceeded maximum context length"));
         assert!(!is_context_overflow_error("network timeout"));

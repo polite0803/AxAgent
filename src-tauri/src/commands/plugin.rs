@@ -11,9 +11,7 @@ pub fn list_plugin_tools(plugin_id: String) -> Result<Vec<serde_json::Value>, St
 
 /// 启用插件（持久化到 settings 表）
 #[command]
-pub async fn plugin_enable(
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn plugin_enable(plugin_id: String) -> Result<(), String> {
     tracing::info!("[plugin] enable requested: {}", plugin_id);
     // 插件实际启用由 plugin_hooks 系统在下一次 agent 会话中生效
     Ok(())
@@ -21,27 +19,21 @@ pub async fn plugin_enable(
 
 /// 禁用插件
 #[command]
-pub async fn plugin_disable(
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn plugin_disable(plugin_id: String) -> Result<(), String> {
     tracing::info!("[plugin] disable requested: {}", plugin_id);
     Ok(())
 }
 
 /// 安装插件
 #[command]
-pub async fn plugin_install(
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn plugin_install(plugin_id: String) -> Result<(), String> {
     tracing::info!("[plugin] install requested: {}", plugin_id);
     Ok(())
 }
 
 /// 卸载插件
 #[command]
-pub async fn plugin_uninstall(
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn plugin_uninstall(plugin_id: String) -> Result<(), String> {
     tracing::info!("[plugin] uninstall requested: {}", plugin_id);
     Ok(())
 }

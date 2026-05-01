@@ -189,19 +189,16 @@ impl ReActEngine {
                     // Token 预算检查：防止无效循环耗尽上下文窗口
                     if self.config.token_budget_enabled {
                         let estimated_tokens = estimate_chain_tokens(&chain);
-                        let decision = self.token_budget.check(
-                            self.config.token_budget_limit,
-                            estimated_tokens,
-                        );
+                        let decision = self
+                            .token_budget
+                            .check(self.config.token_budget_limit, estimated_tokens);
 
                         match decision {
                             TokenBudgetDecision::Continue { nudge_message, .. } => {
                                 // 在接近预算上限时向链中添加提示
                                 if context.iteration > 0 && context.iteration % 5 == 0 {
-                                    let step = ThoughtStep::new(
-                                        ReasoningState::Reflecting,
-                                        nudge_message,
-                                    );
+                                    let step =
+                                        ThoughtStep::new(ReasoningState::Reflecting, nudge_message);
                                     chain.add_step(step);
                                 }
                             }

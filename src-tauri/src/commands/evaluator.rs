@@ -1,6 +1,6 @@
 use axagent_agent::evaluator::{
-    Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset,
-    DatasetLoader, DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
+    Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
+    DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
 use std::sync::Mutex;
 use tauri::command;

@@ -5001,7 +5001,8 @@ pub fn classify_route(request: ClassifyRouteRequest) -> crate::smart_router::Rou
 }
 
 /// 前端 SteerInput 推送方向指令。暂存供 agent_query 注入。
-static STEER_QUEUE: std::sync::OnceLock<tokio::sync::Mutex<Vec<String>>> = std::sync::OnceLock::new();
+static STEER_QUEUE: std::sync::OnceLock<tokio::sync::Mutex<Vec<String>>> =
+    std::sync::OnceLock::new();
 
 fn steer_queue() -> &'static tokio::sync::Mutex<Vec<String>> {
     STEER_QUEUE.get_or_init(|| tokio::sync::Mutex::new(Vec::new()))
