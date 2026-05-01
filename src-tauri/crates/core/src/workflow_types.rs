@@ -436,6 +436,29 @@ pub struct VectorRetrieveNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationNodeConfig {
+    pub assertions: Vec<ValidationAssertion>,
+    pub on_fail: String,
+    pub max_retries: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationAssertion {
+    #[serde(rename = "type")]
+    pub assertion_type: String,
+    pub expected: Option<String>,
+    pub actual: Option<String>,
+    pub expression: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: ValidationNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndNodeConfig {
     pub output_var: Option<String>,
 }
@@ -448,7 +471,7 @@ pub struct EndNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum WorkflowNode {
     Trigger(TriggerNode),
     AtomicSkill(AtomicSkillNode),
@@ -459,6 +482,7 @@ pub enum WorkflowNode {
     Loop(LoopNode),
     Merge(MergeNode),
     Delay(DelayNode),
+    Validation(ValidationNode),
     SubWorkflow(SubWorkflowNode),
     DocumentParser(DocumentParserNode),
     VectorRetrieve(VectorRetrieveNode),

@@ -263,6 +263,8 @@ export interface AtomicSkillNodeConfig {
   skill_id?: string;
   skill_name?: string;
   entry_type?: string;
+  entry_ref?: string;
+  category?: string;
   input_mapping?: Record<string, string>;
   output_var?: string;
 }

@@ -4106,15 +4106,23 @@ pub struct SimilarWorkflow {
 
 const SIMILARITY_THRESHOLD: f64 = 0.8;
 
-/// Extract skill_ids from nodes
+/// Extract skill_ids from nodes.
+/// Checks both `config.skill_id` (frontend AtomicSkillNode format) and
+/// `data.skill_id` (legacy format) paths.
 fn extract_skill_ids_from_nodes(nodes: &[serde_json::Value]) -> Vec<String> {
     let mut skill_ids = Vec::new();
     for node in nodes {
-        if let Some(skill_id) = node
+        // Check modern format: node.config.skill_id
+        let from_config = node
+            .get("config")
+            .and_then(|c| c.get("skill_id"))
+            .and_then(|s| s.as_str());
+        // Check legacy format: node.data.skill_id
+        let from_data = node
             .get("data")
             .and_then(|d| d.get("skill_id"))
-            .and_then(|s| s.as_str())
-        {
+            .and_then(|s| s.as_str());
+        if let Some(skill_id) = from_config.or(from_data) {
             if !skill_ids.contains(&skill_id.to_string()) {
                 skill_ids.push(skill_id.to_string());
             }

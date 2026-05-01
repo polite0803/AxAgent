@@ -299,13 +299,21 @@ pub async fn get_template_by_version(
     Ok(template.map(WorkflowTemplateResponse::from))
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ValidateWorkflowInput {
+    pub nodes: Vec<WorkflowNode>,
+    pub edges: Vec<WorkflowEdge>,
+}
+
 #[allow(clippy::unnecessary_filter_map)]
 #[tauri::command]
 pub async fn validate_workflow_template(
     _state: State<'_, AppState>,
-    nodes: Vec<WorkflowNode>,
-    edges: Vec<WorkflowEdge>,
+    input: ValidateWorkflowInput,
 ) -> Result<ValidationResult, String> {
+    let nodes = input.nodes;
+    let edges = input.edges;
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
     let node_ids: std::collections::HashSet<String> = nodes
@@ -320,6 +328,7 @@ pub async fn validate_workflow_template(
             WorkflowNode::Loop(t) => Some(t.base.id.clone()),
             WorkflowNode::Merge(t) => Some(t.base.id.clone()),
             WorkflowNode::Delay(t) => Some(t.base.id.clone()),
+            WorkflowNode::Validation(t) => Some(t.base.id.clone()),
             WorkflowNode::Tool(t) => Some(t.base.id.clone()),
             WorkflowNode::Code(t) => Some(t.base.id.clone()),
             WorkflowNode::SubWorkflow(t) => Some(t.base.id.clone()),

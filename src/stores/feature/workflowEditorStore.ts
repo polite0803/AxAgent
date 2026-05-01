@@ -1046,10 +1046,17 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           throw new Error("No skill executions found in this conversation");
         }
 
+        // D7: runtime validation — verify nodes have required 'type' and 'id' fields
+        const validNodes = response.nodes.filter((n: any) => n?.type && n?.id) as WorkflowNode[];
+        const validEdges = response.edges.filter((e: any) => e?.source && e?.target) as WorkflowEdge[];
+        if (validNodes.length === 0) {
+          throw new Error("Workflow preview contains no valid nodes");
+        }
+
         set((state) => {
           state.importedWorkflowData = {
-            nodes: response.nodes as WorkflowNode[],
-            edges: response.edges as WorkflowEdge[],
+            nodes: validNodes,
+            edges: validEdges,
             name: `Workflow from Conversation`,
             description: `Converted from conversation with ${response.skill_count} skill(s)`,
             isDecompositionWorkflow: true,

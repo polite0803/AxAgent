@@ -3,7 +3,7 @@ use crate::builtin_tools_registry::{
 };
 use crate::command_validator::CommandValidator;
 use crate::entity::{
-    knowledge_entities, knowledge_flows, knowledge_interfaces,
+    knowledge_documents, knowledge_entities, knowledge_flows, knowledge_interfaces,
     memory_items, memory_namespaces,
 };
 use crate::error::{AxAgentError, Result};
@@ -4348,17 +4348,10 @@ async fn add_knowledge_document_tool(
         });
     }
 
-    let db_path = match get_global_db_path() {
-        Some(p) => p,
-        None => {
-            return Ok(McpToolResult {
-                content: "Error: database not initialized".to_string(),
-                is_error: true,
-            });
-        },
+    let db = match sea_db() {
+        Ok(db) => db,
+        Err(e) => return Ok(McpToolResult { content: format!("Error: {}", e), is_error: true }),
     };
-
-    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
 
     let temp_dir = std::env::temp_dir();
     let doc_id = generate_uuid();
@@ -4374,47 +4367,33 @@ async fn add_knowledge_document_tool(
     let id = generate_uuid();
     let now = current_timestamp();
     let file_path_str = file_path.to_string_lossy().to_string();
-    let content_size = content.len() as i64;
 
-    match rusqlite::Connection::open(db_file) {
-        Ok(conn) => {
-            let result = conn.execute(
-                "INSERT INTO knowledge_documents (id, knowledge_base_id, title, source_path, mime_type, size_bytes, indexing_status, doc_type, index_error, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', 'extracted', NULL, ?7, ?8)",
-                rusqlite::params![
-                    id,
-                    kb_id,
-                    title,
-                    file_path_str,
-                    "text/markdown",
-                    content_size,
-                    now,
-                    now
-                ],
-            );
+    let am = knowledge_documents::ActiveModel {
+        id: Set(id.clone()),
+        knowledge_base_id: Set(kb_id.to_string()),
+        title: Set(title.to_string()),
+        source_path: Set(file_path_str),
+        mime_type: Set("text/markdown".to_string()),
+        size_bytes: Set(content.len() as i64),
+        indexing_status: Set("pending".to_string()),
+        doc_type: Set("extracted".to_string()),
+        index_error: Set(None),
+        source_conversation_id: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
 
-            let _ = std::fs::remove_file(&file_path);
+    let _ = std::fs::remove_file(&file_path);
 
-            match result {
-                Ok(_) => Ok(McpToolResult {
-                    content: format!(
-                        "Added knowledge document '{}' (id: {}) to knowledge base '{}'",
-                        title, id, kb_id
-                    ),
-                    is_error: false,
-                }),
-                Err(e) => Ok(McpToolResult {
-                    content: format!("Error creating knowledge document: {}", e),
-                    is_error: true,
-                }),
-            }
-        },
-        Err(e) => {
-            let _ = std::fs::remove_file(&file_path);
-            Ok(McpToolResult {
-                content: format!("Error opening database: {}", e),
-                is_error: true,
-            })
-        },
+    match am.insert(db.as_ref()).await {
+        Ok(_) => Ok(McpToolResult {
+            content: format!("Added knowledge document '{}' (id: {}) to knowledge base '{}'", title, id, kb_id),
+            is_error: false,
+        }),
+        Err(e) => Ok(McpToolResult {
+            content: format!("Error creating knowledge document: {}", e),
+            is_error: true,
+        }),
     }
 }
 

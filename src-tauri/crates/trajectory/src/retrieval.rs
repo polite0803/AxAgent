@@ -354,6 +354,9 @@ impl CrossSessionRetriever {
 
 impl Default for CrossSessionRetriever {
     fn default() -> Self {
-        Self::new(Arc::new(TrajectoryStorage::new().unwrap()))
+        // 使用内存模式（无持久化存储）
+        Self::new(Arc::new(TrajectoryStorage::new(
+            std::sync::Arc::new(sea_orm::DatabaseConnection::default()),
+        )))
     }
 }

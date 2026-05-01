@@ -15,6 +15,8 @@ pub struct Model {
     pub doc_type: String,
     pub index_error: Option<String>,
     pub source_conversation_id: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

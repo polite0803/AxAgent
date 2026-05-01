@@ -2,6 +2,7 @@ use sea_orm::*;
 use sea_query::OnConflict;
 
 use crate::entity::workflow_template;
+use crate::entity::workflow_template_version;
 use crate::error::Result;
 use crate::workflow_types::{
     ErrorConfig, JsonSchema, TriggerConfig, Variable, WorkflowEdge, WorkflowNode,
@@ -88,6 +89,29 @@ pub async fn update_workflow_template(
     let template = workflow_template::Entity::find_by_id(id).one(db).await?;
 
     if let Some(t) = template {
+        // D9: save old version as a snapshot before updating
+        let version_snapshot = workflow_template_version::ActiveModel {
+            id: Set(format!("{}_v{}", t.id, t.version)),
+            template_id: Set(t.id.clone()),
+            name: Set(t.name.clone()),
+            description: Set(t.description.clone()),
+            icon: Set(t.icon.clone()),
+            tags: Set(t.tags.clone()),
+            version: Set(t.version),
+            is_preset: Set(t.is_preset),
+            is_editable: Set(t.is_editable),
+            is_public: Set(t.is_public),
+            trigger_config: Set(t.trigger_config.clone()),
+            nodes: Set(t.nodes.clone()),
+            edges: Set(t.edges.clone()),
+            input_schema: Set(t.input_schema.clone()),
+            output_schema: Set(t.output_schema.clone()),
+            variables: Set(t.variables.clone()),
+            error_config: Set(t.error_config.clone()),
+            created_at: Set(chrono::Utc::now().timestamp_millis()),
+        };
+        version_snapshot.insert(db).await?;
+
         let mut active_model: workflow_template::ActiveModel = t.clone().into();
         active_model.name = Set(name);
         active_model.description = Set(description);
@@ -128,10 +152,24 @@ pub async fn count_workflow_templates(db: &DatabaseConnection) -> Result<i64> {
 
 pub async fn get_template_versions(db: &DatabaseConnection, id: &str) -> Result<Vec<i32>> {
     let template = workflow_template::Entity::find_by_id(id).one(db).await?;
-    match template {
-        Some(t) => Ok(vec![t.version]),
-        None => Ok(vec![]),
+    let current_version = template.as_ref().map(|t| t.version);
+
+    // Query version history table for all previous versions
+    let mut versions: Vec<i32> = workflow_template_version::Entity::find()
+        .filter(workflow_template_version::Column::TemplateId.eq(id))
+        .all(db)
+        .await?
+        .iter()
+        .map(|v| v.version)
+        .collect();
+
+    if let Some(current) = current_version {
+        if !versions.contains(&current) {
+            versions.push(current);
+        }
     }
+    versions.sort_by(|a, b| b.cmp(a));
+    Ok(versions)
 }
 
 pub async fn get_template_by_version(

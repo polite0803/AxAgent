@@ -156,6 +156,20 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // 补齐 knowledge_documents 的 created_at/updated_at 列
+        for col in &["created_at", "updated_at"] {
+            if !manager.has_column("knowledge_documents", col).await? {
+                manager.alter_table(
+                    Table::alter()
+                        .table(KnowledgeDocuments::Table)
+                        .add_column_if_not_exists(
+                            ColumnDef::new(Alias::new(*col)).big_integer().not_null().default(0),
+                        )
+                        .to_owned(),
+                ).await?;
+            }
+        }
+
         Ok(())
     }
 
@@ -176,3 +190,4 @@ impl MigrationTrait for Migration {
 #[derive(Iden)] enum KnowledgeRelations { Table, Id, KnowledgeBaseId, SourceEntityId, TargetEntityId, RelationType, Description, Properties, Metadata, CreatedAt, UpdatedAt }
 #[derive(Iden)] enum KnowledgeFlows { Table, Id, KnowledgeBaseId, Name, FlowType, Description, SourcePath, Steps, DecisionPoints, ErrorHandling, Preconditions, Postconditions, Metadata, CreatedAt, UpdatedAt }
 #[derive(Iden)] enum KnowledgeInterfaces { Table, Id, KnowledgeBaseId, Name, InterfaceType, Description, SourcePath, InputSchema, OutputSchema, ErrorCodes, CommunicationPattern, Version, Metadata, CreatedAt, UpdatedAt }
+#[derive(Iden)] enum KnowledgeDocuments { Table }

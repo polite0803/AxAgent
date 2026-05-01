@@ -310,6 +310,8 @@ pub async fn archive_to_knowledge_base(
         doc_type: Set("conversation".to_string()),
         index_error: Set(None),
         source_conversation_id: Set(Some(conversation_id.to_string())),
+        created_at: Set(now),
+        updated_at: Set(now),
     };
     doc_am.insert(db).await?;
 
