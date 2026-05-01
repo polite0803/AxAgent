@@ -385,7 +385,7 @@ pub async fn collect_rag_context(
                 // When threshold > 0, keep only results within the distance threshold.
                 // When threshold == 0 (default), apply a reasonable default threshold
                 // to filter out completely irrelevant results.
-                let default_max_distance = 2.0; // L2 distance threshold for relevance
+                let default_max_distance = 20.0; // L2 distance threshold for relevance (1536-dim embeddings typically have distances 5-40)
                 let effective_threshold = if threshold > 0.0 {
                     threshold
                 } else {

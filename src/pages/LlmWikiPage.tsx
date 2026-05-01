@@ -50,6 +50,7 @@ export function LlmWikiPage() {
     sources,
     operations,
     loading,
+    error,
     loadWikis,
     selectWiki,
     createWiki,
@@ -294,6 +295,11 @@ export function LlmWikiPage() {
     return (
       <div style={{ padding: 24 }}>
         <Title level={4}>{t('wiki.llm.title')}</Title>
+        {error && (
+          <div className="mb-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+            {error}
+          </div>
+        )}
         {renderWikiList()}
 
         <Modal

@@ -1,6 +1,6 @@
 import { useWikiStore } from "@/stores/feature/wikiStore";
-import { useCallback, useEffect, useState } from "react";
-import { Button, message, Spin, theme, Popconfirm } from "antd";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button, message, Spin, theme, Popconfirm, Modal } from "antd";
 import { ArrowLeft } from "lucide-react";
 import { SaveOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,8 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<string>("");
 
   const loadNote = useCallback(async () => {
     setLoading(true);
@@ -30,6 +32,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
       setNote(loaded);
       setContent(loaded.content);
       setTitle(loaded.title);
+      lastSavedRef.current = loaded.content;
     }
     setLoading(false);
   }, [noteId, getNote]);
@@ -44,19 +47,60 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
     }
   }, [content, title, note]);
 
+  // #15: Ctrl+S 快捷键
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  });
+
+  // #15: 自动保存（3 秒空闲后触发）
+  useEffect(() => {
+    if (!hasChanges || saving) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSave();
+    }, 3000);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [content, title]);
+
   const handleSave = async () => {
-    if (!note) return;
+    if (!note || !hasChanges) return;
     setSaving(true);
     try {
       const updated = await updateNote(note.id, { title, content });
       if (updated) {
         setNote(updated);
+        lastSavedRef.current = content;
+        setHasChanges(false);
         message.success(t("wiki.saved", "Saved"));
       }
     } catch (e) {
       message.error(String(e));
     }
     setSaving(false);
+  };
+
+  // #15: 离开确认 — 未保存时弹窗确认
+  const handleBackWithConfirm = () => {
+    if (hasChanges && content !== lastSavedRef.current) {
+      Modal.confirm({
+        title: t("wiki.unsavedTitle", "Unsaved Changes"),
+        content: t("wiki.unsavedContent", "You have unsaved changes. Discard them?"),
+        okText: t("wiki.discard", "Discard"),
+        cancelText: t("wiki.keepEditing", "Keep Editing"),
+        onOk: onBack,
+      });
+    } else {
+      onBack();
+    }
   };
 
   const handleContentChange = (value: string) => {
@@ -91,7 +135,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   return (
     <div className="h-full flex flex-col" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>
       <div className="flex items-center gap-2 p-3 border-b" style={{ borderColor: token.colorBorderSecondary }}>
-        <Button icon={<ArrowLeft />} onClick={onBack} type="text" />
+        <Button icon={<ArrowLeft />} onClick={handleBackWithConfirm} type="text" />
         <input
           type="text"
           value={title}

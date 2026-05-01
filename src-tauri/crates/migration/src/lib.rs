@@ -3,6 +3,7 @@ pub use sea_orm_migration::prelude::*;
 mod m20240101_000001_init;
 mod m20260501_000001_add_provider_columns;
 mod m20260501_000002_create_workflow_tables;
+mod m20260502_000001_create_missing_tables;
 
 pub struct Migrator;
 
@@ -13,6 +14,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000001_init::Migration),
             Box::new(m20260501_000001_add_provider_columns::Migration),
             Box::new(m20260501_000002_create_workflow_tables::Migration),
+            Box::new(m20260502_000001_create_missing_tables::Migration),
         ]
     }
 }

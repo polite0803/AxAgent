@@ -111,6 +111,7 @@ impl VectorStore {
     }
 
     /// Ensure both the metadata and vec0 tables exist for a collection.
+    /// Validates that existing vector dimensions match the requested dimensions.
     pub async fn ensure_collection(&self, collection_id: &str, dimensions: usize) -> Result<()> {
         let name = Self::validated_collection_name(collection_id)?;
 
@@ -130,12 +131,49 @@ impl VectorStore {
         ))
         .await?;
 
-        self.exec(&format!(
-            "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
-        ))
-        .await?;
+        // #16: 维度验证 — 检查现有 vec0 表的维度是否与请求维度一致
+        let existing_dim = self.get_collection_dimensions(collection_id).await?;
+        if let Some(existing) = existing_dim {
+            if existing != dimensions {
+                return Err(AxAgentError::Validation(format!(
+                    "Dimension mismatch for collection {collection_id}: existing={existing}, requested={dimensions}. \
+                     Rebuild the index or clear the collection before changing embedding dimensions."
+                )));
+            }
+        } else {
+            self.exec(&format!(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
+            ))
+            .await?;
+        }
 
         Ok(())
+    }
+
+    /// Query the current embedding dimensions of a collection's vec0 table.
+    /// Returns None if the table does not exist.
+    pub async fn get_collection_dimensions(&self, collection_id: &str) -> Result<Option<usize>> {
+        let name = Self::validated_collection_name(collection_id)?;
+        let table_exists = self.table_exists(&name).await?;
+        if !table_exists {
+            return Ok(None);
+        }
+        let row = self
+            .db
+            .query_one(Statement::from_string(
+                DbBackend::Sqlite,
+                format!("SELECT dimensions FROM pragma_table_info('{name}') WHERE name = 'embedding'"),
+            ))
+            .await
+            .ok()
+            .flatten();
+        Ok(row.and_then(|r| r.try_get::<String>("", "type").ok())
+            .and_then(|t| {
+                t.trim_start_matches("float[")
+                    .trim_end_matches(']')
+                    .parse::<usize>()
+                    .ok()
+            }))
     }
 
     /// Ensure a collection exists with HNSW indexing for faster approximate nearest neighbor search.

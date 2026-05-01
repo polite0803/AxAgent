@@ -36,6 +36,7 @@ export function IngestPage() {
     selectedWikiId,
     sources,
     loading,
+    error,
     loadWikis,
     selectWiki,
   } = useLlmWikiStore();
@@ -153,6 +154,11 @@ export function IngestPage() {
 
   return (
     <div className="h-full flex flex-col" style={{ overflow: 'hidden' }}>
+      {error && (
+        <div className="mx-4 mt-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+          {error}
+        </div>
+      )}
       <div className="flex items-center gap-4 p-4 border-b">
         <Button icon={<LeftOutlined />} onClick={handleBack} type="text" />
         <Title level={3} className="m-0 flex-1">
