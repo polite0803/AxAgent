@@ -411,7 +411,7 @@ impl VectorStore {
         let rid: i64 = meta_max.max(vec_max) + 1;
         let vec_json = Self::embedding_to_json(embedding);
 
-        self.exec("BEGIN IMMEDIATE").await.map_err(Self::wrap)?;
+        self.exec("BEGIN IMMEDIATE").await?;
 
         // Insert embedding into vec0
         let vec_result = self
@@ -447,7 +447,7 @@ impl VectorStore {
                 let _ = self.exec("ROLLBACK").await;
                 return Err(Self::wrap(e));
             }
-            self.exec("COMMIT").await.map_err(Self::wrap)?;
+            self.exec("COMMIT").await?;
             Ok(chunk_id)
         } else {
             let _ = self.exec("ROLLBACK").await;
@@ -671,7 +671,7 @@ impl VectorStore {
             .await
             .map_err(Self::wrap)?;
 
-        self.exec("BEGIN IMMEDIATE").await.map_err(Self::wrap)?;
+        self.exec("BEGIN IMMEDIATE").await?;
 
         for (rid, embedding) in &entries {
             // Delete existing row if present (ignore errors — may not exist)
@@ -699,7 +699,7 @@ impl VectorStore {
             };
         }
 
-        self.exec("COMMIT").await.map_err(Self::wrap)?;
+        self.exec("COMMIT").await?;
         Ok(())
     }
 
@@ -726,7 +726,7 @@ impl VectorStore {
         if let Some(row) = row {
             let rid: i64 = row.try_get("", "rowid").map_err(Self::wrap)?;
 
-            self.exec("BEGIN IMMEDIATE").await.map_err(Self::wrap)?;
+            self.exec("BEGIN IMMEDIATE").await?;
 
             // Delete from vec0
             if let Err(e) = self
@@ -755,7 +755,7 @@ impl VectorStore {
                 return Err(Self::wrap(e));
             }
 
-            self.exec("COMMIT").await.map_err(Self::wrap)?;
+            self.exec("COMMIT").await?;
         }
 
         Ok(())
@@ -962,5 +962,39 @@ impl VectorStore {
 
     fn wrap(e: DbErr) -> AxAgentError {
         AxAgentError::Provider(format!("Vector store error: {e}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_embedding_to_json_uses_dot_decimal() {
+        // 确保无论系统 locale 如何，浮点数始终使用 "." 作为小数点
+        let embedding = vec![0.5_f32, -1.25_f32, 3.14159_f32];
+        let json = VectorStore::embedding_to_json(&embedding);
+        // 不应包含逗号作为小数点（非英文 locale 的问题）
+        assert!(!json.contains(",5"), "should not use comma as decimal: {json}");
+        assert!(!json.contains(",25"), "should not use comma as decimal: {json}");
+        assert!(json.contains("0.5"), "should use dot: {json}");
+        assert!(json.contains("-1.25"), "should use dot: {json}");
+    }
+
+    #[test]
+    fn test_embedding_to_json_format() {
+        let embedding = vec![1.0_f32, 2.0_f32];
+        let json = VectorStore::embedding_to_json(&embedding);
+        assert!(json.starts_with('['));
+        assert!(json.ends_with(']'));
+        assert!(json.contains(','));
+    }
+
+    #[test]
+    fn test_collection_id_validation() {
+        assert!(VectorStore::is_valid_collection_id("kb_test-123"));
+        assert!(VectorStore::is_valid_collection_id("mem_namespace_1"));
+        assert!(!VectorStore::is_valid_collection_id("kb'; DROP TABLE--"));
+        assert!(!VectorStore::is_valid_collection_id(""));
     }
 }

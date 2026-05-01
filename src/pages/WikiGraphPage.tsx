@@ -145,6 +145,7 @@ export function WikiGraphPage() {
           onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
           filters={filters}
+          onFiltersChange={(f) => setFilters((prev) => ({ ...prev, ...f }))}
           showMinimap={true}
           showControls={true}
         />

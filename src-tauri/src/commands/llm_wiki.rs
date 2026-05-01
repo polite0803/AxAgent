@@ -312,11 +312,9 @@ pub async fn llm_wiki_compile(
     state: State<'_, AppState>,
     input: CompileInput,
 ) -> Result<CompileResultOutput, String> {
-    let wiki_model = axagent_core::entity::wikis::Entity::find_by_id(&input.wiki_id)
-        .one(&state.sea_db)
+    let wiki_model = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &input.wiki_id)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Wiki {} not found", input.wiki_id))?;
+        .map_err(|e| e.to_string())?;
 
     let embedding_provider = wiki_model.embedding_provider.clone().ok_or_else(|| {
         "Wiki has no embedding_provider configured. Set one in wiki settings.".to_string()
@@ -480,11 +478,9 @@ pub async fn llm_wiki_update_schema(
     state: State<'_, AppState>,
     input: UpdateSchemaInput,
 ) -> Result<(), String> {
-    let wiki = axagent_core::entity::wikis::Entity::find_by_id(&input.wiki_id)
-        .one(&state.sea_db)
+    let wiki = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &input.wiki_id)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Wiki {} not found", input.wiki_id))?;
+        .map_err(|e| e.to_string())?;
 
     let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
     if let Some(parent) = schema_path.parent() {
@@ -508,11 +504,9 @@ pub async fn llm_wiki_delete_schema(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<(), String> {
-    let wiki = axagent_core::entity::wikis::Entity::find_by_id(&wiki_id)
-        .one(&state.sea_db)
+    let wiki = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &wiki_id)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+        .map_err(|e| e.to_string())?;
 
     let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
     if schema_path.exists() {
@@ -549,11 +543,9 @@ pub async fn llm_wiki_ask(
     wiki_id: String,
     question: String,
 ) -> Result<String, String> {
-    let wiki_model = axagent_core::entity::wikis::Entity::find_by_id(&wiki_id)
-        .one(&state.sea_db)
+    let wiki_model = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &wiki_id)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+        .map_err(|e| e.to_string())?;
 
     let embedding_provider = wiki_model
         .embedding_provider
@@ -583,11 +575,9 @@ pub async fn write_base64_to_file(
     state: State<'_, AppState>,
     input: WriteBase64Input,
 ) -> Result<String, String> {
-    let wiki = axagent_core::entity::wikis::Entity::find_by_id(&input.wiki_id)
-        .one(&state.sea_db)
+    let wiki = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &input.wiki_id)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Wiki {} not found", input.wiki_id))?;
+        .map_err(|e| e.to_string())?;
 
     let bytes = base64_decode(&input.base64_content)?;
 

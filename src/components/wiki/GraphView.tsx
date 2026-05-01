@@ -52,6 +52,7 @@ export interface GraphViewProps {
     pathPrefix?: string;
     types?: GraphNodeType[];
   };
+  onFiltersChange?: (filters: { tags?: string[]; types?: GraphNodeType[] }) => void;
   showMinimap?: boolean;
   showControls?: boolean;
 }
@@ -145,6 +146,7 @@ export function GraphView({
   onNodeClick,
   onNodeHover,
   filters,
+  onFiltersChange,
   showMinimap = true,
   showControls = true,
 }: GraphViewProps) {
@@ -299,6 +301,8 @@ export function GraphView({
                 placeholder={t('wiki.graph.filterByTags')}
                 style={{ width: '100%' }}
                 allowClear
+                value={filters?.tags}
+                onChange={(values) => onFiltersChange?.({ tags: values, types: filters?.types })}
                 options={allTags.map((tag) => ({ label: tag, value: tag }))}
                 maxTagCount={3}
               />

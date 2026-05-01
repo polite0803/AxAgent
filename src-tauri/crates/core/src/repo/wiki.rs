@@ -65,12 +65,19 @@ pub async fn create_wiki(db: &DatabaseConnection, input: CreateWikiInput) -> Res
 }
 
 pub async fn get_wiki(db: &DatabaseConnection, id: &str) -> Result<Wiki> {
-    let model = wikis::Entity::find_by_id(id)
+    let model = get_wiki_model(db, id).await?;
+    Ok(model_to_wiki(model))
+}
+
+/// Returns the raw SeaORM Model for commands that need to modify the wiki record.
+pub async fn get_wiki_model(
+    db: &DatabaseConnection,
+    id: &str,
+) -> Result<wikis::Model> {
+    wikis::Entity::find_by_id(id)
         .one(db)
         .await?
-        .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", id)))?;
-
-    Ok(model_to_wiki(model))
+        .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", id)))
 }
 
 pub async fn list_wikis(db: &DatabaseConnection) -> Result<Vec<Wiki>> {

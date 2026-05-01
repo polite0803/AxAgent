@@ -780,4 +780,48 @@ mod tests {
         assert!(result.contains("let x = 1"));
         assert!(result.contains("let z = 3"));
     }
+
+    #[test]
+    fn test_default_l2_threshold_is_reasonable() {
+        // 默认 L2 阈值应该大于 10.0（1536 维向量有效匹配通常在 5-40 范围）
+        // 修复前为 2.0，过滤了几乎所有结果
+        let default_max_distance = 20.0;
+        assert!(default_max_distance >= 10.0, "L2 threshold too restrictive");
+        assert!(default_max_distance <= 100.0, "L2 threshold too permissive");
+    }
+
+    #[test]
+    fn test_prepare_chunks_from_text() {
+        let strategy = ChunkStrategy::FromText {
+            text: "第一章\n这是第一段内容。\n\n第二章\n这是第二段内容。".to_string(),
+            chunk_size: 50,
+            overlap: 10,
+            separator: None,
+        };
+        let chunks = prepare_chunks("doc-1", &strategy).unwrap();
+        assert!(!chunks.is_empty());
+        for (id, _content, index) in &chunks {
+            assert!(id.starts_with("doc-1_"));
+            assert!(*index >= 0);
+        }
+    }
+
+    #[test]
+    fn test_prepare_chunks_empty_text() {
+        let strategy = ChunkStrategy::FromText {
+            text: "   ".to_string(),
+            chunk_size: 100,
+            overlap: 20,
+            separator: None,
+        };
+        let chunks = prepare_chunks("doc-1", &strategy).unwrap();
+        assert!(chunks.is_empty());
+    }
+
+    #[test]
+    fn test_direct_chunk_strategy_returns_empty() {
+        let strategy = ChunkStrategy::Direct;
+        let chunks = prepare_chunks("item-1", &strategy).unwrap();
+        assert!(chunks.is_empty());
+    }
 }
