@@ -4,6 +4,7 @@ use crate::builtin_tools_registry::{
 use crate::command_validator::CommandValidator;
 use crate::entity::{
     knowledge_entities, knowledge_flows, knowledge_interfaces,
+    memory_items, memory_namespaces,
 };
 use crate::error::{AxAgentError, Result};
 use crate::mcp_client::McpToolResult;
