@@ -100,10 +100,10 @@ impl HybridSearcher {
         let table_name = format!("vec_{}_meta", collection_id.replace('-', "_"));
 
         let sql = format!(
-            "SELECT id, document_id, chunk_index, content, bm25(matchinfo({table_name}), 'norm=1') as bm25_score \
+            "SELECT id, document_id, chunk_index, content, 1.0 as bm25_score \
              FROM {table_name} \
-             WHERE {table_name} MATCH ?1 \
-             ORDER BY bm25_score DESC \
+             WHERE content LIKE '%' || ?1 || '%' \
+             ORDER BY LENGTH(content) ASC \
              LIMIT ?2"
         );
 

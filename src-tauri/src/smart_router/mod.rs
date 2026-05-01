@@ -106,7 +106,7 @@ pub fn classify_and_route(prompt: &str) -> RouteDecision {
 
 fn is_complex_task(lower: &str, prompt_len: usize, line_count: usize) -> bool {
     // Long prompts with many lines suggest complexity
-    if prompt_len > 2000 && line_count > 20 {
+    if prompt_len > 2000 || line_count > 20 {
         return true;
     }
 

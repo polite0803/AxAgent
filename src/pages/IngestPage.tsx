@@ -20,7 +20,7 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useLlmWikiStore, WikiSource } from '@/stores/feature/llmWikiStore';
 import { IngestPanel } from '@/components/wiki/IngestPanel';
 
@@ -29,8 +29,7 @@ const { Title, Text } = Typography;
 export function IngestPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const wikiIdFromUrl = searchParams.get('wikiId');
+  const { wikiId: wikiIdFromUrl } = useParams<{ wikiId: string }>();
 
   const {
     wikis,

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, Typography, Space, Button, message, Spin, Select, Tag, Empty } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { GraphView, GraphData, GraphNodeType } from '@/components/wiki/GraphView';
 import { invoke } from '@/lib/invoke';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +11,7 @@ const { Title, Text } = Typography;
 export function WikiGraphPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const wikiId = searchParams.get('wikiId');
+  const { wikiId } = useParams<{ wikiId: string }>();
 
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [loading, setLoading] = useState(true);

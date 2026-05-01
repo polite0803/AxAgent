@@ -373,36 +373,48 @@ impl VectorStore {
         let rid: i64 = meta_max.max(vec_max) + 1;
         let vec_json = Self::embedding_to_json(embedding);
 
+        self.exec("BEGIN IMMEDIATE").await.map_err(Self::wrap)?;
+
         // Insert embedding into vec0
-        self.db
+        let vec_result = self
+            .db
             .execute(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                 vec![rid.into(), vec_json.into()],
             ))
-            .await
-            .map_err(Self::wrap)?;
+            .await;
 
         // Insert meta
-        self.db
-            .execute(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                format!(
-                    "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
-                     VALUES ($1, $2, $3, $4, $5)"
-                ),
-                vec![
-                    rid.into(),
-                    chunk_id.clone().into(),
-                    document_id.to_string().into(),
-                    chunk_index.into(),
-                    content.to_string().into(),
-                ],
-            ))
-            .await
-            .map_err(Self::wrap)?;
+        if vec_result.is_ok() {
+            let meta_result = self
+                .db
+                .execute(Statement::from_sql_and_values(
+                    DbBackend::Sqlite,
+                    format!(
+                        "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
+                         VALUES ($1, $2, $3, $4, $5)"
+                    ),
+                    vec![
+                        rid.into(),
+                        chunk_id.clone().into(),
+                        document_id.to_string().into(),
+                        chunk_index.into(),
+                        content.to_string().into(),
+                    ],
+                ))
+                .await;
 
-        Ok(chunk_id)
+            if let Err(e) = meta_result {
+                let _ = self.exec("ROLLBACK").await;
+                return Err(Self::wrap(e));
+            }
+            self.exec("COMMIT").await.map_err(Self::wrap)?;
+            Ok(chunk_id)
+        } else {
+            let _ = self.exec("ROLLBACK").await;
+            Err(Self::wrap(vec_result.unwrap_err()))
+        }
     }
 
     /// Search for the most similar vectors in a knowledge base.
@@ -444,7 +456,9 @@ impl VectorStore {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("Vector store: search query failed for {name}: {e}");
-                return Ok(vec![]);
+                return Err(AxAgentError::Provider(format!(
+                    "Vector search failed: {e}"
+                )));
             },
         };
 
@@ -597,6 +611,7 @@ impl VectorStore {
 
     /// Insert or replace embeddings for specific rowids.
     /// Creates vec0 if needed, deletes existing rows, then inserts new embeddings.
+    /// Wrapped in a transaction to prevent partial writes.
     pub async fn upsert_document_embeddings(
         &self,
         collection_id: &str,
@@ -618,6 +633,8 @@ impl VectorStore {
             .await
             .map_err(Self::wrap)?;
 
+        self.exec("BEGIN IMMEDIATE").await.map_err(Self::wrap)?;
+
         for (rid, embedding) in &entries {
             // Delete existing row if present (ignore errors — may not exist)
             let _ = self
@@ -630,16 +647,21 @@ impl VectorStore {
                 .await;
 
             let vec_json = Self::embedding_to_json(embedding);
-            self.db
+            if let Err(e) = self
+                .db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                     vec![(*rid).into(), vec_json.into()],
                 ))
                 .await
-                .map_err(Self::wrap)?;
+            {
+                let _ = self.exec("ROLLBACK").await;
+                return Err(Self::wrap(e));
+            };
         }
 
+        self.exec("COMMIT").await.map_err(Self::wrap)?;
         Ok(())
     }
 
@@ -665,24 +687,37 @@ impl VectorStore {
 
         if let Some(row) = row {
             let rid: i64 = row.try_get("", "rowid").map_err(Self::wrap)?;
+
+            self.exec("BEGIN IMMEDIATE").await.map_err(Self::wrap)?;
+
             // Delete from vec0
-            let _ = self
+            if let Err(e) = self
                 .db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![rid.into()],
                 ))
-                .await;
+                .await
+            {
+                let _ = self.exec("ROLLBACK").await;
+                return Err(Self::wrap(e));
+            }
             // Delete from _meta
-            self.db
+            if let Err(e) = self
+                .db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("DELETE FROM {meta_table} WHERE id = $1"),
                     vec![chunk_id.to_string().into()],
                 ))
                 .await
-                .map_err(Self::wrap)?;
+            {
+                let _ = self.exec("ROLLBACK").await;
+                return Err(Self::wrap(e));
+            }
+
+            self.exec("COMMIT").await.map_err(Self::wrap)?;
         }
 
         Ok(())
@@ -795,14 +830,17 @@ impl VectorStore {
 
     /// Convert an embedding vector to a JSON array string for sqlite-vec.
     fn embedding_to_json(embedding: &[f32]) -> String {
-        format!(
-            "[{}]",
-            embedding
-                .iter()
-                .map(|v| v.to_string())
-                .collect::<Vec<_>>()
-                .join(",")
-        )
+        let mut buf = String::from("[");
+        for (i, v) in embedding.iter().enumerate() {
+            if i > 0 {
+                buf.push(',');
+            }
+            use std::fmt::Write;
+            // 使用 write! 宏确保 locale 无关的浮点数格式（始终使用 "." 作为小数点）
+            let _ = write!(buf, "{v:.16}");
+        }
+        buf.push(']');
+        buf
     }
 
     /// Check whether a regular table exists in the database.

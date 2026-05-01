@@ -151,11 +151,13 @@ function KnowledgeBaseList({
   selectedId,
   onSelect,
   onAdd,
+  onDeleted,
 }: {
   bases: KnowledgeBase[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAdd: () => void;
+  onDeleted?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const reorderBases = useKnowledgeStore((s) => s.reorderBases);
@@ -195,7 +197,7 @@ function KnowledgeBaseList({
                     kb={kb}
                     isSelected={selectedId === kb.id}
                     onSelect={() => onSelect(kb.id)}
-                    onDelete={() => deleteBase(kb.id)}
+                    onDelete={async () => { await deleteBase(kb.id); onDeleted?.(kb.id); }}
                   />
                 ))}
               </SortableContext>
@@ -237,6 +239,7 @@ function formatBytes(bytes: number): string {
 
 function KnowledgeBaseDetail({
   base,
+  onDeleted,
 }: {
   base: KnowledgeBase;
   onDeleted: () => void;
@@ -1234,6 +1237,7 @@ export default function KnowledgeSettings() {
           selectedId={selectedId}
           onSelect={setSelectedId}
           onAdd={handleAdd}
+          onDeleted={(id) => { if (id === selectedId) setSelectedId(null); }}
         />
       </div>
       <div className="min-w-0 flex-1 overflow-y-auto">

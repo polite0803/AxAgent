@@ -572,12 +572,14 @@ pub async fn check_vault_rag_capacity(
 }
 
 async fn count_collection_items(db: &DatabaseConnection, collection_name: &str) -> Result<usize> {
+    let sanitized = collection_name.replace(['-', '\'', '"', ';'], "_");
+    let table_name = format!("vec_{}_meta", sanitized);
     let count: i64 = db
         .query_one(Statement::from_string(
             DbBackend::Sqlite,
             format!(
-                "SELECT COUNT(*) as cnt FROM embeddings WHERE collection = '{}'",
-                collection_name
+                "SELECT COUNT(*) as cnt FROM \"{}\"",
+                table_name
             ),
         ))
         .await?
@@ -610,12 +612,14 @@ async fn get_oldest_item_timestamp(
     db: &DatabaseConnection,
     collection_name: &str,
 ) -> Result<Option<i64>> {
+    let sanitized = collection_name.replace(['-', '\'', '"', ';'], "_");
+    let table_name = format!("vec_{}_meta", sanitized);
     let result = db
         .query_one(Statement::from_string(
             DbBackend::Sqlite,
             format!(
-                "SELECT created_at FROM embeddings WHERE collection = '{}' ORDER BY created_at ASC LIMIT 1",
-                collection_name
+                "SELECT created_at FROM \"{}\" ORDER BY created_at ASC LIMIT 1",
+                table_name
             ),
         ))
         .await?;

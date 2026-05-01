@@ -19,6 +19,9 @@ const LazyBenchmarkRunner = lazy(() => import("@/pages/DevTools/BenchmarkRunner"
 const LazyToolRecommender = lazy(() => import("@/pages/DevTools/ToolRecommender").then((m) => ({ default: m.ToolRecommender })));
 const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.default })));
 const LazyWikiPage = lazy(() => import("@/pages/WikiPage").then((m) => ({ default: m.WikiPage })));
+const LazyLlmWikiPage = lazy(() => import("@/pages/LlmWikiPage").then((m) => ({ default: m.LlmWikiPage })));
+const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
+const LazyWikiGraphPage = lazy(() => import("@/pages/WikiGraphPage").then((m) => ({ default: m.WikiGraphPage })));
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 
 function PageLoader() {
@@ -53,6 +56,9 @@ export function ContentArea() {
       <Route path="/marketplace" element={<SafeLazyPage Page={LazyWorkflowMarketplace} />} />
       <Route path="/workflow" element={<SafeLazyPage Page={LazyWorkflowPage} />} />
       <Route path="/wiki" element={<SafeLazyPage Page={LazyWikiPage} />} />
+      <Route path="/llm-wiki" element={<SafeLazyPage Page={LazyLlmWikiPage} />} />
+      <Route path="/llm-wiki/:wikiId/graph" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
+      <Route path="/llm-wiki/:wikiId/ingest" element={<SafeLazyPage Page={LazyIngestPage} />} />
       <Route path="/quickbar" element={<SafeLazyPage Page={LazyQuickBarPage} />} />
       <Route path="/prompts" element={<SafeLazyPage Page={LazyPromptTemplatesPage} />} />
       <Route path="/devtools/trace-explorer" element={<SafeLazyPage Page={LazyTraceExplorer} />} />
