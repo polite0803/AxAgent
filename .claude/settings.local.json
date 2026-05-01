@@ -30,7 +30,10 @@
       "Bash(gh pr *)",
       "Bash(gh run *)",
       "Bash(cargo fmt *)",
-      "Bash(cargo test *)"
+      "Bash(cargo test *)",
+      "Bash(git ls-remote *)",
+      "Bash(gh api *)",
+      "Bash(cargo clippy *)"
     ]
   }
 }
