@@ -1,11 +1,13 @@
 use crate::error::{AxAgentError, Result};
 use crate::mcp_client::McpToolResult;
+use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::LazyLock;
+use std::sync::RwLock;
 
 pub type BoxedToolHandlerInner =
     dyn Fn(Value) -> Pin<Box<dyn Future<Output = Result<McpToolResult>> + Send>> + Send + Sync;
@@ -60,6 +62,23 @@ pub fn set_global_db_path(path: &str) {
 pub fn get_global_db_path() -> Option<String> {
     let db_path = GLOBAL_DB_PATH.read().unwrap();
     db_path.clone()
+}
+
+// ── SeaORM DatabaseConnection ──────────────────────────────────────────
+
+static GLOBAL_SEA_DB: LazyLock<RwLock<Option<Arc<DatabaseConnection>>>> =
+    LazyLock::new(|| RwLock::new(None));
+
+/// 设置全局 SeaORM 连接（应用启动时由 Tauri setup 调用）
+pub fn set_global_sea_db(db: Arc<DatabaseConnection>) {
+    let mut sea_db = GLOBAL_SEA_DB.write().unwrap();
+    *sea_db = Some(db);
+}
+
+/// 获取全局 SeaORM 连接供 builtin_tools 使用
+pub fn get_global_sea_db() -> Option<Arc<DatabaseConnection>> {
+    let sea_db = GLOBAL_SEA_DB.read().unwrap();
+    sea_db.clone()
 }
 
 /// Type alias for a closure that creates and runs a sub-agent session.

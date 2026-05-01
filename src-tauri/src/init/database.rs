@@ -31,6 +31,11 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
         .block_on(axagent_core::db::create_pool(&db_path))
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
+    // 注册 SeaORM 连接供 builtin_tools 使用
+    axagent_core::builtin_tools_registry::set_global_sea_db(
+        std::sync::Arc::new(db_handle.conn.clone()),
+    );
+
     Ok(DatabaseInitResult {
         db_handle,
         db_path,

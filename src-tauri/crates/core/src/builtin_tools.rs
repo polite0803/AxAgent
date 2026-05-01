@@ -1,11 +1,15 @@
 use crate::builtin_tools_registry::{
-    get_global_db_path, get_handler, register_builtin_handler, BoxedToolHandler,
+    get_global_db_path, get_global_sea_db, get_handler, register_builtin_handler, BoxedToolHandler,
 };
 use crate::command_validator::CommandValidator;
+use crate::entity::{
+    knowledge_entities, knowledge_flows, knowledge_interfaces,
+};
 use crate::error::{AxAgentError, Result};
 use crate::mcp_client::McpToolResult;
 use base64::Engine;
 use regex::Regex;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
@@ -4147,6 +4151,11 @@ fn current_timestamp() -> i64 {
 }
 
 #[allow(clippy::too_many_arguments)]
+/// 获取 SeaORM DB 连接（供 builtin tools 内部使用）
+fn sea_db() -> Result<Arc<sea_orm::DatabaseConnection>> {
+    get_global_sea_db().ok_or_else(|| AxAgentError::Internal("database not initialized".into()))
+}
+
 async fn create_knowledge_entity_tool(
     kb_id: &str,
     name: &str,
@@ -4159,75 +4168,39 @@ async fn create_knowledge_entity_tool(
     behaviors: Option<serde_json::Value>,
 ) -> Result<McpToolResult> {
     if kb_id.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: knowledge_base_id is required".to_string(),
-            is_error: true,
-        });
+        return Ok(McpToolResult { content: "Error: knowledge_base_id is required".to_string(), is_error: true });
     }
     if name.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: name is required".to_string(),
-            is_error: true,
-        });
+        return Ok(McpToolResult { content: "Error: name is required".to_string(), is_error: true });
     }
 
-    let db_path = match get_global_db_path() {
-        Some(p) => p,
-        None => {
-            return Ok(McpToolResult {
-                content: "Error: database not initialized".to_string(),
-                is_error: true,
-            });
-        },
-    };
-
-    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+    let db = sea_db()?;
     let id = generate_uuid();
     let now = current_timestamp();
-    let properties_json = serde_json::to_string(&properties).unwrap_or_else(|_| "{}".to_string());
-    let lifecycle_json = lifecycle
-        .as_ref()
-        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let behaviors_json = behaviors
-        .as_ref()
-        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
 
-    match rusqlite::Connection::open(db_file) {
-        Ok(conn) => {
-            let result = conn.execute(
-                "INSERT INTO knowledge_entities (id, knowledge_base_id, name, entity_type, description, source_path, source_language, properties, lifecycle, behaviors, metadata, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, ?11, ?12)",
-                rusqlite::params![
-                    id,
-                    kb_id,
-                    name,
-                    entity_type,
-                    description,
-                    source_path,
-                    source_language,
-                    properties_json,
-                    lifecycle_json,
-                    behaviors_json,
-                    now,
-                    now
-                ],
-            );
+    let am = knowledge_entities::ActiveModel {
+        id: Set(id.clone()),
+        knowledge_base_id: Set(kb_id.to_string()),
+        name: Set(name.to_string()),
+        entity_type: Set(entity_type.to_string()),
+        description: Set(description.map(|s| s.to_string())),
+        source_path: Set(source_path.to_string()),
+        source_language: Set(source_language.map(|s| s.to_string())),
+        properties: Set(properties),
+        lifecycle: Set(lifecycle),
+        behaviors: Set(behaviors),
+        metadata: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
 
-            match result {
-                Ok(_) => Ok(McpToolResult {
-                    content: format!(
-                        "Created knowledge entity '{}' (id: {}) in knowledge base '{}'",
-                        name, id, kb_id
-                    ),
-                    is_error: false,
-                }),
-                Err(e) => Ok(McpToolResult {
-                    content: format!("Error creating knowledge entity: {}", e),
-                    is_error: true,
-                }),
-            }
-        },
+    match am.insert(db.as_ref()).await {
+        Ok(_) => Ok(McpToolResult {
+            content: format!("Created knowledge entity '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+            is_error: false,
+        }),
         Err(e) => Ok(McpToolResult {
-            content: format!("Error opening database: {}", e),
+            content: format!("Error creating knowledge entity: {}", e),
             is_error: true,
         }),
     }
@@ -4259,70 +4232,34 @@ async fn create_knowledge_flow_tool(
         });
     }
 
-    let db_path = match get_global_db_path() {
-        Some(p) => p,
-        None => {
-            return Ok(McpToolResult {
-                content: "Error: database not initialized".to_string(),
-                is_error: true,
-            });
-        },
-    };
-
-    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+    let db = sea_db()?;
     let id = generate_uuid();
     let now = current_timestamp();
-    let steps_json = serde_json::to_string(&steps).unwrap_or_else(|_| "[]".to_string());
-    let decision_points_json = decision_points
-        .as_ref()
-        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let error_handling_json = error_handling
-        .as_ref()
-        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let preconditions_json = preconditions
-        .as_ref()
-        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
-    let postconditions_json = postconditions
-        .as_ref()
-        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
 
-    match rusqlite::Connection::open(db_file) {
-        Ok(conn) => {
-            let result = conn.execute(
-                "INSERT INTO knowledge_flows (id, knowledge_base_id, name, flow_type, description, source_path, steps, decision_points, error_handling, preconditions, postconditions, metadata, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, ?12, ?13)",
-                rusqlite::params![
-                    id,
-                    kb_id,
-                    name,
-                    flow_type,
-                    description,
-                    source_path,
-                    steps_json,
-                    decision_points_json,
-                    error_handling_json,
-                    preconditions_json,
-                    postconditions_json,
-                    now,
-                    now
-                ],
-            );
+    let am = knowledge_flows::ActiveModel {
+        id: Set(id.clone()),
+        knowledge_base_id: Set(kb_id.to_string()),
+        name: Set(name.to_string()),
+        flow_type: Set(flow_type.to_string()),
+        description: Set(description.map(|s| s.to_string())),
+        source_path: Set(source_path.to_string()),
+        steps: Set(steps),
+        decision_points: Set(decision_points),
+        error_handling: Set(error_handling),
+        preconditions: Set(preconditions),
+        postconditions: Set(postconditions),
+        metadata: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
 
-            match result {
-                Ok(_) => Ok(McpToolResult {
-                    content: format!(
-                        "Created knowledge flow '{}' (id: {}) in knowledge base '{}'",
-                        name, id, kb_id
-                    ),
-                    is_error: false,
-                }),
-                Err(e) => Ok(McpToolResult {
-                    content: format!("Error creating knowledge flow: {}", e),
-                    is_error: true,
-                }),
-            }
-        },
+    match am.insert(db.as_ref()).await {
+        Ok(_) => Ok(McpToolResult {
+            content: format!("Created knowledge flow '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+            is_error: false,
+        }),
         Err(e) => Ok(McpToolResult {
-            content: format!("Error opening database: {}", e),
+            content: format!("Error creating knowledge flow: {}", e),
             is_error: true,
         }),
     }
@@ -4353,63 +4290,34 @@ async fn create_knowledge_interface_tool(
         });
     }
 
-    let db_path = match get_global_db_path() {
-        Some(p) => p,
-        None => {
-            return Ok(McpToolResult {
-                content: "Error: database not initialized".to_string(),
-                is_error: true,
-            });
-        },
-    };
-
-    let db_file = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+    let db = sea_db()?;
     let id = generate_uuid();
     let now = current_timestamp();
-    let input_schema_json =
-        serde_json::to_string(&input_schema).unwrap_or_else(|_| "{}".to_string());
-    let output_schema_json =
-        serde_json::to_string(&output_schema).unwrap_or_else(|_| "{}".to_string());
-    let error_codes_json = error_codes
-        .as_ref()
-        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "null".to_string()));
 
-    match rusqlite::Connection::open(db_file) {
-        Ok(conn) => {
-            let result = conn.execute(
-                "INSERT INTO knowledge_interfaces (id, knowledge_base_id, name, interface_type, description, source_path, input_schema, output_schema, error_codes, communication_pattern, version, metadata, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12)",
-                rusqlite::params![
-                    id,
-                    kb_id,
-                    name,
-                    interface_type,
-                    description,
-                    source_path,
-                    input_schema_json,
-                    output_schema_json,
-                    error_codes_json,
-                    communication_pattern,
-                    now,
-                    now
-                ],
-            );
+    let am = knowledge_interfaces::ActiveModel {
+        id: Set(id.clone()),
+        knowledge_base_id: Set(kb_id.to_string()),
+        name: Set(name.to_string()),
+        interface_type: Set(interface_type.to_string()),
+        description: Set(description.map(|s| s.to_string())),
+        source_path: Set(source_path.to_string()),
+        input_schema: Set(input_schema),
+        output_schema: Set(output_schema),
+        error_codes: Set(error_codes),
+        communication_pattern: Set(communication_pattern.map(|s| s.to_string())),
+        version: Set(None),
+        metadata: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
 
-            match result {
-                Ok(_) => Ok(McpToolResult {
-                    content: format!(
-                        "Created knowledge interface '{}' (id: {}) in knowledge base '{}'",
-                        name, id, kb_id
-                    ),
-                    is_error: false,
-                }),
-                Err(e) => Ok(McpToolResult {
-                    content: format!("Error creating knowledge interface: {}", e),
-                    is_error: true,
-                }),
-            }
-        },
+    match am.insert(db.as_ref()).await {
+        Ok(_) => Ok(McpToolResult {
+            content: format!("Created knowledge interface '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+            is_error: false,
+        }),
         Err(e) => Ok(McpToolResult {
-            content: format!("Error opening database: {}", e),
+            content: format!("Error creating knowledge interface: {}", e),
             is_error: true,
         }),
     }
