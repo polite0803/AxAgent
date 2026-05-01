@@ -146,7 +146,7 @@ jobs:
         with:
           version: '27.x'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -314,7 +314,7 @@ jobs:
             patchelf:arm64 \
             protobuf-compiler:arm64
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
 
