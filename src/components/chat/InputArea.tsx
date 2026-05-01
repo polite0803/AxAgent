@@ -205,11 +205,12 @@ export function InputArea() {
   const sendAgentMessage = useConversationStore((s) => s.sendAgentMessage);
   const sendPlanMessage = useConversationStore((s) => s.sendPlanMessage);
   const createConversation = useConversationStore((s) => s.createConversation);
-  const messages = useConversationStore((s) => s.messages);
+  const messagesLength = useConversationStore((s) => s.messages.length);
   const totalActiveCount = useConversationStore((s) => s.totalActiveCount);
   const hasOlderMessages = useConversationStore((s) => s.hasOlderMessages);
   const contextCount = useMemo(() => {
-    const activeMessages = messages.filter((m) => m.is_active !== false && !m.content.startsWith("%%ERROR%%"));
+    const msgs = useConversationStore.getState().messages;
+    const activeMessages = msgs.filter((m) => m.is_active !== false && !m.content.startsWith("%%ERROR%%"));
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
       if (m.content === "<!-- context-clear -->" || m.content === "<!-- context-compressed -->") { return i; }
       return maxIdx;
@@ -221,7 +222,7 @@ export function InputArea() {
       return totalActiveCount;
     }
     return activeMessages.length;
-  }, [messages, hasOlderMessages, totalActiveCount]);
+  }, [messagesLength, hasOlderMessages, totalActiveCount]);
 
   const conversations = useConversationStore((s) => s.conversations);
   const providers = useProviderStore((s) => s.providers);
@@ -876,7 +877,7 @@ export function InputArea() {
     getCompressionSummary(activeConversationId).then((s) => {
       setSummaryTokenCount(s?.token_count ?? 0);
     });
-  }, [activeConversationId, activeConversation?.context_compression, getCompressionSummary, messages]);
+  }, [activeConversationId, activeConversation?.context_compression, getCompressionSummary, messagesLength]);
 
   // TODO: Token estimation only considers loaded messages. When hasOlderMessages is true
   // and no context-clear marker is found, the token estimate will be lower than actual.
@@ -886,7 +887,8 @@ export function InputArea() {
     if (!maxTokens) { return null; }
 
     // Count message tokens (only after last marker)
-    const activeMessages = messages.filter((m) => m.is_active !== false && !m.content.startsWith("%%ERROR%%"));
+    const msgs = useConversationStore.getState().messages;
+    const activeMessages = msgs.filter((m) => m.is_active !== false && !m.content.startsWith("%%ERROR%%"));
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
       if (m.content === "<!-- context-clear -->" || m.content === "<!-- context-compressed -->") { return i; }
       return maxIdx;
@@ -907,7 +909,7 @@ export function InputArea() {
 
     const percent = Math.min(Math.round((usedTokens / maxTokens) * 100), 100);
     return { usedTokens, maxTokens, percent };
-  }, [messages, currentModel?.max_tokens, activeConversation?.system_prompt, summaryTokenCount]);
+  }, [messagesLength, currentModel?.max_tokens, activeConversation?.system_prompt, summaryTokenCount]);
 
   const { hasRealtimeVoice, hasReasoning, hasVision } = React.useMemo(() => ({
     hasRealtimeVoice: activeConversation
@@ -1189,7 +1191,8 @@ export function InputArea() {
 
   const handleFillLastMessage = useCallback(() => {
     if (streaming) { return; }
-    const lastUserMessage = [...messages]
+    const msgs = useConversationStore.getState().messages;
+    const lastUserMessage = [...msgs]
       .reverse()
       .find((message) => message.role === "user" && message.status !== "error");
     if (!lastUserMessage?.content) { return; }
@@ -1203,7 +1206,7 @@ export function InputArea() {
       const desired = Math.max(textarea.scrollHeight, userMinHeightRef.current);
       textarea.style.height = Math.min(desired, ABSOLUTE_MAX_HEIGHT) + "px";
     });
-  }, [messages, streaming]);
+  }, [messagesLength, streaming]);
 
   const handleCancel = useCallback(() => {
     cancelCurrentStream(activeConversationId ?? undefined);
@@ -1431,7 +1434,7 @@ export function InputArea() {
       }
     };
     const onClearConversation = () => {
-      if (!activeConversationId || streaming || messages.length === 0) { return; }
+      if (!activeConversationId || streaming || messagesLength === 0) { return; }
       modal.confirm({
         title: t("chat.clearConversationConfirmTitle"),
         content: t("chat.clearConversationConfirmContent"),
@@ -1457,7 +1460,7 @@ export function InputArea() {
     clearAllMessages,
     handleFillLastMessage,
     insertContextClear,
-    messages.length,
+    messagesLength,
     modal,
     streaming,
     t,
@@ -1999,7 +2002,7 @@ export function InputArea() {
                     key: "manual",
                     icon: <Shrink size={14} />,
                     label: t("chat.manualCompress"),
-                    disabled: !activeConversationId || streaming || compressing || messages.length === 0,
+                    disabled: !activeConversationId || streaming || compressing || messagesLength === 0,
                     onClick: async () => {
                       if (!activeConversationId) { return; }
                       try {
@@ -2032,8 +2035,8 @@ export function InputArea() {
                 size="small"
                 icon={<Scissors size={14} />}
                 onClick={insertContextClear}
-                disabled={!activeConversationId || streaming || messages.length === 0
-                  || messages[messages.length - 1]?.content === "<!-- context-clear -->"}
+                disabled={!activeConversationId || streaming || messagesLength === 0
+                  || useConversationStore.getState().messages[messagesLength - 1]?.content === "<!-- context-clear -->"}
               />
             </Tooltip>
             <Tooltip title={shortcutHint(t("chat.clearConversation"), "clearConversationMessages")}>
@@ -2054,7 +2057,7 @@ export function InputArea() {
                     },
                   });
                 }}
-                disabled={!activeConversationId || streaming || messages.length === 0}
+                disabled={!activeConversationId || streaming || messagesLength === 0}
               />
             </Tooltip>
             <Tooltip title={t("chat.conversationSettings")}>
@@ -2137,13 +2140,13 @@ export function InputArea() {
               <PlanHistoryPanel conversationId={activeConversationId} />
             )}
             {currentMode === "agent" && (
-              <Tooltip title={messages.length > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}>
+              <Tooltip title={messagesLength > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}>
                 <Button
                   type="text"
                   size="small"
                   icon={<FolderOpen size={14} />}
                   onClick={handleSelectCwd}
-                  disabled={messages.length > 0}
+                  disabled={messagesLength > 0}
                   style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: 200 }}
                 >
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>

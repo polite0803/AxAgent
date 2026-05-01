@@ -10,6 +10,67 @@ export let _unlisten: UnlistenFn | null = null;
  *  (fixes React StrictMode double-effect causing duplicate stream processing) */
 export let _listenerGen = 0;
 
+// ─── 卡住的流看门狗 ───
+
+/** 流超过此时间（毫秒）无更新则视为卡住，自动取消 */
+const STUCK_STREAM_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
+/** 看门狗检查间隔 */
+const WATCHDOG_INTERVAL_MS = 30 * 1000; // 30 秒
+
+let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * 启动卡住的流看门狗。
+ * 定期检查 streamingStartTimestamps，如果某个流超过 STUCK_STREAM_TIMEOUT_MS
+ * 仍未结束，自动取消该流并标记消息为错误状态。
+ */
+export function startStreamWatchdog() {
+  if (_watchdogTimer !== null) return;
+
+  _watchdogTimer = setInterval(() => {
+    const state = useStreamStore.getState();
+    const now = Date.now();
+    const stuckConversationIds: string[] = [];
+
+    for (const [convId, startTime] of Object.entries(state.streamingStartTimestamps)) {
+      if (now - startTime > STUCK_STREAM_TIMEOUT_MS) {
+        stuckConversationIds.push(convId);
+      }
+    }
+
+    for (const convId of stuckConversationIds) {
+      console.warn(
+        `[StreamWatchdog] 流卡住: conversationId=${convId}, 已运行 ${Math.round((now - state.streamingStartTimestamps[convId]) / 1000)}s，自动取消`,
+      );
+
+      // 标记消息为错误
+      const msgId = state.activeStreams[convId];
+      if (msgId && _conversationStoreRef) {
+        _conversationStoreRef.setState((s: any) => ({
+          messages: s.messages.map((m: Message) =>
+            m.id === msgId
+              ? { ...m, content: m.content + "\n\n> ⚠️ 流式响应超时（5分钟无更新），已自动中断", status: "error" as const }
+              : m,
+          ),
+        }));
+      }
+
+      // 取消该流
+      state.cancelCurrentStream(convId);
+    }
+  }, WATCHDOG_INTERVAL_MS);
+}
+
+/**
+ * 停止卡住的流看门狗（应用退出或不再需要时调用）
+ */
+export function stopStreamWatchdog() {
+  if (_watchdogTimer !== null) {
+    clearInterval(_watchdogTimer);
+    _watchdogTimer = null;
+  }
+}
+
 // ─── Stream buffer ───
 
 /** Buffer for streaming content — persists across conversation switches
@@ -70,27 +131,21 @@ export const _pendingConversationRefresh = new Set<string>();
 export const STREAM_UI_FLUSH_INTERVAL_MS = 50;
 export const STREAM_MAX_CHUNK_SIZE = 500;
 
-let _rafId: number | null = null;
-let _needsFlush = false;
+let _flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function scheduleFlush(set: GenericSet<unknown>, get: GenericGet<unknown>) {
-  _needsFlush = true;
-  if (_rafId === null) {
-    _rafId = requestAnimationFrame(() => {
-      _rafId = null;
-      if (_needsFlush) {
-        _needsFlush = false;
-        flushPendingStreamChunk(set as GenericSet<ConversationStoreLike>, get as GenericGet<ConversationStoreLike>);
-      }
-    });
+  if (_flushTimer === null) {
+    _flushTimer = setTimeout(() => {
+      _flushTimer = null;
+      flushPendingStreamChunk(set as GenericSet<ConversationStoreLike>, get as GenericGet<ConversationStoreLike>);
+    }, 0);
   }
 }
 
 export function cancelScheduledFlush() {
-  _needsFlush = false;
-  if (_rafId !== null) {
-    cancelAnimationFrame(_rafId);
-    _rafId = null;
+  if (_flushTimer !== null) {
+    clearTimeout(_flushTimer);
+    _flushTimer = null;
   }
 }
 

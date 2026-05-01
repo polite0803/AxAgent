@@ -1,3 +1,4 @@
+import { useDebounce } from "@/hooks/useDebounce";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { getConvIcon } from "@/lib/convIcon";
 import { exportAsJSON, exportAsMarkdown, exportAsPNG, exportAsText } from "@/lib/exportChat";
@@ -259,6 +260,18 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   }, [settings]);
 
   const [searchText, setSearchText] = useState("");
+  const debouncedSearch = useDebounce(searchText.trim(), 300);
+  const [fts5ResultIds, setFts5ResultIds] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setFts5ResultIds(null);
+      return;
+    }
+    invoke<Array<{ id: string }>>("search_conversations", { query: debouncedSearch })
+      .then((results) => setFts5ResultIds(results.map((r) => r.id)))
+      .catch(() => setFts5ResultIds(null));
+  }, [debouncedSearch]);
   const [searchVisible, setSearchVisible] = useState(false);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -376,8 +389,13 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const filteredConversations = useMemo(() => {
     let filtered = conversations;
     if (searchText.trim()) {
-      const query = searchText.toLowerCase();
-      filtered = filtered.filter((c: Conversation) => c.title.toLowerCase().includes(query));
+      if (fts5ResultIds !== null) {
+        const idSet = new Set(fts5ResultIds);
+        filtered = filtered.filter((c: Conversation) => idSet.has(c.id));
+      } else {
+        const query = searchText.toLowerCase();
+        filtered = filtered.filter((c: Conversation) => c.title.toLowerCase().includes(query));
+      }
     }
     // Categorized conversations first (by category sort_order), then uncategorized
     const categorized = filtered.filter((c) => c.category_id);
@@ -394,7 +412,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       return b.updated_at - a.updated_at;
     });
     return [...categorized, ...uncategorized];
-  }, [conversations, searchText, categories]);
+  }, [conversations, searchText, categories, fts5ResultIds]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {

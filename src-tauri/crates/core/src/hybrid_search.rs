@@ -251,22 +251,33 @@ fn sanitize_fts5_query(query: &str) -> String {
 
     for c in trimmed.chars() {
         match c {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | ' ' | '\t' | '\n' | '-' | '_' | '.' | '@' | '#' => {
+            'a'..='z'
+            | 'A'..='Z'
+            | '0'..='9'
+            | ' '
+            | '\t'
+            | '\n'
+            | '-'
+            | '_'
+            | '.'
+            | '@'
+            | '#'
+            | '*' => {
                 sanitized.push(c);
             }
             '"' => {
                 in_phrase = !in_phrase;
                 sanitized.push(c);
             }
-            '*' => {
-                if !in_phrase {
-                    sanitized.push(c);
-                }
-            }
             '(' | ')' => {
                 sanitized.push(c);
             }
-            _ => {}
+            _ => {
+                // 保留 Unicode 字母、表意文字（中日韩等），确保非 ASCII 搜索可用
+                if c.is_alphabetic() || c.is_alphanumeric() {
+                    sanitized.push(c);
+                }
+            }
         }
     }
 

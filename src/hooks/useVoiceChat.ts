@@ -6,6 +6,15 @@ import { useTranslation } from "react-i18next";
 const VAD_THRESHOLD = 0.015;
 const VAD_SILENCE_MS = 1500;
 
+// ─── WebSocket 重连配置 ───
+
+/** 最大重连次数 */
+const MAX_RECONNECT_ATTEMPTS = 5;
+/** 初始退避延迟（毫秒） */
+const RECONNECT_BASE_DELAY_MS = 1000;
+/** 最大退避延迟（毫秒） */
+const RECONNECT_MAX_DELAY_MS = 30000;
+
 interface UseVoiceChatOptions {
   port?: number;
   host?: string;
@@ -35,8 +44,11 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
   const analyserRef = useRef<AnalyserNode | null>(null);
   const vadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shouldReconnectRef = useRef(false);
 
-  const cleanup = useCallback(() => {
+  const cleanup = useCallback((keepReconnecting = false) => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -63,6 +75,15 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
+    }
+
+    if (!keepReconnecting) {
+      shouldReconnectRef.current = false;
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      reconnectAttemptsRef.current = 0;
     }
   }, []);
 
@@ -110,6 +131,14 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
     if (state !== "Idle") { return; }
     setState("Connecting");
 
+    // 重置重连状态
+    reconnectAttemptsRef.current = 0;
+    shouldReconnectRef.current = true;
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: config.audio_format.sample_rate, channelCount: 1, echoCancellation: true },
@@ -133,38 +162,7 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
       workletRef.current = worklet;
       source.connect(worklet);
 
-      const ws = new WebSocket(`ws://${host}:${port}/v1/realtime`);
-      wsRef.current = ws;
-
-      ws.binaryType = "arraybuffer";
-
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "session.config", config }));
-        setState("Connected");
-        setTimeout(() => setState("Speaking"), 300);
-        runVAD();
-      };
-
-      worklet.port.onmessage = (e: MessageEvent) => {
-        if (ws.readyState === WebSocket.OPEN && !isMuted) {
-          ws.send(e.data as ArrayBuffer);
-        }
-      };
-
-      ws.onmessage = (_e: MessageEvent) => {
-        // Audio playback from server would be handled here
-      };
-
-      ws.onerror = () => {
-        message.error(t("voice.connectionError"));
-        cleanup();
-        setState("Idle");
-      };
-
-      ws.onclose = () => {
-        cleanup();
-        setState("Idle");
-      };
+      connectWebSocket();
     } catch (err) {
       const errMsg = err instanceof DOMException && err.name === "NotAllowedError"
         ? t("voice.micPermissionDenied")
@@ -175,9 +173,88 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
     }
   }, [state, port, host, config, isMuted, cleanup, runVAD, message, t]);
 
+  // ── WebSocket 连接与重连 ──
+
+  const connectWebSocket = useCallback(() => {
+    // 清理旧连接
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    const ws = new WebSocket(`ws://${host}:${port}/v1/realtime`);
+    wsRef.current = ws;
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => {
+      reconnectAttemptsRef.current = 0;
+      ws.send(JSON.stringify({ type: "session.config", config }));
+      setState("Connected");
+      setTimeout(() => setState("Speaking"), 300);
+      runVAD();
+    };
+
+    const worklet = workletRef.current;
+    if (worklet) {
+      worklet.port.onmessage = (e: MessageEvent) => {
+        if (ws.readyState === WebSocket.OPEN && !isMuted) {
+          ws.send(e.data as ArrayBuffer);
+        }
+      };
+    }
+
+    ws.onmessage = (_e: MessageEvent) => {
+      // 服务端音频回放在此处理
+    };
+
+    ws.onerror = () => {
+      console.warn("[Voice] WebSocket 连接错误");
+    };
+
+    ws.onclose = (event) => {
+      // 正常关闭（1000）或用户主动断开则不重连
+      if (!shouldReconnectRef.current || event.code === 1000) {
+        cleanup();
+        setState("Idle");
+        return;
+      }
+
+      const attempts = reconnectAttemptsRef.current;
+      if (attempts >= MAX_RECONNECT_ATTEMPTS) {
+        message.error(t("voice.connectionError"));
+        cleanup();
+        setState("Idle");
+        return;
+      }
+
+      reconnectAttemptsRef.current = attempts + 1;
+      setState("Connecting");
+
+      // 指数退避延迟
+      const delay = Math.min(
+        RECONNECT_BASE_DELAY_MS * Math.pow(2, attempts),
+        RECONNECT_MAX_DELAY_MS,
+      );
+
+      console.warn(
+        `[Voice] WebSocket 断开，${delay}ms 后第 ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS} 次重连...`,
+      );
+
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connectWebSocket();
+      }, delay);
+    };
+  }, [host, port, config, isMuted, cleanup, setState, runVAD, message, t]);
+
   const stop = useCallback(() => {
     if (state === "Idle" || state === "Disconnecting") { return; }
     setState("Disconnecting");
+    shouldReconnectRef.current = false;
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     cleanup();
     setState("Idle");
   }, [state, cleanup]);

@@ -5,9 +5,7 @@ use crate::AppState;
 
 /// 懒初始化浏览器客户端（如果尚未启动的话）
 /// 从 AppState 管理生命周期，替代原来不安全的 static mut 全局变量
-async fn ensure_browser_client(
-    state: &AppState,
-) -> Result<(), String> {
+async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
     let mut client_guard = state.browser_client.lock().await;
     if client_guard.is_none() {
         let client = axagent_core::browser_automation::PlaywrightClient::launch()
@@ -44,10 +42,7 @@ pub async fn browser_screenshot(
 }
 
 #[tauri::command]
-pub async fn browser_click(
-    state: State<'_, AppState>,
-    selector: String,
-) -> Result<(), String> {
+pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Result<(), String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
@@ -113,9 +108,7 @@ pub async fn browser_extract_all(
 }
 
 #[tauri::command]
-pub async fn browser_get_content(
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
@@ -153,9 +146,7 @@ pub async fn browser_select(
 }
 
 #[tauri::command]
-pub async fn browser_close(
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn browser_close(state: State<'_, AppState>) -> Result<(), String> {
     let mut guard = state.browser_client.lock().await;
     if let Some(mut client) = guard.take() {
         client.close().await.map_err(|e| e.to_string())?;

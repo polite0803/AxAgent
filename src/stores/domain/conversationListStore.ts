@@ -132,9 +132,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
 
   batchDelete: async (ids) => {
     try {
-      for (const id of ids) {
-        await invoke("delete_conversation", { id });
-      }
+      await invoke("batch_delete_conversations", { ids });
       set((state) => ({
         conversations: state.conversations.filter((c) => !ids.includes(c.id)),
         totalActiveCount: Math.max(0, state.totalActiveCount - ids.length),

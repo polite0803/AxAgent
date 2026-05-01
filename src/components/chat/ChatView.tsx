@@ -49,6 +49,7 @@ import {
   FileText,
   FileType,
   GitBranch,
+  Globe,
   Languages,
   Lightbulb,
   MessageSquare,
@@ -1970,7 +1971,7 @@ function AssistantFooter({
 
 // ── Export helpers ──────────────────────────────────────────────────────
 
-import { copyTranscript, exportAsJSON, exportAsMarkdown, exportAsPNG, exportAsText } from "@/lib/exportChat";
+import { copyTranscript, exportAsHTML, exportAsJSON, exportAsMarkdown, exportAsPNG, exportAsText } from "@/lib/exportChat";
 
 // ── Stats Popover ──────────────────────────────────────────────────────
 
@@ -2147,6 +2148,15 @@ function ChatViewInner() {
   const activeStreams = useStreamStore((s) => s.activeStreams);
   const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
   const compressing = useCompressStore((s) => s.compressing);
+
+  // 消息窗口：限制渲染数量，防止超大对话 DOM 爆炸
+  const MESSAGE_WINDOW_BASE = 100;
+  const [messageWindowSize, setMessageWindowSize] = useState(MESSAGE_WINDOW_BASE);
+  const [showEarlierLoading, setShowEarlierLoading] = useState(false);
+  // 切换对话时重置窗口大小
+  useEffect(() => {
+    setMessageWindowSize(MESSAGE_WINDOW_BASE);
+  }, [activeConversationId]);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
   const multiModelParentId = useConversationStore((s) => s.multiModelParentId);
   const multiModelDoneMessageIds = useConversationStore((s) => s.multiModelDoneMessageIds);
@@ -2790,6 +2800,42 @@ function ChatViewInner() {
           }
         },
       },
+      {
+        key: "html",
+        label: t("chat.exportHtml", "导出 HTML"),
+        icon: <Globe size={14} />,
+        onClick: async () => {
+          if (messages.length === 0) {
+            messageApi.warning(t("chat.noMessages"));
+            return;
+          }
+          try {
+            const ok = await exportAsHTML(messages, activeConversation?.title ?? "chat");
+            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+          } catch (e) {
+            console.error("Export HTML failed:", e);
+            messageApi.error(t("chat.exportFailed"));
+          }
+        },
+      },
+      {
+        key: "export-html-no-thinking",
+        label: t("chat.exportHtmlNoThinking", "导出 HTML（不含思维链）"),
+        icon: <Globe size={14} />,
+        onClick: async () => {
+          if (messages.length === 0) {
+            messageApi.warning(t("chat.noMessages"));
+            return;
+          }
+          try {
+            const ok = await exportAsHTML(messages, activeConversation?.title ?? "chat", { includeThinking: false });
+            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+          } catch (e) {
+            console.error("Export HTML (no thinking) failed:", e);
+            messageApi.error(t("chat.exportFailed"));
+          }
+        },
+      },
     ],
     [messages, activeConversation, t, messageApi],
   );
@@ -3074,17 +3120,29 @@ function ChatViewInner() {
       items = [...items, expertSwitchBubble];
     }
 
-    if (!compressing) { return items; }
-    return [
-      ...items,
-      {
-        key: "__compressing__",
-        role: "context-compressing",
-        content: "",
-        variant: "borderless" as const,
-      },
-    ];
-  }, [bubbleItems, compressing, activeConversationId, expertSwitchBubble]);
+    if (compressing) {
+      items = [
+        ...items,
+        {
+          key: "__compressing__",
+          role: "context-compressing",
+          content: "",
+          variant: "borderless" as const,
+        },
+      ];
+    }
+
+    // 消息窗口：只渲染最近的 N 条，防止大型对话 DOM 爆炸
+    if (items.length > messageWindowSize) {
+      items = items.slice(items.length - messageWindowSize);
+    }
+    return items;
+  }, [bubbleItems, compressing, activeConversationId, expertSwitchBubble, messageWindowSize]);
+
+  const hiddenBubbleCount = useMemo(() => {
+    const total = bubbleItems.length + (expertSwitchBubble ? 1 : 0) + (compressing ? 1 : 0);
+    return Math.max(0, total - finalBubbleItems.length);
+  }, [bubbleItems, expertSwitchBubble, compressing, finalBubbleItems]);
 
   const lastBubbleKey = finalBubbleItems.length > 0
     ? String(finalBubbleItems[finalBubbleItems.length - 1].key)
@@ -3159,6 +3217,11 @@ function ChatViewInner() {
       }
 
       const nodes = parseChatMarkdown(item.content);
+      // LRU 淘汰：缓存上限 100 条
+      if (cache.size >= 100) {
+        const firstKey = cache.keys().next().value;
+        if (firstKey !== undefined) cache.delete(firstKey);
+      }
       cache.set(messageId, { content: item.content, nodes });
       next.set(messageId, nodes);
     }
@@ -4173,6 +4236,23 @@ function ChatViewInner() {
                 <PlanCardWrapper
                   conversationId={activeConversationId}
                 />
+              )}
+              {/* 消息窗口：超大对话时只渲染最近的消息，点击加载更早消息 */}
+              {hiddenBubbleCount > 0 && (
+                <div style={{ textAlign: "center", padding: "8px 0" }}>
+                  <Button
+                    size="small"
+                    type="link"
+                    loading={showEarlierLoading}
+                    onClick={() => {
+                      setShowEarlierLoading(true);
+                      setMessageWindowSize((prev) => prev + MESSAGE_WINDOW_BASE);
+                      setTimeout(() => setShowEarlierLoading(false), 300);
+                    }}
+                  >
+                    {`显示更早的 ${hiddenBubbleCount > MESSAGE_WINDOW_BASE ? `${MESSAGE_WINDOW_BASE}+` : hiddenBubbleCount} 条消息`}
+                  </Button>
+                </div>
               )}
               <Bubble.List
                 key={bubbleListThemeKey}

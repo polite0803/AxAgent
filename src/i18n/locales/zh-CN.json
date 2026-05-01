@@ -532,6 +532,8 @@
     },
     "conversationNotFound": "对话未找到",
     "copyMarkdown": "复制 Markdown",
+    "exportHtml": "导出 HTML",
+    "exportHtmlNoThinking": "导出 HTML（不含思考）",
     "exportJsonNoThinking": "导出 JSON（不含思考）",
     "exportMdNoThinking": "导出 Markdown（不含思考）",
     "exportTxtNoThinking": "导出文本（不含思考）",

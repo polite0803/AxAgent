@@ -44,9 +44,7 @@ pub fn documents_root() -> PathBuf {
 /// 在无头环境（CI/Docker/无图形界面Linux）下优雅降级到 home 目录
 pub fn default_documents_root() -> PathBuf {
     dirs::document_dir()
-        .unwrap_or_else(|| {
-            dirs::home_dir().unwrap_or_else(|| PathBuf::from("."))
-        })
+        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
         .join("axagent")
 }
 

@@ -23,13 +23,13 @@ impl CommandValidator {
             // 仅保留明确的命令注入向量，移除对合法 Shell 字符的过度封锁
             // (、)、{、}、[、]、#、~、%、^、\ 等字符在常规命令中大量出现，不应误拒
             dangerous_patterns: vec![
-                "$(".to_string(),       // 命令替换
-                "${".to_string(),       // 变量展开中的命令替换
-                "`".to_string(),       // 反引号命令替换
-                "\n".to_string(),      // 换行符可用于命令分隔
-                "\r".to_string(),      // 回车符可用于命令注入
+                "$(".to_string(), // 命令替换
+                "${".to_string(), // 变量展开中的命令替换
+                "`".to_string(),  // 反引号命令替换
+                "\n".to_string(), // 换行符可用于命令分隔
+                "\r".to_string(), // 回车符可用于命令注入
             ],
-            max_length: 4096,          // 4KB 限制，防止 DoS
+            max_length: 4096, // 4KB 限制，防止 DoS
         }
     }
 
@@ -153,21 +153,13 @@ pub fn get_platform_blocked_commands() -> Vec<&'static str> {
 /// 白名单（allowlist）比黑名单（blocklist）更安全可靠
 pub fn is_command_allowed(command: &str) -> bool {
     let allowed_prefixes: &[&str] = &[
-        "ls", "cat", "head", "tail", "grep", "find", "wc",
-        "echo", "date", "whoami", "pwd", "env", "printenv",
-        "git", "npm", "node", "python", "python3", "cargo",
-        "rustc", "gcc", "g++", "make", "cmake", "docker",
-        "curl", "wget", "ssh", "scp", "tar", "zip", "unzip",
-        "df", "du", "ps", "top", "kill", "ping",
-        "mkdir", "touch", "cp", "mv", "rm", "chmod",
-        "sort", "uniq", "awk", "sed", "cut", "tr",
-        "npx", "pnpm", "yarn",
+        "ls", "cat", "head", "tail", "grep", "find", "wc", "echo", "date", "whoami", "pwd", "env",
+        "printenv", "git", "npm", "node", "python", "python3", "cargo", "rustc", "gcc", "g++",
+        "make", "cmake", "docker", "curl", "wget", "ssh", "scp", "tar", "zip", "unzip", "df", "du",
+        "ps", "top", "kill", "ping", "mkdir", "touch", "cp", "mv", "rm", "chmod", "sort", "uniq",
+        "awk", "sed", "cut", "tr", "npx", "pnpm", "yarn",
     ];
-    let first_word = command
-        .trim_start()
-        .split_whitespace()
-        .next()
-        .unwrap_or("");
+    let first_word = command.trim_start().split_whitespace().next().unwrap_or("");
     allowed_prefixes.iter().any(|p| *p == first_word)
 }
 

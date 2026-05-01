@@ -64,6 +64,7 @@ pub fn run() {
             commands::conversations::create_conversation,
             commands::conversations::update_conversation,
             commands::conversations::delete_conversation,
+            commands::conversations::batch_delete_conversations,
             commands::conversations::branch_conversation,
             commands::conversations::search_conversations,
             commands::conversations_search::session_search,

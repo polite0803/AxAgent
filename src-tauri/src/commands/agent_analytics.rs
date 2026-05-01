@@ -44,12 +44,7 @@ pub async fn closed_loop_status(
         .await
         .get_statistics()
         .total_patterns;
-    let insight_count = app_state
-        .insight_system
-        .read()
-        .await
-        .get_insights()
-        .len();
+    let insight_count = app_state.insight_system.read().await.get_insights().len();
     Ok(serde_json::json!({
         "closed_loop_running": is_running,
         "nudge_count": nudge_count,

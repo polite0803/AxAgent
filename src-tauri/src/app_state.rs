@@ -69,5 +69,6 @@ pub struct AppState {
     pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
     pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCache>>,
     // 浏览器客户端：使用 tokio::sync::Mutex 取代全局 static mut，避免数据竞争
-    pub browser_client: Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
+    pub browser_client:
+        Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
 }

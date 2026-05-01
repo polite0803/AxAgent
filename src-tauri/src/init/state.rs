@@ -149,9 +149,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         realtime_learning: Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::RealTimeLearning::new(),
         )),
-        pattern_learner: Arc::new(TokioRwLock::new(
-            axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default()),
-        )),
+        pattern_learner: Arc::new(TokioRwLock::new(axagent_trajectory::PatternLearner::new(
+            axagent_trajectory::PatternConfig::default(),
+        ))),
         cross_session_learner: Arc::new(TokioRwLock::new(
             axagent_trajectory::CrossSessionLearner::new(),
         )),
@@ -209,9 +209,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         },
         platform_manager: platform_manager.clone(),
         platform_bridge: platform_bridge.clone(),
-        user_profile: Arc::new(TokioRwLock::new(
-            axagent_trajectory::UserProfile::new(),
-        )),
+        user_profile: Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new())),
         local_tool_registry: {
             let mut registry = axagent_agent::LocalToolRegistry::init_from_registry();
             // Load enabled state synchronously in the runtime block

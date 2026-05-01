@@ -6,7 +6,6 @@ export { useUIStore } from "./shared/uiStore";
 export { useCompressStore } from "./domain/compressStore";
 export { useConversationListStore } from "./domain/conversationListStore";
 export { useConversationStore } from "./domain/conversationStore";
-export { useMessageListStore } from "./domain/messageListStore";
 export { useMessageStore } from "./domain/messageStore";
 export { useMultiModelStore } from "./domain/multiModelStore";
 export { usePreferenceStore } from "./domain/preferenceStore";

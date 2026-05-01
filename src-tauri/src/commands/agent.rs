@@ -3,7 +3,8 @@ use axagent_agent::{AxAgentApiClient, McpServerConfig, ToolRegistry};
 use axagent_core::entity::skill_references;
 use axagent_core::repo::{conversation, message, provider};
 use axagent_core::types::{
-    Attachment, AttachmentInput, ChatTool, ChatToolFunction, MessageRole, ProviderProxyConfig,
+    Attachment, AttachmentInput, ChatTool, ChatToolFunction, McpServer, MessageRole,
+    ProviderProxyConfig,
 };
 use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext};
 use axagent_runtime::workflow_engine::SessionCallback;
@@ -668,66 +669,93 @@ pub async fn agent_query(
         all_server_ids
     );
 
-    for server_id in &all_server_ids {
-        // Get MCP server configuration
-        let server = match axagent_core::repo::mcp_server::get_mcp_server(
-            &app_state.sea_db,
-            server_id,
-        )
-        .await
-        {
-            Ok(s) => s,
-            Err(e) => {
-                info!("[agent] Failed to load MCP server '{}': {}", server_id, e);
-                let _ = app.emit(
-                    "agent-mcp-load-failed",
-                    serde_json::json!({
-                        "conversationId": conversation_id,
-                        "serverId": server_id,
-                        "error": e.to_string(),
-                    }),
-                );
-                continue;
+    // Phase 1: 并发加载所有 MCP 服务器配置和工具描述
+    let db = &app_state.sea_db;
+    struct ServerTools {
+        server: McpServer,
+        chat_tools: Vec<ChatTool>,
+        tool_descriptors: Vec<(String, Option<String>, Option<Value>)>, // (name, description, params)
+    }
+
+    let load_futures: Vec<_> = all_server_ids
+        .iter()
+        .map(|server_id| {
+            let db = db.clone();
+            let app_handle = app.clone();
+            let conv_id = conversation_id.clone();
+            let sid = server_id.clone();
+            async move {
+                let server = match axagent_core::repo::mcp_server::get_mcp_server(&db, &sid).await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        info!("[agent] Failed to load MCP server '{}': {}", sid, e);
+                        let _ = app_handle.emit(
+                            "agent-mcp-load-failed",
+                            serde_json::json!({
+                                "conversationId": conv_id,
+                                "serverId": sid,
+                                "error": e.to_string(),
+                            }),
+                        );
+                        return None;
+                    }
+                };
+
+                let mut chat_tools = Vec::new();
+                let mut tool_descriptors = Vec::new();
+                if let Ok(descriptors) =
+                    axagent_core::repo::mcp_server::list_tools_for_server(&db, &sid).await
+                {
+                    for td in descriptors {
+                        let parameters: Option<Value> = td
+                            .input_schema_json
+                            .as_ref()
+                            .and_then(|s| serde_json::from_str(s).ok());
+                        chat_tools.push(ChatTool {
+                            r#type: "function".to_string(),
+                            function: ChatToolFunction {
+                                name: td.name.clone(),
+                                description: td.description.clone(),
+                                parameters: parameters.clone(),
+                            },
+                        });
+                        tool_descriptors.push((td.name, td.description, parameters));
+                    }
+                }
+                Some(ServerTools {
+                    server,
+                    chat_tools,
+                    tool_descriptors,
+                })
             }
-        };
+        })
+        .collect();
 
-        // Get tool descriptors for this server
-        if let Ok(descriptors) =
-            axagent_core::repo::mcp_server::list_tools_for_server(&app_state.sea_db, server_id)
-                .await
-        {
-            for td in descriptors {
-                let parameters: Option<Value> = td
-                    .input_schema_json
-                    .as_ref()
-                    .and_then(|s| serde_json::from_str(s).ok());
+    let server_tools_list = futures::future::join_all(load_futures).await;
 
-                // Add to ChatTool list for the LLM API request
-                chat_tools.push(ChatTool {
-                    r#type: "function".to_string(),
-                    function: ChatToolFunction {
-                        name: td.name.clone(),
-                        description: td.description.clone(),
-                        parameters: parameters.clone(),
-                    },
-                });
-
-                // Register in tool registry for execution
+    // Phase 2: 合并结果到 chat_tools 和 tool_registry（纯内存操作）
+    for st_opt in server_tools_list {
+        if let Some(st) = st_opt {
+            for chat_tool in st.chat_tools {
+                chat_tools.push(chat_tool);
+            }
+            for (i, (name, desc, params)) in st.tool_descriptors.into_iter().enumerate() {
+                let _ = i;
                 tool_registry = tool_registry.register_mcp_tool(
-                    server.id.clone(),
-                    server.name.clone(),
-                    td.name,
-                    td.description,
-                    parameters,
+                    st.server.id.clone(),
+                    st.server.name.clone(),
+                    name,
+                    desc,
+                    params,
                     McpServerConfig {
-                        server_id: server.id.clone(),
-                        server_name: server.name.clone(),
-                        transport: server.transport.clone(),
-                        command: server.command.clone(),
-                        args_json: server.args_json.clone(),
-                        env_json: server.env_json.clone(),
-                        endpoint: server.endpoint.clone(),
-                        execute_timeout_secs: server.execute_timeout_secs,
+                        server_id: st.server.id.clone(),
+                        server_name: st.server.name.clone(),
+                        transport: st.server.transport.clone(),
+                        command: st.server.command.clone(),
+                        args_json: st.server.args_json.clone(),
+                        env_json: st.server.env_json.clone(),
+                        endpoint: st.server.endpoint.clone(),
+                        execute_timeout_secs: st.server.execute_timeout_secs,
                         connection_pool_size: None,
                         retry_attempts: None,
                         retry_delay_ms: None,
@@ -1815,8 +1843,7 @@ pub async fn agent_query(
 
                     // P4-Skill: Analyze trajectory and propose new skills if applicable
                     {
-                        let mut proposal_service =
-                            app_state.skill_proposal_service.write().await;
+                        let mut proposal_service = app_state.skill_proposal_service.write().await;
                         if let Some(proposal) = proposal_service.analyze_and_propose(&trajectory) {
                             tracing::info!("[P4-Skill] Proposed new skill '{}' from trajectory {} (confidence={:.2})",
                                 proposal.suggested_name, &trajectory.id[..8], proposal.confidence);

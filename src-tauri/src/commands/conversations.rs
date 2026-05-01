@@ -442,6 +442,35 @@ pub async fn delete_conversation(state: State<'_, AppState>, id: String) -> Resu
 }
 
 #[tauri::command]
+pub async fn batch_delete_conversations(
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<usize, String> {
+    let db = state.sea_db.clone();
+    let tasks: Vec<_> = ids
+        .iter()
+        .map(|id| {
+            let db = db.clone();
+            let id = id.clone();
+            tokio::spawn(async move {
+                let file_store = axagent_core::file_store::FileStore::new();
+                delete_conversation_with_attachments_using(&db, &file_store, &id).await
+            })
+        })
+        .collect();
+    let results = futures::future::join_all(tasks).await;
+    let mut deleted = 0usize;
+    for result in results {
+        match result {
+            Ok(Ok(())) => deleted += 1,
+            Ok(Err(e)) => tracing::warn!("批量删除对话失败: {}", e),
+            Err(e) => tracing::warn!("批量删除任务 panic: {}", e),
+        }
+    }
+    Ok(deleted)
+}
+
+#[tauri::command]
 pub async fn branch_conversation(
     state: State<'_, AppState>,
     conversation_id: String,
