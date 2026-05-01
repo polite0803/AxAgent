@@ -321,6 +321,7 @@ pub fn calculate_content_hash(content: &str) -> String {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GraphNode {
     pub id: String,
     pub title: String,
@@ -333,6 +334,7 @@ pub struct GraphNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GraphEdge {
     pub source: String,
     pub target: String,

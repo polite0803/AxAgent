@@ -13,7 +13,7 @@ interface IngestPanelProps {
   onClose?: () => void;
 }
 
-export function IngestPanel({ wikiId }: IngestPanelProps) {
+export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
   const { t } = useTranslation();
   const { ingestSource } = useLlmWikiStore();
   const [form] = Form.useForm();
@@ -46,6 +46,7 @@ export function IngestPanel({ wikiId }: IngestPanelProps) {
         setResults((prev) => [...prev, result]);
         message.success(t('wiki.llm.ingestSuccess', { title: result.title }));
         form.resetFields();
+        onClose?.();
       }
     } catch (e) {
       message.error(t('wiki.llm.ingestError', { error: String(e) }));

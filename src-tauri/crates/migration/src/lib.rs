@@ -2,6 +2,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20240101_000001_init;
 mod m20260501_000001_add_provider_columns;
+mod m20260501_000002_create_workflow_tables;
 
 pub struct Migrator;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20240101_000001_init::Migration),
             Box::new(m20260501_000001_add_provider_columns::Migration),
+            Box::new(m20260501_000002_create_workflow_tables::Migration),
         ]
     }
 }

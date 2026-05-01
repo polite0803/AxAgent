@@ -180,7 +180,7 @@ function KnowledgeBaseList({
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="collections-list">
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
         {bases.length === 0
           ? (
@@ -210,6 +210,7 @@ function KnowledgeBaseList({
           block
           icon={<Plus size={14} />}
           onClick={onAdd}
+          data-testid="create-collection-btn"
         >
           {t("settings.knowledge.add")}
         </Button>
@@ -908,6 +909,7 @@ function KnowledgeBaseDetail({
                 placeholder={t("settings.knowledge.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                data-testid="knowledge-search-input"
                 onPressEnter={handleSearch}
                 style={{ width: 200 }}
                 allowClear
@@ -1230,7 +1232,7 @@ export default function KnowledgeSettings() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full" data-testid="knowledge-base-page">
       <div className="w-64 shrink-0 pt-2" style={{ borderRight: "1px solid var(--border-color)" }}>
         <KnowledgeBaseList
           bases={bases}
@@ -1262,6 +1264,7 @@ export default function KnowledgeSettings() {
       <Modal
         title={t("settings.knowledge.add")}
         open={modalOpen}
+        data-testid="collection-form"
         onOk={handleCreate}
         onCancel={() => {
           setModalOpen(false);

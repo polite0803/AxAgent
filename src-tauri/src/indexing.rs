@@ -232,11 +232,63 @@ pub async fn index_knowledge_document(
 ) -> Result<()> {
     axagent_core::repo::knowledge::update_document_status(db, document_id, "indexing").await?;
 
-    // Determine chunking strategy based on document type
+    // H6: resolve embedding dimensions from knowledge base config
+    let dimensions = axagent_core::repo::knowledge::get_knowledge_base(db, knowledge_base_id)
+        .await
+        .ok()
+        .and_then(|kb| kb.embedding_dimensions)
+        .map(|d| d as usize);
+
+    let result = run_indexing(
+        db,
+        master_key,
+        vector_store,
+        knowledge_base_id,
+        document_id,
+        source_path,
+        mime_type,
+        embedding_provider,
+        chunk_size,
+        chunk_overlap,
+        separator,
+        dimensions,
+    )
+    .await;
+
+    match result {
+        Ok(()) => {
+            axagent_core::repo::knowledge::update_document_status(db, document_id, "ready")
+                .await?;
+            Ok(())
+        }
+        Err(e) => {
+            // H5: set status to failed so the user can retry
+            let _ =
+                axagent_core::repo::knowledge::update_document_status(db, document_id, "failed")
+                    .await;
+            Err(e)
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn run_indexing(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    knowledge_base_id: &str,
+    document_id: &str,
+    source_path: &str,
+    mime_type: &str,
+    embedding_provider: &str,
+    chunk_size: Option<i32>,
+    chunk_overlap: Option<i32>,
+    separator: Option<String>,
+    dimensions: Option<usize>,
+) -> Result<()> {
     let is_conversation = source_path.starts_with("conversation://");
 
     let strategy = if is_conversation {
-        // For conversation archives, extract text from the database
         let conv_id = source_path.strip_prefix("conversation://").unwrap_or("");
         let text =
             axagent_core::repo::conversation::get_conversation_archive_text(db, conv_id).await?;
@@ -268,13 +320,12 @@ pub async fn index_knowledge_document(
     let chunks = rag::prepare_chunks(document_id, &strategy)?;
 
     if chunks.is_empty() {
-        axagent_core::repo::knowledge::update_document_status(db, document_id, "ready").await?;
         return Ok(());
     }
 
     let chunk_texts: Vec<String> = chunks.iter().map(|(_, text, _)| text.clone()).collect();
     let embed_response =
-        generate_embeddings(db, master_key, embedding_provider, chunk_texts, None).await?;
+        generate_embeddings(db, master_key, embedding_provider, chunk_texts, dimensions).await?;
 
     rag::index(
         vector_store,
@@ -285,11 +336,7 @@ pub async fn index_knowledge_document(
         embed_response.embeddings,
         chunks,
     )
-    .await?;
-
-    axagent_core::repo::knowledge::update_document_status(db, document_id, "ready").await?;
-
-    Ok(())
+    .await
 }
 
 /// Index a single memory item: embed content → store in vector DB.

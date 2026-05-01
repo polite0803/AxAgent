@@ -1,8 +1,8 @@
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import { useCallback, useEffect, useState } from "react";
-import { Button, message, Spin, theme } from "antd";
+import { Button, message, Spin, theme, Popconfirm } from "antd";
 import { ArrowLeft } from "lucide-react";
-import { SaveOutlined } from "@ant-design/icons";
+import { SaveOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import type { Note } from "@/types";
 
@@ -14,7 +14,7 @@ interface WikiEditorPageProps {
 export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const { getNote, updateNote } = useWikiStore();
+  const { getNote, updateNote, deleteNote } = useWikiStore();
 
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState("");
@@ -109,6 +109,16 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         >
           {t("wiki.save", "Save")}
         </Button>
+        <Popconfirm
+          title={t("wiki.confirmDelete", "Delete this note?")}
+          onConfirm={async () => {
+            await deleteNote(note.id);
+            message.success(t("wiki.deleted", "Note deleted"));
+            onBack();
+          }}
+        >
+          <Button icon={<DeleteOutlined />} danger type="text" />
+        </Popconfirm>
       </div>
 
       <div className="flex-1 overflow-hidden p-4">

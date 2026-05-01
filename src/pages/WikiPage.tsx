@@ -17,8 +17,10 @@ export function WikiPage() {
     selectedNoteId,
     selectedVaultId,
     loading,
+    error,
     loadNotes,
     searchNotes,
+    createNote,
     setSelectedVaultId,
     setSelectedNoteId,
   } = useWikiStore();
@@ -60,6 +62,11 @@ export function WikiPage() {
     setSelectedNoteId(noteId);
   };
 
+  const handleCreateNote = () => {
+    if (!selectedVaultId) return;
+    createNote(selectedVaultId);
+  };
+
   const handleBack = () => {
     setSelectedNoteId(null);
     setSearchQuery("");
@@ -73,8 +80,14 @@ export function WikiPage() {
             notes={displayNotes}
             selectedNoteId={selectedNoteId}
             onSelectNote={handleSelectNote}
+            onCreateNote={handleCreateNote}
             loading={loading}
           />
+          {error && (
+            <div className="px-3 py-2 text-xs text-red-500 bg-red-50 border-b border-red-200">
+              {error}
+            </div>
+          )}
           <div className="flex-1 flex flex-col overflow-hidden border-l" style={{ borderColor: token.colorBorderSecondary }}>
             <div className="p-4 border-b" style={{ borderColor: token.colorBorderSecondary }}>
               <Input.Search
