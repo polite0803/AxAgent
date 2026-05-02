@@ -35,7 +35,7 @@ quick_cache = "0.4"
 image = { workspace = true }
 which = "7"
 docx-rs = "0.4"
-roxmltree = "0.20"
+roxmltree = "0.21"
 notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
 walkdir = "2"
 
