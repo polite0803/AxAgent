@@ -738,40 +738,19 @@ impl TrajectoryStorage {
     // ── Memories ──
 
     pub fn get_all_memories(&self) -> Result<Vec<crate::memory::MemoryEntry>> {
-        let in_async_context = std::panic::catch_unwind(|| {
-            let _enter = tokio::runtime::Handle::current().enter();
-        }).is_err();
-
-        if in_async_context {
-            let handle = tokio::runtime::Handle::current();
-            handle.block_on(async {
-                Ok(trajectory_memories::Entity::find()
-                    .all(self.db.as_ref())
-                    .await?
-                    .into_iter()
-                    .map(|m| crate::memory::MemoryEntry {
-                        id: m.id,
-                        content: m.content,
-                        memory_type: m.memory_type,
-                        updated_at: 0i64,
-                    })
-                    .collect())
-            })
-        } else {
-            Self::rt().block_on(async {
-                Ok(trajectory_memories::Entity::find()
-                    .all(self.db.as_ref())
-                    .await?
-                    .into_iter()
-                    .map(|m| crate::memory::MemoryEntry {
-                        id: m.id,
-                        content: m.content,
-                        memory_type: m.memory_type,
-                        updated_at: 0i64,
-                    })
-                    .collect())
-            })
-        }
+        Self::rt().block_on(async {
+            Ok(trajectory_memories::Entity::find()
+                .all(self.db.as_ref())
+                .await?
+                .into_iter()
+                .map(|m| crate::memory::MemoryEntry {
+                    id: m.id,
+                    content: m.content,
+                    memory_type: m.memory_type,
+                    updated_at: 0i64,
+                })
+                .collect())
+        })
     }
 
     pub fn save_memory(&self, mem: &crate::memory::MemoryEntry) -> Result<()> {
