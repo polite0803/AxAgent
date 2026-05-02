@@ -27,7 +27,7 @@ export type { DiscoveredMcpServer } from "./feature/mcpStore";
 export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useMemoryStore } from "./feature/memoryStore";
 export { useNudgeStore } from "./feature/nudgeStore";
-export { usePlanStore } from "./feature/planStore";
+export { setupPlanEventListeners, usePlanStore } from "./feature/planStore";
 export { usePromptTemplateStore } from "./feature/promptTemplateStore";
 export { useProviderStore } from "./feature/providerStore";
 export { useRouterStore } from "./feature/routerStore";
