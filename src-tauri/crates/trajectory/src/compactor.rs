@@ -101,7 +101,7 @@ fn extract_key_terms(text: &str) -> Vec<String> {
     }
 
     let mut entries: Vec<(String, usize)> = word_freq.into_iter().collect();
-    entries.sort_by(|a, b| b.1.cmp(&a.1));
+    entries.sort_by_key(|b| std::cmp::Reverse(b.1));
     entries.into_iter().take(20).map(|(w, _)| w).collect()
 }
 
@@ -226,7 +226,7 @@ impl SessionCompactor {
             preserved_count += 1;
         }
 
-        preserved.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        preserved.sort_by_key(|a| a.timestamp);
 
         let removed_count = original_count.saturating_sub(preserved.len());
 

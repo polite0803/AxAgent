@@ -432,7 +432,7 @@ impl BatchProcessor {
         }
 
         let mut pattern_vec: Vec<_> = pattern_counts.into_iter().collect();
-        pattern_vec.sort_by(|a, b| b.1.cmp(&a.1));
+        pattern_vec.sort_by_key(|b| std::cmp::Reverse(b.1));
         let top_patterns: Vec<_> = pattern_vec
             .into_iter()
             .take(10)

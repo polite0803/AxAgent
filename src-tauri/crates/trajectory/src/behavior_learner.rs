@@ -163,7 +163,7 @@ impl BehaviorLearner {
             *freq.entry(key).or_default() += 1;
         }
         let mut patterns: Vec<(String, u32)> = freq.into_iter().collect();
-        patterns.sort_by(|a, b| b.1.cmp(&a.1));
+        patterns.sort_by_key(|b| std::cmp::Reverse(b.1));
         patterns.into_iter().take(10).map(|(k, _)| k).collect()
     }
 
@@ -175,7 +175,7 @@ impl BehaviorLearner {
             }
         }
         let mut apis: Vec<(String, u32)> = freq.into_iter().collect();
-        apis.sort_by(|a, b| b.1.cmp(&a.1));
+        apis.sort_by_key(|b| std::cmp::Reverse(b.1));
         apis.into_iter().take(10).map(|(k, _)| k).collect()
     }
 

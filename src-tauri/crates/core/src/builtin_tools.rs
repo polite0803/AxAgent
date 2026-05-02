@@ -2974,10 +2974,8 @@ fn sanitize_fts5_query(query: &str) -> Result<String> {
                 in_phrase = !in_phrase;
                 sanitized.push(c);
             },
-            '*' => {
-                if !in_phrase {
-                    sanitized.push(c);
-                }
+            '*' if !in_phrase => {
+                sanitized.push(c);
             },
             '(' | ')' => {
                 sanitized.push(c);

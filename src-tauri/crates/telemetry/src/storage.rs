@@ -196,7 +196,7 @@ impl TraceStorage for InMemoryTraceStorage {
             })
             .collect();
 
-        summaries.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+        summaries.sort_by_key(|b| std::cmp::Reverse(b.started_at));
 
         if let Some(limit) = filter.limit {
             summaries.truncate(limit);

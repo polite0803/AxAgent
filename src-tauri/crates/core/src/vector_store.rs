@@ -297,13 +297,11 @@ impl VectorStore {
                 .and_then(|r| r.try_get::<i64>("", "max_rid").ok())
                 .unwrap_or(0);
 
-            let mut next_rowid: i64 = meta_max.max(vec_max) + 1;
+            let start_rowid: i64 = meta_max.max(vec_max) + 1;
 
             // Insert new records with explicit correlated rowids.
-            for record in &records {
+            for (rid, record) in (start_rowid..).zip(records.iter()) {
                 let vec_json = Self::embedding_to_json(&record.embedding);
-                let rid = next_rowid;
-                next_rowid += 1;
 
                 // Insert embedding into vec0 with explicit rowid
                 self.db
