@@ -2231,7 +2231,24 @@
     "tone": "톤",
     "language": "언어",
     "confidence": "프로필 신뢰도",
-    "documentStyle": "문서 스타일"
+    "documentStyle": "문서 스타일",
+    "options": {
+      "snake_case": "스네이크 케이스",
+      "camelCase": "카멜 케이스",
+      "PascalCase": "파스칼 케이스",
+      "kebab-case": "케밥 케이스",
+      "spaces": "공백",
+      "tabs": "탭",
+      "minimal": "최소한",
+      "documented": "문서화",
+      "verbose": "상세히",
+      "concise": "간결히",
+      "moderate": "중간",
+      "detailed": "자세히",
+      "formal": "공식적",
+      "neutral": "중립적",
+      "casual": "편안한"
+    }
   },
   "style": {
     "preview": "스타일 미리보기",

@@ -2185,7 +2185,24 @@
     "detailLevel": "مستوى التفصيل",
     "tone": "النبرة",
     "language": "اللغة",
-    "confidence": "ثقة الملف"
+    "confidence": "ثقة الملف",
+    "options": {
+      "snake_case": "snake_case",
+      "camelCase": "camelCase",
+      "PascalCase": "PascalCase",
+      "kebab-case": "kebab-case",
+      "spaces": "المسافات",
+      "tabs": "الجدول",
+      "minimal": "الحد الأدنى",
+      "documented": "موثق",
+      "verbose": "مفصل",
+      "concise": "موجز",
+      "moderate": "معتدل",
+      "detailed": "مفصّل",
+      "formal": "رسمي",
+      "neutral": "محايد",
+      "casual": "عادي"
+    }
   },
   "style": {
     "preview": "معاينة النمط",

@@ -2214,7 +2214,24 @@
     "tone": "Ton",
     "language": "Langue",
     "confidence": "Confiance du Profil",
-    "documentStyle": "Style de document"
+    "documentStyle": "Style de document",
+    "options": {
+      "snake_case": "snake_case",
+      "camelCase": "camelCase",
+      "PascalCase": "PascalCase",
+      "kebab-case": "kebab-case",
+      "spaces": "Espaces",
+      "tabs": "Tabulations",
+      "minimal": "Minimal",
+      "documented": "Documenté",
+      "verbose": "Verbeux",
+      "concise": "Concise",
+      "moderate": "Modéré",
+      "detailed": "Détaillé",
+      "formal": "Formel",
+      "neutral": "Neutre",
+      "casual": "Décontracté"
+    }
   },
   "style": {
     "preview": "Aperçu",

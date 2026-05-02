@@ -2198,7 +2198,24 @@
     "tone": "Tone",
     "language": "Language",
     "confidence": "Profile Confidence",
-    "documentStyle": "दस्तावेज़ शैली"
+    "documentStyle": "दस्तावेज़ शैली",
+    "options": {
+      "snake_case": "snake_case",
+      "camelCase": "camelCase",
+      "PascalCase": "PascalCase",
+      "kebab-case": "kebab-case",
+      "spaces": "स्पेस",
+      "tabs": "टैब",
+      "minimal": "न्यूनतम",
+      "documented": "दस्तावेज़न",
+      "verbose": "विस्तृत",
+      "concise": "संक्षिप्त",
+      "moderate": "मध्यम",
+      "detailed": "विस्तृत",
+      "formal": "औपचारिक",
+      "neutral": "निष्पक्ष",
+      "casual": "सामान्य"
+    }
   },
   "style": {
     "preview": "पूर्वावलोकन",

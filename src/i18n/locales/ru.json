@@ -2185,7 +2185,24 @@
     "detailLevel": "Уровень детализации",
     "tone": "Тон",
     "language": "Язык",
-    "confidence": "Достоверность профиля"
+    "confidence": "Достоверность профиля",
+    "options": {
+      "snake_case": "snake_case",
+      "camelCase": "camelCase",
+      "PascalCase": "PascalCase",
+      "kebab-case": "kebab-case",
+      "spaces": "Пробелы",
+      "tabs": "Табуляции",
+      "minimal": "Минимальный",
+      "documented": "Документирован",
+      "verbose": "Подробный",
+      "concise": "Краткий",
+      "moderate": "Умеренный",
+      "detailed": "Детальный",
+      "formal": "Формальный",
+      "neutral": "Нейтральный",
+      "casual": "Неформальный"
+    }
   },
   "style": {
     "preview": "Предпросмотр стиля",

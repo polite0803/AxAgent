@@ -2230,7 +2230,24 @@
     "detailLevel": "詳細程度",
     "tone": "語氣",
     "language": "語言",
-    "confidence": "畫像置信度"
+    "confidence": "畫像置信度",
+    "options": {
+      "snake_case": "蛇形命名",
+      "camelCase": "駝峰命名",
+      "PascalCase": "帕斯卡命名",
+      "kebab-case": "短橫線命名",
+      "spaces": "空格",
+      "tabs": "製表符",
+      "minimal": "極簡",
+      "documented": "文件化",
+      "verbose": "詳細",
+      "concise": "簡潔",
+      "moderate": "適中",
+      "detailed": "詳盡",
+      "formal": "正式",
+      "neutral": "中性",
+      "casual": "隨意"
+    }
   },
   "style": {
     "preview": "風格預覽",

@@ -2234,7 +2234,24 @@
     "tone": "トーン",
     "language": "言語",
     "confidence": "プロフィール信頼度",
-    "documentStyle": "ドキュメントスタイル"
+    "documentStyle": "ドキュメントスタイル",
+    "options": {
+      "snake_case": "スネークケース",
+      "camelCase": "キャメルケース",
+      "PascalCase": "パスカルケース",
+      "kebab-case": "ケバブケース",
+      "spaces": "スペース",
+      "tabs": "タブ",
+      "minimal": "最小限",
+      "documented": "ドキュメント化",
+      "verbose": "詳細",
+      "concise": "簡潔",
+      "moderate": "中程度",
+      "detailed": "詳細",
+      "formal": "フォーマル",
+      "neutral": "ニュートラル",
+      "casual": "カジュアル"
+    }
   },
   "style": {
     "preview": "プレビュー",

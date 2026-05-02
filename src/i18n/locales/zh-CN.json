@@ -2315,7 +2315,24 @@
     "detailLevel": "详细程度",
     "tone": "语气",
     "language": "语言",
-    "confidence": "画像置信度"
+    "confidence": "画像置信度",
+    "options": {
+      "snake_case": "蛇形命名",
+      "camelCase": "驼峰命名",
+      "PascalCase": "帕斯卡命名",
+      "kebab-case": "短横线命名",
+      "spaces": "空格",
+      "tabs": "制表符",
+      "minimal": "极简",
+      "documented": "文档化",
+      "verbose": "详细",
+      "concise": "简洁",
+      "moderate": "适中",
+      "detailed": "详尽",
+      "formal": "正式",
+      "neutral": "中性",
+      "casual": "随意"
+    }
   },
   "style": {
     "preview": "风格预览",
