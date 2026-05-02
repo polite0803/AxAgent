@@ -22,7 +22,7 @@ futures = "0.3"
 rmcp = { version = "1.2", features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
 regex = "1"
 hex = "0.4"
-toml_edit = "0.22"
+toml_edit = "0.25"
 sqlite-vec = { workspace = true }
 libsqlite3-sys = { workspace = true }
 pdf-extract = "0.7"
