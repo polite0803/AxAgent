@@ -1368,6 +1368,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                           setArchivedMultiSelect(false);
                           setArchivedSelectedIds(new Set());
                         }}
+                        style={{ color: token.colorPrimary }}
                       />
                     </Tooltip>
                     <Tooltip title={t("chat.selectAll")}>
@@ -1385,7 +1386,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                 )
                 : (
                   <>
-                    <Button type="text" icon={<ArrowLeft size={16} />} size="small" onClick={handleBackFromArchived} />
+                    <Button type="text" icon={<ArrowLeft size={16} />} size="small" onClick={handleBackFromArchived} style={{ color: token.colorPrimary }} />
                     <span style={{ fontSize: 13, fontWeight: 500 }}>
                       {t("chat.archived")} ({archivedConversations.length})
                     </span>
@@ -1396,7 +1397,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             ? (
               <>
                 <Tooltip title={t("common.cancel")}>
-                  <Button type="text" icon={<X size={16} />} size="small" onClick={exitMultiSelect} />
+                  <Button type="text" icon={<X size={16} />} size="small" onClick={exitMultiSelect} style={{ color: token.colorPrimary }} />
                 </Tooltip>
                 <Tooltip title={t("chat.selectAll")}>
                   <Checkbox
@@ -1419,7 +1420,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     icon={<Search size={16} />}
                     size="small"
                     onClick={() => setSearchVisible((v) => !v)}
-                    style={{ color: searchVisible ? token.colorPrimary : undefined }}
+                    style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
                 <Tooltip title={t("chat.archived")}>
@@ -1428,6 +1429,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     icon={<Archive size={16} />}
                     size="small"
                     onClick={handleShowArchived}
+                    style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
                 <Tooltip title={t("chat.createCategory")}>
@@ -1439,6 +1441,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                       setEditingCategory(null);
                       setCategoryModalOpen(true);
                     }}
+                    style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
                 <Tooltip title={shortcutHint(t("chat.newConversation"), "newConversation")}>
@@ -1450,17 +1453,16 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     onClick={() => {
                       void handleNewConversation();
                     }}
+                    style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
-                <Tooltip title={isCollapsed ? t("common.expand") : t("common.collapse")}>
+                <Tooltip title={t("chat.multiSelect")}>
                   <Button
                     type="text"
-                    icon={isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                    icon={<ListTodo size={16} />}
                     size="small"
-                    onClick={() => {
-                      setIsCollapsed((v) => !v);
-                      onCollapseChange?.(!isCollapsed);
-                    }}
+                    onClick={() => setMultiSelectMode(true)}
+                    style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
               </>
@@ -1479,6 +1481,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                         size="small"
                         disabled={archivedSelectedIds.size === 0}
                         onClick={handleBatchUnarchive}
+                        style={{ color: token.colorPrimary }}
                       />
                     </Tooltip>
                     <Tooltip title={t("chat.delete")}>
@@ -1500,6 +1503,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                       icon={<ListTodo size={16} />}
                       size="small"
                       onClick={() => setArchivedMultiSelect(true)}
+                      style={{ color: token.colorPrimary }}
                     />
                   </Tooltip>
                 )
@@ -1514,6 +1518,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     size="small"
                     disabled={selectedIds.size === 0}
                     onClick={handleBatchArchive}
+                    style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
                 <Tooltip title={t("chat.delete")}>
@@ -1529,12 +1534,16 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
               </div>
             )
             : (
-              <Tooltip title={t("chat.multiSelect")}>
+              <Tooltip title={isCollapsed ? t("common.expand") : t("common.collapse")}>
                 <Button
                   type="text"
-                  icon={<ListTodo size={16} />}
+                  icon={isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                   size="small"
-                  onClick={() => setMultiSelectMode(true)}
+                  onClick={() => {
+                    setIsCollapsed((v) => !v);
+                    onCollapseChange?.(!isCollapsed);
+                  }}
+                  style={{ color: token.colorPrimary }}
                 />
               </Tooltip>
             )}

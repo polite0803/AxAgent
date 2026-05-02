@@ -1,14 +1,15 @@
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS, type PlatformConfig } from "@/types/platform";
-import { Card, Input, Switch, Typography } from "antd";
+import { Card, Input, Select, Switch, Typography } from "antd";
 
 const { Text } = Typography;
 
 type PlatformFieldDef = {
   key: keyof PlatformConfig;
   label: string;
-  type: "switch" | "password" | "text" | "number";
+  type: "switch" | "password" | "text" | "number" | "select";
   placeholder?: string;
+  options?: { value: string; label: string }[];
 };
 
 const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
@@ -35,12 +36,18 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
     { key: "whatsapp_phone_number_id", label: "Phone Number ID", type: "text" },
     { key: "whatsapp_access_token", label: "Access Token", type: "password" },
     { key: "whatsapp_business_account_id", label: "Business Account ID", type: "text" },
+    { key: "whatsapp_webhook_verify_token", label: "Webhook Verify Token (可选)", type: "text", placeholder: "用于 Meta webhook 验证" },
+    { key: "whatsapp_api_version", label: "API Version (可选)", type: "text", placeholder: "默认 v18.0" },
   ],
   wechat: [
     { key: "wechat_enabled", label: "启用", type: "switch" },
+    { key: "wechat_mode", label: "运行模式", type: "select", options: [
+      { value: "official_account", label: "公众号模式 (Webhook 接收)" },
+      { value: "customer_service", label: "客服模式 (轮询接收，实验性)" },
+    ]},
     { key: "wechat_app_id", label: "App ID", type: "text" },
     { key: "wechat_app_secret", label: "App Secret", type: "password" },
-    { key: "wechat_token", label: "Token (可选)", type: "text" },
+    { key: "wechat_token", label: "Token (公众号模式必填)", type: "text" },
     { key: "wechat_encoding_aes_key", label: "Encoding AES Key (可选)", type: "password" },
     { key: "wechat_original_id", label: "Original ID (可选)", type: "text" },
   ],
@@ -61,6 +68,7 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
     { key: "dingtalk_enabled", label: "启用", type: "switch" },
     { key: "dingtalk_app_key", label: "App Key", type: "text" },
     { key: "dingtalk_app_secret", label: "App Secret", type: "password" },
+    { key: "dingtalk_agent_id", label: "Agent ID", type: "text", placeholder: "钉钉应用 AgentId" },
     { key: "dingtalk_robot_code", label: "Robot Code (可选)", type: "text" },
   ],
 };
@@ -100,7 +108,14 @@ export function GatewayConfigPanel() {
               return (
                 <div key={field.key} className="mt-3">
                   <Text type="secondary">{field.label}</Text>
-                  {field.type === "password" ? (
+                  {field.type === "select" ? (
+                    <Select
+                      value={(config[field.key] as string) ?? ""}
+                      onChange={(v) => handleChange(field.key, v)}
+                      options={field.options}
+                      style={{ width: "100%" }}
+                    />
+                  ) : field.type === "password" ? (
                     <Input.Password
                       value={(config[field.key] as string) ?? ""}
                       onChange={(e) => handleChange(field.key, e.target.value)}
@@ -128,6 +143,19 @@ export function GatewayConfigPanel() {
             onChange={(v) => handleChange("api_server_enabled", v)}
           />
         </div>
+        {config.api_server_enabled && (
+          <div className="mt-3">
+            <Text type="secondary">API Server 端口</Text>
+            <Input
+              type="number"
+              value={config.api_server_port ?? 8080}
+              onChange={(e) =>
+                handleChange("api_server_port", Number.parseInt(e.target.value, 10) || 8080)
+              }
+              placeholder="8080"
+            />
+          </div>
+        )}
         <div className="flex items-center justify-between py-1 mt-2">
           <span>自动同步消息</span>
           <Switch

@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, isTauri } from "@/lib/invoke";
 import { create } from "zustand";
 
 export interface StyleDimensions {
@@ -126,6 +126,45 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
   error: null,
 
   loadStyleProfile: async (userId: string) => {
+    if (!isTauri()) {
+      const defaultDimensions: StyleDimensions = {
+        naming_score: 0.5,
+        density_score: 0.5,
+        comment_ratio: 0.5,
+        abstraction_level: 0.5,
+        formality_score: 0.5,
+        structure_score: 0.5,
+        technical_depth: 0.5,
+        explanation_length: 0.5,
+      };
+      const defaultVector: StyleVector = {
+        dimensions: defaultDimensions,
+        source_confidence: 0.5,
+        learned_at: new Date().toISOString(),
+        sample_count: 0,
+      };
+      const defaultDocumentProfile: DocumentStyleProfile = {
+        formality_level: 0.5,
+        structure_level: 0.5,
+        technical_vocabulary_ratio: 0.5,
+        explanation_detail_level: 0.5,
+        preferred_format: "Markdown",
+      };
+      const defaultProfile: UserStyleProfile = {
+        id: "default",
+        user_id: userId,
+        code_style_vector: defaultVector,
+        document_style_profile: defaultDocumentProfile,
+        code_templates: [],
+        learned_patterns: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        total_samples: 0,
+        confidence: 0.5,
+      };
+      set({ currentProfile: defaultProfile, isLoading: false });
+      return;
+    }
     set({ isLoading: true, error: null });
     try {
       const profile = await invoke<UserStyleProfile | null>("style_get_profile", {
@@ -297,6 +336,9 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
   },
 
   getStats: async () => {
+    if (!isTauri()) {
+      return { total_profiles: 1, total_samples: 0, average_confidence: 0.5 };
+    }
     try {
       const stats = await invoke<StyleMigratorStats>("style_get_stats");
       return stats;

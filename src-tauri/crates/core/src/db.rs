@@ -1,9 +1,11 @@
 use axagent_migration::MigratorTrait;
 use sea_orm::{
-    ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend, Statement,
+    ColumnTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend,
+    EntityTrait, QueryFilter, Statement,
 };
 use tracing::info;
 
+use crate::entity::providers;
 use crate::error::Result;
 use crate::preset_templates;
 use crate::repo::provider;
@@ -368,16 +370,21 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
 }
 
 async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
-    let existing = provider::list_providers(db).await?;
-    if !existing.is_empty() {
-        return Ok(());
-    }
-
     info!("Seeding built-in providers...");
 
     let builtins = get_builtin_providers();
 
     for (idx, bp) in builtins.into_iter().enumerate() {
+        // Check if provider with this builtin_id already exists
+        let existing = providers::Entity::find()
+            .filter(providers::Column::BuiltinId.eq(bp.builtin_id))
+            .one(db)
+            .await?;
+
+        if existing.is_some() {
+            continue;
+        }
+
         let prov = provider::create_provider(
             db,
             CreateProviderInput {
@@ -386,7 +393,7 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
                 api_host: bp.api_host.to_string(),
                 api_path: None,
                 enabled: true,
-                builtin_id: None,
+                builtin_id: Some(bp.builtin_id.to_string()),
             },
         )
         .await?;
@@ -421,7 +428,7 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
         .await?;
     }
 
-    info!("Seeded {} built-in providers", 9);
+    info!("Seeded built-in providers");
     Ok(())
 }
 

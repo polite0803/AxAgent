@@ -523,6 +523,7 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
     let builtins = crate::db::get_builtin_providers();
 
     let mut result = Vec::new();
+    let mut added_ids = std::collections::HashSet::new();
 
     for bp in &builtins {
         if let Some(db_prov) = db_providers
@@ -530,47 +531,59 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
             .find(|p| p.builtin_id.as_deref() == Some(bp.builtin_id))
         {
             result.push(db_prov.clone());
+            added_ids.insert(db_prov.id.clone());
         } else {
-            let now = now_ts();
-            let default_models: Vec<Model> = bp
-                .models
-                .iter()
-                .map(|(model_id, name, caps, max_tokens)| Model {
-                    provider_id: format!("builtin_{}", bp.builtin_id),
-                    model_id: String::from(*model_id),
-                    name: String::from(*name),
-                    group_name: None,
-                    model_type: ModelType::detect(model_id),
-                    capabilities: caps.clone(),
-                    max_tokens: *max_tokens,
-                    enabled: true,
-                    param_overrides: None,
-                })
-                .collect();
-
-            result.push(ProviderConfig {
-                id: format!("builtin_{}", bp.builtin_id),
-                name: String::from(bp.name),
-                provider_type: bp.provider_type.clone(),
-                api_host: String::from(bp.api_host),
-                api_path: None,
-                enabled: false,
-                models: default_models,
-                keys: vec![],
-                proxy_config: None,
-                custom_headers: None,
-                icon: None,
-                builtin_id: Some(String::from(bp.builtin_id)),
-                sort_order: 0,
-                created_at: now,
-                updated_at: now,
+            // Check if there's a custom provider with matching name/provider_type
+            let existing_custom = db_providers.iter().find(|p| {
+                p.builtin_id.is_none() && p.name == bp.name && p.provider_type == bp.provider_type
             });
+            if let Some(custom_prov) = existing_custom {
+                // Use the custom provider (don't add virtual)
+                result.push(custom_prov.clone());
+                added_ids.insert(custom_prov.id.clone());
+            } else {
+                // Add virtual built-in provider
+                let now = now_ts();
+                let default_models: Vec<Model> = bp
+                    .models
+                    .iter()
+                    .map(|(model_id, name, caps, max_tokens)| Model {
+                        provider_id: format!("builtin_{}", bp.builtin_id),
+                        model_id: String::from(*model_id),
+                        name: String::from(*name),
+                        group_name: None,
+                        model_type: ModelType::detect(model_id),
+                        capabilities: caps.clone(),
+                        max_tokens: *max_tokens,
+                        enabled: true,
+                        param_overrides: None,
+                    })
+                    .collect();
+
+                result.push(ProviderConfig {
+                    id: format!("builtin_{}", bp.builtin_id),
+                    name: String::from(bp.name),
+                    provider_type: bp.provider_type.clone(),
+                    api_host: String::from(bp.api_host),
+                    api_path: None,
+                    enabled: false,
+                    models: default_models,
+                    keys: vec![],
+                    proxy_config: None,
+                    custom_headers: None,
+                    icon: None,
+                    builtin_id: Some(String::from(bp.builtin_id)),
+                    sort_order: 0,
+                    created_at: now,
+                    updated_at: now,
+                });
+            }
         }
     }
 
-    // Append custom providers (no builtin_id)
+    // Append custom providers (no builtin_id, not already added)
     for p in &db_providers {
-        if p.builtin_id.is_none() {
+        if !added_ids.contains(&p.id) {
             result.push(p.clone());
         }
     }

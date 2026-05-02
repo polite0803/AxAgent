@@ -37,12 +37,15 @@ const defaultConfig: PlatformConfig = {
   whatsapp_phone_number_id: null,
   whatsapp_access_token: null,
   whatsapp_business_account_id: null,
+  whatsapp_webhook_verify_token: null,
+  whatsapp_api_version: null,
   wechat_enabled: false,
   wechat_app_id: null,
   wechat_app_secret: null,
   wechat_token: null,
   wechat_encoding_aes_key: null,
   wechat_original_id: null,
+  wechat_mode: null,
   feishu_enabled: false,
   feishu_app_id: null,
   feishu_app_secret: null,
@@ -55,6 +58,7 @@ const defaultConfig: PlatformConfig = {
   dingtalk_enabled: false,
   dingtalk_app_key: null,
   dingtalk_app_secret: null,
+  dingtalk_agent_id: null,
   dingtalk_robot_code: null,
   api_server_enabled: false,
   api_server_port: null,
@@ -138,15 +142,7 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
   },
 
   sendMessage: async (platform: string, chatId: string, text: string) => {
-    if (platform === "telegram") {
-      const chatIdNum = Number.parseInt(chatId, 10);
-      if (Number.isNaN(chatIdNum)) throw new Error("Invalid chat ID");
-      await invoke("send_telegram_message", { chatId: chatIdNum, text });
-    } else if (platform === "discord") {
-      await invoke("send_discord_message", { content: text });
-    } else {
-      throw new Error(`Unknown platform: ${platform}`);
-    }
+    await invoke("send_platform_message", { platform, chatId, text });
   },
 
   createSession: async (platform: string, chatId: string) => {

@@ -32,6 +32,7 @@ impl PlatformAdapter for DingtalkAdapter {
         config.dingtalk_enabled
             && config.dingtalk_app_key.is_some()
             && config.dingtalk_app_secret.is_some()
+            && config.dingtalk_agent_id.is_some()
     }
 
     async fn start(&self, config: &PlatformConfig) -> anyhow::Result<()> {
@@ -93,14 +94,17 @@ impl PlatformAdapter for DingtalkAdapter {
                                 let bt = token.clone();
                                 let sid = sender_id.clone();
                                 let t = text.clone();
+                                let agent = rc.clone();
+                                let cid = conversation_id.clone();
                                 tokio::spawn(async move {
                                     let reply = cb
-                                        .on_message("dingtalk", &sid, None, &conversation_id, &t)
+                                        .on_message("dingtalk", &sid, None, &cid, &t)
                                         .await;
                                     if let Some(reply_text) = reply {
                                         let _ = send_dingtalk_message(
                                             &reqwest::Client::new(),
                                             &bt,
+                                            &agent,
                                             &sid,
                                             &reply_text,
                                         )
@@ -157,17 +161,21 @@ impl PlatformAdapter for DingtalkAdapter {
     async fn send_message(
         &self,
         config: &PlatformConfig,
-        chat_id: &str,
+        user_id: &str,
         text: &str,
         _parse_mode: Option<&str>,
     ) -> anyhow::Result<()> {
         let app_key = config.dingtalk_app_key.clone().unwrap_or_default();
         let app_secret = config.dingtalk_app_secret.clone().unwrap_or_default();
+        let agent_id = config
+            .dingtalk_agent_id
+            .clone()
+            .ok_or_else(|| anyhow::anyhow!("DingTalk agent_id not configured"))?;
 
         let client = reqwest::Client::new();
         let token = fetch_dingtalk_token(&client, &app_key, &app_secret).await?;
 
-        send_dingtalk_message(&client, &token, chat_id, text).await
+        send_dingtalk_message(&client, &token, &agent_id, user_id, text).await
     }
 }
 
@@ -253,6 +261,7 @@ async fn poll_dingtalk_robot_msgs(
 async fn send_dingtalk_message(
     client: &reqwest::Client,
     token: &str,
+    agent_id: &str,
     user_id: &str,
     text: &str,
 ) -> anyhow::Result<()> {
@@ -261,7 +270,7 @@ async fn send_dingtalk_message(
         token
     );
     let body = serde_json::json!({
-        "agent_id": user_id,
+        "agent_id": agent_id,
         "userid_list": user_id,
         "msg": {
             "msgtype": "text",

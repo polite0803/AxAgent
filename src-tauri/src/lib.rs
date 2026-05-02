@@ -488,9 +488,12 @@ pub fn run() {
             commands::platform_integration::get_active_sessions,
             commands::platform_integration::deactivate_platform_session,
             commands::platform_integration::send_telegram_message,
+            commands::platform_integration::send_telegram_message,
             commands::platform_integration::send_discord_message,
+            commands::platform_integration::send_platform_message,
             commands::platform_integration::get_platform_statuses,
             commands::platform_integration::reconcile_platforms,
+            commands::platform_integration::start_api_server,
             // Atomic Skill commands
             commands::atomic_skills::list_atomic_skills,
             commands::atomic_skills::get_atomic_skill,
@@ -661,21 +664,31 @@ pub fn run() {
                     tracing::error!("Database initialization failed: {}", e);
                     #[cfg(target_os = "windows")]
                     {
-                        windows_utils::show_error_dialog("AxAgent", &format!("æ•°æ®åº“åˆå§‹åŒ–å¤±è´¥: {}", e));
+                        windows_utils::show_error_dialog("AxAgent", &format!("数据库初始化失败: {}", e));
                     }
                     std::process::exit(1);
                 }
             };
 
-            let state = init::state::create_app_state(db_result);
+            // 在独立线程中运行初始化，避免在 Tauri 的 tokio runtime 内创建嵌套 Runtime
+            let state = std::thread::spawn(move || {
+                init::state::create_app_state(db_result)
+            }).join().expect("Init thread panicked");
 
             app.manage(state);
 
             let state = app.state::<AppState>();
             let sea_db = state.sea_db.clone();
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            let _ = rt.block_on(axagent_core::repo::agent_session::reset_running_sessions(&sea_db));
-            let _ = rt.block_on(commands::scheduled_task::load_tasks_from_db_internal(&sea_db, &state.scheduled_task_service));
+
+            let sea_db2 = sea_db.clone();
+            let scheduled_svc = state.scheduled_task_service.clone();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                rt.block_on(async {
+                    let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db2).await;
+                    let _ = commands::scheduled_task::load_tasks_from_db_internal(&sea_db2, &scheduled_svc).await;
+                });
+            }).join().expect("Session reset thread panicked");
 
             // Initialize pricing configuration from pricing.toml
             commands::agent::init_pricing_config(app.handle());
@@ -685,12 +698,16 @@ pub fn run() {
                 if user_md_path.exists() {
                     if let Ok(content) = std::fs::read_to_string(&user_md_path) {
                         if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
-                            let _ = rt.block_on(async {
-                                let mut p = state.user_profile.write().await;
-                                *p = profile;
-                                tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
-                                    p.preferences.len(), p.expertise.len());
-                            });
+                            let user_profile = state.user_profile.clone();
+                            std::thread::spawn(move || {
+                                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                                rt.block_on(async {
+                                    let mut p = user_profile.write().await;
+                                    *p = profile;
+                                    tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
+                                        p.preferences.len(), p.expertise.len());
+                                });
+                            }).join().expect("User profile thread panicked");
                         }
                     }
                 }
@@ -698,39 +715,44 @@ pub fn run() {
 
             if let Ok(persisted) = state.trajectory_storage.get_patterns() as Result<Vec<axagent_trajectory::TrajectoryPattern>, _> {
                 if !persisted.is_empty() {
-                    let _ = rt.block_on(async {
-                        let mut pl = state.pattern_learner.write().await;
-                        for pattern in &persisted {
-                        pl.learn_from_trajectory(&axagent_trajectory::Trajectory {
-                            id: pattern.id.clone(),
-                            session_id: String::new(),
-                            user_id: String::new(),
-                            topic: pattern.name.clone(),
-                            summary: pattern.description.clone(),
-                            outcome: if pattern.success_rate >= 0.5 {
-                                axagent_trajectory::TrajectoryOutcome::Success
-                            } else {
-                                axagent_trajectory::TrajectoryOutcome::Failure
-                            },
-                            duration_ms: 0,
-                            quality: axagent_trajectory::TrajectoryQuality {
-                                overall: pattern.average_quality,
-                                task_completion: pattern.average_quality,
-                                tool_efficiency: pattern.average_quality,
-                                reasoning_quality: pattern.average_quality,
-                                user_satisfaction: pattern.average_quality,
-                            },
-                            value_score: pattern.average_value_score,
-                            patterns: vec![],
-                            steps: vec![],
-                            rewards: vec![],
-                            created_at: pattern.created_at,
-                            replay_count: 0,
-                            last_replay_at: None,
+                    let pattern_count = persisted.len();
+                    let pattern_learner = state.pattern_learner.clone();
+                    std::thread::spawn(move || {
+                        let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                        rt.block_on(async {
+                            let mut pl = pattern_learner.write().await;
+                            for pattern in &persisted {
+                                pl.learn_from_trajectory(&axagent_trajectory::Trajectory {
+                                    id: pattern.id.clone(),
+                                    session_id: String::new(),
+                                    user_id: String::new(),
+                                    topic: pattern.name.clone(),
+                                    summary: pattern.description.clone(),
+                                    outcome: if pattern.success_rate >= 0.5 {
+                                        axagent_trajectory::TrajectoryOutcome::Success
+                                    } else {
+                                        axagent_trajectory::TrajectoryOutcome::Failure
+                                    },
+                                    duration_ms: 0,
+                                    quality: axagent_trajectory::TrajectoryQuality {
+                                        overall: pattern.average_quality,
+                                        task_completion: pattern.average_quality,
+                                        tool_efficiency: pattern.average_quality,
+                                        reasoning_quality: pattern.average_quality,
+                                        user_satisfaction: pattern.average_quality,
+                                    },
+                                    value_score: pattern.average_value_score,
+                                    patterns: vec![],
+                                    steps: vec![],
+                                    rewards: vec![],
+                                    created_at: pattern.created_at,
+                                    replay_count: 0,
+                                    last_replay_at: None,
+                                });
+                            }
                         });
-                    }
-                    });
-                    tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", persisted.len());
+                    }).join().expect("Pattern learner thread panicked");
+                    tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", pattern_count);
                 }
             }
 
@@ -768,10 +790,13 @@ pub fn run() {
 
             let state = app.state::<AppState>();
             let tray_language = {
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on(axagent_core::repo::settings::get_settings(&state.sea_db))
-                    .map(|s| s.language)
-                    .unwrap_or_else(|_| "en".to_string())
+                let db = state.sea_db.clone();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    rt.block_on(axagent_core::repo::settings::get_settings(&db))
+                        .map(|s| s.language)
+                        .unwrap_or_else(|_| "en".to_string())
+                }).join().expect("Tray language thread panicked")
             };
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::AppState;
 use axagent_core::platform_config::PlatformConfig;
 use axagent_runtime::message_gateway::platform_manager::{
@@ -113,6 +115,31 @@ pub async fn deactivate_platform_session(
 }
 
 #[tauri::command]
+pub async fn send_platform_message(
+    state: State<'_, AppState>,
+    platform: String,
+    chat_id: String,
+    text: String,
+    parse_mode: Option<String>,
+) -> Result<(), String> {
+    let config = {
+        let service = state.platform_integration_service.read().await;
+        service.get_config().await
+    };
+
+    let adapter = state
+        .platform_manager
+        .get_adapter(&platform)
+        .await
+        .ok_or_else(|| format!("Platform adapter not found: {}", platform))?;
+
+    adapter
+        .send_message(&config, &chat_id, &text, parse_mode.as_deref())
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn send_telegram_message(
     state: State<'_, AppState>,
     chat_id: i64,
@@ -193,4 +220,35 @@ pub async fn reconcile_platforms(
         .reconcile(&config)
         .await
         .map_err(|e| e.to_string())
+}
+
+/// 启动 API Server（在配置的端口上提供 REST API）
+#[tauri::command]
+pub async fn start_api_server(
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let config = {
+        let service = state.platform_integration_service.read().await;
+        service.get_config().await
+    };
+
+    if !config.api_server_enabled {
+        return Err("API Server is not enabled in platform config".to_string());
+    }
+
+    let port = config.api_server_port.unwrap_or(8080);
+    let config_arc = Arc::new(tokio::sync::RwLock::new(config));
+    let pm = state.platform_manager.clone();
+
+    let server = axagent_runtime::api_server::ApiServer::new(config_arc, pm);
+
+    // 在后台启动 server
+    tokio::spawn(async move {
+        if let Err(e) = server.start(port).await {
+            tracing::error!("API Server error: {}", e);
+        }
+    });
+
+    tracing::info!("API Server started on port {}", port);
+    Ok(())
 }

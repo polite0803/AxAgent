@@ -18,8 +18,6 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         ..
     } = db_result;
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
     let sea_db = db_handle.conn.clone();
 
     let vector_store = axagent_core::vector_store::VectorStore::new(sea_db.clone());
@@ -52,14 +50,14 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         ));
     }
 
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create init runtime");
     let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(
         &sea_db,
     ));
     rt.block_on(axagent_core::path_vars::migrate_hardcoded_paths(&sea_db));
     rt.block_on(axagent_core::repo::local_tool::migrate_legacy_keys(&sea_db));
 
-    let app_settings = rt
-        .block_on(axagent_core::repo::settings::get_settings(&sea_db))
+    let app_settings = rt.block_on(axagent_core::repo::settings::get_settings(&sea_db))
         .unwrap_or_default();
 
     axagent_core::storage_paths::init_documents_root(
@@ -99,11 +97,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         ),
     );
 
-    rt.block_on(async {
-        platform_manager
-            .set_message_callback(platform_bridge.clone())
-            .await;
-    });
+    rt.block_on(platform_manager
+        .set_message_callback(platform_bridge.clone()));
 
     AppState {
         sea_db: sea_db.clone(),
@@ -167,7 +162,6 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
         )),
         auto_memory_extractor: {
-            // AutoMemoryExtractor 内部使用同步锁，创建独立的 std::sync::RwLock 包装
             let auto_ms = axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
                 .unwrap_or_else(|e| {
                     tracing::warn!("Failed to create MemoryService for AutoMemory: {}", e);
@@ -197,9 +191,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_trajectory::ScheduledTaskService::new(100),
         )),
         platform_integration_service: {
-            let platform_config = rt.block_on(
-                axagent_core::repo::platform_config::get_platform_config(&sea_db),
-            );
+            let platform_config = rt.block_on(axagent_core::repo::platform_config::get_platform_config(&sea_db));
             Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::PlatformIntegrationService::with_config(platform_config),
             ))
@@ -209,11 +201,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         user_profile: Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new())),
         local_tool_registry: {
             let mut registry = axagent_agent::LocalToolRegistry::init_from_registry();
-            // Load enabled state synchronously in the runtime block
-            let db = sea_db.clone();
-            rt.block_on(async {
-                registry.load_enabled_state(&db).await;
-            });
+            rt.block_on(registry.load_enabled_state(&sea_db));
             Arc::new(tokio::sync::Mutex::new(registry))
         },
         work_engine: Arc::new(tokio::sync::RwLock::new(
@@ -224,20 +212,15 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         )),
         proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         dashboard_registry: None,
-        webhook_subscription_manager: None,
+        webhook_subscription_manager: Some(Arc::new(axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new())),
         semantic_cache: {
-            let cache = rt
-                .block_on(async {
-                    SemanticCache::new(sea_db.clone(), CacheConfig::default()).await
-                })
+            let cache = rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
                 .unwrap_or_else(|e| {
                     tracing::error!("Failed to init semantic cache: {}", e);
-                    // We can't easily recover here without a DB, so panic
                     panic!("Semantic cache initialization failed: {}", e);
                 });
             Arc::new(tokio::sync::Mutex::new(cache))
         },
-        // 浏览器客户端从全局 static mut 迁移到 AppState 管理，使用 tokio::sync::Mutex 保证并发安全
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
     }
 }

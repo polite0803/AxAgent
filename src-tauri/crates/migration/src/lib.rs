@@ -6,6 +6,7 @@ mod m20260501_000002_create_workflow_tables;
 mod m20260502_000001_create_missing_tables;
 mod m20260502_000002_create_notes_and_knowledge_tables;
 mod m20260502_000003_create_trajectory_tables;
+mod m20260503_000001_fix_provider_builtin_id;
 
 pub struct Migrator;
 
@@ -19,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260502_000001_create_missing_tables::Migration),
             Box::new(m20260502_000002_create_notes_and_knowledge_tables::Migration),
             Box::new(m20260502_000003_create_trajectory_tables::Migration),
+            Box::new(m20260503_000001_fix_provider_builtin_id::Migration),
         ]
     }
 }

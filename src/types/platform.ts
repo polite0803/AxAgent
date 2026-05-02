@@ -20,6 +20,8 @@ export interface PlatformConfig {
   whatsapp_phone_number_id: string | null;
   whatsapp_access_token: string | null;
   whatsapp_business_account_id: string | null;
+  whatsapp_webhook_verify_token: string | null;
+  whatsapp_api_version: string | null;
 
   wechat_enabled: boolean;
   wechat_app_id: string | null;
@@ -27,6 +29,7 @@ export interface PlatformConfig {
   wechat_token: string | null;
   wechat_encoding_aes_key: string | null;
   wechat_original_id: string | null;
+  wechat_mode: string | null;
 
   feishu_enabled: boolean;
   feishu_app_id: string | null;
@@ -42,6 +45,7 @@ export interface PlatformConfig {
   dingtalk_enabled: boolean;
   dingtalk_app_key: string | null;
   dingtalk_app_secret: string | null;
+  dingtalk_agent_id: string | null;
   dingtalk_robot_code: string | null;
 
   api_server_enabled: boolean;

@@ -23,6 +23,8 @@ pub struct PlatformConfig {
     pub whatsapp_phone_number_id: Option<String>,
     pub whatsapp_access_token: Option<String>,
     pub whatsapp_business_account_id: Option<String>,
+    pub whatsapp_webhook_verify_token: Option<String>,
+    pub whatsapp_api_version: Option<String>,
 
     pub wechat_enabled: bool,
     pub wechat_app_id: Option<String>,
@@ -30,6 +32,8 @@ pub struct PlatformConfig {
     pub wechat_token: Option<String>,
     pub wechat_encoding_aes_key: Option<String>,
     pub wechat_original_id: Option<String>,
+    /// "official_account" = 公众号被动回复模式, "customer_service" = 客服轮询模式
+    pub wechat_mode: Option<String>,
 
     pub feishu_enabled: bool,
     pub feishu_app_id: Option<String>,
@@ -45,10 +49,19 @@ pub struct PlatformConfig {
     pub dingtalk_enabled: bool,
     pub dingtalk_app_key: Option<String>,
     pub dingtalk_app_secret: Option<String>,
+    pub dingtalk_agent_id: Option<String>,
     pub dingtalk_robot_code: Option<String>,
 
     pub api_server_enabled: bool,
     pub api_server_port: Option<u16>,
+
+    // ── 消息去重游标 (平台适配器启动/运行时持久化) ──
+    #[serde(default)]
+    pub telegram_last_update_id: i64,
+    #[serde(default)]
+    pub discord_last_sequence: Option<i64>,
+    #[serde(default)]
+    pub feishu_last_message_id: Option<String>,
 
     pub auto_sync_messages: bool,
     pub max_history_per_session: usize,
@@ -78,6 +91,8 @@ impl Default for PlatformConfig {
             whatsapp_phone_number_id: None,
             whatsapp_access_token: None,
             whatsapp_business_account_id: None,
+            whatsapp_webhook_verify_token: None,
+            whatsapp_api_version: None,
 
             wechat_enabled: false,
             wechat_app_id: None,
@@ -85,6 +100,7 @@ impl Default for PlatformConfig {
             wechat_token: None,
             wechat_encoding_aes_key: None,
             wechat_original_id: None,
+            wechat_mode: None,
 
             feishu_enabled: false,
             feishu_app_id: None,
@@ -100,11 +116,15 @@ impl Default for PlatformConfig {
             dingtalk_enabled: false,
             dingtalk_app_key: None,
             dingtalk_app_secret: None,
+            dingtalk_agent_id: None,
             dingtalk_robot_code: None,
 
             api_server_enabled: false,
             api_server_port: None,
 
+            telegram_last_update_id: 0,
+            discord_last_sequence: None,
+            feishu_last_message_id: None,
             auto_sync_messages: true,
             max_history_per_session: 100,
         }
@@ -140,9 +160,9 @@ impl PlatformConfig {
         }
 
         if self.dingtalk_enabled
-            && (self.dingtalk_app_key.is_none() || self.dingtalk_app_secret.is_none())
+            && (self.dingtalk_app_key.is_none() || self.dingtalk_app_secret.is_none() || self.dingtalk_agent_id.is_none())
         {
-            anyhow::bail!("Dingtalk app_key and app_secret are required when Dingtalk is enabled");
+            anyhow::bail!("Dingtalk app_key, app_secret, and agent_id are required when Dingtalk is enabled");
         }
 
         if self.api_server_enabled {

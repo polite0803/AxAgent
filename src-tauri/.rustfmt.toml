@@ -1,20 +1,6 @@
-# Maximum line length
 max_width = 100
-
-# Formatting
 tab_spaces = 4
 hard_tabs = false
 newline_style = "Auto"
-
-# Imports
-imports_granularity = "Crate"
-group_imports = "StdExternalCrate"
-
-# Match formatting
 match_block_trailing_comma = true
-
-# Control flow
-control_brace_style = "AlwaysNextLine"
-
-# Items
-fn_args_layout = "Tall"
+fn_params_layout = "Tall"

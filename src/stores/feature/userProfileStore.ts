@@ -179,7 +179,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       loadTrajectoryProfile: async () => {
         if (!isTauri()) {
-          set({ error: "Profile loading only available in Tauri app" });
+          set({ trajectoryProfile: defaultTrajectoryProfile, isLoading: false });
           return;
         }
         set({ isLoading: true, error: null });
@@ -188,6 +188,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           set({ trajectoryProfile: profile, isLoading: false });
         } catch (err) {
           set({
+            trajectoryProfile: defaultTrajectoryProfile,
             error: err instanceof Error ? err.message : "Failed to load profile",
             isLoading: false
           });

@@ -64,6 +64,8 @@ The agent system is built on a sophisticated architecture featuring:
 - **ReAct Reasoning Engine** — Integrates reasoning and action with self-verification for reliable task execution
 - **Hierarchical Planner** — Decomposes complex tasks into structured plans with phases and dependencies
 - **Tool Registry** — Dynamic tool registration with semantic versioning and conflict detection
+- **Deep Research** — Multi-source search orchestration, citation tracking, and credibility assessment
+- **Fact Checking** — AI-driven fact verification with source classification
 - **Computer Control** — AI-controlled mouse clicks, keyboard input, screen scrolling with vision model analysis
 - **Screen Perception** — Screenshot capture and visual model analysis for UI element identification
 - **Three Permission Levels** — Default (approval required), Accept Edits (auto-approve), Full Access (no prompts)
@@ -116,6 +118,7 @@ The workflow engine implements a DAG-based task orchestration system:
 - **Hybrid Search** — Combines vector similarity search with BM25 full-text ranking
 - **Reranking** — Cross-encoder reranking for improved retrieval precision
 - **Knowledge Graph** — Entity relationship visualization of knowledge connections
+- **Wiki System** — LLM Wiki compiler and validator with knowledge graph visualization and incremental sync
 - **Memory System** — Multi-namespace memory with manual entry or AI-powered automatic extraction
 - **Closed-Loop Memory** — Integration with Honcho and Mem0 for persistent memory providers
 - **FTS5 Full-Text Search** — Fast retrieval across conversations, files, and memories
@@ -132,18 +135,21 @@ The workflow engine implements a DAG-based task orchestration system:
 - **Request Logging** — Complete recording of all API requests and responses
 - **Configuration Templates** — Pre-built templates for Claude, Codex, OpenCode, Gemini
 - **Realtime API** — WebSocket event push compatible with OpenAI Realtime API
-- **Platform Integrations** — Support for DingTalk, Feishu, QQ, Slack, WeChat, WhatsApp
+- **Platform Integrations** — Support for DingTalk, Feishu, QQ, Slack, WeChat, WhatsApp, Telegram, Discord
 
 ### 🔧 Tools & Extensions
 
 - **MCP Protocol** — Full Model Context Protocol implementation with stdio and HTTP/WebSocket transports
 - **OAuth Authentication** — OAuth flow support for MCP servers
+- **Plugin System** — Three-tier plugin architecture (builtin/bundled/external) with tool registration, hooks, and lifecycle management
 - **Built-in Tools** — Comprehensive tool set for file operations, code execution, search, and more
 - **LSP Client** — Built-in Language Server Protocol for code completion and diagnostics
+- **Code Engine** — Lightweight code search runtime with AST indexing and three-level recall pipeline
 - **Terminal Backends** — Support for Local, Docker, and SSH terminal connections
 - **Browser Automation** — Integrated browser control capabilities via CDP
 - **UI Automation** — Cross-platform UI element identification and control
 - **Git Tools** — Git operations with branch detection and conflict awareness
+- **Tool Recommendation** — Context-aware intelligent tool recommendation engine
 
 ### 📊 Content Rendering
 
@@ -167,7 +173,7 @@ The workflow engine implements a DAG-based task orchestration system:
 ### 🖥️ Desktop Experience
 
 - **Theme Engine** — Dark/light themes with system-follow or manual preference
-- **Interface Languages** — 12 languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Spanish, Russian, Hindi, Arabic
+- **Interface Languages** — 11 languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Spanish, Russian, Hindi, Arabic
 - **System Tray** — Minimize to tray without interrupting background services
 - **Always on Top** — Pin window above others
 - **Global Shortcuts** — Customizable shortcuts to summon main window
@@ -178,18 +184,23 @@ The workflow engine implements a DAG-based task orchestration system:
 
 ### 🔬 Advanced Features
 
+- **Deep Research** — Multi-source search, citation tracking, credibility assessment, and content synthesis
+- **Fact Checking** — AI-driven fact verification with source classification
 - **Cron Scheduler** — Automated task scheduling with daily, weekly, monthly templates and custom cron expressions
 - **Webhook System** — Event subscriptions for tool completion, agent errors, session end notifications
 - **User Profiling** — Automatic learning of coding style, naming conventions, indentation, comment style, communication preferences
 - **RL Optimizer** — Reinforcement learning for tool selection and task strategy optimization
 - **LoRA Fine-Tuning** — Custom model adaptation with local training using LoRA
 - **Proactive Suggestions** — Context-aware nudges based on conversation content and user patterns
+- **Dream Consolidation** — Background auto-consolidation of memories and patterns for long-term knowledge optimization
 - **Thought Chain** — Reasoning visualization for agent decision-making with step-by-step breakdown
 - **Error Recovery** — Automatic error classification, root cause analysis, and recovery suggestions
 - **DevTools** — Trace, span, timeline visualization for debugging and performance analysis
-- **Benchmark System** — Task performance evaluation and metrics with score cards
+- **Benchmark System** — SWE-bench / Terminal-bench task performance evaluation and metrics with score cards
 - **Style Transfer** — Apply learned coding style preferences to generated code
 - **Dashboard Plugins** — Extensible dashboard with custom panels and widgets
+- **Collaboration** — CRDT-based real-time collaboration and one-click session sharing
+- **Browser Extension** — Chrome extension for quick interaction with AxAgent
 
 ---
 
@@ -206,7 +217,7 @@ The workflow engine implements a DAG-based task orchestration system:
 | **Backend** | Rust + SeaORM + SQLite |
 | **Vector DB** | sqlite-vec |
 | **Code Editor** | Monaco Editor |
-| **Diagrams** | Mermaid + D2 + ECharts |
+| **Diagrams** | Mermaid + D2 + ECharts (CDN) |
 | **Terminal** | xterm.js |
 | **Build** | Vite + npm |
 
@@ -217,50 +228,93 @@ The backend is organized as a Rust workspace with specialized crates:
 ```
 src-tauri/crates/
 ├── agent/         # AI Agent core
-│   ├── react_engine.rs       # ReAct reasoning engine
-│   ├── tool_registry.rs      # Dynamic tool registration
-│   ├── coordinator.rs        # Agent coordination
-│   ├── hierarchical_planner.rs # Task decomposition
-│   ├── self_verifier.rs      # Output verification
+│   ├── react_engine.rs          # ReAct reasoning engine
+│   ├── tool_registry.rs         # Dynamic tool registration
+│   ├── coordinator.rs           # Agent coordination
+│   ├── hierarchical_planner.rs  # Task decomposition
+│   ├── self_verifier.rs         # Output verification
 │   ├── error_recovery_engine.rs # Error handling
-│   ├── vision_pipeline.rs    # Screen perception
-│   └── fine_tune/            # LoRA fine-tuning
+│   ├── vision_pipeline.rs       # Screen perception
+│   ├── deep_research.rs         # Deep research
+│   ├── fact_checker.rs          # Fact checking
+│   ├── research_agent.rs        # Research agent
+│   ├── local_tool_registry.rs   # Local tool registry
+│   ├── evaluator/               # Benchmark evaluation
+│   ├── fine_tune/               # LoRA fine-tuning
+│   ├── rl_optimizer/            # RL policy optimization
+│   └── tool_recommender/        # Tool recommendation engine
+│
+├── code_engine/   # Code engine
+│   └── lib.rs                  # Lightweight code search runtime (AST + three-level recall)
 │
 ├── core/          # Core utilities
-│   ├── db.rs               # SeaORM database
-│   ├── vector_store.rs      # sqlite-vec integration
-│   ├── rag.rs              # RAG abstraction layer
-│   ├── hybrid_search.rs    # Vector + FTS5 search
-│   ├── crypto.rs           # AES-256 encryption
-│   └── mcp_client.rs       # MCP protocol client
+│   ├── db.rs                   # SeaORM database
+│   ├── vector_store.rs         # sqlite-vec integration
+│   ├── rag.rs                  # RAG abstraction layer
+│   ├── hybrid_search.rs        # Vector + FTS5 search
+│   ├── crypto.rs               # AES-256 encryption
+│   ├── mcp_client.rs           # MCP protocol client
+│   ├── browser_automation.rs   # Browser automation
+│   ├── incremental_indexer.rs  # Incremental indexing
+│   ├── marketplace_service.rs  # Marketplace service
+│   └── storage_migration.rs    # Storage migration
 │
 ├── gateway/       # API Gateway
-│   ├── server.rs           # HTTP server
-│   ├── handlers.rs         # API handlers
-│   ├── auth.rs             # Authentication
-│   └── realtime.rs         # WebSocket support
+│   ├── server.rs               # HTTP server
+│   ├── handlers.rs              # API handlers
+│   ├── auth.rs                 # Authentication
+│   ├── marketplace_handlers.rs  # Marketplace endpoints
+│   └── realtime.rs             # WebSocket support
+│
+├── plugins/       # Plugin system
+│   ├── hooks.rs                # Hook runner
+│   └── lib.rs                  # Plugin registry and lifecycle
 │
 ├── providers/     # Model adapters
-│   ├── openai.rs          # OpenAI API
-│   ├── anthropic.rs       # Claude API
-│   ├── gemini.rs          # Gemini API
-│   └── ollama.rs          # Ollama local
+│   ├── openai.rs              # OpenAI API
+│   ├── anthropic.rs           # Claude API
+│   ├── gemini.rs              # Gemini API
+│   ├── ollama.rs              # Ollama local
+│   ├── openclaw.rs            # OpenClaw
+│   └── hermes.rs              # Hermes
 │
 ├── runtime/       # Runtime services
-│   ├── session.rs         # Session management
-│   ├── workflow_engine.rs  # DAG orchestration
-│   ├── mcp.rs             # MCP server
-│   ├── cron/              # Task scheduling
-│   ├── terminal/          # Terminal backends
-│   ├── shell_hooks.rs     # Shell integration
-│   └── message_gateway/   # Platform integrations
+│   ├── session.rs             # Session management
+│   ├── workflow_engine.rs     # DAG orchestration
+│   ├── work_engine/           # Work engine (node executors)
+│   ├── mcp.rs                 # MCP server
+│   ├── cron/                  # Task scheduling
+│   ├── terminal/              # Terminal backends (Local/Docker/SSH)
+│   ├── benchmarks/            # SWE-bench / Terminal-bench
+│   ├── collaboration/         # CRDT collaboration & session sharing
+│   ├── tool_generator/        # AI tool generation
+│   ├── message_gateway/       # Platform integrations (DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord)
+│   ├── adversarial_debate.rs  # Adversarial debate
+│   ├── agent_orchestrator.rs  # Multi-agent orchestration
+│   ├── webhook_dispatcher.rs  # Webhook dispatching
+│   ├── session_search.rs      # Session search
+│   └── dashboard_plugin.rs    # Dashboard plugins
 │
-└── trajectory/   # Learning system
-    ├── memory.rs          # Memory management
-    ├── skill.rs           # Skill system
-    ├── rl.rs              # RL reward signals
-    ├── behavior_learner.rs # Pattern learning
-    └── user_profile.rs    # User profiling
+├── telemetry/     # Telemetry & tracing
+│   ├── tracer.rs              # Distributed tracing
+│   ├── metrics.rs             # Metrics collection
+│   └── span.rs                # Span management
+│
+└── trajectory/    # Learning system
+    ├── memory.rs              # Memory management
+    ├── skill.rs               # Skill system
+    ├── rl.rs                  # RL reward signals
+    ├── behavior_learner.rs    # Pattern learning
+    ├── user_profile.rs        # User profiling
+    ├── auto_memory.rs         # Auto memory extraction
+    ├── dream_consolidation.rs # Dream consolidation
+    ├── parallel_execution.rs  # Parallel execution service
+    ├── style_extractor.rs     # Style extraction
+    ├── style_applier.rs       # Style application
+    ├── suggestion_engine.rs   # Suggestion engine
+    ├── atomic_skill/          # Atomic skill executor
+    ├── memory_providers/      # Memory providers (Honcho/Mem0/Closed-loop)
+    └── skill_decomposition/   # Skill decomposition (LLM-assisted/multi-turn)
 ```
 
 ### Frontend Architecture
@@ -271,22 +325,65 @@ src/
 │   ├── domain/               # Core business state
 │   │   ├── conversationStore.ts
 │   │   ├── messageStore.ts
-│   │   └── streamStore.ts
+│   │   ├── streamStore.ts
+│   │   ├── multiModelStore.ts
+│   │   └── workspaceStore.ts
 │   ├── feature/              # Feature module state
 │   │   ├── agentStore.ts
 │   │   ├── gatewayStore.ts
 │   │   ├── workflowEditorStore.ts
-│   │   └── knowledgeStore.ts
+│   │   ├── knowledgeStore.ts
+│   │   ├── atomicSkillStore.ts
+│   │   ├── expertStore.ts
+│   │   ├── memoryStore.ts
+│   │   ├── skillStore.ts
+│   │   ├── workEngineStore.ts
+│   │   └── ... (30+ feature modules)
+│   ├── devtools/             # DevTools state
+│   │   ├── tracerStore.ts
+│   │   ├── evaluatorStore.ts
+│   │   ├── rlStore.ts
+│   │   └── fineTuneStore.ts
 │   └── shared/               # Shared state
 │
 ├── components/
-│   ├── chat/                # Chat interface (60+ components)
+│   ├── chat/                # Chat interface (80+ components)
 │   ├── workflow/            # Workflow editor
 │   ├── gateway/             # API gateway UI
 │   ├── settings/            # Settings panels
-│   └── terminal/            # Terminal UI
+│   ├── terminal/            # Terminal UI
+│   ├── atomicSkill/         # Atomic skill editor
+│   ├── benchmark/           # Benchmark panels
+│   ├── decomposition/       # Skill decomposition & tool generation
+│   ├── files/               # File management page
+│   ├── fine-tune/           # LoRA fine-tuning config
+│   ├── link/                # External link management
+│   ├── llm-wiki/            # LLM Wiki editor
+│   ├── proactive/           # Proactive suggestion system
+│   ├── recommendation/      # Tool recommendation panel
+│   ├── wiki/                # Wiki management
+│   ├── workEngine/          # Work engine controls
+│   ├── devtools/            # Trace/Span timeline
+│   ├── style/               # Code style transfer
+│   ├── rl/                  # RL training monitor
+│   └── shared/              # Shared components
 │
 └── pages/                   # Page components
+    ├── ChatPage.tsx
+    ├── KnowledgePage.tsx
+    ├── MemoryPage.tsx
+    ├── WorkflowPage.tsx
+    ├── WorkflowMarketplace.tsx
+    ├── GatewayPage.tsx
+    ├── LinkPage.tsx
+    ├── FilesPage.tsx
+    ├── FineTunePage.tsx
+    ├── SkillsPage.tsx
+    ├── WikiPage.tsx
+    ├── LlmWikiPage.tsx
+    ├── PromptTemplatesPage.tsx
+    ├── IngestPage.tsx
+    └── SettingsPage.tsx
 ```
 
 ### Platform Support
@@ -355,34 +452,55 @@ npm run typecheck
 AxAgent/
 ├── src/                         # Frontend source (React + TypeScript)
 │   ├── components/              # React components
-│   │   ├── chat/               # Chat interface (60+ components)
+│   │   ├── chat/               # Chat interface (80+ components)
 │   │   ├── workflow/           # Workflow editor components
 │   │   ├── gateway/            # API gateway components
 │   │   ├── settings/           # Settings panels
-│   │   └── terminal/           # Terminal components
-│   ├── pages/                   # Page components
+│   │   ├── terminal/           # Terminal components
+│   │   ├── atomicSkill/       # Atomic skill editor
+│   │   ├── benchmark/         # Benchmark
+│   │   ├── decomposition/     # Skill decomposition
+│   │   ├── files/             # File management
+│   │   ├── fine-tune/         # LoRA fine-tuning
+│   │   ├── link/              # External links
+│   │   ├── llm-wiki/          # LLM Wiki
+│   │   ├── proactive/         # Proactive suggestions
+│   │   ├── recommendation/    # Tool recommendation
+│   │   ├── wiki/              # Wiki management
+│   │   ├── workEngine/        # Work engine
+│   │   ├── devtools/          # DevTools
+│   │   ├── style/             # Code style
+│   │   ├── rl/                # RL training
+│   │   └── shared/            # Shared components
+│   ├── pages/                   # Page components (15+ pages)
 │   ├── stores/                  # Zustand state management
 │   │   ├── domain/            # Core business state
-│   │   └── feature/            # Feature module state
-│   ├── hooks/                   # React hooks
-│   ├── lib/                     # Utility functions
+│   │   ├── feature/           # Feature module state (30+ stores)
+│   │   ├── devtools/          # DevTools state
+│   │   └── shared/            # Shared state
+│   ├── hooks/                   # React hooks (16)
+│   ├── lib/                     # Utility functions (with Web Worker)
 │   ├── types/                   # TypeScript definitions
-│   └── i18n/                    # 12 language translations
+│   └── i18n/                    # 11 language translations
 │
 ├── src-tauri/                    # Backend source (Rust)
-│   ├── crates/                  # Rust workspace (9 crates)
+│   ├── crates/                  # Rust workspace (11 crates)
 │   │   ├── agent/             # AI Agent core
+│   │   ├── code_engine/       # Code search engine
 │   │   ├── core/              # Database, crypto, RAG
 │   │   ├── gateway/           # API gateway server
+│   │   ├── plugins/           # Plugin system
 │   │   ├── providers/         # Model provider adapters
 │   │   ├── runtime/           # Runtime services
 │   │   ├── trajectory/        # Memory & learning
-│   │   └── telemetry/         # Tracing & metrics
+│   │   ├── telemetry/         # Tracing & metrics
+│   │   └── migration/         # Database migrations
 │   └── src/                    # Tauri entry point
 │
+├── extension/                  # Browser extension (Chrome)
 ├── e2e/                        # Playwright E2E tests
-├── scripts/                    # Build scripts
-└── docs/                       # Documentation
+├── scripts/                    # Build & utility scripts
+└── website/                    # Project website
 ```
 
 ## Data Directories

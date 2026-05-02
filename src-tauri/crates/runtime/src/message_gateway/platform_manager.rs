@@ -17,6 +17,9 @@ pub trait PlatformMessageCallback: Send + Sync {
         chat_id: &str,
         text: &str,
     ) -> Option<String>;
+
+    /// 保存平台消息去重游标（适配器每次处理后调用）
+    async fn save_cursor(&self, platform: &str, cursor: i64);
 }
 
 pub struct PlatformManager {
@@ -143,6 +146,31 @@ impl PlatformManager {
 
     pub async fn get_message_callback(&self) -> Option<Arc<dyn PlatformMessageCallback>> {
         self.message_callback.read().await.clone()
+    }
+
+    /// 查询平台用户是否已有关联的 Agent 会话 ID
+    /// 先查内存 SessionRouter，再查持久化路由表
+    pub async fn get_linked_agent_session(
+        &self,
+        platform: &str,
+        user_id: &str,
+        db: Option<&sea_orm::DatabaseConnection>,
+    ) -> Option<String> {
+        let router = self.session_router.read().await;
+        if let Some(session) = router.get_session(platform, user_id) {
+            if let Some(ref agent_id) = session.agent_session_id {
+                return Some(agent_id.clone());
+            }
+        }
+        drop(router);
+
+        // 回退到持久化路由
+        if let Some(db) = db {
+            let routes = axagent_core::repo::platform_config::load_session_routes(db).await;
+            let key = format!("{}_{}", platform, user_id);
+            return routes.get(&key).cloned();
+        }
+        None
     }
 
     pub async fn link_agent_session(

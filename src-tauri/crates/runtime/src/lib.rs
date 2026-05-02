@@ -11,6 +11,7 @@
 pub mod adversarial_debate;
 pub mod agent_orchestrator;
 pub mod agent_roles;
+pub mod api_server;
 mod bash;
 pub mod bash_validation;
 pub mod benchmarks;

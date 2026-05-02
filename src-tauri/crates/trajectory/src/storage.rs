@@ -37,9 +37,8 @@ impl TrajectoryStorage {
         Self { db, fts_searcher: Some(FTS5Search::new(fts_conn, FTS5Config::default())) }
     }
 
-    fn rt() -> tokio::runtime::Handle {
-        tokio::runtime::Handle::try_current()
-            .unwrap_or_else(|_| tokio::runtime::Runtime::new().unwrap().handle().clone())
+    fn rt() -> tokio::runtime::Runtime {
+        tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime")
     }
 
     // ── Trajectories ──

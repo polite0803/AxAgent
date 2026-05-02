@@ -80,42 +80,11 @@ fn test_serialize_deserialize_config() {
         telegram_webhook_url: Some("https://example.com/webhook".to_string()),
         telegram_webhook_secret: Some("secret123".to_string()),
         telegram_allowed_users: Some(vec![123456, 789012]),
-        discord_enabled: false,
-        discord_bot_token: None,
-        discord_webhook_url: None,
-        discord_allowed_channels: None,
-        slack_enabled: false,
-        slack_bot_token: None,
-        slack_signing_secret: None,
-        slack_workspace_id: None,
-        slack_app_token: None,
-        whatsapp_enabled: false,
-        whatsapp_phone_number_id: None,
-        whatsapp_access_token: None,
-        whatsapp_business_account_id: None,
         api_server_enabled: true,
         api_server_port: Some(9090),
         auto_sync_messages: false,
         max_history_per_session: 50,
-        wechat_enabled: false,
-        wechat_app_id: None,
-        wechat_app_secret: None,
-        wechat_token: None,
-        wechat_encoding_aes_key: None,
-        wechat_original_id: None,
-        feishu_enabled: false,
-        feishu_app_id: None,
-        feishu_app_secret: None,
-        feishu_verification_token: None,
-        feishu_encrypt_key: None,
-        qq_enabled: false,
-        qq_bot_app_id: None,
-        qq_bot_token: None,
-        qq_bot_secret: None,
-        dingtalk_enabled: false,
-        dingtalk_app_key: None,
-        dingtalk_app_secret: None,
-        dingtalk_robot_code: None,
+        ..Default::default()
     };
 
     let json = serde_json::to_string(&config).unwrap();
@@ -153,6 +122,29 @@ fn test_allowed_users_filtering() {
         .as_ref()
         .unwrap()
         .contains(&333));
+}
+
+#[test]
+fn test_validate_dingtalk_requires_agent_id() {
+    let mut config = PlatformConfig::default();
+    config.dingtalk_enabled = true;
+    config.dingtalk_app_key = Some("key".to_string());
+    config.dingtalk_app_secret = Some("secret".to_string());
+    // Missing agent_id
+    let result = config.validate();
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("agent_id"));
+}
+
+#[test]
+fn test_validate_dingtalk_with_all_fields() {
+    let mut config = PlatformConfig::default();
+    config.dingtalk_enabled = true;
+    config.dingtalk_app_key = Some("key".to_string());
+    config.dingtalk_app_secret = Some("secret".to_string());
+    config.dingtalk_agent_id = Some("12345".to_string());
+    let result = config.validate();
+    assert!(result.is_ok());
 }
 
 #[test]
