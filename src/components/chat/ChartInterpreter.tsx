@@ -1,11 +1,5 @@
 import { Badge, Card, Collapse, Typography } from "antd";
-import {
-  BarChart3,
-  CheckCircle,
-  Loader2,
-  TrendingUp,
-  XCircle,
-} from "lucide-react";
+import { BarChart3, CheckCircle, Loader2, TrendingUp, XCircle } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -53,7 +47,7 @@ function ChartInterpreter({
   const { t } = useTranslation();
 
   const stats = useMemo(() => {
-    if (!chartData) return null;
+    if (!chartData) { return null; }
     const values = chartData.data_points.map((dp) => dp.value);
     const max = Math.max(...values, 0);
     const min = Math.min(...values, 0);
@@ -158,9 +152,7 @@ function ChartInterpreter({
                         <tr className="text-gray-500 border-b border-gray-200 dark:border-gray-700">
                           <th className="text-left py-1 pr-2">{t("chat.chart.label")}</th>
                           <th className="text-right py-1 pr-2">{t("chat.chart.value")}</th>
-                          {chartData.series.length > 0 && (
-                            <th className="text-left py-1">{t("chat.chart.series")}</th>
-                          )}
+                          {chartData.series.length > 0 && <th className="text-left py-1">{t("chat.chart.series")}</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -168,9 +160,7 @@ function ChartInterpreter({
                           <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
                             <td className="py-1 pr-2 text-gray-600 dark:text-gray-400">{dp.label}</td>
                             <td className="py-1 pr-2 text-right font-mono">{dp.value}</td>
-                            {chartData.series.length > 0 && (
-                              <td className="py-1 text-gray-500">{dp.series || "-"}</td>
-                            )}
+                            {chartData.series.length > 0 && <td className="py-1 text-gray-500">{dp.series || "-"}</td>}
                           </tr>
                         ))}
                       </tbody>

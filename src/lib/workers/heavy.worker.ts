@@ -26,7 +26,7 @@ interface WorkerResponse {
 // ─── Token estimation (replicated from tokenEstimator.ts for worker context) ───
 
 function estimateTokens(text: string): number {
-  if (!text) return 0;
+  if (!text) { return 0; }
   // Simple heuristic: character count / 4, with adjustments
   let count = 0;
   for (const ch of text) {
@@ -51,7 +51,7 @@ function estimateTokens(text: string): number {
 const AXAGENT_TAG_REGEX = /<think\s+data-axagent=.+?<\/think>|<\/?web-search[^>]*>/gs;
 
 function processMarkdown(text: string, stripTags: boolean): string {
-  if (!stripTags) return text;
+  if (!stripTags) { return text; }
   return text.replace(AXAGENT_TAG_REGEX, "").trim();
 }
 

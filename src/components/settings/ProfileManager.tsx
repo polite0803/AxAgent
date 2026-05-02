@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Modal, Typography } from "antd";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
@@ -83,7 +83,7 @@ export function ProfileManager() {
   }, []);
 
   const handleCreate = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim()) { return; }
     await invoke("profile_create", {
       name: newName,
       displayName: newDisplayName || newName,

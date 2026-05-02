@@ -1,14 +1,5 @@
 import { Badge, Button, Card, Progress, Space, Tag, Typography } from "antd";
-import {
-  BarChart3,
-  CheckCircle,
-  Clock,
-  Loader2,
-  Play,
-  Terminal,
-  XCircle,
-  Zap,
-} from "lucide-react";
+import { BarChart3, CheckCircle, Clock, Loader2, Play, Terminal, XCircle, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -65,7 +56,7 @@ function BenchmarkPanel() {
     try {
       const { invoke } = await import("@/lib/invoke");
       const data = await invoke<BenchSuiteInfo[]>(
-        "benchmark_list_suites"
+        "benchmark_list_suites",
       ).catch(() => []);
       setSuites(data);
     } catch {
@@ -181,9 +172,8 @@ function BenchmarkPanel() {
                 className="flex items-center justify-between cursor-pointer"
                 onClick={() =>
                   setExpandedResult(
-                    expandedResult === result.run_id ? null : result.run_id
-                  )
-                }
+                    expandedResult === result.run_id ? null : result.run_id,
+                  )}
               >
                 <Space>
                   <BarChart3 size={14} className="text-blue-500" />
@@ -195,8 +185,14 @@ function BenchmarkPanel() {
                   </Tag>
                 </Space>
                 <Space size="small">
-                  <Badge status="success" text={<Text type="secondary" className="text-xs">{result.summary.passed}</Text>} />
-                  <Badge status="error" text={<Text type="secondary" className="text-xs">{result.summary.failed}</Text>} />
+                  <Badge
+                    status="success"
+                    text={<Text type="secondary" className="text-xs">{result.summary.passed}</Text>}
+                  />
+                  <Badge
+                    status="error"
+                    text={<Text type="secondary" className="text-xs">{result.summary.failed}</Text>}
+                  />
                 </Space>
               </div>
 
@@ -229,25 +225,21 @@ function BenchmarkPanel() {
                         key={task.task_id}
                         className="flex items-center gap-2 px-2 py-1 rounded text-xs"
                       >
-                        {task.status === "success" ? (
-                          <CheckCircle size={10} className="text-green-500 shrink-0" />
-                        ) : task.status === "failed" || task.status === "timeout" ? (
-                          <XCircle size={10} className="text-red-500 shrink-0" />
-                        ) : (
-                          <Clock size={10} className="text-gray-400 shrink-0" />
-                        )}
+                        {task.status === "success"
+                          ? <CheckCircle size={10} className="text-green-500 shrink-0" />
+                          : task.status === "failed" || task.status === "timeout"
+                          ? <XCircle size={10} className="text-red-500 shrink-0" />
+                          : <Clock size={10} className="text-gray-400 shrink-0" />}
                         <Text className="flex-1 truncate">{task.task_id}</Text>
                         <Text type="secondary">
                           {task.steps_taken}s
                         </Text>
                         <Tag
-                          color={
-                            task.score > 0.8
-                              ? "success"
-                              : task.score > 0.4
-                                ? "warning"
-                                : "error"
-                          }
+                          color={task.score > 0.8
+                            ? "success"
+                            : task.score > 0.4
+                            ? "warning"
+                            : "error"}
                           className="text-xs"
                         >
                           {Math.round(task.score * 100)}%

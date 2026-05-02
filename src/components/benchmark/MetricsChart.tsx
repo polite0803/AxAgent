@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import type { BenchmarkReport, TaskResult } from "@/types/evaluator";
 import { Card, Typography } from "antd";
-import type { TaskResult, BenchmarkReport } from "@/types/evaluator";
+import { useMemo } from "react";
 
 interface MetricsChartProps {
   results: TaskResult[];
@@ -52,9 +52,7 @@ export function MetricsChart({ results, report }: MetricsChartProps) {
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${
-                  item.success ? "bg-green-500" : "bg-red-500"
-                }`}
+                className={`h-full rounded-full transition-all ${item.success ? "bg-green-500" : "bg-red-500"}`}
                 style={{ width: `${(item.score / maxScore) * 100}%` }}
               />
             </div>

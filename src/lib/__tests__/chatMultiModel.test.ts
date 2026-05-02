@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Message } from "@/types";
-import {
-  hasMultipleModelVersions,
-  shouldRenderStandaloneAssistantError,
-} from "../chatMultiModel";
+import { hasMultipleModelVersions, shouldRenderStandaloneAssistantError } from "../chatMultiModel";
 
 // 最小化的 Message mock 工厂函数
 function msg(overrides: Partial<Message> = {}): Message {

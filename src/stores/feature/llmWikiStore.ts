@@ -1,5 +1,5 @@
-import { invoke } from '@/lib/invoke';
-import { create } from 'zustand';
+import { invoke } from "@/lib/invoke";
+import { create } from "zustand";
 
 export interface Wiki {
   id: string;
@@ -88,7 +88,7 @@ export interface PageResult {
 }
 
 export interface LintIssue {
-  severity: 'Error' | 'Warning' | 'Info';
+  severity: "Error" | "Warning" | "Info";
   code: string;
   message: string;
   line?: number;
@@ -125,14 +125,14 @@ interface LlmWikiState {
     sourceType: string,
     path: string,
     url?: string,
-    title?: string
+    title?: string,
   ) => Promise<IngestResult | null>;
   compileWiki: (wikiId: string, sourceIds: string[]) => Promise<CompileResult | null>;
   queryWiki: (
     wikiId: string,
     query: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ) => Promise<QueryResult | null>;
 
   lintNote: (noteId: string) => Promise<LintResult | null>;
@@ -141,12 +141,12 @@ interface LlmWikiState {
   getSchema: (wikiId: string) => Promise<string | null>;
   validateFrontmatter: (
     wikiId: string,
-    frontmatter: Record<string, unknown>
+    frontmatter: Record<string, unknown>,
   ) => Promise<string[] | null>;
   createSchemaVersion: (
     wikiId: string,
     version: string,
-    description?: string
+    description?: string,
   ) => Promise<SchemaVersion | null>;
 
   loadOperations: (wikiId: string) => Promise<void>;
@@ -171,7 +171,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
   loadWikis: async () => {
     set({ loading: true, error: null });
     try {
-      const wikis = await invoke<Wiki[]>('llm_wiki_list', {});
+      const wikis = await invoke<Wiki[]>("llm_wiki_list", {});
       set({ wikis, loading: false });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -184,7 +184,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   createWiki: async (name, rootPath, description) => {
     try {
-      const wiki = await invoke<Wiki>('llm_wiki_create', { name, rootPath, description });
+      const wiki = await invoke<Wiki>("llm_wiki_create", { name, rootPath, description });
       set((s) => ({ wikis: [...s.wikis, wiki] }));
       return wiki;
     } catch (e) {
@@ -195,7 +195,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   deleteWiki: async (wikiId) => {
     try {
-      await invoke('llm_wiki_delete', { wikiId });
+      await invoke("llm_wiki_delete", { wikiId });
       set((s) => ({
         wikis: s.wikis.filter((w) => w.id !== wikiId),
         selectedWikiId: s.selectedWikiId === wikiId ? null : s.selectedWikiId,
@@ -207,8 +207,12 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   ingestSource: async (wikiId, sourceType, path, url, title) => {
     try {
-      const result = await invoke<IngestResult>('llm_wiki_ingest', {
-        wikiId, sourceType, path, url, title,
+      const result = await invoke<IngestResult>("llm_wiki_ingest", {
+        wikiId,
+        sourceType,
+        path,
+        url,
+        title,
       });
       return result;
     } catch (e) {
@@ -219,8 +223,9 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   compileWiki: async (wikiId, sourceIds) => {
     try {
-      const result = await invoke<CompileResult>('llm_wiki_compile', {
-        wikiId, sourceIds,
+      const result = await invoke<CompileResult>("llm_wiki_compile", {
+        wikiId,
+        sourceIds,
       });
       return result;
     } catch (e) {
@@ -231,8 +236,11 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   queryWiki: async (wikiId, query, limit, offset) => {
     try {
-      const result = await invoke<QueryResult>('llm_wiki_query', {
-        wikiId, query, limit, offset,
+      const result = await invoke<QueryResult>("llm_wiki_query", {
+        wikiId,
+        query,
+        limit,
+        offset,
       });
       return result;
     } catch (e) {
@@ -243,7 +251,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   lintNote: async (noteId) => {
     try {
-      return await invoke<LintResult>('llm_wiki_lint', { noteId });
+      return await invoke<LintResult>("llm_wiki_lint", { noteId });
     } catch (e) {
       set({ error: String(e) });
       return null;
@@ -252,7 +260,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   updateLintScore: async (noteId) => {
     try {
-      return await invoke<number>('llm_wiki_lint_update_score', { noteId });
+      return await invoke<number>("llm_wiki_lint_update_score", { noteId });
     } catch (e) {
       set({ error: String(e) });
       return null;
@@ -261,7 +269,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   getSchema: async (wikiId) => {
     try {
-      return await invoke<string>('llm_wiki_get_schema', { wikiId });
+      return await invoke<string>("llm_wiki_get_schema", { wikiId });
     } catch (e) {
       set({ error: String(e) });
       return null;
@@ -270,8 +278,9 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   validateFrontmatter: async (wikiId, frontmatter) => {
     try {
-      return await invoke<string[]>('llm_wiki_validate_frontmatter', {
-        wikiId, frontmatter,
+      return await invoke<string[]>("llm_wiki_validate_frontmatter", {
+        wikiId,
+        frontmatter,
       });
     } catch (e) {
       set({ error: String(e) });
@@ -281,7 +290,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   createSchemaVersion: async (wikiId, version, description) => {
     try {
-      return await invoke<SchemaVersion>('llm_wiki_create_schema_version', {
+      return await invoke<SchemaVersion>("llm_wiki_create_schema_version", {
         wikiId,
         version,
         description,
@@ -294,7 +303,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   loadOperations: async (wikiId) => {
     try {
-      const operations = await invoke<WikiOperation[]>('llm_wiki_operations_list', { wikiId });
+      const operations = await invoke<WikiOperation[]>("llm_wiki_operations_list", { wikiId });
       set({ operations });
     } catch (e) {
       set({ error: String(e) });
@@ -303,7 +312,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   updateSchema: async (wikiId, content) => {
     try {
-      await invoke('llm_wiki_update_schema', { wikiId, content });
+      await invoke("llm_wiki_update_schema", { wikiId, content });
     } catch (e) {
       set({ error: String(e) });
     }
@@ -311,7 +320,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   deleteSchema: async (wikiId) => {
     try {
-      await invoke('llm_wiki_delete_schema', { wikiId });
+      await invoke("llm_wiki_delete_schema", { wikiId });
     } catch (e) {
       set({ error: String(e) });
     }
@@ -319,7 +328,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   lintVault: async (wikiId) => {
     try {
-      return await invoke<LintResult[]>('llm_wiki_lint_vault', { wikiId });
+      return await invoke<LintResult[]>("llm_wiki_lint_vault", { wikiId });
     } catch (e) {
       set({ error: String(e) });
       return null;
@@ -328,7 +337,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   autoFix: async (wikiId, noteId) => {
     try {
-      return await invoke<string[]>('llm_wiki_auto_fix', { wikiId, noteId });
+      return await invoke<string[]>("llm_wiki_auto_fix", { wikiId, noteId });
     } catch (e) {
       set({ error: String(e) });
       return null;
@@ -337,7 +346,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   askQuestion: async (wikiId, question) => {
     try {
-      return await invoke<string>('llm_wiki_ask', { wikiId, question });
+      return await invoke<string>("llm_wiki_ask", { wikiId, question });
     } catch (e) {
       set({ error: String(e) });
       return null;
@@ -346,7 +355,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   processSyncPending: async (wikiId) => {
     try {
-      return await invoke<number>('wiki_sync_process_pending', { wikiId });
+      return await invoke<number>("wiki_sync_process_pending", { wikiId });
     } catch (e) {
       set({ error: String(e) });
       return null;

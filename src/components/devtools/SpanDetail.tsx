@@ -1,12 +1,12 @@
 import type { Span } from "@/types/tracer";
-import { Typography, Card, Tag, Descriptions, Table } from "antd";
+import { Card, Descriptions, Table, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
 
 function formatDuration(ms?: number): string {
-  if (!ms) return "-";
-  if (ms < 1000) return `${ms}ms`;
+  if (!ms) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
   return `${(ms / 1000).toFixed(2)}s`;
 }
 

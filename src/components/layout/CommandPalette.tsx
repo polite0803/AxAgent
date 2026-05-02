@@ -33,7 +33,7 @@ export function registerCommand(cmd: Command) {
 
 export function unregisterCommand(id: string) {
   const idx = commandRegistry.findIndex((c) => c.id === id);
-  if (idx !== -1) commandRegistry.splice(idx, 1);
+  if (idx !== -1) { commandRegistry.splice(idx, 1); }
 }
 
 // ─── 使用频率持久化 ───
@@ -41,7 +41,7 @@ const USE_COUNT_KEY = "axagent:cmd-use-count";
 function loadUseCounts(): Map<string, number> {
   try {
     const raw = localStorage.getItem(USE_COUNT_KEY);
-    if (raw) return new Map(JSON.parse(raw));
+    if (raw) { return new Map(JSON.parse(raw)); }
   } catch { /* ignore */ }
   return new Map();
 }
@@ -55,9 +55,9 @@ function saveUseCounts(counts: Map<string, number>) {
 function fuzzyScore(text: string, query: string): number {
   const lower = text.toLowerCase();
   const q = query.toLowerCase();
-  if (lower === q) return 100;
-  if (lower.startsWith(q)) return 80;
-  if (lower.includes(q)) return 50;
+  if (lower === q) { return 100; }
+  if (lower.startsWith(q)) { return 80; }
+  if (lower.includes(q)) { return 50; }
 
   // 字符序列匹配（abc 匹配 "a.*b.*c"）
   let qi = 0;
@@ -95,7 +95,10 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         label: t("commandPalette.goToChat"),
         icon: <MessageSquare size={16} color={CHAT_ICON_COLORS.MessageSquare} />,
         category: nav,
-        action: () => { navigate("/"); onClose(); },
+        action: () => {
+          navigate("/");
+          onClose();
+        },
       },
       {
         id: "go-settings",
@@ -103,21 +106,30 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         shortcut: "⌘,",
         category: nav,
-        action: () => { navigate("/settings"); onClose(); },
+        action: () => {
+          navigate("/settings");
+          onClose();
+        },
       },
       {
         id: "go-gateway",
         label: t("commandPalette.goToGateway"),
         icon: <Network size={16} color={CHAT_ICON_COLORS.Network} />,
         category: nav,
-        action: () => { navigate("/gateway"); onClose(); },
+        action: () => {
+          navigate("/gateway");
+          onClose();
+        },
       },
       {
         id: "go-skills",
         label: t("commandPalette.goToSkills"),
         icon: <Sparkles size={16} color={CHAT_ICON_COLORS.Sparkles} />,
         category: nav,
-        action: () => { navigate("/skills"); onClose(); },
+        action: () => {
+          navigate("/skills");
+          onClose();
+        },
       },
       {
         id: "new-conversation",
@@ -125,14 +137,20 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         icon: <Plus size={16} color={CHAT_ICON_COLORS.Plus} />,
         shortcut: "⌘N",
         category: actions,
-        action: () => { navigate("/"); onClose(); },
+        action: () => {
+          navigate("/");
+          onClose();
+        },
       },
       {
         id: "toggle-sidebar",
         label: t("commandPalette.toggleSidebar"),
         icon: <PanelLeftClose size={16} color={CHAT_ICON_COLORS.PanelLeftClose} />,
         category: actions,
-        action: () => { toggleSidebar(); onClose(); },
+        action: () => {
+          toggleSidebar();
+          onClose();
+        },
       },
       {
         id: "search-conversations",
@@ -140,21 +158,30 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         icon: <Search size={16} color={CHAT_ICON_COLORS.Search} />,
         shortcut: "⌘F",
         category: actions,
-        action: () => { navigate("/"); onClose(); },
+        action: () => {
+          navigate("/");
+          onClose();
+        },
       },
       {
         id: "settings-search",
         label: `${t("commandPalette.goToSettings")} → ${t("settings.searchProviders.title")}`,
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         category: settings,
-        action: () => { navigate("/settings"); onClose(); },
+        action: () => {
+          navigate("/settings");
+          onClose();
+        },
       },
       {
         id: "settings-mcp",
         label: `${t("commandPalette.goToSettings")} → ${t("settings.mcpServers.title")}`,
         icon: <Settings size={16} color={CHAT_ICON_COLORS.Settings} />,
         category: settings,
-        action: () => { navigate("/settings"); onClose(); },
+        action: () => {
+          navigate("/settings");
+          onClose();
+        },
       },
     ];
 

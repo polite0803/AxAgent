@@ -212,7 +212,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     undo: () => {
       const { past } = get();
-      if (past.length === 0) return;
+      if (past.length === 0) { return; }
 
       const previous = past[past.length - 1];
       set((state) => {
@@ -226,7 +226,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     redo: () => {
       const { future } = get();
-      if (future.length === 0) return;
+      if (future.length === 0) { return; }
 
       const next = future[future.length - 1];
       set((state) => {

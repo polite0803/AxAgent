@@ -4,6 +4,7 @@ import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
 import GlobalErrorBoundary from "@/components/layout/GlobalErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
+import { SkillPanels } from "@/components/skill/SkillPanels";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
 import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
@@ -12,7 +13,6 @@ import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri, listen } from "@/lib/invoke";
 import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
-import { SkillPanels } from "@/components/skill/SkillPanels";
 import { useConversationStore, useSettingsStore, useSkillExtensionStore, useStreamStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
@@ -146,9 +146,7 @@ function AppInner() {
 
   return (
     <div className="flex flex-col h-screen" style={{ backgroundColor: token.colorBgContainer }}>
-      {isQuickBar ? (
-        <ContentArea />
-      ) : (
+      {isQuickBar ? <ContentArea /> : (
         <>
           <SkillPanels />
           <TitleBar />

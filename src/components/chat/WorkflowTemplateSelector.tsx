@@ -900,8 +900,18 @@ explore(分析) → plan(设计) → build(实现) → review(验证)
     scenarios: ["coding", "analysis", "research"],
     steps: [
       { id: "analyze", goal: "Analyze the task and determine which experts are needed", role: "planner", needs: [] },
-      { id: "execute", goal: "Launch expert sub-agents in parallel to execute their assigned tasks", role: "developer", needs: ["analyze"] },
-      { id: "synthesize", goal: "Collect all expert results and synthesize into a unified deliverable", role: "synthesizer", needs: ["execute"] },
+      {
+        id: "execute",
+        goal: "Launch expert sub-agents in parallel to execute their assigned tasks",
+        role: "developer",
+        needs: ["analyze"],
+      },
+      {
+        id: "synthesize",
+        goal: "Collect all expert results and synthesize into a unified deliverable",
+        role: "synthesizer",
+        needs: ["execute"],
+      },
     ],
   },
 ];

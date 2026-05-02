@@ -1,13 +1,5 @@
 import { Badge, Card, Typography } from "antd";
-import {
-  CheckCircle,
-  Cpu,
-  Eye,
-  Loader2,
-  Monitor,
-  MousePointer2,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle, Cpu, Eye, Loader2, Monitor, MousePointer2, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -142,12 +134,14 @@ function UISnapshotViewer({
                 {ELEMENT_ICONS[el.element_type] || <Eye size={12} />}
               </span>
               <span className="font-medium">{el.element_type}</span>
-              {el.label && (
-                <span className="text-gray-500 truncate flex-1">{el.label}</span>
-              )}
+              {el.label && <span className="text-gray-500 truncate flex-1">{el.label}</span>}
               <Badge
                 status={el.actionable ? "success" : "default"}
-                text={<span className="text-xs">{el.actionable ? t("chat.vision.ui.clickable") : t("chat.vision.ui.static")}</span>}
+                text={
+                  <span className="text-xs">
+                    {el.actionable ? t("chat.vision.ui.clickable") : t("chat.vision.ui.static")}
+                  </span>
+                }
               />
               {el.bounding_box && (
                 <span className="text-gray-400 font-mono">

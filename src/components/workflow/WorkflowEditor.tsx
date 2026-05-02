@@ -13,13 +13,15 @@ import {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { useWorkflowEditorStore, SimilarWorkflow } from "@/stores";
+import { SimilarWorkflow, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { Button, message, Modal, Spin } from "antd";
 import { useTranslation } from "react-i18next";
+import { AIPanel } from "./AIPanel/AIPanel";
+import { DebugPanel } from "./DebugPanel";
+import { clearDragPayload, getDragPayload } from "./dndState";
 import { BaseEdge } from "./Edges/BaseEdge";
 import { EditorHeader } from "./Header/EditorHeader";
-import { AIPanel } from "./AIPanel/AIPanel";
 import {
   AgentNode,
   AtomicSkillNode,
@@ -36,17 +38,21 @@ import {
   SubWorkflowNode,
   ToolNode,
   TriggerNode,
-  VectorRetrieveNode,
   ValidationNode,
+  VectorRetrieveNode,
 } from "./Nodes";
 import { LeftPanel } from "./Panels/LeftPanel";
 import { RightPanel } from "./Panels/RightPanel";
 import { SkillUpgradeModal } from "./SkillUpgradeModal";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
-import { DebugPanel } from "./DebugPanel";
 import { ImportExportModal } from "./Templates/ImportExportModal";
-import { type AtomicSkillInfo, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode, type AgentNode as AgentNodeType } from "./types";
-import { getDragPayload, clearDragPayload } from "./dndState";
+import {
+  type AgentNode as AgentNodeType,
+  type AtomicSkillInfo,
+  NODE_TYPE_MAP,
+  type WorkflowEdge,
+  type WorkflowNode,
+} from "./types";
 
 const nodeTypes = {
   base: BaseNode,
@@ -391,21 +397,21 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   useEffect(() => {
     const handleGlobalMouseUp = (e: MouseEvent) => {
       const payload = getDragPayload();
-      if (!payload) return;
+      if (!payload) { return; }
 
       try {
         const typeInfo = NODE_TYPE_MAP[payload.type] || { label: payload.type, color: "#999" };
 
         // Check if the mouse is within the canvas area
         const canvasEl = document.querySelector(".react-flow");
-        if (!canvasEl) return;
+        if (!canvasEl) { return; }
 
         const rect = canvasEl.getBoundingClientRect();
         if (
-          e.clientX < rect.left ||
-          e.clientX > rect.right ||
-          e.clientY < rect.top ||
-          e.clientY > rect.bottom
+          e.clientX < rect.left
+          || e.clientX > rect.right
+          || e.clientY < rect.top
+          || e.clientY > rect.bottom
         ) {
           return;
         }
@@ -436,7 +442,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
         setRNodes((nds) => [...nds, newNode]);
 
-        const workflowNode = createWorkflowNode(id, payload.type, position, t("workflow.newNode", { type: typeInfo.label }));
+        const workflowNode = createWorkflowNode(
+          id,
+          payload.type,
+          position,
+          t("workflow.newNode", { type: typeInfo.label }),
+        );
         useWorkflowEditorStore.getState().addNode(workflowNode);
       } catch (error) {
         console.error("Failed to drop node:", error);
@@ -492,7 +503,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       }
 
       if (isCtrlOrCmd && e.key === "v") {
-        if (clipboardRef.current.length === 0) return;
+        if (clipboardRef.current.length === 0) { return; }
         const newNodes: WorkflowNode[] = [];
         const offset = { x: 50, y: 50 };
 
@@ -650,51 +661,53 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         <LeftPanel />
 
         <div style={{ flex: 1, position: "relative" }}>
-          {isInitialized ? (
-            <ReactFlow
-              nodes={reactFlowNodes}
-              edges={reactFlowEdges}
-              onNodesChange={handleNodesChange}
-              onEdgesChange={handleEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              onEdgeClick={onEdgeClick}
-              onPaneClick={onPaneClick}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              defaultEdgeOptions={defaultEdgeOptions}
-              fitView
-              snapToGrid
-              snapGrid={[16, 16]}
-            >
-              <Background color="#333" gap={16} />
-              <Controls />
-              <MiniMap
-                nodeColor={(node: Node) => (node.data as any)?.color || "#999"}
-                maskColor="rgba(0, 0, 0, 0.8)"
-              />
-              {nodes.length === 0 && (
-                <Panel position="top-center" style={{ textAlign: "center", color: "#666" }}>
-                  {t("workflow.dragToStart")}
-                </Panel>
-              )}
-            </ReactFlow>
-          ) : (
-            <div
-              className="react-flow"
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#1a1a1a",
-                color: "#666",
-              }}
-            >
-              <Spin />
-            </div>
-          )}
+          {isInitialized
+            ? (
+              <ReactFlow
+                nodes={reactFlowNodes}
+                edges={reactFlowEdges}
+                onNodesChange={handleNodesChange}
+                onEdgesChange={handleEdgesChange}
+                onConnect={onConnect}
+                onNodeClick={onNodeClick}
+                onEdgeClick={onEdgeClick}
+                onPaneClick={onPaneClick}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                defaultEdgeOptions={defaultEdgeOptions}
+                fitView
+                snapToGrid
+                snapGrid={[16, 16]}
+              >
+                <Background color="#333" gap={16} />
+                <Controls />
+                <MiniMap
+                  nodeColor={(node: Node) => (node.data as any)?.color || "#999"}
+                  maskColor="rgba(0, 0, 0, 0.8)"
+                />
+                {nodes.length === 0 && (
+                  <Panel position="top-center" style={{ textAlign: "center", color: "#666" }}>
+                    {t("workflow.dragToStart")}
+                  </Panel>
+                )}
+              </ReactFlow>
+            )
+            : (
+              <div
+                className="react-flow"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#1a1a1a",
+                  color: "#666",
+                }}
+              >
+                <Spin />
+              </div>
+            )}
         </div>
 
         <RightPanel selectedNode={selectedNode} selectedEdge={selectedEdge} />
@@ -827,7 +840,14 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
     case "trigger":
       return { type: "manual", config: {} };
     case "agent":
-      return { role: "developer", system_prompt: "", tools: [], context_sources: [], output_var: "", output_mode: "text" };
+      return {
+        role: "developer",
+        system_prompt: "",
+        tools: [],
+        context_sources: [],
+        output_var: "",
+        output_mode: "text",
+      };
     case "llm":
       return { model: "", prompt: "", temperature: 0.7, max_tokens: 2048 };
     case "condition":

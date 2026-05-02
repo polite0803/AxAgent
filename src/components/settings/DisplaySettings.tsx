@@ -24,7 +24,9 @@ export function DisplaySettings() {
 
   useEffect(() => {
     if (!isTauri()) { return; }
-    invoke<string[]>("list_system_fonts").then(setSystemFonts).catch((e: unknown) => { console.warn('[IPC]', e); });
+    invoke<string[]>("list_system_fonts").then(setSystemFonts).catch((e: unknown) => {
+      console.warn("[IPC]", e);
+    });
   }, []);
 
   const rowStyle = { padding: "4px 0" };
@@ -89,8 +91,12 @@ export function DisplaySettings() {
                       }}
                     />
                     <div style={{ display: "flex", gap: 2 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.6 }} />
-                      <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.3 }} />
+                      <div
+                        style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.6 }}
+                      />
+                      <div
+                        style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.3 }}
+                      />
                     </div>
                   </div>
                 </Tooltip>

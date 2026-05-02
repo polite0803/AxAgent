@@ -125,15 +125,27 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
       />
 
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label={t("common.name")} rules={[{ required: true, message: t("atomicSkill.nameRequired") }]}>
+        <Form.Item
+          name="name"
+          label={t("common.name")}
+          rules={[{ required: true, message: t("atomicSkill.nameRequired") }]}
+        >
           <Input placeholder="atomic_my_skill" />
         </Form.Item>
 
-        <Form.Item name="description" label={t("common.description")} rules={[{ required: true, message: t("atomicSkill.descriptionRequired") }]}>
+        <Form.Item
+          name="description"
+          label={t("common.description")}
+          rules={[{ required: true, message: t("atomicSkill.descriptionRequired") }]}
+        >
           <TextArea rows={3} placeholder={t("atomicSkill.descriptionPlaceholder")} />
         </Form.Item>
 
-        <Form.Item name="entry_type" label={t("atomicSkill.entryType")} rules={[{ required: true, message: t("atomicSkill.entryTypeRequired") }]}>
+        <Form.Item
+          name="entry_type"
+          label={t("atomicSkill.entryType")}
+          rules={[{ required: true, message: t("atomicSkill.entryTypeRequired") }]}
+        >
           <EntryTypeSelector
             onChange={(v) => {
               setEntryType(v);
@@ -142,7 +154,11 @@ export const AtomicSkillEditor: React.FC<AtomicSkillEditorProps> = ({ visible, s
           />
         </Form.Item>
 
-        <Form.Item name="entry_ref" label={t("atomicSkill.entryRef")} rules={[{ required: true, message: t("atomicSkill.entryRefRequired") }]}>
+        <Form.Item
+          name="entry_ref"
+          label={t("atomicSkill.entryRef")}
+          rules={[{ required: true, message: t("atomicSkill.entryRefRequired") }]}
+        >
           <EntryRefSelector entryType={entryType} />
         </Form.Item>
 

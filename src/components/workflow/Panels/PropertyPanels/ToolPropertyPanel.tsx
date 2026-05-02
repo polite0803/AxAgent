@@ -1,6 +1,6 @@
+import { useLocalToolStore } from "@/stores";
 import { Divider, Input, Select } from "antd";
 import React, { useEffect, useMemo } from "react";
-import { useLocalToolStore } from "@/stores";
 import type { ToolNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -29,7 +29,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
   const toolOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [];
     for (const group of toolGroups) {
-      if (!group.enabled) continue;
+      if (!group.enabled) { continue; }
       for (const tool of group.tools) {
         options.push({ value: tool.toolName, label: `${group.groupName} / ${tool.toolName}` });
       }

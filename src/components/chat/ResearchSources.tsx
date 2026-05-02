@@ -1,6 +1,6 @@
-import { Button, Card, List, Space, Tag, Typography } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { CredibilityBadge } from './CredibilityBadge';
+import { PlusOutlined } from "@ant-design/icons";
+import { Button, Card, List, Space, Tag, Typography } from "antd";
+import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -24,30 +24,30 @@ interface ResearchSourcesProps {
 
 function getSourceTypeColor(sourceType: string): string {
   const colorMap: Record<string, string> = {
-    web: 'blue',
-    academic: 'green',
-    wikipedia: 'cyan',
-    github: 'purple',
-    documentation: 'orange',
-    news: 'magenta',
-    blog: 'gold',
-    forum: 'default',
-    unknown: 'default',
+    web: "blue",
+    academic: "green",
+    wikipedia: "cyan",
+    github: "purple",
+    documentation: "orange",
+    news: "magenta",
+    blog: "gold",
+    forum: "default",
+    unknown: "default",
   };
-  return colorMap[sourceType.toLowerCase()] || 'default';
+  return colorMap[sourceType.toLowerCase()] || "default";
 }
 
 function getSourceTypeName(sourceType: string): string {
   const nameMap: Record<string, string> = {
-    web: '网页',
-    academic: '学术',
-    wikipedia: '维基百科',
-    github: 'GitHub',
-    documentation: '文档',
-    news: '新闻',
-    blog: '博客',
-    forum: '论坛',
-    unknown: '未知',
+    web: "网页",
+    academic: "学术",
+    wikipedia: "维基百科",
+    github: "GitHub",
+    documentation: "文档",
+    news: "新闻",
+    blog: "博客",
+    forum: "论坛",
+    unknown: "未知",
   };
   return nameMap[sourceType.toLowerCase()] || sourceType;
 }
@@ -66,11 +66,11 @@ export function ResearchSources({
       <List
         size="small"
         dataSource={displaySources}
-        locale={{ emptyText: '暂无搜索结果' }}
+        locale={{ emptyText: "暂无搜索结果" }}
         renderItem={(item) => (
           <List.Item
             className={`cursor-pointer hover:bg-gray-50 ${
-              selectedSourceId === item.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+              selectedSourceId === item.id ? "bg-blue-50 border-l-4 border-blue-500" : ""
             }`}
             onClick={() => onSourceSelect?.(item)}
           >
@@ -84,7 +84,7 @@ export function ResearchSources({
                     {getSourceTypeName(item.sourceType)}
                   </Tag>
                   {item.relevanceScore > 0 && (
-                    <Tag color={item.relevanceScore > 0.7 ? 'green' : item.relevanceScore > 0.4 ? 'orange' : 'red'}>
+                    <Tag color={item.relevanceScore > 0.7 ? "green" : item.relevanceScore > 0.4 ? "orange" : "red"}>
                       相关度: {Math.round(item.relevanceScore * 100)}%
                     </Tag>
                   )}
@@ -96,9 +96,7 @@ export function ResearchSources({
                     {item.snippet}
                   </Paragraph>
                   <Space size="small">
-                    {item.credibilityScore !== null && (
-                      <CredibilityBadge score={item.credibilityScore} />
-                    )}
+                    {item.credibilityScore !== null && <CredibilityBadge score={item.credibilityScore} />}
                     {onAddToCitation && (
                       <Button
                         type="link"
@@ -198,11 +196,9 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             可信度评分
           </Text>
           <div>
-            {source.credibilityScore !== null ? (
-              <CredibilityBadge score={source.credibilityScore} />
-            ) : (
-              <Text type="secondary">未评估</Text>
-            )}
+            {source.credibilityScore !== null
+              ? <CredibilityBadge score={source.credibilityScore} />
+              : <Text type="secondary">未评估</Text>}
           </div>
         </div>
 
@@ -211,12 +207,17 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             相关度评分
           </Text>
           <div>
-            <Text>{source.relevanceScore > 0 ? `${Math.round(source.relevanceScore * 100)}%` : '未评估'}</Text>
+            <Text>{source.relevanceScore > 0 ? `${Math.round(source.relevanceScore * 100)}%` : "未评估"}</Text>
           </div>
         </div>
 
         {onAddToCitation && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => onAddToCitation(source)} block>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => onAddToCitation(source)}
+            block
+          >
             添加到报告引用
           </Button>
         )}

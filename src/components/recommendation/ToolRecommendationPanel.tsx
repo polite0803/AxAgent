@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { useRecommendationStore } from "@/stores/devtools/recommendationStore";
-import { Card, Input, Button, List, Progress, Tag, Space, Typography, Divider, Spin, Alert } from "antd";
+import { Alert, Button, Card, Divider, Input, List, Progress, Space, Spin, Tag, Typography } from "antd";
+import { useEffect, useState } from "react";
 
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
@@ -36,9 +36,9 @@ export function ToolRecommendationPanel() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return "green";
-    if (score >= 0.6) return "blue";
-    if (score >= 0.4) return "orange";
+    if (score >= 0.8) { return "green"; }
+    if (score >= 0.6) { return "blue"; }
+    if (score >= 0.4) { return "orange"; }
     return "red";
   };
 
@@ -71,9 +71,7 @@ export function ToolRecommendationPanel() {
             </Button>
           </Space>
 
-          {error && (
-            <Alert type="error" message={error} showIcon />
-          )}
+          {error && <Alert type="error" message={error} showIcon />}
 
           {isLoading && (
             <div style={{ textAlign: "center", padding: "40px" }}>
@@ -94,7 +92,7 @@ export function ToolRecommendationPanel() {
                   strokeColor={recommendations.confidence >= 0.7 ? "#52c41a" : "#1890ff"}
                 />
                 <Paragraph>
-                  <Text strong>Reasoning: </Text>
+                  <Text strong>Reasoning:</Text>
                   <Text>{recommendations.reasoning}</Text>
                 </Paragraph>
               </div>
@@ -111,7 +109,7 @@ export function ToolRecommendationPanel() {
                       actions={[
                         <Tag color={getScoreColor(item.score)} key={item.tool_id}>
                           Score: {(item.score * 100).toFixed(0)}%
-                        </Tag>
+                        </Tag>,
                       ]}
                     >
                       <List.Item.Meta
@@ -145,12 +143,10 @@ export function ToolRecommendationPanel() {
                             title={alt.description}
                             description={
                               <div>
-                                <Text type="secondary">Tools: </Text>
-                                {alt.tools.map((tool, idx) => (
-                                  <Tag key={idx}>{tool}</Tag>
-                                ))}
+                                <Text type="secondary">Tools:</Text>
+                                {alt.tools.map((tool, idx) => <Tag key={idx}>{tool}</Tag>)}
                                 <br />
-                                <Text type="secondary">Tradeoffs: </Text>
+                                <Text type="secondary">Tradeoffs:</Text>
                                 {alt.tradeoffs.map((tradeoff, idx) => (
                                   <Tag key={idx} color="default">
                                     {tradeoff}

@@ -1,24 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
+  ConnectionMode,
   Controls,
+  Edge,
   MiniMap,
   Node,
-  Edge,
-  useNodesState,
-  useEdgesState,
-  ConnectionMode,
   NodeTypes,
   Panel,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
-import { theme, Select, Tag, Tooltip, Card, Typography, Space, Empty } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { FileText, Book, Hash, Link2 } from 'lucide-react';
+  useEdgesState,
+  useNodesState,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import { Card, Empty, Select, Space, Tag, theme, Tooltip, Typography } from "antd";
+import { Book, FileText, Hash, Link2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
-export type GraphNodeType = 'note' | 'concept' | 'entity' | 'source';
+export type GraphNodeType = "note" | "concept" | "entity" | "source";
 
 export interface GraphNode {
   id: string;
@@ -35,7 +35,7 @@ export interface GraphNode {
 export interface GraphEdge {
   source: string;
   target: string;
-  type: 'link' | 'backlink';
+  type: "link" | "backlink";
 }
 
 export interface GraphData {
@@ -58,10 +58,10 @@ export interface GraphViewProps {
 }
 
 const nodeColors: Record<GraphNodeType, string> = {
-  note: '#1890ff',
-  concept: '#52c41a',
-  entity: '#fa8c16',
-  source: '#eb2f96',
+  note: "#1890ff",
+  concept: "#52c41a",
+  entity: "#fa8c16",
+  source: "#eb2f96",
 };
 
 const CustomNode = ({
@@ -88,42 +88,40 @@ const CustomNode = ({
     >
       <div
         style={{
-          padding: '8px 12px',
+          padding: "8px 12px",
           borderRadius: 8,
           background: token.colorBgContainer,
-          border: `2px solid ${selected ? nodeColor : 'transparent'}`,
+          border: `2px solid ${selected ? nodeColor : "transparent"}`,
           boxShadow: selected
             ? `0 0 0 2px ${nodeColor}33, 0 4px 12px rgba(0,0,0,0.15)`
-            : '0 2px 8px rgba(0,0,0,0.1)',
+            : "0 2px 8px rgba(0,0,0,0.1)",
           minWidth: 120,
           maxWidth: 200,
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
+          cursor: "pointer",
+          transition: "all 0.2s ease",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          {data.type === 'note' && <FileText size={14} style={{ color: nodeColor }} />}
-          {data.type === 'concept' && <Hash size={14} style={{ color: nodeColor }} />}
-          {data.type === 'entity' && <Book size={14} style={{ color: nodeColor }} />}
-          {data.type === 'source' && <Link2 size={14} style={{ color: nodeColor }} />}
-          <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          {data.type === "note" && <FileText size={14} style={{ color: nodeColor }} />}
+          {data.type === "concept" && <Hash size={14} style={{ color: nodeColor }} />}
+          {data.type === "entity" && <Book size={14} style={{ color: nodeColor }} />}
+          {data.type === "source" && <Link2 size={14} style={{ color: nodeColor }} />}
+          <Text strong style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis" }}>
             {data.title}
           </Text>
         </div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {data.tags.slice(0, 3).map((tag) => (
             <Tag key={tag} style={{ fontSize: 10, margin: 0 }}>
               {tag}
             </Tag>
           ))}
-          {data.tags.length > 3 && (
-            <Tag style={{ fontSize: 10, margin: 0 }}>+{data.tags.length - 3}</Tag>
-          )}
+          {data.tags.length > 3 && <Tag style={{ fontSize: 10, margin: 0 }}>+{data.tags.length - 3}</Tag>}
         </div>
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
+            display: "flex",
+            justifyContent: "space-between",
             marginTop: 6,
             fontSize: 11,
             color: token.colorTextSecondary,
@@ -199,11 +197,11 @@ export function GraphView({
     () =>
       filteredNodes.map((node) => ({
         id: node.id,
-        type: 'customNode',
+        type: "customNode",
         position: { x: node.x ?? Math.random() * 500, y: node.y ?? Math.random() * 500 },
         data: { ...node, onHover: onNodeHover },
       })),
-    [filteredNodes, onNodeHover]
+    [filteredNodes, onNodeHover],
   );
 
   const initialEdges: Edge[] = useMemo(
@@ -212,14 +210,14 @@ export function GraphView({
         id: `${edge.source}-${edge.target}`,
         source: edge.source,
         target: edge.target,
-        type: 'smoothstep',
+        type: "smoothstep",
         style: {
-          stroke: edge.type === 'backlink' ? '#1890ff' : '#d9d9d9',
-          strokeWidth: edge.type === 'backlink' ? 2 : 1,
+          stroke: edge.type === "backlink" ? "#1890ff" : "#d9d9d9",
+          strokeWidth: edge.type === "backlink" ? 2 : 1,
         },
-        animated: edge.type === 'backlink',
+        animated: edge.type === "backlink",
       })),
-    [filteredEdges]
+    [filteredEdges],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -234,14 +232,14 @@ export function GraphView({
     (_: React.MouseEvent, node: Node) => {
       onNodeClick?.(node.id);
     },
-    [onNodeClick]
+    [onNodeClick],
   );
 
   const onNodeMouseEnter = useCallback(
     (_: React.MouseEvent, node: Node) => {
       onNodeHover?.(node.id);
     },
-    [onNodeHover]
+    [onNodeHover],
   );
 
   const onNodeMouseLeave = useCallback(() => {
@@ -256,14 +254,14 @@ export function GraphView({
 
   if (data.nodes.length === 0) {
     return (
-      <Card style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Empty description={t('wiki.graph.empty')} />
+      <Card style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Empty description={t("wiki.graph.empty")} />
       </Card>
     );
   }
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div ref={containerRef} style={{ width: "100%", height: "100%", position: "relative" }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -292,24 +290,26 @@ export function GraphView({
 
         <Panel position="top-left">
           <Card size="small" style={{ minWidth: 200 }}>
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Space direction="vertical" size="small" style={{ width: "100%" }}>
               <Text strong style={{ fontSize: 12 }}>
-                {t('wiki.graph.filters')}
+                {t("wiki.graph.filters")}
               </Text>
               <Select
                 mode="multiple"
-                placeholder={t('wiki.graph.filterByTags')}
-                style={{ width: '100%' }}
+                placeholder={t("wiki.graph.filterByTags")}
+                style={{ width: "100%" }}
                 allowClear
                 value={filters?.tags}
                 onChange={(values) => onFiltersChange?.({ tags: values, types: filters?.types })}
                 options={allTags.map((tag) => ({ label: tag, value: tag }))}
                 maxTagCount={3}
               />
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {(['note', 'concept', 'entity', 'source'] as GraphNodeType[]).map((type) => (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => (
                   <Tag key={type} color={nodeColors[type]} style={{ fontSize: 11 }}>
-                    {type}: {data.nodes.filter((n) => n.type === type).length}
+                    {type}: {data.nodes.filter((n) =>
+                      n.type === type
+                    ).length}
                   </Tag>
                 ))}
               </div>
@@ -321,13 +321,13 @@ export function GraphView({
           <Card size="small">
             <Space direction="vertical" size="small">
               <Text type="secondary" style={{ fontSize: 11 }}>
-                {t('wiki.graph.stats')}
+                {t("wiki.graph.stats")}
               </Text>
               <Text>
-                {t('wiki.graph.nodes')}: {filteredNodes.length} / {data.nodes.length}
+                {t("wiki.graph.nodes")}: {filteredNodes.length} / {data.nodes.length}
               </Text>
               <Text>
-                {t('wiki.graph.edges')}: {filteredEdges.length} / {data.edges.length}
+                {t("wiki.graph.edges")}: {filteredEdges.length} / {data.edges.length}
               </Text>
             </Space>
           </Card>

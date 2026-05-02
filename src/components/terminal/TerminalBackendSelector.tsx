@@ -1,6 +1,6 @@
 import { Button, Dropdown, Tag } from "antd";
-import { Monitor, Container, Terminal, Plus } from "lucide-react";
 import type { MenuProps } from "antd";
+import { Container, Monitor, Plus, Terminal } from "lucide-react";
 
 const backendIcons: Record<string, React.ReactNode> = {
   local: <Monitor size={14} />,

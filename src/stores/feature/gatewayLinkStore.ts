@@ -205,7 +205,10 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   savePolicy: async (linkId, policyUpdate) => {
     try {
-      const policy = await invoke<GatewayLinkPolicy>("save_gateway_link_policy", { link_id: linkId, input: policyUpdate });
+      const policy = await invoke<GatewayLinkPolicy>("save_gateway_link_policy", {
+        link_id: linkId,
+        input: policyUpdate,
+      });
       set({ policy, error: null });
     } catch (e) {
       set({ error: String(e) });

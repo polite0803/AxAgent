@@ -1,5 +1,5 @@
 import { Tag, Tooltip } from "antd";
-import { Database, Clock, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock, Database } from "lucide-react";
 
 interface CacheIndicatorProps {
   cacheValid: boolean;
@@ -44,7 +44,7 @@ export function CacheIndicator({
 }
 
 function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000_000) { return `${(n / 1_000_000).toFixed(1)}M`; }
+  if (n >= 1_000) { return `${(n / 1_000).toFixed(1)}K`; }
   return n.toString();
 }

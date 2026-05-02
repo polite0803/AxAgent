@@ -5,12 +5,12 @@ import {
   ReloadOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import { Button, Popconfirm, Space, Tag, Tooltip, message } from "antd";
+import { Button, message, Popconfirm, Space, Tag, Tooltip } from "antd";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "../../lib/invoke";
-import { useWorkEngineStore } from "../../stores/feature/workEngineStore";
 import { useSettingsStore } from "../../stores";
+import { useWorkEngineStore } from "../../stores/feature/workEngineStore";
 
 interface ExecutionControlBarProps {
   workflowId: string;
@@ -86,7 +86,9 @@ export const ExecutionControlBar: React.FC<ExecutionControlBarProps> = ({ workfl
 
       {isPaused && (
         <Tooltip title={t("workEngine.resumeExecution")}>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={resume} size="small">{t("workEngine.resume")}</Button>
+          <Button type="primary" icon={<ReloadOutlined />} onClick={resume} size="small">
+            {t("workEngine.resume")}
+          </Button>
         </Tooltip>
       )}
 

@@ -1,9 +1,9 @@
 import { invoke } from "@/lib/invoke";
 import { useAgentStore, useConversationStore, useStreamStore } from "@/stores";
 import { Activity, Clock, Pause, Play, Shield, Wrench } from "lucide-react";
-import { DreamStatusIndicator } from "./DreamStatusIndicator";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { DreamStatusIndicator } from "./DreamStatusIndicator";
 
 interface RuntimeStats {
   conversationId: string;
@@ -54,7 +54,9 @@ const AgentStatsPanel: React.FC = () => {
     // Initial fetch
     invoke<RuntimeStats>("agent_runtime_stats", {
       conversationId: activeConversationId,
-    }).then(setStats).catch((e: unknown) => { console.warn('[IPC]', e); });
+    }).then(setStats).catch((e: unknown) => {
+      console.warn("[IPC]", e);
+    });
 
     return () => clearInterval(interval);
   }, [streaming, activeConversationId]);

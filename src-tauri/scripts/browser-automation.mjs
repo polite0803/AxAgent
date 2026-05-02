@@ -61,8 +61,7 @@ process.stdin.on("data", async (data) => {
             href: el.getAttribute("href"),
             type: el.getAttribute("type"),
             placeholder: el.getAttribute("placeholder"),
-          }))
-        );
+          })));
         result = { elements, count: elements.length };
         break;
       }

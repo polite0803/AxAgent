@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CONV_ICON_KEY, getConvIcon, type ConvIcon } from "../convIcon";
+import { CONV_ICON_KEY, type ConvIcon, getConvIcon } from "../convIcon";
 
 describe("convIcon", () => {
   beforeEach(() => {

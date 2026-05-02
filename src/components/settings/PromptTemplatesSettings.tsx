@@ -1,25 +1,7 @@
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { CreatePromptTemplateInput, PromptTemplate, UpdatePromptTemplateInput } from "@/types";
-import {
-  Button,
-  Empty,
-  Form,
-  Input,
-  List,
-  message,
-  Modal,
-  Space,
-  Spin,
-  Tag,
-  Typography,
-} from "antd";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  HistoryOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, HistoryOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button, Empty, Form, Input, List, message, Modal, Space, Spin, Tag, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
@@ -45,8 +27,8 @@ export function PromptTemplatesSettings() {
 
   const filteredTemplates = templates.filter(
     (template) =>
-      template.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      (template.description?.toLowerCase().includes(searchText.toLowerCase()) ?? false)
+      template.name.toLowerCase().includes(searchText.toLowerCase())
+      || (template.description?.toLowerCase().includes(searchText.toLowerCase()) ?? false),
   );
 
   const handleCreate = useCallback(() => {
@@ -66,7 +48,7 @@ export function PromptTemplatesSettings() {
       });
       setIsEditorOpen(true);
     },
-    [form]
+    [form],
   );
 
   const handleSave = useCallback(async () => {
@@ -108,7 +90,7 @@ export function PromptTemplatesSettings() {
         messageApi.error(String(e));
       }
     },
-    [deleteTemplate, messageApi, t]
+    [deleteTemplate, messageApi, t],
   );
 
   const handleViewHistory = useCallback(
@@ -117,7 +99,7 @@ export function PromptTemplatesSettings() {
       await loadVersions(template.id);
       setIsVersionHistoryOpen(true);
     },
-    [loadVersions]
+    [loadVersions],
   );
 
   if (loading && templates.length === 0) {
@@ -151,9 +133,7 @@ export function PromptTemplatesSettings() {
           />
         </div>
 
-        {filteredTemplates.length === 0 ? (
-          <Empty description={t("promptTemplates.noTemplates")} />
-        ) : (
+        {filteredTemplates.length === 0 ? <Empty description={t("promptTemplates.noTemplates")} /> : (
           <List
             dataSource={filteredTemplates}
             renderItem={(template) => (

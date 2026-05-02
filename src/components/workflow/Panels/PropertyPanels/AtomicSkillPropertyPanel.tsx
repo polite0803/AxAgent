@@ -1,11 +1,11 @@
+import { usePromptTemplateStore } from "@/stores";
 import { useAtomicSkillStore } from "@/stores/feature/atomicSkillStore";
+import type { PromptTemplate } from "@/types";
 import { EditOutlined } from "@ant-design/icons";
 import { Button, Divider, Input, message, Modal, Select, Space, Tag } from "antd";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { usePromptTemplateStore } from "@/stores";
 import type { WorkflowNode } from "../../types";
-import type { PromptTemplate } from "@/types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface AtomicSkillPropertyPanelProps {
@@ -76,7 +76,7 @@ export const AtomicSkillPropertyPanel: React.FC<AtomicSkillPropertyPanelProps> =
   };
 
   const handleApplyTemplate = () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) { return; }
 
     let content = selectedTemplate.content;
     try {
@@ -235,51 +235,64 @@ export const AtomicSkillPropertyPanel: React.FC<AtomicSkillPropertyPanelProps> =
         width={600}
       >
         {contextHolder}
-        {selectedTemplate ? (
-          <div style={{ padding: "12px 0" }}>
-            <p style={{ marginBottom: 8 }}>{t("promptTemplates.fillVariables")}</p>
-            {Object.entries(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).map(([varName, varType]) => (
-              <div key={varName} style={{ marginBottom: 8 }}>
-                <label style={{ display: "block", fontSize: 12, marginBottom: 2 }}>{varName} ({String(varType)})</label>
-                <Input
-                  placeholder={`${varName} (${String(varType)})`}
-                  value={variableValues[varName] || ""}
-                  onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
-                />
-              </div>
-            ))}
-            {parseVariables(selectedTemplate.content).length > 0 && Object.keys(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).length === 0 && (
-              <p style={{ color: "#f59e0b", fontSize: 12 }}>
-                {t("promptTemplates.hasVariables", { variables: parseVariables(selectedTemplate.content).join(", ") })}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div style={{ maxHeight: 400, overflowY: "auto" }}>
-            {activeTemplates.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 24, color: "#999" }}>
-                {t("promptTemplates.noTemplates")}
-              </div>
-            ) : (
-              activeTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  onClick={() => handleSelectTemplate(template)}
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    borderBottom: "1px solid #333",
-                  }}
-                >
-                  <div style={{ fontWeight: 500 }}>{template.name}</div>
-                  <div style={{ fontSize: 12, color: "#999" }}>
-                    {template.description || template.content.slice(0, 60) + "..."}
+        {selectedTemplate
+          ? (
+            <div style={{ padding: "12px 0" }}>
+              <p style={{ marginBottom: 8 }}>{t("promptTemplates.fillVariables")}</p>
+              {Object.entries(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).map(
+                ([varName, varType]) => (
+                  <div key={varName} style={{ marginBottom: 8 }}>
+                    <label style={{ display: "block", fontSize: 12, marginBottom: 2 }}>
+                      {varName} ({String(varType)})
+                    </label>
+                    <Input
+                      placeholder={`${varName} (${String(varType)})`}
+                      value={variableValues[varName] || ""}
+                      onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
+                    />
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+                ),
+              )}
+              {parseVariables(selectedTemplate.content).length > 0
+                && Object.keys(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {})
+                    .length === 0
+                && (
+                  <p style={{ color: "#f59e0b", fontSize: 12 }}>
+                    {t("promptTemplates.hasVariables", {
+                      variables: parseVariables(selectedTemplate.content).join(", "),
+                    })}
+                  </p>
+                )}
+            </div>
+          )
+          : (
+            <div style={{ maxHeight: 400, overflowY: "auto" }}>
+              {activeTemplates.length === 0
+                ? (
+                  <div style={{ textAlign: "center", padding: 24, color: "#999" }}>
+                    {t("promptTemplates.noTemplates")}
+                  </div>
+                )
+                : (
+                  activeTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      onClick={() => handleSelectTemplate(template)}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #333",
+                      }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{template.name}</div>
+                      <div style={{ fontSize: 12, color: "#999" }}>
+                        {template.description || template.content.slice(0, 60) + "..."}
+                      </div>
+                    </div>
+                  ))
+                )}
+            </div>
+          )}
       </Modal>
     </div>
   );

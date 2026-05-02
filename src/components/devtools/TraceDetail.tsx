@@ -1,17 +1,17 @@
 import { useTracerStore } from "@/stores/devtools/tracerStore";
-import { Card, Descriptions, Tag, Typography, Space, Button, Tabs, Row, Col } from "antd";
-import { SpanTree } from "./SpanTree";
-import { SpanDetail } from "./SpanDetail";
+import { Button, Card, Col, Descriptions, Row, Space, Tabs, Tag, Typography } from "antd";
 import { CostChart } from "./CostChart";
 import { DurationChart } from "./DurationChart";
+import { SpanDetail } from "./SpanDetail";
+import { SpanTree } from "./SpanTree";
 import { Timeline } from "./Timeline";
 
 const { Text } = Typography;
 
 function formatDuration(ms?: number): string {
-  if (!ms) return "-";
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (!ms) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
+  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -20,16 +20,15 @@ function formatCost(cost: number): string {
 }
 
 function formatTokens(tokens: number): string {
-  if (tokens < 1000) return `${tokens}`;
-  if (tokens < 1000000) return `${(tokens / 1000).toFixed(1)}K`;
+  if (tokens < 1000) { return `${tokens}`; }
+  if (tokens < 1000000) { return `${(tokens / 1000).toFixed(1)}K`; }
   return `${(tokens / 1000000).toFixed(1)}M`;
 }
 
 export function TraceDetail() {
-  const { selectedTrace, selectedSpan, tree, metrics, exportTrace } =
-    useTracerStore();
+  const { selectedTrace, selectedSpan, tree, metrics, exportTrace } = useTracerStore();
 
-  if (!selectedTrace) return null;
+  if (!selectedTrace) { return null; }
 
   const { trace, summary } = selectedTrace;
 

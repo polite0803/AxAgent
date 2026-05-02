@@ -1,46 +1,46 @@
-import { useEffect, useState } from 'react';
+import { IngestPanel } from "@/components/wiki/IngestPanel";
+import { LintReport } from "@/components/wiki/LintReport";
+import { OperationTimeline } from "@/components/wiki/OperationTimeline";
+import { WikiSidebar } from "@/components/wiki/WikiSidebar";
+import { useLlmWikiStore, Wiki, WikiSource } from "@/stores/feature/llmWikiStore";
+import { useWikiStore } from "@/stores/feature/wikiStore";
+import type { NoteSearchResult } from "@/types";
 import {
-  Card,
-  Typography,
-  Tabs,
-  Table,
-  Tag,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  message,
-  Descriptions,
-  Popconfirm,
-  Tooltip,
-  Row,
-  Col,
-  Statistic,
-  List,
-  Empty,
-} from 'antd';
-import {
-  PlusOutlined,
-  PlayCircleOutlined,
-  UploadOutlined,
   DeleteOutlined,
   EyeOutlined,
-  HistoryOutlined,
   FileTextOutlined,
   FolderOutlined,
+  HistoryOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
   SyncOutlined,
-  } from '@ant-design/icons';
-import { useLlmWikiStore, Wiki, WikiSource } from '@/stores/feature/llmWikiStore';
-import { useWikiStore } from '@/stores/feature/wikiStore';
-import { useTranslation } from 'react-i18next';
-import { IngestPanel } from '@/components/wiki/IngestPanel';
-import { LintReport } from '@/components/wiki/LintReport';
-import { OperationTimeline } from '@/components/wiki/OperationTimeline';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { NoteSearchResult } from '@/types';
-import { WikiSidebar } from '@/components/wiki/WikiSidebar';
+  UploadOutlined,
+} from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Empty,
+  Form,
+  Input,
+  List,
+  message,
+  Modal,
+  Popconfirm,
+  Row,
+  Space,
+  Statistic,
+  Table,
+  Tabs,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
 import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { WikiEditorPage } from "./WikiEditorPage";
 
 const { Title } = Typography;
@@ -49,7 +49,7 @@ export function LlmWikiPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const wikiIdFromUrl = searchParams.get('wikiId');
+  const wikiIdFromUrl = searchParams.get("wikiId");
 
   const {
     wikis,
@@ -79,10 +79,10 @@ export function LlmWikiPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isIngestModalOpen, setIsIngestModalOpen] = useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [form] = Form.useForm();
-  const [notesSearchQuery, setNotesSearchQuery] = useState('');
+  const [notesSearchQuery, setNotesSearchQuery] = useState("");
   const [notesSearchResults, setNotesSearchResults] = useState<NoteSearchResult[]>([]);
   const [isNotesSearching, setIsNotesSearching] = useState(false);
 
@@ -125,20 +125,20 @@ export function LlmWikiPage() {
   };
 
   const handleCreateNote = () => {
-    if (!selectedWikiId) return;
+    if (!selectedWikiId) { return; }
     const now = Date.now();
     createNote({
       vaultId: selectedWikiId,
       title: `Untitled ${new Date(now).toLocaleString()}`,
       filePath: `/untitled-${now}.md`,
-      content: '',
-      author: 'user',
+      content: "",
+      author: "user",
     });
   };
 
   const handleBackFromNote = () => {
     setSelectedNoteId(null);
-    setNotesSearchQuery('');
+    setNotesSearchQuery("");
   };
 
   const selectedWiki = wikis.find((w) => w.id === selectedWikiId);
@@ -146,7 +146,7 @@ export function LlmWikiPage() {
   const handleCreateWiki = async (values: { name: string; rootPath: string; description?: string }) => {
     const wiki = await createWiki(values.name, values.rootPath, values.description);
     if (wiki) {
-      message.success(t('wiki.llm.createSuccess'));
+      message.success(t("wiki.llm.createSuccess"));
       setIsCreateModalOpen(false);
       form.resetFields();
       selectWiki(wiki.id);
@@ -155,12 +155,12 @@ export function LlmWikiPage() {
 
   const handleDeleteWiki = async (wikiId: string) => {
     await deleteWiki(wikiId);
-    message.success(t('wiki.llm.deleteSuccess'));
+    message.success(t("wiki.llm.deleteSuccess"));
   };
 
   const handleCompile = async () => {
     if (!selectedWikiId || selectedSourceIds.length === 0) {
-      message.warning(t('wiki.llm.selectSourcesFirst'));
+      message.warning(t("wiki.llm.selectSourcesFirst"));
       return;
     }
 
@@ -169,13 +169,13 @@ export function LlmWikiPage() {
       const result = await compileWiki(selectedWikiId, selectedSourceIds);
       if (result) {
         if (result.errors.length > 0) {
-          message.error(t('wiki.llm.compileErrors', { count: result.errors.length }));
+          message.error(t("wiki.llm.compileErrors", { count: result.errors.length }));
         } else {
           message.success(
-            t('wiki.llm.compileSuccess', {
+            t("wiki.llm.compileSuccess", {
               newCount: result.new_pages.length,
               updatedCount: result.updated_pages.length,
-            })
+            }),
           );
         }
         loadOperations(selectedWikiId);
@@ -186,21 +186,25 @@ export function LlmWikiPage() {
   };
 
   const sourceColumns = [
-    { title: t('wiki.source.title'), dataIndex: 'title', key: 'title' },
+    { title: t("wiki.source.title"), dataIndex: "title", key: "title" },
     {
-      title: t('wiki.source.type'),
-      dataIndex: 'sourceType',
-      key: 'sourceType',
+      title: t("wiki.source.type"),
+      dataIndex: "sourceType",
+      key: "sourceType",
       render: (type: string) => <Tag>{type}</Tag>,
     },
-    { title: t('wiki.source.path'), dataIndex: 'sourcePath', key: 'sourcePath', ellipsis: true },
+    { title: t("wiki.source.path"), dataIndex: "sourcePath", key: "sourcePath", ellipsis: true },
     {
-      title: t('wiki.common.actions'),
-      key: 'actions',
+      title: t("wiki.common.actions"),
+      key: "actions",
       render: (_: unknown, record: WikiSource) => (
         <Space>
-          <Tooltip title={t('wiki.llm.viewSource')}>
-            <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/llm-wiki/${record.wikiId}/source/${record.id}`)} />
+          <Tooltip title={t("wiki.llm.viewSource")}>
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/llm-wiki/${record.wikiId}/source/${record.id}`)}
+            />
           </Tooltip>
         </Space>
       ),
@@ -217,7 +221,7 @@ export function LlmWikiPage() {
       <Col span={6}>
         <Card>
           <Statistic
-            title={t('wiki.llm.stats.totalWikis')}
+            title={t("wiki.llm.stats.totalWikis")}
             value={wikis.length}
             prefix={<FolderOutlined />}
           />
@@ -226,7 +230,7 @@ export function LlmWikiPage() {
       <Col span={6}>
         <Card>
           <Statistic
-            title={t('wiki.llm.stats.sources')}
+            title={t("wiki.llm.stats.sources")}
             value={sources.length}
             prefix={<FileTextOutlined />}
           />
@@ -235,7 +239,7 @@ export function LlmWikiPage() {
       <Col span={6}>
         <Card>
           <Statistic
-            title={t('wiki.llm.stats.operations')}
+            title={t("wiki.llm.stats.operations")}
             value={operations.length}
             prefix={<HistoryOutlined />}
           />
@@ -244,8 +248,8 @@ export function LlmWikiPage() {
       <Col span={6}>
         <Card>
           <Statistic
-            title={t('wiki.llm.stats.lastCompile')}
-            value={operations.filter((o) => o.operationType === 'compile').length}
+            title={t("wiki.llm.stats.lastCompile")}
+            value={operations.filter((o) => o.operationType === "compile").length}
             prefix={<SyncOutlined spin={isCompiling} />}
           />
         </Card>
@@ -255,10 +259,10 @@ export function LlmWikiPage() {
 
   const renderWikiList = () => (
     <Card
-      title={t('wiki.llm.wikiList')}
+      title={t("wiki.llm.wikiList")}
       extra={
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsCreateModalOpen(true)}>
-          {t('wiki.llm.createWiki')}
+          {t("wiki.llm.createWiki")}
         </Button>
       }
     >
@@ -267,21 +271,21 @@ export function LlmWikiPage() {
         rowKey="id"
         loading={loading}
         columns={[
-          { title: t('wiki.wiki.name'), dataIndex: 'name', key: 'name' },
-          { title: t('wiki.wiki.rootPath'), dataIndex: 'rootPath', key: 'rootPath', ellipsis: true },
+          { title: t("wiki.wiki.name"), dataIndex: "name", key: "name" },
+          { title: t("wiki.wiki.rootPath"), dataIndex: "rootPath", key: "rootPath", ellipsis: true },
           {
-            title: t('wiki.wiki.schemaVersion'),
-            dataIndex: 'schemaVersion',
-            key: 'schemaVersion',
+            title: t("wiki.wiki.schemaVersion"),
+            dataIndex: "schemaVersion",
+            key: "schemaVersion",
             render: (v: string) => <Tag color="blue">v{v}</Tag>,
           },
           {
-            title: t('wiki.common.actions'),
-            key: 'actions',
+            title: t("wiki.common.actions"),
+            key: "actions",
             render: (_: unknown, record: Wiki) => (
               <Space>
                 <Button size="small" type="primary" onClick={() => selectWiki(record.id)}>
-                  {t('wiki.llm.select')}
+                  {t("wiki.llm.select")}
                 </Button>
                 <Button
                   size="small"
@@ -289,7 +293,7 @@ export function LlmWikiPage() {
                   onClick={() => navigate(`/llm-wiki/${record.id}`)}
                 />
                 <Popconfirm
-                  title={t('wiki.llm.confirmDelete')}
+                  title={t("wiki.llm.confirmDelete")}
                   onConfirm={() => handleDeleteWiki(record.id)}
                 >
                   <Button size="small" danger icon={<DeleteOutlined />} />
@@ -304,11 +308,11 @@ export function LlmWikiPage() {
 
   const renderSourcePanel = () => (
     <Card
-      title={t('wiki.llm.sources')}
+      title={t("wiki.llm.sources")}
       extra={
         <Space>
           <Button icon={<UploadOutlined />} onClick={() => setIsIngestModalOpen(true)}>
-            {t('wiki.llm.ingestSource')}
+            {t("wiki.llm.ingestSource")}
           </Button>
           <Button
             type="primary"
@@ -317,7 +321,7 @@ export function LlmWikiPage() {
             disabled={selectedSourceIds.length === 0}
             onClick={handleCompile}
           >
-            {t('wiki.llm.compile')}
+            {t("wiki.llm.compile")}
           </Button>
         </Space>
       }
@@ -333,25 +337,25 @@ export function LlmWikiPage() {
   );
 
   const renderIngestPanel = () => (
-    <Card title={t('wiki.llm.ingestSource')}>
-      <IngestPanel wikiId={selectedWikiId || ''} onClose={() => setIsIngestModalOpen(false)} />
+    <Card title={t("wiki.llm.ingestSource")}>
+      <IngestPanel wikiId={selectedWikiId || ""} onClose={() => setIsIngestModalOpen(false)} />
     </Card>
   );
 
   const renderLintPanel = () => (
-    <Card title={t('wiki.llm.lintReport')}>
-      <LintReport wikiId={selectedWikiId || ''} />
+    <Card title={t("wiki.llm.lintReport")}>
+      <LintReport wikiId={selectedWikiId || ""} />
     </Card>
   );
 
   const renderOperationsPanel = () => (
-    <Card title={t('wiki.llm.operations')}>
+    <Card title={t("wiki.llm.operations")}>
       <OperationTimeline operations={operations} />
     </Card>
   );
 
   const renderNotesPanel = () => (
-    <div className="flex h-full" style={{ overflow: 'hidden' }}>
+    <div className="flex h-full" style={{ overflow: "hidden" }}>
       <WikiSidebar
         notes={displayNotes}
         selectedNoteId={selectedNoteId}
@@ -359,11 +363,14 @@ export function LlmWikiPage() {
         onCreateNote={handleCreateNote}
         loading={notesLoading}
       />
-      <div className="flex-1 flex flex-col overflow-hidden border-l" style={{ borderColor: 'var(--color-border-secondary)' }}>
-        <div className="p-4 border-b" style={{ borderColor: 'var(--color-border-secondary)' }}>
+      <div
+        className="flex-1 flex flex-col overflow-hidden border-l"
+        style={{ borderColor: "var(--color-border-secondary)" }}
+      >
+        <div className="p-4 border-b" style={{ borderColor: "var(--color-border-secondary)" }}>
           <Space className="w-full" direction="vertical" size="small">
             <Input.Search
-              placeholder={t('wiki.searchPlaceholder', 'Search notes...')}
+              placeholder={t("wiki.searchPlaceholder", "Search notes...")}
               value={notesSearchQuery}
               onChange={(e) => setNotesSearchQuery(e.target.value)}
               loading={isNotesSearching}
@@ -373,9 +380,7 @@ export function LlmWikiPage() {
           </Space>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {displayNotes.length === 0 ? (
-            <Empty description={t('wiki.emptyNotes', 'No notes yet')} />
-          ) : (
+          {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes", "No notes yet")} /> : (
             <List
               dataSource={displayNotes}
               renderItem={(note) => (
@@ -386,8 +391,9 @@ export function LlmWikiPage() {
                   <List.Item.Meta
                     title={note.title}
                     description={
-                      <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                        {note.author === 'llm' ? t('wiki.llmNote', 'LLM') : t('wiki.userNote', 'User')} • {note.filePath}
+                      <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                        {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} •{" "}
+                        {note.filePath}
                       </span>
                     }
                   />
@@ -403,7 +409,7 @@ export function LlmWikiPage() {
   if (!selectedWikiId) {
     return (
       <div style={{ padding: 24 }}>
-        <Title level={4}>{t('wiki.llm.title')}</Title>
+        <Title level={4}>{t("wiki.llm.title")}</Title>
         {error && (
           <div className="mb-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
             {error}
@@ -412,7 +418,7 @@ export function LlmWikiPage() {
         {renderWikiList()}
 
         <Modal
-          title={t('wiki.llm.createWiki')}
+          title={t("wiki.llm.createWiki")}
           open={isCreateModalOpen}
           onCancel={() => setIsCreateModalOpen(false)}
           footer={null}
@@ -420,23 +426,23 @@ export function LlmWikiPage() {
           <Form form={form} layout="vertical" onFinish={handleCreateWiki}>
             <Form.Item
               name="name"
-              label={t('wiki.wiki.name')}
-              rules={[{ required: true, message: t('wiki.llm.nameRequired') }]}
+              label={t("wiki.wiki.name")}
+              rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}
             >
-              <Input placeholder={t('wiki.llm.namePlaceholder')} />
+              <Input placeholder={t("wiki.llm.namePlaceholder")} />
             </Form.Item>
             <Form.Item
               name="rootPath"
-              label={t('wiki.wiki.rootPath')}
-              rules={[{ required: true, message: t('wiki.llm.pathRequired') }]}
+              label={t("wiki.wiki.rootPath")}
+              rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}
             >
-              <Input placeholder={t('wiki.llm.pathPlaceholder')} />
+              <Input placeholder={t("wiki.llm.pathPlaceholder")} />
             </Form.Item>
-            <Form.Item name="description" label={t('wiki.wiki.description')}>
-              <Input.TextArea placeholder={t('wiki.llm.descriptionPlaceholder')} />
+            <Form.Item name="description" label={t("wiki.wiki.description")}>
+              <Input.TextArea placeholder={t("wiki.llm.descriptionPlaceholder")} />
             </Form.Item>
             <Button type="primary" htmlType="submit" loading={loading} block>
-              {t('wiki.llm.create')}
+              {t("wiki.llm.create")}
             </Button>
           </Form>
         </Modal>
@@ -458,43 +464,45 @@ export function LlmWikiPage() {
           extra={
             <Space>
               <Button icon={<HistoryOutlined />} onClick={() => navigate(`/llm-wiki/${selectedWikiId}/graph`)}>
-                {t('wiki.graph.title')}
+                {t("wiki.graph.title")}
               </Button>
-              <Button onClick={() => selectWiki(null)}>{t('wiki.llm.backToList')}</Button>
+              <Button onClick={() => selectWiki(null)}>{t("wiki.llm.backToList")}</Button>
             </Space>
           }
         >
-          <Descriptions.Item label={t('wiki.wiki.rootPath')}>{selectedWiki?.rootPath}</Descriptions.Item>
-          <Descriptions.Item label={t('wiki.wiki.description')}>
-            {selectedWiki?.description || '-'}
+          <Descriptions.Item label={t("wiki.wiki.rootPath")}>{selectedWiki?.rootPath}</Descriptions.Item>
+          <Descriptions.Item label={t("wiki.wiki.description")}>
+            {selectedWiki?.description || "-"}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      {selectedNoteId ? (
-        <div>
-          <Button icon={<ArrowLeft />} onClick={handleBackFromNote} className="mb-2">
-            {t('wiki.backToNotes', 'Back to Notes')}
-          </Button>
-          <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
-        </div>
-      ) : (
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={[
-            { key: 'overview', label: t('wiki.common.overview'), children: renderOverview() },
-            { key: 'notes', label: t('wiki.notes', 'Notes'), children: renderNotesPanel() },
-            { key: 'sources', label: t('wiki.llm.sources'), children: renderSourcePanel() },
-            { key: 'ingest', label: t('wiki.llm.ingestSource'), children: renderIngestPanel() },
-            { key: 'lint', label: t('wiki.llm.lintReport'), children: renderLintPanel() },
-            { key: 'operations', label: t('wiki.llm.operations'), children: renderOperationsPanel() },
-          ]}
-        />
-      )}
+      {selectedNoteId
+        ? (
+          <div>
+            <Button icon={<ArrowLeft />} onClick={handleBackFromNote} className="mb-2">
+              {t("wiki.backToNotes", "Back to Notes")}
+            </Button>
+            <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
+          </div>
+        )
+        : (
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={[
+              { key: "overview", label: t("wiki.common.overview"), children: renderOverview() },
+              { key: "notes", label: t("wiki.notes", "Notes"), children: renderNotesPanel() },
+              { key: "sources", label: t("wiki.llm.sources"), children: renderSourcePanel() },
+              { key: "ingest", label: t("wiki.llm.ingestSource"), children: renderIngestPanel() },
+              { key: "lint", label: t("wiki.llm.lintReport"), children: renderLintPanel() },
+              { key: "operations", label: t("wiki.llm.operations"), children: renderOperationsPanel() },
+            ]}
+          />
+        )}
 
       <Modal
-        title={t('wiki.llm.ingestSource')}
+        title={t("wiki.llm.ingestSource")}
         open={isIngestModalOpen}
         onCancel={() => setIsIngestModalOpen(false)}
         footer={null}

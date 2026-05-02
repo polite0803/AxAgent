@@ -1,3 +1,4 @@
+import { invoke } from "@/lib/invoke";
 import {
   Button,
   Card,
@@ -17,7 +18,6 @@ import {
 import { Bell, BellOff, Copy, Plus, RefreshCw, Trash2, Webhook } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { invoke } from "@/lib/invoke";
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -68,7 +68,7 @@ export default function WebhookSettings() {
   const loadSubscriptions = async () => {
     try {
       const result = await invoke<WebhookSubscription[]>(
-        "webhook_list_subscriptions"
+        "webhook_list_subscriptions",
       );
       setSubscriptions(result);
     } catch (error) {
@@ -101,13 +101,11 @@ export default function WebhookSettings() {
         subscriptionId: id,
         enabled,
       });
-      setSubscriptions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, enabled } : s))
-      );
+      setSubscriptions((prev) => prev.map((s) => (s.id === id ? { ...s, enabled } : s)));
       message.success(
         enabled
           ? t("settings.webhook.enabled")
-          : t("settings.webhook.disabled")
+          : t("settings.webhook.disabled"),
       );
     } catch (error) {
       message.error(`Toggle failed: ${error}`);
@@ -139,7 +137,7 @@ export default function WebhookSettings() {
           url: values.url,
           events: values.events,
           secret: values.secret,
-        }
+        },
       );
       setSubscriptions((prev) => [...prev, result]);
       setModalVisible(false);
@@ -220,20 +218,14 @@ export default function WebhookSettings() {
       dataIndex: "last_triggered",
       key: "last_triggered",
       width: 160,
-      render: (ts: string | undefined) =>
-        ts ? new Date(ts).toLocaleString() : "-",
+      render: (ts: string | undefined) => ts ? new Date(ts).toLocaleString() : "-",
     },
     {
       title: t("settings.webhook.failures"),
       dataIndex: "failure_count",
       key: "failure_count",
       width: 80,
-      render: (count: number) =>
-        count > 0 ? (
-          <Tag color="red">{count}</Tag>
-        ) : (
-          <Tag color="green">0</Tag>
-        ),
+      render: (count: number) => count > 0 ? <Tag color="red">{count}</Tag> : <Tag color="green">0</Tag>,
     },
     {
       title: "",
@@ -303,32 +295,34 @@ export default function WebhookSettings() {
         </div>
       </div>
 
-      {subscriptions.length > 0 ? (
-        <Table
-          dataSource={subscriptions}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-        />
-      ) : (
-        <Card>
-          <Empty
-            image={<BellOff size={48} className="text-text-quaternary" />}
-            description={
-              <div>
-                <Paragraph>{t("settings.webhook.noSubscriptions")}</Paragraph>
-                <Button
-                  type="primary"
-                  icon={<Plus size={16} />}
-                  onClick={() => setModalVisible(true)}
-                >
-                  {t("settings.webhook.addFirst")}
-                </Button>
-              </div>
-            }
+      {subscriptions.length > 0
+        ? (
+          <Table
+            dataSource={subscriptions}
+            columns={columns}
+            rowKey="id"
+            pagination={false}
           />
-        </Card>
-      )}
+        )
+        : (
+          <Card>
+            <Empty
+              image={<BellOff size={48} className="text-text-quaternary" />}
+              description={
+                <div>
+                  <Paragraph>{t("settings.webhook.noSubscriptions")}</Paragraph>
+                  <Button
+                    type="primary"
+                    icon={<Plus size={16} />}
+                    onClick={() => setModalVisible(true)}
+                  >
+                    {t("settings.webhook.addFirst")}
+                  </Button>
+                </div>
+              }
+            />
+          </Card>
+        )}
 
       <Modal
         title={t("settings.webhook.createSubscription")}

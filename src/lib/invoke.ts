@@ -71,10 +71,10 @@ export async function invokeWithRetry<T>(
       lastError = e;
 
       // 最后一次尝试不再重试
-      if (attempt >= maxRetries) break;
+      if (attempt >= maxRetries) { break; }
 
       // 非瞬时错误不重试
-      if (!isRetryableError(e)) throw e;
+      if (!isRetryableError(e)) { throw e; }
 
       // 指数退避（带 10% 抖动）
       const delay = Math.min(baseDelayMs * Math.pow(multiplier, attempt), maxDelayMs);

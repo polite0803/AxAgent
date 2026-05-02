@@ -1,9 +1,9 @@
-import { useEffect } from "react";
-import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
 import { BenchmarkConfig } from "@/components/benchmark/BenchmarkConfig";
 import { BenchmarkReportView } from "@/components/benchmark/BenchmarkReportView";
-import { Spin, Button, message, Card } from "antd";
+import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
+import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
+import { Button, Card, message, Spin } from "antd";
+import { useEffect } from "react";
 
 export function BenchmarkRunner() {
   const {
@@ -72,9 +72,7 @@ export function BenchmarkRunner() {
         </div>
       )}
 
-      {currentResult && currentReport && (
-        <BenchmarkReportView report={currentReport} />
-      )}
+      {currentResult && currentReport && <BenchmarkReportView report={currentReport} />}
 
       {!currentResult && !isLoading && (
         <div className="text-center text-gray-400 py-20">

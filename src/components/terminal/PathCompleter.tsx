@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Terminal as XTerm } from "@xterm/xterm";
 import { invoke } from "@/lib/invoke";
+import { Terminal as XTerm } from "@xterm/xterm";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface PathCompleterOptions {
   triggerKey?: string;
@@ -11,7 +11,7 @@ export interface PathCompleterOptions {
 
 export function usePathCompleter(
   terminal: XTerm | null,
-  options: PathCompleterOptions = {}
+  options: PathCompleterOptions = {},
 ) {
   const {
     triggerKey = "Tab",
@@ -29,7 +29,7 @@ export function usePathCompleter(
 
   const defaultGetSuggestions = useCallback(
     async (input: string): Promise<string[]> => {
-      if (!input || input.length < 1) return [];
+      if (!input || input.length < 1) { return []; }
 
       const lastSpaceIndex = input.lastIndexOf(" ");
       const searchBase = lastSpaceIndex >= 0 ? input.slice(lastSpaceIndex + 1) : input;
@@ -41,14 +41,14 @@ export function usePathCompleter(
       try {
         const result = await invoke<string[]>(
           "path_complete",
-          { partialPath: searchBase }
+          { partialPath: searchBase },
         );
         return result || [];
       } catch {
         return [];
       }
     },
-    []
+    [],
   );
 
   const fetchSuggestions = useCallback(
@@ -58,12 +58,12 @@ export function usePathCompleter(
       setSuggestions(results.slice(0, maxSuggestions));
       setSelectedIndex(0);
     },
-    [getSuggestions, defaultGetSuggestions, maxSuggestions]
+    [getSuggestions, defaultGetSuggestions, maxSuggestions],
   );
 
   const insertPath = useCallback(
     (path: string) => {
-      if (!terminal) return;
+      if (!terminal) { return; }
 
       const lastSpaceIndex = inputBufferRef.current.lastIndexOf(" ");
       const beforeSpace = lastSpaceIndex >= 0 ? inputBufferRef.current.slice(0, lastSpaceIndex + 1) : "";
@@ -81,17 +81,17 @@ export function usePathCompleter(
         onPathSelected(path);
       }
     },
-    [terminal, onPathSelected]
+    [terminal, onPathSelected],
   );
 
   const cycleSuggestion = useCallback(
     (direction: 1 | -1) => {
-      if (suggestions.length === 0) return;
+      if (suggestions.length === 0) { return; }
       setSelectedIndex(
-        (prev) => (prev + direction + suggestions.length) % suggestions.length
+        (prev) => (prev + direction + suggestions.length) % suggestions.length,
       );
     },
-    [suggestions.length]
+    [suggestions.length],
   );
 
   const acceptSuggestion = useCallback(() => {
@@ -107,7 +107,7 @@ export function usePathCompleter(
   }, []);
 
   useEffect(() => {
-    if (!terminal) return;
+    if (!terminal) { return; }
 
     const handleData = (data: string) => {
       if (isActive) {
@@ -307,7 +307,7 @@ export function useSmartPathCompletion(_terminal: XTerm | null) {
       try {
         const results = await invoke<string[]>(
           "path_complete",
-          { partialPath: word }
+          { partialPath: word },
         );
         setCompletions(results || []);
         setCurrentIndex(0);
@@ -315,7 +315,7 @@ export function useSmartPathCompletion(_terminal: XTerm | null) {
         setCompletions([]);
       }
     },
-    []
+    [],
   );
 
   const nextCompletion = useCallback(() => {
@@ -324,18 +324,18 @@ export function useSmartPathCompletion(_terminal: XTerm | null) {
 
   const prevCompletion = useCallback(() => {
     setCurrentIndex(
-      (prev) => (prev - 1 + completions.length) % Math.max(completions.length, 1)
+      (prev) => (prev - 1 + completions.length) % Math.max(completions.length, 1),
     );
   }, [completions.length]);
 
   const insertCurrentCompletion = useCallback(
     (terminal: XTerm | null) => {
-      if (!terminal || completions.length === 0) return;
+      if (!terminal || completions.length === 0) { return; }
       terminal.write(completions[currentIndex]);
       setIsCompleting(false);
       setCompletions([]);
     },
-    [completions, currentIndex]
+    [completions, currentIndex],
   );
 
   const cancel = useCallback(() => {

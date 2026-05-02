@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import type { PrefetchResult, PrefetchType } from "@/types/proactive";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface PrefetchIndicatorProps {
   results?: PrefetchResult[];
@@ -28,7 +28,7 @@ export default function PrefetchIndicator({
     }
   }, [isActive, results.length]);
 
-  if (!mounted) return null;
+  if (!mounted) { return null; }
 
   const readyCount = results.filter((r) => r.ready).length;
   const totalCount = results.length;
@@ -51,19 +51,31 @@ export default function PrefetchIndicator({
       case "documentation":
         return (
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         );
       case "contextAnalysis":
         return (
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
           </svg>
         );
       case "toolCache":
         return (
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+            />
           </svg>
         );
     }
@@ -101,13 +113,15 @@ export default function PrefetchIndicator({
               {results.slice(0, 4).map((result, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <div className={`${result.ready ? "text-green-500" : "text-muted-foreground"}`}>
-                    {result.ready ? (
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      getTypeIcon(result.prefetch_type)
-                    )}
+                    {result.ready
+                      ? (
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )
+                      : (
+                        getTypeIcon(result.prefetch_type)
+                      )}
                   </div>
                   <span className="text-xs text-muted-foreground flex-1 truncate">
                     {result.prefetch_type}

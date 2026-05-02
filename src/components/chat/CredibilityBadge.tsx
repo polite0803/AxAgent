@@ -1,5 +1,5 @@
-import { Progress, Space, Tag, Tooltip, Typography } from 'antd';
-import { StarFilled, StarOutlined } from '@ant-design/icons';
+import { StarFilled, StarOutlined } from "@ant-design/icons";
+import { Progress, Space, Tag, Tooltip, Typography } from "antd";
 
 const { Text } = Typography;
 
@@ -7,14 +7,14 @@ interface CredibilityBadgeProps {
   score: number;
   showLabel?: boolean;
   showStars?: boolean;
-  size?: 'small' | 'default';
+  size?: "small" | "default";
 }
 
 export function CredibilityBadge({
   score,
   showLabel = true,
   showStars = false,
-  size = 'default',
+  size = "default",
 }: CredibilityBadgeProps) {
   const normalizedScore = Math.max(0, Math.min(1, score));
 
@@ -23,11 +23,9 @@ export function CredibilityBadge({
     const stars = [];
     for (let i = 0; i < 5; i++) {
       stars.push(
-        i < starCount ? (
-          <StarFilled key={i} style={{ color: '#faad14', fontSize: size === 'small' ? 12 : 14 }} />
-        ) : (
-          <StarOutlined key={i} style={{ color: '#d9d9d9', fontSize: size === 'small' ? 12 : 14 }} />
-        )
+        i < starCount
+          ? <StarFilled key={i} style={{ color: "#faad14", fontSize: size === "small" ? 12 : 14 }} />
+          : <StarOutlined key={i} style={{ color: "#d9d9d9", fontSize: size === "small" ? 12 : 14 }} />,
       );
     }
     return (
@@ -38,22 +36,22 @@ export function CredibilityBadge({
   }
 
   const colorMap = {
-    high: 'green',
-    medium: 'orange',
-    low: 'red',
+    high: "green",
+    medium: "orange",
+    low: "red",
   };
 
-  const level = normalizedScore >= 0.7 ? 'high' : normalizedScore >= 0.4 ? 'medium' : 'low';
+  const level = normalizedScore >= 0.7 ? "high" : normalizedScore >= 0.4 ? "medium" : "low";
   const labelMap = {
-    high: '高可信度',
-    medium: '中可信度',
-    low: '低可信度',
+    high: "高可信度",
+    medium: "中可信度",
+    low: "低可信度",
   };
 
   if (showLabel) {
     return (
       <Tooltip title={`可信度评分: ${Math.round(normalizedScore * 100)}%`}>
-        <Tag color={colorMap[level]} className={size === 'small' ? 'text-xs' : ''}>
+        <Tag color={colorMap[level]} className={size === "small" ? "text-xs" : ""}>
           {labelMap[level]}
         </Tag>
       </Tooltip>
@@ -62,7 +60,7 @@ export function CredibilityBadge({
 
   return (
     <Tooltip title={`可信度: ${Math.round(normalizedScore * 100)}%`}>
-      <Tag color={colorMap[level]} className={size === 'small' ? 'text-xs' : ''}>
+      <Tag color={colorMap[level]} className={size === "small" ? "text-xs" : ""}>
         {Math.round(normalizedScore * 100)}%
       </Tag>
     </Tooltip>
@@ -78,7 +76,7 @@ interface CredibilityBarProps {
 export function CredibilityBar({ score, showValue = true, height = 8 }: CredibilityBarProps) {
   const normalizedScore = Math.max(0, Math.min(1, score)) * 100;
 
-  const color = normalizedScore >= 70 ? '#52c41a' : normalizedScore >= 40 ? '#faad14' : '#ff4d4f';
+  const color = normalizedScore >= 70 ? "#52c41a" : normalizedScore >= 40 ? "#faad14" : "#ff4d4f";
 
   return (
     <div className="flex items-center gap-2">
@@ -106,7 +104,7 @@ export function CredibilityIndicator({ factors }: CredibilityIndicatorProps) {
   const { authority, consistency, recency, objectivity } = factors;
 
   return (
-    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+    <Space direction="vertical" size="small" style={{ width: "100%" }}>
       <div className="flex items-center justify-between">
         <Text type="secondary" className="text-sm">
           权威性

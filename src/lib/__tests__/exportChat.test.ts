@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Message } from "@/types";
-import {
-  buildJsonTranscript,
-  buildMarkdownTranscript,
-  buildTextTranscript,
-} from "../exportChat";
+import { buildJsonTranscript, buildMarkdownTranscript, buildTextTranscript } from "../exportChat";
 
 const mockMessage = (overrides: Partial<Message> = {}): Message => ({
   id: "msg-1",

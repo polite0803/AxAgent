@@ -21,7 +21,9 @@ import {
   useStreamStore,
   useUIStore,
 } from "@/stores";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
+import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Tag, theme, Tooltip } from "antd";
@@ -81,17 +83,15 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import CommandSuggest from "./CommandSuggest";
 import { ConversationSettingsModal } from "./ConversationSettingsModal";
+import { ExpertBadge } from "./ExpertBadge";
+import { ExpertSelector } from "./ExpertSelector";
 import ModelRoutingConfigPanel from "./ModelRoutingConfigPanel";
 import { ModelSelector } from "./ModelSelector";
+import { PlanHistoryPanel } from "./PlanHistoryPanel";
+import { PromptTemplateSelector } from "./PromptTemplateSelector";
 import { VoiceCall } from "./VoiceCall";
 import WorkflowTemplateSelector from "./WorkflowTemplateSelector";
-import { PlanHistoryPanel } from "./PlanHistoryPanel";
-import { ExpertSelector } from "./ExpertSelector";
-import { ExpertBadge } from "./ExpertBadge";
-import { useExpertStore } from "@/stores/feature/expertStore";
-import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
 import type { WorkflowTemplate } from "./WorkflowTemplateSelector";
-import { PromptTemplateSelector } from "./PromptTemplateSelector";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
   return new Promise((resolve) => {
@@ -350,7 +350,9 @@ export function InputArea() {
             setAgentCwd(session.cwd || null);
           }
         })
-        .catch((e: unknown) => { console.warn('[IPC]', e); });
+        .catch((e: unknown) => {
+          console.warn("[IPC]", e);
+        });
     }
   }, [currentMode, activeConversationId]);
 
@@ -603,7 +605,11 @@ export function InputArea() {
       if (items.length > 0) {
         items.push({ type: "divider" as const });
       }
-      items.push({ key: `category-${category}`, label: EXPERT_CATEGORY_LABELS[category as keyof typeof EXPERT_CATEGORY_LABELS] || category, disabled: true });
+      items.push({
+        key: `category-${category}`,
+        label: EXPERT_CATEGORY_LABELS[category as keyof typeof EXPERT_CATEGORY_LABELS] || category,
+        disabled: true,
+      });
       for (const role of categoryRoles) {
         items.push({
           key: `expert-${role.id}`,
@@ -660,7 +666,7 @@ export function InputArea() {
       if (key.startsWith("expert-")) {
         const roleId = key.replace("expert-", "");
         const role = useExpertStore.getState().getRoleById(roleId);
-        if (!role) return;
+        if (!role) { return; }
 
         let provider: ProviderConfig | undefined;
         let model: Model | undefined;
@@ -921,7 +927,7 @@ export function InputArea() {
       setTemplatePopoverOpen(false);
       textareaRef.current?.focus();
     },
-    []
+    [],
   );
 
   const templatePopoverContent = useMemo(() => {
@@ -1097,7 +1103,9 @@ export function InputArea() {
         if (errorMsg.includes("Not found: Conversation")) {
           console.warn("[ModeSwitch] Conversation no longer exists, refreshing conversation list");
           messageApi.warning(t("chat.conversationNotFound"));
-          await useConversationStore.getState().fetchConversations().catch((e: unknown) => { console.warn('[IPC]', e); });
+          await useConversationStore.getState().fetchConversations().catch((e: unknown) => {
+            console.warn("[IPC]", e);
+          });
           const { conversations } = useConversationStore.getState();
           if (conversations.length > 0) {
             useConversationStore.getState().setActiveConversation(conversations[0].id);
@@ -1900,7 +1908,10 @@ export function InputArea() {
                   selectedKeys: selectedScenario && currentMode !== "agent" ? [selectedScenario] : [],
                 }}
               >
-                <Tooltip title={currentMode === "agent" ? t("chat.selectExpert") : t("chat.scenarioTitle")} open={undefined}>
+                <Tooltip
+                  title={currentMode === "agent" ? t("chat.selectExpert") : t("chat.scenarioTitle")}
+                  open={undefined}
+                >
                   <Button
                     type="text"
                     size="small"
@@ -2178,16 +2189,21 @@ export function InputArea() {
               trigger={["click"]}
               placement="topLeft"
             >
-              <Tooltip title={currentMode === "gateway" && selectedGatewayId
-                ? gatewayLinks.find((l) => l.id === selectedGatewayId)?.name || t("common.chatMode")
-                : currentMode === "agent"
-                ? t("common.agentMode")
-                : t("common.chatMode")}
+              <Tooltip
+                title={currentMode === "gateway" && selectedGatewayId
+                  ? gatewayLinks.find((l) => l.id === selectedGatewayId)?.name || t("common.chatMode")
+                  : currentMode === "agent"
+                  ? t("common.agentMode")
+                  : t("common.chatMode")}
               >
                 <Button
                   type="text"
                   size="small"
-                  icon={currentMode === "agent" ? <Bot size={14} /> : currentMode === "gateway" ? <Globe size={14} /> : <MessageSquare size={14} />}
+                  icon={currentMode === "agent"
+                    ? <Bot size={14} />
+                    : currentMode === "gateway"
+                    ? <Globe size={14} />
+                    : <MessageSquare size={14} />}
                   style={{ display: "flex", alignItems: "center", gap: 4 }}
                 />
               </Tooltip>
@@ -2207,7 +2223,10 @@ export function InputArea() {
                       label: (
                         <>
                           {t("plan.strategyPlan", "Plan First")}{" "}
-                          <Tag color="purple" style={{ fontSize: 10, lineHeight: "16px", padding: "0 3px", marginLeft: 2 }}>
+                          <Tag
+                            color="purple"
+                            style={{ fontSize: 10, lineHeight: "16px", padding: "0 3px", marginLeft: 2 }}
+                          >
                             New
                           </Tag>
                         </>
@@ -2220,7 +2239,11 @@ export function InputArea() {
                 trigger={["click"]}
                 placement="topLeft"
               >
-                <Tooltip title={workStrategy === "plan" ? t("plan.strategyPlan", "Plan First") : t("plan.strategyDirect", "Direct Execute")}>
+                <Tooltip
+                  title={workStrategy === "plan"
+                    ? t("plan.strategyPlan", "Plan First")
+                    : t("plan.strategyDirect", "Direct Execute")}
+                >
                   <Button
                     type="text"
                     size="small"
@@ -2239,7 +2262,9 @@ export function InputArea() {
               <PlanHistoryPanel conversationId={activeConversationId} />
             )}
             {currentMode === "agent" && (
-              <Tooltip title={messagesLength > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}>
+              <Tooltip
+                title={messagesLength > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}
+              >
                 <Button
                   type="text"
                   size="small"
@@ -2261,7 +2286,12 @@ export function InputArea() {
                   onClick={() => setExpertOpen(true)}
                 />
                 <Tooltip title={t("chat.modelRouting")}>
-                  <Button type="text" size="small" icon={<Route size={14} />} onClick={() => setModelRoutingOpen(true)} />
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Route size={14} />}
+                    onClick={() => setModelRoutingOpen(true)}
+                  />
                 </Tooltip>
                 <Tooltip title={t("chat.workflowTemplates")}>
                   <Button type="text" size="small" icon={<Zap size={14} />} onClick={() => setWorkflowOpen(true)} />
@@ -2422,7 +2452,7 @@ export function InputArea() {
           onClose={() => setWorkflowOpen(false)}
           scenario={activeConversation?.scenario}
           expertCategory={(() => {
-            if (!activeConversation?.expert_role_id) return null;
+            if (!activeConversation?.expert_role_id) { return null; }
             return useExpertStore.getState().getRoleById(activeConversation.expert_role_id)?.category ?? null;
           })()}
           onSelect={(template: WorkflowTemplate, workflowId?: string) => {
@@ -2458,7 +2488,7 @@ export function InputArea() {
           onSelect={(roleId) => {
             const store = useExpertStore.getState();
             const role = store.getRoleById(roleId);
-            if (!role) return;
+            if (!role) { return; }
 
             // Update conversation expert_role_id and system_prompt
             updateConversation(activeConversationId, {

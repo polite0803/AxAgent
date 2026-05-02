@@ -1,5 +1,5 @@
+import type { StyleDimensionKey, StyleVector } from "@/types/style";
 import { useTranslation } from "react-i18next";
-import type { StyleVector, StyleDimensionKey } from "@/types/style";
 
 interface StyleComparisonProps {
   sourceStyle: StyleVector;
@@ -58,8 +58,8 @@ export default function StyleComparison({
       explanation_length: "Comprehensive",
     };
 
-    if (value < 0.35) return lowDescriptions[key];
-    if (value > 0.65) return highDescriptions[key];
+    if (value < 0.35) { return lowDescriptions[key]; }
+    if (value > 0.65) { return highDescriptions[key]; }
     return "Neutral";
   };
 
@@ -68,7 +68,7 @@ export default function StyleComparison({
   };
 
   const getDifferenceColor = (diff: number): string => {
-    if (Math.abs(diff) < 5) return "text-muted-foreground";
+    if (Math.abs(diff) < 5) { return "text-muted-foreground"; }
     return diff > 0 ? "text-green-500" : "text-red-500";
   };
 

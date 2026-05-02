@@ -197,7 +197,10 @@ function KnowledgeBaseList({
                     kb={kb}
                     isSelected={selectedId === kb.id}
                     onSelect={() => onSelect(kb.id)}
-                    onDelete={async () => { await deleteBase(kb.id); onDeleted?.(kb.id); }}
+                    onDelete={async () => {
+                      await deleteBase(kb.id);
+                      onDeleted?.(kb.id);
+                    }}
                   />
                 ))}
               </SortableContext>
@@ -1237,7 +1240,9 @@ export default function KnowledgeSettings() {
           selectedId={selectedId}
           onSelect={setSelectedId}
           onAdd={handleAdd}
-          onDeleted={(id) => { if (id === selectedId) setSelectedId(null); }}
+          onDeleted={(id) => {
+            if (id === selectedId) { setSelectedId(null); }
+          }}
         />
       </div>
       <div className="min-w-0 flex-1 overflow-y-auto">

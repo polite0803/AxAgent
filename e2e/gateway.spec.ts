@@ -20,9 +20,9 @@ test.describe("Gateway Management E2E", () => {
 
   test.skip("should navigate to gateway diagnostics", async ({ page }) => {
     // Click the "日志" tab — tabs content is lazily rendered by antd
-    const diagnosticsTab = page.locator('.ant-tabs-tab').filter({ hasText: '日志' }).first();
+    const diagnosticsTab = page.locator(".ant-tabs-tab").filter({ hasText: "日志" }).first();
     await diagnosticsTab.click();
     // Tab content is rendered inside .ant-tabs-content — verify it's not empty
-    await expect(page.locator('.ant-tabs-tabpane-active')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".ant-tabs-tabpane-active")).toBeVisible({ timeout: 10000 });
   });
 });

@@ -1,17 +1,12 @@
-import { Button, Card, Divider, Select, Space, Tabs, Tag, Typography } from 'antd';
-import {
-  CopyOutlined,
-  DownloadOutlined,
-  FileTextOutlined,
-  CheckCircleOutlined,
-} from '@ant-design/icons';
-import { useState, useMemo } from 'react';
-import DOMPurify from 'dompurify';
-import { CredibilityBadge } from './CredibilityBadge';
+import { CheckCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined } from "@ant-design/icons";
+import { Button, Card, Divider, Select, Space, Tabs, Tag, Typography } from "antd";
+import DOMPurify from "dompurify";
+import { useMemo, useState } from "react";
+import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title } = Typography;
 
-type ReportFormat = 'markdown' | 'html' | 'json';
+type ReportFormat = "markdown" | "html" | "json";
 
 interface Citation {
   id: string;
@@ -39,21 +34,21 @@ interface ReportViewerProps {
 
 function getSourceTypeName(sourceType: string): string {
   const nameMap: Record<string, string> = {
-    web: '网页',
-    academic: '学术',
-    wikipedia: '维基百科',
-    github: 'GitHub',
-    documentation: '文档',
-    news: '新闻',
-    blog: '博客',
-    forum: '论坛',
-    unknown: '未知',
+    web: "网页",
+    academic: "学术",
+    wikipedia: "维基百科",
+    github: "GitHub",
+    documentation: "文档",
+    news: "新闻",
+    blog: "博客",
+    forum: "论坛",
+    unknown: "未知",
   };
   return nameMap[sourceType.toLowerCase()] || sourceType;
 }
 
 export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewerProps) {
-  const [selectedFormat, setSelectedFormat] = useState<ReportFormat>('markdown');
+  const [selectedFormat, setSelectedFormat] = useState<ReportFormat>("markdown");
 
   if (!report) {
     return (
@@ -75,7 +70,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
 
   const handleExport = (format: ReportFormat) => {
     let content = report.content;
-    if (format === 'json') {
+    if (format === "json") {
       content = JSON.stringify(
         {
           topic: report.topic,
@@ -84,7 +79,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
           citations: report.citations,
         },
         null,
-        2
+        2,
       );
     }
     onExport?.(format, content);
@@ -93,15 +88,15 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
   const renderMarkdownPreview = () => (
     <pre
       style={{
-        whiteSpace: 'pre-wrap',
-        fontFamily: 'inherit',
-        fontSize: '14px',
+        whiteSpace: "pre-wrap",
+        fontFamily: "inherit",
+        fontSize: "14px",
         lineHeight: 1.6,
-        background: '#fafafa',
-        padding: '16px',
-        borderRadius: '8px',
-        maxHeight: '500px',
-        overflow: 'auto',
+        background: "#fafafa",
+        padding: "16px",
+        borderRadius: "8px",
+        maxHeight: "500px",
+        overflow: "auto",
       }}
     >
       {report.content}
@@ -112,27 +107,58 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
     // 净化 LLM 生成的 HTML 内容，防止 XSS 攻击（如 <script>、onclick 等）
     const sanitizedHtml = useMemo(() => {
       const rawHtml = report.content
-        .replace(/#\s+(.+)/g, '<h1>$1</h1>')
-        .replace(/##\s+(.+)/g, '<h2>$1</h2>')
-        .replace(/\n/g, '<br/>');
+        .replace(/#\s+(.+)/g, "<h1>$1</h1>")
+        .replace(/##\s+(.+)/g, "<h2>$1</h2>")
+        .replace(/\n/g, "<br/>");
       return DOMPurify.sanitize(rawHtml, {
-        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
-          'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 's', 'a',
-          'code', 'pre', 'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-          'span', 'div', 'img', 'sub', 'sup'],
-        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel'],
+        ALLOWED_TAGS: [
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "p",
+          "br",
+          "hr",
+          "ul",
+          "ol",
+          "li",
+          "strong",
+          "em",
+          "b",
+          "i",
+          "u",
+          "s",
+          "a",
+          "code",
+          "pre",
+          "blockquote",
+          "table",
+          "thead",
+          "tbody",
+          "tr",
+          "th",
+          "td",
+          "span",
+          "div",
+          "img",
+          "sub",
+          "sup",
+        ],
+        ALLOWED_ATTR: ["href", "src", "alt", "title", "class", "id", "target", "rel"],
       });
     }, [report.content]);
 
     return (
       <div
         style={{
-          background: '#fff',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid #f0f0f0',
-          maxHeight: '500px',
-          overflow: 'auto',
+          background: "#fff",
+          padding: "16px",
+          borderRadius: "8px",
+          border: "1px solid #f0f0f0",
+          maxHeight: "500px",
+          overflow: "auto",
         }}
       >
         <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
@@ -142,12 +168,12 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
 
   const tabItems = [
     {
-      key: 'preview',
-      label: '预览',
-      children: selectedFormat === 'markdown' ? renderMarkdownPreview() : renderHtmlPreview(),
+      key: "preview",
+      label: "预览",
+      children: selectedFormat === "markdown" ? renderMarkdownPreview() : renderHtmlPreview(),
     },
     {
-      key: 'references',
+      key: "references",
       label: (
         <span>
           参考文献 <Tag>{report.citations.length}</Tag>
@@ -155,32 +181,32 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
       ),
       children: (
         <div className="references-list">
-          {report.citations.length > 0 ? (
-            <ol style={{ paddingLeft: 20 }}>
-              {report.citations.map((citation) => (
-                <li key={citation.id} className="mb-2">
-                  <a href={citation.sourceUrl} target="_blank" rel="noopener noreferrer">
-                    {citation.sourceTitle}
-                  </a>
-                  <Space size="small" className="ml-2">
-                    <Tag>{getSourceTypeName(citation.sourceType)}</Tag>
-                    <CredibilityBadge score={citation.credibility} size="small" />
-                  </Space>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <Text type="secondary">暂无参考文献</Text>
-          )}
+          {report.citations.length > 0
+            ? (
+              <ol style={{ paddingLeft: 20 }}>
+                {report.citations.map((citation) => (
+                  <li key={citation.id} className="mb-2">
+                    <a href={citation.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      {citation.sourceTitle}
+                    </a>
+                    <Space size="small" className="ml-2">
+                      <Tag>{getSourceTypeName(citation.sourceType)}</Tag>
+                      <CredibilityBadge score={citation.credibility} size="small" />
+                    </Space>
+                  </li>
+                ))}
+              </ol>
+            )
+            : <Text type="secondary">暂无参考文献</Text>}
         </div>
       ),
     },
     {
-      key: 'summary',
-      label: '摘要',
+      key: "summary",
+      label: "摘要",
       children: (
         <Card className="bg-gray-50">
-          <Text>{report.summary || '暂无摘要'}</Text>
+          <Text>{report.summary || "暂无摘要"}</Text>
         </Card>
       ),
     },
@@ -208,8 +234,8 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
               value={selectedFormat}
               onChange={setSelectedFormat}
               options={[
-                { value: 'markdown', label: 'Markdown' },
-                { value: 'html', label: 'HTML' },
+                { value: "markdown", label: "Markdown" },
+                { value: "html", label: "HTML" },
               ]}
               style={{ width: 120 }}
             />

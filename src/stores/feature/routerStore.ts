@@ -86,7 +86,7 @@ export const useRouterStore = create<RouterState>((set, get) => ({
 
   getModelForTier: (tier: ModelTier, currentProviderId: string) => {
     const models = get().tierModels[tier];
-    if (models.length === 0) return null;
+    if (models.length === 0) { return null; }
 
     // Prefer same-provider model, then first available
     const sameProvider = models.find((m) => m.providerId === currentProviderId);

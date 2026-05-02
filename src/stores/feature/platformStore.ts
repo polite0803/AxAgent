@@ -132,9 +132,7 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
     try {
       await invoke("deactivate_platform_session", { sessionId });
       set((s) => ({
-        sessions: s.sessions.map((ses) =>
-          ses.session_id === sessionId ? { ...ses, is_active: false } : ses
-        ),
+        sessions: s.sessions.map((ses) => ses.session_id === sessionId ? { ...ses, is_active: false } : ses),
       }));
     } catch (e) {
       set({ error: String(e) });

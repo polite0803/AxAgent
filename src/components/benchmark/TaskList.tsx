@@ -1,6 +1,6 @@
-import { Table, Tag, Button } from "antd";
-import type { TaskResult, BenchmarkTask } from "@/types/evaluator";
-import { formatScore, formatDuration, getDifficultyLabel } from "@/types/evaluator";
+import type { BenchmarkTask, TaskResult } from "@/types/evaluator";
+import { formatDuration, formatScore, getDifficultyLabel } from "@/types/evaluator";
+import { Button, Table, Tag } from "antd";
 import { TaskResultCard } from "./TaskResult";
 
 interface TaskListProps {
@@ -40,7 +40,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       width: 100,
       render: (_: string, record: BenchmarkTask) => {
         const result = results.find((r) => r.task_id === record.id);
-        if (!result) return <Tag>等待</Tag>;
+        if (!result) { return <Tag>等待</Tag>; }
         return (
           <Tag color={result.success ? "green" : "red"}>
             {result.success ? "通过" : "失败"}
@@ -55,7 +55,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       width: 80,
       render: (_: string, record: BenchmarkTask) => {
         const result = results.find((r) => r.task_id === record.id);
-        if (!result) return "-";
+        if (!result) { return "-"; }
         return formatScore(result.overall_score);
       },
     },
@@ -66,7 +66,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       width: 100,
       render: (_: string, record: BenchmarkTask) => {
         const result = results.find((r) => r.task_id === record.id);
-        if (!result) return "-";
+        if (!result) { return "-"; }
         return formatDuration(result.duration_ms);
       },
     },
@@ -94,7 +94,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
         expandable={{
           expandedRowRender: (record) => {
             const result = results.find((r) => r.task_id === record.id);
-            if (!result) return <div className="p-4 text-gray-500">暂无结果</div>;
+            if (!result) { return <div className="p-4 text-gray-500">暂无结果</div>; }
             return <TaskResultCard result={result} />;
           },
         }}

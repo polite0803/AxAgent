@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Message } from "@/types";
-import {
-  createOptimisticUserMessage,
-  createPlaceholderAssistant,
-  replaceActiveVersion,
-} from "../streamHelpers";
+import { createOptimisticUserMessage, createPlaceholderAssistant, replaceActiveVersion } from "../streamHelpers";
 
 describe("createOptimisticUserMessage", () => {
   it("creates a user message with temp- prefix", () => {

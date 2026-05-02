@@ -1,16 +1,6 @@
-import { useTerminalStore, type PtySessionInfo } from "@/stores/feature/terminalStore";
-import { Button, Select, Tooltip, Badge, Empty } from "antd";
-import {
-  Plus,
-  X,
-  Terminal,
-  AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  Trash2,
-  Maximize2,
-  Minimize2,
-} from "lucide-react";
+import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminalStore";
+import { Badge, Button, Empty, Select, Tooltip } from "antd";
+import { AlertTriangle, CheckCircle, Maximize2, Minimize2, Plus, RefreshCw, Terminal, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface IntegratedTerminalProps {
@@ -57,7 +47,7 @@ export function IntegratedTerminal({
   const activeAnalysis = activeSessionId ? analysis[activeSessionId] : undefined;
 
   const initTerminal = useCallback(async () => {
-    if (!terminalRef.current) return;
+    if (!terminalRef.current) { return; }
 
     try {
       const { Terminal: XTerm } = await import("@xterm/xterm");
@@ -127,7 +117,7 @@ export function IntegratedTerminal({
   }, []);
 
   useEffect(() => {
-    if (!terminalReady || !xtermRef.current) return;
+    if (!terminalReady || !xtermRef.current) { return; }
 
     const xterm = xtermRef.current;
     const lastLine = activeOutput[activeOutput.length - 1] ?? "";
@@ -176,17 +166,17 @@ export function IntegratedTerminal({
   };
 
   const handleKillSession = async () => {
-    if (!activeSessionId) return;
+    if (!activeSessionId) { return; }
     await killSession(activeSessionId);
   };
 
   const handleRemoveSession = async () => {
-    if (!activeSessionId) return;
+    if (!activeSessionId) { return; }
     await removeSession(activeSessionId);
   };
 
   const handleAnalyze = async () => {
-    if (!activeSessionId) return;
+    if (!activeSessionId) { return; }
     try {
       await analyzeOutput(activeSessionId);
     } catch (e) {
@@ -195,7 +185,7 @@ export function IntegratedTerminal({
   };
 
   const handleClear = () => {
-    if (!activeSessionId) return;
+    if (!activeSessionId) { return; }
     clearOutput(activeSessionId);
     if (xtermRef.current) {
       xtermRef.current.clear();
@@ -316,13 +306,7 @@ export function IntegratedTerminal({
             <Button
               size="small"
               type="text"
-              icon={
-                isMaximized ? (
-                  <Minimize2 size={14} />
-                ) : (
-                  <Maximize2 size={14} />
-                )
-              }
+              icon={isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
               onClick={toggleMaximize}
               style={{ color: "#cdd6f4" }}
             />
@@ -373,45 +357,47 @@ export function IntegratedTerminal({
       )}
 
       <div style={{ flex: 1, position: "relative" }}>
-        {sessions.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              gap: 12,
-            }}
-          >
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <span style={{ color: "#6c7086" }}>
-                  No terminal sessions
-                </span>
-              }
-            />
-            <Button
-              size="small"
-              icon={<Plus size={14} />}
-              onClick={handleCreateSession}
-              loading={loading}
-              style={{ background: "#313244", borderColor: "#45475a", color: "#cdd6f4" }}
+        {sessions.length === 0
+          ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                gap: 12,
+              }}
             >
-              New Terminal
-            </Button>
-          </div>
-        ) : (
-          <div
-            ref={terminalRef}
-            style={{
-              width: "100%",
-              height: "100%",
-              padding: "4px 8px",
-            }}
-          />
-        )}
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span style={{ color: "#6c7086" }}>
+                    No terminal sessions
+                  </span>
+                }
+              />
+              <Button
+                size="small"
+                icon={<Plus size={14} />}
+                onClick={handleCreateSession}
+                loading={loading}
+                style={{ background: "#313244", borderColor: "#45475a", color: "#cdd6f4" }}
+              >
+                New Terminal
+              </Button>
+            </div>
+          )
+          : (
+            <div
+              ref={terminalRef}
+              style={{
+                width: "100%",
+                height: "100%",
+                padding: "4px 8px",
+              }}
+            />
+          )}
       </div>
 
       {activeSession && (
@@ -439,17 +425,19 @@ export function IntegratedTerminal({
           )}
           {activeAnalysis && (
             <span style={{ marginLeft: "auto" }}>
-              {activeAnalysis.has_errors ? (
-                <span style={{ color: "#f38ba8" }}>
-                  <AlertTriangle size={10} style={{ marginRight: 4 }} />
-                  {activeAnalysis.errors.length} error(s)
-                </span>
-              ) : (
-                <span style={{ color: "#a6e3a1" }}>
-                  <CheckCircle size={10} style={{ marginRight: 4 }} />
-                  OK
-                </span>
-              )}
+              {activeAnalysis.has_errors
+                ? (
+                  <span style={{ color: "#f38ba8" }}>
+                    <AlertTriangle size={10} style={{ marginRight: 4 }} />
+                    {activeAnalysis.errors.length} error(s)
+                  </span>
+                )
+                : (
+                  <span style={{ color: "#a6e3a1" }}>
+                    <CheckCircle size={10} style={{ marginRight: 4 }} />
+                    OK
+                  </span>
+                )}
             </span>
           )}
         </div>

@@ -174,19 +174,18 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         error: "failed",
       };
 
-      const newStatus = (event.status ||
-        statusMap[event.messageType] ||
-        "running") as AgentPoolItem["status"];
+      const newStatus = (event.status
+        || statusMap[event.messageType]
+        || "running") as AgentPoolItem["status"];
 
       if (idx >= 0) {
         const existing = pool[idx];
         pool[idx] = {
           ...existing,
           status: newStatus,
-          summary:
-            event.messageType === "progress"
-              ? event.content
-              : existing.summary,
+          summary: event.messageType === "progress"
+            ? event.content
+            : existing.summary,
           error: event.messageType === "error" ? event.content : existing.error,
           messages: [...(existing.messages || []), msg],
           duration: existing.startedAt

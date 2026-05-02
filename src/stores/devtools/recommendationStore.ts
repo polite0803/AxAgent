@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { create } from "zustand";
 
 export interface ToolScore {
   tool_id: string;
@@ -42,7 +42,7 @@ interface RecommendationState {
     taskSignature: string,
     toolsUsed: string[],
     success: boolean,
-    durationMs: number
+    durationMs: number,
   ) => Promise<void>;
   clearRecommendations: () => void;
 }
@@ -94,7 +94,7 @@ export const useRecommendationStore = create<RecommendationState>((set) => ({
     taskSignature: string,
     toolsUsed: string[],
     success: boolean,
-    durationMs: number
+    durationMs: number,
   ) => {
     try {
       await invoke("record_tool_usage", {

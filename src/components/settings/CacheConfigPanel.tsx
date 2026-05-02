@@ -24,9 +24,9 @@ export function CacheConfigPanel({
         </div>
         <div className="mt-2">
           <Text type="secondary">
-            When enabled, the system prompt is cached by the LLM provider to reduce
-            token usage on subsequent turns. Changes to skills, tools, or memory are
-            deferred to the next session. Use --now to force immediate application.
+            When enabled, the system prompt is cached by the LLM provider to reduce token usage on subsequent turns.
+            Changes to skills, tools, or memory are deferred to the next session. Use --now to force immediate
+            application.
           </Text>
         </div>
       </SettingsGroup>

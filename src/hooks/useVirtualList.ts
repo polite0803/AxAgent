@@ -50,7 +50,7 @@ export function useVirtualList({
 
   useEffect(() => {
     const el = parentRef.current;
-    if (!el) return;
+    if (!el) { return; }
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = el;

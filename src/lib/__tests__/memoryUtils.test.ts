@@ -6,7 +6,7 @@ describe("buildKnowledgeTag", () => {
   it("returns searching tag", () => {
     const tag = buildKnowledgeTag("searching");
     expect(tag).toContain('<knowledge-retrieval status="searching"');
-    expect(tag).toContain("data-axagent=\"1\"");
+    expect(tag).toContain('data-axagent="1"');
   });
 
   it("returns error tag", () => {
@@ -53,7 +53,7 @@ describe("buildMemoryTag", () => {
   it("returns searching tag", () => {
     const tag = buildMemoryTag("searching");
     expect(tag).toContain('<memory-retrieval status="searching"');
-    expect(tag).toContain("data-axagent=\"1\"");
+    expect(tag).toContain('data-axagent="1"');
   });
 
   it("returns error tag", () => {

@@ -10,7 +10,7 @@ export interface DreamConsolidationResult {
   memoriesExtracted: number;
   patternsDiscovered: number;
   suggestionsGenerated: number;
-  startedAt: number;  // timestamp_ms
+  startedAt: number; // timestamp_ms
   durationSecs: number;
   error: string | null;
 }
@@ -58,10 +58,8 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       isRunning: false,
       lastResult: result,
       totalConsolidations: prev.totalConsolidations + 1,
-      totalMemoriesExtracted:
-        prev.totalMemoriesExtracted + result.memoriesExtracted,
-      totalPatternsDiscovered:
-        prev.totalPatternsDiscovered + result.patternsDiscovered,
+      totalMemoriesExtracted: prev.totalMemoriesExtracted + result.memoriesExtracted,
+      totalPatternsDiscovered: prev.totalPatternsDiscovered + result.patternsDiscovered,
     });
 
     // 3 秒后恢复 idle（让 UI 有时间展示完成状态）

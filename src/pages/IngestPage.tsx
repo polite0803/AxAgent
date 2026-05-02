@@ -1,28 +1,17 @@
-import { useEffect, useState } from 'react';
+import { IngestPanel } from "@/components/wiki/IngestPanel";
+import { useLlmWikiStore, WikiSource } from "@/stores/feature/llmWikiStore";
 import {
-  Card,
-  Typography,
-  Select,
-  Button,
-  Space,
-  message,
-  Spin,
-  Tabs,
-  Table,
-  Tag,
-} from 'antd';
-import {
+  DeleteOutlined,
+  FileTextOutlined,
+  FolderOutlined,
+  HistoryOutlined,
   LeftOutlined,
   UploadOutlined,
-  HistoryOutlined,
-  FolderOutlined,
-  FileTextOutlined,
-  DeleteOutlined,
-} from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useLlmWikiStore, WikiSource } from '@/stores/feature/llmWikiStore';
-import { IngestPanel } from '@/components/wiki/IngestPanel';
+} from "@ant-design/icons";
+import { Button, Card, message, Select, Space, Spin, Table, Tabs, Tag, Typography } from "antd";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -41,7 +30,7 @@ export function IngestPage() {
     selectWiki,
   } = useLlmWikiStore();
 
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState("upload");
   const [selectedWikiIdState, setSelectedWikiIdState] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,26 +53,26 @@ export function IngestPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'success';
-      case 'processing':
-        return 'processing';
-      case 'pending':
-        return 'default';
-      case 'failed':
-        return 'error';
+      case "completed":
+        return "success";
+      case "processing":
+        return "processing";
+      case "pending":
+        return "default";
+      case "failed":
+        return "error";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getSourceTypeIcon = (sourceType: string) => {
     switch (sourceType.toLowerCase()) {
-      case 'pdf':
+      case "pdf":
         return <FileTextOutlined />;
-      case 'docx':
+      case "docx":
         return <FileTextOutlined />;
-      case 'folder':
+      case "folder":
         return <FolderOutlined />;
       default:
         return <FileTextOutlined />;
@@ -92,41 +81,37 @@ export function IngestPage() {
 
   const columns = [
     {
-      title: t('wiki.source.title', 'Title'),
-      dataIndex: 'title',
-      key: 'title',
+      title: t("wiki.source.title", "Title"),
+      dataIndex: "title",
+      key: "title",
     },
     {
-      title: t('wiki.source.type', 'Type'),
-      dataIndex: 'sourceType',
-      key: 'sourceType',
-      render: (type: string) => (
-        <Tag icon={getSourceTypeIcon(type)}>{type.toUpperCase()}</Tag>
-      ),
+      title: t("wiki.source.type", "Type"),
+      dataIndex: "sourceType",
+      key: "sourceType",
+      render: (type: string) => <Tag icon={getSourceTypeIcon(type)}>{type.toUpperCase()}</Tag>,
     },
     {
-      title: t('wiki.source.status', 'Status'),
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>{status.toUpperCase()}</Tag>
-      ),
+      title: t("wiki.source.status", "Status"),
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => <Tag color={getStatusColor(status)}>{status.toUpperCase()}</Tag>,
     },
     {
-      title: t('wiki.source.chunks', 'Chunks'),
-      dataIndex: 'chunkCount',
-      key: 'chunkCount',
+      title: t("wiki.source.chunks", "Chunks"),
+      dataIndex: "chunkCount",
+      key: "chunkCount",
       render: (count: number) => count || 0,
     },
     {
-      title: t('wiki.source.path', 'Path'),
-      dataIndex: 'sourcePath',
-      key: 'sourcePath',
+      title: t("wiki.source.path", "Path"),
+      dataIndex: "sourcePath",
+      key: "sourcePath",
       ellipsis: true,
     },
     {
-      title: t('common.actions', 'Actions'),
-      key: 'actions',
+      title: t("common.actions", "Actions"),
+      key: "actions",
       render: (_: unknown, _record: WikiSource) => (
         <Space>
           <Button
@@ -134,7 +119,7 @@ export function IngestPage() {
             danger
             icon={<DeleteOutlined />}
             onClick={() => {
-              message.info(t('wiki.source.deleteNotImplemented', 'Delete not implemented yet'));
+              message.info(t("wiki.source.deleteNotImplemented", "Delete not implemented yet"));
             }}
           />
         </Space>
@@ -153,7 +138,7 @@ export function IngestPage() {
   const displayWikiId = selectedWikiIdState || selectedWikiId;
 
   return (
-    <div className="h-full flex flex-col" style={{ overflow: 'hidden' }}>
+    <div className="h-full flex flex-col" style={{ overflow: "hidden" }}>
       {error && (
         <div className="mx-4 mt-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
           {error}
@@ -162,7 +147,7 @@ export function IngestPage() {
       <div className="flex items-center gap-4 p-4 border-b">
         <Button icon={<LeftOutlined />} onClick={handleBack} type="text" />
         <Title level={3} className="m-0 flex-1">
-          {t('wiki.ingest.title', 'Ingest Sources')}
+          {t("wiki.ingest.title", "Ingest Sources")}
         </Title>
         <Select
           value={displayWikiId}
@@ -171,7 +156,7 @@ export function IngestPage() {
             selectWiki(value);
           }}
           style={{ width: 200 }}
-          placeholder={t('wiki.selectWiki', 'Select Wiki')}
+          placeholder={t("wiki.selectWiki", "Select Wiki")}
         >
           {wikis.map((wiki) => (
             <Select.Option key={wiki.id} value={wiki.id}>
@@ -181,51 +166,53 @@ export function IngestPage() {
         </Select>
       </div>
 
-      {displayWikiId ? (
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          className="flex-1 px-4 pt-4"
-          items={[
-            {
-              key: 'upload',
-              label: (
-                <span>
-                  <UploadOutlined />
-                  {t('wiki.ingest.upload', 'Upload')}
-                </span>
-              ),
-              children: (
-                <Card className="max-w-2xl mx-auto">
-                  <IngestPanel wikiId={displayWikiId} />
-                </Card>
-              ),
-            },
-            {
-              key: 'history',
-              label: (
-                <span>
-                  <HistoryOutlined />
-                  {t('wiki.ingest.history', 'History')}
-                </span>
-              ),
-              children: (
-                <Table
-                  dataSource={sources.filter((s) => s.wikiId === displayWikiId)}
-                  columns={columns}
-                  rowKey="id"
-                  pagination={{ pageSize: 20 }}
-                  loading={loading}
-                />
-              ),
-            },
-          ]}
-        />
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <Text type="secondary">{t('wiki.selectWikiPrompt', 'Please select a wiki first')}</Text>
-        </div>
-      )}
+      {displayWikiId
+        ? (
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            className="flex-1 px-4 pt-4"
+            items={[
+              {
+                key: "upload",
+                label: (
+                  <span>
+                    <UploadOutlined />
+                    {t("wiki.ingest.upload", "Upload")}
+                  </span>
+                ),
+                children: (
+                  <Card className="max-w-2xl mx-auto">
+                    <IngestPanel wikiId={displayWikiId} />
+                  </Card>
+                ),
+              },
+              {
+                key: "history",
+                label: (
+                  <span>
+                    <HistoryOutlined />
+                    {t("wiki.ingest.history", "History")}
+                  </span>
+                ),
+                children: (
+                  <Table
+                    dataSource={sources.filter((s) => s.wikiId === displayWikiId)}
+                    columns={columns}
+                    rowKey="id"
+                    pagination={{ pageSize: 20 }}
+                    loading={loading}
+                  />
+                ),
+              },
+            ]}
+          />
+        )
+        : (
+          <div className="flex-1 flex items-center justify-center">
+            <Text type="secondary">{t("wiki.selectWikiPrompt", "Please select a wiki first")}</Text>
+          </div>
+        )}
     </div>
   );
 }

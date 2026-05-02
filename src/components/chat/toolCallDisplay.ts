@@ -33,7 +33,7 @@ export function shouldHideAssistantBubble(message: Message, displayContent: stri
   // With blocks: hide if there are only tool_use blocks (no text blocks)
   if (message.blocks && message.blocks.length > 0) {
     const hasText = message.blocks.some((b) => b.type === "text");
-    if (hasText) return false;
+    if (hasText) { return false; }
     const hasToolUse = message.blocks.some((b) => b.type === "tool_use");
     return hasToolUse;
   }

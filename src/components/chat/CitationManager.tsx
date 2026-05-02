@@ -1,10 +1,6 @@
-import { Button, List, Space, Tag, Typography } from 'antd';
-import {
-  CheckCircleOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
-import { CredibilityBadge } from './CredibilityBadge';
+import { CheckCircleOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, List, Space, Tag, Typography } from "antd";
+import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title } = Typography;
 
@@ -30,15 +26,15 @@ interface CitationManagerProps {
 
 function getSourceTypeName(sourceType: string): string {
   const nameMap: Record<string, string> = {
-    web: '网页',
-    academic: '学术',
-    wikipedia: '维基百科',
-    github: 'GitHub',
-    documentation: '文档',
-    news: '新闻',
-    blog: '博客',
-    forum: '论坛',
-    unknown: '未知',
+    web: "网页",
+    academic: "学术",
+    wikipedia: "维基百科",
+    github: "GitHub",
+    documentation: "文档",
+    news: "新闻",
+    blog: "博客",
+    forum: "论坛",
+    unknown: "未知",
   };
   return nameMap[sourceType.toLowerCase()] || sourceType;
 }
@@ -77,9 +73,7 @@ export function CitationManager({
             dataSource={citationsInReport}
             renderItem={(item) => (
               <List.Item
-                className={`cursor-pointer hover:bg-gray-50 ${
-                  selectedCitationId === item.id ? 'bg-blue-50' : ''
-                }`}
+                className={`cursor-pointer hover:bg-gray-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
                 onClick={() => onCitationSelect?.(item)}
                 actions={[
                   <Button
@@ -97,7 +91,7 @@ export function CitationManager({
                 <List.Item.Meta
                   avatar={
                     <CheckCircleOutlined
-                      style={{ color: item.inReport ? '#52c41a' : '#d9d9d9' }}
+                      style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleInReport?.(item.id);
@@ -129,9 +123,7 @@ export function CitationManager({
             dataSource={citationsNotInReport}
             renderItem={(item) => (
               <List.Item
-                className={`cursor-pointer hover:bg-gray-50 ${
-                  selectedCitationId === item.id ? 'bg-blue-50' : ''
-                }`}
+                className={`cursor-pointer hover:bg-gray-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
                 onClick={() => onCitationSelect?.(item)}
                 actions={[
                   <Button
@@ -159,7 +151,7 @@ export function CitationManager({
                 <List.Item.Meta
                   avatar={
                     <CheckCircleOutlined
-                      style={{ color: item.inReport ? '#52c41a' : '#d9d9d9' }}
+                      style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleInReport?.(item.id);
@@ -202,15 +194,14 @@ export function CitationStats({ citations }: CitationStatsProps) {
       acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>),
-    avgCredibility:
-      citations.length > 0
-        ? citations.reduce((sum, c) => sum + c.credibility, 0) / citations.length
-        : 0,
+    avgCredibility: citations.length > 0
+      ? citations.reduce((sum, c) => sum + c.credibility, 0) / citations.length
+      : 0,
   };
 
   return (
     <div className="citation-stats">
-      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+      <Space direction="vertical" size="small" style={{ width: "100%" }}>
         <div className="flex justify-between">
           <Text type="secondary">总引用数:</Text>
           <Text strong>{stats.total}</Text>

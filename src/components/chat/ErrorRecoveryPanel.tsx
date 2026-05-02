@@ -1,14 +1,14 @@
 import { Alert, Button, Card, Progress, Statistic, Timeline, Tooltip, Typography } from "antd";
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle,
   Clock,
-  RefreshCw,
-  SkipForward,
-  AlertTriangle,
-  XCircle,
   Info,
+  RefreshCw,
   RotateCcw,
+  SkipForward,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -65,8 +65,8 @@ const strategyIcons: Record<string, React.ReactNode> = {
 };
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 1000) { return `${ms}ms`; }
+  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -84,13 +84,9 @@ function ErrorTypeTag({ type }: { type: string }) {
 function AttemptItem({ attempt }: { attempt: RecoveryAttempt }) {
   return (
     <Timeline.Item
-      dot={
-        attempt.success ? (
-          <CheckCircle size={16} className="text-green-500" />
-        ) : (
-          <XCircle size={16} className="text-red-500" />
-        )
-      }
+      dot={attempt.success
+        ? <CheckCircle size={16} className="text-green-500" />
+        : <XCircle size={16} className="text-red-500" />}
     >
       <div className="flex items-start justify-between">
         <div>
@@ -112,9 +108,7 @@ function AttemptItem({ attempt }: { attempt: RecoveryAttempt }) {
             )}
           </div>
         </div>
-        {attempt.success && attempt.message && (
-          <CheckCircle size={14} className="text-green-500" />
-        )}
+        {attempt.success && attempt.message && <CheckCircle size={14} className="text-green-500" />}
       </div>
 
       {!attempt.success && attempt.error && (
@@ -237,23 +231,19 @@ export function ErrorRecoveryPanel({
             <span>Error Recovery</span>
             {errorType && <ErrorTypeTag type={errorType} />}
           </div>
-          {isRecovering && (
-            <RefreshCw size={14} className="animate-spin text-blue-500" />
-          )}
+          {isRecovering && <RefreshCw size={14} className="animate-spin text-blue-500" />}
         </div>
       }
-      extra={
-        !isRecovering && !result && (
-          <Button
-            type="primary"
-            size="small"
-            icon={<RefreshCw size={14} />}
-            onClick={handleStartRecovery}
-          >
-            Recover
-          </Button>
-        )
-      }
+      extra={!isRecovering && !result && (
+        <Button
+          type="primary"
+          size="small"
+          icon={<RefreshCw size={14} />}
+          onClick={handleStartRecovery}
+        >
+          Recover
+        </Button>
+      )}
     >
       {showInitialError && (
         <Alert
@@ -295,9 +285,7 @@ export function ErrorRecoveryPanel({
           </div>
 
           <Timeline className="mt-4">
-            {attempts.map((attempt) => (
-              <AttemptItem key={attempt.attempt_number} attempt={attempt} />
-            ))}
+            {attempts.map((attempt) => <AttemptItem key={attempt.attempt_number} attempt={attempt} />)}
           </Timeline>
         </div>
       )}
@@ -311,13 +299,7 @@ export function ErrorRecoveryPanel({
               valueStyle={{
                 color: result.success ? "#3f8600" : "#cf1322",
               }}
-              prefix={
-                result.success ? (
-                  <CheckCircle size={16} />
-                ) : (
-                  <XCircle size={16} />
-                )
-              }
+              prefix={result.success ? <CheckCircle size={16} /> : <XCircle size={16} />}
             />
             <Statistic
               title="Attempts"

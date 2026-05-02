@@ -21,11 +21,16 @@ const ENTRY_TYPE_COLORS: Record<string, string> = {
 
 const getEntryTypeLabel = (entryType: string, t: (key: string) => string) => {
   switch (entryType) {
-    case "builtin": return t("atomicSkill.entryTypeBuiltin");
-    case "mcp": return t("atomicSkill.entryTypeMcp");
-    case "local": return t("atomicSkill.entryTypeLocal");
-    case "plugin": return t("atomicSkill.entryTypePlugin");
-    default: return entryType;
+    case "builtin":
+      return t("atomicSkill.entryTypeBuiltin");
+    case "mcp":
+      return t("atomicSkill.entryTypeMcp");
+    case "local":
+      return t("atomicSkill.entryTypeLocal");
+    case "plugin":
+      return t("atomicSkill.entryTypePlugin");
+    default:
+      return entryType;
   }
 };
 

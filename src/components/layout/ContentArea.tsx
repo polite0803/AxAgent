@@ -14,9 +14,15 @@ const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ defa
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
 const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
-const LazyTraceExplorer = lazy(() => import("@/pages/DevTools/TraceExplorer").then((m) => ({ default: m.TraceExplorer })));
-const LazyBenchmarkRunner = lazy(() => import("@/pages/DevTools/BenchmarkRunner").then((m) => ({ default: m.BenchmarkRunner })));
-const LazyToolRecommender = lazy(() => import("@/pages/DevTools/ToolRecommender").then((m) => ({ default: m.ToolRecommender })));
+const LazyTraceExplorer = lazy(() =>
+  import("@/pages/DevTools/TraceExplorer").then((m) => ({ default: m.TraceExplorer }))
+);
+const LazyBenchmarkRunner = lazy(() =>
+  import("@/pages/DevTools/BenchmarkRunner").then((m) => ({ default: m.BenchmarkRunner }))
+);
+const LazyToolRecommender = lazy(() =>
+  import("@/pages/DevTools/ToolRecommender").then((m) => ({ default: m.ToolRecommender }))
+);
 const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.default })));
 const LazyLlmWikiPage = lazy(() => import("@/pages/LlmWikiPage").then((m) => ({ default: m.LlmWikiPage })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));

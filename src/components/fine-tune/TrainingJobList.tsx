@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
-import { Card, Table, Button, Space, Tag, Progress, Badge } from "antd";
-import { PlayCircleOutlined, PauseCircleOutlined, DeleteOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PauseCircleOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { Badge, Button, Card, Progress, Space, Table, Tag } from "antd";
+import { useEffect } from "react";
 
 const { Column } = Table;
 
@@ -90,9 +90,7 @@ export function TrainingJobList() {
             title="Status"
             dataIndex="status"
             key="status"
-            render={(status: string) => (
-              <Badge status={getStatusColor(status) as any} text={status} />
-            )}
+            render={(status: string) => <Badge status={getStatusColor(status) as any} text={status} />}
           />
           <Column title="Base Model" dataIndex="base_model" key="base_model" />
           <Column title="Dataset ID" dataIndex="dataset_id" key="dataset_id" />
@@ -119,10 +117,9 @@ export function TrainingJobList() {
             title="Action"
             key="action"
             render={(_: unknown, record: { id: string; status: string }) => {
-              const isRunning =
-                record.status === "Training" ||
-                record.status === "Preparing" ||
-                record.status === "Validating";
+              const isRunning = record.status === "Training"
+                || record.status === "Preparing"
+                || record.status === "Validating";
 
               return (
                 <Space>

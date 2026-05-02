@@ -1,5 +1,5 @@
-import { ChevronRight, Home } from "lucide-react";
 import type { Conversation } from "@/types";
+import { ChevronRight, Home } from "lucide-react";
 
 interface BreadcrumbBarProps {
   conversations: Conversation[];
@@ -20,7 +20,7 @@ function buildBreadcrumbs(
 
   while (currentId) {
     const conv = conversations.find((c) => c.id === currentId);
-    if (!conv) break;
+    if (!conv) { break; }
     path.unshift(conv);
     currentId = conv.parent_conversation_id;
   }
@@ -34,10 +34,10 @@ export function BreadcrumbBar({
   setActiveConversation,
 }: BreadcrumbBarProps) {
   const active = conversations.find((c) => c.id === activeConversationId);
-  if (!activeConversationId || !active?.parent_conversation_id) return null;
+  if (!activeConversationId || !active?.parent_conversation_id) { return null; }
 
   const breadcrumbs = buildBreadcrumbs(conversations, activeConversationId);
-  if (breadcrumbs.length <= 1) return null;
+  if (breadcrumbs.length <= 1) { return null; }
 
   return (
     <div
@@ -60,9 +60,7 @@ export function BreadcrumbBar({
                 style={{ flexShrink: 0, opacity: 0.4 }}
               />
             )}
-            {index === 0 && (
-              <Home size={11} style={{ flexShrink: 0, opacity: 0.5 }} />
-            )}
+            {index === 0 && <Home size={11} style={{ flexShrink: 0, opacity: 0.5 }} />}
             <span
               onClick={isClickable ? () => setActiveConversation(conv.id) : undefined}
               className={isLast ? "truncate font-medium" : "truncate cursor-pointer hover:underline"}

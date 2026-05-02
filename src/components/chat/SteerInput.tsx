@@ -9,7 +9,7 @@ export function SteerInput() {
   const [sending, setSending] = useState(false);
 
   const handleSteer = async () => {
-    if (!instruction.trim()) return;
+    if (!instruction.trim()) { return; }
     setSending(true);
     try {
       await invoke("agent_steer", { instruction });

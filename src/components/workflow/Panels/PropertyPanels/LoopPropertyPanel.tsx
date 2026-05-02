@@ -53,7 +53,9 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.loopType")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.loopType")}
+        </label>
         <Select
           value={config.loop_type}
           onChange={(value) => handleConfigChange("loop_type", value)}
@@ -71,7 +73,9 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       {config.loop_type === "forEach" && (
         <>
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.arrayVar")}</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+              {t("workflow.props.arrayVar")}
+            </label>
             <Input
               value={config.items_var || ""}
               onChange={(e) => handleConfigChange("items_var", e.target.value)}
@@ -80,7 +84,9 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
             />
           </div>
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.iterateVar")}</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+              {t("workflow.props.iterateVar")}
+            </label>
             <Input
               value={config.iteratee_var || ""}
               onChange={(e) => handleConfigChange("iteratee_var", e.target.value)}
@@ -93,7 +99,9 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
 
       {config.loop_type === "while" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.continueCondition")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.continueCondition")}
+          </label>
           <Input.TextArea
             value={config.continue_condition || ""}
             onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
@@ -106,7 +114,9 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
 
       {config.loop_type === "until" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.stopCondition")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.stopCondition")}
+          </label>
           <Input.TextArea
             value={config.continue_condition || ""}
             onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
@@ -118,7 +128,9 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       )}
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxIterations")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.maxIterations")}
+        </label>
         <InputNumber
           value={config.max_iterations ?? 100}
           onChange={(value) => handleConfigChange("max_iterations", value)}

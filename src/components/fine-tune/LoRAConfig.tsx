@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
-import { Card, Form, Select, Slider, Button, Space, Divider, message } from "antd";
-import { SettingOutlined, RocketOutlined } from "@ant-design/icons";
+import { RocketOutlined, SettingOutlined } from "@ant-design/icons";
+import { Button, Card, Divider, Form, message, Select, Slider, Space } from "antd";
+import { useEffect, useState } from "react";
 
 interface LoRAConfigForm {
   datasetId: string;

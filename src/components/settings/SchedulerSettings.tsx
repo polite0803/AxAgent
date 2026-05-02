@@ -17,19 +17,7 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import {
-  Calendar,
-  Clock,
-  Edit2,
-  History,
-  Pause,
-  Play,
-  Plus,
-  RefreshCw,
-  Rocket,
-  Trash2,
-  Zap,
-} from "lucide-react";
+import { Calendar, Clock, Edit2, History, Pause, Play, Plus, RefreshCw, Rocket, Trash2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
@@ -700,7 +688,9 @@ export function SchedulerSettings() {
               <div key={task.id}>
                 <div style={rowStyle} className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span
+                      style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >
                       {task.name}
                     </span>
                     <Tag color={getStatusColor(task.status)}>{getStatusText(task.status)}</Tag>
@@ -721,26 +711,50 @@ export function SchedulerSettings() {
                     />
                     {task.status === "active"
                       ? (
-                        <Button type="text" size="small" icon={<Pause size={14} />}
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<Pause size={14} />}
                           onClick={() => handlePauseTask(task.id)}
-                          title={t("settings.scheduler.pauseTask")} />
+                          title={t("settings.scheduler.pauseTask")}
+                        />
                       )
                       : (
-                        <Button type="text" size="small" icon={<Play size={14} />}
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<Play size={14} />}
                           onClick={() => handleResumeTask(task.id)}
-                          title={t("settings.scheduler.resumeTask")} />
+                          title={t("settings.scheduler.resumeTask")}
+                        />
                       )}
-                    <Button type="text" size="small" icon={<History size={14} />}
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<History size={14} />}
                       onClick={() => handleLoadHistory(task.id)}
-                      title="执行历史" />
-                    <Button type="text" size="small" icon={<Edit2 size={14} />}
+                      title="执行历史"
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<Edit2 size={14} />}
                       onClick={() => openEditModal(task)}
-                      title={t("settings.scheduler.editTask")} />
-                    <Popconfirm title={t("settings.scheduler.deleteTaskConfirm")}
+                      title={t("settings.scheduler.editTask")}
+                    />
+                    <Popconfirm
+                      title={t("settings.scheduler.deleteTaskConfirm")}
                       onConfirm={() => handleDeleteTask(task.id)}
-                      okText="Yes" cancelText="No">
-                      <Button type="text" size="small" danger icon={<Trash2 size={14} />}
-                        title={t("settings.scheduler.deleteTask")} />
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<Trash2 size={14} />}
+                        title={t("settings.scheduler.deleteTask")}
+                      />
                     </Popconfirm>
                   </div>
                 </div>
@@ -761,32 +775,39 @@ export function SchedulerSettings() {
                 {expandedHistory[task.id] && (
                   <div style={{ marginTop: 8, marginBottom: 8 }}>
                     <Text type="secondary" style={{ fontSize: 11 }}>执行历史</Text>
-                    {historyMap[task.id]?.length === 0 ? (
-                      <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>暂无记录</div>
-                    ) : (
-                      <div style={{ maxHeight: 200, overflowY: "auto", marginTop: 4 }}>
-                        {(historyMap[task.id] || []).slice(0, 20).map((rec) => (
-                          <div key={rec.id}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 8,
-                              padding: "3px 6px", fontSize: 11,
-                              borderBottom: "1px solid var(--color-border)",
-                              backgroundColor: rec.success ? undefined : "#fff2f0",
-                            }}>
-                            <Tag color={rec.success ? "green" : "red"} style={{ fontSize: 10, margin: 0 }}>
-                              {rec.success ? "成功" : "失败"}
-                            </Tag>
-                            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {rec.output || rec.error || "-"}
-                            </span>
-                            <span style={{ color: "#888", whiteSpace: "nowrap" }}>{rec.duration_ms}ms</span>
-                            <span style={{ color: "#bbb", whiteSpace: "nowrap", fontSize: 10 }}>
-                              {rec.started_at ? new Date(rec.started_at).toLocaleString() : "-"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {historyMap[task.id]?.length === 0
+                      ? <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>暂无记录</div>
+                      : (
+                        <div style={{ maxHeight: 200, overflowY: "auto", marginTop: 4 }}>
+                          {(historyMap[task.id] || []).slice(0, 20).map((rec) => (
+                            <div
+                              key={rec.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "3px 6px",
+                                fontSize: 11,
+                                borderBottom: "1px solid var(--color-border)",
+                                backgroundColor: rec.success ? undefined : "#fff2f0",
+                              }}
+                            >
+                              <Tag color={rec.success ? "green" : "red"} style={{ fontSize: 10, margin: 0 }}>
+                                {rec.success ? "成功" : "失败"}
+                              </Tag>
+                              <span
+                                style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                              >
+                                {rec.output || rec.error || "-"}
+                              </span>
+                              <span style={{ color: "#888", whiteSpace: "nowrap" }}>{rec.duration_ms}ms</span>
+                              <span style={{ color: "#bbb", whiteSpace: "nowrap", fontSize: 10 }}>
+                                {rec.started_at ? new Date(rec.started_at).toLocaleString() : "-"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                   </div>
                 )}
                 <Divider style={{ margin: "4px 0" }} />
@@ -817,28 +838,32 @@ export function SchedulerSettings() {
                   {t("settings.scheduler.reportTemplates")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                {taskTemplates.filter(t => !t.workflow_id).map((template) => (
-                  <div
-                    key={template.template_type}
-                    onClick={() => handleTemplateSelect(template.template_type)}
-                    style={{
-                      padding: "10px",
-                      border: selectedTemplate === template.template_type ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      backgroundColor: selectedTemplate === template.template_type ? "var(--color-bg-tertiary)" : "var(--color-bg-secondary)",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
-                      {t(`settings.scheduler.${template.template_type}`) || template.name}
+                  {taskTemplates.filter(t => !t.workflow_id).map((template) => (
+                    <div
+                      key={template.template_type}
+                      onClick={() => handleTemplateSelect(template.template_type)}
+                      style={{
+                        padding: "10px",
+                        border: selectedTemplate === template.template_type
+                          ? "2px solid var(--color-primary)"
+                          : "1px solid var(--color-border)",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        backgroundColor: selectedTemplate === template.template_type
+                          ? "var(--color-bg-tertiary)"
+                          : "var(--color-bg-secondary)",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
+                        {t(`settings.scheduler.${template.template_type}`) || template.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+                        {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
-                      {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -852,10 +877,14 @@ export function SchedulerSettings() {
                       onClick={() => handleTemplateSelect(template.template_type)}
                       style={{
                         padding: "10px",
-                        border: selectedTemplate === template.template_type ? "2px solid var(--color-success)" : "1px solid var(--color-border)",
+                        border: selectedTemplate === template.template_type
+                          ? "2px solid var(--color-success)"
+                          : "1px solid var(--color-border)",
                         borderRadius: 6,
                         cursor: "pointer",
-                        backgroundColor: selectedTemplate === template.template_type ? "var(--color-bg-tertiary)" : "var(--color-bg-secondary)",
+                        backgroundColor: selectedTemplate === template.template_type
+                          ? "var(--color-bg-tertiary)"
+                          : "var(--color-bg-secondary)",
                         transition: "all 0.2s",
                       }}
                     >

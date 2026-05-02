@@ -27,17 +27,19 @@ export function PlatformStatusCard() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="flex items-center justify-between">
                 <Text type="secondary">Status</Text>
-                {!s.enabled ? (
-                  <Tag color="default">Disabled</Tag>
-                ) : s.connected ? (
-                  <Tag icon={<CheckCircle size={14} />} color="success">
-                    Connected
-                  </Tag>
-                ) : (
-                  <Tag icon={<Loader2 size={14} className="animate-spin" />} color="processing">
-                    Connecting
-                  </Tag>
-                )}
+                {!s.enabled
+                  ? <Tag color="default">Disabled</Tag>
+                  : s.connected
+                  ? (
+                    <Tag icon={<CheckCircle size={14} />} color="success">
+                      Connected
+                    </Tag>
+                  )
+                  : (
+                    <Tag icon={<Loader2 size={14} className="animate-spin" />} color="processing">
+                      Connecting
+                    </Tag>
+                  )}
               </div>
               {s.last_activity && (
                 <div className="flex items-center justify-between">

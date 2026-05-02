@@ -1,8 +1,8 @@
+import { invoke } from "@/lib/invoke";
 import { Button, Card, Empty, Input, message, Select, Spin, Table, Tag, Typography } from "antd";
 import { Download, Search, Upload } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { invoke } from "@/lib/invoke";
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -130,18 +130,14 @@ export default function SkillsHubSettings() {
       dataIndex: "rating",
       key: "rating",
       width: 80,
-      render: (r: number) => (
-        <span className="text-yellow-500">{"★".repeat(Math.round(r))}</span>
-      ),
+      render: (r: number) => <span className="text-yellow-500">{"★".repeat(Math.round(r))}</span>,
     },
     {
       title: "",
       key: "actions",
       width: 120,
       render: (_: unknown, record: SkillsHubSkill) =>
-        installedSkills.has(record.id) ? (
-          <Tag color="green">{t("settings.skillsHub.installed")}</Tag>
-        ) : (
+        installedSkills.has(record.id) ? <Tag color="green">{t("settings.skillsHub.installed")}</Tag> : (
           <Button
             type="primary"
             size="small"
@@ -184,37 +180,39 @@ export default function SkillsHubSettings() {
         </div>
       </Card>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <Spin size="large" />
-        </div>
-      ) : searchResult ? (
-        <>
-          <div className="mb-4">
-            <Text type="secondary">
-              {t("settings.skillsHub.results", { count: searchResult.total })}
-            </Text>
+      {loading
+        ? (
+          <div className="flex items-center justify-center h-48">
+            <Spin size="large" />
           </div>
-          {searchResult.skills.length > 0 ? (
-            <Table
-              dataSource={searchResult.skills}
-              columns={columns}
-              rowKey="id"
-              pagination={{
-                total: searchResult.total,
-                pageSize: searchResult.page_size,
-                current: searchResult.page,
-                onChange: (_page) => {
-                },
-              }}
-            />
-          ) : (
-            <Empty description={t("settings.skillsHub.noResults")} />
-          )}
-        </>
-      ) : (
-        <Empty description={t("settings.skillsHub.getStarted")} />
-      )}
+        )
+        : searchResult
+        ? (
+          <>
+            <div className="mb-4">
+              <Text type="secondary">
+                {t("settings.skillsHub.results", { count: searchResult.total })}
+              </Text>
+            </div>
+            {searchResult.skills.length > 0
+              ? (
+                <Table
+                  dataSource={searchResult.skills}
+                  columns={columns}
+                  rowKey="id"
+                  pagination={{
+                    total: searchResult.total,
+                    pageSize: searchResult.page_size,
+                    current: searchResult.page,
+                    onChange: (_page) => {
+                    },
+                  }}
+                />
+              )
+              : <Empty description={t("settings.skillsHub.noResults")} />}
+          </>
+        )
+        : <Empty description={t("settings.skillsHub.getStarted")} />}
 
       <Card className="mt-6">
         <Title level={5}>{t("settings.skillsHub.mySkills")}</Title>

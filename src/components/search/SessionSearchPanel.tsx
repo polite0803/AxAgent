@@ -1,3 +1,4 @@
+import { SavedFilter, SearchResult, useSearchStore } from "@/stores/feature/searchStore";
 import {
   Button,
   Card,
@@ -13,22 +14,9 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import {
-  Clock,
-  FileText,
-  Filter,
-  History,
-  Regex,
-  Search as SearchIcon,
-  Star,
-} from "lucide-react";
+import { Clock, FileText, Filter, History, Regex, Search as SearchIcon, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  SavedFilter,
-  SearchResult,
-  useSearchStore,
-} from "@/stores/feature/searchStore";
 
 const { Text, Paragraph } = Typography;
 
@@ -82,7 +70,7 @@ export default function SessionSearchPanel({
   };
 
   const handleSaveFilter = () => {
-    if (!filterName.trim()) return;
+    if (!filterName.trim()) { return; }
 
     const filter: SavedFilter = {
       name: filterName,
@@ -102,7 +90,7 @@ export default function SessionSearchPanel({
   };
 
   const highlightText = (text: string, ranges: [number, number][]) => {
-    if (!ranges || ranges.length === 0) return text;
+    if (!ranges || ranges.length === 0) { return text; }
 
     const parts: React.ReactNode[] = [];
     let lastEnd = 0;
@@ -122,7 +110,7 @@ export default function SessionSearchPanel({
           }}
         >
           {text.slice(start, end)}
-        </mark>
+        </mark>,
       );
       lastEnd = end;
     });
@@ -229,9 +217,7 @@ export default function SessionSearchPanel({
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                   <Checkbox
                     checked={searchOptions.useRegex}
-                    onChange={(e) =>
-                      setSearchOptions({ useRegex: e.target.checked })
-                    }
+                    onChange={(e) => setSearchOptions({ useRegex: e.target.checked })}
                   >
                     <Space>
                       <Regex size={14} />
@@ -240,9 +226,7 @@ export default function SessionSearchPanel({
                   </Checkbox>
                   <Checkbox
                     checked={searchOptions.caseSensitive}
-                    onChange={(e) =>
-                      setSearchOptions({ caseSensitive: e.target.checked })
-                    }
+                    onChange={(e) => setSearchOptions({ caseSensitive: e.target.checked })}
                   >
                     {t("search.caseSensitive")}
                   </Checkbox>
@@ -351,29 +335,33 @@ export default function SessionSearchPanel({
             />
           )}
 
-          {results.length > 0 ? (
-            <List
-              size="small"
-              dataSource={results}
-              renderItem={renderResultItem}
-              style={{
-                maxHeight: 400,
-                overflow: "auto",
-                border: "1px solid var(--border, #45475a)",
-                borderRadius: 8,
-              }}
-              pagination={{
-                pageSize: 20,
-                size: "small",
-              }}
-            />
-          ) : query && !isSearching ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t("search.noResults")}
-              style={{ marginTop: 40 }}
-            />
-          ) : null}
+          {results.length > 0
+            ? (
+              <List
+                size="small"
+                dataSource={results}
+                renderItem={renderResultItem}
+                style={{
+                  maxHeight: 400,
+                  overflow: "auto",
+                  border: "1px solid var(--border, #45475a)",
+                  borderRadius: 8,
+                }}
+                pagination={{
+                  pageSize: 20,
+                  size: "small",
+                }}
+              />
+            )
+            : query && !isSearching
+            ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t("search.noResults")}
+                style={{ marginTop: 40 }}
+              />
+            )
+            : null}
         </Space>
       </div>
 

@@ -190,7 +190,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           set({
             trajectoryProfile: defaultTrajectoryProfile,
             error: err instanceof Error ? err.message : "Failed to load profile",
-            isLoading: false
+            isLoading: false,
           });
         }
       },
@@ -206,7 +206,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         } catch (err) {
           set({
             error: err instanceof Error ? err.message : "Failed to update profile",
-            isLoading: false
+            isLoading: false,
           });
         }
       },
@@ -243,7 +243,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         } catch (err) {
           set({
             error: err instanceof Error ? err.message : "Failed to clear profile",
-            isLoading: false
+            isLoading: false,
           });
         }
       },

@@ -1,9 +1,9 @@
-import { useUserProfileStore } from "@/stores/feature/userProfileStore";
+import { StylePreviewPanel } from "@/components/style";
 import { useStyleStore } from "@/stores/feature/styleStore";
+import { useUserProfileStore } from "@/stores/feature/userProfileStore";
+import { Divider, Input, Slider, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StylePreviewPanel } from "@/components/style";
-import { Divider, Input, Slider, Typography, theme } from "antd";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
 

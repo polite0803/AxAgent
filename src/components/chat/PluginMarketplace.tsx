@@ -1,12 +1,5 @@
 import { Badge, Button, Card, Space, Tag, Typography } from "antd";
-import {
-  CheckCircle,
-  Code2,
-  Download,
-  Loader2,
-  PackageSearch,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle, Code2, Download, Loader2, PackageSearch, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -42,7 +35,7 @@ function PluginMarketplace() {
     try {
       const { invoke } = await import("@/lib/invoke");
       const data = await invoke<PluginInfo[]>(
-        "plugin_list_available"
+        "plugin_list_available",
       ).catch(() => []);
       setPlugins(data);
     } catch {
@@ -121,9 +114,7 @@ function PluginMarketplace() {
                     {plugin.name}
                   </Text>
                   <Tag color="purple" className="text-xs">{plugin.version}</Tag>
-                  {plugin.is_installed && (
-                    <CheckCircle size={12} className="text-green-500" />
-                  )}
+                  {plugin.is_installed && <CheckCircle size={12} className="text-green-500" />}
                 </div>
                 <Text type="secondary" className="text-xs block mt-1">
                   {plugin.description}
@@ -139,36 +130,38 @@ function PluginMarketplace() {
               </div>
 
               <div className="flex items-center gap-1">
-                {!plugin.is_installed ? (
-                  <Button
-                    size="small"
-                    type="primary"
-                    icon={<Download size={12} />}
-                    loading={installing === plugin.id}
-                    onClick={() => handleInstall(plugin.id)}
-                  >
-                    {t("chat.plugins.marketplace.install")}
-                  </Button>
-                ) : (
-                  <Space size="small">
+                {!plugin.is_installed
+                  ? (
                     <Button
                       size="small"
-                      type={plugin.is_enabled ? "default" : "primary"}
-                      onClick={() => handleToggle(plugin.id, !plugin.is_enabled)}
-                    >
-                      {plugin.is_enabled
-                        ? t("chat.plugins.marketplace.disable")
-                        : t("chat.plugins.marketplace.enable")}
-                    </Button>
-                    <Button
-                      size="small"
-                      danger
-                      icon={<XCircle size={12} />}
+                      type="primary"
+                      icon={<Download size={12} />}
                       loading={installing === plugin.id}
-                      onClick={() => handleUninstall(plugin.id)}
-                    />
-                  </Space>
-                )}
+                      onClick={() => handleInstall(plugin.id)}
+                    >
+                      {t("chat.plugins.marketplace.install")}
+                    </Button>
+                  )
+                  : (
+                    <Space size="small">
+                      <Button
+                        size="small"
+                        type={plugin.is_enabled ? "default" : "primary"}
+                        onClick={() => handleToggle(plugin.id, !plugin.is_enabled)}
+                      >
+                        {plugin.is_enabled
+                          ? t("chat.plugins.marketplace.disable")
+                          : t("chat.plugins.marketplace.enable")}
+                      </Button>
+                      <Button
+                        size="small"
+                        danger
+                        icon={<XCircle size={12} />}
+                        loading={installing === plugin.id}
+                        onClick={() => handleUninstall(plugin.id)}
+                      />
+                    </Space>
+                  )}
               </div>
             </div>
 

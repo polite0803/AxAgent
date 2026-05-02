@@ -1,6 +1,6 @@
 import { IconEditor } from "@/components/shared/IconEditor";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
-import { useMcpStore, DiscoveredMcpServer } from "@/stores";
+import { DiscoveredMcpServer, useMcpStore } from "@/stores";
 import type { CreateMcpServerInput, McpServer, ToolDescriptor } from "@/types";
 import {
   Button,
@@ -801,44 +801,46 @@ export default function McpServerSettings() {
               label: t("settings.mcpServers.tabDiscover"),
               children: (
                 <div style={{ maxHeight: 400, overflow: "auto" }}>
-                  {discoveredServers.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: 20 }}>
-                      <Button onClick={handleDiscover} loading={discovering} icon={<RefreshCw size={14} />}>
-                        {t("settings.mcpServers.discoverServers")}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ marginBottom: 8, fontSize: 12, color: "#666" }}>
-                        {t("settings.mcpServers.discoveredCount", { count: discoveredServers.length })}
+                  {discoveredServers.length === 0
+                    ? (
+                      <div style={{ textAlign: "center", padding: 20 }}>
+                        <Button onClick={handleDiscover} loading={discovering} icon={<RefreshCw size={14} />}>
+                          {t("settings.mcpServers.discoverServers")}
+                        </Button>
                       </div>
-                      {discoveredServers.map((s) => (
-                        <div
-                          key={s.packageName}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "8px 0",
-                            borderBottom: "1px solid #f0f0f0",
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 500 }}>{s.name}</div>
-                            <div style={{ fontSize: 12, color: "#666" }}>{s.packageName}</div>
-                            {s.description && <div style={{ fontSize: 12, color: "#999" }}>{s.description}</div>}
-                          </div>
-                          <Button
-                            size="small"
-                            onClick={() => handleAddDiscoveredServer(s)}
-                            icon={<Plus size={14} />}
-                          >
-                            {t("settings.mcpServers.add")}
-                          </Button>
+                    )
+                    : (
+                      <div>
+                        <div style={{ marginBottom: 8, fontSize: 12, color: "#666" }}>
+                          {t("settings.mcpServers.discoveredCount", { count: discoveredServers.length })}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        {discoveredServers.map((s) => (
+                          <div
+                            key={s.packageName}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "8px 0",
+                              borderBottom: "1px solid #f0f0f0",
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 500 }}>{s.name}</div>
+                              <div style={{ fontSize: 12, color: "#666" }}>{s.packageName}</div>
+                              {s.description && <div style={{ fontSize: 12, color: "#999" }}>{s.description}</div>}
+                            </div>
+                            <Button
+                              size="small"
+                              onClick={() => handleAddDiscoveredServer(s)}
+                              icon={<Plus size={14} />}
+                            >
+                              {t("settings.mcpServers.add")}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
               ),
             },

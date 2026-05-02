@@ -19,13 +19,7 @@ vi.mock("../browserMock", () => ({
   handleCommand: mockHandleCommand,
 }));
 
-import {
-  DEFAULT_INVOKE_TIMEOUT_MS,
-  getInvokeMetrics,
-  invoke,
-  isTauri,
-  listen,
-} from "../invoke";
+import { DEFAULT_INVOKE_TIMEOUT_MS, getInvokeMetrics, invoke, isTauri, listen } from "../invoke";
 
 // ─── 辅助函数 ──────────────────────────────────────────────────────
 
@@ -276,7 +270,9 @@ describe("invoke.ts", () => {
 
       await invoke("multi_cmd");
       await invoke("multi_cmd");
-      try { await invoke("multi_cmd"); } catch {}
+      try {
+        await invoke("multi_cmd");
+      } catch {}
 
       const metrics = getInvokeMetrics();
       const cmdStats = metrics.byCommand.find((c) => c.command === "multi_cmd");

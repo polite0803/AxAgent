@@ -25,7 +25,7 @@ let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
  * 仍未结束，自动取消该流并标记消息为错误状态。
  */
 export function startStreamWatchdog() {
-  if (_watchdogTimer !== null) return;
+  if (_watchdogTimer !== null) { return; }
 
   _watchdogTimer = setInterval(() => {
     const state = useStreamStore.getState();
@@ -40,7 +40,9 @@ export function startStreamWatchdog() {
 
     for (const convId of stuckConversationIds) {
       console.warn(
-        `[StreamWatchdog] 流卡住: conversationId=${convId}, 已运行 ${Math.round((now - state.streamingStartTimestamps[convId]) / 1000)}s，自动取消`,
+        `[StreamWatchdog] 流卡住: conversationId=${convId}, 已运行 ${
+          Math.round((now - state.streamingStartTimestamps[convId]) / 1000)
+        }s，自动取消`,
       );
 
       // 标记消息为错误
@@ -49,8 +51,12 @@ export function startStreamWatchdog() {
         _conversationStoreRef.setState((s: any) => ({
           messages: s.messages.map((m: Message) =>
             m.id === msgId
-              ? { ...m, content: m.content + "\n\n> ⚠️ 流式响应超时（5分钟无更新），已自动中断", status: "error" as const }
-              : m,
+              ? {
+                ...m,
+                content: m.content + "\n\n> ⚠️ 流式响应超时（5分钟无更新），已自动中断",
+                status: "error" as const,
+              }
+              : m
           ),
         }));
       }
@@ -437,7 +443,10 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
     if (s.streamingMessageId && s.streamingMessageId !== messageId) {
       if (!_isMultiModelActive || s.streamingMessageId.startsWith("temp-")) {
         const placeholderIdx = _messageIndex.get(s.streamingMessageId);
-        if (placeholderIdx !== undefined && placeholderIdx < s.messages.length && s.messages[placeholderIdx].id === s.streamingMessageId) {
+        if (
+          placeholderIdx !== undefined && placeholderIdx < s.messages.length
+          && s.messages[placeholderIdx].id === s.streamingMessageId
+        ) {
           const updated = [...s.messages];
           updated[placeholderIdx] = {
             ...updated[placeholderIdx],
@@ -652,11 +661,15 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     // Tell the backend to cancel the stream — fire and forget
     if (isTauri()) {
-      invoke("cancel_stream", { conversationId: activeConvId }).catch((e: unknown) => { console.warn('[IPC]', e); });
+      invoke("cancel_stream", { conversationId: activeConvId }).catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
       // Also cancel the agent if in agent mode
       const conv = convRef?.getState().conversations?.find((c: any) => c.id === activeConvId);
       if (conv?.mode === "agent") {
-        invoke("agent_cancel", { request: { conversationId: activeConvId } }).catch((e: unknown) => { console.warn('[IPC]', e); });
+        invoke("agent_cancel", { request: { conversationId: activeConvId } }).catch((e: unknown) => {
+          console.warn("[IPC]", e);
+        });
       }
     }
 

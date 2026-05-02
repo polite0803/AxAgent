@@ -1,15 +1,15 @@
-import { useEffect } from "react";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
-import { List, Card, Tag, Typography, Space, DatePicker, Input } from "antd";
 import type { TraceSummary } from "@/types/tracer";
+import { Card, DatePicker, Input, List, Space, Tag, Typography } from "antd";
 import dayjs from "dayjs";
+import { useEffect } from "react";
 
 const { Text } = Typography;
 
 function formatDuration(ms?: number): string {
-  if (!ms) return "-";
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (!ms) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
+  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -18,7 +18,7 @@ function formatCost(cost: number): string {
 }
 
 function getStatusColor(errorCount: number): "green" | "red" | "default" {
-  if (errorCount > 0) return "red";
+  if (errorCount > 0) { return "red"; }
   return "green";
 }
 
@@ -66,8 +66,7 @@ function TraceItem({ trace, isSelected, onClick }: TraceItemProps) {
 }
 
 export function TraceList() {
-  const { traces, selectedTrace, selectTrace, loadTraces, filter, setFilter } =
-    useTracerStore();
+  const { traces, selectedTrace, selectTrace, loadTraces, filter, setFilter } = useTracerStore();
 
   useEffect(() => {
     loadTraces();

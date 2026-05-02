@@ -1,18 +1,49 @@
 import KnowledgeSettings from "@/components/settings/KnowledgeSettings";
 import { IngestPanel } from "@/components/wiki/IngestPanel";
-import { open } from "@tauri-apps/plugin-dialog";
-import { theme } from "antd";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Library, FolderPlus, Database, ArrowLeft } from "lucide-react";
-import { Tabs, Card, Typography, Table, Tag, Button, Space, Modal, Form, Input, message, Popconfirm, Descriptions, Row, Col, Statistic, List, Empty, Tooltip, Checkbox } from "antd";
-import { PlusOutlined, PlayCircleOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, HistoryOutlined, FileTextOutlined, FolderOutlined, SyncOutlined } from "@ant-design/icons";
+import { WikiSidebar } from "@/components/wiki/WikiSidebar";
+import { useKnowledgeStore } from "@/stores";
 import { useLlmWikiStore, Wiki, WikiSource } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
-import { useKnowledgeStore } from "@/stores";
-import { useNavigate } from "react-router-dom";
 import type { NoteSearchResult } from "@/types";
-import { WikiSidebar } from "@/components/wiki/WikiSidebar";
+import {
+  DeleteOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  FolderOutlined,
+  HistoryOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+  SyncOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
+import { open } from "@tauri-apps/plugin-dialog";
+import { theme } from "antd";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Col,
+  Descriptions,
+  Empty,
+  Form,
+  Input,
+  List,
+  message,
+  Modal,
+  Popconfirm,
+  Row,
+  Space,
+  Statistic,
+  Table,
+  Tabs,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
+import { ArrowLeft, Database, FolderPlus, Library } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { WikiEditorPage } from "./WikiEditorPage";
 
 const { Title } = Typography;
@@ -78,7 +109,7 @@ export function KnowledgePage() {
   };
 
   const handleCreateNote = () => {
-    if (!selectedWikiId) return;
+    if (!selectedWikiId) { return; }
     const now = Date.now();
     createNote({
       vaultId: selectedWikiId,
@@ -97,7 +128,7 @@ export function KnowledgePage() {
   const handleSelectFolder = async () => {
     try {
       const selected = await open({ directory: true, multiple: false });
-      if (!selected) return;
+      if (!selected) { return; }
       setSelectedFolderPath(selected as string);
       setIsImportModalOpen(true);
     } catch (e) {
@@ -145,7 +176,13 @@ export function KnowledgePage() {
 
       if (importToWiki && selectedWikiId) {
         const { ingestSource } = useLlmWikiStore.getState();
-        await ingestSource(selectedWikiId, "folder", selectedFolderPath, undefined, selectedFolderPath.split(/[/\\]/).pop());
+        await ingestSource(
+          selectedWikiId,
+          "folder",
+          selectedFolderPath,
+          undefined,
+          selectedFolderPath.split(/[/\\]/).pop(),
+        );
         wikiSuccess = true;
       }
 
@@ -198,7 +235,7 @@ export function KnowledgePage() {
             t("wiki.llm.compileSuccess", {
               newCount: result.new_pages.length,
               updatedCount: result.updated_pages.length,
-            })
+            }),
           );
         }
         loadOperations(selectedWikiId);
@@ -223,7 +260,11 @@ export function KnowledgePage() {
       render: (_: unknown, record: WikiSource) => (
         <Space>
           <Tooltip title={t("wiki.llm.viewSource")}>
-            <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/llm-wiki/${record.wikiId}/source/${record.id}`)} />
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/llm-wiki/${record.wikiId}/source/${record.id}`)}
+            />
           </Tooltip>
         </Space>
       ),
@@ -364,7 +405,10 @@ export function KnowledgePage() {
         onCreateNote={handleCreateNote}
         loading={notesLoading}
       />
-      <div className="flex-1 flex flex-col overflow-hidden border-l" style={{ borderColor: token.colorBorderSecondary }}>
+      <div
+        className="flex-1 flex flex-col overflow-hidden border-l"
+        style={{ borderColor: token.colorBorderSecondary }}
+      >
         <div className="p-4 border-b" style={{ borderColor: token.colorBorderSecondary }}>
           <Space className="w-full" direction="vertical" size="small">
             <Input.Search
@@ -377,9 +421,7 @@ export function KnowledgePage() {
           </Space>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {displayNotes.length === 0 ? (
-            <Empty description={t("wiki.emptyNotes", "No notes yet")} />
-          ) : (
+          {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes", "No notes yet")} /> : (
             <List
               dataSource={displayNotes}
               renderItem={(note) => (
@@ -391,7 +433,8 @@ export function KnowledgePage() {
                     title={note.title}
                     description={
                       <span className="text-xs" style={{ color: token.colorTextSecondary }}>
-                        {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} • {note.filePath}
+                        {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} •{" "}
+                        {note.filePath}
                       </span>
                     }
                   />
@@ -550,9 +593,7 @@ export function KnowledgePage() {
     );
   };
 
-  const renderRAGContent = () => (
-    <KnowledgeSettings />
-  );
+  const renderRAGContent = () => <KnowledgeSettings />;
 
   return (
     <div className="h-full flex" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>
@@ -680,21 +721,23 @@ export function KnowledgePage() {
               ),
               children: (
                 <div style={{ flex: 1, overflow: "auto" }}>
-                  {selectedNoteId ? (
-                    <div>
-                      <Button
-                        icon={<ArrowLeft />}
-                        onClick={handleBackFromNote}
-                        className="mb-2"
-                        style={{ margin: 16 }}
-                      >
-                        {t("wiki.backToNotes", "Back to Notes")}
-                      </Button>
-                      <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
-                    </div>
-                  ) : (
-                    renderRAGContent()
-                  )}
+                  {selectedNoteId
+                    ? (
+                      <div>
+                        <Button
+                          icon={<ArrowLeft />}
+                          onClick={handleBackFromNote}
+                          className="mb-2"
+                          style={{ margin: 16 }}
+                        >
+                          {t("wiki.backToNotes", "Back to Notes")}
+                        </Button>
+                        <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
+                      </div>
+                    )
+                    : (
+                      renderRAGContent()
+                    )}
                 </div>
               ),
             },
@@ -708,21 +751,23 @@ export function KnowledgePage() {
               ),
               children: (
                 <div style={{ flex: 1, overflow: "auto" }}>
-                  {selectedNoteId ? (
-                    <div>
-                      <Button
-                        icon={<ArrowLeft />}
-                        onClick={handleBackFromNote}
-                        className="mb-2"
-                        style={{ margin: 16 }}
-                      >
-                        {t("wiki.backToNotes", "Back to Notes")}
-                      </Button>
-                      <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
-                    </div>
-                  ) : (
-                    renderWikiContent()
-                  )}
+                  {selectedNoteId
+                    ? (
+                      <div>
+                        <Button
+                          icon={<ArrowLeft />}
+                          onClick={handleBackFromNote}
+                          className="mb-2"
+                          style={{ margin: 16 }}
+                        >
+                          {t("wiki.backToNotes", "Back to Notes")}
+                        </Button>
+                        <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
+                      </div>
+                    )
+                    : (
+                      renderWikiContent()
+                    )}
                 </div>
               ),
             },

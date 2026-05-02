@@ -1,9 +1,9 @@
 import { TemplateList } from "@/components/workflow/Templates";
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
+import { WorkflowMarketplace } from "@/pages/WorkflowMarketplace";
 import { Button, Card, Tabs, theme } from "antd";
 import { GitBranch, Plus, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { WorkflowMarketplace } from "@/pages/WorkflowMarketplace";
 
 interface WorkflowSettingsProps {
   onOpenEditor?: (templateId?: string) => void;
@@ -49,7 +49,7 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
 
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div 
+          <div
             className="p-3 rounded-lg"
             style={{ backgroundColor: token.colorPrimaryBg }}
           >

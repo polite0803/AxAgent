@@ -1,6 +1,6 @@
-import { Card, Badge, Typography, Descriptions } from "antd";
 import type { TaskResult as TaskResultType } from "@/types/evaluator";
-import { formatScore, formatDuration, getDifficultyLabel } from "@/types/evaluator";
+import { formatDuration, formatScore, getDifficultyLabel } from "@/types/evaluator";
+import { Badge, Card, Descriptions, Typography } from "antd";
 
 interface TaskResultCardProps {
   result: TaskResultType;
@@ -29,9 +29,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
 
       <Descriptions size="small" className="mb-4">
         <Descriptions.Item label="任务ID">{result.task_id}</Descriptions.Item>
-        {result.trace_id && (
-          <Descriptions.Item label="追踪ID">{result.trace_id}</Descriptions.Item>
-        )}
+        {result.trace_id && <Descriptions.Item label="追踪ID">{result.trace_id}</Descriptions.Item>}
       </Descriptions>
 
       {result.error && (

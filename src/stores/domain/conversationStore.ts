@@ -19,8 +19,8 @@ import type {
   Message,
   MessagePage,
   UpdateConversationInput,
-  WorkflowEvent,
   WorkflowCompleteEvent,
+  WorkflowEvent,
 } from "@/types";
 import { create } from "zustand";
 import { useCategoryStore } from "../feature/categoryStore";
@@ -109,7 +109,7 @@ function buildFallbackChain(
     for (const p of providers) {
       for (const m of p.models ?? []) {
         const key = `${p.id}:${m.model_id}`;
-        if (key === `${currentProviderId}:${currentModelId}`) continue;
+        if (key === `${currentProviderId}:${currentModelId}`) { continue; }
 
         const entry: FallbackModel = { providerId: p.id, model_id: m.model_id };
 
@@ -295,7 +295,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
       set((s) => ({ messages: [...s.messages, msg] }));
       // Backup and clear agent SDK context (no-op if no agent session exists)
-      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
+      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
     } catch {
       // If backend command doesn't exist yet, add optimistic local message
       const localMsg: Message = {
@@ -331,7 +333,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       // Restore agent SDK context from backup (no-op if no agent session or no backup)
       if (conversationId) {
-        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
+        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch((e: unknown) => {
+          console.warn("[IPC]", e);
+        });
       }
     } catch (e) {
       set({ error: String(e) });
@@ -863,10 +867,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Determine whether this error is retryable (transient) vs permanent.
       // Only attempt fallback for network, rate limit, timeout, and provider errors.
       const isRetryable = true
-        && !errMsg.includes("invalid_request_error")   // bad request
-        && !errMsg.includes("authentication")           // auth error
-        && !errMsg.includes("insufficient_quota")       // billing
-        && !errMsg.includes("invalid_api_key")          // auth
+        && !errMsg.includes("invalid_request_error") // bad request
+        && !errMsg.includes("authentication") // auth error
+        && !errMsg.includes("insufficient_quota") // billing
+        && !errMsg.includes("invalid_api_key") // auth
         && !errMsg.includes("context_length_exceeded"); // context too long
 
       // Try fallback models before showing error
@@ -894,7 +898,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
               // Reset placeholder for retry
               const currentStreamingMessageId = getStreamingMessageId(
-                useStreamStore.getState().activeStreams, conversationId
+                useStreamStore.getState().activeStreams,
+                conversationId,
               );
               set((s) => {
                 const filtered = s.messages.filter(m =>
@@ -1238,7 +1243,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         listen<AgentStreamThinkingEvent>("agent-stream-thinking", (event) => {
           if (event.payload.conversationId !== conversationId) { return; }
           _agentPendingThinking += event.payload.thinking;
-          scheduleAgentThinkingFlush();  // P2: 200ms cadence
+          scheduleAgentThinkingFlush(); // P2: 200ms cadence
         }).then((fn) => {
           unlistenStreamThinking = fn;
         });
@@ -2024,7 +2029,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             conversation_id: conversationId,
             parent_message_id: parentId,
             message_id: targetMessageId,
-          }).catch((e: unknown) => { console.warn('[IPC]', e); });
+          }).catch((e: unknown) => {
+            console.warn("[IPC]", e);
+          });
         }
       } else if (parentId && userSelectedMessageId) {
         // User manually selected a version — sync that to backend
@@ -2032,7 +2039,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           conversation_id: conversationId,
           parent_message_id: parentId,
           message_id: userSelectedMessageId,
-        }).catch((e: unknown) => { console.warn('[IPC]', e); });
+        }).catch((e: unknown) => {
+          console.warn("[IPC]", e);
+        });
       }
 
       await get().fetchMessages(conversationId);
@@ -2136,7 +2145,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const errorMessage = String(e);
       if (errorMessage.includes("Not found: Conversation")) {
         console.warn("Conversation no longer exists on backend, clearing active selection:", conversationId);
-        await get().fetchConversations().catch((e: unknown) => { console.warn('[IPC]', e); });
+        await get().fetchConversations().catch((e: unknown) => {
+          console.warn("[IPC]", e);
+        });
         const nextConversation = get().conversations[0] ?? get().archivedConversations[0] ?? null;
         if (nextConversation) {
           get().setActiveConversation(nextConversation.id);
@@ -2551,11 +2562,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const streamState = useStreamStore.getState();
     const conversationId = streamState.streamingConversationId ?? get().activeConversationId;
     if (conversationId && isTauri()) {
-      invoke("cancel_stream", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
+      invoke("cancel_stream", { conversationId }).catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
       // Also cancel the agent if in agent mode
       const conv = get().conversations.find((c) => c.id === conversationId);
       if (conv?.mode === "agent") {
-        invoke("agent_cancel", { request: { conversationId } }).catch((e: unknown) => { console.warn('[IPC]', e); });
+        invoke("agent_cancel", { request: { conversationId } }).catch((e: unknown) => {
+          console.warn("[IPC]", e);
+        });
       }
     }
     if (!conversationId) { return; }
@@ -2604,7 +2619,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
 
-      await invoke("switch_message_version", { conversation_id: conversationId, parent_message_id: parentMessageId, message_id: messageId });
+      await invoke("switch_message_version", {
+        conversation_id: conversationId,
+        parent_message_id: parentMessageId,
+        message_id: messageId,
+      });
 
       // Normal path: fetch all versions from DB and keep them all in store
       // with correct is_active flags. This preserves multi-model detection

@@ -34,16 +34,18 @@ export function SkillHtmlPage({ componentConfig, skillName }: SkillHtmlPageProps
           setError(String(e));
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) { setLoading(false); }
       }
     }
 
     loadContent();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [htmlFile, skillName]);
 
   const srcdoc = useMemo(() => {
-    if (!content) return "";
+    if (!content) { return ""; }
     return content.startsWith("<!DOCTYPE") || content.startsWith("<html")
       ? content
       : `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${content}</body></html>`;

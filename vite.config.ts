@@ -101,9 +101,9 @@ export default defineConfig(async () => ({
     },
   },
   build: {
-    sourcemap: false,  // 生产构建不暴露源码
+    sourcemap: false, // 生产构建不暴露源码
     modulePreload: { polyfill: false },
-    chunkSizeWarningLimit: 1000,  // 1MB 合理上限，及时捕获包体积回归
+    chunkSizeWarningLimit: 1000, // 1MB 合理上限，及时捕获包体积回归
     rolldownOptions: {
       output: {
         codeSplitting: {

@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
-import { Input, Select, DatePicker, Button, Space } from "antd";
 import type { TraceFilter } from "@/types/tracer";
+import { Button, DatePicker, Input, Select, Space } from "antd";
+import { useState } from "react";
 
 const { RangePicker } = DatePicker;
 
@@ -27,9 +27,7 @@ export function TraceFilters() {
           <Input
             placeholder="过滤会话"
             value={localFilter.session_id || ""}
-            onChange={(e) =>
-              setLocalFilter({ ...localFilter, session_id: e.target.value || undefined })
-            }
+            onChange={(e) => setLocalFilter({ ...localFilter, session_id: e.target.value || undefined })}
             allowClear
           />
         </div>
@@ -67,8 +65,7 @@ export function TraceFilters() {
               setLocalFilter({
                 ...localFilter,
                 min_duration_ms: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
+              })}
             allowClear
           />
         </div>
@@ -83,8 +80,7 @@ export function TraceFilters() {
               setLocalFilter({
                 ...localFilter,
                 max_duration_ms: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
+              })}
             allowClear
           />
         </div>

@@ -27,7 +27,12 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
   slack: [
     { key: "slack_enabled", label: "启用", type: "switch" },
     { key: "slack_bot_token", label: "Bot Token", type: "password" },
-    { key: "slack_app_token", label: "App Token (Socket Mode)", type: "password", placeholder: "xapp-... 从 Slack App → App-Level Tokens 获取" },
+    {
+      key: "slack_app_token",
+      label: "App Token (Socket Mode)",
+      type: "password",
+      placeholder: "xapp-... 从 Slack App → App-Level Tokens 获取",
+    },
     { key: "slack_signing_secret", label: "Signing Secret", type: "password" },
     { key: "slack_workspace_id", label: "Workspace ID", type: "text" },
   ],
@@ -36,15 +41,25 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
     { key: "whatsapp_phone_number_id", label: "Phone Number ID", type: "text" },
     { key: "whatsapp_access_token", label: "Access Token", type: "password" },
     { key: "whatsapp_business_account_id", label: "Business Account ID", type: "text" },
-    { key: "whatsapp_webhook_verify_token", label: "Webhook Verify Token (可选)", type: "text", placeholder: "用于 Meta webhook 验证" },
+    {
+      key: "whatsapp_webhook_verify_token",
+      label: "Webhook Verify Token (可选)",
+      type: "text",
+      placeholder: "用于 Meta webhook 验证",
+    },
     { key: "whatsapp_api_version", label: "API Version (可选)", type: "text", placeholder: "默认 v18.0" },
   ],
   wechat: [
     { key: "wechat_enabled", label: "启用", type: "switch" },
-    { key: "wechat_mode", label: "运行模式", type: "select", options: [
-      { value: "official_account", label: "公众号模式 (Webhook 接收)" },
-      { value: "customer_service", label: "客服模式 (轮询接收，实验性)" },
-    ]},
+    {
+      key: "wechat_mode",
+      label: "运行模式",
+      type: "select",
+      options: [
+        { value: "official_account", label: "公众号模式 (Webhook 接收)" },
+        { value: "customer_service", label: "客服模式 (轮询接收，实验性)" },
+      ],
+    },
     { key: "wechat_app_id", label: "App ID", type: "text" },
     { key: "wechat_app_secret", label: "App Secret", type: "password" },
     { key: "wechat_token", label: "Token (公众号模式必填)", type: "text" },
@@ -84,9 +99,9 @@ export function GatewayConfigPanel() {
   return (
     <div className="flex flex-col gap-3">
       {ALL_PLATFORMS.map((platform) => {
-        if (platform.name === "api_server") return null;
+        if (platform.name === "api_server") { return null; }
         const fields = PLATFORM_FIELDS[platform.name];
-        if (!fields) return null;
+        if (!fields) { return null; }
 
         const enabled = config[platform.enabledKey] as boolean;
 
@@ -104,30 +119,34 @@ export function GatewayConfigPanel() {
                   </div>
                 );
               }
-              if (!enabled) return null;
+              if (!enabled) { return null; }
               return (
                 <div key={field.key} className="mt-3">
                   <Text type="secondary">{field.label}</Text>
-                  {field.type === "select" ? (
-                    <Select
-                      value={(config[field.key] as string) ?? ""}
-                      onChange={(v) => handleChange(field.key, v)}
-                      options={field.options}
-                      style={{ width: "100%" }}
-                    />
-                  ) : field.type === "password" ? (
-                    <Input.Password
-                      value={(config[field.key] as string) ?? ""}
-                      onChange={(e) => handleChange(field.key, e.target.value)}
-                      placeholder={field.placeholder}
-                    />
-                  ) : (
-                    <Input
-                      value={(config[field.key] as string) ?? ""}
-                      onChange={(e) => handleChange(field.key, e.target.value)}
-                      placeholder={field.placeholder}
-                    />
-                  )}
+                  {field.type === "select"
+                    ? (
+                      <Select
+                        value={(config[field.key] as string) ?? ""}
+                        onChange={(v) => handleChange(field.key, v)}
+                        options={field.options}
+                        style={{ width: "100%" }}
+                      />
+                    )
+                    : field.type === "password"
+                    ? (
+                      <Input.Password
+                        value={(config[field.key] as string) ?? ""}
+                        onChange={(e) => handleChange(field.key, e.target.value)}
+                        placeholder={field.placeholder}
+                      />
+                    )
+                    : (
+                      <Input
+                        value={(config[field.key] as string) ?? ""}
+                        onChange={(e) => handleChange(field.key, e.target.value)}
+                        placeholder={field.placeholder}
+                      />
+                    )}
                 </div>
               );
             })}
@@ -149,9 +168,7 @@ export function GatewayConfigPanel() {
             <Input
               type="number"
               value={config.api_server_port ?? 8080}
-              onChange={(e) =>
-                handleChange("api_server_port", Number.parseInt(e.target.value, 10) || 8080)
-              }
+              onChange={(e) => handleChange("api_server_port", Number.parseInt(e.target.value, 10) || 8080)}
               placeholder="8080"
             />
           </div>
@@ -168,9 +185,7 @@ export function GatewayConfigPanel() {
           <Input
             type="number"
             value={config.max_history_per_session}
-            onChange={(e) =>
-              handleChange("max_history_per_session", Number.parseInt(e.target.value, 10) || 100)
-            }
+            onChange={(e) => handleChange("max_history_per_session", Number.parseInt(e.target.value, 10) || 100)}
           />
         </div>
       </Card>

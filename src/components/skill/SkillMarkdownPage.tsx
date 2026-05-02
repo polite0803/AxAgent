@@ -1,9 +1,9 @@
 import { invoke } from "@/lib/invoke";
-import type { BaseNode } from "stream-markdown-parser";
-import { getMarkdown, parseMarkdownToStructure } from "stream-markdown-parser";
 import { Spin } from "antd";
 import NodeRenderer from "markstream-react";
 import { useEffect, useMemo, useState } from "react";
+import type { BaseNode } from "stream-markdown-parser";
+import { getMarkdown, parseMarkdownToStructure } from "stream-markdown-parser";
 
 interface SkillMarkdownPageProps {
   skillName: string;
@@ -27,7 +27,7 @@ export function SkillMarkdownPage({ skillName }: SkillMarkdownPageProps) {
       try {
         const detail = await invoke<{ info: unknown; content: string; files: string[] }>(
           "get_skill",
-          { name: skillName }
+          { name: skillName },
         );
         if (!cancelled) {
           setRawContent(detail.content || "");
@@ -37,16 +37,18 @@ export function SkillMarkdownPage({ skillName }: SkillMarkdownPageProps) {
           setError(String(Error));
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) { setLoading(false); }
       }
     }
 
     loadContent();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [skillName]);
 
   const nodes = useMemo<BaseNode[] | null>(() => {
-    if (!rawContent) return null;
+    if (!rawContent) { return null; }
     try {
       return parseMarkdownToStructure(rawContent, skillMarkdown, {
         customHtmlTags: [],

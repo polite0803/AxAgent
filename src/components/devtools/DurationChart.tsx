@@ -1,5 +1,5 @@
 import type { TraceMetrics } from "@/types/tracer";
-import { Card, Statistic, Row, Col } from "antd";
+import { Card, Col, Row, Statistic } from "antd";
 import { useTranslation } from "react-i18next";
 
 interface DurationChartProps {
@@ -7,8 +7,8 @@ interface DurationChartProps {
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 1000) { return `${ms}ms`; }
+  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 

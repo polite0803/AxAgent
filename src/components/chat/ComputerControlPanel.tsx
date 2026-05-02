@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Button, Card, Input, Space, Switch, Tooltip, Typography, message } from "antd";
-import { Search, Scissors } from "lucide-react";
+import { Button, Card, Input, message, Space, Switch, Tooltip, Typography } from "antd";
+import { Scissors, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface CaptureResult {
@@ -18,7 +18,9 @@ interface UIElement {
 
 export function ComputerControlPanel() {
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [autoMode, setAutoMode] = useState(false);
   const [elements, setElements] = useState<UIElement[]>([]);
@@ -52,7 +54,7 @@ export function ComputerControlPanel() {
   };
 
   const handleImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
-    if (!imgRef.current) return;
+    if (!imgRef.current) { return; }
     const rect = imgRef.current.getBoundingClientRect();
     const scaleX = nativeResolution.width / rect.width;
     const scaleY = nativeResolution.height / rect.height;
@@ -65,7 +67,9 @@ export function ComputerControlPanel() {
     try {
       await invoke("mouse_click", { x, y, button: "left" });
       message.success(`点击 (${x}, ${y})`);
-      setTimeout(() => { if (mountedRef.current) handleCapture(); }, 500);
+      setTimeout(() => {
+        if (mountedRef.current) { handleCapture(); }
+      }, 500);
     } catch (e) {
       message.error(String(e));
     }
@@ -170,7 +174,7 @@ export function ComputerControlPanel() {
                   e.stopPropagation();
                   executeClick(
                     el.bounds.x + el.bounds.width / 2,
-                    el.bounds.y + el.bounds.height / 2
+                    el.bounds.y + el.bounds.height / 2,
                   );
                 }}
                 title={`${el.role}: ${el.name}`}
@@ -220,9 +224,8 @@ export function ComputerControlPanel() {
                 onClick={() =>
                   executeClick(
                     el.bounds.x + el.bounds.width / 2,
-                    el.bounds.y + el.bounds.height / 2
-                  )
-                }
+                    el.bounds.y + el.bounds.height / 2,
+                  )}
               >
                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                   {el.role}

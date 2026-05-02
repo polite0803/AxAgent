@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface CommandSuggestion {
   command: string;
@@ -23,7 +23,7 @@ export interface SlashCompleterOptions {
 
 export function useSlashCompleter(
   terminal: XTerm | null,
-  options: SlashCompleterOptions
+  options: SlashCompleterOptions,
 ) {
   const {
     commands,
@@ -41,22 +41,22 @@ export function useSlashCompleter(
 
   const getFilteredCommands = useCallback(
     (input: string) => {
-      if (!input.startsWith(triggerChar)) return [];
+      if (!input.startsWith(triggerChar)) { return []; }
       const searchTerm = input.slice(1).toLowerCase();
       return commands
         .filter(
           (cmd) =>
-            cmd.command.toLowerCase().startsWith(searchTerm) ||
-            cmd.command.toLowerCase().includes(searchTerm)
+            cmd.command.toLowerCase().startsWith(searchTerm)
+            || cmd.command.toLowerCase().includes(searchTerm),
         )
         .slice(0, maxSuggestions);
     },
-    [commands, triggerChar, maxSuggestions]
+    [commands, triggerChar, maxSuggestions],
   );
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (!terminal) return;
+      if (!terminal) { return; }
 
       const filteredCommands = getFilteredCommands(inputBufferRef.current);
 
@@ -79,9 +79,7 @@ export function useSlashCompleter(
         }
 
         if (event.key === "ArrowDown") {
-          setSelectedIndex((prev) =>
-            Math.min(prev + 1, filteredCommands.length - 1)
-          );
+          setSelectedIndex((prev) => Math.min(prev + 1, filteredCommands.length - 1));
           event.preventDefault();
           return;
         }
@@ -127,12 +125,12 @@ export function useSlashCompleter(
         }
       }
     },
-    [terminal, isActive, currentInput, selectedIndex, getFilteredCommands, triggerChar, onSelect]
+    [terminal, isActive, currentInput, selectedIndex, getFilteredCommands, triggerChar, onSelect],
   );
 
   const insertCommand = useCallback(
     (command: string) => {
-      if (!terminal) return;
+      if (!terminal) { return; }
       for (let i = 0; i < inputBufferRef.current.length; i++) {
         terminal.write("\b \b");
       }
@@ -141,11 +139,11 @@ export function useSlashCompleter(
       setIsActive(false);
       setCurrentInput("");
     },
-    [terminal]
+    [terminal],
   );
 
   const clearInput = useCallback(() => {
-    if (!terminal) return;
+    if (!terminal) { return; }
     for (let i = 0; i < inputBufferRef.current.length; i++) {
       terminal.write("\b \b");
     }
@@ -202,7 +200,7 @@ export function SlashCompleterWidget({
       commands,
       triggerChar,
       onSelect,
-    }
+    },
   );
 
   if (!isActive || filteredCommands.length === 0) {
@@ -232,8 +230,7 @@ export function SlashCompleterWidget({
             padding: "6px 12px",
             cursor: "pointer",
             background: index === selectedIndex ? "#585b70" : "transparent",
-            borderLeft:
-              index === selectedIndex ? "2px solid #89b4fa" : "2px solid transparent",
+            borderLeft: index === selectedIndex ? "2px solid #89b4fa" : "2px solid transparent",
           }}
           onMouseEnter={() => {}}
         >

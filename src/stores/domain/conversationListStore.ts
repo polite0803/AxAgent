@@ -72,9 +72,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
     try {
       await invoke("update_conversation", { id, input: { title } });
       set((state) => ({
-        conversations: state.conversations.map((c) =>
-          c.id === id ? { ...c, title } : c,
-        ),
+        conversations: state.conversations.map((c) => c.id === id ? { ...c, title } : c),
       }));
     } catch (e: unknown) {
       set({ error: String(e) });
@@ -100,9 +98,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
       const conv = conversations.find((c) => c.id === id);
       if (conv) {
         set({
-          conversations: conversations.map((c) =>
-            c.id === id ? { ...c, is_pinned: !c.is_pinned } : c,
-          ),
+          conversations: conversations.map((c) => c.id === id ? { ...c, is_pinned: !c.is_pinned } : c),
         });
       }
     } catch (e: unknown) {
@@ -160,9 +156,7 @@ export const useConversationListStore = create<ConversationListState>((set, get)
 
   updateConversationInList: (id, updates) => {
     set((state) => ({
-      conversations: state.conversations.map((c) =>
-        c.id === id ? { ...c, ...updates } : c,
-      ),
+      conversations: state.conversations.map((c) => c.id === id ? { ...c, ...updates } : c),
     }));
   },
 

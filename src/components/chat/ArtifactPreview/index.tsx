@@ -1,6 +1,6 @@
-import { useRef, useEffect, useCallback } from "react";
-import type { ArtifactFormat } from "@/types/artifact";
 import { ArtifactRenderer } from "@/lib/artifactRenderer";
+import type { ArtifactFormat } from "@/types/artifact";
+import { useCallback, useEffect, useRef } from "react";
 
 interface ArtifactPreviewProps {
   code: string;
@@ -12,7 +12,7 @@ export function ArtifactPreview({ code, format }: ArtifactPreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const renderPreview = useCallback(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) { return; }
 
     containerRef.current.innerHTML = "";
 

@@ -1,7 +1,7 @@
+import { usePlatformStore } from "@/stores";
+import { App, Button, Tabs } from "antd";
 import { GatewayConfigPanel } from "./GatewayConfigPanel";
 import { PlatformStatusCard } from "./PlatformStatusCard";
-import { usePlatformStore } from "@/stores";
-import { Button, Tabs, App } from "antd";
 
 export function MessageChannelSettings() {
   const reconcile = usePlatformStore((s) => s.reconcile);

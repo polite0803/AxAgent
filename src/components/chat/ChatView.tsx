@@ -68,7 +68,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState, useDeferredValue } from "react";
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import NodeRenderer, {
   type InfographicBlockActionContext,
@@ -125,7 +125,9 @@ import {
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
+import { AgentPoolPanel } from "./AgentPoolPanel";
 import AskUserCard from "./AskUserCard";
+import { BreadcrumbBar } from "./BreadcrumbBar";
 import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import {
   CHAT_SCROLL_IS_REVERSED,
@@ -152,10 +154,8 @@ import { MermaidZoomControls } from "./MermaidZoomControls";
 import { ModelSelector } from "./ModelSelector";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
 import PermissionCard from "./PermissionCard";
-import { ToolCallCard } from "./ToolCallCard";
-import { AgentPoolPanel } from "./AgentPoolPanel";
 import { PlanCard } from "./PlanCard";
-import { BreadcrumbBar } from "./BreadcrumbBar";
+import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
 import { WebSearchNode } from "./WebSearchNode";
 
@@ -262,7 +262,9 @@ function AttachmentPreview({ att, themeColor }: { att: Attachment; themeColor: s
             okText: t("chat.attachmentOk"),
             cancelText: t("chat.attachmentRevealLocation"),
             onCancel: () => {
-              invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => { console.warn('[IPC]', e); });
+              invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => {
+                console.warn("[IPC]", e);
+              });
             },
           });
         })
@@ -311,13 +313,17 @@ function AttachmentPreview({ att, themeColor }: { att: Attachment; themeColor: s
 
   const handleOpen = () => {
     if (att.file_path) {
-      invoke("open_attachment_file", { filePath: att.file_path }).catch((e: unknown) => { console.warn('[IPC]', e); });
+      invoke("open_attachment_file", { filePath: att.file_path }).catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
     }
   };
 
   const handleReveal = () => {
     if (att.file_path) {
-      invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => { console.warn('[IPC]', e); });
+      invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
     }
   };
 
@@ -1971,7 +1977,14 @@ function AssistantFooter({
 
 // ── Export helpers ──────────────────────────────────────────────────────
 
-import { copyTranscript, exportAsHTML, exportAsJSON, exportAsMarkdown, exportAsPNG, exportAsText } from "@/lib/exportChat";
+import {
+  copyTranscript,
+  exportAsHTML,
+  exportAsJSON,
+  exportAsMarkdown,
+  exportAsPNG,
+  exportAsText,
+} from "@/lib/exportChat";
 
 // ── Stats Popover ──────────────────────────────────────────────────────
 
@@ -3099,9 +3112,9 @@ function ChatViewInner() {
   // Expert switch separator — useEffect is the correct place for state mutation
   const [expertSwitchBubble, setExpertSwitchBubble] = useState<BubbleItemType | null>(null);
   useEffect(() => {
-    if (!activeConversationId) return;
+    if (!activeConversationId) { return; }
     const sw = consumeSwitch(activeConversationId);
-    if (!sw) return;
+    if (!sw) { return; }
     const role = getRoleById(sw.roleId);
     const name = role?.displayName ?? "\u901A\u7528\u52A9\u624B";
     const icon = role?.icon ?? "\uD83E\uDD16";
@@ -3221,7 +3234,7 @@ function ChatViewInner() {
       // LRU 淘汰：缓存上限 100 条
       if (cache.size >= 100) {
         const firstKey = cache.keys().next().value;
-        if (firstKey !== undefined) cache.delete(firstKey);
+        if (firstKey !== undefined) { cache.delete(firstKey); }
       }
       cache.set(messageId, { content: item.content, nodes });
       next.set(messageId, nodes);
@@ -4178,10 +4191,12 @@ function ChatViewInner() {
           // off-screen bubble rendering. Only applied when 50+ messages to avoid
           // affecting short conversations where full virtualization overhead isn't
           // worth it.
-          ...(messages.length > 50 ? {
-            contentVisibility: "auto",
-            containIntrinsicSize: "auto 5000px",
-          } : {}),
+          ...(messages.length > 50
+            ? {
+              contentVisibility: "auto",
+              containIntrinsicSize: "auto 5000px",
+            }
+            : {}),
         }}
       >
         {messages.length === 0
@@ -4237,7 +4252,9 @@ function ChatViewInner() {
                       setTimeout(() => setShowEarlierLoading(false), 300);
                     }}
                   >
-                    {`显示更早的 ${hiddenBubbleCount > MESSAGE_WINDOW_BASE ? `${MESSAGE_WINDOW_BASE}+` : hiddenBubbleCount} 条消息`}
+                    {`显示更早的 ${
+                      hiddenBubbleCount > MESSAGE_WINDOW_BASE ? `${MESSAGE_WINDOW_BASE}+` : hiddenBubbleCount
+                    } 条消息`}
                   </Button>
                 </div>
               )}

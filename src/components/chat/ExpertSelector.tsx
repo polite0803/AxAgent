@@ -2,9 +2,9 @@ import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
 import type { ExpertCategory } from "@/types/expert";
 import type { ExpertRole } from "@/types/expert";
-import { Button, Card, Input, Modal, Popover, Space, Tag, Typography, App, Select, Popconfirm } from "antd";
-import { Check, Download, Trash2, FolderOpen, Info, Pencil, FileDown, Upload } from "lucide-react";
-import { useState, useEffect } from "react";
+import { App, Button, Card, Input, Modal, Popconfirm, Popover, Select, Space, Tag, Typography } from "antd";
+import { Check, Download, FileDown, FolderOpen, Info, Pencil, Trash2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const { Text } = Typography;
 
@@ -68,10 +68,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       sorted.sort((a, b) => a.displayName.localeCompare(b.displayName, "zh"));
     } else if (sortBy === "category") {
       const order = Object.keys(EXPERT_CATEGORY_LABELS);
-      sorted.sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || a.displayName.localeCompare(b.displayName, "zh"));
+      sorted.sort((a, b) =>
+        order.indexOf(a.category) - order.indexOf(b.category) || a.displayName.localeCompare(b.displayName, "zh")
+      );
     } else if (sortBy === "source") {
       const sourceOrder: Record<string, number> = { builtin: 0, agency: 1, custom: 2 };
-      sorted.sort((a, b) => (sourceOrder[a.source] ?? 3) - (sourceOrder[b.source] ?? 3) || a.displayName.localeCompare(b.displayName, "zh"));
+      sorted.sort((a, b) =>
+        (sourceOrder[a.source] ?? 3) - (sourceOrder[b.source] ?? 3) || a.displayName.localeCompare(b.displayName, "zh")
+      );
     }
     return sorted;
   })();
@@ -85,7 +89,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   }
 
   const handleImport = async () => {
-    if (!importPath.trim()) return;
+    if (!importPath.trim()) { return; }
     setImporting(true);
     try {
       const result = await importAgencyExperts(importPath.trim());
@@ -150,7 +154,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
     input.accept = ".json";
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+      if (!file) { return; }
       try {
         const text = await file.text();
         const result = importCustomRoles(text);
@@ -186,7 +190,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   };
 
   const handleEditSave = async () => {
-    if (!editingExpert) return;
+    if (!editingExpert) { return; }
     setSaving(true);
     try {
       if (editingExpert.source === "agency") {
@@ -254,54 +258,58 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       </div>
 
       {/* Import section */}
-      {!showImport ? (
-        <div style={{ marginBottom: 12 }}>
-          <Space size={8}>
-            {agencyRoles.length > 0
-              ? (
-                <Tag color="blue" style={{ cursor: "default" }}>
-                  已导入 {agencyRoles.length} 个外部专家
-                </Tag>
-              )
-              : (
-                <Button size="small" icon={<Download size={14} />} onClick={() => setShowImport(true)}>
-                  导入 agency-agents-zh
-                </Button>
+      {!showImport
+        ? (
+          <div style={{ marginBottom: 12 }}>
+            <Space size={8}>
+              {agencyRoles.length > 0
+                ? (
+                  <Tag color="blue" style={{ cursor: "default" }}>
+                    已导入 {agencyRoles.length} 个外部专家
+                  </Tag>
+                )
+                : (
+                  <Button size="small" icon={<Download size={14} />} onClick={() => setShowImport(true)}>
+                    导入 agency-agents-zh
+                  </Button>
+                )}
+              {agencyRoles.length > 0 && (
+                <>
+                  <Button size="small" icon={<FolderOpen size={14} />} onClick={() => setShowImport(true)}>
+                    重新导入
+                  </Button>
+                  <Button size="small" danger icon={<Trash2 size={14} />} onClick={handleClear}>
+                    清除
+                  </Button>
+                </>
               )}
-            {agencyRoles.length > 0 && (
-              <>
-                <Button size="small" icon={<FolderOpen size={14} />} onClick={() => setShowImport(true)}>
-                  重新导入
-                </Button>
-                <Button size="small" danger icon={<Trash2 size={14} />} onClick={handleClear}>
-                  清除
-                </Button>
-              </>
-            )}
-          </Space>
-        </div>
-      ) : (
-        <div style={{ marginBottom: 12, padding: 12, background: "var(--color-background-secondary)", borderRadius: 8 }}>
-          <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
-            输入 agency-agents-zh 本地仓库路径（如 ~/agency-agents-zh）
-          </Text>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Input
-              size="small"
-              placeholder="~/agency-agents-zh"
-              value={importPath}
-              onChange={(e) => setImportPath(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <Button size="small" type="primary" loading={importing} onClick={handleImport}>
-              导入
-            </Button>
-            <Button size="small" onClick={() => setShowImport(false)}>
-              取消
-            </Button>
+            </Space>
           </div>
-        </div>
-      )}
+        )
+        : (
+          <div
+            style={{ marginBottom: 12, padding: 12, background: "var(--color-background-secondary)", borderRadius: 8 }}
+          >
+            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+              输入 agency-agents-zh 本地仓库路径（如 ~/agency-agents-zh）
+            </Text>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Input
+                size="small"
+                placeholder="~/agency-agents-zh"
+                value={importPath}
+                onChange={(e) => setImportPath(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <Button size="small" type="primary" loading={importing} onClick={handleImport}>
+                导入
+              </Button>
+              <Button size="small" onClick={() => setShowImport(false)}>
+                取消
+              </Button>
+            </div>
+          </div>
+        )}
 
       <div style={{ maxHeight: "55vh", overflowY: "auto", paddingRight: 4 }} data-os-scrollbar>
         {Object.entries(grouped).map(([category, roles]) => (
@@ -344,7 +352,11 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                     style={{
                       cursor: "pointer",
                       border: isSelected ? "1.5px solid var(--color-border-info)" : undefined,
-                      background: isSelected ? "var(--color-background-info)" : isDefault ? "var(--color-background-secondary)" : undefined,
+                      background: isSelected
+                        ? "var(--color-background-info)"
+                        : isDefault
+                        ? "var(--color-background-secondary)"
+                        : undefined,
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -355,7 +367,10 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                             {role.displayName}
                           </Text>
                           {isSelected && <Check size={14} style={{ color: "var(--color-text-info)", flexShrink: 0 }} />}
-                          <Tag color={sourceInfo.color} style={{ fontSize: 9, lineHeight: "14px", padding: "0 3px", margin: 0 }}>
+                          <Tag
+                            color={sourceInfo.color}
+                            style={{ fontSize: 9, lineHeight: "14px", padding: "0 3px", margin: 0 }}
+                          >
                             {sourceInfo.label}
                           </Tag>
                         </div>
@@ -368,7 +383,11 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                             {role.description}
                           </Text>
                           {!isBuiltin && (
-                            <Space size={2} style={{ marginLeft: 4, flexShrink: 0 }} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                            <Space
+                              size={2}
+                              style={{ marginLeft: 4, flexShrink: 0 }}
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            >
                               <Button
                                 type="text"
                                 size="small"
@@ -419,15 +438,31 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                             <Popover
                               title={`${role.icon} ${role.displayName} - 能力详情`}
                               content={
-                                <div style={{ maxWidth: 360, maxHeight: 200, overflowY: "auto", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                                  {role.systemPrompt.slice(0, 600)}{role.systemPrompt.length > 600 ? "..." : ""}
+                                <div
+                                  style={{
+                                    maxWidth: 360,
+                                    maxHeight: 200,
+                                    overflowY: "auto",
+                                    fontSize: 12,
+                                    lineHeight: 1.6,
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {role.systemPrompt.slice(0, 600)}
+                                  {role.systemPrompt.length > 600 ? "..." : ""}
                                 </div>
                               }
                               trigger="click"
                             >
                               <Tag
                                 color="blue"
-                                style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, cursor: "pointer" }}
+                                style={{
+                                  fontSize: 10,
+                                  lineHeight: "16px",
+                                  padding: "0 4px",
+                                  margin: 0,
+                                  cursor: "pointer",
+                                }}
                                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
                               >
                                 <Info size={10} style={{ marginRight: 2 }} /> 详

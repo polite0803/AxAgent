@@ -1,28 +1,23 @@
-import { useState, useCallback } from "react";
+import { MarketplaceStats, reviewApi, ReviewResponse } from "@/lib/reviewApi";
+import { DownloadOutlined, DownloadOutlined as DLOutlined, StarOutlined, UploadOutlined } from "@ant-design/icons";
 import {
-  Card,
-  Input,
   Button,
-  Tag,
-  Space,
-  Typography,
-  Rate,
+  Card,
   Empty,
-  Modal,
-  message,
-  Tabs,
-  List,
-  Spin,
   Form,
+  Input,
+  List,
+  message,
+  Modal,
+  Rate,
+  Space,
+  Spin,
+  Tabs,
+  Tag,
   theme,
+  Typography,
 } from "antd";
-import {
-  DownloadOutlined,
-  UploadOutlined,
-  StarOutlined,
-  DownloadOutlined as DLOutlined,
-} from "@ant-design/icons";
-import { reviewApi, ReviewResponse, MarketplaceStats } from "@/lib/reviewApi";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
@@ -149,7 +144,7 @@ export function WorkflowMarketplace() {
   };
 
   const handleSubmitReview = async (values: { rating: number; comment?: string }) => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) { return; }
 
     setSubmittingReview(true);
     try {
@@ -174,7 +169,7 @@ export function WorkflowMarketplace() {
   };
 
   const handleDeleteReview = async () => {
-    if (!myReview) return;
+    if (!myReview) { return; }
 
     try {
       await reviewApi.deleteReview(myReview.id);
@@ -188,9 +183,8 @@ export function WorkflowMarketplace() {
   };
 
   const filteredTemplates = templates.filter((t) => {
-    const matchesSearch =
-      t.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchText.toLowerCase());
+    const matchesSearch = t.name.toLowerCase().includes(searchText.toLowerCase())
+      || t.description?.toLowerCase().includes(searchText.toLowerCase());
     const matchesCategory = selectedCategory === "All" || t.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -209,18 +203,18 @@ export function WorkflowMarketplace() {
       className="marketplace-card"
       onClick={() => handleTemplateClick(template)}
       cover={
-        <div 
+        <div
           className="flex items-center justify-center h-32"
-          style={{ 
+          style={{
             backgroundColor: token.colorBgContainer,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
           <span style={{ fontSize: 48 }}>📄</span>
         </div>
       }
       styles={{
-        body: { padding: "16px" }
+        body: { padding: "16px" },
       }}
     >
       <Card.Meta
@@ -270,42 +264,48 @@ export function WorkflowMarketplace() {
         <Title level={5} className="m-0 mb-4">
           {myReview ? t("marketplace.yourReview") : t("marketplace.writeReview")}
         </Title>
-        {myReview ? (
-          <div className="space-y-2">
-            <Rate disabled value={myReview.rating} />
-            {myReview.comment && <p>{myReview.comment}</p>}
-            <Text type="secondary" className="text-xs">
-              {t("common.postedOn")} {formatDate(myReview.created_at)}
-            </Text>
-            <div className="flex gap-2 mt-2">
-              <Button
-                size="small"
-                onClick={() => {
-                  reviewForm.setFieldsValue({ rating: myReview.rating, comment: myReview.comment || "" });
-                }}
-              >
-                {t("common.edit")}
-              </Button>
-              <Button size="small" danger onClick={handleDeleteReview}>
-                {t("common.delete")}
-              </Button>
+        {myReview
+          ? (
+            <div className="space-y-2">
+              <Rate disabled value={myReview.rating} />
+              {myReview.comment && <p>{myReview.comment}</p>}
+              <Text type="secondary" className="text-xs">
+                {t("common.postedOn")} {formatDate(myReview.created_at)}
+              </Text>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  size="small"
+                  onClick={() => {
+                    reviewForm.setFieldsValue({ rating: myReview.rating, comment: myReview.comment || "" });
+                  }}
+                >
+                  {t("common.edit")}
+                </Button>
+                <Button size="small" danger onClick={handleDeleteReview}>
+                  {t("common.delete")}
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <Form form={reviewForm} onFinish={handleSubmitReview} layout="vertical">
-            <Form.Item name="rating" label={t("common.rating")} rules={[{ required: true, message: t("review.ratingRequired") }]}>
-              <Rate />
-            </Form.Item>
-            <Form.Item name="comment" label={t("common.comment")}>
-              <Input.TextArea rows={3} placeholder={t("review.commentPlaceholder")} />
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={submittingReview}>
-                {t("marketplace.submitReview")}
-              </Button>
-            </Form.Item>
-          </Form>
-        )}
+          )
+          : (
+            <Form form={reviewForm} onFinish={handleSubmitReview} layout="vertical">
+              <Form.Item
+                name="rating"
+                label={t("common.rating")}
+                rules={[{ required: true, message: t("review.ratingRequired") }]}
+              >
+                <Rate />
+              </Form.Item>
+              <Form.Item name="comment" label={t("common.comment")}>
+                <Input.TextArea rows={3} placeholder={t("review.commentPlaceholder")} />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" htmlType="submit" loading={submittingReview}>
+                  {t("marketplace.submitReview")}
+                </Button>
+              </Form.Item>
+            </Form>
+          )}
       </div>
 
       <Spin spinning={loadingReviews}>
@@ -336,11 +336,11 @@ export function WorkflowMarketplace() {
 
   return (
     <div className="flex h-full" style={{ backgroundColor: token.colorBgElevated }}>
-      <aside 
-        className="w-56 border-r p-4" 
-        style={{ 
+      <aside
+        className="w-56 border-r p-4"
+        style={{
           backgroundColor: token.colorBgContainer,
-          borderRight: `1px solid ${token.colorBorder}`
+          borderRight: `1px solid ${token.colorBorder}`,
         }}
       >
         <Title level={5} style={{ marginBottom: 16, marginTop: 0 }}>
@@ -370,7 +370,7 @@ export function WorkflowMarketplace() {
         </div>
       </aside>
 
-      <main 
+      <main
         className="flex-1 overflow-y-auto p-6"
         style={{ backgroundColor: token.colorBgContainer }}
       >
@@ -398,27 +398,29 @@ export function WorkflowMarketplace() {
               label: t("marketplace.templates"),
               children: (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-                  {filteredTemplates.length > 0 ? (
-                    filteredTemplates.map((t) => (
-                      <div key={t.id} style={{ position: "relative" }}>
-                        {renderTemplateCard(t)}
-                        <Button
-                          type="primary"
-                          icon={<DLOutlined />}
-                          style={{ position: "absolute", top: 8, right: 8 }}
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(t);
-                          }}
-                        />
+                  {filteredTemplates.length > 0
+                    ? (
+                      filteredTemplates.map((t) => (
+                        <div key={t.id} style={{ position: "relative" }}>
+                          {renderTemplateCard(t)}
+                          <Button
+                            type="primary"
+                            icon={<DLOutlined />}
+                            style={{ position: "absolute", top: 8, right: 8 }}
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(t);
+                            }}
+                          />
+                        </div>
+                      ))
+                    )
+                    : (
+                      <div style={{ gridColumn: "span 3" }}>
+                        <Empty description={t("marketplace.noTemplatesFound")} />
                       </div>
-                    ))
-                  ) : (
-                    <div style={{ gridColumn: "span 3" }}>
-                      <Empty description={t("marketplace.noTemplatesFound")} />
-                    </div>
-                  )}
+                    )}
                 </div>
               ),
             },
@@ -450,7 +452,8 @@ export function WorkflowMarketplace() {
           ]}
         />
       </main>
-      <style>{`
+      <style>
+        {`
         .marketplace-card {
           transition: border-color 0.2s, box-shadow 0.2s;
         }
@@ -458,7 +461,8 @@ export function WorkflowMarketplace() {
           border-color: ${token.colorPrimary} !important;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
-      `}</style>
+      `}
+      </style>
 
       <Modal
         title={selectedTemplate?.name}
@@ -519,9 +523,7 @@ export function WorkflowMarketplace() {
                         <div>
                           <Text type="secondary">{t("common.tags")}</Text>
                           <div className="flex gap-1 mt-1">
-                            {selectedTemplate.tags.map((tag) => (
-                              <Tag key={tag}>{tag}</Tag>
-                            ))}
+                            {selectedTemplate.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
                           </div>
                         </div>
                       )}

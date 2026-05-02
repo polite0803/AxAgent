@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Library,
   Link2,
+  type LucideIcon,
   MessageSquare,
   Network,
   Package,
@@ -25,7 +26,6 @@ import {
   Sparkles,
   Store,
   Wrench,
-  type LucideIcon,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -61,6 +61,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
 export function resolveIconComponent(iconStr: string): LucideIcon {
   const name = iconStr.startsWith("lucide:") ? iconStr.slice(7) : iconStr;
   const component = ICON_MAP[name];
-  if (component) return component;
+  if (component) { return component; }
   return Puzzle;
 }

@@ -28,23 +28,22 @@ function getSpanTypeColor(type_: SpanType): string {
 }
 
 function formatDuration(ms?: number): string {
-  if (!ms) return "-";
-  if (ms < 1000) return `${ms}ms`;
+  if (!ms) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
 export function Timeline({ spans }: TimelineProps) {
   const sortedSpans = [...spans].sort(
-    (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
   );
 
   const startTime = sortedSpans[0]?.start_time
     ? new Date(sortedSpans[0].start_time).getTime()
     : Date.now();
-  const endTime =
-    sortedSpans[sortedSpans.length - 1]?.end_time
-      ? new Date(sortedSpans[sortedSpans.length - 1].end_time!).getTime()
-      : Date.now();
+  const endTime = sortedSpans[sortedSpans.length - 1]?.end_time
+    ? new Date(sortedSpans[sortedSpans.length - 1].end_time!).getTime()
+    : Date.now();
   const totalDuration = endTime - startTime || 1;
 
   const getDepth = (span: Span): number => {
@@ -53,7 +52,7 @@ export function Timeline({ spans }: TimelineProps) {
     while (current.parent_span_id) {
       depth++;
       current = spans.find((s) => s.id === current.parent_span_id) || current;
-      if (depth > 20) break;
+      if (depth > 20) { break; }
     }
     return depth;
   };

@@ -90,10 +90,10 @@ describe("CodeExecutor", () => {
       });
 
       mockPyodide.runPythonAsync
-        .mockResolvedValueOnce(undefined)  // io 重定向 setup
-        .mockResolvedValueOnce(undefined)  // 用户代码
-        .mockResolvedValueOnce("hello python\n")  // stdout
-        .mockResolvedValueOnce("");  // stderr
+        .mockResolvedValueOnce(undefined) // io 重定向 setup
+        .mockResolvedValueOnce(undefined) // 用户代码
+        .mockResolvedValueOnce("hello python\n") // stdout
+        .mockResolvedValueOnce(""); // stderr
 
       const result = await codeExecutor.execute({
         language: "python",
@@ -206,7 +206,7 @@ describe("CodeExecutor", () => {
       });
 
       mockPyodide.runPythonAsync
-        .mockResolvedValueOnce(undefined)  // setup
+        .mockResolvedValueOnce(undefined) // setup
         .mockRejectedValueOnce(new Error("Python runtime error"));
 
       const result = await codeExecutor.execute({

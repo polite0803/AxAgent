@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
-import { Card, Table, Button, Space, Modal, Form, Input, message, Popconfirm } from "antd";
-import { PlusOutlined, DeleteOutlined, FileTextOutlined } from "@ant-design/icons";
+import { DeleteOutlined, FileTextOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Card, Form, Input, message, Modal, Popconfirm, Space, Table } from "antd";
+import { useEffect, useState } from "react";
 
 const { Column } = Table;
 
@@ -63,53 +63,55 @@ export function DatasetManager() {
           </Button>
         }
       >
-        {datasets.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No datasets found. Create one to get started.
-          </div>
-        ) : (
-          <Table
-            dataSource={datasets}
-            rowKey="id"
-            loading={isLoading}
-            pagination={false}
-          >
-            <Column title="Name" dataIndex="name" key="name" />
-            <Column title="Description" dataIndex="description" key="description" ellipsis />
-            <Column title="Samples" dataIndex="num_samples" key="num_samples" />
-            <Column
-              title="Created"
-              dataIndex="created_at"
-              key="created_at"
-              render={(date: string) => new Date(date).toLocaleDateString()}
-            />
-            <Column
-              title="Action"
-              key="action"
-              render={(_: unknown, record: { id: string }) => (
-                <Space>
-                  <Button
-                    size="small"
-                    icon={<FileTextOutlined />}
-                    onClick={() => openAddSampleModal(record.id)}
-                  >
-                    Add Sample
-                  </Button>
-                  <Popconfirm
-                    title="Delete this dataset?"
-                    onConfirm={() => handleDeleteDataset(record.id)}
-                    okText="Yes"
-                    cancelText="No"
-                  >
-                    <Button size="small" danger icon={<DeleteOutlined />}>
-                      Delete
+        {datasets.length === 0
+          ? (
+            <div className="text-center py-8 text-gray-500">
+              No datasets found. Create one to get started.
+            </div>
+          )
+          : (
+            <Table
+              dataSource={datasets}
+              rowKey="id"
+              loading={isLoading}
+              pagination={false}
+            >
+              <Column title="Name" dataIndex="name" key="name" />
+              <Column title="Description" dataIndex="description" key="description" ellipsis />
+              <Column title="Samples" dataIndex="num_samples" key="num_samples" />
+              <Column
+                title="Created"
+                dataIndex="created_at"
+                key="created_at"
+                render={(date: string) => new Date(date).toLocaleDateString()}
+              />
+              <Column
+                title="Action"
+                key="action"
+                render={(_: unknown, record: { id: string }) => (
+                  <Space>
+                    <Button
+                      size="small"
+                      icon={<FileTextOutlined />}
+                      onClick={() => openAddSampleModal(record.id)}
+                    >
+                      Add Sample
                     </Button>
-                  </Popconfirm>
-                </Space>
-              )}
-            />
-          </Table>
-        )}
+                    <Popconfirm
+                      title="Delete this dataset?"
+                      onConfirm={() => handleDeleteDataset(record.id)}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button size="small" danger icon={<DeleteOutlined />}>
+                        Delete
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                )}
+              />
+            </Table>
+          )}
       </Card>
 
       <Modal

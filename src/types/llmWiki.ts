@@ -72,7 +72,7 @@ export type LintResult = {
 };
 
 export type LintIssue = {
-  severity: 'Error' | 'Warning' | 'Info';
+  severity: "Error" | "Warning" | "Info";
   code: string;
   message: string;
   line?: number;
@@ -115,7 +115,7 @@ export type ValidationReport = {
 export type ValidationIssue = {
   noteId: string;
   title: string;
-  issueType: 'HashMismatch' | 'MissingInDatabase' | 'MissingInFilesystem' | 'OrphanInVectorStore';
+  issueType: "HashMismatch" | "MissingInDatabase" | "MissingInFilesystem" | "OrphanInVectorStore";
   message: string;
 };
 
@@ -124,7 +124,7 @@ export type SyncQueueItem = {
   wikiId: string;
   eventType: string;
   payload: Record<string, unknown>;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   retryCount: number;
   createdAt: number;
   processedAt?: number;

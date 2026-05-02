@@ -7,9 +7,9 @@ import {
   GatewayTemplates,
   QuickConnectCycleIcon,
 } from "@/components/gateway";
+import { GatewayMonitor } from "@/components/gateway/GatewayMonitor";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { useGatewayStore } from "@/stores";
-import { GatewayMonitor } from "@/components/gateway/GatewayMonitor";
 import { Tabs } from "antd";
 import { Activity, BarChart3, Gauge, Key, ScrollText, Settings } from "lucide-react";
 import { useCallback, useState } from "react";

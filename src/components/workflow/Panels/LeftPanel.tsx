@@ -1,10 +1,10 @@
-import { useTranslation } from "react-i18next";
 import { useWorkflowEditorStore } from "@/stores";
 import { Input, Tabs, Tag } from "antd";
 import { FileText, Search } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { type DragPayload, setDragPayload } from "../dndState";
 import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
-import { setDragPayload, type DragPayload } from "../dndState";
 
 export const LeftPanel: React.FC = () => {
   const { t } = useTranslation();
@@ -16,7 +16,7 @@ export const LeftPanel: React.FC = () => {
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent, nodeType: string, nodeLabel: string) => {
-      if (event.button !== 0) return;
+      if (event.button !== 0) { return; }
 
       event.preventDefault();
 
@@ -47,7 +47,7 @@ export const LeftPanel: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!isDragging) return;
+    if (!isDragging) { return; }
 
     const handleMouseMove = (e: MouseEvent) => {
       if (ghostRef.current) {
@@ -111,7 +111,7 @@ export const LeftPanel: React.FC = () => {
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                 <Input
                   prefix={<Search size={14} style={{ color: "#666" }} />}
-                   placeholder={t("workflow.leftPanel.searchNodes")}
+                  placeholder={t("workflow.leftPanel.searchNodes")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   style={{ margin: "8px", width: "auto" }}
@@ -178,7 +178,7 @@ export const LeftPanel: React.FC = () => {
               <div style={{ padding: "8px" }}>
                 <Input
                   prefix={<Search size={14} style={{ color: "#666" }} />}
-                   placeholder={t("workflow.leftPanel.searchTemplates")}
+                  placeholder={t("workflow.leftPanel.searchTemplates")}
                   style={{ marginBottom: 8 }}
                   size="small"
                 />

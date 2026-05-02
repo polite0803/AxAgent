@@ -1,5 +1,5 @@
 import type { SubAgentCardData } from "@/types/agent";
-import { LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined, RightOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import "./SubAgentCard.css";
 
@@ -27,13 +27,20 @@ function hashColor(str: string): string {
 
 function getAgentIcon(agentType: string): string {
   switch (agentType) {
-    case "explore": return "🔍";
-    case "general": return "🔧";
-    case "build": return "🏗";
-    case "plan": return "📋";
-    case "research": return "🔬";
-    case "review": return "✅";
-    default: return "🤖";
+    case "explore":
+      return "🔍";
+    case "general":
+      return "🔧";
+    case "build":
+      return "🏗";
+    case "plan":
+      return "📋";
+    case "research":
+      return "🔬";
+    case "review":
+      return "✅";
+    default:
+      return "🤖";
   }
 }
 
@@ -57,7 +64,9 @@ export function SubAgentCard({ card }: SubAgentCardProps) {
 
   return (
     <div
-      className={`sub-agent-card ${isRunning ? "sub-agent-card--running" : ""} ${isCompleted ? "sub-agent-card--completed" : ""} ${isFailed ? "sub-agent-card--failed" : ""}`}
+      className={`sub-agent-card ${isRunning ? "sub-agent-card--running" : ""} ${
+        isCompleted ? "sub-agent-card--completed" : ""
+      } ${isFailed ? "sub-agent-card--failed" : ""}`}
       onClick={handleClick}
       style={{ cursor: isRunning ? "default" : "pointer" }}
       data-component="sub-agent-card"

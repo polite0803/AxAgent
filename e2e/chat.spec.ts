@@ -58,7 +58,7 @@ test.describe("Settings", () => {
 
   test("should save theme preference", async ({ page }) => {
     // Navigate to display settings via the sidebar
-    const displayNav = page.locator('.ant-menu-item').filter({ hasText: /显示|display|appearance|theme/i }).first();
+    const displayNav = page.locator(".ant-menu-item").filter({ hasText: /显示|display|appearance|theme/i }).first();
     await displayNav.click();
 
     // The dark mode segmented control should now be visible

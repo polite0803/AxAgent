@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
 import { useRLStore } from "@/stores/devtools/rlStore";
-import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, message } from "antd";
-import { PlusOutlined, DeleteOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlayCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Card, Form, Input, message, Modal, Select, Space, Table, Tag } from "antd";
+import React, { useEffect } from "react";
 
 const { Column } = Table;
 
@@ -84,9 +84,12 @@ export function PolicyDashboard() {
           pagination={false}
         >
           <Column title="Name" dataIndex="name" key="name" />
-          <Column title="Type" dataIndex="policy_type" key="policy_type" render={(type: string) => (
-            <Tag color="blue">{type}</Tag>
-          )} />
+          <Column
+            title="Type"
+            dataIndex="policy_type"
+            key="policy_type"
+            render={(type: string) => <Tag color="blue">{type}</Tag>}
+          />
           <Column title="Experiences" dataIndex="total_experiences" key="total_experiences" />
           <Column title="Avg Reward" dataIndex="avg_reward" key="avg_reward" render={(r: number) => r.toFixed(2)} />
           <Column

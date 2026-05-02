@@ -41,13 +41,55 @@ interface NavItem {
 }
 
 const builtinNavItems: NavItem[] = [
-  { key: "chat", icon: <MessageSquare size={18} color={NAV_ICON_COLORS.MessageSquare} />, labelKey: "nav.chat", path: "/", isPlugin: false },
-  { key: "skills", icon: <Sparkles size={18} color={NAV_ICON_COLORS.Sparkles} />, labelKey: "nav.skills", path: "/skills", isPlugin: false },
-  { key: "knowledge", icon: <BookOpen size={18} color={NAV_ICON_COLORS.BookOpen} />, labelKey: "nav.knowledge", path: "/knowledge", isPlugin: false },
-  { key: "memory", icon: <Brain size={18} color={NAV_ICON_COLORS.Brain} />, labelKey: "nav.memory", path: "/memory", isPlugin: false },
-  { key: "link", icon: <Link2 size={18} color={NAV_ICON_COLORS.Link2} />, labelKey: "nav.link", path: "/link", isPlugin: false },
-  { key: "gateway", icon: <Router size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.gateway", path: "/gateway", isPlugin: false },
-  { key: "files", icon: <FolderOpen size={18} color={NAV_ICON_COLORS.FolderOpen} />, labelKey: "nav.files", path: "/files", isPlugin: false },
+  {
+    key: "chat",
+    icon: <MessageSquare size={18} color={NAV_ICON_COLORS.MessageSquare} />,
+    labelKey: "nav.chat",
+    path: "/",
+    isPlugin: false,
+  },
+  {
+    key: "skills",
+    icon: <Sparkles size={18} color={NAV_ICON_COLORS.Sparkles} />,
+    labelKey: "nav.skills",
+    path: "/skills",
+    isPlugin: false,
+  },
+  {
+    key: "knowledge",
+    icon: <BookOpen size={18} color={NAV_ICON_COLORS.BookOpen} />,
+    labelKey: "nav.knowledge",
+    path: "/knowledge",
+    isPlugin: false,
+  },
+  {
+    key: "memory",
+    icon: <Brain size={18} color={NAV_ICON_COLORS.Brain} />,
+    labelKey: "nav.memory",
+    path: "/memory",
+    isPlugin: false,
+  },
+  {
+    key: "link",
+    icon: <Link2 size={18} color={NAV_ICON_COLORS.Link2} />,
+    labelKey: "nav.link",
+    path: "/link",
+    isPlugin: false,
+  },
+  {
+    key: "gateway",
+    icon: <Router size={18} color={NAV_ICON_COLORS.Router} />,
+    labelKey: "nav.gateway",
+    path: "/gateway",
+    isPlugin: false,
+  },
+  {
+    key: "files",
+    icon: <FolderOpen size={18} color={NAV_ICON_COLORS.FolderOpen} />,
+    labelKey: "nav.files",
+    path: "/files",
+    isPlugin: false,
+  },
 ];
 
 const EXPANDED_WIDTH = 180;

@@ -1,6 +1,6 @@
+import { invoke } from "@/lib/invoke";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { invoke } from "@/lib/invoke";
 
 export interface ThemeMetadata {
   name: string;
@@ -180,12 +180,22 @@ export const useThemeStore = create<ThemeState>()(
         set({ isLoading: true, error: null });
         try {
           const themeList = await invoke<ThemeMetadata[]>(
-            "list_themes"
+            "list_themes",
           );
           const builtInThemes: ThemeMetadata[] = [
-            { name: "default", version: "1.0.0", author: "AxAgent Team", description: "Default Catppuccin Mocha theme" },
+            {
+              name: "default",
+              version: "1.0.0",
+              author: "AxAgent Team",
+              description: "Default Catppuccin Mocha theme",
+            },
             { name: "monokai", version: "1.0.0", author: "Wimer Hazenberg", description: "Monokai color scheme" },
-            { name: "gruvbox", version: "1.0.0", author: "github.com/morhetz/gruvbox", description: "Gruvbox dark theme" },
+            {
+              name: "gruvbox",
+              version: "1.0.0",
+              author: "github.com/morhetz/gruvbox",
+              description: "Gruvbox dark theme",
+            },
             { name: "catppuccin-mocha", version: "1.0.0", author: "Catppuccin", description: "Catppuccin Mocha theme" },
           ];
           set({ themes: [...builtInThemes, ...themeList], isLoading: false });
@@ -230,7 +240,7 @@ export const useThemeStore = create<ThemeState>()(
           return BUILT_IN_THEMES[themeName];
         }
         const customTheme = get().customThemes.find(
-          (t) => t.metadata.name === themeName
+          (t) => t.metadata.name === themeName,
         );
         return customTheme?.colors || null;
       },
@@ -240,8 +250,8 @@ export const useThemeStore = create<ThemeState>()(
       partialize: (state) => ({
         currentTheme: state.currentTheme,
       }),
-    }
-  )
+    },
+  ),
 );
 
 export function applyThemeToDocument(themeName: string) {

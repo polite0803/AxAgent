@@ -5,11 +5,20 @@ import { exportAsJSON, exportAsMarkdown, exportAsPNG, exportAsText } from "@/lib
 import { invoke } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
-import { useCategoryStore, useConversationStore, useKnowledgeStore, useProviderStore, useSettingsStore, useStreamStore, useUIStore, useWorkflowEditorStore } from "@/stores";
+import {
+  useCategoryStore,
+  useConversationStore,
+  useKnowledgeStore,
+  useProviderStore,
+  useSettingsStore,
+  useStreamStore,
+  useUIStore,
+  useWorkflowEditorStore,
+} from "@/stores";
 import type { AvatarType } from "@/stores";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import type { Conversation, ConversationCategory, Message } from "@/types";
 import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
-import { useExpertStore } from "@/stores/feature/expertStore";
 import Conversations from "@ant-design/x/es/conversations";
 import type { ConversationItemType } from "@ant-design/x/es/conversations/interface";
 import {
@@ -784,7 +793,14 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
 
       // Add expert category groups (for conversations with expert_role_id but no category_id)
       const expertCategoryOrder: string[] = [
-        "development", "security", "data", "devops", "design", "writing", "business", "general",
+        "development",
+        "security",
+        "data",
+        "devops",
+        "design",
+        "writing",
+        "business",
+        "general",
       ];
       expertCategoryOrder.forEach((expertCat) => {
         const expertConvs = convsByExpertCat.get(expertCat);
@@ -1345,7 +1361,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
 
   return (
     <div className="flex flex-col h-full transition-all duration-200">
-        {/* Toolbar */}
+      {/* Toolbar */}
       <div
         className="flex items-center justify-between"
         style={{
@@ -1386,7 +1402,13 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                 )
                 : (
                   <>
-                    <Button type="text" icon={<ArrowLeft size={16} />} size="small" onClick={handleBackFromArchived} style={{ color: token.colorPrimary }} />
+                    <Button
+                      type="text"
+                      icon={<ArrowLeft size={16} />}
+                      size="small"
+                      onClick={handleBackFromArchived}
+                      style={{ color: token.colorPrimary }}
+                    />
                     <span style={{ fontSize: 13, fontWeight: 500 }}>
                       {t("chat.archived")} ({archivedConversations.length})
                     </span>
@@ -1397,7 +1419,13 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             ? (
               <>
                 <Tooltip title={t("common.cancel")}>
-                  <Button type="text" icon={<X size={16} />} size="small" onClick={exitMultiSelect} style={{ color: token.colorPrimary }} />
+                  <Button
+                    type="text"
+                    icon={<X size={16} />}
+                    size="small"
+                    onClick={exitMultiSelect}
+                    style={{ color: token.colorPrimary }}
+                  />
                 </Tooltip>
                 <Tooltip title={t("chat.selectAll")}>
                   <Checkbox

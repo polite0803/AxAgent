@@ -1,7 +1,7 @@
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import { Select, Typography } from "antd";
 import type { Benchmark } from "@/types/evaluator";
 import { getCategoryLabel } from "@/types/evaluator";
+import { Select, Typography } from "antd";
 
 const { Text } = Typography;
 

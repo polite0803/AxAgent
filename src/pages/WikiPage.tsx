@@ -1,13 +1,13 @@
-import { useWikiStore } from "@/stores/feature/wikiStore";
-import { theme } from "antd";
-import { useEffect, useState } from "react";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
-import { WikiEditorPage } from "./WikiEditorPage";
+import { useWikiStore } from "@/stores/feature/wikiStore";
 import { NoteSearchResult } from "@/types";
-import { Input, List, Empty, Button, Space } from "antd";
-import { useTranslation } from "react-i18next";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { theme } from "antd";
+import { Button, Empty, Input, List, Space } from "antd";
 import { BookOpen } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { WikiEditorPage } from "./WikiEditorPage";
 
 const DEFAULT_VAULT_ID = "default";
 
@@ -71,7 +71,7 @@ export function WikiPage() {
   };
 
   const handleCreateNote = () => {
-    if (!selectedVaultId) return;
+    if (!selectedVaultId) { return; }
     const now = Date.now();
     createNote({
       vaultId: selectedVaultId,
@@ -89,79 +89,81 @@ export function WikiPage() {
 
   return (
     <div className="h-full flex" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>
-      {!selectedNoteId ? (
-        <>
-          <WikiSidebar
-            notes={displayNotes}
-            selectedNoteId={selectedNoteId}
-            onSelectNote={handleSelectNote}
-            onCreateNote={handleCreateNote}
-            loading={loading}
-          />
-          {error && (
-            <div className="px-3 py-2 text-xs text-red-500 bg-red-50 border-b border-red-200">
-              {error}
-            </div>
-          )}
-          <div className="flex-1 flex flex-col overflow-hidden border-l" style={{ borderColor: token.colorBorderSecondary }}>
-            <div className="p-4 border-b" style={{ borderColor: token.colorBorderSecondary }}>
-              <Space className="w-full" direction="vertical" size="small">
-                <div className="flex items-center gap-2">
-                  <Input.Search
-                    placeholder={t("wiki.searchPlaceholder", "Search notes...")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    loading={isSearching}
-                    allowClear
-                    className="flex-1"
-                  />
-                  {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
-                    <Button
-                      size="small"
-                      icon={<BookOpen size={14} />}
-                      onClick={() => navigate(`/llm-wiki?wikiId=${wikiIdFromUrl}`)}
-                    >
-                      {t("wiki.manage", "Manage")}
-                    </Button>
-                  )}
-                </div>
-                {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
-                  <div className="text-xs" style={{ color: token.colorTextSecondary }}>
-                    {t("wiki.viewingWiki", "Viewing Wiki: {{id}}", { id: wikiIdFromUrl })}
+      {!selectedNoteId
+        ? (
+          <>
+            <WikiSidebar
+              notes={displayNotes}
+              selectedNoteId={selectedNoteId}
+              onSelectNote={handleSelectNote}
+              onCreateNote={handleCreateNote}
+              loading={loading}
+            />
+            {error && (
+              <div className="px-3 py-2 text-xs text-red-500 bg-red-50 border-b border-red-200">
+                {error}
+              </div>
+            )}
+            <div
+              className="flex-1 flex flex-col overflow-hidden border-l"
+              style={{ borderColor: token.colorBorderSecondary }}
+            >
+              <div className="p-4 border-b" style={{ borderColor: token.colorBorderSecondary }}>
+                <Space className="w-full" direction="vertical" size="small">
+                  <div className="flex items-center gap-2">
+                    <Input.Search
+                      placeholder={t("wiki.searchPlaceholder", "Search notes...")}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      loading={isSearching}
+                      allowClear
+                      className="flex-1"
+                    />
+                    {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
+                      <Button
+                        size="small"
+                        icon={<BookOpen size={14} />}
+                        onClick={() => navigate(`/llm-wiki?wikiId=${wikiIdFromUrl}`)}
+                      >
+                        {t("wiki.manage", "Manage")}
+                      </Button>
+                    )}
                   </div>
-                )}
-              </Space>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              {displayNotes.length === 0 ? (
-                <Empty description={t("wiki.emptyNotes", "No notes yet")} />
-              ) : (
-                <List
-                  dataSource={displayNotes}
-                  renderItem={(note) => (
-                    <List.Item
-                      onClick={() => handleSelectNote(note.id)}
-                      className="cursor-pointer hover:bg-black/5 px-3 py-2 rounded"
-                      style={{ borderRadius: token.borderRadius }}
-                    >
-                      <List.Item.Meta
-                        title={note.title}
-                        description={
-                          <span className="text-xs" style={{ color: token.colorTextSecondary }}>
-                            {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} • {note.filePath}
-                          </span>
-                        }
-                      />
-                    </List.Item>
+                  {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
+                    <div className="text-xs" style={{ color: token.colorTextSecondary }}>
+                      {t("wiki.viewingWiki", "Viewing Wiki: {{id}}", { id: wikiIdFromUrl })}
+                    </div>
                   )}
-                />
-              )}
+                </Space>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes", "No notes yet")} /> : (
+                  <List
+                    dataSource={displayNotes}
+                    renderItem={(note) => (
+                      <List.Item
+                        onClick={() => handleSelectNote(note.id)}
+                        className="cursor-pointer hover:bg-black/5 px-3 py-2 rounded"
+                        style={{ borderRadius: token.borderRadius }}
+                      >
+                        <List.Item.Meta
+                          title={note.title}
+                          description={
+                            <span className="text-xs" style={{ color: token.colorTextSecondary }}>
+                              {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} •{" "}
+                              {note.filePath}
+                            </span>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        </>
-      ) : (
-        <WikiEditorPage noteId={selectedNoteId} onBack={handleBack} />
-      )}
+          </>
+        )
+        : <WikiEditorPage noteId={selectedNoteId} onBack={handleBack} />}
     </div>
   );
 }

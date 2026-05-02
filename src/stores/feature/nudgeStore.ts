@@ -1,7 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import type { FeedbackSource, FeedbackType, LearningInsight, Nudge, NudgeStats, PeriodicNudge } from "@/types/nudge";
-import { create } from "zustand";
 import type { ContextPrediction, ProactiveSuggestion } from "@/types/proactive";
+import { create } from "zustand";
 
 interface NudgeStore {
   // Pending nudges for the current session
@@ -214,9 +214,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
     try {
       await invoke("proactive_accept_suggestion", { id });
       set((state) => ({
-        proactiveSuggestions: state.proactiveSuggestions.map((s) =>
-          s.id === id ? { ...s, accepted: true } : s
-        ),
+        proactiveSuggestions: state.proactiveSuggestions.map((s) => s.id === id ? { ...s, accepted: true } : s),
       }));
     } catch (e) {
       console.warn("[nudgeStore] Failed to accept proactive suggestion:", e);

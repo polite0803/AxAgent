@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
-import { useTranslation } from "react-i18next";
-import { GitBranch, Clock, Hash, Cpu, MemoryStick, Wifi, WifiOff } from "lucide-react";
 import { invoke } from "@/lib/invoke";
+import { Clock, Cpu, GitBranch, Hash, MemoryStick, Wifi, WifiOff } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface StatusBarInfo {
   gitBranch?: string;
@@ -64,7 +64,7 @@ export function StatusBarWidget({
   const [startTime] = useState(Date.now());
 
   useEffect(() => {
-    if (!showTimer) return;
+    if (!showTimer) { return; }
 
     const interval = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
@@ -78,7 +78,9 @@ export function StatusBarWidget({
       try {
         const [gitBranch, sessionStatus, systemInfo] = await Promise.all([
           showGit ? invoke<string | null>("git_get_branch").catch(() => null) : Promise.resolve(null),
-          sessionId ? invoke<StatusBarInfo>("session_get_status", { sessionId }).catch(() => ({})) : Promise.resolve({}),
+          sessionId
+            ? invoke<StatusBarInfo>("session_get_status", { sessionId }).catch(() => ({}))
+            : Promise.resolve({}),
           showSystem ? invoke<StatusBarInfo>("system_get_info").catch(() => ({})) : Promise.resolve({}),
         ]);
 
@@ -107,7 +109,7 @@ export function StatusBarWidget({
         icon={<GitBranch size={12} />}
         label={status.gitBranch}
         color="#a6e3a1"
-      />
+      />,
     );
   }
 
@@ -118,7 +120,7 @@ export function StatusBarWidget({
         icon={<Clock size={12} />}
         label={formatDuration(elapsedTime)}
         color="#f9e2af"
-      />
+      />,
     );
   }
 
@@ -130,7 +132,7 @@ export function StatusBarWidget({
           icon={<Hash size={12} />}
           label={formatTokens(status.tokenCount)}
           color="#89b4fa"
-        />
+        />,
       );
     } else if (status.inputTokens !== undefined || status.outputTokens !== undefined) {
       const inTokens = status.inputTokens || 0;
@@ -141,7 +143,7 @@ export function StatusBarWidget({
           icon={<Hash size={12} />}
           label={`${formatTokens(inTokens)} / ${formatTokens(outTokens)}`}
           color="#89b4fa"
-        />
+        />,
       );
     }
   }
@@ -154,7 +156,7 @@ export function StatusBarWidget({
           icon={<Cpu size={12} />}
           label={`${status.cpuUsage.toFixed(0)}%`}
           color={status.cpuUsage > 80 ? "#f38ba8" : "#94e2d5"}
-        />
+        />,
       );
     }
 
@@ -165,7 +167,7 @@ export function StatusBarWidget({
           icon={<MemoryStick size={12} />}
           label={`${status.memoryUsage.toFixed(0)}%`}
           color={status.memoryUsage > 80 ? "#f38ba8" : "#94e2d5"}
-        />
+        />,
       );
     }
 
@@ -176,7 +178,7 @@ export function StatusBarWidget({
           icon={status.networkStatus === "connected" ? <Wifi size={12} /> : <WifiOff size={12} />}
           label={status.networkStatus === "connected" ? t("terminal.online") : t("terminal.offline")}
           color={status.networkStatus === "connected" ? "#a6e3a1" : "#f38ba8"}
-        />
+        />,
       );
     }
   }
@@ -188,7 +190,7 @@ export function StatusBarWidget({
         icon={<span style={{ fontSize: 10, fontWeight: "bold" }}>#</span>}
         label={`${status.activeSessions}`}
         color="#f5c2e7"
-      />
+      />,
     );
   }
 
@@ -299,7 +301,7 @@ export function useSessionTimer() {
   }, []);
 
   useEffect(() => {
-    if (!isRunning || !startTime) return;
+    if (!isRunning || !startTime) { return; }
 
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTime) / 1000));

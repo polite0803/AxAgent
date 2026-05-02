@@ -7,7 +7,7 @@ export function SkillPanels() {
   const headerPanels = panels.filter((p) => p.position === "Header");
   const footerPanels = panels.filter((p) => p.position === "Footer");
 
-  if (panels.length === 0) return null;
+  if (panels.length === 0) { return null; }
 
   return (
     <>

@@ -1,5 +1,10 @@
 import { invoke } from "@/lib/invoke";
-import type { CreatePromptTemplateInput, PromptTemplate, PromptTemplateVersion, UpdatePromptTemplateInput } from "@/types";
+import type {
+  CreatePromptTemplateInput,
+  PromptTemplate,
+  PromptTemplateVersion,
+  UpdatePromptTemplateInput,
+} from "@/types";
 import { create } from "zustand";
 
 interface PromptTemplateState {

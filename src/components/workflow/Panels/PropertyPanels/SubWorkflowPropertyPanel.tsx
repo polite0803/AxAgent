@@ -1,6 +1,6 @@
+import { useWorkflowEditorStore } from "@/stores";
 import { Divider, Input, Select, Switch } from "antd";
 import React, { useEffect, useMemo } from "react";
-import { useWorkflowEditorStore } from "@/stores";
 import type { SubWorkflowNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 

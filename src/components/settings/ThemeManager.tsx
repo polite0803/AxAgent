@@ -1,29 +1,8 @@
-import {
-  Button,
-  Card,
-  Form,
-  Input,
-  List,
-  message,
-  Modal,
-  Popconfirm,
-  Space,
-  Typography,
-} from "antd";
-import {
-  Check,
-  Copy,
-  Delete,
-  RefreshCw,
-  Upload,
-} from "lucide-react";
+import { Theme, ThemeColors, useThemeStore } from "@/stores/feature/themeStore";
+import { Button, Card, Form, Input, List, message, Modal, Popconfirm, Space, Typography } from "antd";
+import { Check, Copy, Delete, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Theme,
-  ThemeColors,
-  useThemeStore,
-} from "@/stores/feature/themeStore";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -173,10 +152,10 @@ colors:
         const [key, ...valueParts] = line.split(":");
         const value = valueParts.join(":").trim().replace(/"/g, "");
 
-        if (key === "name") result.metadata.name = value;
-        else if (key === "version") result.metadata.version = value;
-        else if (key === "author") result.metadata.author = value;
-        else if (key === "description") result.metadata.description = value;
+        if (key === "name") { result.metadata.name = value; }
+        else if (key === "version") { result.metadata.version = value; }
+        else if (key === "author") { result.metadata.author = value; }
+        else if (key === "description") { result.metadata.description = value; }
         else if (key && value) {
           const cleanKey = key.replace(/-/g, "");
           if (result.colors && cleanKey in result.colors) {
@@ -208,7 +187,7 @@ colors:
   };
 
   const builtInThemes = themes.filter(
-    (t) => !customThemes.some((ct) => ct.metadata.name === t.name)
+    (t) => !customThemes.some((ct) => ct.metadata.name === t.name),
   );
 
   const getThemeColors = (themeName: string): ThemeColors | null => {
@@ -304,7 +283,7 @@ colors:
     }
 
     const customTheme = customThemes.find(
-      (t) => t.metadata.name === themeName
+      (t) => t.metadata.name === themeName,
     );
     return customTheme?.colors || null;
   };
@@ -338,17 +317,16 @@ colors:
       <div className="grid grid-cols-4 gap-4 mb-8">
         {builtInThemes.map((theme) => {
           const colors = getThemeColors(theme.name);
-          if (!colors) return null;
+          if (!colors) { return null; }
           return (
             <Card
               key={theme.name}
               hoverable
               onClick={() => handleThemeSelect(theme.name)}
               style={{
-                border:
-                  currentTheme === theme.name
-                    ? "2px solid #89b4fa"
-                    : "1px solid #45475a",
+                border: currentTheme === theme.name
+                  ? "2px solid #89b4fa"
+                  : "1px solid #45475a",
                 background: colors.background,
               }}
             >
@@ -364,9 +342,7 @@ colors:
                 <Text style={{ color: colors.foreground, fontSize: 13 }}>
                   {theme.name}
                 </Text>
-                {currentTheme === theme.name && (
-                  <Check size={16} color="#a6e3a1" />
-                )}
+                {currentTheme === theme.name && <Check size={16} color="#a6e3a1" />}
               </div>
               {theme.description && (
                 <Text
@@ -395,10 +371,9 @@ colors:
                     hoverable
                     onClick={() => handleThemeSelect(theme.metadata.name)}
                     style={{
-                      border:
-                        currentTheme === theme.metadata.name
-                          ? "2px solid #89b4fa"
-                          : "1px solid #45475a",
+                      border: currentTheme === theme.metadata.name
+                        ? "2px solid #89b4fa"
+                        : "1px solid #45475a",
                       background: colors.background,
                     }}
                   >

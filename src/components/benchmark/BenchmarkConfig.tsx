@@ -1,5 +1,5 @@
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import { Slider, Switch, Select } from "antd";
+import { Select, Slider, Switch } from "antd";
 
 export function BenchmarkConfig() {
   const { config, setConfig } = useEvaluatorStore();

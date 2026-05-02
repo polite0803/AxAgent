@@ -1,30 +1,30 @@
-import { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  Card,
-  Timeline,
-  Collapse,
-  Table,
-  Tag,
-  Space,
-  Typography,
-  Badge,
-  Statistic,
-  Row,
-  Col,
-  Progress,
-  Switch,
-} from "antd";
 import {
   BugOutlined,
-  ClockCircleOutlined,
-  ThunderboltOutlined,
   CheckCircleOutlined,
+  ClockCircleOutlined,
   CloseCircleOutlined,
   LoadingOutlined,
   PauseCircleOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
+import {
+  Badge,
+  Card,
+  Col,
+  Collapse,
+  Progress,
+  Row,
+  Space,
+  Statistic,
+  Switch,
+  Table,
+  Tag,
+  Timeline,
+  Typography,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -172,11 +172,11 @@ function calculateMetrics(executions: NodeExecution[]): PerformanceMetrics {
 
   const maxNode = durations.reduce(
     (max, curr) => (curr.duration > max.duration ? curr : max),
-    { nodeName: "", duration: 0 }
+    { nodeName: "", duration: 0 },
   );
   const minNode = durations.reduce(
     (min, curr) => (curr.duration < min.duration ? curr : min),
-    { nodeName: "", duration: Infinity }
+    { nodeName: "", duration: Infinity },
   );
 
   return {
@@ -192,8 +192,8 @@ function calculateMetrics(executions: NodeExecution[]): PerformanceMetrics {
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 1000) { return `${ms}ms`; }
+  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -238,9 +238,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
     {
       title: "Duration",
       key: "duration",
-      render: (_, record) => (
-        <Text type="secondary">{record.duration ? formatDuration(record.duration) : "-"}</Text>
-      ),
+      render: (_, record) => <Text type="secondary">{record.duration ? formatDuration(record.duration) : "-"}</Text>,
     },
     {
       title: "Retries",
@@ -393,14 +391,12 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
                 <Text type="secondary">Fastest Node</Text>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress
-                    percent={
-                      metrics.minNodeDuration.duration > 0
-                        ? Math.min(
-                            100,
-                            (metrics.minNodeDuration.duration / metrics.totalDuration) * 100
-                          )
-                        : 0
-                    }
+                    percent={metrics.minNodeDuration.duration > 0
+                      ? Math.min(
+                        100,
+                        (metrics.minNodeDuration.duration / metrics.totalDuration) * 100,
+                      )
+                      : 0}
                     size="small"
                     format={() => formatDuration(metrics.minNodeDuration.duration)}
                   />
@@ -415,20 +411,20 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
           <Card size="small" className="mt-4" title={t("workflow.debug.selectedNodeDetails")}>
             {(() => {
               const node = trace.nodeExecutions.find((n) => n.nodeId === selectedNode);
-              if (!node) return null;
+              if (!node) { return null; }
               return (
                 <div className="space-y-3">
                   <div>
-                    <Text type="secondary">Node: </Text>
+                    <Text type="secondary">Node:</Text>
                     <Text strong>{node.nodeName}</Text>
                   </div>
                   <div>
-                    <Text type="secondary">Type: </Text>
+                    <Text type="secondary">Type:</Text>
                     <Tag>{node.nodeType}</Tag>
                   </div>
                   {node.error && (
                     <div>
-                      <Text type="secondary">Error: </Text>
+                      <Text type="secondary">Error:</Text>
                       <Text type="danger">{node.error}</Text>
                     </div>
                   )}

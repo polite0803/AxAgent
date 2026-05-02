@@ -1,31 +1,8 @@
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_LABELS, type ExpertCategory, type ExpertRole } from "@/types/expert";
-import {
-  Button,
-  Card,
-  Input,
-  Modal,
-  Popover,
-  Space,
-  Tag,
-  Typography,
-  App,
-  Select,
-  Empty,
-} from "antd";
-import {
-  Check,
-  Download,
-  Upload,
-  Trash2,
-  Pencil,
-  Search,
-  Plus,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { App, Button, Card, Empty, Input, Modal, Popover, Select, Space, Tag, Typography } from "antd";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Download, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 const { Text } = Typography;
 
@@ -99,9 +76,9 @@ export function ExpertListView({
       const query = searchQuery.toLowerCase();
       roles = roles.filter(
         (r) =>
-          r.displayName.toLowerCase().includes(query) ||
-          r.description.toLowerCase().includes(query) ||
-          r.tags.some((t) => t.toLowerCase().includes(query))
+          r.displayName.toLowerCase().includes(query)
+          || r.description.toLowerCase().includes(query)
+          || r.tags.some((t) => t.toLowerCase().includes(query)),
       );
     }
 
@@ -141,7 +118,7 @@ export function ExpertListView({
     const result: Record<string, ExpertRole[]> = {};
     for (const role of filteredRoles) {
       const key = groupBy === "category" ? role.category : role.source;
-      if (!result[key]) result[key] = [];
+      if (!result[key]) { result[key] = []; }
       result[key].push(role);
     }
     return result;
@@ -164,7 +141,7 @@ export function ExpertListView({
   };
 
   const handleImport = async () => {
-    if (!importText.trim()) return;
+    if (!importText.trim()) { return; }
     setImporting(true);
     try {
       const result = importCustomRoles(importText);
@@ -200,7 +177,7 @@ export function ExpertListView({
   };
 
   const handleSaveEdit = () => {
-    if (!editingRole) return;
+    if (!editingRole) { return; }
     const store = useExpertStore.getState();
     store.updateCustomRole(editingRole);
     app.message.success("已保存");
@@ -252,7 +229,7 @@ export function ExpertListView({
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortConfig.field !== field) return <ArrowUpDown size={12} opacity={0.4} />;
+    if (sortConfig.field !== field) { return <ArrowUpDown size={12} opacity={0.4} />; }
     return sortConfig.direction === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />;
   };
 
@@ -286,7 +263,11 @@ export function ExpertListView({
         style={{
           cursor: showSelectMode ? "pointer" : "default",
           border: isSelected ? "1.5px solid var(--color-border-info)" : undefined,
-          background: isSelected ? "var(--color-background-info)" : isDefault ? "var(--color-background-secondary)" : undefined,
+          background: isSelected
+            ? "var(--color-background-info)"
+            : isDefault
+            ? "var(--color-background-secondary)"
+            : undefined,
           opacity: canEdit || canDelete ? 1 : 0.85,
         }}
         bodyStyle={{ padding: 12 }}
@@ -345,7 +326,16 @@ export function ExpertListView({
                 <Popover
                   title={`${role.icon} ${role.displayName} - 能力详情`}
                   content={
-                    <div style={{ maxWidth: 400, maxHeight: 240, overflowY: "auto", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                    <div
+                      style={{
+                        maxWidth: 400,
+                        maxHeight: 240,
+                        overflowY: "auto",
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
                       {role.systemPrompt}
                     </div>
                   }
@@ -386,7 +376,10 @@ export function ExpertListView({
             value={selectedCategory}
             onChange={setSelectedCategory}
             style={{ width: 100 }}
-            options={[{ value: "all", label: "全部分类" }, ...categories.map((c) => ({ value: c, label: EXPERT_CATEGORY_LABELS[c] }))]}
+            options={[
+              { value: "all", label: "全部分类" },
+              ...categories.map((c) => ({ value: c, label: EXPERT_CATEGORY_LABELS[c] })),
+            ]}
           />
           <Select
             value={selectedSource}
@@ -423,24 +416,39 @@ export function ExpertListView({
           )}
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11, color: "var(--color-text-secondary)" }}>
+        <div
+          style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11, color: "var(--color-text-secondary)" }}
+        >
           <span>排序：</span>
-          <Button type="link" size="small" style={{ fontSize: 11, padding: "0 4px", height: 20 }} onClick={() => toggleSort("displayName")}>
+          <Button
+            type="link"
+            size="small"
+            style={{ fontSize: 11, padding: "0 4px", height: 20 }}
+            onClick={() => toggleSort("displayName")}
+          >
             名称 <SortIcon field="displayName" />
           </Button>
-          <Button type="link" size="small" style={{ fontSize: 11, padding: "0 4px", height: 20 }} onClick={() => toggleSort("category")}>
+          <Button
+            type="link"
+            size="small"
+            style={{ fontSize: 11, padding: "0 4px", height: 20 }}
+            onClick={() => toggleSort("category")}
+          >
             分类 <SortIcon field="category" />
           </Button>
-          <Button type="link" size="small" style={{ fontSize: 11, padding: "0 4px", height: 20 }} onClick={() => toggleSort("source")}>
+          <Button
+            type="link"
+            size="small"
+            style={{ fontSize: 11, padding: "0 4px", height: 20 }}
+            onClick={() => toggleSort("source")}
+          >
             来源 <SortIcon field="source" />
           </Button>
           <span style={{ marginLeft: 8 }}>共 {filteredRoles.length} 个专家</span>
         </div>
 
         <div style={{ maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }} data-os-scrollbar>
-          {Object.keys(grouped).length === 0 ? (
-            <Empty description="没有找到匹配的专家" style={{ marginTop: 40 }} />
-          ) : (
+          {Object.keys(grouped).length === 0 ? <Empty description="没有找到匹配的专家" style={{ marginTop: 40 }} /> : (
             Object.entries(grouped).map(([key, roles]) => (
               <div key={key} style={{ marginBottom: 16 }}>
                 <Text
@@ -457,7 +465,7 @@ export function ExpertListView({
                   {groupBy === "category"
                     ? EXPERT_CATEGORY_LABELS[key as ExpertCategory] ?? key
                     : SOURCE_LABELS[key]?.label ?? key}
-                  <span style={{ fontWeight: 400, opacity: 0.6 }}> ({roles!.length})</span>
+                  <span style={{ fontWeight: 400, opacity: 0.6 }}>({roles!.length})</span>
                 </Text>
                 <div
                   style={{
@@ -527,8 +535,9 @@ export function ExpertListView({
               <Input
                 value={showAddModal ? newRole.id : editingRole?.id}
                 onChange={(e) =>
-                  showAddModal ? setNewRole({ ...newRole, id: e.target.value }) : setEditingRole({ ...editingRole!, id: e.target.value })
-                }
+                  showAddModal
+                    ? setNewRole({ ...newRole, id: e.target.value })
+                    : setEditingRole({ ...editingRole!, id: e.target.value })}
                 placeholder="唯一标识，如 my-expert"
                 disabled={!showAddModal}
               />
@@ -538,8 +547,9 @@ export function ExpertListView({
               <Input
                 value={showAddModal ? newRole.icon : editingRole?.icon}
                 onChange={(e) =>
-                  showAddModal ? setNewRole({ ...newRole, icon: e.target.value }) : setEditingRole({ ...editingRole!, icon: e.target.value })
-                }
+                  showAddModal
+                    ? setNewRole({ ...newRole, icon: e.target.value })
+                    : setEditingRole({ ...editingRole!, icon: e.target.value })}
                 placeholder="emoji，如 🤖"
                 style={{ width: 80 }}
               />
@@ -550,8 +560,9 @@ export function ExpertListView({
             <Input
               value={showAddModal ? newRole.displayName : editingRole?.displayName}
               onChange={(e) =>
-                showAddModal ? setNewRole({ ...newRole, displayName: e.target.value }) : setEditingRole({ ...editingRole!, displayName: e.target.value })
-              }
+                showAddModal
+                  ? setNewRole({ ...newRole, displayName: e.target.value })
+                  : setEditingRole({ ...editingRole!, displayName: e.target.value })}
               placeholder="专家的显示名称"
             />
           </div>
@@ -560,8 +571,9 @@ export function ExpertListView({
             <Input.TextArea
               value={showAddModal ? newRole.description : editingRole?.description}
               onChange={(e) =>
-                showAddModal ? setNewRole({ ...newRole, description: e.target.value }) : setEditingRole({ ...editingRole!, description: e.target.value })
-              }
+                showAddModal
+                  ? setNewRole({ ...newRole, description: e.target.value })
+                  : setEditingRole({ ...editingRole!, description: e.target.value })}
               rows={2}
               placeholder="一句话描述专家职责"
             />
@@ -572,8 +584,9 @@ export function ExpertListView({
               <Select
                 value={showAddModal ? newRole.category : editingRole?.category}
                 onChange={(val) =>
-                  showAddModal ? setNewRole({ ...newRole, category: val }) : setEditingRole({ ...editingRole!, category: val })
-                }
+                  showAddModal
+                    ? setNewRole({ ...newRole, category: val })
+                    : setEditingRole({ ...editingRole!, category: val })}
                 style={{ width: "100%" }}
                 options={categories.map((c) => ({ value: c, label: EXPERT_CATEGORY_LABELS[c] }))}
               />
@@ -595,8 +608,9 @@ export function ExpertListView({
             <Input.TextArea
               value={showAddModal ? newRole.systemPrompt : editingRole?.systemPrompt}
               onChange={(e) =>
-                showAddModal ? setNewRole({ ...newRole, systemPrompt: e.target.value }) : setEditingRole({ ...editingRole!, systemPrompt: e.target.value })
-              }
+                showAddModal
+                  ? setNewRole({ ...newRole, systemPrompt: e.target.value })
+                  : setEditingRole({ ...editingRole!, systemPrompt: e.target.value })}
               rows={6}
               placeholder="定义专家行为的系统提示词..."
             />

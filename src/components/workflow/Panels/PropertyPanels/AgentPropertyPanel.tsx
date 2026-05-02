@@ -1,10 +1,10 @@
+import { ExpertSelector } from "@/components/chat/ExpertSelector";
+import { ModelSelect } from "@/components/shared/ModelSelect";
+import { useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import { Button, Divider, Input, InputNumber, Select, Tag } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ModelSelect } from "@/components/shared/ModelSelect";
-import { ExpertSelector } from "@/components/chat/ExpertSelector";
-import { useExpertStore } from "@/stores/feature/expertStore";
-import { useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
 import type { AgentNode, AgentRole, OutputMode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -49,7 +49,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
   const toolOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [];
     for (const group of toolGroups) {
-      if (!group.enabled) continue;
+      if (!group.enabled) { continue; }
       for (const tool of group.tools) {
         options.push({ value: tool.toolName, label: `${group.groupName} / ${tool.toolName}` });
       }
@@ -63,7 +63,10 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     ];
     for (const kb of knowledgeBases) {
       if (kb.enabled) {
-        options.push({ value: `knowledge_base::${kb.id}`, label: t("workflow.props.contextKnowledgeBase", { name: kb.name }) });
+        options.push({
+          value: `knowledge_base::${kb.id}`,
+          label: t("workflow.props.contextKnowledgeBase", { name: kb.name }),
+        });
       }
     }
     return options;
@@ -76,7 +79,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.agentRole")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.agentRole")}
+        </label>
         <Select
           value={config.role}
           onChange={(value) => handleConfigChange("role", value)}
@@ -94,7 +99,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.expertRole") || "专家角色"}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.expertRole") || "专家角色"}
+        </label>
         {selectedExpert
           ? (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -120,17 +127,19 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <ExpertSelector
-          open={expertSelectorOpen}
-          selectedRoleId={config.expertRoleId ?? null}
-          onSelect={(roleId) => {
-            handleConfigChange("expertRoleId", roleId);
-            setExpertSelectorOpen(false);
-          }}
-          onClose={() => setExpertSelectorOpen(false)}
-        />
+        open={expertSelectorOpen}
+        selectedRoleId={config.expertRoleId ?? null}
+        onSelect={(roleId) => {
+          handleConfigChange("expertRoleId", roleId);
+          setExpertSelectorOpen(false);
+        }}
+        onClose={() => setExpertSelectorOpen(false)}
+      />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.systemPrompt")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.systemPrompt")}
+        </label>
         <Input.TextArea
           value={config.system_prompt || ""}
           onChange={(e) => handleConfigChange("system_prompt", e.target.value)}
@@ -141,7 +150,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.model")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.model")}
+        </label>
         <ModelSelect
           value={config.model || undefined}
           onChange={(value) => handleConfigChange("model", value || "")}
@@ -153,7 +164,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.temperature")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.temperature")}
+          </label>
           <InputNumber
             value={config.temperature ?? 0.7}
             onChange={(value) => handleConfigChange("temperature", value)}
@@ -165,7 +178,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxTokens")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.maxTokens")}
+          </label>
           <InputNumber
             value={config.max_tokens ?? 2048}
             onChange={(value) => handleConfigChange("max_tokens", value)}
@@ -179,7 +194,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputMode")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.outputMode")}
+        </label>
         <Select
           value={config.output_mode}
           onChange={(value) => handleConfigChange("output_mode", value)}
@@ -194,7 +211,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.outputVariable")}
+        </label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}

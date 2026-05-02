@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Popconfirm, Switch, Table, Tag, Typography, App } from "antd";
+import { App, Button, Input, Modal, Popconfirm, Switch, Table, Tag, Typography } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { SettingsGroup } from "./SettingsGroup";
@@ -37,7 +37,12 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       message.error("Name, schedule, and prompt are required");
       return;
     }
-    onAdd({ name: name.trim(), schedule: schedule.trim(), prompt: prompt.trim(), platform: platform.trim() || undefined });
+    onAdd({
+      name: name.trim(),
+      schedule: schedule.trim(),
+      prompt: prompt.trim(),
+      platform: platform.trim() || undefined,
+    });
     setName("");
     setSchedule("");
     setPrompt("");
@@ -75,8 +80,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       title: "Last Run",
       dataIndex: "last_run_at",
       key: "last_run_at",
-      render: (t: number | null) =>
-        t ? new Date(t).toLocaleString() : <Text type="secondary">Never</Text>,
+      render: (t: number | null) => t ? new Date(t).toLocaleString() : <Text type="secondary">Never</Text>,
     },
     {
       title: "Status",

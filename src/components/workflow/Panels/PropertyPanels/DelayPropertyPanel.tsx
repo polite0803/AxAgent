@@ -98,7 +98,9 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayType")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.delayType")}
+        </label>
         <Select
           value={config.delay_type}
           onChange={(value) => handleConfigChange("delay_type", value)}

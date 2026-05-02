@@ -190,7 +190,9 @@ export function TitleBar() {
           }
         }
       })
-      .catch((e: unknown) => { console.warn('[IPC]', e); });
+      .catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
 
     invoke<Array<{ createdAt: string }>>("list_backups")
       .then((list) => {
@@ -200,7 +202,9 @@ export function TitleBar() {
           if (!Number.isNaN(d.getTime())) { setLastLocalBackup(d.toLocaleString()); }
         }
       })
-      .catch((e: unknown) => { console.warn('[IPC]', e); });
+      .catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backupPopoverOpen]);
 
@@ -334,7 +338,9 @@ export function TitleBar() {
     if (key === "feature") { url = `${GITHUB_REPO}/issues/new?labels=enhancement&template=feature_request.yml`; }
     else if (key === "bug") { url = `${GITHUB_REPO}/issues/new?labels=bug&template=bug_report.yml`; }
     if (isTauri()) {
-      import("@tauri-apps/plugin-opener").then(({ openUrl }) => openUrl(url)).catch(() => window.open(url, "_blank", "noopener,noreferrer"));
+      import("@tauri-apps/plugin-opener").then(({ openUrl }) => openUrl(url)).catch(() =>
+        window.open(url, "_blank", "noopener,noreferrer")
+      );
     } else {
       window.open(url, "_blank", "noopener,noreferrer");
     }
@@ -619,11 +625,13 @@ export function TitleBar() {
               items: [
                 ...githubMenuItems as any,
                 { type: "divider" },
-                ...(isTauri() ? [{
-                  key: "checkUpdate",
-                  icon: <ArrowDownCircle size={12} color={TITLEBAR_ICON_COLORS.ArrowDownCircle} />,
-                  label: t("settings.checkUpdate"),
-                }] : []),
+                ...(isTauri()
+                  ? [{
+                    key: "checkUpdate",
+                    icon: <ArrowDownCircle size={12} color={TITLEBAR_ICON_COLORS.ArrowDownCircle} />,
+                    label: t("settings.checkUpdate"),
+                  }]
+                  : []),
                 {
                   key: "reload",
                   icon: <RotateCcw size={12} color={TITLEBAR_ICON_COLORS.RotateCcw} />,
@@ -631,9 +639,9 @@ export function TitleBar() {
                 },
               ],
               onClick: ({ key }) => {
-                if (key === "reload") handleReload();
-                else if (key === "checkUpdate") handleCheckUpdate();
-                else handleGithubClick({ key } as any);
+                if (key === "reload") { handleReload(); }
+                else if (key === "checkUpdate") { handleCheckUpdate(); }
+                else { handleGithubClick({ key } as any); }
               },
             }}
             trigger={["click"]}

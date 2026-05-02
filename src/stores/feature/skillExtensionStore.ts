@@ -4,9 +4,9 @@ import type {
   SkillFrontendExtension,
   SkillNavItem,
   SkillPage,
+  SkillSettingsSection,
   SkillUICommand,
   SkillUIPanel,
-  SkillSettingsSection,
 } from "@/types";
 import { create } from "zustand";
 
@@ -64,7 +64,7 @@ function mergeExtensions(skills: Skill[]): {
   const settingsSections: MergedSettingsSection[] = [];
 
   for (const skill of skills) {
-    if (!skill.frontend) continue;
+    if (!skill.frontend) { continue; }
 
     for (const nav of skill.frontend.navigation) {
       navItems.push({ ...nav, skillName: skill.name });

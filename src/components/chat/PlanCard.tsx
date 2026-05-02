@@ -128,8 +128,8 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
   const toggleStep = useCallback((stepId: string) => {
     setExpandedSteps((prev) => {
       const next = new Set(prev);
-      if (next.has(stepId)) next.delete(stepId);
-      else next.add(stepId);
+      if (next.has(stepId)) { next.delete(stepId); }
+      else { next.add(stepId); }
       return next;
     });
   }, []);
@@ -164,18 +164,16 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
             {plan.title || t("plan.defaultTitle", "Execution Plan")}
           </span>
           <Tag
-            color={
-              isReviewing ? "purple" : isExecuting ? "blue" : isCompleted ? "green" : "default"
-            }
+            color={isReviewing ? "purple" : isExecuting ? "blue" : isCompleted ? "green" : "default"}
             style={{ fontSize: 11, lineHeight: "18px" }}
           >
             {isReviewing
               ? t("plan.status.reviewing", "Reviewing")
               : isExecuting
-                ? t("plan.status.executing", "Executing")
-                : isCompleted
-                  ? t("plan.status.completed", "Completed")
-                  : plan.status}
+              ? t("plan.status.executing", "Executing")
+              : isCompleted
+              ? t("plan.status.completed", "Completed")
+              : plan.status}
           </Tag>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -278,13 +276,13 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                   color: step.status === "completed"
                     ? "#fff"
                     : step.status === "running"
-                      ? "#fff"
-                      : config.color,
+                    ? "#fff"
+                    : config.color,
                   backgroundColor: step.status === "completed"
                     ? "#52c41a"
                     : step.status === "running"
-                      ? "#1890ff"
-                      : "transparent",
+                    ? "#1890ff"
+                    : "transparent",
                   border: step.status === "pending" || step.status === "approved"
                     ? `2px solid ${config.color}`
                     : "none",
@@ -293,10 +291,10 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                 {step.status === "running"
                   ? <LoadingOutlined style={{ fontSize: 12 }} />
                   : step.status === "completed"
-                    ? <CheckCircleFilled style={{ fontSize: 14 }} />
-                    : step.status === "error"
-                      ? <CloseCircleFilled style={{ fontSize: 14 }} />
-                      : index + 1}
+                  ? <CheckCircleFilled style={{ fontSize: 14 }} />
+                  : step.status === "error"
+                  ? <CloseCircleFilled style={{ fontSize: 14 }} />
+                  : index + 1}
               </div>
 
               {/* Step content */}

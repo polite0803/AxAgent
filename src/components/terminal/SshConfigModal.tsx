@@ -21,7 +21,7 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
   const [keyPath, setKeyPath] = useState("");
 
   const handleConnect = () => {
-    if (!host.trim()) return;
+    if (!host.trim()) { return; }
     onConnect({ host: host.trim(), port, username: username.trim(), keyPath: keyPath.trim() });
     onClose();
   };

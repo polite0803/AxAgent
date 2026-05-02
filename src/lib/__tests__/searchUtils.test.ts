@@ -45,7 +45,7 @@ describe("buildSearchTag", () => {
   it("returns searching tag for 'searching' status", () => {
     const tag = buildSearchTag("searching");
     expect(tag).toContain('<web-search status="searching"');
-    expect(tag).toContain("data-axagent=\"1\"");
+    expect(tag).toContain('data-axagent="1"');
   });
 
   it("returns error tag for 'error' status", () => {
@@ -93,7 +93,7 @@ describe("parseSearchContent", () => {
   });
 
   it("handles missing separator — falls back to content after marker", () => {
-    const content = "<!-- search:{\"sources\":[]} -->\nsome content";
+    const content = '<!-- search:{"sources":[]} -->\nsome content';
     const result = parseSearchContent(content);
     expect(result.hasSearch).toBe(true);
     // Falls back to content after marker end — includes leading \n from original

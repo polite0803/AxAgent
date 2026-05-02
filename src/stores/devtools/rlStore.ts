@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { create } from "zustand";
 
 export interface RLPolicy {
   id: string;
@@ -42,7 +42,7 @@ export const useRLStore = create<{
     taskType: string,
     toolId: string,
     toolName: string,
-    reward: number
+    reward: number,
   ) => Promise<void>;
   exportModel: (policyId: string, path: string) => Promise<string | null>;
   importModel: (path: string) => Promise<RLPolicy | null>;
@@ -141,7 +141,7 @@ export const useRLStore = create<{
     taskType: string,
     toolId: string,
     toolName: string,
-    reward: number
+    reward: number,
   ) => {
     try {
       await invoke("rl_record_experience", { taskId, taskType, toolId, toolName, reward });

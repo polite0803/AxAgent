@@ -38,7 +38,9 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.inputVariable")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.inputVariable")}
+        </label>
         <Input
           value={config.input_var || ""}
           onChange={(e) => handleConfigChange("input_var", e.target.value)}
@@ -48,7 +50,9 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.parserType")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.parserType")}
+        </label>
         <Select
           value={config.parser_type}
           onChange={(value) => handleConfigChange("parser_type", value)}
@@ -59,7 +63,9 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.outputVariable")}
+        </label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}

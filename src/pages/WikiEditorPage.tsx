@@ -1,10 +1,10 @@
 import { useWikiStore } from "@/stores/feature/wikiStore";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, message, Spin, theme, Popconfirm, Modal } from "antd";
-import { ArrowLeft } from "lucide-react";
-import { SaveOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useTranslation } from "react-i18next";
 import type { Note } from "@/types";
+import { DeleteOutlined, SaveOutlined } from "@ant-design/icons";
+import { Button, message, Modal, Popconfirm, Spin, theme } from "antd";
+import { ArrowLeft } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface WikiEditorPageProps {
   noteId: string;
@@ -50,29 +50,29 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   // #15: Ctrl+S 快捷键
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
         handleSave();
       }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   });
 
   // #15: 自动保存（3 秒空闲后触发）
   useEffect(() => {
-    if (!hasChanges || saving) return;
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    if (!hasChanges || saving) { return; }
+    if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
     autoSaveTimerRef.current = setTimeout(() => {
       handleSave();
     }, 3000);
     return () => {
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
     };
   }, [content, title]);
 
   const handleSave = async () => {
-    if (!note || !hasChanges) return;
+    if (!note || !hasChanges) { return; }
     setSaving(true);
     try {
       const updated = await updateNote(note.id, { title, content });

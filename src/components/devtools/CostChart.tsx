@@ -7,8 +7,8 @@ interface CostChartProps {
 }
 
 function formatTokens(tokens: number): string {
-  if (tokens < 1000) return `${tokens}`;
-  if (tokens < 1000000) return `${(tokens / 1000).toFixed(1)}K`;
+  if (tokens < 1000) { return `${tokens}`; }
+  if (tokens < 1000000) { return `${(tokens / 1000).toFixed(1)}K`; }
   return `${(tokens / 1000000).toFixed(1)}M`;
 }
 

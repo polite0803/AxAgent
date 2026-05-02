@@ -26,7 +26,7 @@ function getWorker(): Worker {
     _worker.onmessage = (event: MessageEvent<{ id: number; result?: unknown; error?: string }>) => {
       const { id, result, error } = event.data;
       const task = _pending.get(id);
-      if (!task) return;
+      if (!task) { return; }
       _pending.delete(id);
       if (error) {
         task.reject(new Error(error));
@@ -56,7 +56,7 @@ function postTask<T>(type: TaskType, payload: unknown): Promise<T> {
 
 /** Estimate tokens for a text string in a Web Worker (non-blocking). */
 export async function estimateTokensAsync(text: string): Promise<number> {
-  if (!text) return 0;
+  if (!text) { return 0; }
   // For very short texts, do it synchronously to avoid worker overhead
   if (text.length < 500) {
     return Math.max(1, Math.ceil(text.length / 4));
@@ -67,7 +67,7 @@ export async function estimateTokensAsync(text: string): Promise<number> {
 
 /** Process markdown (strip axagent tags) in a Web Worker. */
 export async function processMarkdownAsync(text: string, stripTags = true): Promise<string> {
-  if (!text) return "";
+  if (!text) { return ""; }
   if (text.length < 1000) {
     // Inline for small texts
     if (stripTags) {

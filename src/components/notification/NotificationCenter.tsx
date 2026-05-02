@@ -1,21 +1,5 @@
-import {
-  Badge,
-  Button,
-  Empty,
-  List,
-  Popover,
-  Space,
-  Typography,
-} from "antd";
-import {
-  Bell,
-  Check,
-  CheckCheck,
-  Info,
-  AlertTriangle,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Badge, Button, Empty, List, Popover, Space, Typography } from "antd";
+import { AlertTriangle, Bell, Check, CheckCheck, Info, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -62,9 +46,7 @@ export default function NotificationCenter({ trigger }: NotificationCenterProps)
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
   const handleMarkAllAsRead = () => {
@@ -109,9 +91,9 @@ export default function NotificationCenter({ trigger }: NotificationCenterProps)
     const now = Date.now();
     const diff = now - timestamp;
 
-    if (diff < 60000) return t("notification.justNow");
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} ${t("notification.minutesAgo")}`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} ${t("notification.hoursAgo")}`;
+    if (diff < 60000) { return t("notification.justNow"); }
+    if (diff < 3600000) { return `${Math.floor(diff / 60000)} ${t("notification.minutesAgo")}`; }
+    if (diff < 86400000) { return `${Math.floor(diff / 3600000)} ${t("notification.hoursAgo")}`; }
     return new Date(timestamp).toLocaleDateString();
   };
 
@@ -154,89 +136,91 @@ export default function NotificationCenter({ trigger }: NotificationCenterProps)
         </Space>
       </div>
 
-      {notifications.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("notification.empty")}
-          style={{ padding: 40 }}
-        />
-      ) : (
-        <List
-          dataSource={notifications}
-          renderItem={(notification) => (
-            <List.Item
-              style={{
-                padding: "12px 16px",
-                background: notification.read ? "transparent" : "var(--surface-hover)",
-                cursor: "pointer",
-                borderLeft: `3px solid ${getColor(notification.type)}`,
-              }}
-              onClick={() => handleMarkAsRead(notification.id)}
-            >
-              <div style={{ width: "100%" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <Space>
-                    {getIcon(notification.type)}
-                    <div>
-                      <Text strong style={{ display: "block" }}>
-                        {notification.title}
-                      </Text>
-                      {notification.message && (
-                        <Text
-                          type="secondary"
-                          style={{ fontSize: 12, display: "block" }}
-                        >
-                          {notification.message}
-                        </Text>
-                      )}
-                    </div>
-                  </Space>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<X size={12} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDismiss(notification.id);
+      {notifications.length === 0
+        ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("notification.empty")}
+            style={{ padding: 40 }}
+          />
+        )
+        : (
+          <List
+            dataSource={notifications}
+            renderItem={(notification) => (
+              <List.Item
+                style={{
+                  padding: "12px 16px",
+                  background: notification.read ? "transparent" : "var(--surface-hover)",
+                  cursor: "pointer",
+                  borderLeft: `3px solid ${getColor(notification.type)}`,
+                }}
+                onClick={() => handleMarkAsRead(notification.id)}
+              >
+                <div style={{ width: "100%" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
                     }}
-                    style={{ marginLeft: 8 }}
-                  />
-                </div>
-                <div
-                  style={{
-                    marginTop: 4,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary" style={{ fontSize: 11 }}>
-                    {formatTime(notification.timestamp)}
-                  </Text>
-                  {notification.action && (
+                  >
+                    <Space>
+                      {getIcon(notification.type)}
+                      <div>
+                        <Text strong style={{ display: "block" }}>
+                          {notification.title}
+                        </Text>
+                        {notification.message && (
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 12, display: "block" }}
+                          >
+                            {notification.message}
+                          </Text>
+                        )}
+                      </div>
+                    </Space>
                     <Button
-                      type="link"
+                      type="text"
                       size="small"
+                      icon={<X size={12} />}
                       onClick={(e) => {
                         e.stopPropagation();
-                        notification.action?.onClick();
+                        handleDismiss(notification.id);
                       }}
-                    >
-                      {notification.action.label}
-                    </Button>
-                  )}
+                      style={{ marginLeft: 8 }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 4,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      {formatTime(notification.timestamp)}
+                    </Text>
+                    {notification.action && (
+                      <Button
+                        type="link"
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          notification.action?.onClick();
+                        }}
+                      >
+                        {notification.action.label}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </List.Item>
-          )}
-        />
-      )}
+              </List.Item>
+            )}
+          />
+        )}
     </div>
   );
 
@@ -280,6 +264,6 @@ export function addNotification(notification: Omit<Notification, "id" | "timesta
   localStorage.setItem("axagent-notifications", JSON.stringify(existing));
 
   window.dispatchEvent(
-    new CustomEvent("axagent:notification", { detail: newNotification })
+    new CustomEvent("axagent:notification", { detail: newNotification }),
   );
 }

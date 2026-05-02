@@ -106,9 +106,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
     try {
       await invoke("pty_kill_session", { id });
       set((state) => ({
-        sessions: state.sessions.map((s) =>
-          s.id === id ? { ...s, status: "exited" as PtySessionStatus } : s,
-        ),
+        sessions: state.sessions.map((s) => s.id === id ? { ...s, status: "exited" as PtySessionStatus } : s),
       }));
     } catch (e: unknown) {
       set({ error: String(e) });
@@ -125,8 +123,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
         delete newAnalysis[id];
         return {
           sessions: state.sessions.filter((s) => s.id !== id),
-          activeSessionId:
-            state.activeSessionId === id ? null : state.activeSessionId,
+          activeSessionId: state.activeSessionId === id ? null : state.activeSessionId,
           outputBuffers: newBuffers,
           analysis: newAnalysis,
         };
@@ -150,9 +147,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
     try {
       await invoke("pty_resize", { id, rows, cols });
       set((state) => ({
-        sessions: state.sessions.map((s) =>
-          s.id === id ? { ...s, rows, cols } : s,
-        ),
+        sessions: state.sessions.map((s) => s.id === id ? { ...s, rows, cols } : s),
       }));
     } catch (e: unknown) {
       set({ error: String(e) });

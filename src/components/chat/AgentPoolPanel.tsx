@@ -1,18 +1,7 @@
 import { useAgentStore } from "@/stores";
 import type { AgentPoolItem, AgentPoolSummary, WorkerMessage } from "@/types/agent";
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  LoadingOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  SkipForward,
-} from "lucide-react";
+import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
+import { AlertTriangle, ChevronDown, ChevronRight, Clock, SkipForward } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AgentPoolPanel.css";
@@ -55,11 +44,11 @@ function getTypeColor(type: string, agentType?: string): string {
 function getTypeIcon(type: string, agentType?: string): string {
   switch (type) {
     case "sub_agent":
-      if (agentType === "explore") return "🔍";
-      if (agentType === "build") return "🏗";
-      if (agentType === "plan") return "📋";
-      if (agentType === "research") return "🔬";
-      if (agentType === "review") return "✅";
+      if (agentType === "explore") { return "🔍"; }
+      if (agentType === "build") { return "🏗"; }
+      if (agentType === "plan") { return "📋"; }
+      if (agentType === "research") { return "🔬"; }
+      if (agentType === "review") { return "✅"; }
       return "🔧";
     case "worker":
       return "⚡";
@@ -110,7 +99,7 @@ function StatusBadge({ status }: { status: AgentPoolItem["status"] }) {
 
 function WorkerMessageLog({ messages }: { messages?: WorkerMessage[] }) {
   const [expanded, setExpanded] = useState(false);
-  if (!messages || messages.length === 0) return null;
+  if (!messages || messages.length === 0) { return null; }
 
   return (
     <div className="worker-msg-log">
@@ -168,9 +157,9 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
 
   return (
     <div
-      className={`pool-item ${isRunning ? "pool-item--running" : ""} ${
-        isCompleted ? "pool-item--completed" : ""
-      } ${isFailed ? "pool-item--failed" : ""}`}
+      className={`pool-item ${isRunning ? "pool-item--running" : ""} ${isCompleted ? "pool-item--completed" : ""} ${
+        isFailed ? "pool-item--failed" : ""
+      }`}
       onClick={handleClick}
       style={{ cursor: isRunning ? "default" : item.type === "sub_agent" ? "pointer" : "default" }}
       data-component="agent-pool-item"
@@ -213,9 +202,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
 
       {/* 元信息 */}
       <div className="pool-item__meta">
-        {item.agentRole && (
-          <span className="pool-item__role">{item.agentRole}</span>
-        )}
+        {item.agentRole && <span className="pool-item__role">{item.agentRole}</span>}
         {item.duration !== undefined && isCompleted && (
           <span className="pool-item__duration">
             {(item.duration / 1000).toFixed(1)}s
@@ -246,7 +233,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
 // ---------------------------------------------------------------------------
 
 function PoolSummaryBar({ summary }: { summary: AgentPoolSummary }) {
-  if (summary.total === 0) return null;
+  if (summary.total === 0) { return null; }
 
   return (
     <div className="pool-summary">
@@ -302,21 +289,19 @@ export function AgentPoolPanel({ conversationId, visible = true }: AgentPoolPane
     return items.sort((a, b) => {
       const aHasDeps = (a.dependsOn?.length || 0) > 0;
       const bHasDeps = (b.dependsOn?.length || 0) > 0;
-      if (aHasDeps && !bHasDeps) return 1;
-      if (!aHasDeps && bHasDeps) return -1;
+      if (aHasDeps && !bHasDeps) { return 1; }
+      if (!aHasDeps && bHasDeps) { return -1; }
       return (a.startedAt || 0) - (b.startedAt || 0);
     });
   }, [pool]);
 
-  if (!visible || pool.length === 0) return null;
+  if (!visible || pool.length === 0) { return null; }
 
   return (
     <div className="agent-pool-panel" data-component="agent-pool-panel">
       <PoolSummaryBar summary={summary} />
       <div className="pool-items">
-        {sorted.map((item) => (
-          <PoolItemCard key={item.id} item={item} />
-        ))}
+        {sorted.map((item) => <PoolItemCard key={item.id} item={item} />)}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
-import { Button, Card, Popconfirm, Statistic, Table, Tag } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
+import { Button, Card, Popconfirm, Statistic, Table, Tag } from "antd";
 import { Activity, BarChart3, Clock, Server } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -46,13 +46,17 @@ export function GatewayMonitor() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleClearLogs = async () => {
     try {
       await invoke("clear_gateway_request_logs");
       setLogs([]);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const formatUptime = (s: number) => {
@@ -62,17 +66,35 @@ export function GatewayMonitor() {
   };
 
   const logColumns = [
-    { title: "时间", dataIndex: "timestamp", key: "ts", width: 160,
-      render: (t: string) => new Date(t).toLocaleString() },
-    { title: "方法", dataIndex: "method", key: "method", width: 70,
-      render: (m: string) => <Tag color={m === "POST" ? "blue" : "green"}>{m}</Tag> },
+    {
+      title: "时间",
+      dataIndex: "timestamp",
+      key: "ts",
+      width: 160,
+      render: (t: string) => new Date(t).toLocaleString(),
+    },
+    {
+      title: "方法",
+      dataIndex: "method",
+      key: "method",
+      width: 70,
+      render: (m: string) => <Tag color={m === "POST" ? "blue" : "green"}>{m}</Tag>,
+    },
     { title: "路径", dataIndex: "path", key: "path", ellipsis: true },
-    { title: "状态", dataIndex: "status", key: "status", width: 70,
-      render: (s: number) => <Tag color={s < 300 ? "green" : s < 500 ? "orange" : "red"}>{s}</Tag> },
-    { title: "延迟", dataIndex: "duration_ms", key: "dur", width: 70,
-      render: (d: number) => `${d}ms` },
-    { title: "Token", key: "tokens", width: 100,
-      render: (_: unknown, r: RequestLog) => `${r.tokens_in}+${r.tokens_out}` },
+    {
+      title: "状态",
+      dataIndex: "status",
+      key: "status",
+      width: 70,
+      render: (s: number) => <Tag color={s < 300 ? "green" : s < 500 ? "orange" : "red"}>{s}</Tag>,
+    },
+    { title: "延迟", dataIndex: "duration_ms", key: "dur", width: 70, render: (d: number) => `${d}ms` },
+    {
+      title: "Token",
+      key: "tokens",
+      width: 100,
+      render: (_: unknown, r: RequestLog) => `${r.tokens_in}+${r.tokens_out}`,
+    },
   ];
 
   return (
@@ -87,16 +109,36 @@ export function GatewayMonitor() {
 
       {/* 指标卡片 */}
       {metrics && (
-        <div style={{
-          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12, marginBottom: 20,
-        }}>
-          <Card size="small"><Statistic title="总请求" value={metrics.total_requests} prefix={<Activity size={16} />} /></Card>
-          <Card size="small"><Statistic title="总 Token" value={metrics.total_tokens} prefix={<BarChart3 size={16} />} /></Card>
-          <Card size="small"><Statistic title="活跃连接" value={metrics.active_connections} prefix={<Server size={16} />} /></Card>
-          <Card size="small"><Statistic title="平均延迟" value={metrics.avg_latency_ms} suffix="ms" precision={0} /></Card>
-          <Card size="small"><Statistic title="错误数" value={metrics.error_count} valueStyle={{ color: metrics.error_count > 0 ? "#ff4d4f" : undefined }} /></Card>
-          <Card size="small"><Statistic title="运行时间" value={formatUptime(metrics.uptime_seconds)} prefix={<Clock size={16} />} /></Card>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <Card size="small">
+            <Statistic title="总请求" value={metrics.total_requests} prefix={<Activity size={16} />} />
+          </Card>
+          <Card size="small">
+            <Statistic title="总 Token" value={metrics.total_tokens} prefix={<BarChart3 size={16} />} />
+          </Card>
+          <Card size="small">
+            <Statistic title="活跃连接" value={metrics.active_connections} prefix={<Server size={16} />} />
+          </Card>
+          <Card size="small">
+            <Statistic title="平均延迟" value={metrics.avg_latency_ms} suffix="ms" precision={0} />
+          </Card>
+          <Card size="small">
+            <Statistic
+              title="错误数"
+              value={metrics.error_count}
+              valueStyle={{ color: metrics.error_count > 0 ? "#ff4d4f" : undefined }}
+            />
+          </Card>
+          <Card size="small">
+            <Statistic title="运行时间" value={formatUptime(metrics.uptime_seconds)} prefix={<Clock size={16} />} />
+          </Card>
         </div>
       )}
 

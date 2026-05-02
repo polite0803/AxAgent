@@ -1,10 +1,10 @@
+import { ModelSelect } from "@/components/shared/ModelSelect";
+import { usePromptTemplateStore, useProviderStore } from "@/stores";
+import type { PromptTemplate } from "@/types";
 import { Button, Input, InputNumber, message, Modal } from "antd";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ModelSelect } from "@/components/shared/ModelSelect";
-import { useProviderStore, usePromptTemplateStore } from "@/stores";
 import type { LLMNode, WorkflowNode } from "../../types";
-import type { PromptTemplate } from "@/types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface LLMPropertyPanelProps {
@@ -52,7 +52,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
   };
 
   const handleApplyTemplate = () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) { return; }
 
     let content = selectedTemplate.content;
     try {
@@ -83,7 +83,9 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.model")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.model")}
+        </label>
         <ModelSelect
           value={config.model || undefined}
           onChange={(value) => handleConfigChange("model", value || "")}
@@ -94,7 +96,9 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.prompt")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.prompt")}
+        </label>
         <Input.TextArea
           value={config.prompt || ""}
           onChange={(e) => handleConfigChange("prompt", e.target.value)}
@@ -114,7 +118,9 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.temperature")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.temperature")}
+          </label>
           <InputNumber
             value={config.temperature ?? 0.7}
             onChange={(value) => handleConfigChange("temperature", value)}
@@ -129,7 +135,9 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
           </div>
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxTokens")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.maxTokens")}
+          </label>
           <InputNumber
             value={config.max_tokens ?? 2048}
             onChange={(value) => handleConfigChange("max_tokens", value)}
@@ -156,51 +164,64 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
         width={600}
       >
         {contextHolder}
-        {selectedTemplate ? (
-          <div style={{ padding: "12px 0" }}>
-            <p style={{ marginBottom: 8 }}>{t("promptTemplates.fillVariables")}</p>
-            {Object.entries(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).map(([varName, varType]) => (
-              <div key={varName} style={{ marginBottom: 8 }}>
-                <label style={{ display: "block", fontSize: 12, marginBottom: 2 }}>{varName} ({String(varType)})</label>
-                <Input
-                  placeholder={`${varName} (${String(varType)})`}
-                  value={variableValues[varName] || ""}
-                  onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
-                />
-              </div>
-            ))}
-            {parseVariables(selectedTemplate.content).length > 0 && Object.keys(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).length === 0 && (
-              <p style={{ color: "#f59e0b", fontSize: 12 }}>
-                {t("promptTemplates.hasVariables", { variables: parseVariables(selectedTemplate.content).join(", ") })}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div style={{ maxHeight: 400, overflowY: "auto" }}>
-            {activeTemplates.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 24, color: "#999" }}>
-                {t("promptTemplates.noTemplates")}
-              </div>
-            ) : (
-              activeTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  onClick={() => handleSelectTemplate(template)}
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    borderBottom: "1px solid #333",
-                  }}
-                >
-                  <div style={{ fontWeight: 500 }}>{template.name}</div>
-                  <div style={{ fontSize: 12, color: "#999" }}>
-                    {template.description || template.content.slice(0, 60) + "..."}
+        {selectedTemplate
+          ? (
+            <div style={{ padding: "12px 0" }}>
+              <p style={{ marginBottom: 8 }}>{t("promptTemplates.fillVariables")}</p>
+              {Object.entries(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).map(
+                ([varName, varType]) => (
+                  <div key={varName} style={{ marginBottom: 8 }}>
+                    <label style={{ display: "block", fontSize: 12, marginBottom: 2 }}>
+                      {varName} ({String(varType)})
+                    </label>
+                    <Input
+                      placeholder={`${varName} (${String(varType)})`}
+                      value={variableValues[varName] || ""}
+                      onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
+                    />
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+                ),
+              )}
+              {parseVariables(selectedTemplate.content).length > 0
+                && Object.keys(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {})
+                    .length === 0
+                && (
+                  <p style={{ color: "#f59e0b", fontSize: 12 }}>
+                    {t("promptTemplates.hasVariables", {
+                      variables: parseVariables(selectedTemplate.content).join(", "),
+                    })}
+                  </p>
+                )}
+            </div>
+          )
+          : (
+            <div style={{ maxHeight: 400, overflowY: "auto" }}>
+              {activeTemplates.length === 0
+                ? (
+                  <div style={{ textAlign: "center", padding: 24, color: "#999" }}>
+                    {t("promptTemplates.noTemplates")}
+                  </div>
+                )
+                : (
+                  activeTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      onClick={() => handleSelectTemplate(template)}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #333",
+                      }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{template.name}</div>
+                      <div style={{ fontSize: 12, color: "#999" }}>
+                        {template.description || template.content.slice(0, 60) + "..."}
+                      </div>
+                    </div>
+                  ))
+                )}
+            </div>
+          )}
       </Modal>
     </div>
   );

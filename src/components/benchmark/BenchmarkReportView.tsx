@@ -1,7 +1,7 @@
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
 import type { BenchmarkReport } from "@/types/evaluator";
-import { Card, Row, Col, Table, Tag, Button, Tabs, Statistic } from "antd";
-import { formatScore, formatDuration, getDifficultyLabel } from "@/types/evaluator";
+import { formatDuration, formatScore, getDifficultyLabel } from "@/types/evaluator";
+import { Button, Card, Col, Row, Statistic, Table, Tabs, Tag } from "antd";
 
 interface BenchmarkReportViewProps {
   report: BenchmarkReport;
@@ -13,9 +13,12 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
   const columns = [
     { title: "任务", dataIndex: "task_name", key: "task_name" },
     { title: "难度", dataIndex: "difficulty", key: "difficulty", render: getDifficultyLabel },
-    { title: "状态", dataIndex: "success", key: "success", render: (success: boolean) => (
-      <Tag color={success ? "green" : "red"}>{success ? "通过" : "失败"}</Tag>
-    )},
+    {
+      title: "状态",
+      dataIndex: "success",
+      key: "success",
+      render: (success: boolean) => <Tag color={success ? "green" : "red"}>{success ? "通过" : "失败"}</Tag>,
+    },
     { title: "得分", dataIndex: "score", key: "score", render: formatScore },
     { title: "耗时", dataIndex: "duration_ms", key: "duration_ms", render: formatDuration },
   ];
@@ -23,9 +26,12 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
   const criteriaColumns = [
     { title: "评估项", dataIndex: "name", key: "name" },
     { title: "得分", dataIndex: "score", key: "score", render: formatScore },
-    { title: "通过", dataIndex: "passed", key: "passed", render: (passed: boolean) => (
-      <Tag color={passed ? "green" : "red"}>{passed ? "✅" : "❌"}</Tag>
-    )},
+    {
+      title: "通过",
+      dataIndex: "passed",
+      key: "passed",
+      render: (passed: boolean) => <Tag color={passed ? "green" : "red"}>{passed ? "✅" : "❌"}</Tag>,
+    },
   ];
 
   return (
@@ -108,9 +114,7 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
         <Tabs.TabPane tab="建议" key="recommendations">
           <Card>
             <ul className="list-disc pl-5">
-              {report.recommendations.map((rec, idx) => (
-                <li key={idx} className="mb-2">{rec}</li>
-              ))}
+              {report.recommendations.map((rec, idx) => <li key={idx} className="mb-2">{rec}</li>)}
             </ul>
           </Card>
         </Tabs.TabPane>

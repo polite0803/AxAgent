@@ -1,9 +1,9 @@
 import { invoke } from "@/lib/invoke";
+import type { PromptTemplate } from "@/types";
 import { Input, List, message, Modal, Tag } from "antd";
 import { Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { PromptTemplate } from "@/types";
 
 interface PromptTemplateSelectorProps {
   onSelect: (template: PromptTemplate, filledContent: string) => void;
@@ -42,7 +42,7 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
   }, []);
 
   const handleFillVariables = useCallback(() => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) { return; }
 
     let content = selectedTemplate.content;
     try {
@@ -63,8 +63,8 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
 
   const filteredTemplates = templates.filter(
     (t) =>
-      t.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      (t.description?.toLowerCase().includes(searchText.toLowerCase()) ?? false)
+      t.name.toLowerCase().includes(searchText.toLowerCase())
+      || (t.description?.toLowerCase().includes(searchText.toLowerCase()) ?? false),
   );
 
   const renderVariableInput = (varName: string, _varType: unknown) => {
@@ -139,31 +139,33 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
       >
         {selectedTemplate && (
           <div className="py-2">
-            {selectedTemplate.variablesSchema ? (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">{t("promptTemplates.fillVariables")}</p>
-                {Object.entries(JSON.parse(selectedTemplate.variablesSchema)).map(([varName, varType]) => (
-                  <div key={varName}>
-                    <label className="text-sm font-medium">{varName}</label>
-                    {renderVariableInput(varName, varType)}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">{t("promptTemplates.preview")}</p>
-                <div className="bg-gray-50 p-2 rounded text-sm whitespace-pre-wrap">
-                  {selectedTemplate.content}
+            {selectedTemplate.variablesSchema
+              ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">{t("promptTemplates.fillVariables")}</p>
+                  {Object.entries(JSON.parse(selectedTemplate.variablesSchema)).map(([varName, varType]) => (
+                    <div key={varName}>
+                      <label className="text-sm font-medium">{varName}</label>
+                      {renderVariableInput(varName, varType)}
+                    </div>
+                  ))}
                 </div>
-                {parseVariables(selectedTemplate.content).length > 0 && (
-                  <p className="text-xs text-orange-500">
-                    {t("promptTemplates.hasVariables", {
-                      variables: parseVariables(selectedTemplate.content).join(", "),
-                    })}
-                  </p>
-                )}
-              </div>
-            )}
+              )
+              : (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">{t("promptTemplates.preview")}</p>
+                  <div className="bg-gray-50 p-2 rounded text-sm whitespace-pre-wrap">
+                    {selectedTemplate.content}
+                  </div>
+                  {parseVariables(selectedTemplate.content).length > 0 && (
+                    <p className="text-xs text-orange-500">
+                      {t("promptTemplates.hasVariables", {
+                        variables: parseVariables(selectedTemplate.content).join(", "),
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
         )}
       </Modal>

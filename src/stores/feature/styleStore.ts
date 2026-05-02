@@ -208,8 +208,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
       return result;
     } catch (error) {
       set({
-        error:
-          error instanceof Error ? error.message : "Failed to apply document style",
+        error: error instanceof Error ? error.message : "Failed to apply document style",
         isApplying: false,
       });
       return content;
@@ -218,7 +217,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
 
   adjustStyleDimension: (dimension: keyof StyleDimensions, value: number) => {
     const { currentProfile } = get();
-    if (!currentProfile) return;
+    if (!currentProfile) { return; }
 
     const updatedDimensions = {
       ...currentProfile.code_style_vector.dimensions,
@@ -275,8 +274,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
       set({ currentProfile: profile, isLoading: false });
     } catch (error) {
       set({
-        error:
-          error instanceof Error ? error.message : "Failed to learn from samples",
+        error: error instanceof Error ? error.message : "Failed to learn from samples",
         isLoading: false,
       });
     }
@@ -301,8 +299,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
       }
     } catch (error) {
       set({
-        error:
-          error instanceof Error ? error.message : "Failed to learn from messages",
+        error: error instanceof Error ? error.message : "Failed to learn from messages",
         isLoading: false,
       });
     }
@@ -314,8 +311,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
       return json;
     } catch (error) {
       set({
-        error:
-          error instanceof Error ? error.message : "Failed to export profile",
+        error: error instanceof Error ? error.message : "Failed to export profile",
       });
       return null;
     }
@@ -328,8 +324,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
       await get().loadStyleProfile(userId);
     } catch (error) {
       set({
-        error:
-          error instanceof Error ? error.message : "Failed to import profile",
+        error: error instanceof Error ? error.message : "Failed to import profile",
         isLoading: false,
       });
     }

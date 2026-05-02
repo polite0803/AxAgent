@@ -1,8 +1,43 @@
 import { invoke } from "@/lib/invoke";
 import { useSkillExtensionStore } from "@/stores";
-import type { SkillFrontendExtension, SkillNavItem, SkillPage, SkillUICommand, SkillUIPanel, SkillSettingsSection } from "@/types";
-import { Button, Collapse, Empty, Form, Input, InputNumber, message, Modal, Popconfirm, Radio, Select, Space, Tabs, Typography } from "antd";
-import { Copy, Edit3, Eye, FileCode, LayoutPanelTop, Lightbulb, Plus, Puzzle, Route, Settings, Trash2, Zap } from "lucide-react";
+import type {
+  SkillFrontendExtension,
+  SkillNavItem,
+  SkillPage,
+  SkillSettingsSection,
+  SkillUICommand,
+  SkillUIPanel,
+} from "@/types";
+import {
+  Button,
+  Collapse,
+  Empty,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Popconfirm,
+  Radio,
+  Select,
+  Space,
+  Tabs,
+  Typography,
+} from "antd";
+import {
+  Copy,
+  Edit3,
+  Eye,
+  FileCode,
+  LayoutPanelTop,
+  Lightbulb,
+  Plus,
+  Puzzle,
+  Route,
+  Settings,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const { Text } = Typography;
@@ -58,7 +93,7 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
 
   // 工作副本
   const [data, setData] = useState<SkillFrontendExtension>(
-    currentFrontend ? structuredClone(currentFrontend) : structuredClone(EMPTY_EXTENSION)
+    currentFrontend ? structuredClone(currentFrontend) : structuredClone(EMPTY_EXTENSION),
   );
   // JSON 文本
   const [jsonText, setJsonText] = useState(formatJson(data));
@@ -281,7 +316,10 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
           return (
             <Collapse
               size="small"
-              items={(items as unknown as Record<string, unknown>[]).map((item: Record<string, unknown>, index: number) => ({
+              items={(items as unknown as Record<string, unknown>[]).map((
+                item: Record<string, unknown>,
+                index: number,
+              ) => ({
                 key: String(index),
                 label: getItemLabel(sectionTab, item),
                 extra: (
@@ -381,18 +419,42 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
           {analyzing ? "分析中..." : "智能分析（AI 自动生成）"}
         </Button>
       </div>
-        <Tabs
-          activeKey={editorTab}
-          onChange={(k) => setEditorTab(k as EditorTab)}
-          size="small"
-          style={{ marginBottom: 0 }}
-          items={[
-            { key: "visual", label: <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Puzzle size={12} />可视化编辑</span>, children: visualEditor },
-            { key: "json", label: <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><FileCode size={12} />JSON 编辑</span>, children: jsonEditor },
-            { key: "preview", label: <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Eye size={12} />预览</span>, children: previewTab },
-          ]}
-        />
-      </Modal>
+      <Tabs
+        activeKey={editorTab}
+        onChange={(k) => setEditorTab(k as EditorTab)}
+        size="small"
+        style={{ marginBottom: 0 }}
+        items={[
+          {
+            key: "visual",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Puzzle size={12} />可视化编辑
+              </span>
+            ),
+            children: visualEditor,
+          },
+          {
+            key: "json",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <FileCode size={12} />JSON 编辑
+              </span>
+            ),
+            children: jsonEditor,
+          },
+          {
+            key: "preview",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Eye size={12} />预览
+              </span>
+            ),
+            children: previewTab,
+          },
+        ]}
+      />
+    </Modal>
   );
 }
 
@@ -425,10 +487,22 @@ function renderItemEditor(
     case "navigation":
       return (
         <Form layout="vertical" size="small">
-          <Form.Item label="ID"><Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} /></Form.Item>
-          <Form.Item label="标签"><Input value={item.label as string} onChange={(e) => onChange(field("label", e.target.value))} /></Form.Item>
-          <Form.Item label="图标"><Input value={item.icon as string} onChange={(e) => onChange(field("icon", e.target.value))} placeholder="lucide:Puzzle" /></Form.Item>
-          <Form.Item label="路径"><Input value={item.path as string} onChange={(e) => onChange(field("path", e.target.value))} /></Form.Item>
+          <Form.Item label="ID">
+            <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="标签">
+            <Input value={item.label as string} onChange={(e) => onChange(field("label", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="图标">
+            <Input
+              value={item.icon as string}
+              onChange={(e) => onChange(field("icon", e.target.value))}
+              placeholder="lucide:Puzzle"
+            />
+          </Form.Item>
+          <Form.Item label="路径">
+            <Input value={item.path as string} onChange={(e) => onChange(field("path", e.target.value))} />
+          </Form.Item>
           <Form.Item label="位置">
             <Radio.Group value={item.position as string} onChange={(e) => onChange(field("position", e.target.value))}>
               <Radio.Button value="Top">顶部</Radio.Button>
@@ -436,7 +510,11 @@ function renderItemEditor(
             </Radio.Group>
           </Form.Item>
           <Form.Item label="排序">
-            <InputNumber value={item.order as number} onChange={(v) => onChange(field("order", v ?? 0))} style={{ width: 100 }} />
+            <InputNumber
+              value={item.order as number}
+              onChange={(v) => onChange(field("order", v ?? 0))}
+              style={{ width: 100 }}
+            />
           </Form.Item>
         </Form>
       );
@@ -444,23 +522,51 @@ function renderItemEditor(
     case "pages":
       return (
         <Form layout="vertical" size="small">
-          <Form.Item label="ID"><Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} /></Form.Item>
-          <Form.Item label="路径"><Input value={item.path as string} onChange={(e) => onChange(field("path", e.target.value))} /></Form.Item>
-          <Form.Item label="标题"><Input value={item.title as string} onChange={(e) => onChange(field("title", e.target.value))} /></Form.Item>
-          <Form.Item label="组件类型">
-            <Select value={item.componentType as string} onChange={(v) => onChange(field("componentType", v))} options={COMPONENT_TYPE_OPTIONS} />
+          <Form.Item label="ID">
+            <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
           </Form.Item>
-          <Form.Item label="配置文件"><Input value={(item.componentConfig as Record<string, unknown>)?.file as string || ""} onChange={(e) => onChange(field("componentConfig", { file: e.target.value }))} placeholder="index.html" /></Form.Item>
+          <Form.Item label="路径">
+            <Input value={item.path as string} onChange={(e) => onChange(field("path", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="标题">
+            <Input value={item.title as string} onChange={(e) => onChange(field("title", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="组件类型">
+            <Select
+              value={item.componentType as string}
+              onChange={(v) => onChange(field("componentType", v))}
+              options={COMPONENT_TYPE_OPTIONS}
+            />
+          </Form.Item>
+          <Form.Item label="配置文件">
+            <Input
+              value={(item.componentConfig as Record<string, unknown>)?.file as string || ""}
+              onChange={(e) => onChange(field("componentConfig", { file: e.target.value }))}
+              placeholder="index.html"
+            />
+          </Form.Item>
         </Form>
       );
 
     case "commands":
       return (
         <Form layout="vertical" size="small">
-          <Form.Item label="ID"><Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} /></Form.Item>
-          <Form.Item label="标签"><Input value={item.label as string} onChange={(e) => onChange(field("label", e.target.value))} /></Form.Item>
-          <Form.Item label="分类"><Input value={item.category as string} onChange={(e) => onChange(field("category", e.target.value))} /></Form.Item>
-          <Form.Item label="图标"><Input value={item.icon as string || ""} onChange={(e) => onChange(field("icon", e.target.value))} placeholder="lucide:Play" /></Form.Item>
+          <Form.Item label="ID">
+            <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="标签">
+            <Input value={item.label as string} onChange={(e) => onChange(field("label", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="分类">
+            <Input value={item.category as string} onChange={(e) => onChange(field("category", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="图标">
+            <Input
+              value={item.icon as string || ""}
+              onChange={(e) => onChange(field("icon", e.target.value))}
+              placeholder="lucide:Play"
+            />
+          </Form.Item>
           <Form.Item label="动作类型">
             <Select
               value={(item.action as Record<string, unknown>)?.type as string || "Navigate"}
@@ -486,7 +592,9 @@ function renderItemEditor(
               rows={3}
               value={JSON.stringify(item.action, null, 2)}
               onChange={(e) => {
-                try { onChange(field("action", JSON.parse(e.target.value))); } catch { /* ignore */ }
+                try {
+                  onChange(field("action", JSON.parse(e.target.value)));
+                } catch { /* ignore */ }
               }}
               style={{ fontFamily: "monospace", fontSize: 11 }}
             />
@@ -497,17 +605,38 @@ function renderItemEditor(
     case "panels":
       return (
         <Form layout="vertical" size="small">
-          <Form.Item label="ID"><Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} /></Form.Item>
-          <Form.Item label="标题"><Input value={item.title as string} onChange={(e) => onChange(field("title", e.target.value))} /></Form.Item>
-          <Form.Item label="组件类型">
-            <Select value={item.componentType as string} onChange={(v) => onChange(field("componentType", v))} options={COMPONENT_TYPE_OPTIONS} />
+          <Form.Item label="ID">
+            <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
           </Form.Item>
-          <Form.Item label="配置文件"><Input value={(item.componentConfig as Record<string, unknown>)?.file as string || ""} onChange={(e) => onChange(field("componentConfig", { file: e.target.value }))} /></Form.Item>
+          <Form.Item label="标题">
+            <Input value={item.title as string} onChange={(e) => onChange(field("title", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="组件类型">
+            <Select
+              value={item.componentType as string}
+              onChange={(v) => onChange(field("componentType", v))}
+              options={COMPONENT_TYPE_OPTIONS}
+            />
+          </Form.Item>
+          <Form.Item label="配置文件">
+            <Input
+              value={(item.componentConfig as Record<string, unknown>)?.file as string || ""}
+              onChange={(e) => onChange(field("componentConfig", { file: e.target.value }))}
+            />
+          </Form.Item>
           <Form.Item label="位置">
-            <Select value={item.position as string} onChange={(v) => onChange(field("position", v))} options={PANEL_POSITION_OPTIONS} />
+            <Select
+              value={item.position as string}
+              onChange={(v) => onChange(field("position", v))}
+              options={PANEL_POSITION_OPTIONS}
+            />
           </Form.Item>
           <Form.Item label="大小">
-            <Select value={item.size as string} onChange={(v) => onChange(field("size", v))} options={PANEL_SIZE_OPTIONS} />
+            <Select
+              value={item.size as string}
+              onChange={(v) => onChange(field("size", v))}
+              options={PANEL_SIZE_OPTIONS}
+            />
           </Form.Item>
         </Form>
       );
@@ -515,13 +644,32 @@ function renderItemEditor(
     case "settingsSections":
       return (
         <Form layout="vertical" size="small">
-          <Form.Item label="ID"><Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} /></Form.Item>
-          <Form.Item label="标签"><Input value={item.label as string} onChange={(e) => onChange(field("label", e.target.value))} /></Form.Item>
-          <Form.Item label="图标"><Input value={item.icon as string || ""} onChange={(e) => onChange(field("icon", e.target.value))} placeholder="lucide:Settings" /></Form.Item>
-          <Form.Item label="组件类型">
-            <Select value={item.componentType as string} onChange={(v) => onChange(field("componentType", v))} options={COMPONENT_TYPE_OPTIONS} />
+          <Form.Item label="ID">
+            <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
           </Form.Item>
-          <Form.Item label="配置文件"><Input value={(item.componentConfig as Record<string, unknown>)?.file as string || ""} onChange={(e) => onChange(field("componentConfig", { file: e.target.value }))} /></Form.Item>
+          <Form.Item label="标签">
+            <Input value={item.label as string} onChange={(e) => onChange(field("label", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="图标">
+            <Input
+              value={item.icon as string || ""}
+              onChange={(e) => onChange(field("icon", e.target.value))}
+              placeholder="lucide:Settings"
+            />
+          </Form.Item>
+          <Form.Item label="组件类型">
+            <Select
+              value={item.componentType as string}
+              onChange={(v) => onChange(field("componentType", v))}
+              options={COMPONENT_TYPE_OPTIONS}
+            />
+          </Form.Item>
+          <Form.Item label="配置文件">
+            <Input
+              value={(item.componentConfig as Record<string, unknown>)?.file as string || ""}
+              onChange={(e) => onChange(field("componentConfig", { file: e.target.value }))}
+            />
+          </Form.Item>
         </Form>
       );
   }

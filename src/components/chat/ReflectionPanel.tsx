@@ -1,15 +1,6 @@
-import {
-  AlertTriangle,
-  Brain,
-  CheckCircle,
-  Clock,
-  Lightbulb,
-  RefreshCw,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
-import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Progress, Tag, Typography } from "antd";
+import { AlertTriangle, Brain, CheckCircle, Clock, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const { Text } = Typography;
 
@@ -121,7 +112,7 @@ function PatternList({
   patterns: string[];
   type: "error" | "success";
 }) {
-  if (patterns.length === 0) return null;
+  if (patterns.length === 0) { return null; }
 
   return (
     <div className="mb-3">
@@ -168,9 +159,7 @@ function InsightCard({ insight }: { insight: Insight }) {
             {tag}
           </Tag>
         ))}
-        {insight.usage_count > 0 && (
-          <Badge count={insight.usage_count} size="small" title="Usage count" />
-        )}
+        {insight.usage_count > 0 && <Badge count={insight.usage_count} size="small" title="Usage count" />}
       </div>
     </Card>
   );
@@ -198,10 +187,8 @@ export function ReflectionPanel({
               task_id: taskId || "unknown",
               timestamp: new Date().toISOString(),
               quality_score: 7,
-              quality_analysis:
-                "Task completed successfully with good efficiency. Some minor improvements possible.",
-              efficiency_analysis:
-                "Total duration: 5000ms. Duration per iteration: 500ms. Execution was efficient.",
+              quality_analysis: "Task completed successfully with good efficiency. Some minor improvements possible.",
+              efficiency_analysis: "Total duration: 5000ms. Duration per iteration: 500ms. Execution was efficient.",
               error_patterns: ["Consider adding retry logic for network operations"],
               reusable_patterns: [
                 "Successfully completed task with tool combination: search -> analyze -> report",
@@ -226,8 +213,7 @@ export function ReflectionPanel({
                 id: "1",
                 category: "success_pattern",
                 title: "Tool Sequence Pattern",
-                content:
-                  "Successfully completed task with tool combination: search -> analyze -> report",
+                content: "Successfully completed task with tool combination: search -> analyze -> report",
                 confidence: 0.8,
                 tags: ["reusable", "workflow"],
                 usage_count: 5,
@@ -237,8 +223,7 @@ export function ReflectionPanel({
                 id: "2",
                 category: "optimization",
                 title: "Performance Optimization",
-                content:
-                  "Task took 5000ms. Consider caching, parallel execution, or algorithm optimization.",
+                content: "Task took 5000ms. Consider caching, parallel execution, or algorithm optimization.",
                 confidence: 0.7,
                 tags: ["performance", "optimization"],
                 usage_count: 2,
@@ -404,9 +389,7 @@ export function ReflectionPanel({
                 <Badge count={insights.length} />
               </div>
               <div className="space-y-2">
-                {insights.map((insight) => (
-                  <InsightCard key={insight.id} insight={insight} />
-                ))}
+                {insights.map((insight) => <InsightCard key={insight.id} insight={insight} />)}
               </div>
             </div>
           )}

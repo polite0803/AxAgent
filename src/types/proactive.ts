@@ -21,7 +21,13 @@ export interface TriggerCondition {
   context_key?: string;
 }
 
-export type TriggerConditionType = "FileOpened" | "ErrorDetected" | "TimeBased" | "PatternMatch" | "UserIdle" | "LowActivity";
+export type TriggerConditionType =
+  | "FileOpened"
+  | "ErrorDetected"
+  | "TimeBased"
+  | "PatternMatch"
+  | "UserIdle"
+  | "LowActivity";
 
 export interface ProactiveAction {
   type: string;

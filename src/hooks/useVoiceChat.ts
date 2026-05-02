@@ -69,7 +69,9 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
       streamRef.current = null;
     }
     if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-      audioCtxRef.current.close().catch((e: unknown) => { console.warn('[IPC]', e); });
+      audioCtxRef.current.close().catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
       audioCtxRef.current = null;
     }
     if (wsRef.current) {

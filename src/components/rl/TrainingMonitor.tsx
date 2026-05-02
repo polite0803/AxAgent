@@ -1,5 +1,5 @@
-import { Card, Progress, Typography, Badge, Timeline } from "antd";
-import { CheckCircleOutlined, LoadingOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from "@ant-design/icons";
+import { Badge, Card, Progress, Timeline, Typography } from "antd";
 
 interface TrainingMonitorProps {
   policyId: string;

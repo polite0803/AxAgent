@@ -16,16 +16,16 @@ export function FrontendEditor({ skillName, currentFrontend, onSaved }: Frontend
     currentFrontend
       ? JSON.stringify(currentFrontend, null, 2)
       : JSON.stringify(
-          {
-            navigation: [],
-            pages: [],
-            commands: [],
-            panels: [],
-            settingsSections: [],
-          },
-          null,
-          2,
-        )
+        {
+          navigation: [],
+          pages: [],
+          commands: [],
+          panels: [],
+          settingsSections: [],
+        },
+        null,
+        2,
+      ),
   );
   const [saving, setSaving] = useState(false);
   const setSkillFrontend = useSkillExtensionStore((s) => s.setSkillFrontend);
@@ -60,7 +60,8 @@ export function FrontendEditor({ skillName, currentFrontend, onSaved }: Frontend
         cancelText="取消"
       >
         <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
-          编辑 <code>skill-manifest.json</code> 中的 <code>frontend</code> 字段。支持的扩展类型：navigation（导航）、pages（页面）、commands（命令）、panels（面板）、settingsSections（设置段）。
+          编辑 <code>skill-manifest.json</code> 中的 <code>frontend</code>{" "}
+          字段。支持的扩展类型：navigation（导航）、pages（页面）、commands（命令）、panels（面板）、settingsSections（设置段）。
         </Typography.Paragraph>
         <Input.TextArea
           value={jsonText}

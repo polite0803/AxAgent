@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
 import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types";
+import { useCallback, useState } from "react";
 
 interface HistoryState {
   nodes: WorkflowNode[];

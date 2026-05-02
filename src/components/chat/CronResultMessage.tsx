@@ -1,5 +1,5 @@
 import { Card, Tag, Typography } from "antd";
-import { Clock, CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, Clock, XCircle } from "lucide-react";
 
 const { Text, Paragraph } = Typography;
 
@@ -28,11 +28,9 @@ export function CronResultMessage({
         <div className="flex items-center gap-2">
           <Clock size={14} />
           <span>Cron: {jobName}</span>
-          {success ? (
-            <Tag color="success" icon={<CheckCircle size={12} />}>Success</Tag>
-          ) : (
-            <Tag color="error" icon={<XCircle size={12} />}>Failed</Tag>
-          )}
+          {success
+            ? <Tag color="success" icon={<CheckCircle size={12} />}>Success</Tag>
+            : <Tag color="error" icon={<XCircle size={12} />}>Failed</Tag>}
         </div>
       }
     >

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { AppSettings } from "@/types";
 import {
   DEFAULT_SHORTCUT_BINDINGS,
-  SHORTCUT_ACTIONS,
   detectShortcutConflicts,
   findExternalConflict,
   formatShortcutForDisplay,
@@ -11,6 +10,7 @@ import {
   isGlobalShortcutAction,
   matchesShortcutEvent,
   normalizeShortcutFromKeyboardEvent,
+  SHORTCUT_ACTIONS,
   toTauriAccelerator,
 } from "../shortcuts";
 

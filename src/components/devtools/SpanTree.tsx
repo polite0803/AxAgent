@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { SpanTreeNode, SpanType } from "@/types/tracer";
-import { Typography, Tag, Tooltip } from "antd";
+import { Tag, Tooltip, Typography } from "antd";
+import { useState } from "react";
 
 const { Text } = Typography;
 
@@ -32,8 +32,8 @@ function getSpanTypeColor(type_: SpanType): string {
 }
 
 function formatDuration(ms?: number): string {
-  if (!ms) return "-";
-  if (ms < 1000) return `${ms}ms`;
+  if (!ms) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
@@ -57,19 +57,19 @@ function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
         style={{ paddingLeft: `${level * 20 + 8}px` }}
         onClick={onSelect}
       >
-        {hasChildren ? (
-          <span
-            className="mr-1 cursor-pointer text-gray-400 hover:text-gray-600"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-          >
-            {isExpanded ? "▼" : "▶"}
-          </span>
-        ) : (
-          <span className="mr-1 w-3 inline-block" />
-        )}
+        {hasChildren
+          ? (
+            <span
+              className="mr-1 cursor-pointer text-gray-400 hover:text-gray-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+            >
+              {isExpanded ? "▼" : "▶"}
+            </span>
+          )
+          : <span className="mr-1 w-3 inline-block" />}
         <Tag
           color={getSpanTypeColor(node.span_type)}
           className="mr-2 text-xs"
@@ -88,9 +88,9 @@ function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
           </Tag>
         )}
       </div>
-      {isExpanded &&
-        hasChildren &&
-        node.children.map((child) => (
+      {isExpanded
+        && hasChildren
+        && node.children.map((child) => (
           <SpanNode
             key={child.id}
             node={child}

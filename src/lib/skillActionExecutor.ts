@@ -1,5 +1,5 @@
-import type { SkillCommandAction } from "@/types";
 import { invoke } from "@/lib/invoke";
+import type { SkillCommandAction } from "@/types";
 
 type CustomHandler = (data: Record<string, unknown>, skillName: string) => Promise<void>;
 

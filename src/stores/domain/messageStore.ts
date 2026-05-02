@@ -127,7 +127,9 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         content: "<!-- context-clear -->",
       });
       set((s) => ({ messages: [...s.messages, msg] }));
-      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
+      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
     } catch {
       const localMsg: Message = {
         id: `ctx-clear-${Date.now()}`,
@@ -162,7 +164,9 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       await invoke("delete_message", { id: messageId });
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       if (conversationId) {
-        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch((e: unknown) => { console.warn('[IPC]', e); });
+        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch((e: unknown) => {
+          console.warn("[IPC]", e);
+        });
       }
     } catch (e) {
       set({ error: String(e) });
@@ -291,7 +295,11 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     // after checking _isMultiModelActive. The multi-model branch stays in
     // conversationStore because it needs to call setUserManuallySelectedVersion.
     try {
-      await invoke("switch_message_version", { conversation_id: conversationId, parent_message_id: parentMessageId, message_id: messageId });
+      await invoke("switch_message_version", {
+        conversation_id: conversationId,
+        parent_message_id: parentMessageId,
+        message_id: messageId,
+      });
 
       const versions = await get().listMessageVersions(conversationId, parentMessageId);
       if (versions.length > 0) {
@@ -374,9 +382,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   updateMessage: (messageId, updates) => {
     set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === messageId ? { ...m, ...updates } : m,
-      ),
+      messages: state.messages.map((m) => m.id === messageId ? { ...m, ...updates } : m),
     }));
   },
 

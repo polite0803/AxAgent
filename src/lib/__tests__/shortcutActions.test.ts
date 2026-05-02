@@ -47,8 +47,8 @@ vi.mock("@tauri-apps/api/window", () => ({
   getAllWindows: mockGetAllWindows,
 }));
 
-import type { ShortcutAction } from "../shortcuts";
 import { executeShortcutAction } from "../shortcutActions";
+import type { ShortcutAction } from "../shortcuts";
 
 // ─── 辅助函数 ──────────────────────────────────────────────────────
 

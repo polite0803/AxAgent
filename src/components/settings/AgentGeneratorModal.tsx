@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Button, Input, Modal, Spin, Typography, App, Alert } from "antd";
-import { Sparkles, Check, Edit3 } from "lucide-react";
 import { invoke } from "@/lib/invoke";
+import { Alert, App, Button, Input, Modal, Spin, Typography } from "antd";
+import { Check, Edit3, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
@@ -44,7 +44,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
   const { message } = App.useApp();
 
   const handleGenerate = async () => {
-    if (!description.trim()) return;
+    if (!description.trim()) { return; }
 
     setGenerating(true);
     setError(null);
@@ -127,92 +127,105 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
       width={600}
       destroyOnClose
     >
-      {!result ? (
-        <div className="flex flex-col gap-4">
-          <Text type="secondary">
-            用自然语言描述你需要的智能体，AI 将自动生成完整的配置。
-          </Text>
-          <TextArea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="例如：我需要一个专门审查 SQL 查询安全性的智能体..."
-            rows={4}
-            autoFocus
-          />
-          {error && (
-            <Alert
-              type="error"
-              message={error}
-              showIcon
-              closable
-              onClose={() => setError(null)}
+      {!result
+        ? (
+          <div className="flex flex-col gap-4">
+            <Text type="secondary">
+              用自然语言描述你需要的智能体，AI 将自动生成完整的配置。
+            </Text>
+            <TextArea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="例如：我需要一个专门审查 SQL 查询安全性的智能体..."
+              rows={4}
+              autoFocus
             />
-          )}
-          <div className="flex justify-end gap-2">
-            <Button onClick={handleClose}>取消</Button>
-            <Button
-              type="primary"
-              icon={<Sparkles size={16} />}
-              onClick={handleGenerate}
-              loading={generating}
-              disabled={!description.trim()}
-            >
-              生成配置
-            </Button>
-          </div>
-          {generating && (
-            <div className="flex justify-center py-4">
-              <Spin tip="AI 正在生成智能体配置..." />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <Alert
-            type="success"
-            message="配置生成完成"
-            description="请检查并编辑后保存"
-            showIcon
-          />
-
-          <div className="flex flex-col gap-2 p-3 rounded bg-gray-50 dark:bg-gray-800">
-            <div><Text strong>类型：</Text><Text code>{result.agent_type}</Text></div>
-            <div><Text strong>名称：</Text><Text>{result.display_name}</Text></div>
-            <div><Text strong>描述：</Text><Text type="secondary">{result.description}</Text></div>
-            <div><Text strong>权限：</Text>
-              {result.permissions.map((p) => (
-                <Text key={p} code style={{ marginRight: 4 }}>{p}</Text>
-              ))}
-            </div>
-            <div><Text strong>推荐模型：</Text><Text code>{result.preferred_model}</Text></div>
-            <div>
-              <Text strong>系统提示：</Text>
-              <Paragraph
-                ellipsis={{ rows: 4, expandable: true, symbol: "展开" }}
-                type="secondary"
-                style={{ marginTop: 4 }}
+            {error && (
+              <Alert
+                type="error"
+                message={error}
+                showIcon
+                closable
+                onClose={() => setError(null)}
+              />
+            )}
+            <div className="flex justify-end gap-2">
+              <Button onClick={handleClose}>取消</Button>
+              <Button
+                type="primary"
+                icon={<Sparkles size={16} />}
+                onClick={handleGenerate}
+                loading={generating}
+                disabled={!description.trim()}
               >
-                {result.system_prompt}
-              </Paragraph>
+                生成配置
+              </Button>
+            </div>
+            {generating && (
+              <div className="flex justify-center py-4">
+                <Spin tip="AI 正在生成智能体配置..." />
+              </div>
+            )}
+          </div>
+        )
+        : (
+          <div className="flex flex-col gap-4">
+            <Alert
+              type="success"
+              message="配置生成完成"
+              description="请检查并编辑后保存"
+              showIcon
+            />
+
+            <div className="flex flex-col gap-2 p-3 rounded bg-gray-50 dark:bg-gray-800">
+              <div>
+                <Text strong>类型：</Text>
+                <Text code>{result.agent_type}</Text>
+              </div>
+              <div>
+                <Text strong>名称：</Text>
+                <Text>{result.display_name}</Text>
+              </div>
+              <div>
+                <Text strong>描述：</Text>
+                <Text type="secondary">{result.description}</Text>
+              </div>
+              <div>
+                <Text strong>权限：</Text>
+                {result.permissions.map((p) => <Text key={p} code style={{ marginRight: 4 }}>{p}</Text>)}
+              </div>
+              <div>
+                <Text strong>推荐模型：</Text>
+                <Text code>{result.preferred_model}</Text>
+              </div>
+              <div>
+                <Text strong>系统提示：</Text>
+                <Paragraph
+                  ellipsis={{ rows: 4, expandable: true, symbol: "展开" }}
+                  type="secondary"
+                  style={{ marginTop: 4 }}
+                >
+                  {result.system_prompt}
+                </Paragraph>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                icon={<Edit3 size={14} />}
+                onClick={() => {
+                  setResult(null);
+                  setError(null);
+                }}
+              >
+                重新编辑
+              </Button>
+              <Button type="primary" icon={<Check size={16} />} onClick={handleSave}>
+                保存配置
+              </Button>
             </div>
           </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              icon={<Edit3 size={14} />}
-              onClick={() => {
-                setResult(null);
-                setError(null);
-              }}
-            >
-              重新编辑
-            </Button>
-            <Button type="primary" icon={<Check size={16} />} onClick={handleSave}>
-              保存配置
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
     </Modal>
   );
 }

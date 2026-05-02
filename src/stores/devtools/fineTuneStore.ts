@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { create } from "zustand";
 
 export interface DatasetInfo {
   id: string;
@@ -74,7 +74,7 @@ export const useFineTuneStore = create<{
   createTrainingJob: (
     datasetId: string,
     baseModel: string,
-    config: LoRAConfig
+    config: LoRAConfig,
   ) => Promise<TrainingJobInfo | null>;
   startTrainingJob: (id: string) => Promise<void>;
   cancelTrainingJob: (id: string) => Promise<void>;
@@ -173,7 +173,7 @@ export const useFineTuneStore = create<{
   createTrainingJob: async (
     datasetId: string,
     baseModel: string,
-    config: LoRAConfig
+    config: LoRAConfig,
   ) => {
     set({ isLoading: true, error: null });
     try {

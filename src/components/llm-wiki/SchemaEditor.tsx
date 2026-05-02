@@ -1,27 +1,23 @@
-import { useEffect, useState } from 'react';
+import { invoke } from "@/lib/invoke";
+import type { SchemaVersion } from "@/types/llmWiki";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
-  Card,
-  Typography,
-  Form,
-  Input,
   Button,
-  Space,
-  message,
-  Spin,
-  Modal,
-  Tag,
+  Card,
   Descriptions,
   Empty,
+  Form,
+  Input,
+  message,
+  Modal,
   Popconfirm,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-} from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
-import { invoke } from '@/lib/invoke';
-import type { SchemaVersion } from '@/types/llmWiki';
+  Space,
+  Spin,
+  Tag,
+  Typography,
+} from "antd";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -37,7 +33,7 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSchema, setEditingSchema] = useState<SchemaVersion | null>(null);
-  const [schemaContent, setSchemaContent] = useState('');
+  const [schemaContent, setSchemaContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
 
@@ -48,15 +44,19 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
   const loadSchemas = async () => {
     setLoading(true);
     try {
-      const content = await invoke<string>('llm_wiki_get_schema', { wikiId });
-      setSchemas(content ? [{
-        id: 'temp',
-        wikiId,
-        version: '1.0',
-        createdAt: Date.now(),
-        description: undefined,
-        schema: parseSchemaContent(content),
-      }] : []);
+      const content = await invoke<string>("llm_wiki_get_schema", { wikiId });
+      setSchemas(
+        content
+          ? [{
+            id: "temp",
+            wikiId,
+            version: "1.0",
+            createdAt: Date.now(),
+            description: undefined,
+            schema: parseSchemaContent(content),
+          }]
+          : [],
+      );
     } catch (e) {
       message.error(String(e));
     }
@@ -67,13 +67,13 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
     try {
       const parsed: Record<string, unknown> = {};
       let inFrontmatter = false;
-      for (const line of content.split('\n')) {
-        if (line.trim() === '---') {
+      for (const line of content.split("\n")) {
+        if (line.trim() === "---") {
           inFrontmatter = !inFrontmatter;
           continue;
         }
         if (inFrontmatter) {
-          const idx = line.indexOf(':');
+          const idx = line.indexOf(":");
           if (idx > 0) {
             const key = line.substring(0, idx).trim();
             const val = line.substring(idx + 1).trim();
@@ -89,7 +89,7 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
 
   const handleCreateSchema = () => {
     setEditingSchema(null);
-    setSchemaContent('');
+    setSchemaContent("");
     setIsModalOpen(true);
   };
 
@@ -104,23 +104,23 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
     try {
       const schemaObj = JSON.parse(schemaContent);
       const version = schemas.length > 0
-        ? `${parseInt(schemas[0].version.split('.')[0]) + 1}.0`
-        : '1.0';
+        ? `${parseInt(schemas[0].version.split(".")[0]) + 1}.0`
+        : "1.0";
 
       if (editingSchema) {
-        await invoke('llm_wiki_update_schema', {
+        await invoke("llm_wiki_update_schema", {
           wikiId,
           content: schemaContent,
         });
-        message.success(t('wiki.schema.updated', 'Schema updated'));
+        message.success(t("wiki.schema.updated", "Schema updated"));
       } else {
-        await invoke('llm_wiki_create_schema_version', {
+        await invoke("llm_wiki_create_schema_version", {
           wikiId,
           version,
           schema: schemaObj,
-          description: form.getFieldValue('description'),
+          description: form.getFieldValue("description"),
         });
-        message.success(t('wiki.schema.created', 'Schema created'));
+        message.success(t("wiki.schema.created", "Schema created"));
       }
 
       setIsModalOpen(false);
@@ -134,8 +134,8 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
 
   const handleDeleteSchema = async (_schemaId: string) => {
     try {
-      await invoke('llm_wiki_delete_schema', { wikiId });
-      message.success(t('wiki.schema.deleted', 'Schema deleted'));
+      await invoke("llm_wiki_delete_schema", { wikiId });
+      message.success(t("wiki.schema.deleted", "Schema deleted"));
       loadSchemas();
     } catch (e) {
       message.error(String(e));
@@ -151,31 +151,29 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <div className="flex items-center justify-between">
         <Title level={4} className="m-0">
-          {t('wiki.schema.title', 'Schema Versions')}
+          {t("wiki.schema.title", "Schema Versions")}
         </Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateSchema}>
-          {t('wiki.schema.create', 'Create Schema')}
+          {t("wiki.schema.create", "Create Schema")}
         </Button>
       </div>
 
-      {schemas.length === 0 ? (
-        <Empty description={t('wiki.schema.noSchemas', 'No schemas defined')} />
-      ) : (
+      {schemas.length === 0 ? <Empty description={t("wiki.schema.noSchemas", "No schemas defined")} /> : (
         schemas.map((schema) => (
           <Card key={schema.id} size="small">
             <div className="flex items-center justify-between">
               <Descriptions column={2} size="small" className="flex-1">
-                <Descriptions.Item label={t('wiki.schema.version', 'Version')}>
+                <Descriptions.Item label={t("wiki.schema.version", "Version")}>
                   <Tag color="blue">{schema.version}</Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label={t('wiki.schema.createdAt', 'Created')}>
+                <Descriptions.Item label={t("wiki.schema.createdAt", "Created")}>
                   {new Date(schema.createdAt * 1000).toLocaleString()}
                 </Descriptions.Item>
                 {schema.description && (
-                  <Descriptions.Item label={t('wiki.schema.description', 'Description')}>
+                  <Descriptions.Item label={t("wiki.schema.description", "Description")}>
                     {schema.description}
                   </Descriptions.Item>
                 )}
@@ -187,7 +185,7 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
                   onClick={() => handleEditSchema(schema)}
                 />
                 <Popconfirm
-                  title={t('wiki.schema.deleteConfirm', 'Are you sure to delete this schema?')}
+                  title={t("wiki.schema.deleteConfirm", "Are you sure to delete this schema?")}
                   onConfirm={() => handleDeleteSchema(schema.id)}
                 >
                   <Button type="text" danger icon={<DeleteOutlined />} />
@@ -202,15 +200,15 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
       )}
 
       <Modal
-        title={editingSchema ? t('wiki.schema.edit', 'Edit Schema') : t('wiki.schema.create', 'Create Schema')}
+        title={editingSchema ? t("wiki.schema.edit", "Edit Schema") : t("wiki.schema.create", "Create Schema")}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={[
           <Button key="cancel" onClick={() => setIsModalOpen(false)}>
-            {t('common.cancel', 'Cancel')}
+            {t("common.cancel", "Cancel")}
           </Button>,
           <Button key="save" type="primary" loading={saving} onClick={handleSaveSchema}>
-            {t('common.save', 'Save')}
+            {t("common.save", "Save")}
           </Button>,
         ]}
         width={700}
@@ -219,17 +217,17 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
           {!editingSchema && (
             <Form.Item
               name="description"
-              label={t('wiki.schema.description', 'Description')}
-              rules={[{ required: true, message: 'Please enter a description' }]}
+              label={t("wiki.schema.description", "Description")}
+              rules={[{ required: true, message: "Please enter a description" }]}
             >
-              <Input placeholder={t('wiki.schema.descriptionPlaceholder', 'e.g., Initial schema')} />
+              <Input placeholder={t("wiki.schema.descriptionPlaceholder", "e.g., Initial schema")} />
             </Form.Item>
           )}
           <Form.Item
-            label={t('wiki.schema.schema', 'Schema Definition')}
+            label={t("wiki.schema.schema", "Schema Definition")}
             extra={
               <Text type="secondary">
-                {t('wiki.schema.schemaHelp', 'Enter a JSON object defining the frontmatter schema')}
+                {t("wiki.schema.schemaHelp", "Enter a JSON object defining the frontmatter schema")}
               </Text>
             }
           >
@@ -238,7 +236,7 @@ export function SchemaEditor({ wikiId, onSchemaChange }: SchemaEditorProps) {
               onChange={(e) => setSchemaContent(e.target.value)}
               rows={12}
               placeholder='{"type": "object", "properties": {...}}'
-              style={{ fontFamily: 'monospace' }}
+              style={{ fontFamily: "monospace" }}
             />
           </Form.Item>
         </Form>

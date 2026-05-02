@@ -1,15 +1,15 @@
-import { useState, useMemo } from "react";
-import { Card, Button, Segmented, Space, Tooltip, Dropdown, message } from "antd";
+import type { ArtifactFormat, ArtifactPreviewMode } from "@/types/artifact";
 import {
-  CopyOutlined,
-  ExpandOutlined,
   CheckOutlined,
   CodeOutlined,
-  EyeOutlined,
   ColumnWidthOutlined,
+  CopyOutlined,
+  ExpandOutlined,
+  EyeOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
-import type { ArtifactFormat, ArtifactPreviewMode } from "@/types/artifact";
+import { Button, Card, Dropdown, message, Segmented, Space, Tooltip } from "antd";
+import { useMemo, useState } from "react";
 import { ArtifactPreview } from "./ArtifactPreview";
 
 interface ArtifactPanelProps {
@@ -35,12 +35,12 @@ export function ArtifactPanel({
   const [currentMode, setCurrentMode] = useState<ArtifactPreviewMode>(previewMode);
 
   const canPreview = useMemo(() => {
-    if (!artifact) return false;
+    if (!artifact) { return false; }
     return ["html", "css", "javascript", "jsx", "tsx", "svg", "mermaid", "d2"].includes(artifact.format);
   }, [artifact]);
 
   const handleCopy = async () => {
-    if (!artifact) return;
+    if (!artifact) { return; }
     try {
       await navigator.clipboard.writeText(artifact.content);
       setCopied(true);
@@ -52,7 +52,7 @@ export function ArtifactPanel({
   };
 
   const handleDownload = () => {
-    if (!artifact) return;
+    if (!artifact) { return; }
     const blob = new Blob([artifact.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -115,9 +115,9 @@ export function ArtifactPanel({
             menu={{
               items: menuItems,
               onClick: ({ key }) => {
-                if (key === "copy") handleCopy();
-                else if (key === "download") handleDownload();
-                else if (key === "fullscreen") onFullscreen?.();
+                if (key === "copy") { handleCopy(); }
+                else if (key === "download") { handleDownload(); }
+                else if (key === "fullscreen") { onFullscreen?.(); }
               },
             }}
           >
@@ -166,13 +166,13 @@ export function ArtifactPanel({
               </pre>
             </div>
             <div style={{ width: "50%", overflow: "auto" }}>
-              {canPreview ? (
-                <ArtifactPreview code={artifact.content} format={artifact.format} />
-              ) : (
-                <div style={{ padding: 16, textAlign: "center", color: "#999" }}>
-                  Preview not available for this format
-                </div>
-              )}
+              {canPreview
+                ? <ArtifactPreview code={artifact.content} format={artifact.format} />
+                : (
+                  <div style={{ padding: 16, textAlign: "center", color: "#999" }}>
+                    Preview not available for this format
+                  </div>
+                )}
             </div>
           </>
         )}

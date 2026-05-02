@@ -1,11 +1,11 @@
 import { invoke } from "@/lib/invoke";
 import type {
-  ProactiveSuggestion,
   ContextPrediction,
-  Reminder,
-  ProactiveConfig,
   PredictionResult,
   PrefetchResults,
+  ProactiveConfig,
+  ProactiveSuggestion,
+  Reminder,
 } from "@/types/proactive";
 import { create } from "zustand";
 
@@ -38,7 +38,7 @@ interface IntentPrediction {
 /** Lightweight local intent prediction from user typing patterns.
  *  Used to trigger prefetching before the user hits send. */
 function predictIntentFromInput(text: string): IntentPrediction[] {
-  if (!text || text.length < 3) return [];
+  if (!text || text.length < 3) { return []; }
   const lower = text.toLowerCase();
   const intents: IntentPrediction[] = [];
 
@@ -222,9 +222,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     try {
       await invoke("proactive_accept_suggestion", { id });
       set((state) => ({
-        suggestions: state.suggestions.map((s) =>
-          s.id === id ? { ...s, accepted: true } : s
-        ),
+        suggestions: state.suggestions.map((s) => s.id === id ? { ...s, accepted: true } : s),
       }));
     } catch (error) {
       set({
@@ -279,9 +277,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     try {
       await invoke("proactive_complete_reminder", { id });
       set((state) => ({
-        reminders: state.reminders.map((r) =>
-          r.id === id ? { ...r, completed: true } : r
-        ),
+        reminders: state.reminders.map((r) => r.id === id ? { ...r, completed: true } : r),
       }));
     } catch (error) {
       set({
@@ -348,7 +344,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   // ── P2 Smart Prefetch ──
 
   prefetchOnConversationSwitch: (conversationId: string) => {
-    if (!get().isEnabled || !canPrefetchNow("conversationSwitch")) return;
+    if (!get().isEnabled || !canPrefetchNow("conversationSwitch")) { return; }
 
     // Prefetch token counts for the conversation in background
     const type = "conversationSwitch";
@@ -369,11 +365,13 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       .then(() => {
         markPrefetched("compressionSummary", [conversationId]);
       })
-      .catch((e: unknown) => { console.warn('[IPC]', e); });
+      .catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
   },
 
   prefetchModelCosts: (_providerId: string, _modelId: string) => {
-    if (!get().isEnabled || !canPrefetchNow("modelCosts")) return;
+    if (!get().isEnabled || !canPrefetchNow("modelCosts")) { return; }
 
     // Cost estimation is now config-based (pricing.toml) and computed locally.
     // The backend has fast O(1) lookup via lookup_pricing_from_config().
@@ -383,17 +381,19 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       .then(() => {
         markPrefetched(type, ["metrics"]);
       })
-      .catch((e: unknown) => { console.warn('[IPC]', e); });
+      .catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
   },
 
   predictAndPrefetch: (inputText: string): IntentPrediction[] => {
     const intents = predictIntentFromInput(inputText);
-    if (intents.length === 0 || !get().isEnabled) return intents;
+    if (intents.length === 0 || !get().isEnabled) { return intents; }
 
     // Trigger prefetch based on predicted intent
     for (const intent of intents) {
       const type = `intent:${intent.intent}`;
-      if (!canPrefetchNow(type)) continue;
+      if (!canPrefetchNow(type)) { continue; }
 
       // Fire-and-forget prefetch based on intent type
       switch (intent.intent) {
@@ -401,19 +401,25 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
           // Warm up search provider
           invoke("list_search_providers", {})
             .then(() => markPrefetched(type, ["searchProviders"]))
-            .catch((e: unknown) => { console.warn('[IPC]', e); });
+            .catch((e: unknown) => {
+              console.warn("[IPC]", e);
+            });
           break;
         case "codeGeneration":
           // Pre-warm code executor
           invoke("list_local_tools", {})
             .then(() => markPrefetched(type, ["localTools"]))
-            .catch((e: unknown) => { console.warn('[IPC]', e); });
+            .catch((e: unknown) => {
+              console.warn("[IPC]", e);
+            });
           break;
         case "translation":
           // Pre-warm language models list
           invoke("list_providers", {})
             .then(() => markPrefetched(type, ["providers"]))
-            .catch((e: unknown) => { console.warn('[IPC]', e); });
+            .catch((e: unknown) => {
+              console.warn("[IPC]", e);
+            });
           break;
         default:
           break;

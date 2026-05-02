@@ -1,8 +1,8 @@
+import { invoke } from "@/lib/invoke";
 import { Button, Card, Empty, message, Spin, Switch, Table, Tag, Typography } from "antd";
-import { FolderOpen, PanelRight, Plus, Trash2, RefreshCw } from "lucide-react";
+import { FolderOpen, PanelRight, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { invoke } from "@/lib/invoke";
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -73,13 +73,11 @@ export default function DashboardPluginsSettings() {
       } else {
         await invoke("dashboard_disable_plugin", { pluginId });
       }
-      setPlugins((prev) =>
-        prev.map((p) => (p.id === pluginId ? { ...p, enabled } : p))
-      );
+      setPlugins((prev) => prev.map((p) => (p.id === pluginId ? { ...p, enabled } : p)));
       message.success(
         enabled
           ? t("settings.dashboardPlugins.enabled")
-          : t("settings.dashboardPlugins.disabled")
+          : t("settings.dashboardPlugins.disabled"),
       );
     } catch (error) {
       message.error(`Toggle failed: ${error}`);
@@ -210,28 +208,30 @@ export default function DashboardPluginsSettings() {
         </div>
       </div>
 
-      {plugins.length > 0 ? (
-        <Table
-          dataSource={plugins}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-        />
-      ) : (
-        <Card>
-          <Empty
-            image={<FolderOpen size={48} className="text-text-quaternary" />}
-            description={
-              <div>
-                <Paragraph>{t("settings.dashboardPlugins.noPlugins")}</Paragraph>
-                <Button type="primary" icon={<Plus size={16} />}>
-                  {t("settings.dashboardPlugins.installFirst")}
-                </Button>
-              </div>
-            }
+      {plugins.length > 0
+        ? (
+          <Table
+            dataSource={plugins}
+            columns={columns}
+            rowKey="id"
+            pagination={false}
           />
-        </Card>
-      )}
+        )
+        : (
+          <Card>
+            <Empty
+              image={<FolderOpen size={48} className="text-text-quaternary" />}
+              description={
+                <div>
+                  <Paragraph>{t("settings.dashboardPlugins.noPlugins")}</Paragraph>
+                  <Button type="primary" icon={<Plus size={16} />}>
+                    {t("settings.dashboardPlugins.installFirst")}
+                  </Button>
+                </div>
+              }
+            />
+          </Card>
+        )}
 
       <Card className="mt-6">
         <Title level={5}>{t("settings.dashboardPlugins.pluginDirs")}</Title>

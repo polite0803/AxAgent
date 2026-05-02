@@ -43,16 +43,29 @@ export default function FineTunePage() {
     <div style={{ padding: "16px 24px", maxWidth: 1200, margin: "0 auto" }}>
       <h2 style={{ margin: "0 0 16px", fontSize: 20, fontWeight: 600 }}>模型微调</h2>
       {stats && (
-        <div style={{
-          display: "flex", gap: 16, marginBottom: 16,
-          padding: "8px 16px", borderRadius: 8,
-          background: "var(--color-bg-tertiary)",
-          fontSize: 13,
-        }}>
-          <span>总任务: <b>{stats.total_jobs}</b></span>
-          <span style={{ color: "#52c41a" }}>完成: <b>{stats.completed_jobs}</b></span>
-          <span style={{ color: "#1890ff" }}>运行中: <b>{stats.running_jobs}</b></span>
-          <span style={{ color: "#ff4d4f" }}>失败: <b>{stats.failed_jobs}</b></span>
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            marginBottom: 16,
+            padding: "8px 16px",
+            borderRadius: 8,
+            background: "var(--color-bg-tertiary)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            总任务: <b>{stats.total_jobs}</b>
+          </span>
+          <span style={{ color: "#52c41a" }}>
+            完成: <b>{stats.completed_jobs}</b>
+          </span>
+          <span style={{ color: "#1890ff" }}>
+            运行中: <b>{stats.running_jobs}</b>
+          </span>
+          <span style={{ color: "#ff4d4f" }}>
+            失败: <b>{stats.failed_jobs}</b>
+          </span>
         </div>
       )}
       <Tabs items={tabItems} />

@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { useProactiveStore } from "@/stores/feature/proactiveStore";
+import { useTranslation } from "react-i18next";
 import SuggestionCard from "./SuggestionCard";
 
 export default function ProactiveSuggestionBar() {
@@ -44,20 +44,22 @@ export default function ProactiveSuggestionBar() {
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-1">
-          {isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              {t("proactive.loading")}
-            </div>
-          ) : (
-            suggestions.slice(0, 5).map((suggestion) => (
-              <SuggestionCard
-                key={suggestion.id}
-                suggestion={suggestion}
-                compact
-              />
-            ))
-          )}
+          {isLoading
+            ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                {t("proactive.loading")}
+              </div>
+            )
+            : (
+              suggestions.slice(0, 5).map((suggestion) => (
+                <SuggestionCard
+                  key={suggestion.id}
+                  suggestion={suggestion}
+                  compact
+                />
+              ))
+            )}
         </div>
 
         {suggestions.length > 5 && (

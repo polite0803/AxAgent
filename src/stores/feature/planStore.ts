@@ -1,13 +1,13 @@
 import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import type {
   Plan,
-  PlanGenerateRequest,
-  PlanGeneratedEvent,
   PlanExecuteRequest,
+  PlanExecutionCompleteEvent,
+  PlanGeneratedEvent,
+  PlanGenerateRequest,
   PlanModifyStepRequest,
   PlanStepStatus,
   PlanStepUpdateEvent,
-  PlanExecutionCompleteEvent,
 } from "@/types";
 import { create } from "zustand";
 
@@ -307,8 +307,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       (s) => s.status === "completed" || s.status === "rejected",
     );
 
-    if (hasRunning) planStatus = "executing";
-    else if (allDone) planStatus = hasError ? "completed" : "completed";
+    if (hasRunning) { planStatus = "executing"; }
+    else if (allDone) { planStatus = hasError ? "completed" : "completed"; }
 
     set((s) => ({
       activePlans: {

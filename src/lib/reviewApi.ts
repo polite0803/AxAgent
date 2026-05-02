@@ -42,7 +42,7 @@ export const reviewApi = {
 
   async getMyReview(marketplaceId: string): Promise<ReviewResponse | null> {
     const response = await fetch(`${API_BASE}/marketplace/${marketplaceId}/reviews/me`);
-    if (response.status === 404) return null;
+    if (response.status === 404) { return null; }
     return handleResponse(response);
   },
 

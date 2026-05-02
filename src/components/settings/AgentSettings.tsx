@@ -1,27 +1,6 @@
-import {
-  AlertCircle,
-  Brain,
-  Cog,
-  FlaskConical,
-  RefreshCw,
-  Save,
-  Settings,
-  Undo2,
-} from "lucide-react";
+import { Alert, Button, Card, Divider, InputNumber, Select, Slider, Switch, Tag, Tooltip, Typography } from "antd";
+import { AlertCircle, Brain, Cog, FlaskConical, RefreshCw, Save, Settings, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  Divider,
-  InputNumber,
-  Select,
-  Slider,
-  Switch,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
 
 const { Text, Title } = Typography;
 
@@ -358,9 +337,7 @@ function ReflectionSettingsPanel({
           min={1}
           max={10}
           value={config.minQualityThreshold}
-          onChange={(v) =>
-            onChange({ ...config, minQualityThreshold: v })
-          }
+          onChange={(v) => onChange({ ...config, minQualityThreshold: v })}
           disabled={!config.enabled}
           style={{ width: 150 }}
           marks={{
@@ -402,11 +379,9 @@ function DebugSettingsPanel({
       {debugMode !== "off" && (
         <Alert
           type="info"
-          message={
-            debugMode === "verbose"
-              ? "Verbose mode: Full thought chain, all tool inputs/outputs, internal state"
-              : "Basic mode: Thought chain steps, key decisions, errors"
-          }
+          message={debugMode === "verbose"
+            ? "Verbose mode: Full thought chain, all tool inputs/outputs, internal state"
+            : "Basic mode: Thought chain steps, key decisions, errors"}
           className="mt-2"
         />
       )}
@@ -520,9 +495,9 @@ export function AgentSettings({
 
       <Card size="small" className="bg-gray-50">
         <Text type="secondary" className="text-xs">
-          <strong>Tip:</strong> Higher max iterations allow more complex reasoning
-          but may increase response time. Enable parallel execution to speed up
-          multi-subtask operations. Use debug mode to troubleshoot issues.
+          <strong>Tip:</strong>{" "}
+          Higher max iterations allow more complex reasoning but may increase response time. Enable parallel execution
+          to speed up multi-subtask operations. Use debug mode to troubleshoot issues.
         </Text>
       </Card>
     </div>

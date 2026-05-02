@@ -1,6 +1,6 @@
+import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Select } from "antd";
 import React from "react";
-import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ValidationNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -43,7 +43,13 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <label style={{ color: "#999", fontSize: 11 }}>断言</label>
-          <Button size="small" type="dashed" icon={<PlusOutlined />} onClick={handleAddAssertion} style={{ fontSize: 10 }}>
+          <Button
+            size="small"
+            type="dashed"
+            icon={<PlusOutlined />}
+            onClick={handleAddAssertion}
+            style={{ fontSize: 10 }}
+          >
             添加
           </Button>
         </div>
@@ -54,7 +60,8 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
               <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>
                 <Select
                   value={assertion.type}
-                  onChange={(value) => handleAssertionChange(index, "type", value)}
+                  onChange={(value) =>
+                    handleAssertionChange(index, "type", value)}
                   size="small"
                   style={{ flex: 1 }}
                   options={[
@@ -66,7 +73,8 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
                   ]}
                 />
                 <MinusCircleOutlined
-                  onClick={() => handleRemoveAssertion(index)}
+                  onClick={() =>
+                    handleRemoveAssertion(index)}
                   style={{ color: "#ff4d4f", cursor: "pointer", fontSize: 12 }}
                 />
               </div>

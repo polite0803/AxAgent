@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { ConversationWorkspaceSnapshot, ConversationBranch, CompareResponsesResult } from "@/types";
+import type { CompareResponsesResult, ConversationBranch, ConversationWorkspaceSnapshot } from "@/types";
 import { create } from "zustand";
 
 interface WorkspaceState {

@@ -1,5 +1,5 @@
-import { List, Button, Space, Tag, Typography, Input, Modal, Form, message } from "antd";
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, HistoryOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, HistoryOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button, Form, Input, List, message, Modal, Space, Tag, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -56,8 +56,8 @@ export function PromptTemplatesPage() {
 
   const filteredTemplates = templates.filter(
     (t) =>
-      t.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchText.toLowerCase())
+      t.name.toLowerCase().includes(searchText.toLowerCase())
+      || t.description?.toLowerCase().includes(searchText.toLowerCase()),
   );
 
   const handleCreate = () => {
@@ -218,7 +218,11 @@ export function PromptTemplatesPage() {
                   <Button key="view" size="small" onClick={() => handleEdit(versionHistoryTemplate!)}>
                     {t("common.view")}
                   </Button>,
-                  <Button key="rollback" size="small" onClick={() => message.info(t("promptTemplates.rollbackNotImplemented"))}>
+                  <Button
+                    key="rollback"
+                    size="small"
+                    onClick={() => message.info(t("promptTemplates.rollbackNotImplemented"))}
+                  >
                     {t("promptTemplates.rollback")}
                   </Button>,
                 ]}

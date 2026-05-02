@@ -1,9 +1,8 @@
-import { AdvancedSettings } from "@/components/settings/AdvancedSettings";
 import {
   AboutPage,
   BackupCenter,
-  DataManager,
   DashboardPluginsSettings,
+  DataManager,
   DisplaySettings,
   GeneralSettings,
   LocalToolSettings,
@@ -23,6 +22,7 @@ import {
   WebhookSettings,
   WorkflowSettings,
 } from "@/components/settings";
+import { AdvancedSettings } from "@/components/settings/AdvancedSettings";
 import { ConversationSettings } from "@/components/settings/ConversationSettings";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
@@ -120,20 +120,20 @@ export function SettingsPage() {
         {settingsSection === "workflow"
           ? renderWorkflowContent()
           : isSkillSection && skillSectionData
-            ? (
-              <SkillPageRenderer
-                componentType={skillSectionData.componentType}
-                componentConfig={skillSectionData.componentConfig}
-                skillName={skillSectionData.skillName}
-              />
-            )
-            : ContentComponent
-              ? <ContentComponent />
-              : (
-                <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
-                  Unknown settings section: {settingsSection}
-                </div>
-              )}
+          ? (
+            <SkillPageRenderer
+              componentType={skillSectionData.componentType}
+              componentConfig={skillSectionData.componentConfig}
+              skillName={skillSectionData.skillName}
+            />
+          )
+          : ContentComponent
+          ? <ContentComponent />
+          : (
+            <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
+              Unknown settings section: {settingsSection}
+            </div>
+          )}
       </div>
     </div>
   );

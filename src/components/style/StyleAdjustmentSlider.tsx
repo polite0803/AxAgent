@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
-import { useTranslation } from "react-i18next";
 import type { StyleDimensionKey } from "@/types/style";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface StyleAdjustmentSliderProps {
   dimension: StyleDimensionKey;
@@ -23,7 +23,7 @@ export default function StyleAdjustmentSlider({
       setLocalValue(newValue);
       onChange(dimension, newValue);
     },
-    [dimension, onChange]
+    [dimension, onChange],
   );
 
   const dimensionConfig: Record<

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  reviewApi,
   type CreateReviewRequest,
   type MarketplaceStats,
+  reviewApi,
   type ReviewResponse,
   type UpdateReviewRequest,
 } from "../reviewApi";

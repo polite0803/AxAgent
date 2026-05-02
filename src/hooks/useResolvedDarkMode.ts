@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { ThemePreset } from "@/theme/shadcnTheme";
+import { useEffect, useState } from "react";
 
 const DARK_PRESETS: Set<string> = new Set(["dark-elegance", "dark-neon"]);
 

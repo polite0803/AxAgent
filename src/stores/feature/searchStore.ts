@@ -1,11 +1,7 @@
+import { invoke } from "@/lib/invoke";
+import type { CreateSearchProviderInput, SearchProvider, UpdateSearchProviderInput } from "@/types/search";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { invoke } from "@/lib/invoke";
-import type {
-  CreateSearchProviderInput,
-  SearchProvider,
-  UpdateSearchProviderInput,
-} from "@/types/search";
 
 export interface SearchResult {
   session_id: string;
@@ -107,8 +103,7 @@ export const useSearchStore = create<SearchState>()(
           const fullQuery: SearchQuery = {
             query,
             regex: searchQuery?.regex ?? searchOptions.useRegex,
-            case_sensitive:
-              searchQuery?.case_sensitive ?? searchOptions.caseSensitive,
+            case_sensitive: searchQuery?.case_sensitive ?? searchOptions.caseSensitive,
             session_filter: searchQuery?.session_filter,
             date_from: searchQuery?.date_from,
             date_to: searchQuery?.date_to,
@@ -211,6 +206,6 @@ export const useSearchStore = create<SearchState>()(
         savedFilters: state.savedFilters,
         searchOptions: state.searchOptions,
       }),
-    }
-  )
+    },
+  ),
 );

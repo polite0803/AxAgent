@@ -150,9 +150,7 @@ function SkillCard({
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
-            {hasFrontend && (
-              <Tag color="blue" style={{ margin: 0 }}>含 UI 扩展</Tag>
-            )}
+            {hasFrontend && <Tag color="blue" style={{ margin: 0 }}>含 UI 扩展</Tag>}
           </div>
           <Paragraph
             type="secondary"

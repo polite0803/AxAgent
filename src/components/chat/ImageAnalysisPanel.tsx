@@ -99,12 +99,13 @@ function ImageAnalysisPanel({ imageUrl, result, loading, error }: ImageAnalysisP
               </Text>
               <div className="space-y-1">
                 {result.elements.map((el, i) => (
-                  <div key={i} className="flex items-center gap-2 px-2 py-1 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    {el.actionable ? (
-                      <CheckCircle size={10} className="text-green-500 shrink-0" />
-                    ) : (
-                      <ImageIcon size={10} className="text-gray-400 shrink-0" />
-                    )}
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 px-2 py-1 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  >
+                    {el.actionable
+                      ? <CheckCircle size={10} className="text-green-500 shrink-0" />
+                      : <ImageIcon size={10} className="text-gray-400 shrink-0" />}
                     <span className="font-medium">{el.element_type}</span>
                     {el.label && <span className="text-gray-500">{el.label}</span>}
                   </div>

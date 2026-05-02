@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { Terminal as XTerm } from "@xterm/xterm";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ITerminalTheme {
   background: string;
@@ -42,7 +42,7 @@ export interface XtermEnhancementOptions {
 
 export function useXtermEnhancement(
   containerRef: React.RefObject<HTMLDivElement | null>,
-  options: XtermEnhancementOptions = {}
+  options: XtermEnhancementOptions = {},
 ) {
   const {
     cursorBlink = true,
@@ -85,7 +85,7 @@ export function useXtermEnhancement(
   };
 
   const initTerminal = useCallback(async () => {
-    if (!containerRef.current || terminalRef.current) return;
+    if (!containerRef.current || terminalRef.current) { return; }
 
     const xterm = new XTerm({
       cursorBlink,
@@ -137,17 +137,23 @@ export function useXtermEnhancement(
     }
   }, []);
 
-  const search = useCallback((term: string, options?: { regex?: boolean; wholeWord?: boolean; caseSensitive?: boolean }) => {
-    if (searchAddonRef.current) {
-      searchAddonRef.current.findNext(term, options);
-    }
-  }, []);
+  const search = useCallback(
+    (term: string, options?: { regex?: boolean; wholeWord?: boolean; caseSensitive?: boolean }) => {
+      if (searchAddonRef.current) {
+        searchAddonRef.current.findNext(term, options);
+      }
+    },
+    [],
+  );
 
-  const searchPrevious = useCallback((term: string, options?: { regex?: boolean; wholeWord?: boolean; caseSensitive?: boolean }) => {
-    if (searchAddonRef.current) {
-      searchAddonRef.current.findPrevious(term, options);
-    }
-  }, []);
+  const searchPrevious = useCallback(
+    (term: string, options?: { regex?: boolean; wholeWord?: boolean; caseSensitive?: boolean }) => {
+      if (searchAddonRef.current) {
+        searchAddonRef.current.findPrevious(term, options);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let cleanupFn: (() => void) | undefined;
@@ -217,7 +223,7 @@ export function useOscClipboard(terminal: XTerm | null) {
 
 export function useVirtualScroll(
   terminal: XTerm | null,
-  _bufferSize: number = 5000
+  _bufferSize: number = 5000,
 ) {
   const [visibleRange, _setVisibleRange] = useState({ start: 0, end: 0 });
 

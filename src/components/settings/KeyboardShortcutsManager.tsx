@@ -1,16 +1,4 @@
-import {
-  Button,
-  Card,
-  Col,
-  Input,
-  List,
-  Modal,
-  message,
-  Row,
-  Space,
-  Tag,
-  Typography,
-} from "antd";
+import { Button, Card, Col, Input, List, message, Modal, Row, Space, Tag, Typography } from "antd";
 import { Keyboard, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,18 +20,78 @@ interface KeyboardShortcutsManagerProps {
 }
 
 const DEFAULT_SHORTCUTS: KeyboardShortcut[] = [
-  { id: "new-session", category: "Session", name: "New Session", defaultKey: "Ctrl+Shift+N", description: "Create a new chat session" },
+  {
+    id: "new-session",
+    category: "Session",
+    name: "New Session",
+    defaultKey: "Ctrl+Shift+N",
+    description: "Create a new chat session",
+  },
   { id: "search", category: "General", name: "Search", defaultKey: "Ctrl+K", description: "Open search panel" },
   { id: "settings", category: "General", name: "Settings", defaultKey: "Ctrl+,", description: "Open settings" },
-  { id: "toggle-theme", category: "Appearance", name: "Toggle Theme", defaultKey: "Ctrl+Shift+T", description: "Switch between light/dark theme" },
-  { id: "command-palette", category: "General", name: "Command Palette", defaultKey: "Ctrl+Shift+P", description: "Open command palette" },
-  { id: "terminal", category: "Terminal", name: "Toggle Terminal", defaultKey: "Ctrl+`", description: "Show/hide terminal panel" },
-  { id: "clear-chat", category: "Chat", name: "Clear Chat", defaultKey: "Ctrl+Shift+C", description: "Clear current chat history" },
-  { id: "export-chat", category: "Chat", name: "Export Chat", defaultKey: "Ctrl+Shift+E", description: "Export chat as markdown" },
-  { id: "focus-input", category: "Chat", name: "Focus Input", defaultKey: "Escape", description: "Focus chat input field" },
-  { id: "toggle-sidebar", category: "Layout", name: "Toggle Sidebar", defaultKey: "Ctrl+B", description: "Show/hide sidebar" },
-  { id: "quick-command", category: "Chat", name: "Quick Command", defaultKey: "/", description: "Open slash command menu" },
-  { id: "interrupt", category: "Agent", name: "Interrupt Agent", defaultKey: "Ctrl+C", description: "Interrupt running agent" },
+  {
+    id: "toggle-theme",
+    category: "Appearance",
+    name: "Toggle Theme",
+    defaultKey: "Ctrl+Shift+T",
+    description: "Switch between light/dark theme",
+  },
+  {
+    id: "command-palette",
+    category: "General",
+    name: "Command Palette",
+    defaultKey: "Ctrl+Shift+P",
+    description: "Open command palette",
+  },
+  {
+    id: "terminal",
+    category: "Terminal",
+    name: "Toggle Terminal",
+    defaultKey: "Ctrl+`",
+    description: "Show/hide terminal panel",
+  },
+  {
+    id: "clear-chat",
+    category: "Chat",
+    name: "Clear Chat",
+    defaultKey: "Ctrl+Shift+C",
+    description: "Clear current chat history",
+  },
+  {
+    id: "export-chat",
+    category: "Chat",
+    name: "Export Chat",
+    defaultKey: "Ctrl+Shift+E",
+    description: "Export chat as markdown",
+  },
+  {
+    id: "focus-input",
+    category: "Chat",
+    name: "Focus Input",
+    defaultKey: "Escape",
+    description: "Focus chat input field",
+  },
+  {
+    id: "toggle-sidebar",
+    category: "Layout",
+    name: "Toggle Sidebar",
+    defaultKey: "Ctrl+B",
+    description: "Show/hide sidebar",
+  },
+  {
+    id: "quick-command",
+    category: "Chat",
+    name: "Quick Command",
+    defaultKey: "/",
+    description: "Open slash command menu",
+  },
+  {
+    id: "interrupt",
+    category: "Agent",
+    name: "Interrupt Agent",
+    defaultKey: "Ctrl+C",
+    description: "Interrupt running agent",
+  },
 ];
 
 const SHORTCUT_CATEGORIES = ["General", "Session", "Chat", "Terminal", "Appearance", "Layout", "Agent"];
@@ -81,16 +129,16 @@ export default function KeyboardShortcutsManager({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!editingId) return;
+    if (!editingId) { return; }
 
     e.preventDefault();
     e.stopPropagation();
 
     const keys: string[] = [];
-    if (e.ctrlKey) keys.push("Ctrl");
-    if (e.altKey) keys.push("Alt");
-    if (e.shiftKey) keys.push("Shift");
-    if (e.metaKey) keys.push("Meta");
+    if (e.ctrlKey) { keys.push("Ctrl"); }
+    if (e.altKey) { keys.push("Alt"); }
+    if (e.shiftKey) { keys.push("Shift"); }
+    if (e.metaKey) { keys.push("Meta"); }
 
     const key = e.key;
     if (!["Control", "Alt", "Shift", "Meta"].includes(key)) {
@@ -101,11 +149,9 @@ export default function KeyboardShortcutsManager({
   };
 
   const handleSaveEdit = () => {
-    if (!editingId) return;
+    if (!editingId) { return; }
 
-    const updated = shortcuts.map((s) =>
-      s.id === editingId ? { ...s, currentKey: editKey } : s
-    );
+    const updated = shortcuts.map((s) => s.id === editingId ? { ...s, currentKey: editKey } : s);
     setShortcuts(updated);
     setEditingId(null);
     setEditKey("");
@@ -203,20 +249,22 @@ export default function KeyboardShortcutsManager({
                             textAlign: "center",
                           }}
                         >
-                          {editingId === shortcut.id ? (
-                            <Input
-                              size="small"
-                              value={editKey}
-                              onChange={(e) => setEditKey(e.target.value)}
-                              onKeyDown={handleKeyDown}
-                              onBlur={handleSaveEdit}
-                              onClick={(e) => e.stopPropagation()}
-                              autoFocus
-                              style={{ width: 100 }}
-                            />
-                          ) : (
-                            shortcut.currentKey || shortcut.defaultKey
-                          )}
+                          {editingId === shortcut.id
+                            ? (
+                              <Input
+                                size="small"
+                                value={editKey}
+                                onChange={(e) => setEditKey(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                onBlur={handleSaveEdit}
+                                onClick={(e) => e.stopPropagation()}
+                                autoFocus
+                                style={{ width: 100 }}
+                              />
+                            )
+                            : (
+                              shortcut.currentKey || shortcut.defaultKey
+                            )}
                         </Tag>
                       </div>
                     </List.Item>

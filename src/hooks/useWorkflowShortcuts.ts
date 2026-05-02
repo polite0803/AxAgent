@@ -24,10 +24,9 @@ export const useWorkflowShortcuts = ({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      const isInputField =
-        event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLTextAreaElement ||
-        event.target instanceof HTMLSelectElement;
+      const isInputField = event.target instanceof HTMLInputElement
+        || event.target instanceof HTMLTextAreaElement
+        || event.target instanceof HTMLSelectElement;
 
       if (isInputField) {
         return;
@@ -83,7 +82,7 @@ export const useWorkflowShortcuts = ({
         return;
       }
     },
-    [onDelete, onUndo, onRedo, onSearch, onCopy, onPaste, onSelectAll, deleteElements]
+    [onDelete, onUndo, onRedo, onSearch, onCopy, onPaste, onSelectAll, deleteElements],
   );
 
   useEffect(() => {

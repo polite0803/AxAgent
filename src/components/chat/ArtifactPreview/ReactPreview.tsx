@@ -58,7 +58,7 @@ try {
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       // 校验消息来源为当前 iframe，防止其他窗口/iframe 伪造消息
-      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (event.source !== iframeRef.current?.contentWindow) { return; }
       if (event.data?.type === "react-preview-error") {
         onError?.(event.data.message);
       }

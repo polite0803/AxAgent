@@ -46,7 +46,7 @@ function CollaborationPanel() {
       try {
         const { invoke } = await import("@/lib/invoke");
         const data = await invoke<SharedSession[]>(
-          "collaboration_list_sessions"
+          "collaboration_list_sessions",
         ).catch(() => []);
         setSessions(data);
       } catch {
@@ -108,9 +108,7 @@ function CollaborationPanel() {
               >
                 <Space>
                   <div
-                    className={`w-2 h-2 rounded-full ${
-                      session.is_active ? "bg-green-500" : "bg-gray-400"
-                    }`}
+                    className={`w-2 h-2 rounded-full ${session.is_active ? "bg-green-500" : "bg-gray-400"}`}
                   />
                   <Text strong className="text-sm">
                     {t("chat.collaboration.session")} {session.session_id.slice(0, 8)}
@@ -154,13 +152,11 @@ function CollaborationPanel() {
                         <UserPlus size={10} className="text-gray-400" />
                         <Text className="text-xs">{p.display_name}</Text>
                         <Tag
-                          color={
-                            p.role === "Owner"
-                              ? "gold"
-                              : p.role === "Editor"
-                                ? "blue"
-                                : undefined
-                          }
+                          color={p.role === "Owner"
+                            ? "gold"
+                            : p.role === "Editor"
+                            ? "blue"
+                            : undefined}
                           className="text-xs"
                         >
                           {p.role}
