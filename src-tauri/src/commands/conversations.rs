@@ -3927,6 +3927,8 @@ mod tests {
             data: base64::engine::general_purpose::STANDARD.encode(b"abc"),
         }];
 
+        axagent_core::storage_paths::set_documents_root(temp_dir.clone());
+
         let persisted = persist_attachments(&state, &conversation.id, &attachments)
             .await
             .unwrap();
