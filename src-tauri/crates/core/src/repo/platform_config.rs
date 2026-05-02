@@ -34,10 +34,7 @@ pub async fn save_platform_cursor(
 }
 
 /// 获取平台的消息去重游标
-pub async fn get_platform_cursor(
-    db: &DatabaseConnection,
-    platform: &str,
-) -> Option<i64> {
+pub async fn get_platform_cursor(db: &DatabaseConnection, platform: &str) -> Option<i64> {
     let key = format!("platform_cursor_{}", platform);
     settings::get_setting(db, &key)
         .await

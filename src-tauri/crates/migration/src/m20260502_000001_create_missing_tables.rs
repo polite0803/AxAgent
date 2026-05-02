@@ -30,19 +30,15 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(AtomicSkills::Name).string().not_null())
-                    .col(ColumnDef::new(AtomicSkills::Description).string().not_null())
+                    .col(
+                        ColumnDef::new(AtomicSkills::Description)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(AtomicSkills::InputSchema).string().null())
                     .col(ColumnDef::new(AtomicSkills::OutputSchema).string().null())
-                    .col(
-                        ColumnDef::new(AtomicSkills::EntryType)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(AtomicSkills::EntryRef)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(AtomicSkills::EntryType).string().not_null())
+                    .col(ColumnDef::new(AtomicSkills::EntryRef).string().not_null())
                     .col(ColumnDef::new(AtomicSkills::Category).string().not_null())
                     .col(ColumnDef::new(AtomicSkills::Tags).string().null())
                     .col(ColumnDef::new(AtomicSkills::Version).string().not_null())
@@ -80,16 +76,8 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(GatewayLinks::Name).string().not_null())
-                    .col(
-                        ColumnDef::new(GatewayLinks::LinkType)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(GatewayLinks::Endpoint)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(GatewayLinks::LinkType).string().not_null())
+                    .col(ColumnDef::new(GatewayLinks::Endpoint).string().not_null())
                     .col(ColumnDef::new(GatewayLinks::ApiKeyId).string().null())
                     .col(
                         ColumnDef::new(GatewayLinks::Enabled)
@@ -116,7 +104,11 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(1),
                     )
-                    .col(ColumnDef::new(GatewayLinks::LastSyncAt).big_integer().null())
+                    .col(
+                        ColumnDef::new(GatewayLinks::LastSyncAt)
+                            .big_integer()
+                            .null(),
+                    )
                     .col(ColumnDef::new(GatewayLinks::LatencyMs).big_integer().null())
                     .col(ColumnDef::new(GatewayLinks::Version).string().null())
                     .col(
@@ -240,11 +232,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(GeneratedTools::ToolName)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(GeneratedTools::ToolName).string().not_null())
                     .col(
                         ColumnDef::new(GeneratedTools::OriginalName)
                             .string()
@@ -303,11 +291,7 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(ScheduledTasks::TaskType).text().not_null())
-                    .col(
-                        ColumnDef::new(ScheduledTasks::WorkflowId)
-                            .string()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(ScheduledTasks::WorkflowId).string().null())
                     .col(
                         ColumnDef::new(ScheduledTasks::CronExpression)
                             .string()
@@ -328,11 +312,7 @@ impl MigrationTrait for Migration {
                             .big_integer()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(ScheduledTasks::LastResult)
-                            .string()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(ScheduledTasks::LastResult).string().null())
                     .col(ColumnDef::new(ScheduledTasks::Status).text().not_null())
                     .col(ColumnDef::new(ScheduledTasks::Config).text().not_null())
                     .col(
@@ -361,21 +341,13 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(SkillReferences::SkillId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(SkillReferences::SkillId).string().not_null())
                     .col(
                         ColumnDef::new(SkillReferences::WorkflowId)
                             .string()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(SkillReferences::NodeId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(SkillReferences::NodeId).string().not_null())
                     .col(
                         ColumnDef::new(SkillReferences::CreatedAt)
                             .big_integer()
@@ -449,10 +421,102 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(Iden)] enum AtomicSkills { Table, Id, Name, Description, InputSchema, OutputSchema, EntryType, EntryRef, Category, Tags, Version, Enabled, Source, CreatedAt, UpdatedAt }
-#[derive(Iden)] enum GatewayLinks { Table, Id, Name, LinkType, Endpoint, ApiKeyId, Enabled, Status, ErrorMessage, AutoSyncModels, AutoSyncSkills, LastSyncAt, LatencyMs, Version, CreatedAt, UpdatedAt }
-#[derive(Iden)] enum GatewayLinkPolicies { Table, Id, LinkId, RouteStrategy, ModelFallbackEnabled, GlobalRpm, PerModelRpm, TokenLimitPerMinute, KeyRotationStrategy, KeyFailoverEnabled }
-#[derive(Iden)] enum GatewayLinkActivities { Table, Id, LinkId, ActivityType, Description, CreatedAt }
-#[derive(Iden)] enum GeneratedTools { Table, Id, ToolName, OriginalName, OriginalDescription, InputSchema, OutputSchema, Implementation, SourceInfo, CreatedAt }
-#[derive(Iden)] enum ScheduledTasks { Table, Id, Name, Description, TaskType, WorkflowId, CronExpression, IntervalSeconds, NextRunAt, LastRunAt, LastResult, Status, Config, CreatedAt, UpdatedAt }
-#[derive(Iden)] enum SkillReferences { Table, Id, SkillId, WorkflowId, NodeId, CreatedAt }
+#[derive(Iden)]
+enum AtomicSkills {
+    Table,
+    Id,
+    Name,
+    Description,
+    InputSchema,
+    OutputSchema,
+    EntryType,
+    EntryRef,
+    Category,
+    Tags,
+    Version,
+    Enabled,
+    Source,
+    CreatedAt,
+    UpdatedAt,
+}
+#[derive(Iden)]
+enum GatewayLinks {
+    Table,
+    Id,
+    Name,
+    LinkType,
+    Endpoint,
+    ApiKeyId,
+    Enabled,
+    Status,
+    ErrorMessage,
+    AutoSyncModels,
+    AutoSyncSkills,
+    LastSyncAt,
+    LatencyMs,
+    Version,
+    CreatedAt,
+    UpdatedAt,
+}
+#[derive(Iden)]
+enum GatewayLinkPolicies {
+    Table,
+    Id,
+    LinkId,
+    RouteStrategy,
+    ModelFallbackEnabled,
+    GlobalRpm,
+    PerModelRpm,
+    TokenLimitPerMinute,
+    KeyRotationStrategy,
+    KeyFailoverEnabled,
+}
+#[derive(Iden)]
+enum GatewayLinkActivities {
+    Table,
+    Id,
+    LinkId,
+    ActivityType,
+    Description,
+    CreatedAt,
+}
+#[derive(Iden)]
+enum GeneratedTools {
+    Table,
+    Id,
+    ToolName,
+    OriginalName,
+    OriginalDescription,
+    InputSchema,
+    OutputSchema,
+    Implementation,
+    SourceInfo,
+    CreatedAt,
+}
+#[derive(Iden)]
+enum ScheduledTasks {
+    Table,
+    Id,
+    Name,
+    Description,
+    TaskType,
+    WorkflowId,
+    CronExpression,
+    IntervalSeconds,
+    NextRunAt,
+    LastRunAt,
+    LastResult,
+    Status,
+    Config,
+    CreatedAt,
+    UpdatedAt,
+}
+#[derive(Iden)]
+enum SkillReferences {
+    Table,
+    Id,
+    SkillId,
+    WorkflowId,
+    NodeId,
+    CreatedAt,
+}

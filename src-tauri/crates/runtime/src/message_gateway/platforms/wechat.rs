@@ -45,19 +45,12 @@ impl PlatformAdapter for WeChatAdapter {
         let mode = resolve_wechat_mode(config);
 
         if mode == "customer_service" {
-            start_customer_service_polling(
-                &self.connected,
-                &self.poll_task,
-                &self.running,
-                config,
-            )
-            .await
+            start_customer_service_polling(&self.connected, &self.poll_task, &self.running, config)
+                .await
         } else {
             // official_account 模式: 依赖 webhook server 接收消息
             // 适配器只需要准备好发送消息的能力
-            tracing::info!(
-                "WeChat: official_account mode — 消息接收依赖 webhook endpoint"
-            );
+            tracing::info!("WeChat: official_account mode — 消息接收依赖 webhook endpoint");
             self.running.store(true, Ordering::SeqCst);
             self.connected.store(true, Ordering::SeqCst);
             Ok(())
@@ -104,10 +97,7 @@ impl Default for WeChatAdapter {
 
 /// 解析 wechat_mode 配置，默认为 official_account
 fn resolve_wechat_mode(config: &PlatformConfig) -> &str {
-    config
-        .wechat_mode
-        .as_deref()
-        .unwrap_or("official_account")
+    config.wechat_mode.as_deref().unwrap_or("official_account")
 }
 
 async fn start_customer_service_polling(
@@ -229,8 +219,7 @@ pub async fn handle_official_account_message(
     config: &PlatformConfig,
     xml_body: &str,
 ) -> Result<String, String> {
-    let doc = roxmltree::Document::parse(xml_body)
-        .map_err(|e| format!("XML 解析失败: {}", e))?;
+    let doc = roxmltree::Document::parse(xml_body).map_err(|e| format!("XML 解析失败: {}", e))?;
 
     let root = doc.root();
     let msg_type = root
@@ -271,9 +260,7 @@ pub async fn handle_official_account_message(
             let reply = cb.on_message("wechat", &from, None, &from, &text).await;
             if let Some(reply_text) = reply {
                 let client = reqwest::Client::new();
-                if let Some(token) =
-                    fetch_wechat_token(&client, &app_id, &app_secret).await
-                {
+                if let Some(token) = fetch_wechat_token(&client, &app_id, &app_secret).await {
                     let _ = send_wechat_custom_message(&token, &from, &reply_text).await;
                 }
             }

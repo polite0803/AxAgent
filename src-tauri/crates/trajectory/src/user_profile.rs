@@ -545,7 +545,7 @@ pub enum UpdateSource {
 pub fn calculate_confidence(sample_count: u32, time_span_hours: u64) -> f32 {
     let count_factor = (sample_count as f32).min(100.0) / 100.0;
     let time_factor = if time_span_hours > 0 {
-        (time_span_hours as f32).clamp(1.0, 168.0) / 168.0 
+        (time_span_hours as f32).clamp(1.0, 168.0) / 168.0
     } else {
         1.0
     };

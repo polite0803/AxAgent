@@ -444,8 +444,8 @@ impl LintChecker {
 
         if let Some(nid) = note_id {
             let result = self.lint_note(nid).await?;
-            let link_re = regex::Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
-                .map_err(|e| e.to_string())?;
+            let link_re =
+                regex::Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").map_err(|e| e.to_string())?;
             for issue in &result.issues {
                 if issue.code == "broken-link" {
                     let note = axagent_core::repo::note::get_note(self.db.as_ref(), nid)

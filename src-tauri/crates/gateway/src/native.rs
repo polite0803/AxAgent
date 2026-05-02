@@ -276,7 +276,10 @@ fn parse_gemini_model_action(model_action: &str) -> Option<ParsedGeminiModelActi
 }
 
 fn parse_sse_json_line(line: &str) -> Option<serde_json::Value> {
-    let data = line.strip_prefix("data:")?.strip_prefix(' ').unwrap_or(line);
+    let data = line
+        .strip_prefix("data:")?
+        .strip_prefix(' ')
+        .unwrap_or(line);
 
     if data == "[DONE]" {
         return None;

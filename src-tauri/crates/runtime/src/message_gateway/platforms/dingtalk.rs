@@ -97,9 +97,8 @@ impl PlatformAdapter for DingtalkAdapter {
                                 let agent = rc.clone();
                                 let cid = conversation_id.clone();
                                 tokio::spawn(async move {
-                                    let reply = cb
-                                        .on_message("dingtalk", &sid, None, &cid, &t)
-                                        .await;
+                                    let reply =
+                                        cb.on_message("dingtalk", &sid, None, &cid, &t).await;
                                     if let Some(reply_text) = reply {
                                         let _ = send_dingtalk_message(
                                             &reqwest::Client::new(),

@@ -70,10 +70,7 @@ pub async fn get_wiki(db: &DatabaseConnection, id: &str) -> Result<Wiki> {
 }
 
 /// Returns the raw SeaORM Model for commands that need to modify the wiki record.
-pub async fn get_wiki_model(
-    db: &DatabaseConnection,
-    id: &str,
-) -> Result<wikis::Model> {
+pub async fn get_wiki_model(db: &DatabaseConnection, id: &str) -> Result<wikis::Model> {
     wikis::Entity::find_by_id(id)
         .one(db)
         .await?

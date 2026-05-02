@@ -216,7 +216,9 @@ impl ToolRecommender {
                 EntityType::FilePath if tool.categories.contains(&"file_operation".to_string()) => {
                     score += 0.2;
                 },
-                EntityType::Language if tool.categories.contains(&"code_generation".to_string()) => {
+                EntityType::Language
+                    if tool.categories.contains(&"code_generation".to_string()) =>
+                {
                     score += 0.2;
                 },
                 _ => {},

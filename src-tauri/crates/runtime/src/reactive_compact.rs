@@ -105,7 +105,10 @@ pub fn try_reactive_compact(
         };
     }
 
-    ReactiveCompactResult::Compacted { result: Box::new(result), trigger }
+    ReactiveCompactResult::Compacted {
+        result: Box::new(result),
+        trigger,
+    }
 }
 
 /// 从 API 错误消息中检测是否需要响应式压缩。

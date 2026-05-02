@@ -162,12 +162,15 @@ impl VectorStore {
             .db
             .query_one(Statement::from_string(
                 DbBackend::Sqlite,
-                format!("SELECT dimensions FROM pragma_table_info('{name}') WHERE name = 'embedding'"),
+                format!(
+                    "SELECT dimensions FROM pragma_table_info('{name}') WHERE name = 'embedding'"
+                ),
             ))
             .await
             .ok()
             .flatten();
-        Ok(row.and_then(|r| r.try_get::<String>("", "type").ok())
+        Ok(row
+            .and_then(|r| r.try_get::<String>("", "type").ok())
             .and_then(|t| {
                 t.trim_start_matches("float[")
                     .trim_end_matches(']')
@@ -428,29 +431,29 @@ impl VectorStore {
         }
 
         let meta_result = self
-                .db
-                .execute(Statement::from_sql_and_values(
-                    DbBackend::Sqlite,
-                    format!(
-                        "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
+            .db
+            .execute(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                format!(
+                    "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
                          VALUES ($1, $2, $3, $4, $5)"
-                    ),
-                    vec![
-                        rid.into(),
-                        chunk_id.clone().into(),
-                        document_id.to_string().into(),
-                        chunk_index.into(),
-                        content.to_string().into(),
-                    ],
-                ))
-                .await;
+                ),
+                vec![
+                    rid.into(),
+                    chunk_id.clone().into(),
+                    document_id.to_string().into(),
+                    chunk_index.into(),
+                    content.to_string().into(),
+                ],
+            ))
+            .await;
 
-            if let Err(e) = meta_result {
-                let _ = self.exec("ROLLBACK").await;
-                return Err(Self::wrap(e));
-            }
-            self.exec("COMMIT").await?;
-            Ok(chunk_id)
+        if let Err(e) = meta_result {
+            let _ = self.exec("ROLLBACK").await;
+            return Err(Self::wrap(e));
+        }
+        self.exec("COMMIT").await?;
+        Ok(chunk_id)
     }
 
     /// Search for the most similar vectors in a knowledge base.
@@ -492,9 +495,7 @@ impl VectorStore {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("Vector store: search query failed for {name}: {e}");
-                return Err(AxAgentError::Provider(format!(
-                    "Vector search failed: {e}"
-                )));
+                return Err(AxAgentError::Provider(format!("Vector search failed: {e}")));
             },
         };
 
@@ -973,8 +974,14 @@ mod tests {
         let embedding = vec![0.5_f32, -1.25_f32, 3.14159_f32];
         let json = VectorStore::embedding_to_json(&embedding);
         // 不应包含逗号作为小数点（非英文 locale 的问题）
-        assert!(!json.contains(",5"), "should not use comma as decimal: {json}");
-        assert!(!json.contains(",25"), "should not use comma as decimal: {json}");
+        assert!(
+            !json.contains(",5"),
+            "should not use comma as decimal: {json}"
+        );
+        assert!(
+            !json.contains(",25"),
+            "should not use comma as decimal: {json}"
+        );
         assert!(json.contains("0.5"), "should use dot: {json}");
         assert!(json.contains("-1.25"), "should use dot: {json}");
     }

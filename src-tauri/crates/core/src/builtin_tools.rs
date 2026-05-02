@@ -4166,10 +4166,16 @@ async fn create_knowledge_entity_tool(
     behaviors: Option<serde_json::Value>,
 ) -> Result<McpToolResult> {
     if kb_id.is_empty() {
-        return Ok(McpToolResult { content: "Error: knowledge_base_id is required".to_string(), is_error: true });
+        return Ok(McpToolResult {
+            content: "Error: knowledge_base_id is required".to_string(),
+            is_error: true,
+        });
     }
     if name.is_empty() {
-        return Ok(McpToolResult { content: "Error: name is required".to_string(), is_error: true });
+        return Ok(McpToolResult {
+            content: "Error: name is required".to_string(),
+            is_error: true,
+        });
     }
 
     let db = sea_db()?;
@@ -4194,7 +4200,10 @@ async fn create_knowledge_entity_tool(
 
     match am.insert(db.as_ref()).await {
         Ok(_) => Ok(McpToolResult {
-            content: format!("Created knowledge entity '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+            content: format!(
+                "Created knowledge entity '{}' (id: {}) in knowledge base '{}'",
+                name, id, kb_id
+            ),
             is_error: false,
         }),
         Err(e) => Ok(McpToolResult {
@@ -4253,7 +4262,10 @@ async fn create_knowledge_flow_tool(
 
     match am.insert(db.as_ref()).await {
         Ok(_) => Ok(McpToolResult {
-            content: format!("Created knowledge flow '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+            content: format!(
+                "Created knowledge flow '{}' (id: {}) in knowledge base '{}'",
+                name, id, kb_id
+            ),
             is_error: false,
         }),
         Err(e) => Ok(McpToolResult {
@@ -4311,7 +4323,10 @@ async fn create_knowledge_interface_tool(
 
     match am.insert(db.as_ref()).await {
         Ok(_) => Ok(McpToolResult {
-            content: format!("Created knowledge interface '{}' (id: {}) in knowledge base '{}'", name, id, kb_id),
+            content: format!(
+                "Created knowledge interface '{}' (id: {}) in knowledge base '{}'",
+                name, id, kb_id
+            ),
             is_error: false,
         }),
         Err(e) => Ok(McpToolResult {
@@ -4347,7 +4362,12 @@ async fn add_knowledge_document_tool(
 
     let db = match sea_db() {
         Ok(db) => db,
-        Err(e) => return Ok(McpToolResult { content: format!("Error: {}", e), is_error: true }),
+        Err(e) => {
+            return Ok(McpToolResult {
+                content: format!("Error: {}", e),
+                is_error: true,
+            })
+        },
     };
 
     let temp_dir = std::env::temp_dir();
@@ -4384,7 +4404,10 @@ async fn add_knowledge_document_tool(
 
     match am.insert(db.as_ref()).await {
         Ok(_) => Ok(McpToolResult {
-            content: format!("Added knowledge document '{}' (id: {}) to knowledge base '{}'", title, id, kb_id),
+            content: format!(
+                "Added knowledge document '{}' (id: {}) to knowledge base '{}'",
+                title, id, kb_id
+            ),
             is_error: false,
         }),
         Err(e) => Ok(McpToolResult {
@@ -6055,7 +6078,10 @@ fn export_word_tool(markdown: &str, output_path: &str, title: &str) -> Result<Mc
             doc = doc.add_paragraph(
                 Paragraph::new().add_run(Run::new().add_text(stripped).size(24).bold()),
             );
-        } else if let Some(stripped) = trimmed.strip_prefix("- ").or_else(|| trimmed.strip_prefix("* ")) {
+        } else if let Some(stripped) = trimmed
+            .strip_prefix("- ")
+            .or_else(|| trimmed.strip_prefix("* "))
+        {
             doc = doc.add_paragraph(
                 Paragraph::new().add_run(Run::new().add_text(format!("• {}", stripped))),
             );

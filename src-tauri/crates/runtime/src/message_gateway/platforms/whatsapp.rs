@@ -192,9 +192,7 @@ pub async fn handle_webhook_notification(
     config: &PlatformConfig,
     body: &serde_json::Value,
 ) -> Result<(), String> {
-    let entries = body["entry"]
-        .as_array()
-        .ok_or("Missing entry array")?;
+    let entries = body["entry"].as_array().ok_or("Missing entry array")?;
 
     for entry in entries {
         let changes = entry["changes"].as_array().ok_or("Missing changes array")?;
@@ -229,7 +227,8 @@ pub async fn handle_webhook_notification(
 
                 if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
                     let access_token = config.whatsapp_access_token.clone().unwrap_or_default();
-                    let phone_number_id = config.whatsapp_phone_number_id.clone().unwrap_or_default();
+                    let phone_number_id =
+                        config.whatsapp_phone_number_id.clone().unwrap_or_default();
                     let api_version = resolve_api_version(config);
                     let from_owned = from.to_string();
                     let text_owned = text.to_string();
@@ -237,7 +236,13 @@ pub async fn handle_webhook_notification(
                     let sender_owned = sender_name.clone();
                     tokio::spawn(async move {
                         let reply = cb
-                            .on_message("whatsapp", &from_owned, Some(&sender_owned), &from_owned, &text_owned)
+                            .on_message(
+                                "whatsapp",
+                                &from_owned,
+                                Some(&sender_owned),
+                                &from_owned,
+                                &text_owned,
+                            )
                             .await;
 
                         if let Some(reply_text) = reply {

@@ -577,10 +577,7 @@ async fn count_collection_items(db: &DatabaseConnection, collection_name: &str) 
     let count: i64 = db
         .query_one(Statement::from_string(
             DbBackend::Sqlite,
-            format!(
-                "SELECT COUNT(*) as cnt FROM \"{}\"",
-                table_name
-            ),
+            format!("SELECT COUNT(*) as cnt FROM \"{}\"", table_name),
         ))
         .await?
         .and_then(|r| r.try_get::<i64>("", "cnt").ok())

@@ -2,7 +2,9 @@ use sea_orm_migration::prelude::*;
 
 pub struct Migration;
 impl MigrationName for Migration {
-    fn name(&self) -> &str { "m20260502_000003_create_trajectory_tables" }
+    fn name(&self) -> &str {
+        "m20260502_000003_create_trajectory_tables"
+    }
 }
 
 #[async_trait::async_trait]
@@ -56,16 +58,25 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         let tables = [
-            "trajectory_preferences","trajectory_learned_patterns","trajectory_memories",
-            "trajectory_messages","trajectory_sessions","trajectory_relationships",
-            "trajectory_entities","trajectory_patterns","trajectory_skill_executions",
-            "trajectory_skills","trajectory_rewards","trajectory_steps",
+            "trajectory_preferences",
+            "trajectory_learned_patterns",
+            "trajectory_memories",
+            "trajectory_messages",
+            "trajectory_sessions",
+            "trajectory_relationships",
+            "trajectory_entities",
+            "trajectory_patterns",
+            "trajectory_skill_executions",
+            "trajectory_skills",
+            "trajectory_rewards",
+            "trajectory_steps",
             "trajectory_trajectories",
         ];
         for t in &tables {
-            manager.get_connection().execute_unprepared(
-                &format!("DROP TABLE IF EXISTS {}", t)
-            ).await?;
+            manager
+                .get_connection()
+                .execute_unprepared(&format!("DROP TABLE IF EXISTS {}", t))
+                .await?;
         }
         Ok(())
     }

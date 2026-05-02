@@ -30,7 +30,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(WorkflowTemplates::Name).string().not_null())
-                    .col(ColumnDef::new(WorkflowTemplates::Description).string().null())
+                    .col(
+                        ColumnDef::new(WorkflowTemplates::Description)
+                            .string()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(WorkflowTemplates::Icon)
                             .string()
@@ -308,11 +312,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(""),
                     )
-                    .col(
-                        ColumnDef::new(WorkflowMarketplace::Tags)
-                            .string()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(WorkflowMarketplace::Tags).string().null())
                     .col(
                         ColumnDef::new(WorkflowMarketplace::Downloads)
                             .big_integer()
@@ -420,7 +420,11 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(WorkflowMarketplaceReviews::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(WorkflowMarketplaceReviews::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
             .drop_table(Table::drop().table(WorkflowMarketplace::Table).to_owned())

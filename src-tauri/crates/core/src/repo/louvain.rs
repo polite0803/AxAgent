@@ -199,7 +199,6 @@ impl LouvainDetector {
         };
 
         let m = self.total_edges;
-        
 
         (ki_in / m) - (sigma_tot * ki) / (2.0 * m * m)
     }

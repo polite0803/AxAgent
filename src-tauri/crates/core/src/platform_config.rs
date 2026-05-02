@@ -160,9 +160,13 @@ impl PlatformConfig {
         }
 
         if self.dingtalk_enabled
-            && (self.dingtalk_app_key.is_none() || self.dingtalk_app_secret.is_none() || self.dingtalk_agent_id.is_none())
+            && (self.dingtalk_app_key.is_none()
+                || self.dingtalk_app_secret.is_none()
+                || self.dingtalk_agent_id.is_none())
         {
-            anyhow::bail!("Dingtalk app_key, app_secret, and agent_id are required when Dingtalk is enabled");
+            anyhow::bail!(
+                "Dingtalk app_key, app_secret, and agent_id are required when Dingtalk is enabled"
+            );
         }
 
         if self.api_server_enabled {

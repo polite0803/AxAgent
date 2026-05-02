@@ -204,7 +204,8 @@ async fn poll_feishu_messages(
     let url = "https://open.feishu.cn/open-apis/im/v1/messages\
          ?receive_id_type=tenant\
          &page_size=20\
-         &sort_type=ByCreateTimeDesc".to_string();
+         &sort_type=ByCreateTimeDesc"
+        .to_string();
 
     let resp = client
         .get(&url)

@@ -2007,10 +2007,21 @@ pub struct SkillUICommand {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SkillCommandAction {
-    Navigate { path: String },
-    InvokeBackend { command: String, args: serde_json::Value },
-    EmitEvent { event: String, payload: serde_json::Value },
-    Custom { handler_id: String, data: serde_json::Value },
+    Navigate {
+        path: String,
+    },
+    InvokeBackend {
+        command: String,
+        args: serde_json::Value,
+    },
+    EmitEvent {
+        event: String,
+        payload: serde_json::Value,
+    },
+    Custom {
+        handler_id: String,
+        data: serde_json::Value,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

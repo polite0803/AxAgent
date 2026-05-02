@@ -235,7 +235,10 @@ impl WorkflowMetrics {
         }
         self.total_duration_ms += duration_ms;
         if self.execution_count > 0 {
-            self.avg_duration_ms = self.total_duration_ms.checked_div(self.execution_count).unwrap_or(0);
+            self.avg_duration_ms = self
+                .total_duration_ms
+                .checked_div(self.execution_count)
+                .unwrap_or(0);
         }
     }
 }

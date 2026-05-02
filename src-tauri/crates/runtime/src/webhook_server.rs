@@ -34,10 +34,7 @@ impl WebhookServer {
     }
 
     /// 设置 WhatsApp webhook 所需的平台配置
-    pub fn set_platform_config(
-        &mut self,
-        config: Arc<tokio::sync::RwLock<PlatformConfig>>,
-    ) {
+    pub fn set_platform_config(&mut self, config: Arc<tokio::sync::RwLock<PlatformConfig>>) {
         self.state.platform_config = Some(config);
     }
 
@@ -154,7 +151,13 @@ async fn wechat_verify_handler(
 
     let token = config.wechat_token.as_deref().unwrap_or("");
 
-    match wechat::verify_server(token, &query.signature, &query.timestamp, &query.nonce, &query.echostr) {
+    match wechat::verify_server(
+        token,
+        &query.signature,
+        &query.timestamp,
+        &query.nonce,
+        &query.echostr,
+    ) {
         Ok(echostr) => Ok(echostr),
         Err(e) => {
             tracing::warn!("WeChat server verification failed: {}", e);

@@ -15,7 +15,8 @@ async fn persist_session_route(
     let mut routes = axagent_core::repo::platform_config::load_session_routes(db).await;
     let key = format!("{}_{}", platform, user_id);
     routes.insert(key, agent_session_id.to_string());
-    axagent_core::repo::platform_config::save_session_routes(db, &routes).await
+    axagent_core::repo::platform_config::save_session_routes(db, &routes)
+        .await
         .map_err(|e| anyhow::anyhow!("{}", e))?;
     Ok(())
 }
@@ -125,17 +126,34 @@ impl PlatformMessageCallback for PlatformBridge {
         // 派发 message_received webhook 事件
         if let Some(ref dispatcher) = self.webhook_dispatcher {
             let mut data = std::collections::HashMap::new();
-            data.insert("platform".to_string(), serde_json::Value::String(platform.to_string()));
-            data.insert("user_id".to_string(), serde_json::Value::String(user_id.to_string()));
-            data.insert("chat_id".to_string(), serde_json::Value::String(chat_id.to_string()));
-            data.insert("text".to_string(), serde_json::Value::String(text.to_string()));
+            data.insert(
+                "platform".to_string(),
+                serde_json::Value::String(platform.to_string()),
+            );
+            data.insert(
+                "user_id".to_string(),
+                serde_json::Value::String(user_id.to_string()),
+            );
+            data.insert(
+                "chat_id".to_string(),
+                serde_json::Value::String(chat_id.to_string()),
+            );
+            data.insert(
+                "text".to_string(),
+                serde_json::Value::String(text.to_string()),
+            );
             if let Some(uname) = username {
-                data.insert("username".to_string(), serde_json::Value::String(uname.to_string()));
+                data.insert(
+                    "username".to_string(),
+                    serde_json::Value::String(uname.to_string()),
+                );
             }
-            let _ = dispatcher.dispatch(
-                crate::webhook_subscription::WebhookEvent::MessageReceived,
-                data,
-            ).await;
+            let _ = dispatcher
+                .dispatch(
+                    crate::webhook_subscription::WebhookEvent::MessageReceived,
+                    data,
+                )
+                .await;
         }
 
         match self
@@ -146,15 +164,20 @@ impl PlatformMessageCallback for PlatformBridge {
                 // 派发 message_sent webhook 事件
                 if let Some(ref dispatcher) = self.webhook_dispatcher {
                     let mut data = std::collections::HashMap::new();
-                    data.insert("platform".to_string(), serde_json::Value::String(platform.to_string()));
-                    data.insert("user_id".to_string(), serde_json::Value::String(user_id.to_string()));
+                    data.insert(
+                        "platform".to_string(),
+                        serde_json::Value::String(platform.to_string()),
+                    );
+                    data.insert(
+                        "user_id".to_string(),
+                        serde_json::Value::String(user_id.to_string()),
+                    );
                     if let Some(ref r) = reply {
                         data.insert("reply".to_string(), serde_json::Value::String(r.clone()));
                     }
-                    let _ = dispatcher.dispatch(
-                        crate::webhook_subscription::WebhookEvent::MessageSent,
-                        data,
-                    ).await;
+                    let _ = dispatcher
+                        .dispatch(crate::webhook_subscription::WebhookEvent::MessageSent, data)
+                        .await;
                 }
                 reply
             },
@@ -170,7 +193,11 @@ impl PlatformMessageCallback for PlatformBridge {
             axagent_core::repo::platform_config::save_platform_cursor(&self.db, platform, cursor)
                 .await
         {
-            tracing::error!("[PlatformBridge] cursor save failed for {}: {}", platform, e);
+            tracing::error!(
+                "[PlatformBridge] cursor save failed for {}: {}",
+                platform,
+                e
+            );
         }
     }
 }

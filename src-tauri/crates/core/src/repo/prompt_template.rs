@@ -3,7 +3,9 @@ use sea_orm::*;
 use crate::entity::prompt_template;
 use crate::entity::prompt_template_version;
 use crate::error::{AxAgentError, Result};
-use crate::types::{CreatePromptTemplateInput, PromptTemplate, PromptTemplateVersion, UpdatePromptTemplateInput};
+use crate::types::{
+    CreatePromptTemplateInput, PromptTemplate, PromptTemplateVersion, UpdatePromptTemplateInput,
+};
 use crate::utils::gen_id;
 
 pub async fn list_prompt_templates(db: &DatabaseConnection) -> Result<Vec<PromptTemplate>> {
