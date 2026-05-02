@@ -39,6 +39,7 @@ pub mod plugin;
 pub mod proactive;
 pub mod profile;
 pub mod providers;
+pub mod prompt_templates;
 pub mod quickbar;
 pub mod rl;
 pub mod sandbox;

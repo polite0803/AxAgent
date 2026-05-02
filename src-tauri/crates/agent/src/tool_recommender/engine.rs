@@ -210,20 +210,14 @@ impl ToolRecommender {
 
         for entity in &context.entities {
             match entity.entity_type {
-                EntityType::Url => {
-                    if tool.categories.contains(&"web".to_string()) {
-                        score += 0.2;
-                    }
+                EntityType::Url if tool.categories.contains(&"web".to_string()) => {
+                    score += 0.2;
                 },
-                EntityType::FilePath => {
-                    if tool.categories.contains(&"file_operation".to_string()) {
-                        score += 0.2;
-                    }
+                EntityType::FilePath if tool.categories.contains(&"file_operation".to_string()) => {
+                    score += 0.2;
                 },
-                EntityType::Language => {
-                    if tool.categories.contains(&"code_generation".to_string()) {
-                        score += 0.2;
-                    }
+                EntityType::Language if tool.categories.contains(&"code_generation".to_string()) => {
+                    score += 0.2;
                 },
                 _ => {},
             }

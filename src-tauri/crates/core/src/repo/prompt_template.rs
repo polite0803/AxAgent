@@ -1,5 +1,4 @@
 use sea_orm::*;
-use sea_query::OnConflict;
 
 use crate::entity::prompt_template;
 use crate::entity::prompt_template_version;
@@ -30,10 +29,10 @@ pub async fn create_prompt_template(
     input: CreatePromptTemplateInput,
 ) -> Result<PromptTemplate> {
     let now = chrono::Utc::now().timestamp_millis();
-    let id = gen_id("tpl");
+    let id = gen_id();
 
-    let model = prompt_template::ActiveModel {
-        id: Set(id.clone()),
+    let active_model = prompt_template::ActiveModel {
+        id: Set(id),
         name: Set(input.name),
         description: Set(input.description),
         content: Set(input.content),
@@ -46,9 +45,9 @@ pub async fn create_prompt_template(
         updated_at: Set(now),
     };
 
-    model.clone().insert(db).await?;
+    let model = active_model.insert(db).await?;
 
-    Ok(model_to_template(model.into()))
+    Ok(model_to_template(model))
 }
 
 pub async fn update_prompt_template(
@@ -105,9 +104,9 @@ pub async fn update_prompt_template(
     active_model.version = Set(new_version);
     active_model.updated_at = Set(chrono::Utc::now().timestamp_millis());
 
-    active_model.update(db).await?;
+    let model = active_model.update(db).await?;
 
-    Ok(model_to_template(active_model.into()))
+    Ok(model_to_template(model))
 }
 
 pub async fn delete_prompt_template(db: &DatabaseConnection, id: &str) -> Result<()> {

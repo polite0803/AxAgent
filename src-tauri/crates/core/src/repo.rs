@@ -23,6 +23,7 @@ pub mod message;
 pub mod platform_config;
 pub mod program_policy;
 pub mod provider;
+pub mod prompt_template;
 pub mod retrieval_hit;
 pub mod scheduled_task;
 pub mod search_provider;

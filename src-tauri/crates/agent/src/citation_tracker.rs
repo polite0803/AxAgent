@@ -152,7 +152,7 @@ impl CitationTracker {
             })
             .collect();
 
-        most_used.sort_by(|a, b| b.usage_count.cmp(&a.usage_count));
+        most_used.sort_by_key(|b| std::cmp::Reverse(b.usage_count));
         most_used.truncate(10);
 
         let average_credibility = if citation_credibility_count > 0 {

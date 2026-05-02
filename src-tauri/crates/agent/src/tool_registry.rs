@@ -346,7 +346,7 @@ impl ToolUsageStats {
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
-        sorted.sort_by(|a, b| b.1.success_count.cmp(&a.1.success_count));
+        sorted.sort_by_key(|b| std::cmp::Reverse(b.1.success_count));
         sorted.into_iter().take(limit).collect()
     }
 

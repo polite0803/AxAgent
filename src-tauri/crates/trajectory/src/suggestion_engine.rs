@@ -220,7 +220,7 @@ impl SuggestionEngine {
             }
         }
 
-        suggestions.sort_by(|a, b| b.priority.as_u32().cmp(&a.priority.as_u32()));
+        suggestions.sort_by_key(|b| std::cmp::Reverse(b.priority.as_u32()));
         suggestions.truncate(self.config.max_suggestions);
 
         suggestions

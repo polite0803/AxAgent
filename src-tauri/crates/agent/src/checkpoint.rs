@@ -70,7 +70,7 @@ impl CheckpointManager {
             }
         }
 
-        checkpoints.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        checkpoints.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
         Ok(checkpoints)
     }
 

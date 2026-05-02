@@ -255,14 +255,14 @@ impl InsightGenerator {
     pub async fn get_recent_insights(&self, limit: usize) -> Vec<Insight> {
         let insights = self.insights.read().await;
         let mut sorted = insights.clone();
-        sorted.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        sorted.sort_by_key(|b| std::cmp::Reverse(b.created_at));
         sorted.into_iter().take(limit).collect()
     }
 
     pub async fn get_top_insights(&self, limit: usize) -> Vec<Insight> {
         let insights = self.insights.read().await;
         let mut sorted = insights.clone();
-        sorted.sort_by(|a, b| b.usage_count.cmp(&a.usage_count));
+        sorted.sort_by_key(|b| std::cmp::Reverse(b.usage_count));
         sorted.into_iter().take(limit).collect()
     }
 

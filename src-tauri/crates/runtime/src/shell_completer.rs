@@ -169,7 +169,7 @@ impl ShellCompleter {
             });
 
             if history.len() > self.config.max_history_entries {
-                history.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+                history.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
                 history.truncate(self.config.max_history_entries);
             }
         }
