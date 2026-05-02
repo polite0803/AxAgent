@@ -106,6 +106,7 @@ impl CompactThresholdState {
 
 /// 跟踪自动压缩的执行状态，实现熔断器模式。
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct AutoCompactTracking {
     /// 当前轮次是否已执行压缩
     pub compacted: bool,
@@ -117,16 +118,6 @@ pub struct AutoCompactTracking {
     pub consecutive_failures: u32,
 }
 
-impl Default for AutoCompactTracking {
-    fn default() -> Self {
-        Self {
-            compacted: false,
-            turn_counter: 0,
-            turn_id: String::new(),
-            consecutive_failures: 0,
-        }
-    }
-}
 
 impl AutoCompactTracking {
     pub fn new() -> Self {

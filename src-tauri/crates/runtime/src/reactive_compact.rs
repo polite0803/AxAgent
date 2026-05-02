@@ -12,7 +12,7 @@ use crate::session::Session;
 pub enum ReactiveCompactResult {
     /// 压缩成功，附带新的压缩结果
     Compacted {
-        result: CompactionResult,
+        result: Box<CompactionResult>,
         trigger: ReactiveTrigger,
     },
     /// 压缩失败，附带失败原因
@@ -100,12 +100,12 @@ pub fn try_reactive_compact(
         }
 
         return ReactiveCompactResult::Compacted {
-            result: retry_result,
+            result: Box::new(retry_result),
             trigger,
         };
     }
 
-    ReactiveCompactResult::Compacted { result, trigger }
+    ReactiveCompactResult::Compacted { result: Box::new(result), trigger }
 }
 
 /// 从 API 错误消息中检测是否需要响应式压缩。

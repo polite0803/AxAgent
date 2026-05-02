@@ -257,17 +257,16 @@ pub async fn index_knowledge_document(
 
     match result {
         Ok(()) => {
-            axagent_core::repo::knowledge::update_document_status(db, document_id, "ready")
-                .await?;
+            axagent_core::repo::knowledge::update_document_status(db, document_id, "ready").await?;
             Ok(())
-        }
+        },
         Err(e) => {
             // H5: set status to failed so the user can retry
             let _ =
                 axagent_core::repo::knowledge::update_document_status(db, document_id, "failed")
                     .await;
             Err(e)
-        }
+        },
     }
 }
 

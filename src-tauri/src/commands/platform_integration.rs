@@ -224,9 +224,7 @@ pub async fn reconcile_platforms(
 
 /// 启动 API Server（在配置的端口上提供 REST API）
 #[tauri::command]
-pub async fn start_api_server(
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn start_api_server(state: State<'_, AppState>) -> Result<(), String> {
     let config = {
         let service = state.platform_integration_service.read().await;
         service.get_config().await

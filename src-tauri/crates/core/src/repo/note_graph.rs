@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
@@ -16,20 +17,24 @@ pub enum PageType {
     Unknown,
 }
 
-impl PageType {
-    pub fn from_str(s: &str) -> Self {
+impl FromStr for PageType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "entity" => Self::Entity,
-            "concept" => Self::Concept,
-            "source_summary" | "source-summary" => Self::SourceSummary,
-            "comparison" => Self::Comparison,
-            "index" => Self::Index,
-            "overview" => Self::Overview,
-            "note" => Self::Note,
-            _ => Self::Unknown,
+            "entity" => Ok(Self::Entity),
+            "concept" => Ok(Self::Concept),
+            "source_summary" | "source-summary" => Ok(Self::SourceSummary),
+            "comparison" => Ok(Self::Comparison),
+            "index" => Ok(Self::Index),
+            "overview" => Ok(Self::Overview),
+            "note" => Ok(Self::Note),
+            _ => Ok(Self::Unknown),
         }
     }
+}
 
+impl PageType {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Entity => "entity",
@@ -150,7 +155,7 @@ impl LinkGraph {
     pub fn get_page_type(&self, node_id: &str) -> PageType {
         self.nodes
             .get(node_id)
-            .map(|n| PageType::from_str(&n.node_type))
+            .and_then(|n| n.node_type.parse::<PageType>().ok())
             .unwrap_or(PageType::Unknown)
     }
 

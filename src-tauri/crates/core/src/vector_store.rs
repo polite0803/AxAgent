@@ -424,8 +424,12 @@ impl VectorStore {
             .await;
 
         // Insert meta
-        if vec_result.is_ok() {
-            let meta_result = self
+        if let Err(e) = vec_result {
+            let _ = self.exec("ROLLBACK").await;
+            return Err(Self::wrap(e));
+        }
+
+        let meta_result = self
                 .db
                 .execute(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
@@ -449,10 +453,6 @@ impl VectorStore {
             }
             self.exec("COMMIT").await?;
             Ok(chunk_id)
-        } else {
-            let _ = self.exec("ROLLBACK").await;
-            Err(Self::wrap(vec_result.unwrap_err()))
-        }
     }
 
     /// Search for the most similar vectors in a knowledge base.

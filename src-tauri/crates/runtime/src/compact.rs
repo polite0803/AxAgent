@@ -798,7 +798,7 @@ pub fn detect_task_boundary(messages: &[ConversationMessage]) -> Option<usize> {
 /// Returns the number of messages that should be compacted (pre-boundary count).
 #[must_use]
 pub fn cleanup_task_boundary(messages: &[ConversationMessage]) -> Option<usize> {
-    detect_task_boundary(messages).map(|boundary| boundary)
+    detect_task_boundary(messages)
 }
 
 #[cfg(test)]

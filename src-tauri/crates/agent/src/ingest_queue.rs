@@ -274,7 +274,7 @@ impl IngestQueue {
         let tasks = self.tasks.lock().await;
         tasks
             .iter()
-            .filter(|t| wiki_id.map_or(true, |w| t.wiki_id == w))
+            .filter(|t| wiki_id.is_none_or(|w| t.wiki_id == w))
             .cloned()
             .collect()
     }

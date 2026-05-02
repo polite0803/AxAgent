@@ -136,12 +136,12 @@ impl SchemaManager {
         _target_version: &str,
         _schema_content: &str,
     ) -> Vec<String> {
-        let mut steps = Vec::new();
-        steps.push("1. Backup your current SCHEMA.md".to_string());
-        steps.push("2. Update SCHEMA.md with new required fields".to_string());
-        steps.push("3. Run wiki lint to validate all pages".to_string());
-        steps.push("4. Run auto-fix to update existing pages".to_string());
-        steps
+        vec![
+            "1. Backup your current SCHEMA.md".to_string(),
+            "2. Update SCHEMA.md with new required fields".to_string(),
+            "3. Run wiki lint to validate all pages".to_string(),
+            "4. Run auto-fix to update existing pages".to_string(),
+        ]
     }
 
     pub async fn diff_schemas(
@@ -346,9 +346,9 @@ impl SchemaManager {
                     let key = key.trim();
                     let field_type = rest.trim().to_string();
 
-                    if key.starts_with('?') {
+                    if let Some(stripped) = key.strip_prefix('?') {
                         optional.push(FieldDef {
-                            name: key[1..].to_string(),
+                            name: stripped.to_string(),
                             field_type,
                             description: None,
                         });

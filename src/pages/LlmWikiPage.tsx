@@ -17,6 +17,8 @@ import {
   Row,
   Col,
   Statistic,
+  List,
+  Empty,
 } from 'antd';
 import {
   PlusOutlined,
@@ -28,13 +30,18 @@ import {
   FileTextOutlined,
   FolderOutlined,
   SyncOutlined,
-} from '@ant-design/icons';
+  } from '@ant-design/icons';
 import { useLlmWikiStore, Wiki, WikiSource } from '@/stores/feature/llmWikiStore';
+import { useWikiStore } from '@/stores/feature/wikiStore';
 import { useTranslation } from 'react-i18next';
 import { IngestPanel } from '@/components/wiki/IngestPanel';
 import { LintReport } from '@/components/wiki/LintReport';
 import { OperationTimeline } from '@/components/wiki/OperationTimeline';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import type { NoteSearchResult } from '@/types';
+import { WikiSidebar } from '@/components/wiki/WikiSidebar';
+import { ArrowLeft } from "lucide-react";
+import { WikiEditorPage } from "./WikiEditorPage";
 
 const { Title } = Typography;
 
@@ -59,12 +66,25 @@ export function LlmWikiPage() {
     loadOperations,
   } = useLlmWikiStore();
 
+  const {
+    notes,
+    selectedNoteId,
+    loading: notesLoading,
+    loadNotes,
+    searchNotes,
+    createNote,
+    setSelectedNoteId,
+  } = useWikiStore();
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isIngestModalOpen, setIsIngestModalOpen] = useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [form] = Form.useForm();
+  const [notesSearchQuery, setNotesSearchQuery] = useState('');
+  const [notesSearchResults, setNotesSearchResults] = useState<NoteSearchResult[]>([]);
+  const [isNotesSearching, setIsNotesSearching] = useState(false);
 
   useEffect(() => {
     loadWikis();
@@ -79,8 +99,47 @@ export function LlmWikiPage() {
   useEffect(() => {
     if (selectedWikiId) {
       loadOperations(selectedWikiId);
+      loadNotes(selectedWikiId);
     }
-  }, [selectedWikiId, loadOperations]);
+  }, [selectedWikiId, loadOperations, loadNotes]);
+
+  useEffect(() => {
+    if (notesSearchQuery.trim() && selectedWikiId) {
+      setIsNotesSearching(true);
+      const timer = setTimeout(async () => {
+        const results = await searchNotes(selectedWikiId, notesSearchQuery);
+        setNotesSearchResults(results);
+        setIsNotesSearching(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setNotesSearchResults([]);
+      setIsNotesSearching(false);
+    }
+  }, [notesSearchQuery, selectedWikiId, searchNotes]);
+
+  const displayNotes = notesSearchQuery.trim() ? notesSearchResults.map((r) => r.note) : notes;
+
+  const handleSelectNote = (noteId: string) => {
+    setSelectedNoteId(noteId);
+  };
+
+  const handleCreateNote = () => {
+    if (!selectedWikiId) return;
+    const now = Date.now();
+    createNote({
+      vaultId: selectedWikiId,
+      title: `Untitled ${new Date(now).toLocaleString()}`,
+      filePath: `/untitled-${now}.md`,
+      content: '',
+      author: 'user',
+    });
+  };
+
+  const handleBackFromNote = () => {
+    setSelectedNoteId(null);
+    setNotesSearchQuery('');
+  };
 
   const selectedWiki = wikis.find((w) => w.id === selectedWikiId);
 
@@ -260,14 +319,6 @@ export function LlmWikiPage() {
           >
             {t('wiki.llm.compile')}
           </Button>
-          {selectedWikiId && (
-            <Button
-              icon={<FileTextOutlined />}
-              onClick={() => navigate(`/wiki?wikiId=${selectedWikiId}`)}
-            >
-              {t('wiki.llm.viewNotes', 'View Notes')}
-            </Button>
-          )}
         </Space>
       }
     >
@@ -297,6 +348,56 @@ export function LlmWikiPage() {
     <Card title={t('wiki.llm.operations')}>
       <OperationTimeline operations={operations} />
     </Card>
+  );
+
+  const renderNotesPanel = () => (
+    <div className="flex h-full" style={{ overflow: 'hidden' }}>
+      <WikiSidebar
+        notes={displayNotes}
+        selectedNoteId={selectedNoteId}
+        onSelectNote={handleSelectNote}
+        onCreateNote={handleCreateNote}
+        loading={notesLoading}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden border-l" style={{ borderColor: 'var(--color-border-secondary)' }}>
+        <div className="p-4 border-b" style={{ borderColor: 'var(--color-border-secondary)' }}>
+          <Space className="w-full" direction="vertical" size="small">
+            <Input.Search
+              placeholder={t('wiki.searchPlaceholder', 'Search notes...')}
+              value={notesSearchQuery}
+              onChange={(e) => setNotesSearchQuery(e.target.value)}
+              loading={isNotesSearching}
+              allowClear
+              className="flex-1"
+            />
+          </Space>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {displayNotes.length === 0 ? (
+            <Empty description={t('wiki.emptyNotes', 'No notes yet')} />
+          ) : (
+            <List
+              dataSource={displayNotes}
+              renderItem={(note) => (
+                <List.Item
+                  onClick={() => handleSelectNote(note.id)}
+                  className="cursor-pointer hover:bg-black/5 px-3 py-2 rounded"
+                >
+                  <List.Item.Meta
+                    title={note.title}
+                    description={
+                      <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                        {note.author === 'llm' ? t('wiki.llmNote', 'LLM') : t('wiki.userNote', 'User')} • {note.filePath}
+                      </span>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+        </div>
+      </div>
+    </div>
   );
 
   if (!selectedWikiId) {
@@ -370,17 +471,27 @@ export function LlmWikiPage() {
         </Descriptions>
       </Card>
 
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={[
-          { key: 'overview', label: t('wiki.common.overview'), children: renderOverview() },
-          { key: 'sources', label: t('wiki.llm.sources'), children: renderSourcePanel() },
-          { key: 'ingest', label: t('wiki.llm.ingestSource'), children: renderIngestPanel() },
-          { key: 'lint', label: t('wiki.llm.lintReport'), children: renderLintPanel() },
-          { key: 'operations', label: t('wiki.llm.operations'), children: renderOperationsPanel() },
-        ]}
-      />
+      {selectedNoteId ? (
+        <div>
+          <Button icon={<ArrowLeft />} onClick={handleBackFromNote} className="mb-2">
+            {t('wiki.backToNotes', 'Back to Notes')}
+          </Button>
+          <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
+        </div>
+      ) : (
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { key: 'overview', label: t('wiki.common.overview'), children: renderOverview() },
+            { key: 'notes', label: t('wiki.notes', 'Notes'), children: renderNotesPanel() },
+            { key: 'sources', label: t('wiki.llm.sources'), children: renderSourcePanel() },
+            { key: 'ingest', label: t('wiki.llm.ingestSource'), children: renderIngestPanel() },
+            { key: 'lint', label: t('wiki.llm.lintReport'), children: renderLintPanel() },
+            { key: 'operations', label: t('wiki.llm.operations'), children: renderOperationsPanel() },
+          ]}
+        />
+      )}
 
       <Modal
         title={t('wiki.llm.ingestSource')}

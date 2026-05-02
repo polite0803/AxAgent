@@ -30,6 +30,7 @@ pub struct Note {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateNoteInput {
     pub vault_id: String,
     pub title: String,
@@ -41,6 +42,7 @@ pub struct CreateNoteInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateNoteInput {
     pub title: Option<String>,
     pub content: Option<String>,

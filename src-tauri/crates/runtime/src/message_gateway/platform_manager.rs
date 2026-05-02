@@ -29,6 +29,12 @@ pub struct PlatformManager {
     message_callback: RwLock<Option<Arc<dyn PlatformMessageCallback>>>,
 }
 
+impl Default for PlatformManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PlatformManager {
     pub fn new() -> Self {
         let mut adapters: HashMap<String, Arc<dyn PlatformAdapter>> = HashMap::new();

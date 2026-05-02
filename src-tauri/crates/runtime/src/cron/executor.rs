@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use super::job_store::CronJob;
 
+type CronJobHandler = Arc<dyn Fn(&CronJob) + Send + Sync>;
+
 pub struct CronExecutor {
-    on_execute: Option<Arc<dyn Fn(&CronJob) + Send + Sync>>,
+    on_execute: Option<CronJobHandler>,
 }
 
 impl CronExecutor {

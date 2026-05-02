@@ -734,34 +734,32 @@ pub async fn agent_query(
     let server_tools_list = futures::future::join_all(load_futures).await;
 
     // Phase 2: 合并结果到 chat_tools 和 tool_registry（纯内存操作）
-    for st_opt in server_tools_list {
-        if let Some(st) = st_opt {
-            for chat_tool in st.chat_tools {
-                chat_tools.push(chat_tool);
-            }
-            for (i, (name, desc, params)) in st.tool_descriptors.into_iter().enumerate() {
-                let _ = i;
-                tool_registry = tool_registry.register_mcp_tool(
-                    st.server.id.clone(),
-                    st.server.name.clone(),
-                    name,
-                    desc,
-                    params,
-                    McpServerConfig {
-                        server_id: st.server.id.clone(),
-                        server_name: st.server.name.clone(),
-                        transport: st.server.transport.clone(),
-                        command: st.server.command.clone(),
-                        args_json: st.server.args_json.clone(),
-                        env_json: st.server.env_json.clone(),
-                        endpoint: st.server.endpoint.clone(),
-                        execute_timeout_secs: st.server.execute_timeout_secs,
-                        connection_pool_size: None,
-                        retry_attempts: None,
-                        retry_delay_ms: None,
-                    },
-                );
-            }
+    for st in server_tools_list.into_iter().flatten() {
+        for chat_tool in st.chat_tools {
+            chat_tools.push(chat_tool);
+        }
+        for (i, (name, desc, params)) in st.tool_descriptors.into_iter().enumerate() {
+            let _ = i;
+            tool_registry = tool_registry.register_mcp_tool(
+                st.server.id.clone(),
+                st.server.name.clone(),
+                name,
+                desc,
+                params,
+                McpServerConfig {
+                    server_id: st.server.id.clone(),
+                    server_name: st.server.name.clone(),
+                    transport: st.server.transport.clone(),
+                    command: st.server.command.clone(),
+                    args_json: st.server.args_json.clone(),
+                    env_json: st.server.env_json.clone(),
+                    endpoint: st.server.endpoint.clone(),
+                    execute_timeout_secs: st.server.execute_timeout_secs,
+                    connection_pool_size: None,
+                    retry_attempts: None,
+                    retry_delay_ms: None,
+                },
+            );
         }
     }
 

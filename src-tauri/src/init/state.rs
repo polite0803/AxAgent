@@ -57,7 +57,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     rt.block_on(axagent_core::path_vars::migrate_hardcoded_paths(&sea_db));
     rt.block_on(axagent_core::repo::local_tool::migrate_legacy_keys(&sea_db));
 
-    let app_settings = rt.block_on(axagent_core::repo::settings::get_settings(&sea_db))
+    let app_settings = rt
+        .block_on(axagent_core::repo::settings::get_settings(&sea_db))
         .unwrap_or_default();
 
     axagent_core::storage_paths::init_documents_root(
@@ -97,8 +98,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         ),
     );
 
-    rt.block_on(platform_manager
-        .set_message_callback(platform_bridge.clone()));
+    rt.block_on(platform_manager.set_message_callback(platform_bridge.clone()));
 
     AppState {
         sea_db: sea_db.clone(),
@@ -191,7 +191,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_trajectory::ScheduledTaskService::new(100),
         )),
         platform_integration_service: {
-            let platform_config = rt.block_on(axagent_core::repo::platform_config::get_platform_config(&sea_db));
+            let platform_config = rt.block_on(
+                axagent_core::repo::platform_config::get_platform_config(&sea_db),
+            );
             Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::PlatformIntegrationService::with_config(platform_config),
             ))
@@ -212,9 +214,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         )),
         proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         dashboard_registry: None,
-        webhook_subscription_manager: Some(Arc::new(axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new())),
+        webhook_subscription_manager: Some(Arc::new(
+            axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
+        )),
         semantic_cache: {
-            let cache = rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
+            let cache = rt
+                .block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
                 .unwrap_or_else(|e| {
                     tracing::error!("Failed to init semantic cache: {}", e);
                     panic!("Semantic cache initialization failed: {}", e);

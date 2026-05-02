@@ -86,7 +86,7 @@ impl DeepResearcher {
         let queries = if let (Some(ref adapter), Some(ctx), Some(model)) =
             (&llm_adapter, &llm_ctx, &llm_model)
         {
-            self.generate_queries(topic, &context, adapter.as_ref(), &ctx, model)
+            self.generate_queries(topic, &context, adapter.as_ref(), ctx, model)
                 .await?
         } else {
             self.default_queries(topic)

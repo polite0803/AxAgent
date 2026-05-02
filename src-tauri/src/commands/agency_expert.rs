@@ -120,8 +120,8 @@ fn parse_workflow_from_prompt(prompt: &str, expert_id: &str) -> Vec<RecommendedW
         let trimmed = line.trim();
 
         // Detect workflow section headers
-        if trimmed.starts_with("## ") {
-            let header = trimmed[3..].to_lowercase();
+        if let Some(stripped) = trimmed.strip_prefix("## ") {
+            let header = stripped.to_lowercase();
             if header.contains("工作流程")
                 || header.contains("协作模式")
                 || header.contains("审查策略")
@@ -141,7 +141,7 @@ fn parse_workflow_from_prompt(prompt: &str, expert_id: &str) -> Vec<RecommendedW
                         expert_role_id: expert_id.to_string(),
                     });
                 }
-                current_name = trimmed[3..].to_string();
+                current_name = stripped.to_string();
                 current_desc = String::new();
                 current_steps = Vec::new();
                 in_workflow_section = true;
@@ -326,7 +326,7 @@ pub async fn import_agency_experts(
         for md_entry in md_files {
             let md_entry = md_entry.map_err(|e| format!("读取文件条目失败: {}", e))?;
             let md_path = md_entry.path();
-            if md_path.extension().map_or(true, |ext| ext != "md") {
+            if md_path.extension().is_none_or(|ext| ext != "md") {
                 continue;
             }
 

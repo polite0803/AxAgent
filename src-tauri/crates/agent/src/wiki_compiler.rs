@@ -319,10 +319,8 @@ impl WikiCompiler {
             }
 
             let clean_json = json_str
-                .replace('\u{201c}', "\"")
-                .replace('\u{201d}', "\"")
-                .replace('\u{2018}', "'")
-                .replace('\u{2019}', "'");
+                .replace(['\u{201c}', '\u{201d}'], "\"")
+                .replace(['\u{2018}', '\u{2019}'], "'");
 
             match serde_json::from_str::<serde_json::Value>(&clean_json) {
                 Ok(value) => {
@@ -433,8 +431,6 @@ impl WikiCompiler {
             .map(|c| {
                 if c.is_alphanumeric() || c == '-' || c == '_' {
                     c
-                } else if c == ' ' {
-                    '-'
                 } else {
                     '-'
                 }
@@ -554,7 +550,7 @@ impl WikiCompiler {
         Ok(db_notes
             .into_iter()
             .next()
-            .map(|n| axagent_core::repo::note::model_to_note(n)))
+            .map(axagent_core::repo::note::model_to_note))
     }
 
     async fn update_quality_score(&self, note: &Note, page: &CompiledPage) -> Result<(), String> {

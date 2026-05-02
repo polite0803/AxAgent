@@ -52,9 +52,11 @@ pub trait DashboardPlugin: Send + Sync {
     ) -> Result<String, String>;
 }
 
+type RenderFn = Box<dyn Fn(&str, HashMap<String, serde_json::Value>) -> String + Send + Sync>;
+
 pub struct DashboardPluginAdapter {
     manifest: DashboardPluginManifest,
-    render_fn: Box<dyn Fn(&str, HashMap<String, serde_json::Value>) -> String + Send + Sync>,
+    render_fn: RenderFn,
 }
 
 impl DashboardPluginAdapter {

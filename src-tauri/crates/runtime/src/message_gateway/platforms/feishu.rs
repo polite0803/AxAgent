@@ -201,12 +201,10 @@ async fn poll_feishu_messages(
     token: &str,
     seen_ids: &mut HashSet<String>,
 ) -> anyhow::Result<Vec<(String, String, String, String)>> {
-    let url = format!(
-        "https://open.feishu.cn/open-apis/im/v1/messages\
+    let url = "https://open.feishu.cn/open-apis/im/v1/messages\
          ?receive_id_type=tenant\
          &page_size=20\
-         &sort_type=ByCreateTimeDesc",
-    );
+         &sort_type=ByCreateTimeDesc".to_string();
 
     let resp = client
         .get(&url)

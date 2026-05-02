@@ -196,7 +196,7 @@ impl ReActEngine {
                         match decision {
                             TokenBudgetDecision::Continue { nudge_message, .. } => {
                                 // 在接近预算上限时向链中添加提示
-                                if context.iteration > 0 && context.iteration % 5 == 0 {
+                                if context.iteration > 0 && context.iteration.is_multiple_of(5) {
                                     let step =
                                         ThoughtStep::new(ReasoningState::Reflecting, nudge_message);
                                     chain.add_step(step);

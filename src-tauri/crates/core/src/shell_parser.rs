@@ -150,14 +150,14 @@ pub fn parse_shell(input: &str) -> Result<ParsedShell, String> {
                 operators.push(ShellOperator::Subshell);
             },
             _ => {
-                if current_cmd.is_none() {
+                if let Some(cmd) = &mut current_cmd {
+                    cmd.args.push(token.clone());
+                } else {
                     current_cmd = Some(ShellCommand {
                         name: token.clone(),
                         args: Vec::new(),
                         piped_to_next: false,
                     });
-                } else {
-                    current_cmd.as_mut().unwrap().args.push(token.clone());
                 }
             },
         }

@@ -3779,7 +3779,8 @@ mod tests {
 
         let vector_store = Arc::new(axagent_core::vector_store::VectorStore::new(db.clone()));
         let memory_service = {
-            let storage = axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
+            let storage =
+                axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
             let ms = axagent_trajectory::MemoryService::new(std::sync::Arc::new(storage))
                 .unwrap_or_else(|e| panic!("Failed to create MemoryService: {}", e));
             if let Err(e) = ms.initialize() {
@@ -3790,9 +3791,9 @@ mod tests {
         let pattern_learner = Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default()),
         ));
-        let trajectory_storage = Arc::new(
-            axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone())),
-        );
+        let trajectory_storage = Arc::new(axagent_trajectory::TrajectoryStorage::new(
+            std::sync::Arc::new(db.clone()),
+        ));
         let semantic_cache = Arc::new(tokio::sync::Mutex::new(
             crate::semantic_cache::SemanticCache::new(
                 db.clone(),
@@ -3834,7 +3835,8 @@ mod tests {
                 axagent_trajectory::NudgeService::new(),
             )),
             closed_loop_service: {
-                let storage = axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
+                let storage =
+                    axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
                 Arc::new(axagent_trajectory::ClosedLoopService::new(
                     std::sync::Arc::new(storage),
                 ))
@@ -3854,7 +3856,8 @@ mod tests {
                 axagent_trajectory::RewardWeights::default(),
             ))),
             batch_processor: {
-                let storage = axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
+                let storage =
+                    axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
                 Arc::new(axagent_trajectory::BatchProcessor::new(
                     std::sync::Arc::new(storage),
                     axagent_trajectory::BatchConfig::default(),
@@ -3870,7 +3873,9 @@ mod tests {
             )),
             auto_memory_extractor: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::AutoMemoryExtractor::new(
-                    Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()))),
+                    Arc::new(axagent_trajectory::TrajectoryStorage::new(
+                        std::sync::Arc::new(db.clone()),
+                    )),
                     memory_service.clone(),
                     pattern_learner.clone(),
                 ),

@@ -118,13 +118,6 @@ export function ProviderList() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  // Auto-select first provider if none selected
-  React.useEffect(() => {
-    if (!selectedProviderId && providers.length > 0) {
-      setSelectedProviderId(providers[0].id);
-    }
-  }, [selectedProviderId, providers, setSelectedProviderId]);
-
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
@@ -151,7 +144,7 @@ export function ProviderList() {
         name: values.name,
         provider_type: values.provider_type,
         api_host: values.api_host || DEFAULT_HOSTS[values.provider_type as ProviderType],
-        enabled: true,
+        enabled: false,
       });
       setSelectedProviderId(provider.id);
       setModalOpen(false);
@@ -176,7 +169,6 @@ export function ProviderList() {
         const newIds = [...ids];
         newIds.splice(oldIndex, 1);
         newIds.splice(newIndex, 0, String(active.id));
-        // Build full reorder: reordered section + other section
         const otherIds = (sectionProviders === enabledProviders ? disabledProviders : enabledProviders).map((p) =>
           p.id
         );

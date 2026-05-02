@@ -372,11 +372,7 @@ pub fn prune_by_relevance(history: &[ChatMessage], query: &str, budget: usize) -
     let n = history.len();
 
     // Always include the last RECENCY_WINDOW messages
-    let recency_start = if n <= RECENCY_WINDOW {
-        0
-    } else {
-        n - RECENCY_WINDOW
-    };
+    let recency_start = n.saturating_sub(RECENCY_WINDOW);
 
     let mut selected: Vec<bool> = vec![false; n];
     let mut used_tokens = 0usize;
@@ -409,8 +405,8 @@ pub fn prune_by_relevance(history: &[ChatMessage], query: &str, budget: usize) -
     // Score remaining messages for relevance + recency
     let mut scored: Vec<(usize, f64)> = Vec::new();
 
-    for i in 0..recency_start {
-        let content_text = match &history[i].content {
+    for (i, msg) in history.iter().enumerate().take(recency_start) {
+        let content_text = match &msg.content {
             ChatContent::Text(s) => s.as_str(),
             ChatContent::Multipart(_) => "",
         };

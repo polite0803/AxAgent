@@ -845,11 +845,8 @@ pub fn run() {
                 }
             }
             if window.label() == "quickbar" {
-                match event {
-                    tauri::WindowEvent::Focused(false) => {
-                        let _ = window.hide();
-                    }
-                    _ => {}
+                if let tauri::WindowEvent::Focused(false) = event {
+                    let _ = window.hide();
                 }
             }
         })

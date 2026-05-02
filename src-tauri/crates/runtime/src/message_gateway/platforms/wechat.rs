@@ -208,7 +208,7 @@ pub fn verify_server(
     nonce: &str,
     echostr: &str,
 ) -> Result<String, String> {
-    let mut items = vec![token.to_string(), timestamp.to_string(), nonce.to_string()];
+    let mut items = [token.to_string(), timestamp.to_string(), nonce.to_string()];
     items.sort();
     let combined = items.join("");
     use sha1::Digest;

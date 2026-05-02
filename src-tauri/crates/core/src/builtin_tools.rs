@@ -6045,25 +6045,25 @@ fn export_word_tool(markdown: &str, output_path: &str, title: &str) -> Result<Mc
         let trimmed = line.trim();
         if trimmed.is_empty() {
             doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text("")));
-        } else if trimmed.starts_with("# ") {
+        } else if let Some(stripped) = trimmed.strip_prefix("# ") {
             doc = doc.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_text(&trimmed[2..]).size(36).bold()),
+                Paragraph::new().add_run(Run::new().add_text(stripped).size(36).bold()),
             );
-        } else if trimmed.starts_with("## ") {
+        } else if let Some(stripped) = trimmed.strip_prefix("## ") {
             doc = doc.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_text(&trimmed[3..]).size(28).bold()),
+                Paragraph::new().add_run(Run::new().add_text(stripped).size(28).bold()),
             );
-        } else if trimmed.starts_with("### ") {
+        } else if let Some(stripped) = trimmed.strip_prefix("### ") {
             doc = doc.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_text(&trimmed[4..]).size(24).bold()),
+                Paragraph::new().add_run(Run::new().add_text(stripped).size(24).bold()),
             );
-        } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+        } else if let Some(stripped) = trimmed.strip_prefix("- ").or_else(|| trimmed.strip_prefix("* ")) {
             doc = doc.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_text(format!("• {}", &trimmed[2..]))),
+                Paragraph::new().add_run(Run::new().add_text(format!("• {}", stripped))),
             );
-        } else if trimmed.starts_with("> ") {
+        } else if let Some(stripped) = trimmed.strip_prefix("> ") {
             doc = doc.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_text(trimmed).italic().color("666666")),
+                Paragraph::new().add_run(Run::new().add_text(stripped).italic().color("666666")),
             );
         } else {
             doc =

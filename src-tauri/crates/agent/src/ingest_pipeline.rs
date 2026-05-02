@@ -575,10 +575,8 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             }
 
             let clean = json_str
-                .replace('\u{201c}', "\"")
-                .replace('\u{201d}', "\"")
-                .replace('\u{2018}', "'")
-                .replace('\u{2019}', "'");
+                .replace(['\u{201c}', '\u{201d}'], "\"")
+                .replace(['\u{2018}', '\u{2019}'], "'");
 
             match serde_json::from_str::<GeneratedPage>(&clean) {
                 Ok(page) => {
@@ -618,8 +616,6 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             .map(|c| {
                 if c.is_alphanumeric() || c == '-' || c == '_' {
                     c
-                } else if c == ' ' {
-                    '-'
                 } else {
                     '-'
                 }

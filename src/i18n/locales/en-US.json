@@ -3059,6 +3059,7 @@
     "noSources": "No sources",
     "noteNotFound": "Note not found",
     "notes": "Notes",
+    "backToNotes": "Back to Notes",
     "operation": {
       "compile": "Compile",
       "completedAt": "Completed at",

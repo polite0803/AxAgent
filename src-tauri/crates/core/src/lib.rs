@@ -2,6 +2,7 @@
 #![allow(clippy::missing_transmute_annotations)]
 #![allow(clippy::result_large_err)]
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::should_implement_trait)]
 
 pub mod ast_index;
 pub mod browser_automation;

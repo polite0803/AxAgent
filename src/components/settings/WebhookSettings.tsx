@@ -277,7 +277,7 @@ export default function WebhookSettings() {
   }
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <Title level={4}>{t("settings.webhook.title")}</Title>

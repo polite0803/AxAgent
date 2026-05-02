@@ -3103,6 +3103,7 @@
     "noSources": "暂无来源",
     "noteNotFound": "笔记未找到",
     "notes": "笔记",
+    "backToNotes": "返回笔记",
     "operation": {
       "compile": "编译",
       "completedAt": "完成时间",
