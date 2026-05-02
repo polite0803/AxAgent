@@ -1906,6 +1906,7 @@ pub struct SkillInfo {
     pub argument_hint: Option<String>,
     pub when_to_use: Option<String>,
     pub group: Option<String>,
+    pub frontend: Option<SkillFrontendExtension>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1926,6 +1927,144 @@ pub struct SkillManifest {
     pub commit: Option<String>,
     pub installed_at: String,
     pub installed_via: Option<String>,
+    #[serde(default)]
+    pub frontend: Option<SkillFrontendExtension>,
+}
+
+// ── Skill Frontend Extension ──
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillFrontendExtension {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub navigation: Vec<SkillNavItem>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pages: Vec<SkillPage>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub commands: Vec<SkillUICommand>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub panels: Vec<SkillUIPanel>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub settings_sections: Vec<SkillSettingsSection>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillNavItem {
+    pub id: String,
+    pub label: String,
+    pub icon: String,
+    pub path: String,
+    #[serde(default)]
+    pub position: NavPosition,
+    #[serde(default)]
+    pub order: i32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum NavPosition {
+    #[default]
+    Bottom,
+    Top,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillPage {
+    pub id: String,
+    pub path: String,
+    pub title: String,
+    #[serde(rename = "componentType")]
+    pub component_type: SkillComponentType,
+    #[serde(rename = "componentConfig")]
+    pub component_config: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SkillComponentType {
+    Html,
+    Iframe,
+    React,
+    WebComponent,
+    Markdown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillUICommand {
+    pub id: String,
+    pub label: String,
+    pub category: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shortcut: Option<String>,
+    pub action: SkillCommandAction,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum SkillCommandAction {
+    Navigate { path: String },
+    InvokeBackend { command: String, args: serde_json::Value },
+    EmitEvent { event: String, payload: serde_json::Value },
+    Custom { handler_id: String, data: serde_json::Value },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillUIPanel {
+    pub id: String,
+    pub title: String,
+    #[serde(rename = "componentType")]
+    pub component_type: SkillComponentType,
+    #[serde(rename = "componentConfig")]
+    pub component_config: serde_json::Value,
+    #[serde(default)]
+    pub position: UIPanelPosition,
+    #[serde(default)]
+    pub size: UIPanelSize,
+    #[serde(default)]
+    pub collapsible: bool,
+    #[serde(default = "default_false")]
+    pub default_collapsed: bool,
+}
+
+fn default_false() -> bool {
+    false
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub enum UIPanelPosition {
+    #[default]
+    Main,
+    Sidebar,
+    Header,
+    Footer,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub enum UIPanelSize {
+    Small,
+    #[default]
+    Medium,
+    Large,
+    FullWidth,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillSettingsSection {
+    pub id: String,
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    #[serde(rename = "componentType")]
+    pub component_type: SkillComponentType,
+    #[serde(rename = "componentConfig")]
+    pub component_config: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -2,11 +2,12 @@ import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { NAV_ICON_COLORS } from "@/lib/iconColors";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
-import { useSettingsStore, useUserProfileStore } from "@/stores";
+import { resolveIconComponent } from "@/lib/skillIcons";
+import { useSettingsStore, useSkillExtensionStore, useUserProfileStore } from "@/stores";
 import type { PageKey } from "@/types";
 import { Avatar, theme, Tooltip } from "antd";
-import { BookOpen, Brain, FileText, FolderOpen, Library, Link2, MessageSquare, Router, Sparkles, Store, User } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { BookOpen, Brain, FileText, FolderOpen, Link2, MessageSquare, Router, Sparkles, User } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
@@ -14,35 +15,41 @@ import { UserProfileModal } from "./UserProfileModal";
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
   skills: "/skills",
-  marketplace: "/marketplace",
   prompts: "/prompts",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",
   gateway: "/gateway",
   files: "/files",
-  wiki: "/wiki",
   settings: "/settings",
 };
 
-const pathToPageKey = (path: string): PageKey => {
+function pathToPageKey(path: string): PageKey {
   if (path === "/" || path === "") { return "chat"; }
-  const key = path.slice(1) as PageKey;
-  if (key in pageKeyToPath) { return key; }
+  if (path.startsWith("/skill/")) { return path; }
+  const key = path.slice(1);
+  if (key in pageKeyToPath) { return key as PageKey; }
   return "chat";
-};
+}
 
-const mainNavItems: { key: PageKey; icon: React.ReactNode; labelKey: string }[] = [
-  { key: "chat", icon: <MessageSquare size={18} color={NAV_ICON_COLORS.MessageSquare} />, labelKey: "nav.chat" },
-  { key: "skills", icon: <Sparkles size={18} color={NAV_ICON_COLORS.Sparkles} />, labelKey: "nav.skills" },
-  { key: "marketplace", icon: <Store size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.marketplace" },
-  { key: "prompts", icon: <FileText size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.prompts" },
-  { key: "knowledge", icon: <BookOpen size={18} color={NAV_ICON_COLORS.BookOpen} />, labelKey: "nav.knowledge" },
-  { key: "wiki", icon: <Library size={18} color={NAV_ICON_COLORS.Library} />, labelKey: "nav.wiki" },
-  { key: "memory", icon: <Brain size={18} color={NAV_ICON_COLORS.Brain} />, labelKey: "nav.memory" },
-  { key: "link", icon: <Link2 size={18} color={NAV_ICON_COLORS.Link2} />, labelKey: "nav.link" },
-  { key: "gateway", icon: <Router size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.gateway" },
-  { key: "files", icon: <FolderOpen size={18} color={NAV_ICON_COLORS.FolderOpen} />, labelKey: "nav.files" },
+interface NavItem {
+  key: PageKey;
+  icon: React.ReactNode;
+  labelKey: string;
+  path: string;
+  isPlugin: boolean;
+  pluginName?: string;
+}
+
+const builtinNavItems: NavItem[] = [
+  { key: "chat", icon: <MessageSquare size={18} color={NAV_ICON_COLORS.MessageSquare} />, labelKey: "nav.chat", path: "/", isPlugin: false },
+  { key: "skills", icon: <Sparkles size={18} color={NAV_ICON_COLORS.Sparkles} />, labelKey: "nav.skills", path: "/skills", isPlugin: false },
+  { key: "prompts", icon: <FileText size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.prompts", path: "/prompts", isPlugin: false },
+  { key: "knowledge", icon: <BookOpen size={18} color={NAV_ICON_COLORS.BookOpen} />, labelKey: "nav.knowledge", path: "/knowledge", isPlugin: false },
+  { key: "memory", icon: <Brain size={18} color={NAV_ICON_COLORS.Brain} />, labelKey: "nav.memory", path: "/memory", isPlugin: false },
+  { key: "link", icon: <Link2 size={18} color={NAV_ICON_COLORS.Link2} />, labelKey: "nav.link", path: "/link", isPlugin: false },
+  { key: "gateway", icon: <Router size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.gateway", path: "/gateway", isPlugin: false },
+  { key: "files", icon: <FolderOpen size={18} color={NAV_ICON_COLORS.FolderOpen} />, labelKey: "nav.files", path: "/files", isPlugin: false },
 ];
 
 const EXPANDED_WIDTH = 180;
@@ -61,6 +68,33 @@ export function Sidebar() {
   const [expanded, setExpanded] = useState(false);
   const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skillNavItems = useSkillExtensionStore((s) => s.navItems);
+
+  const allNavItems = useMemo<NavItem[]>(() => {
+    const pluginItems: NavItem[] = [];
+    for (const item of skillNavItems) {
+      const IconComp = resolveIconComponent(item.icon);
+      pluginItems.push({
+        key: `plugin:${item.id}`,
+        icon: <IconComp size={18} color={NAV_ICON_COLORS.Router} />,
+        labelKey: item.label,
+        path: item.path,
+        isPlugin: true,
+        pluginName: item.skillName,
+      });
+    }
+
+    const topItems = pluginItems.filter((i) => {
+      const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
+      return orig?.position === "Top";
+    });
+    const bottomItems = pluginItems.filter((i) => {
+      const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
+      return orig?.position !== "Top";
+    });
+
+    return [...topItems, ...builtinNavItems, ...bottomItems];
+  }, [skillNavItems]);
 
   const handleMouseEnter = useCallback(() => {
     if (leaveTimerRef.current) { clearTimeout(leaveTimerRef.current); }
@@ -76,19 +110,24 @@ export function Sidebar() {
     gateway: "toggleGateway",
   };
 
-  const renderNavButton = (item: { key: PageKey; icon: React.ReactNode; labelKey: string }) => {
-    const isActive = activePage === item.key;
-    const label = t(item.labelKey);
-    const action = NAV_SHORTCUT_MAP[item.key];
+  const renderNavButton = (item: NavItem) => {
+    const isActive = item.isPlugin
+      ? location.pathname === item.path || location.pathname.startsWith(item.path + "/")
+      : activePage === item.key;
+    const label = item.isPlugin ? item.labelKey : t(item.labelKey);
+    const tooltipText = item.isPlugin
+      ? `${label} (${item.pluginName})`
+      : label;
+    const action = !item.isPlugin ? NAV_SHORTCUT_MAP[item.key] : undefined;
     const shortcutLabel = action
       ? formatShortcutForDisplay(getShortcutBinding(settings, action))
       : "";
-    const title = action ? `${label} (${shortcutLabel})` : label;
+    const title = shortcutLabel ? `${tooltipText} (${shortcutLabel})` : tooltipText;
 
     return (
-      <Tooltip key={item.key} title={expanded ? "" : title} placement="right">
+      <Tooltip key={String(item.key)} title={expanded ? "" : title} placement="right">
         <div
-          onClick={() => navigate(pageKeyToPath[item.key])}
+          onClick={() => navigate(item.path)}
           className={isActive ? "ax-nav-item-active" : ""}
           style={{
             display: "flex",
@@ -192,7 +231,7 @@ export function Sidebar() {
       }}
     >
       <nav className="flex flex-col gap-1" style={{ flexShrink: 0 }}>
-        {mainNavItems.map(renderNavButton)}
+        {allNavItems.map(renderNavButton)}
       </nav>
 
       <div className="flex-1" />

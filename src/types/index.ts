@@ -609,7 +609,8 @@ export interface GatewayLinkActivity {
 }
 
 // === UI State ===
-export type PageKey = "chat" | "knowledge" | "memory" | "link" | "gateway" | "files" | "settings" | "skills" | "marketplace" | "prompts" | "wiki";
+export type BuiltinPageKey = "chat" | "knowledge" | "memory" | "link" | "gateway" | "files" | "settings" | "skills" | "marketplace" | "prompts" | "wiki";
+export type PageKey = BuiltinPageKey | string;
 export type SettingsSection =
   | "providers"
   | "defaultModel"
@@ -633,7 +634,8 @@ export type SettingsSection =
   | "dashboardPlugins"
   | "webhooks"
   | "messageChannels"
-  | "advanced";
+  | "advanced"
+  | string;
 
 // === Generated Tool ===
 export interface GeneratedToolInfo {
@@ -689,6 +691,7 @@ export interface Skill {
   argumentHint?: string;
   whenToUse?: string;
   group?: string;
+  frontend?: SkillFrontendExtension;
 }
 
 export interface SkillDetail {
@@ -705,6 +708,7 @@ export interface SkillManifest {
   commit?: string;
   installedAt: string;
   installedVia?: string;
+  frontend?: SkillFrontendExtension;
 }
 
 export interface MarketplaceSkill {
@@ -735,6 +739,75 @@ export interface SkillProposal {
   confidence: number;
   trigger_event: string;
   similar_skills: string[];
+}
+
+// ── Skill Frontend Extension ──
+
+export interface SkillFrontendExtension {
+  navigation: SkillNavItem[];
+  pages: SkillPage[];
+  commands: SkillUICommand[];
+  panels: SkillUIPanel[];
+  settingsSections: SkillSettingsSection[];
+}
+
+export interface SkillNavItem {
+  id: string;
+  label: string;
+  icon: string;
+  path: string;
+  position: NavPosition;
+  order: number;
+}
+
+export type NavPosition = "Top" | "Bottom";
+
+export interface SkillPage {
+  id: string;
+  path: string;
+  title: string;
+  componentType: SkillComponentType;
+  componentConfig: Record<string, unknown>;
+}
+
+export type SkillComponentType = "Html" | "Iframe" | "React" | "WebComponent" | "Markdown";
+
+export interface SkillUICommand {
+  id: string;
+  label: string;
+  category: string;
+  icon?: string;
+  shortcut?: string;
+  action: SkillCommandAction;
+}
+
+export type SkillCommandAction =
+  | { type: "Navigate"; path: string }
+  | { type: "InvokeBackend"; command: string; args: Record<string, unknown> }
+  | { type: "EmitEvent"; event: string; payload: Record<string, unknown> }
+  | { type: "Custom"; handlerId: string; data: Record<string, unknown> };
+
+export interface SkillUIPanel {
+  id: string;
+  title: string;
+  componentType: SkillComponentType;
+  componentConfig: Record<string, unknown>;
+  position: UIPanelPosition;
+  size: UIPanelSize;
+  collapsible: boolean;
+  defaultCollapsed: boolean;
+}
+
+export type UIPanelPosition = "Main" | "Sidebar" | "Header" | "Footer";
+
+export type UIPanelSize = "Small" | "Medium" | "Large" | "FullWidth";
+
+export interface SkillSettingsSection {
+  id: string;
+  label: string;
+  icon?: string;
+  componentType: SkillComponentType;
+  componentConfig: Record<string, unknown>;
 }
 
 // Phase-2 type modules

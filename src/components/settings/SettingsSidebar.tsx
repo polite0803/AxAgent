@@ -1,5 +1,6 @@
 import { SETTINGS_ICON_COLORS } from "@/lib/iconColors";
-import { useUIStore } from "@/stores";
+import { resolveIconComponent } from "@/lib/skillIcons";
+import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
 import { Menu, theme } from "antd";
 import {
@@ -17,6 +18,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Palette,
+  Puzzle,
   Search,
   Send,
   Settings,
@@ -26,6 +28,7 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -83,12 +86,26 @@ export function SettingsSidebar() {
   const navigate = useNavigate();
   const settingsSection = useUIStore((s) => s.settingsSection);
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
+  const skillSections = useSkillExtensionStore((s) => s.settingsSections);
 
-  const items = SECTION_KEYS.map((key) => ({
-    key,
-    icon: MENU_ICONS[key],
-    label: t([`settings.${key}.title`, `settings.${key}`]),
-  }));
+  const items = useMemo(() => {
+    const builtin = SECTION_KEYS.map((key) => ({
+      key,
+      icon: MENU_ICONS[key],
+      label: t([`settings.${key}.title`, `settings.${key}`]),
+    }));
+
+    const skillItems = skillSections.map((sec) => {
+      const IconComp = sec.icon ? resolveIconComponent(sec.icon) : Puzzle;
+      return {
+        key: `skill:${sec.skillName}:${sec.id}` as string,
+        icon: <IconComp size={16} />,
+        label: sec.label,
+      };
+    });
+
+    return [...builtin, ...skillItems];
+  }, [t, skillSections]);
 
   return (
     <div

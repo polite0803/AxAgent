@@ -24,8 +24,9 @@ import {
 } from "@/components/settings";
 import { ConversationSettings } from "@/components/settings/ConversationSettings";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
+import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { WorkflowEditor } from "@/components/workflow";
-import { useUIStore } from "@/stores";
+import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
 import { theme } from "antd";
 import { useState } from "react";
@@ -63,7 +64,14 @@ export function SettingsPage() {
   const workflowEditorOpen = useUIStore((s) => s.workflowEditorOpen);
   const openWorkflowEditor = useUIStore((s) => s.openWorkflowEditor);
   const closeWorkflowEditor = useUIStore((s) => s.closeWorkflowEditor);
-  const ContentComponent = SECTION_COMPONENTS[settingsSection];
+  const ContentComponent = SECTION_COMPONENTS[settingsSection as keyof typeof SECTION_COMPONENTS];
+  const skillSections = useSkillExtensionStore((s) => s.settingsSections);
+
+  // 检查是否是技能设置段
+  const isSkillSection = typeof settingsSection === "string" && settingsSection.startsWith("skill:");
+  const skillSectionData = isSkillSection
+    ? skillSections.find((sec) => `skill:${sec.skillName}:${sec.id}` === settingsSection)
+    : null;
 
   const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>(undefined);
 
@@ -108,10 +116,22 @@ export function SettingsPage() {
       </div>
       <div className="min-w-0 flex-1 overflow-y-auto" style={{ backgroundColor: token.colorBgElevated }}>
         {settingsSection === "workflow"
-          ? (
-            renderWorkflowContent()
-          )
-          : <ContentComponent />}
+          ? renderWorkflowContent()
+          : isSkillSection && skillSectionData
+            ? (
+              <SkillPageRenderer
+                componentType={skillSectionData.componentType}
+                componentConfig={skillSectionData.componentConfig}
+                skillName={skillSectionData.skillName}
+              />
+            )
+            : ContentComponent
+              ? <ContentComponent />
+              : (
+                <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  Unknown settings section: {settingsSection}
+                </div>
+              )}
       </div>
     </div>
   );

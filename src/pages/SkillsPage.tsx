@@ -5,6 +5,7 @@ import { SkillCreateModal } from "@/components/chat/SkillCreateEditModal";
 import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";
 import { CopyButton } from "@/components/common/CopyButton";
 import { DecompositionPreview } from "@/components/decomposition/DecompositionPreview";
+import { FrontendEditorModal } from "@/components/skill/FrontendEditorModal";
 import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { invoke } from "@/lib/invoke";
@@ -37,6 +38,7 @@ import {
   FolderOpen,
   GitFork,
   Layers,
+  LayoutPanelTop,
   Lightbulb,
   Radio,
   RefreshCw,
@@ -110,6 +112,7 @@ function SkillCard({
   onDetail,
   onUninstall,
   onOpenDir,
+  onEditFrontend,
   t,
 }: {
   skill: Skill;
@@ -117,8 +120,10 @@ function SkillCard({
   onDetail: (name: string) => void;
   onUninstall: (name: string) => void;
   onOpenDir: (path: string) => void;
+  onEditFrontend: (name: string) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
+  const hasFrontend = !!skill.frontend;
   return (
     <Card
       size="small"
@@ -145,6 +150,9 @@ function SkillCard({
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
+            {hasFrontend && (
+              <Tag color="blue" style={{ margin: 0 }}>含 UI 扩展</Tag>
+            )}
           </div>
           <Paragraph
             type="secondary"
@@ -167,6 +175,13 @@ function SkillCard({
             size="small"
             icon={<FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />}
             onClick={() => onOpenDir(skill.sourcePath)}
+          />
+          <Button
+            type="text"
+            size="small"
+            icon={<LayoutPanelTop size={14} color={CHAT_ICON_COLORS.Trash2} />}
+            onClick={() => onEditFrontend(skill.name)}
+            title={hasFrontend ? "编辑前端扩展" : "添加前端扩展"}
           />
           {skill.source !== "builtin" && (
             <Popconfirm
@@ -359,6 +374,7 @@ export function SkillsPage() {
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [atomicSkillEditVisible, setAtomicSkillEditVisible] = useState(false);
   const [editingAtomicSkill, setEditingAtomicSkill] = useState<import("@/types").AtomicSkill | null>(null);
+  const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
 
   const { previewDecomposition } = useDecompositionStore();
   const { setImportedWorkflowData } = useWorkflowEditorStore();
@@ -423,6 +439,13 @@ export function SkillsPage() {
     await getSkill(name);
     setDetailOpen(true);
   }, [getSkill]);
+
+  const handleEditFrontend = useCallback((name: string) => {
+    const skill = skills.find((s) => s.name === name);
+    if (skill) {
+      setEditingFrontendSkill(skill);
+    }
+  }, [skills]);
 
   const handleMarketplaceDetail = useCallback(async (repo: string) => {
     const skill = marketplaceSkills.find(s => s.repo === repo);
@@ -859,6 +882,7 @@ export function SkillsPage() {
                   onDetail={handleDetail}
                   onUninstall={handleUninstall}
                   onOpenDir={handleOpenSkillDir}
+                  onEditFrontend={handleEditFrontend}
                   t={t}
                 />
               ))}
@@ -938,6 +962,7 @@ export function SkillsPage() {
                               onDetail={handleDetail}
                               onUninstall={handleUninstall}
                               onOpenDir={handleOpenSkillDir}
+                              onEditFrontend={handleEditFrontend}
                               t={t}
                             />
                           ))}
@@ -1303,6 +1328,17 @@ export function SkillsPage() {
           onComplete={handleDecomposeComplete}
         />
       )}
+
+      <FrontendEditorModal
+        open={!!editingFrontendSkill}
+        skillName={editingFrontendSkill?.name || ""}
+        currentFrontend={editingFrontendSkill?.frontend}
+        onClose={() => setEditingFrontendSkill(null)}
+        onSaved={() => {
+          setEditingFrontendSkill(null);
+          loadSkills();
+        }}
+      />
     </>
   );
 }

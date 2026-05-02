@@ -12,7 +12,8 @@ import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri, listen } from "@/lib/invoke";
 import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
-import { useConversationStore, useSettingsStore, useStreamStore } from "@/stores";
+import { SkillPanels } from "@/components/skill/SkillPanels";
+import { useConversationStore, useSettingsStore, useSkillExtensionStore, useStreamStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { App as AntdApp, ConfigProvider, Layout, theme } from "antd";
@@ -114,6 +115,12 @@ function AppInner() {
     return () => stopStreamListening();
   }, [startStreamListening, stopStreamListening]);
 
+  // 加载技能前端扩展
+  const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
+  useEffect(() => {
+    fetchSkills();
+  }, [fetchSkills]);
+
   // Auto-check for updates on startup and periodically
   const { checkForUpdate } = useUpdateChecker();
   const updateCheckInterval = useSettingsStore((s) => s.settings.update_check_interval ?? 60);
@@ -143,6 +150,7 @@ function AppInner() {
         <ContentArea />
       ) : (
         <>
+          <SkillPanels />
           <TitleBar />
           <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
           <GlobalCopyMenu />

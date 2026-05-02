@@ -35,6 +35,7 @@ export { useSearchStore } from "./feature/searchStore";
 export { useSettingsStore } from "./feature/settingsStore";
 export type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "./feature/settingsStore";
 export { useSkillStore } from "./feature/skillStore";
+export { useSkillExtensionStore } from "./feature/skillExtensionStore";
 export { useUserProfileStore } from "./feature/userProfileStore";
 export type { AvatarType } from "./feature/userProfileStore";
 export { useWorkflowEditorStore } from "./feature/workflowEditorStore";

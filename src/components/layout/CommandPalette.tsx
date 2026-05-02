@@ -1,5 +1,7 @@
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
-import { useUIStore } from "@/stores";
+import { executeSkillAction } from "@/lib/skillActionExecutor";
+import { resolveIconComponent } from "@/lib/skillIcons";
+import { useSkillExtensionStore, useUIStore } from "@/stores";
 import { Input, List, Modal, Tag, theme, Typography } from "antd";
 import { MessageSquare, Network, PanelLeftClose, Plus, Search, Settings, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -192,6 +194,33 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       setActiveIndex(0);
     }
   }, [open]);
+
+  // 注册技能扩展命令
+  const skillCommands = useSkillExtensionStore((s) => s.commands);
+  useEffect(() => {
+    const registeredIds: string[] = [];
+    for (const cmd of skillCommands) {
+      const cmdId = `skill:${cmd.skillName}:${cmd.id}`;
+      const IconComp = cmd.icon ? resolveIconComponent(cmd.icon) : Settings;
+      registerCommand({
+        id: cmdId,
+        label: cmd.label,
+        icon: <IconComp size={16} />,
+        shortcut: cmd.shortcut,
+        category: cmd.skillName,
+        action: () => {
+          executeSkillAction(cmd.action, navigate);
+          onClose();
+        },
+      });
+      registeredIds.push(cmdId);
+    }
+    return () => {
+      for (const id of registeredIds) {
+        unregisterCommand(id);
+      }
+    };
+  }, [skillCommands, navigate, onClose]);
 
   // 执行命令时记录使用次数
   const executeCommand = useCallback((cmd: Command) => {
