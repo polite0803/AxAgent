@@ -1562,15 +1562,13 @@ pub async fn skill_set_frontend(
 
     let manifest_path = skill_dir.join("skill-manifest.json");
     let mut manifest: serde_json::Value = if manifest_path.exists() {
-        let existing =
-            std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+        let existing = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
         serde_json::from_str(&existing).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
     };
 
-    manifest["frontend"] =
-        serde_json::to_value(&frontend).map_err(|e| e.to_string())?;
+    manifest["frontend"] = serde_json::to_value(&frontend).map_err(|e| e.to_string())?;
 
     std::fs::write(
         &manifest_path,
@@ -1578,10 +1576,7 @@ pub async fn skill_set_frontend(
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(format!(
-        "Frontend config set for skill '{}'",
-        name
-    ))
+    Ok(format!("Frontend config set for skill '{}'", name))
 }
 
 /// 使用 LLM 分析技能内容，自动生成前端扩展配置建议
@@ -1598,7 +1593,10 @@ pub async fn skill_analyze_frontend(
         .find(|p| p.metadata.name == name)
         .ok_or_else(|| format!("Skill '{}' not found", name))?;
 
-    let skill_dir = plugin.metadata.root.ok_or_else(|| "Skill has no root dir".to_string())?;
+    let skill_dir = plugin
+        .metadata
+        .root
+        .ok_or_else(|| "Skill has no root dir".to_string())?;
     let raw_content = collect_skill_content(&skill_dir);
 
     // 限制内容长度，避免 prompt 过大
@@ -1803,14 +1801,13 @@ pub async fn skill_analyze_frontend(
     }
     .trim();
 
-    let frontend: SkillFrontendExtension =
-        serde_json::from_str(json_str).map_err(|e| {
-            format!(
-                "解析 LLM 响应失败: {}。原始响应: {}",
-                e,
-                &content[..content.len().min(500)]
-            )
-        })?;
+    let frontend: SkillFrontendExtension = serde_json::from_str(json_str).map_err(|e| {
+        format!(
+            "解析 LLM 响应失败: {}。原始响应: {}",
+            e,
+            &content[..content.len().min(500)]
+        )
+    })?;
 
     Ok(frontend)
 }
@@ -1833,7 +1830,10 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Strin
     }
 
     if !canonical_requested.is_file() {
-        return Err(format!("File '{}' not found in skill '{}'", file_name, name));
+        return Err(format!(
+            "File '{}' not found in skill '{}'",
+            file_name, name
+        ));
     }
 
     // 只允许文本类文件
@@ -1842,9 +1842,14 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Strin
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
-    let allowed = ["html", "htm", "md", "txt", "css", "js", "json", "svg", "xml"];
+    let allowed = [
+        "html", "htm", "md", "txt", "css", "js", "json", "svg", "xml",
+    ];
     if !allowed.contains(&ext.as_str()) {
-        return Err(format!("File type '{}' is not allowed for direct reading", ext));
+        return Err(format!(
+            "File type '{}' is not allowed for direct reading",
+            ext
+        ));
     }
 
     std::fs::read_to_string(&canonical_requested).map_err(|e| e.to_string())

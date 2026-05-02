@@ -14,6 +14,7 @@ import {
   List,
   Spin,
   Form,
+  theme,
 } from "antd";
 import {
   DownloadOutlined,
@@ -99,6 +100,7 @@ function formatDate(timestamp: number): string {
 
 export function WorkflowMarketplace() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [templates] = useState<MarketplaceTemplate[]>(mockTemplates);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -207,27 +209,40 @@ export function WorkflowMarketplace() {
       className="marketplace-card"
       onClick={() => handleTemplateClick(template)}
       cover={
-        <div className="flex items-center justify-center h-32 bg-linear-to-br from-blue-50 to-indigo-100">
-          <span className="text-4xl">📄</span>
+        <div 
+          className="flex items-center justify-center h-32"
+          style={{ 
+            backgroundColor: token.colorBgContainer,
+            borderBottom: `1px solid ${token.colorBorderSecondary}`
+          }}
+        >
+          <span style={{ fontSize: 48 }}>📄</span>
         </div>
       }
+      styles={{
+        body: { padding: "16px" }
+      }}
     >
       <Card.Meta
         title={
-          <Space>
-            {template.name}
-            {template.isFeatured && <Tag color="gold">{t("marketplace.featured")}</Tag>}
+          <Space size={4}>
+            <Text strong>{template.name}</Text>
+            {template.isFeatured && <Tag color="gold" style={{ margin: 0 }}>{t("marketplace.featured")}</Tag>}
           </Space>
         }
         description={
-          <div>
-            <Text type="secondary" className="text-sm block mb-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
               {template.description}
             </Text>
-            <Space className="mt-2">
-              <Tag icon={<StarOutlined />}>{template.rating}</Tag>
-              <Text type="secondary" className="text-xs">
-                <DownloadOutlined /> {template.downloads}
+            <Space size={8}>
+              <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
+                <StarOutlined style={{ fontSize: 12, marginRight: 4 }} />
+                {template.rating}
+              </Tag>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                <DownloadOutlined style={{ fontSize: 12, marginRight: 4 }} />
+                {template.downloads}
               </Text>
             </Space>
           </div>
@@ -320,17 +335,23 @@ export function WorkflowMarketplace() {
   );
 
   return (
-    <div className="flex h-full">
-      <aside className="w-56 border-r p-4 bg-white">
-        <Title level={5} className="mb-4">
+    <div className="flex h-full" style={{ backgroundColor: token.colorBgElevated }}>
+      <aside 
+        className="w-56 border-r p-4" 
+        style={{ 
+          backgroundColor: token.colorBgContainer,
+          borderRight: `1px solid ${token.colorBorder}`
+        }}
+      >
+        <Title level={5} style={{ marginBottom: 16, marginTop: 0 }}>
           {t("marketplace.categories")}
         </Title>
-        <div className="flex flex-col gap-1">
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {categories.map((cat) => (
             <Button
               key={cat}
               type={selectedCategory === cat ? "primary" : "text"}
-              className="text-left justify-start"
+              style={{ textAlign: "left", justifyContent: "flex-start" }}
               onClick={() => setSelectedCategory(cat)}
               block
             >
@@ -339,19 +360,22 @@ export function WorkflowMarketplace() {
           ))}
         </div>
 
-        <Title level={5} className="mt-6 mb-4">
+        <Title level={5} style={{ marginTop: 24, marginBottom: 16 }}>
           {t("marketplace.quickActions")}
         </Title>
-        <div className="flex flex-col gap-2">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <Button icon={<UploadOutlined />} onClick={handleImport} block>
             {t("marketplace.importWorkflow")}
           </Button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
-        <div className="flex items-center justify-between mb-6">
-          <Title level={4} className="m-0">
+      <main 
+        className="flex-1 overflow-y-auto p-6"
+        style={{ backgroundColor: token.colorBgContainer }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <Title level={4} style={{ margin: 0 }}>
             {t("marketplace.title")}
           </Title>
           <Space>
@@ -360,7 +384,7 @@ export function WorkflowMarketplace() {
               allowClear
               onSearch={setSearchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-64"
+              style={{ width: 256 }}
             />
           </Space>
         </div>
@@ -373,15 +397,15 @@ export function WorkflowMarketplace() {
               key: "templates",
               label: t("marketplace.templates"),
               children: (
-                <div className="grid grid-cols-3 gap-4">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
                   {filteredTemplates.length > 0 ? (
                     filteredTemplates.map((t) => (
-                      <div key={t.id} className="relative">
+                      <div key={t.id} style={{ position: "relative" }}>
                         {renderTemplateCard(t)}
                         <Button
                           type="primary"
                           icon={<DLOutlined />}
-                          className="absolute top-2 right-2"
+                          style={{ position: "absolute", top: 8, right: 8 }}
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -391,7 +415,9 @@ export function WorkflowMarketplace() {
                       </div>
                     ))
                   ) : (
-                    <Empty description={t("marketplace.noTemplatesFound")} className="col-span-3" />
+                    <div style={{ gridColumn: "span 3" }}>
+                      <Empty description={t("marketplace.noTemplatesFound")} />
+                    </div>
                   )}
                 </div>
               ),
@@ -400,16 +426,16 @@ export function WorkflowMarketplace() {
               key: "featured",
               label: t("marketplace.featured"),
               children: (
-                <div className="grid grid-cols-3 gap-4">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
                   {templates
                     .filter((t) => t.isFeatured)
                     .map((t) => (
-                      <div key={t.id} className="relative">
+                      <div key={t.id} style={{ position: "relative" }}>
                         {renderTemplateCard(t)}
                         <Button
                           type="primary"
                           icon={<DLOutlined />}
-                          className="absolute top-2 right-2"
+                          style={{ position: "absolute", top: 8, right: 8 }}
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -424,6 +450,15 @@ export function WorkflowMarketplace() {
           ]}
         />
       </main>
+      <style>{`
+        .marketplace-card {
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .marketplace-card:hover {
+          border-color: ${token.colorPrimary} !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+      `}</style>
 
       <Modal
         title={selectedTemplate?.name}

@@ -17,6 +17,32 @@
     "prompts": "提示词",
     "wiki": "Wiki"
   },
+  "knowledge": {
+    "commonPanel": "公共面板",
+    "commonPanelDesc": "知识库和Wiki的共同操作",
+    "loadFiles": "加载文件",
+    "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
+    "selectFolder": "选择文件夹",
+    "loadToRAG": "加载到知识库RAG",
+    "sources": "数据源",
+    "sourcesDesc": "管理所有已加载的数据源",
+    "recentSources": "最近使用",
+    "addSource": "添加数据源",
+    "loadToWiki": "加载到Wiki",
+    "ragTab": "知识库 RAG",
+    "wikiTab": "Wiki",
+    "importTitle": "导入文档",
+    "selectedFolder": "已选择文件夹",
+    "importDestination": "导入到",
+    "ragSystem": "RAG 知识库",
+    "wikiSystem": "Wiki 系统",
+    "import": "导入",
+    "selectFolderFirst": "请先选择文件夹",
+    "selectDestination": "请选择导入目标",
+    "selectKnowledgeBaseFirst": "请先选择一个知识库",
+    "importSuccess": "导入成功",
+    "folderSelected": "文件夹已选择: {{path}}"
+  },
   "chat": {
     "newConversation": "新建对话",
     "searchPlaceholder": "搜索对话...",
@@ -1226,7 +1252,20 @@
       "statusLabel": "状态",
       "docType": "类型",
       "docTypeFile": "文件",
-      "docTitle": "文档"
+      "docTitle": "文档",
+      "commonPanel": "公共面板",
+      "commonPanelDesc": "知识库和Wiki的共同操作",
+      "loadFiles": "加载文件",
+      "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
+      "selectFolder": "选择文件夹",
+      "loadToRAG": "加载到知识库RAG",
+      "sources": "数据源",
+      "sourcesDesc": "管理所有已加载的数据源",
+      "recentSources": "最近使用",
+      "addSource": "添加数据源",
+      "loadToWiki": "加载到Wiki",
+      "ragTab": "知识库 RAG",
+      "wikiTab": "Wiki"
     },
     "memory": {
       "title": "记忆",
@@ -1756,6 +1795,7 @@
     "completed": "已完成",
     "running": "进行中",
     "failed": "失败",
+    "error": "操作失败",
     "errorDetail": "错误详情",
     "description": "描述",
     "restoreWarning": "恢复备份将覆盖当前数据，确定继续？",
@@ -1838,6 +1878,7 @@
     "disabled": "已禁用",
     "comingSoon": "即将推出",
     "failed": "失败",
+    "error": "操作失败",
     "errorDetail": "错误详情",
     "expand": "展开",
     "expandAll": "全部展开",
@@ -2906,35 +2947,12 @@
     "titlePlaceholder": "笔记标题...",
     "contentPlaceholder": "开始写作...",
     "insertLink": "插入链接",
-    "llmNote": "LLM 生成",
     "userNote": "用户",
     "unsavedTitle": "未保存的更改",
     "unsavedContent": "你有未保存的更改，确定放弃吗？",
     "discard": "放弃",
     "keepEditing": "继续编辑",
     "confirmDelete": "确定删除这条笔记？",
-    "llm": {
-      "viewNotes": "查看笔记",
-      "title": "LLM Wiki",
-      "backToList": "返回列表",
-      "createWiki": "创建 Wiki",
-      "nameRequired": "名称必填",
-      "namePlaceholder": "Wiki 名称",
-      "pathRequired": "路径必填",
-      "pathPlaceholder": "/path/to/wiki",
-      "descriptionPlaceholder": "Wiki 描述（可选）",
-      "createSuccess": "Wiki 创建成功",
-      "deleteSuccess": "Wiki 已删除",
-      "selectSourcesFirst": "请先选择要编译的来源",
-      "compileErrors": "编译完成，{{count}} 个错误",
-      "compileSuccess": "编译成功：{{newCount}} 个新页面，{{updatedCount}} 个更新",
-      "ingestSource": "摄入资料",
-      "ingestSuccess": "摄入成功：{{title}}",
-      "ingestError": "摄入失败：{{error}}",
-      "compile": "编译",
-      "sources": "来源",
-      "viewSource": "查看来源"
-    },
     "compile": {
       "noPages": "没有生成任何页面",
       "saved": "编译结果已保存",
@@ -2972,8 +2990,6 @@
       "overview": "概览",
       "refresh": "刷新"
     },
-    "contentPlaceholder": "输入内容...",
-    "emptyNotes": "暂无笔记",
     "graph": {
       "edges": "边",
       "empty": "暂无图谱数据",
@@ -3021,7 +3037,6 @@
       "urlRequired": "请输入 URL",
       "web": "网页"
     },
-    "insertLink": "插入链接",
     "lastCompiled": "上次编译",
     "lastLinted": "上次检查",
     "lint": {
@@ -3075,6 +3090,7 @@
       "recompile": "重新编译",
       "select": "选择",
       "selectSourcesFirst": "请先选择来源",
+      "selectWikiFirst": "请先选择一个Wiki",
       "sources": "来源",
       "stats": {
         "lastCompile": "上次编译",
@@ -3101,7 +3117,6 @@
       "total": "总计"
     },
     "noSources": "暂无来源",
-    "noteNotFound": "笔记未找到",
     "notes": "笔记",
     "backToNotes": "返回笔记",
     "operation": {
@@ -3126,8 +3141,6 @@
     "pageNotFound": "页面未找到",
     "pageType": "页面类型",
     "qualityScore": "质量分数",
-    "save": "保存",
-    "saved": "已保存",
     "schema": {
       "create": "创建",
       "created": "已创建",
@@ -3144,7 +3157,6 @@
       "updated": "已更新",
       "version": "版本"
     },
-    "searchPlaceholder": "搜索 Wiki...",
     "selectWiki": "选择 Wiki",
     "selectWikiPrompt": "请选择一个 Wiki",
     "source": {
@@ -3177,8 +3189,6 @@
       "title": "同步",
       "usage": "使用量"
     },
-    "titlePlaceholder": "输入标题...",
-    "userNote": "用户笔记",
     "wiki": {
       "description": "描述",
       "name": "名称",

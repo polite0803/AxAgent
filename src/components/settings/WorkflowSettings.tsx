@@ -1,10 +1,9 @@
 import { TemplateList } from "@/components/workflow/Templates";
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
-import { Button, Card, Typography } from "antd";
-import { GitBranch, Plus } from "lucide-react";
+import { Button, Card, Tabs, theme } from "antd";
+import { GitBranch, Plus, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-const { Title, Paragraph } = Typography;
+import { WorkflowMarketplace } from "@/pages/WorkflowMarketplace";
 
 interface WorkflowSettingsProps {
   onOpenEditor?: (templateId?: string) => void;
@@ -13,6 +12,7 @@ interface WorkflowSettingsProps {
 
 export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettingsProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   const handleSelectTemplate = (template: WorkflowTemplateResponse) => {
     if (onOpenEditor) {
@@ -37,28 +37,29 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
     }
   };
 
-  return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+  const renderMyWorkflows = () => (
+    <div style={{ padding: "0" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <Title level={4} className="mb-1">{t("settings.workflow.title")}</Title>
-          <Paragraph type="secondary">{t("settings.workflow.description")}</Paragraph>
+          <Button type="primary" icon={<Plus size={16} />} onClick={handleCreateNew}>
+            {t("settings.workflow.createNew")}
+          </Button>
         </div>
-        <Button type="primary" icon={<Plus size={16} />} onClick={handleCreateNew}>
-          {t("settings.workflow.createNew")}
-        </Button>
       </div>
 
-      <Card className="mb-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-purple-100 rounded-lg">
-            <GitBranch size={24} className="text-purple-600" />
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div 
+            className="p-3 rounded-lg"
+            style={{ backgroundColor: token.colorPrimaryBg }}
+          >
+            <GitBranch size={24} style={{ color: token.colorPrimary }} />
           </div>
-          <div className="flex-1">
-            <Title level={5} className="mb-1">{t("settings.workflow.visualEditor")}</Title>
-            <Paragraph type="secondary" className="mb-0">
+          <div style={{ flex: 1 }}>
+            <h5 style={{ margin: "0 0 4px 0", fontWeight: 500 }}>{t("settings.workflow.visualEditor")}</h5>
+            <p style={{ margin: 0, color: token.colorTextSecondary, fontSize: 13 }}>
               {t("settings.workflow.visualEditorDesc")}
-            </Paragraph>
+            </p>
           </div>
           <Button onClick={() => onOpenEditor?.()}>{t("settings.workflow.openEditor")}</Button>
         </div>
@@ -68,6 +69,37 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
         onSelectTemplate={handleSelectTemplate}
         onCreateNew={handleCreateNew}
         onEditTemplate={handleEditTemplate}
+      />
+    </div>
+  );
+
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <Tabs
+        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+        tabBarStyle={{ padding: "0 24px", marginBottom: 0, flexShrink: 0 }}
+        items={[
+          {
+            key: "my-workflows",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <GitBranch size={14} />
+                {t("settings.workflow.myWorkflows", "我的工作流")}
+              </span>
+            ),
+            children: renderMyWorkflows(),
+          },
+          {
+            key: "marketplace",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Store size={14} />
+                {t("settings.workflow.marketplace", "工作流市场")}
+              </span>
+            ),
+            children: <WorkflowMarketplace />,
+          },
+        ]}
       />
     </div>
   );
