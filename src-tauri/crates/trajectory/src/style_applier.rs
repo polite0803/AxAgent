@@ -193,7 +193,7 @@ impl StyleApplier {
 
             let leading_spaces = line.len() - line.trim_start().len();
             let indent_level = if base_indent > 0 {
-                leading_spaces.checked_div(base_indent)
+                leading_spaces.checked_div(base_indent).unwrap_or(0)
             } else {
                 0
             };
