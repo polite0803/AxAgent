@@ -21,7 +21,7 @@ import {
   useStreamStore,
   useUIStore,
 } from "@/stores";
-import type { AttachmentInput, RealtimeConfig } from "@/types";
+import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Tag, theme, Tooltip } from "antd";
@@ -89,7 +89,9 @@ import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { ExpertSelector } from "./ExpertSelector";
 import { ExpertBadge } from "./ExpertBadge";
 import { useExpertStore } from "@/stores/feature/expertStore";
+import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
 import type { WorkflowTemplate } from "./WorkflowTemplateSelector";
+import { PromptTemplateSelector } from "./PromptTemplateSelector";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
   return new Promise((resolve) => {
@@ -284,6 +286,9 @@ export function InputArea() {
   const enabledMemoryNamespaceIds = useConversationStore((s) => s.enabledMemoryNamespaceIds);
   const toggleMemoryNamespace = useConversationStore((s) => s.toggleMemoryNamespace);
   const [memoryPopoverOpen, setMemoryPopoverOpen] = useState(false);
+
+  // Prompt template state
+  const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
 
   // Context clear
   const insertContextClear = useConversationStore((s) => s.insertContextClear);
@@ -577,7 +582,7 @@ export function InputArea() {
     [setThinkingBudget, thinkingOptions],
   );
 
-  // Scenario menu items (8 preset scenarios)
+  // Scenario menu items (8 preset scenarios) - only used in chat mode
   const scenarioMenuItems = useMemo<MenuProps["items"]>(() => [
     { key: "coding", label: t("chat.welcomePromptCoding"), icon: <Code size={14} /> },
     { key: "creative", label: t("chat.welcomePromptCreative"), icon: <Lightbulb size={14} /> },
@@ -588,6 +593,31 @@ export function InputArea() {
     { key: "investment", label: t("chat.welcomePromptInvestment"), icon: <TrendingUp size={14} /> },
     { key: "social_media", label: t("chat.welcomePromptSocialMedia"), icon: <Share2 size={14} /> },
   ], [t]);
+
+  // Expert menu items for agent mode
+  const expertMenuItems = useMemo<MenuProps["items"]>(() => {
+    const grouped = useExpertStore.getState().getRolesByCategory();
+    const items: MenuProps["items"] = [];
+
+    for (const [category, categoryRoles] of Object.entries(grouped)) {
+      if (items.length > 0) {
+        items.push({ type: "divider" as const });
+      }
+      items.push({ key: `category-${category}`, label: EXPERT_CATEGORY_LABELS[category as keyof typeof EXPERT_CATEGORY_LABELS] || category, disabled: true });
+      for (const role of categoryRoles) {
+        items.push({
+          key: `expert-${role.id}`,
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span>{role.icon}</span>
+              <span>{role.displayName}</span>
+            </span>
+          ),
+        });
+      }
+    }
+    return items;
+  }, []);
 
   // Mode menu items (Q&A, Agent, Gateway options)
   const modeMenuItems = useMemo<MenuProps["items"]>(() => {
@@ -624,12 +654,51 @@ export function InputArea() {
     return items;
   }, [t, gatewayLinks]);
 
-  // Handle scenario selection
+  // Handle scenario or expert selection
   const handleScenarioClick = useCallback<NonNullable<MenuProps["onClick"]>>(
-    ({ key }) => {
-      setSelectedScenario(key);
+    async ({ key }) => {
+      if (key.startsWith("expert-")) {
+        const roleId = key.replace("expert-", "");
+        const role = useExpertStore.getState().getRoleById(roleId);
+        if (!role) return;
+
+        let provider: ProviderConfig | undefined;
+        let model: Model | undefined;
+        if (role.suggestedProviderId && role.suggestedModelId) {
+          provider = providers.find((p) => p.id === role.suggestedProviderId);
+          model = provider?.models.find((m: Model) => m.model_id === role.suggestedModelId);
+        }
+        if (!provider || !model) {
+          provider = providers.find((p) => p.enabled && p.models.some((m: Model) => m.enabled));
+          model = provider?.models.find((m: Model) => m.enabled);
+        }
+        if (!provider || !model) {
+          messageApi.warning(t("chat.noModelsAvailable"));
+          return;
+        }
+
+        await createConversation(
+          role.displayName,
+          model.model_id,
+          provider.id,
+          {},
+        );
+        const activeId = useConversationStore.getState().activeConversationId;
+        if (activeId) {
+          updateConversation(activeId, {
+            mode: "agent",
+            expert_role_id: roleId,
+            system_prompt: role.systemPrompt || undefined,
+          });
+        }
+        return;
+      }
+
+      if (currentMode !== "agent") {
+        setSelectedScenario(key);
+      }
     },
-    [],
+    [currentMode, createConversation, providers, messageApi, t, updateConversation],
   );
 
   // Agent permission mode menu items
@@ -845,6 +914,19 @@ export function InputArea() {
       </div>
     );
   }, [memoryNamespaces, enabledMemoryNamespaceIds, toggleMemoryNamespace, token, t, navigate]);
+
+  const handleTemplateSelect = useCallback(
+    (_template: { content: string }, filledContent: string) => {
+      setValue((prev) => (prev ? prev + "\n\n" + filledContent : filledContent));
+      setTemplatePopoverOpen(false);
+      textareaRef.current?.focus();
+    },
+    []
+  );
+
+  const templatePopoverContent = useMemo(() => {
+    return <PromptTemplateSelector onSelect={handleTemplateSelect} />;
+  }, [handleTemplateSelect]);
 
   const currentModel = React.useMemo(() => {
     if (activeConversation) {
@@ -1813,17 +1895,17 @@ export function InputArea() {
                 trigger={["click"]}
                 placement="topLeft"
                 menu={{
-                  items: scenarioMenuItems,
+                  items: currentMode === "agent" ? expertMenuItems : scenarioMenuItems,
                   onClick: handleScenarioClick,
-                  selectedKeys: selectedScenario ? [selectedScenario] : [],
+                  selectedKeys: selectedScenario && currentMode !== "agent" ? [selectedScenario] : [],
                 }}
               >
-                <Tooltip title={t("chat.scenarioTitle")} open={undefined}>
+                <Tooltip title={currentMode === "agent" ? t("chat.selectExpert") : t("chat.scenarioTitle")} open={undefined}>
                   <Button
                     type="text"
                     size="small"
-                    icon={<Lightbulb size={14} />}
-                    style={selectedScenario ? { color: token.colorPrimary } : undefined}
+                    icon={currentMode === "agent" ? <Bot size={14} /> : <Lightbulb size={14} />}
+                    style={currentMode === "agent" || selectedScenario ? { color: token.colorPrimary } : undefined}
                   />
                 </Tooltip>
               </Dropdown>
@@ -1967,6 +2049,23 @@ export function InputArea() {
                     style={enabledMemoryNamespaceIds.length > 0 ? { color: token.colorPrimary } : undefined}
                   />
                 </Badge>
+              </Tooltip>
+            </Popover>
+            <Popover
+              trigger="click"
+              placement="topLeft"
+              content={templatePopoverContent}
+              arrow={false}
+              open={templatePopoverOpen}
+              onOpenChange={setTemplatePopoverOpen}
+            >
+              <Tooltip title={t("promptTemplates.title")} open={templatePopoverOpen ? false : undefined}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<FileText size={14} />}
+                  style={{ color: templatePopoverOpen ? token.colorPrimary : undefined }}
+                />
               </Tooltip>
             </Popover>
             {currentMode !== "agent" && (

@@ -609,7 +609,7 @@ export interface GatewayLinkActivity {
 }
 
 // === UI State ===
-export type BuiltinPageKey = "chat" | "knowledge" | "memory" | "link" | "gateway" | "files" | "settings" | "skills" | "marketplace" | "prompts" | "wiki";
+export type BuiltinPageKey = "chat" | "knowledge" | "memory" | "link" | "gateway" | "files" | "settings" | "skills" | "marketplace" | "wiki";
 export type PageKey = BuiltinPageKey | string;
 export type SettingsSection =
   | "providers"
@@ -635,6 +635,7 @@ export type SettingsSection =
   | "webhooks"
   | "messageChannels"
   | "advanced"
+  | "promptTemplates"
   | string;
 
 // === Generated Tool ===
@@ -1125,6 +1126,45 @@ export interface PlanModifyStepRequest {
   title?: string;
   description?: string;
   approved?: boolean;
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  content: string;
+  variablesSchema?: string;
+  version: number;
+  isActive: boolean;
+  abTestEnabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CreatePromptTemplateInput {
+  name: string;
+  description?: string;
+  content: string;
+  variablesSchema?: string;
+}
+
+export interface UpdatePromptTemplateInput {
+  name?: string;
+  description?: string;
+  content?: string;
+  variablesSchema?: string;
+  isActive?: boolean;
+  abTestEnabled?: boolean;
+}
+
+export interface PromptTemplateVersion {
+  id: string;
+  templateId: string;
+  version: number;
+  content: string;
+  variablesSchema?: string;
+  changelog?: string;
+  createdAt: number;
 }
 
 export * from "./wiki";

@@ -6,7 +6,7 @@ import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSettingsStore, useSkillExtensionStore, useUserProfileStore } from "@/stores";
 import type { PageKey } from "@/types";
 import { Avatar, theme, Tooltip } from "antd";
-import { BookOpen, Brain, FileText, FolderOpen, Link2, MessageSquare, Router, Sparkles, User } from "lucide-react";
+import { BookOpen, Brain, FolderOpen, Link2, MessageSquare, Router, Sparkles, User } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -15,7 +15,6 @@ import { UserProfileModal } from "./UserProfileModal";
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
   skills: "/skills",
-  prompts: "/prompts",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",
@@ -44,7 +43,6 @@ interface NavItem {
 const builtinNavItems: NavItem[] = [
   { key: "chat", icon: <MessageSquare size={18} color={NAV_ICON_COLORS.MessageSquare} />, labelKey: "nav.chat", path: "/", isPlugin: false },
   { key: "skills", icon: <Sparkles size={18} color={NAV_ICON_COLORS.Sparkles} />, labelKey: "nav.skills", path: "/skills", isPlugin: false },
-  { key: "prompts", icon: <FileText size={18} color={NAV_ICON_COLORS.Router} />, labelKey: "nav.prompts", path: "/prompts", isPlugin: false },
   { key: "knowledge", icon: <BookOpen size={18} color={NAV_ICON_COLORS.BookOpen} />, labelKey: "nav.knowledge", path: "/knowledge", isPlugin: false },
   { key: "memory", icon: <Brain size={18} color={NAV_ICON_COLORS.Brain} />, labelKey: "nav.memory", path: "/memory", isPlugin: false },
   { key: "link", icon: <Link2 size={18} color={NAV_ICON_COLORS.Link2} />, labelKey: "nav.link", path: "/link", isPlugin: false },

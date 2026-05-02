@@ -2117,3 +2117,50 @@ pub struct NoteSearchResult {
     pub snippet: String,
     pub score: f64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptTemplate {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub content: String,
+    pub variables_schema: Option<String>,
+    pub version: i32,
+    pub is_active: bool,
+    pub ab_test_enabled: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePromptTemplateInput {
+    pub name: String,
+    pub description: Option<String>,
+    pub content: String,
+    pub variables_schema: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdatePromptTemplateInput {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub content: Option<String>,
+    pub variables_schema: Option<String>,
+    pub is_active: Option<bool>,
+    pub ab_test_enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptTemplateVersion {
+    pub id: String,
+    pub template_id: String,
+    pub version: i32,
+    pub content: String,
+    pub variables_schema: Option<String>,
+    pub changelog: Option<String>,
+    pub created_at: i64,
+}

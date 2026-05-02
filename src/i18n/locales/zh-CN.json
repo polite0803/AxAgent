@@ -130,6 +130,7 @@
     "welcomePromptSocialMedia": "自媒体运维",
     "scenarioTitle": "使用场景",
     "scenarioPlaceholder": "选择场景",
+    "selectExpert": "选择专家角色",
     "workspaceLocked": "会话开始后工作区目录不可修改",
     "sendMessage": "发送消息",
     "attachFile": "附加文件",
@@ -1968,7 +1969,9 @@
     "tags": "标签",
     "text": "文本",
     "viewDetails": "查看详情",
-    "waitingForApproval": "等待审批"
+    "waitingForApproval": "等待审批",
+    "createSuccess": "创建成功",
+    "deleteSuccess": "删除成功"
   },
   "plan": {
     "defaultTitle": "执行计划",
@@ -2877,7 +2880,15 @@
     "templateDeleted": "模板已删除",
     "templateUpdated": "模板已更新",
     "variablesSchema": "变量 Schema",
-    "version": "版本"
+    "version": "版本",
+    "noTemplates": "暂无模板",
+    "fillVariables": "请填写以下变量：",
+    "hasVariables": "提示：模板包含未填充的变量：{{variables}}",
+    "selectFromLibrary": "从模板库选择",
+    "applied": "模板已应用",
+    "changeTemplate": "更换模板",
+    "selected": "已选择",
+    "preview": "预览"
   },
   "marketplace": {
     "reviewUpdated": "评价更新成功",

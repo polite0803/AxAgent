@@ -11,6 +11,7 @@ import {
   Cloud,
   CloudUpload,
   Database,
+  FileText,
   GitBranch,
   Globe,
   HardDrive,
@@ -54,6 +55,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
   messageChannels: <Send size={16} color={SETTINGS_ICON_COLORS.Send} />,
   advanced: <SlidersHorizontal size={16} color={SETTINGS_ICON_COLORS.Settings} />,
+  promptTemplates: <FileText size={16} color={SETTINGS_ICON_COLORS.FileText} />,
 };
 
 const SECTION_KEYS: SettingsSection[] = [
@@ -75,6 +77,7 @@ const SECTION_KEYS: SettingsSection[] = [
   "scheduler",
   "backup",
   "workflow",
+  "promptTemplates",
   "userProfile",
   "advanced",
   "about",

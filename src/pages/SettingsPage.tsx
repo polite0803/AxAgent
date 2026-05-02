@@ -9,6 +9,7 @@ import {
   LocalToolSettings,
   McpServerSettings,
   MessageChannelSettings,
+  PromptTemplatesSettings,
   ProviderSettings,
   ProxySettings,
   SchedulerSettings,
@@ -56,6 +57,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   webhooks: WebhookSettings,
   messageChannels: MessageChannelSettings,
   advanced: AdvancedSettings,
+  promptTemplates: PromptTemplatesSettings,
 };
 
 export function SettingsPage() {

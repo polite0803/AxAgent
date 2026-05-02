@@ -1,8 +1,11 @@
 import { useAtomicSkillStore } from "@/stores/feature/atomicSkillStore";
 import { EditOutlined } from "@ant-design/icons";
-import { Button, Divider, Input, Select, Space, Tag } from "antd";
-import React from "react";
+import { Button, Divider, Input, message, Modal, Select, Space, Tag } from "antd";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { usePromptTemplateStore } from "@/stores";
 import type { WorkflowNode } from "../../types";
+import type { PromptTemplate } from "@/types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface AtomicSkillPropertyPanelProps {
@@ -18,6 +21,12 @@ export const AtomicSkillPropertyPanel: React.FC<AtomicSkillPropertyPanelProps> =
   onDelete,
   onEditSkill,
 }) => {
+  const { t } = useTranslation();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const config = (node as any).config || {
     skill_id: "",
@@ -26,6 +35,11 @@ export const AtomicSkillPropertyPanel: React.FC<AtomicSkillPropertyPanelProps> =
   };
 
   const { skills } = useAtomicSkillStore();
+  const { templates, loadTemplates } = usePromptTemplateStore();
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
 
   const handleConfigChange = (key: string, value: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,6 +67,40 @@ export const AtomicSkillPropertyPanel: React.FC<AtomicSkillPropertyPanelProps> =
   };
 
   const selectedSkill = skills.find((s) => s.id === config.skill_id);
+  const activeTemplates = templates.filter((t) => t.isActive);
+
+  const handleSelectTemplate = (template: PromptTemplate) => {
+    setSelectedTemplate(template);
+    setVariableValues({});
+    setTemplateModalOpen(true);
+  };
+
+  const handleApplyTemplate = () => {
+    if (!selectedTemplate) return;
+
+    let content = selectedTemplate.content;
+    try {
+      const schema = selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {};
+      for (const [varName, _varType] of Object.entries(schema)) {
+        const value = variableValues[varName] || `{${varName}}`;
+        content = content.replace(new RegExp(`\\{${varName}\\}`, "g"), value);
+      }
+    } catch {
+      content = selectedTemplate.content;
+    }
+
+    handleConfigChange("prompt_template_id", selectedTemplate.id);
+    handleConfigChange("prompt_template_content", content);
+    setTemplateModalOpen(false);
+    setSelectedTemplate(null);
+    setVariableValues({});
+    messageApi.success(t("promptTemplates.applied"));
+  };
+
+  const parseVariables = (content: string): string[] => {
+    const matches = content.match(/\{([^}]+)\}/g) || [];
+    return matches.map((m) => m.slice(1, -1)).filter((v, i, arr) => arr.indexOf(v) === i);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -147,11 +195,92 @@ export const AtomicSkillPropertyPanel: React.FC<AtomicSkillPropertyPanelProps> =
         />
       </div>
 
+      <div>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>Prompt模板（可选）</label>
+        <Button
+          size="small"
+          type="link"
+          onClick={() => setTemplateModalOpen(true)}
+          style={{ padding: 0 }}
+        >
+          {config.prompt_template_id ? t("promptTemplates.changeTemplate") : t("promptTemplates.selectFromLibrary")}
+        </Button>
+        {config.prompt_template_id && (
+          <Tag
+            closable
+            onClose={() => {
+              handleConfigChange("prompt_template_id", null);
+              handleConfigChange("prompt_template_content", null);
+            }}
+            style={{ marginLeft: 8 }}
+          >
+            {templates.find((t) => t.id === config.prompt_template_id)?.name || t("promptTemplates.selected")}
+          </Tag>
+        )}
+      </div>
+
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
         <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
       </div>
+
+      <Modal
+        title={t("promptTemplates.selectFromLibrary")}
+        open={templateModalOpen}
+        onOk={handleApplyTemplate}
+        onCancel={() => setTemplateModalOpen(false)}
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
+        width={600}
+      >
+        {contextHolder}
+        {selectedTemplate ? (
+          <div style={{ padding: "12px 0" }}>
+            <p style={{ marginBottom: 8 }}>{t("promptTemplates.fillVariables")}</p>
+            {Object.entries(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).map(([varName, varType]) => (
+              <div key={varName} style={{ marginBottom: 8 }}>
+                <label style={{ display: "block", fontSize: 12, marginBottom: 2 }}>{varName} ({String(varType)})</label>
+                <Input
+                  placeholder={`${varName} (${String(varType)})`}
+                  value={variableValues[varName] || ""}
+                  onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
+                />
+              </div>
+            ))}
+            {parseVariables(selectedTemplate.content).length > 0 && Object.keys(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).length === 0 && (
+              <p style={{ color: "#f59e0b", fontSize: 12 }}>
+                {t("promptTemplates.hasVariables", { variables: parseVariables(selectedTemplate.content).join(", ") })}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflowY: "auto" }}>
+            {activeTemplates.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 24, color: "#999" }}>
+                {t("promptTemplates.noTemplates")}
+              </div>
+            ) : (
+              activeTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  onClick={() => handleSelectTemplate(template)}
+                  style={{
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #333",
+                  }}
+                >
+                  <div style={{ fontWeight: 500 }}>{template.name}</div>
+                  <div style={{ fontSize: 12, color: "#999" }}>
+                    {template.description || template.content.slice(0, 60) + "..."}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -35,6 +35,7 @@ export const SETTINGS_ICON_COLORS: Record<string, string> = {
   CloudUpload: "#3b82f6", // blue-500  — Backup
   Workflow: "#8b5cf6", // violet-500 — Workflow
   Send: "#3b82f6", // blue-500  — Message Channels
+  FileText: "#3b82f6", // blue-500  — Prompt Templates
 };
 
 // ── Title bar icons ─────────────────────────────────────────────────

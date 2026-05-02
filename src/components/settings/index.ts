@@ -28,3 +28,4 @@ export { SchedulerSettings } from "./SchedulerSettings";
 export { StorageSpaceManager } from "./StorageSpaceManager";
 export { WorkflowSettings } from "./WorkflowSettings";
 export { UserProfileSettings } from "./UserProfileSettings";
+export { PromptTemplatesSettings } from "./PromptTemplatesSettings";
