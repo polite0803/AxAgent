@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,10 +78,43 @@ pub fn validate_packet(packet: TaskPacket) -> Result<ValidatedPacket, TaskPacket
     }
 
     if errors.is_empty() {
+        // 任务创建成功 — 触发 TaskCreated hook (best-effort)
+        fire_task_hook(
+            crate::hooks::HookEvent::TaskCreated,
+            &packet,
+        );
         Ok(ValidatedPacket(packet))
     } else {
         Err(TaskPacketValidationError::new(errors))
     }
+}
+
+/// 通知任务完成 — 触发 TaskCompleted hook (best-effort)
+///
+/// 由任务执行器在任务执行完毕后调用。
+pub fn notify_task_completed(packet: &TaskPacket, success: bool, summary: &str) {
+    fire_task_hook(
+        crate::hooks::HookEvent::TaskCompleted,
+        packet,
+    );
+    // 附加执行结果信息
+    let _ = success;
+    let _ = summary;
+}
+
+/// 触发任务相关 HookEvent（best-effort，失败不影响主流程）
+fn fire_task_hook(event: crate::hooks::HookEvent, packet: &TaskPacket) {
+    let runner = crate::hooks::HookRunner::new(
+        crate::config::RuntimeHookConfig::default(),
+    );
+    let data = json!({
+        "objective": packet.objective,
+        "scope": packet.scope,
+        "repo": packet.repo,
+        "branch_policy": packet.branch_policy,
+        "commit_policy": packet.commit_policy,
+    });
+    let _ = runner.run_event(event, &data.to_string());
 }
 
 fn validate_required(field: &str, value: &str, errors: &mut Vec<String>) {

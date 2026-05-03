@@ -200,6 +200,8 @@ export interface SubAgentCardEvent {
   status: "running" | "completed" | "failed";
   childConversationId?: string;
   childSessionId?: string;
+  /** 是否为 fork 子 agent（继承父 agent 上下文） */
+  isFork?: boolean;
 }
 
 export interface SubAgentCardData {
@@ -211,6 +213,7 @@ export interface SubAgentCardData {
   status: "running" | "completed" | "failed";
   childConversationId?: string;
   childSessionId?: string;
+  isFork?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +230,9 @@ export type AgentPoolItemStatus =
   | "completed"
   | "failed"
   | "cancelled";
+
+/** Swarm 队友实时状态 */
+export type TeammateStatus = "idle" | "busy" | "offline" | "error";
 
 /** 工作者消息类型 */
 export type WorkerMessageType = "progress" | "result" | "error" | "completion";
@@ -265,6 +271,14 @@ export interface AgentPoolItem {
   agentType?: string;
   childConversationId?: string;
   childSessionId?: string;
+  /** 是否为 fork 子 agent */
+  isFork?: boolean;
+
+  // -- 队友面板专用 --
+  /** 队友当前正在执行的任务描述 */
+  currentTask?: string;
+  /** 所属团队名称（Swarm 编队） */
+  teamName?: string;
 
   // -- worker 专用 --
   taskDescription?: string;
@@ -287,4 +301,31 @@ export interface AgentPoolSummary {
   pending: number;
   failed: number;
   pctComplete: number; // 0-100
+}
+
+// ── SubAgent 注册类型（对应后端 trajectory::SubAgent）──
+
+export type SubAgentStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+
+export interface SubAgentMetadata {
+  agent_type: string;
+  capabilities: string[];
+  model?: string;
+  tools: string[];
+}
+
+export interface SubAgent {
+  id: string;
+  parent_id?: string;
+  name: string;
+  description: string;
+  status: SubAgentStatus;
+  task?: string;
+  progress: number;
+  result?: string;
+  error?: string;
+  created_at: string;
+  completed_at?: string;
+  children: string[];
+  metadata: SubAgentMetadata;
 }

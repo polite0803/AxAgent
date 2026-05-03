@@ -17,6 +17,7 @@ pub mod bash_validation;
 pub mod benchmarks;
 mod bootstrap;
 pub mod branch_lock;
+pub mod buddy;
 pub mod cache_guard;
 pub mod collaboration;
 mod compact;
@@ -29,7 +30,10 @@ pub mod cron;
 pub mod dashboard_plugin;
 pub mod dashboard_registry;
 pub mod engine_bridge;
+pub mod error_recovery;
+pub mod feature_flags;
 mod file_ops;
+pub mod fork_bridge;
 pub mod general_engine;
 mod git_context;
 pub mod git_tools;
@@ -44,12 +48,14 @@ pub mod lsp_client;
 pub mod lsp_process;
 pub mod lsp_protocol;
 mod mcp;
+pub mod mcp_autostart;
 mod mcp_client;
 pub mod mcp_lifecycle_hardened;
 pub mod mcp_server;
 mod mcp_stdio;
 pub mod mcp_tool_bridge;
 pub mod message_gateway;
+pub mod message_importance;
 pub mod mode_selector;
 pub mod module_switch;
 mod oauth;
@@ -96,6 +102,7 @@ pub mod task_registry;
 pub mod team_cron_registry;
 pub mod terminal;
 pub mod theme_engine;
+pub mod token_budget_predictor;
 
 #[cfg(test)]
 mod trust_resolver;
@@ -138,6 +145,9 @@ pub use conversation::{
     auto_compaction_threshold_from_env, ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent,
     ConversationRuntime, PromptCacheEvent, RuntimeError, StaticToolExecutor, ToolError,
     ToolExecutor, TurnSummary,
+};
+pub use feature_flags::{
+    global_feature_flags, init_global_feature_flags, FeatureFlagDef, FeatureFlags,
 };
 pub use file_ops::{
     edit_file, glob_search, grep_search, read_file, write_file, EditFileOutput, GlobSearchOutput,
@@ -189,6 +199,11 @@ pub use permissions::{
 pub use plugin_hooks::{
     HookContext, HookDecision, LlmCallContext, LlmCallResult, PluginHook, SharedHook,
     ToolCallContext, ToolCallResult,
+};
+
+// ── Plugin Agent 桥接 ──（从 plugins crate 重导出）
+pub use axagent_plugins::agent_provider::{
+    global_plugin_agents, PluginAgentDef, PluginAgentRegistry,
 };
 pub use plugin_lifecycle::{
     DegradedMode, DiscoveryResult, PluginHealthcheck, PluginLifecycle, PluginLifecycleEvent,

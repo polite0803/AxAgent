@@ -3,6 +3,8 @@ use axagent_runtime::{
 };
 use tokio::sync::broadcast;
 
+use crate::proactive_mode::ProactiveMode;
+
 #[derive(Debug, Clone)]
 pub struct AgentOutput {
     pub response: String,
@@ -29,6 +31,8 @@ pub enum AgentEvent {
     Error {
         error: String,
     },
+    /// 主动模式 tick 已注入
+    ProactiveTick,
 }
 
 pub struct AgentRuntimeConfig {
@@ -59,6 +63,8 @@ where
     #[allow(dead_code)]
     config: AgentRuntimeConfig,
     event_sender: broadcast::Sender<AgentEvent>,
+    /// 主动模式（可选）
+    proactive: Option<ProactiveMode>,
 }
 
 impl<C, T> AgentRuntime<C, T>
@@ -75,14 +81,33 @@ where
         let (event_sender, _) = broadcast::channel(100);
 
         let permission_policy = PermissionPolicy::new(PermissionMode::WorkspaceWrite);
-        let system_prompts = if config.system_prompt.is_empty() {
+
+        // Fork session 重建：检查是否有父 agent 的 fork 上下文
+        let mut forked_session = session.clone();
+        let system_prompts = if let Some(fork_data) =
+            axagent_runtime::fork_bridge::take_fork_session(&forked_session.session_id)
+        {
+            let mut sp = fork_data.parent_system_prompt;
+            if let Some(child_sp) = fork_data.child_system_prompt {
+                sp.push(child_sp);
+            }
+            if !fork_data.parent_messages_json.is_empty() {
+                if let Ok(parent_msgs) = serde_json::from_str::<
+                    Vec<axagent_runtime::ConversationMessage>,
+                >(&fork_data.parent_messages_json)
+                {
+                    forked_session.messages = parent_msgs;
+                }
+            }
+            sp
+        } else if config.system_prompt.is_empty() {
             Vec::new()
         } else {
             vec![config.system_prompt.clone()]
         };
 
         let conversation_runtime = ConversationRuntime::new(
-            session.clone(),
+            forked_session,
             api_client,
             tool_executor,
             permission_policy,
@@ -90,11 +115,21 @@ where
         )
         .with_max_iterations(config.max_iterations);
 
+        // 根据 feature flag 启用主动模式
+        let proactive = if ProactiveMode::is_enabled() {
+            let mut pm = ProactiveMode::new();
+            pm.activate();
+            Some(pm)
+        } else {
+            None
+        };
+
         Self {
             session,
             conversation_runtime,
             config,
             event_sender,
+            proactive,
         }
     }
 
@@ -106,10 +141,48 @@ where
         &self.session.session_id
     }
 
+    /// 用户输入事件 — 暂停主动模式
+    pub fn on_user_input(&mut self) {
+        if let Some(ref mut proactive) = self.proactive {
+            proactive.on_user_input();
+        }
+    }
+
+    /// 获取主动模式引用
+    pub fn proactive(&self) -> Option<&ProactiveMode> {
+        self.proactive.as_ref()
+    }
+
+    /// 获取主动模式可变引用
+    pub fn proactive_mut(&mut self) -> Option<&mut ProactiveMode> {
+        self.proactive.as_mut()
+    }
+
     pub fn run(&mut self, input: &str) -> Result<AgentOutput, AgentRuntimeError> {
         self.emit(AgentEvent::TurnStarted { iteration: 0 });
 
-        let result = self.conversation_runtime.run_turn(input, None);
+        // 主动模式：检查是否应该注入 tick
+        let effective_input = if let Some(ref mut proactive) = self.proactive {
+            if proactive.should_tick() {
+                proactive.record_tick();
+                let tick = proactive.build_tick_prompt();
+                self.emit(AgentEvent::ProactiveTick);
+                format!("{}\n{}", tick, input)
+            } else {
+                input.to_string()
+            }
+        } else {
+            input.to_string()
+        };
+
+        let result = self
+            .conversation_runtime
+            .run_turn(&effective_input, None);
+
+        // 恢复主动模式（如果之前因用户输入暂停）
+        if let Some(ref mut proactive) = self.proactive {
+            proactive.resume();
+        }
 
         match result {
             Ok(summary) => {
@@ -140,6 +213,10 @@ where
                 })
             },
             Err(e) => {
+                // API 错误时暂停主动模式
+                if let Some(ref mut proactive) = self.proactive {
+                    proactive.on_api_error();
+                }
                 self.emit(AgentEvent::Error {
                     error: e.to_string(),
                 });

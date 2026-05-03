@@ -148,6 +148,8 @@ interface ConversationState {
   removeContextClear: (messageId: string) => Promise<void>;
   /** Clear all messages in the active conversation */
   clearAllMessages: () => Promise<void>;
+  /** Switch the active conversation to a different model by keyword (e.g. "opus", "sonnet", "haiku") */
+  switchModel: (modelKeyword: string) => Promise<void>;
   fetchConversations: () => Promise<void>;
   setActiveConversation: (id: string | null) => void;
   createConversation: (
@@ -357,6 +359,48 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
     } catch (e) {
       console.error("Failed to clear messages:", e);
+    }
+  },
+
+  switchModel: async (modelKeyword: string) => {
+    const conversationId = get().activeConversationId;
+    const conversation = get().conversations.find((c) => c.id === conversationId);
+    if (!conversationId || !conversation) { return; }
+
+    try {
+      const providers = useProviderStore.getState().providers;
+      const keyword = modelKeyword.toLowerCase();
+
+      // 优先匹配当前 provider 下的模型，其次跨 provider
+      let bestProviderId: string | null = null;
+      let bestModelId: string | null = null;
+
+      for (const p of providers) {
+        for (const m of p.models) {
+          if (m.enabled && m.model_id.toLowerCase().includes(keyword)) {
+            if (p.id === conversation.provider_id) {
+              // 同 provider 匹配，最高优先级
+              bestProviderId = p.id;
+              bestModelId = m.model_id;
+              break;
+            }
+            if (!bestProviderId) {
+              bestProviderId = p.id;
+              bestModelId = m.model_id;
+            }
+          }
+        }
+        if (bestProviderId === conversation.provider_id) { break; }
+      }
+
+      if (bestProviderId && bestModelId) {
+        await get().updateConversation(conversationId, {
+          provider_id: bestProviderId,
+          model_id: bestModelId,
+        });
+      }
+    } catch (e) {
+      console.error("Failed to switch model:", e);
     }
   },
 

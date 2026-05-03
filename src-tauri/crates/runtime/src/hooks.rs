@@ -17,9 +17,45 @@ pub type HookPermissionDecision = PermissionOverride;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HookEvent {
+    // 已有 — 工具生命周期
     PreToolUse,
     PostToolUse,
     PostToolUseFailure,
+    // 已有 — 通用
+    Notification,
+    UserPromptSubmit,
+    SessionStart,
+    SessionEnd,
+    Stop,
+    // 新增 — 子 Agent 生命周期
+    SubagentStart,
+    SubagentStop,
+    // 新增 — 上下文管理
+    PreCompact,
+    PostCompact,
+    // 新增 — 队友事件
+    TeammateIdle,
+    // 新增 — 任务事件
+    TaskCreated,
+    TaskCompleted,
+    // 新增 — 交互事件
+    Elicitation,
+    ElicitationResult,
+    // 新增 — 配置事件
+    ConfigChange,
+    // 新增 — 指令事件
+    InstructionsLoaded,
+    // 新增 — 文件监控
+    FileChanged,
+    CwdChanged,
+    // 新增 — 权限事件
+    PermissionRequest,
+    PermissionDenied,
+    // 新增 — Worktree 事件
+    WorktreeCreate,
+    WorktreeRemove,
+    // 新增 — 失败事件
+    StopFailure,
 }
 
 impl HookEvent {
@@ -29,7 +65,51 @@ impl HookEvent {
             Self::PreToolUse => "PreToolUse",
             Self::PostToolUse => "PostToolUse",
             Self::PostToolUseFailure => "PostToolUseFailure",
+            Self::Notification => "Notification",
+            Self::UserPromptSubmit => "UserPromptSubmit",
+            Self::SessionStart => "SessionStart",
+            Self::SessionEnd => "SessionEnd",
+            Self::Stop => "Stop",
+            Self::StopFailure => "StopFailure",
+            Self::SubagentStart => "SubagentStart",
+            Self::SubagentStop => "SubagentStop",
+            Self::PreCompact => "PreCompact",
+            Self::PostCompact => "PostCompact",
+            Self::TeammateIdle => "TeammateIdle",
+            Self::TaskCreated => "TaskCreated",
+            Self::TaskCompleted => "TaskCompleted",
+            Self::Elicitation => "Elicitation",
+            Self::ElicitationResult => "ElicitationResult",
+            Self::ConfigChange => "ConfigChange",
+            Self::InstructionsLoaded => "InstructionsLoaded",
+            Self::FileChanged => "FileChanged",
+            Self::CwdChanged => "CwdChanged",
+            Self::PermissionRequest => "PermissionRequest",
+            Self::PermissionDenied => "PermissionDenied",
+            Self::WorktreeCreate => "WorktreeCreate",
+            Self::WorktreeRemove => "WorktreeRemove",
         }
+    }
+
+    /// 是否为工具相关事件
+    #[must_use]
+    pub fn is_tool_event(self) -> bool {
+        matches!(
+            self,
+            Self::PreToolUse | Self::PostToolUse | Self::PostToolUseFailure
+        )
+    }
+
+    /// 是否为会话生命周期事件
+    #[must_use]
+    pub fn is_session_event(self) -> bool {
+        matches!(self, Self::SessionStart | Self::SessionEnd)
+    }
+
+    /// 是否为子 agent 事件
+    #[must_use]
+    pub fn is_subagent_event(self) -> bool {
+        matches!(self, Self::SubagentStart | Self::SubagentStop)
     }
 }
 
@@ -299,6 +379,60 @@ impl HookRunner {
             abort_signal,
             reporter,
             tool_use_id,
+        )
+    }
+
+    // ── 通用事件方法 ──
+
+    /// 执行任意 hook 事件（用于非工具的通用事件）
+    #[must_use]
+    pub fn run_event(
+        &self,
+        event: HookEvent,
+        event_data: &str,
+    ) -> HookRunResult {
+        let commands: &[String] = match event {
+            HookEvent::SubagentStart => self.config.subagent_start(),
+            HookEvent::SubagentStop => self.config.subagent_stop(),
+            HookEvent::PreCompact => self.config.pre_compact(),
+            HookEvent::PostCompact => self.config.post_compact(),
+            HookEvent::SessionStart => self.config.session_start(),
+            HookEvent::SessionEnd => self.config.session_end(),
+            HookEvent::Stop => self.config.stop(),
+            HookEvent::StopFailure => self.config.stop_failure(),
+            HookEvent::TaskCreated => self.config.task_created(),
+            HookEvent::TaskCompleted => self.config.task_completed(),
+            HookEvent::ConfigChange => self.config.config_change(),
+            HookEvent::InstructionsLoaded => self.config.instructions_loaded(),
+            HookEvent::FileChanged => self.config.file_changed(),
+            HookEvent::CwdChanged => self.config.cwd_changed(),
+            HookEvent::PermissionRequest => self.config.permission_request(),
+            HookEvent::PermissionDenied => self.config.permission_denied(),
+            HookEvent::WorktreeCreate => self.config.worktree_create(),
+            HookEvent::WorktreeRemove => self.config.worktree_remove(),
+            HookEvent::Notification
+            | HookEvent::UserPromptSubmit
+            | HookEvent::TeammateIdle
+            | HookEvent::Elicitation
+            | HookEvent::ElicitationResult => &[],
+            // 工具事件使用专用方法
+            _ => &[],
+        };
+
+        if commands.is_empty() {
+            return HookRunResult::allow(Vec::new());
+        }
+
+        Self::run_commands(
+            event,
+            commands,
+            "",
+            event_data,
+            None,
+            false,
+            None,
+            None,
+            None,
         )
     }
 

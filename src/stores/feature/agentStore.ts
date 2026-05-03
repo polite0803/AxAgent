@@ -1,6 +1,8 @@
 import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import { useConversationStore, useStreamStore } from "@/stores";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
+import { message } from "antd";
+import { pushNotification } from "@/components/layout/NotificationBell";
 import type {
   AgentCancelledEvent,
   AgentDoneEvent,
@@ -30,6 +32,14 @@ interface QueryStats {
   costUsd?: number;
 }
 
+/** 当前正在执行（或最近执行）的工具调用追踪 */
+export interface CurrentToolCall {
+  toolName: string;
+  toolUseId: string;
+  conversationId: string;
+  startedAt: number;
+}
+
 interface AgentStore {
   // Session cache (truth lives in backend DB)
   sessions: Record<string, AgentSession>;
@@ -44,6 +54,11 @@ interface AgentStore {
   rateLimitInfo: Record<string, AgentRateLimitEvent>; // conversationId → rate limit event
   pausedConversations: Set<string>; // conversationIds that are paused
   subAgentCards: Record<string, SubAgentCardData>; // cardId → card data
+
+  // 执行进度追踪
+  currentToolCall: CurrentToolCall | null; // 当前正在执行的工具调用
+  isExecuting: Record<string, boolean>; // conversationId → 是否正在执行工具
+  executingConversationIds: string[]; // 当前有工具在执行的对话 ID 列表（有序）
 
   // Unified Agent Pool — 子Agent + 工作者 + 工作流步骤
   agentPool: Record<string, AgentPoolItem[]>; // conversationId → pool items
@@ -60,6 +75,10 @@ interface AgentStore {
     content: string;
     status?: string;
   }) => void;
+
+  // 队友管理
+  addTeammateMessage: (conversationId: string, agentId: string, message: string) => void;
+  updateTeammateTask: (conversationId: string, agentId: string, task: string) => void;
 
   // Actions
   fetchSession: (conversationId: string) => Promise<AgentSession | null>;
@@ -110,6 +129,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   rateLimitInfo: {},
   pausedConversations: new Set<string>(),
   subAgentCards: {},
+  currentToolCall: null,
+  isExecuting: {},
+  executingConversationIds: [],
   agentPool: {},
 
   // --- AgentPool actions ---
@@ -209,6 +231,75 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     });
   },
 
+  // ── 队友管理 ──
+
+  addTeammateMessage: (conversationId, agentId, message) => {
+    set((s) => {
+      const pool = [...(s.agentPool[conversationId] || [])];
+      const idx = pool.findIndex((p) => p.id === agentId);
+
+      const workerMsg: WorkerMessage = {
+        workerId: agentId,
+        taskId: "",
+        messageType: "progress",
+        content: message,
+        timestamp: Date.now(),
+      };
+
+      if (idx >= 0) {
+        const existing = pool[idx];
+        pool[idx] = {
+          ...existing,
+          messages: [...(existing.messages || []), workerMsg],
+          currentTask: existing.currentTask
+            ? `${existing.currentTask} — ${message}`
+            : message,
+        };
+      } else {
+        pool.push({
+          id: agentId,
+          conversationId,
+          type: "worker",
+          name: agentId,
+          status: "running",
+          currentTask: message,
+          messages: [workerMsg],
+          startedAt: Date.now(),
+        });
+      }
+
+      return { agentPool: { ...s.agentPool, [conversationId]: pool } };
+    });
+  },
+
+  updateTeammateTask: (conversationId, agentId, task) => {
+    set((s) => {
+      const pool = [...(s.agentPool[conversationId] || [])];
+      const idx = pool.findIndex((p) => p.id === agentId);
+
+      if (idx >= 0) {
+        const existing = pool[idx];
+        pool[idx] = {
+          ...existing,
+          currentTask: task || undefined,
+          status: task ? "running" : existing.status,
+        };
+      } else {
+        pool.push({
+          id: agentId,
+          conversationId,
+          type: "worker",
+          name: agentId,
+          status: "running",
+          currentTask: task || undefined,
+          startedAt: Date.now(),
+        });
+      }
+
+      return { agentPool: { ...s.agentPool, [conversationId]: pool } };
+    });
+  },
+
   fetchSession: async (conversationId) => {
     try {
       const session = await invoke<AgentSession | null>("agent_get_session", {
@@ -300,10 +391,24 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           status: "running",
         };
       }
+      // 追踪当前工具调用
+      const currentToolCall: CurrentToolCall = {
+        toolName: event.toolName,
+        toolUseId: event.toolUseId,
+        conversationId: event.conversationId,
+        startedAt: Date.now(),
+      };
+      const isExecuting = { ...s.isExecuting, [event.conversationId]: true };
+      const executingIds = s.executingConversationIds.includes(event.conversationId)
+        ? s.executingConversationIds
+        : [...s.executingConversationIds, event.conversationId];
       return {
         toolCalls: { ...s.toolCalls, ...updates },
         sdkIdToExecId: idMap,
         subAgentCards: { ...s.subAgentCards, ...cardUpdates },
+        currentToolCall,
+        isExecuting,
+        executingConversationIds: executingIds,
       };
     });
   },
@@ -351,7 +456,23 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       if (execId) {
         updates[execId] = { ...updated, toolUseId: execId };
       }
-      return { toolCalls: { ...s.toolCalls, ...updates } };
+      // 如果当前追踪的工具完成了，清除执行状态
+      const wasActive = s.currentToolCall?.toolUseId === event.toolUseId;
+      const isExecuting = wasActive
+        ? { ...s.isExecuting }
+        : s.isExecuting;
+      if (wasActive && event.conversationId) {
+        delete isExecuting[event.conversationId];
+      }
+      const executingIds = wasActive
+        ? s.executingConversationIds.filter((id) => id !== event.conversationId)
+        : s.executingConversationIds;
+      return {
+        toolCalls: { ...s.toolCalls, ...updates },
+        currentToolCall: wasActive ? null : s.currentToolCall,
+        isExecuting,
+        executingConversationIds: executingIds,
+      };
     });
   },
 
@@ -435,14 +556,36 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     }
     // Clear streaming state and expire unresolved permissions
     get().expirePendingPermissions(event.conversationId);
+    set((s) => {
+      const isExecuting = { ...s.isExecuting };
+      delete isExecuting[event.conversationId];
+      return {
+        currentToolCall: null,
+        isExecuting,
+        executingConversationIds: s.executingConversationIds.filter((id) => id !== event.conversationId),
+      };
+    });
+    // Agent 完成通知
+    const turns = event.numTurns ?? 0;
+    const cost = event.costUsd != null ? ` ($${event.costUsd.toFixed(4)})` : "";
+    message.success(`Agent 执行完成 · ${turns} 轮${cost}`);
+    pushNotification("success", `Agent 执行完成 · ${turns} 轮${cost}`);
   },
 
   handleError: (event) => {
     console.error("[agentStore] Agent error:", event);
-    // Clear status and expire unresolved permissions for the conversation
     if (event.conversationId) {
       get().clearStatus(event.conversationId);
       get().expirePendingPermissions(event.conversationId);
+      set((s) => {
+        const isExecuting = { ...s.isExecuting };
+        delete isExecuting[event.conversationId];
+        return {
+          currentToolCall: null,
+          isExecuting,
+          executingConversationIds: s.executingConversationIds.filter((id) => id !== event.conversationId),
+        };
+      });
     }
     // Fallback: update message content if per-invocation listener missed it.
     const { activeStreams } = useStreamStore.getState();
@@ -487,14 +630,29 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         ),
       }));
     }
+    // Agent 错误通知
+    const errMsg = event.message?.slice(0, 100) || "未知错误";
+    message.error(`Agent 执行失败: ${errMsg}`);
+    pushNotification("error", `Agent 执行失败: ${errMsg}`);
   },
 
   handleCancelled: (event) => {
     console.info("[agentStore] Agent cancelled:", event.reason);
+    message.warning(`Agent 已取消: ${event.reason || "用户中断"}`);
     // Clear status and expire unresolved permissions for the conversation
     if (event.conversationId) {
       get().clearStatus(event.conversationId);
       get().expirePendingPermissions(event.conversationId);
+      // 清除当前对话的执行状态
+      set((s) => {
+        const isExecuting = { ...s.isExecuting };
+        delete isExecuting[event.conversationId];
+        return {
+          currentToolCall: null,
+          isExecuting,
+          executingConversationIds: s.executingConversationIds.filter((id) => id !== event.conversationId),
+        };
+      });
     }
   },
 

@@ -401,6 +401,10 @@ pub struct AgentOptions {
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,
     pub max_tokens: Option<u32>,
+    /// 禁用的工具名称列表（例如 ["Bash", "WebSearch"]），
+    /// 这些工具不会传给 LLM 也不会被执行。
+    #[serde(rename = "disabledTools")]
+    pub disabled_tools: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -811,6 +815,34 @@ pub async fn agent_query(
     // Inject enabled local tools into chat_tools and tool_registry
     chat_tools.extend(local_tools.get_enabled_chat_tools());
     tool_registry = tool_registry.with_local_tools(local_tools);
+
+    // ── 注入 axagent-tools 统一工具（52个）到 chat_tools ──
+    let disabled_set: HashSet<String> = request
+        .options
+        .as_ref()
+        .and_then(|o| o.disabled_tools.as_ref())
+        .map(|v| v.iter().cloned().collect())
+        .unwrap_or_default();
+    let unified_chat_tools: Vec<ChatTool> = tool_registry
+        .get_chat_tools()
+        .into_iter()
+        .filter(|t| !disabled_set.contains(&t.function.name))
+        .collect();
+    // 同步注册表的屏蔽列表
+    if !disabled_set.is_empty() {
+        tool_registry = tool_registry.with_blocked_tools(disabled_set.into_iter().collect());
+    }
+    info!(
+        "[agent] UnifiedToolRegistry provides {} tools to LLM ({} disabled)",
+        unified_chat_tools.len(),
+        request
+            .options
+            .as_ref()
+            .and_then(|o| o.disabled_tools.as_ref())
+            .map(|v| v.len())
+            .unwrap_or(0)
+    );
+    chat_tools.extend(unified_chat_tools);
 
     // Load enabled skills content for system prompt injection
     let skill_contents = load_enabled_skill_contents(

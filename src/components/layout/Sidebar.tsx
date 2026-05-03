@@ -6,7 +6,7 @@ import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSettingsStore, useSkillExtensionStore, useUserProfileStore } from "@/stores";
 import type { PageKey } from "@/types";
 import { Avatar, theme, Tooltip } from "antd";
-import { BookOpen, Brain, FolderOpen, Link2, MessageSquare, Router, Sparkles, User } from "lucide-react";
+import { Database, MessageSquare, Router, Sparkles, User } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -57,23 +57,9 @@ const builtinNavItems: NavItem[] = [
   },
   {
     key: "knowledge",
-    icon: <BookOpen size={18} color={NAV_ICON_COLORS.BookOpen} />,
+    icon: <Database size={18} color={NAV_ICON_COLORS.Database} />,
     labelKey: "nav.knowledge",
     path: "/knowledge",
-    isPlugin: false,
-  },
-  {
-    key: "memory",
-    icon: <Brain size={18} color={NAV_ICON_COLORS.Brain} />,
-    labelKey: "nav.memory",
-    path: "/memory",
-    isPlugin: false,
-  },
-  {
-    key: "link",
-    icon: <Link2 size={18} color={NAV_ICON_COLORS.Link2} />,
-    labelKey: "nav.link",
-    path: "/link",
     isPlugin: false,
   },
   {
@@ -83,13 +69,7 @@ const builtinNavItems: NavItem[] = [
     path: "/gateway",
     isPlugin: false,
   },
-  {
-    key: "files",
-    icon: <FolderOpen size={18} color={NAV_ICON_COLORS.FolderOpen} />,
-    labelKey: "nav.files",
-    path: "/files",
-    isPlugin: false,
-  },
+  // 文件已集成到聊天页面的抽屉面板中
 ];
 
 const EXPANDED_WIDTH = 180;

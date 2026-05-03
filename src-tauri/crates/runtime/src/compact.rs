@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
 
 const COMPACT_CONTINUATION_PREAMBLE: &str =
@@ -167,6 +169,13 @@ pub fn get_compact_continuation_message(
 /// Compacts a session by summarizing older messages and preserving the recent tail.
 #[must_use]
 pub fn compact_session(session: &Session, config: CompactionConfig) -> CompactionResult {
+    // PreCompact hook — 在压缩前通知外部监听器
+    let _ = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default())
+        .run_event(crate::hooks::HookEvent::PreCompact, &serde_json::json!({
+            "session_id": session.session_id,
+            "message_count": session.messages.len(),
+        }).to_string());
+
     if !should_compact(session, config) {
         return CompactionResult {
             summary: String::new(),
@@ -229,10 +238,70 @@ pub fn compact_session(session: &Session, config: CompactionConfig) -> Compactio
         }
         k
     };
-    let removed = &session.messages[compacted_prefix_len..keep_from];
-    let preserved = session.messages[keep_from..].to_vec();
-    let summary =
-        merge_compact_summaries(existing_summary.as_deref(), &summarize_messages(removed));
+    // ── 消息重要性评分：智能选择保留关键消息 ──
+    // 仅在可移除范围足够大（>10 条）时启用重要性评分。
+    // 小范围直接全量移除，避免评分粒度过粗导致压缩效果不佳。
+    let removable_len = keep_from.saturating_sub(compacted_prefix_len);
+    let enable_importance = removable_len > 10;
+
+    let actual_removed: Vec<ConversationMessage>;
+    let preserved: Vec<ConversationMessage>;
+
+    if enable_importance {
+        // 使用重要性评分选择 top 70% 的高分消息作为额外保留
+        let importance_indices = crate::message_importance::select_top_messages(
+            &session.messages,
+            (session.messages.len() as f64 * 0.7) as usize,
+        );
+        let importance_set: HashSet<usize> = importance_indices.iter().copied().collect();
+
+        // 从可移除范围中分离：高分消息保留，低分消息移除
+        let removable_range = &session.messages[compacted_prefix_len..keep_from];
+        let mut removed: Vec<ConversationMessage> = Vec::new();
+        let mut kept: Vec<ConversationMessage> = Vec::new();
+
+        for (offset, msg) in removable_range.iter().enumerate() {
+            let global_idx = compacted_prefix_len + offset;
+            if importance_set.contains(&global_idx) {
+                kept.push(msg.clone());
+            } else {
+                removed.push(msg.clone());
+            }
+        }
+
+        // 安全检查：当可移除范围非空但所有消息都被重要性评分保留时，
+        // 强制移除评分最低的一条消息，确保压缩始终有实际效果
+        if removed.is_empty() && !removable_range.is_empty() {
+            let lowest_offset = removable_range
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, msg)| crate::message_importance::score_message(msg))
+                .map(|(offset, _)| offset)
+                .unwrap();
+            removed.clear();
+            kept.clear();
+            for (offset, msg) in removable_range.iter().enumerate() {
+                if offset == lowest_offset {
+                    removed.push(msg.clone());
+                } else {
+                    kept.push(msg.clone());
+                }
+            }
+        }
+
+        // 构建保留集合：重要性保留 + 尾部消息
+        kept.extend(session.messages[keep_from..].iter().cloned());
+        actual_removed = removed;
+        preserved = kept;
+    } else {
+        // 小会话：保持原有行为，全量移除可移除范围
+        actual_removed = session.messages[compacted_prefix_len..keep_from].to_vec();
+        preserved = session.messages[keep_from..].to_vec();
+    }
+    let summary = merge_compact_summaries(
+        existing_summary.as_deref(),
+        &summarize_messages(&actual_removed),
+    );
     let formatted_summary = format_compact_summary(&summary);
     let continuation = get_compact_continuation_message(&summary, true, !preserved.is_empty());
 
@@ -245,14 +314,24 @@ pub fn compact_session(session: &Session, config: CompactionConfig) -> Compactio
 
     let mut compacted_session = session.clone();
     compacted_session.messages = compacted_messages;
-    compacted_session.record_compaction(summary.clone(), removed.len());
+    compacted_session.record_compaction(summary.clone(), actual_removed.len());
 
-    CompactionResult {
+    let result = CompactionResult {
         summary,
         formatted_summary,
         compacted_session,
-        removed_message_count: removed.len(),
-    }
+        removed_message_count: actual_removed.len(),
+    };
+
+    // PostCompact hook — 压缩完成后通知外部监听器
+    let _ = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default())
+        .run_event(crate::hooks::HookEvent::PostCompact, &serde_json::json!({
+            "session_id": session.session_id,
+            "removed_messages": result.removed_message_count,
+            "remaining_messages": result.compacted_session.messages.len(),
+        }).to_string());
+
+    result
 }
 
 fn compacted_summary_prefix_len(session: &Session) -> usize {

@@ -646,6 +646,7 @@ export type SettingsSection =
   | "messageChannels"
   | "advanced"
   | "promptTemplates"
+  | "acp"
   | string;
 
 // === Generated Tool ===

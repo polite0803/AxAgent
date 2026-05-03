@@ -182,6 +182,10 @@ const TOP_LEVEL_FIELDS: &[FieldSpec] = &[
         expected: FieldType::Object,
     },
     FieldSpec {
+        name: "features",
+        expected: FieldType::Object,
+    },
+    FieldSpec {
         name: "env",
         expected: FieldType::Object,
     },

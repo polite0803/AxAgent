@@ -360,8 +360,9 @@ pub struct UnifiedToolRegistry {
 }
 
 impl UnifiedToolRegistry {
+    /// 创建并初始化：自动注册全部 52 个工具 + 旧 builtin 定义
     pub fn new() -> Self {
-        Self {
+        let mut reg = Self {
             tools: ToolRegistry::new(),
             builtin_defs: HashMap::new(),
             mcp_tools: BTreeMap::new(),
@@ -376,7 +377,9 @@ impl UnifiedToolRegistry {
             strict_mode: false,
             conversation_id: None,
             message_id: None,
-        }
+        };
+        reg.init_all();
+        reg
     }
 
     /// 初始化：加载新旧所有工具，配置默认权限
@@ -435,6 +438,50 @@ impl UnifiedToolRegistry {
             return self.allowed_tools.contains(tool_name);
         }
         true
+    }
+
+    /// 将所有已注册工具转为 ChatTool 格式（供 LLM 使用）
+    pub fn get_chat_tools(&self) -> Vec<axagent_core::types::ChatTool> {
+        let mut out = Vec::new();
+        for info in self.tools.list_all() {
+            out.push(axagent_core::types::ChatTool {
+                r#type: "function".into(),
+                function: axagent_core::types::ChatToolFunction {
+                    name: info.name.clone(),
+                    description: Some(info.description.clone()),
+                    parameters: Some(info.input_schema.clone()),
+                },
+            });
+        }
+        out
+    }
+
+    /// 获取类别筛选后的 ChatTool 列表（用于根据 permission mode 限制工具）
+    pub fn get_chat_tools_filtered(
+        &self,
+        mode: &crate::permissions::PermissionMode,
+    ) -> Vec<axagent_core::types::ChatTool> {
+        let mut out = Vec::new();
+        for info in self.tools.list_all() {
+            let allowed = match mode {
+                crate::permissions::PermissionMode::ReadOnly => info.is_read_only,
+                crate::permissions::PermissionMode::Allow => true,
+                crate::permissions::PermissionMode::DangerFullAccess => true,
+                crate::permissions::PermissionMode::WorkspaceWrite => true,
+                crate::permissions::PermissionMode::Prompt => true,
+            };
+            if allowed {
+                out.push(axagent_core::types::ChatTool {
+                    r#type: "function".into(),
+                    function: axagent_core::types::ChatToolFunction {
+                        name: info.name.clone(),
+                        description: Some(info.description.clone()),
+                        parameters: Some(info.input_schema.clone()),
+                    },
+                });
+            }
+        }
+        out
     }
 
     // ── 兼容旧 API ──

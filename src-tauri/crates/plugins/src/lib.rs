@@ -1,4 +1,5 @@
 mod hooks;
+pub mod agent_provider;
 #[cfg(test)]
 pub mod test_isolation;
 
@@ -22,6 +23,7 @@ const SETTINGS_FILE_NAME: &str = "settings.json";
 const REGISTRY_FILE_NAME: &str = "installed.json";
 const MANIFEST_FILE_NAME: &str = "plugin.json";
 const MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
+const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -1605,7 +1607,83 @@ pub fn load_plugin_from_directory(root: &Path) -> Result<PluginManifest, PluginE
 
 fn load_manifest_from_directory(root: &Path) -> Result<PluginManifest, PluginError> {
     let manifest_path = plugin_manifest_path(root)?;
-    load_manifest_from_path(root, &manifest_path)
+    if manifest_path.ends_with("SKILL.md") {
+        load_manifest_from_skill_md(root, &manifest_path)
+    } else {
+        load_manifest_from_path(root, &manifest_path)
+    }
+}
+
+// ── SKILL.md 解析 (Claude Code 兼容) ──
+
+fn load_manifest_from_skill_md(
+    root: &Path,
+    manifest_path: &Path,
+) -> Result<PluginManifest, PluginError> {
+    let contents = fs::read_to_string(manifest_path).map_err(|error| {
+        PluginError::NotFound(format!(
+            "SKILL.md not found at {}: {error}",
+            manifest_path.display()
+        ))
+    })?;
+
+    // 解析 YAML 前导元数据 (--- ... ---)
+    let dir_name = root
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown");
+
+    let mut name = String::from(dir_name);
+    let mut description = String::new();
+    let mut version = String::from("1.0.0");
+
+    let lines: Vec<&str> = contents.lines().collect();
+    if lines.first().map(|l| l.trim()) == Some("---") {
+        let mut in_frontmatter = false;
+        for line in &lines[1..] {
+            let trimmed = line.trim();
+            if trimmed == "---" {
+                if in_frontmatter { break; }
+                in_frontmatter = true;
+                continue;
+            }
+            if !in_frontmatter { in_frontmatter = true; }
+            if let Some((key, value)) = trimmed.split_once(':') {
+                let val = value.trim().trim_matches('"').trim_matches('\'');
+                match key.trim() {
+                    "name" => name = val.to_string(),
+                    "description" => description = val.to_string(),
+                    "version" => version = val.to_string(),
+                    _ => {},
+                }
+            }
+        }
+    }
+
+    let manifest = PluginManifest {
+        name,
+        description: if description.is_empty() {
+            format!("SKILL.md 技能: {}", dir_name)
+        } else {
+            description
+        },
+        version,
+        permissions: Vec::new(),
+        default_enabled: true,
+        hooks: PluginHooks {
+            pre_tool_use: Vec::new(),
+            post_tool_use: Vec::new(),
+            post_tool_use_failure: Vec::new(),
+        },
+        lifecycle: PluginLifecycle {
+            init: Vec::new(),
+            shutdown: Vec::new(),
+        },
+        tools: Vec::new(),
+        commands: Vec::new(),
+        scenarios: Vec::new(),
+    };
+    Ok(manifest)
 }
 
 fn load_manifest_from_path(
@@ -1694,6 +1772,12 @@ fn plugin_manifest_path(root: &Path) -> Result<PathBuf, PluginError> {
     let packaged_path = root.join(MANIFEST_RELATIVE_PATH);
     if packaged_path.exists() {
         return Ok(packaged_path);
+    }
+
+    // Claude Code 兼容：检查 SKILL.md
+    let skill_md_path = root.join(SKILL_MD_FILE_NAME);
+    if skill_md_path.exists() {
+        return Ok(skill_md_path);
     }
 
     Err(PluginError::NotFound(format!(

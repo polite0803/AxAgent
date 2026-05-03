@@ -36,6 +36,7 @@ export const SETTINGS_ICON_COLORS: Record<string, string> = {
   Workflow: "#8b5cf6", // violet-500 — Workflow
   Send: "#3b82f6", // blue-500  — Message Channels
   FileText: "#3b82f6", // blue-500  — Prompt Templates
+  Network: "#06b6d4", // cyan-500  — ACP
 };
 
 // ── Title bar icons ─────────────────────────────────────────────────

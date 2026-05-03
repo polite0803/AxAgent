@@ -65,6 +65,7 @@ pub struct RuntimeFeatureConfig {
     sandbox: SandboxConfig,
     provider_fallbacks: ProviderFallbackConfig,
     trusted_roots: Vec<String>,
+    features: BTreeMap<String, bool>,
 }
 
 /// Ordered chain of fallback model identifiers used when the primary
@@ -82,6 +83,25 @@ pub struct RuntimeHookConfig {
     pre_tool_use: Vec<String>,
     post_tool_use: Vec<String>,
     post_tool_use_failure: Vec<String>,
+    // 新增事件
+    subagent_start: Vec<String>,
+    subagent_stop: Vec<String>,
+    pre_compact: Vec<String>,
+    post_compact: Vec<String>,
+    session_start: Vec<String>,
+    session_end: Vec<String>,
+    stop: Vec<String>,
+    stop_failure: Vec<String>,
+    task_created: Vec<String>,
+    task_completed: Vec<String>,
+    config_change: Vec<String>,
+    instructions_loaded: Vec<String>,
+    file_changed: Vec<String>,
+    cwd_changed: Vec<String>,
+    permission_request: Vec<String>,
+    permission_denied: Vec<String>,
+    worktree_create: Vec<String>,
+    worktree_remove: Vec<String>,
 }
 
 /// Raw permission rule lists grouped by allow, deny, and ask behavior.
@@ -315,6 +335,7 @@ impl ConfigLoader {
             sandbox: parse_optional_sandbox_config(&merged_value)?,
             provider_fallbacks: parse_optional_provider_fallbacks(&merged_value)?,
             trusted_roots: parse_optional_trusted_roots(&merged_value)?,
+            features: parse_optional_features(&merged_value)?,
         };
 
         Ok(RuntimeConfig {
@@ -414,6 +435,11 @@ impl RuntimeConfig {
     pub fn trusted_roots(&self) -> &[String] {
         &self.feature_config.trusted_roots
     }
+
+    #[must_use]
+    pub fn features(&self) -> &BTreeMap<String, bool> {
+        &self.feature_config.features
+    }
 }
 
 impl RuntimeFeatureConfig {
@@ -482,6 +508,11 @@ impl RuntimeFeatureConfig {
     #[must_use]
     pub fn trusted_roots(&self) -> &[String] {
         &self.trusted_roots
+    }
+
+    #[must_use]
+    pub fn features(&self) -> &BTreeMap<String, bool> {
+        &self.features
     }
 }
 
@@ -575,6 +606,24 @@ impl RuntimeHookConfig {
             pre_tool_use,
             post_tool_use,
             post_tool_use_failure,
+            subagent_start: Vec::new(),
+            subagent_stop: Vec::new(),
+            pre_compact: Vec::new(),
+            post_compact: Vec::new(),
+            session_start: Vec::new(),
+            session_end: Vec::new(),
+            stop: Vec::new(),
+            stop_failure: Vec::new(),
+            task_created: Vec::new(),
+            task_completed: Vec::new(),
+            config_change: Vec::new(),
+            instructions_loaded: Vec::new(),
+            file_changed: Vec::new(),
+            cwd_changed: Vec::new(),
+            permission_request: Vec::new(),
+            permission_denied: Vec::new(),
+            worktree_create: Vec::new(),
+            worktree_remove: Vec::new(),
         }
     }
 
@@ -598,16 +647,68 @@ impl RuntimeHookConfig {
     pub fn extend(&mut self, other: &Self) {
         extend_unique(&mut self.pre_tool_use, other.pre_tool_use());
         extend_unique(&mut self.post_tool_use, other.post_tool_use());
-        extend_unique(
-            &mut self.post_tool_use_failure,
-            other.post_tool_use_failure(),
-        );
+        extend_unique(&mut self.post_tool_use_failure, other.post_tool_use_failure());
+        extend_unique(&mut self.subagent_start, other.subagent_start());
+        extend_unique(&mut self.subagent_stop, other.subagent_stop());
+        extend_unique(&mut self.pre_compact, other.pre_compact());
+        extend_unique(&mut self.post_compact, other.post_compact());
+        extend_unique(&mut self.session_start, other.session_start());
+        extend_unique(&mut self.session_end, other.session_end());
+        extend_unique(&mut self.stop, other.stop());
+        extend_unique(&mut self.stop_failure, other.stop_failure());
+        extend_unique(&mut self.task_created, other.task_created());
+        extend_unique(&mut self.task_completed, other.task_completed());
+        extend_unique(&mut self.config_change, other.config_change());
+        extend_unique(&mut self.instructions_loaded, other.instructions_loaded());
+        extend_unique(&mut self.file_changed, other.file_changed());
+        extend_unique(&mut self.cwd_changed, other.cwd_changed());
+        extend_unique(&mut self.permission_request, other.permission_request());
+        extend_unique(&mut self.permission_denied, other.permission_denied());
+        extend_unique(&mut self.worktree_create, other.worktree_create());
+        extend_unique(&mut self.worktree_remove, other.worktree_remove());
     }
 
     #[must_use]
     pub fn post_tool_use_failure(&self) -> &[String] {
         &self.post_tool_use_failure
     }
+
+    #[must_use]
+    pub fn subagent_start(&self) -> &[String] { &self.subagent_start }
+    #[must_use]
+    pub fn subagent_stop(&self) -> &[String] { &self.subagent_stop }
+    #[must_use]
+    pub fn pre_compact(&self) -> &[String] { &self.pre_compact }
+    #[must_use]
+    pub fn post_compact(&self) -> &[String] { &self.post_compact }
+    #[must_use]
+    pub fn session_start(&self) -> &[String] { &self.session_start }
+    #[must_use]
+    pub fn session_end(&self) -> &[String] { &self.session_end }
+    #[must_use]
+    pub fn stop(&self) -> &[String] { &self.stop }
+    #[must_use]
+    pub fn stop_failure(&self) -> &[String] { &self.stop_failure }
+    #[must_use]
+    pub fn task_created(&self) -> &[String] { &self.task_created }
+    #[must_use]
+    pub fn task_completed(&self) -> &[String] { &self.task_completed }
+    #[must_use]
+    pub fn config_change(&self) -> &[String] { &self.config_change }
+    #[must_use]
+    pub fn instructions_loaded(&self) -> &[String] { &self.instructions_loaded }
+    #[must_use]
+    pub fn file_changed(&self) -> &[String] { &self.file_changed }
+    #[must_use]
+    pub fn cwd_changed(&self) -> &[String] { &self.cwd_changed }
+    #[must_use]
+    pub fn permission_request(&self) -> &[String] { &self.permission_request }
+    #[must_use]
+    pub fn permission_denied(&self) -> &[String] { &self.permission_denied }
+    #[must_use]
+    pub fn worktree_create(&self) -> &[String] { &self.worktree_create }
+    #[must_use]
+    pub fn worktree_remove(&self) -> &[String] { &self.worktree_remove }
 }
 
 impl RuntimePermissionRuleConfig {
@@ -733,6 +834,16 @@ fn merge_mcp_servers(
     Ok(())
 }
 
+fn parse_optional_features(root: &JsonValue) -> Result<BTreeMap<String, bool>, ConfigError> {
+    let Some(object) = root.as_object() else {
+        return Ok(BTreeMap::new());
+    };
+    match object.get("features") {
+        Some(value) => parse_bool_map(value, "merged settings.features"),
+        None => Ok(BTreeMap::new()),
+    }
+}
+
 fn parse_optional_model(root: &JsonValue) -> Option<String> {
     root.as_object()
         .and_then(|object| object.get("model"))
@@ -767,6 +878,24 @@ fn parse_optional_hooks_config_object(
         post_tool_use: optional_string_array(hooks, "PostToolUse", context)?.unwrap_or_default(),
         post_tool_use_failure: optional_string_array(hooks, "PostToolUseFailure", context)?
             .unwrap_or_default(),
+        subagent_start: optional_string_array(hooks, "SubagentStart", context)?.unwrap_or_default(),
+        subagent_stop: optional_string_array(hooks, "SubagentStop", context)?.unwrap_or_default(),
+        pre_compact: optional_string_array(hooks, "PreCompact", context)?.unwrap_or_default(),
+        post_compact: optional_string_array(hooks, "PostCompact", context)?.unwrap_or_default(),
+        session_start: optional_string_array(hooks, "SessionStart", context)?.unwrap_or_default(),
+        session_end: optional_string_array(hooks, "SessionEnd", context)?.unwrap_or_default(),
+        stop: optional_string_array(hooks, "Stop", context)?.unwrap_or_default(),
+        stop_failure: optional_string_array(hooks, "StopFailure", context)?.unwrap_or_default(),
+        task_created: optional_string_array(hooks, "TaskCreated", context)?.unwrap_or_default(),
+        task_completed: optional_string_array(hooks, "TaskCompleted", context)?.unwrap_or_default(),
+        config_change: optional_string_array(hooks, "ConfigChange", context)?.unwrap_or_default(),
+        instructions_loaded: optional_string_array(hooks, "InstructionsLoaded", context)?.unwrap_or_default(),
+        file_changed: optional_string_array(hooks, "FileChanged", context)?.unwrap_or_default(),
+        cwd_changed: optional_string_array(hooks, "CwdChanged", context)?.unwrap_or_default(),
+        permission_request: optional_string_array(hooks, "PermissionRequest", context)?.unwrap_or_default(),
+        permission_denied: optional_string_array(hooks, "PermissionDenied", context)?.unwrap_or_default(),
+        worktree_create: optional_string_array(hooks, "WorktreeCreate", context)?.unwrap_or_default(),
+        worktree_remove: optional_string_array(hooks, "WorktreeRemove", context)?.unwrap_or_default(),
     })
 }
 

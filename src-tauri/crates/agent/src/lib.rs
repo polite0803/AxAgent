@@ -34,6 +34,7 @@ pub mod lint_checker;
 pub mod loop_detector;
 pub mod metrics;
 pub mod outline_builder;
+pub mod proactive_mode;
 pub mod project_memory;
 pub mod provider_adapter;
 pub mod purpose_manager;
@@ -65,6 +66,7 @@ pub mod thought_chain;
 pub mod tool_recommender;
 pub mod traits;
 pub mod trajectory_recorder;
+pub mod verification_agent;
 pub mod vision_pipeline;
 pub mod web_search;
 pub mod wiki_compiler;
@@ -158,6 +160,8 @@ impl LocalToolRegistry {
         let mut enabled = std::collections::HashMap::new();
         let mut group_names = std::collections::HashMap::new();
         let mut tool_defs = std::collections::HashMap::new();
+
+        // 加载旧 builtin 工具
         for ft in &flat {
             enabled.entry(ft.server_id.clone()).or_insert(true);
             group_names
@@ -176,6 +180,48 @@ impl LocalToolRegistry {
                 },
             );
         }
+
+        // 加载 52 个新统一工具（按 ToolCategory 分组）
+        let unified = axagent_tools::registry::UnifiedToolRegistry::new();
+        // 不调用 init_all() 因为会重复注册，直接用内置的 new()
+        let unified_tools = unified.tools.list_all();
+        let category_map: Vec<(&str, &str)> = vec![
+            ("builtin-file-read", "文件读取"),
+            ("builtin-file-write", "文件写入"),
+            ("builtin-shell", "Shell 命令"),
+            ("builtin-network", "网络请求"),
+            ("builtin-system-tools", "系统工具"),
+            ("builtin-agent", "Agent 工具"),
+        ];
+        for (gid, gname) in &category_map {
+            enabled.entry(gid.to_string()).or_insert(true);
+            group_names
+                .entry(gid.to_string())
+                .or_insert_with(|| gname.to_string());
+        }
+        for info in &unified_tools {
+            let gid = match info.category {
+                axagent_tools::ToolCategory::FileRead => "builtin-file-read",
+                axagent_tools::ToolCategory::FileWrite => "builtin-file-write",
+                axagent_tools::ToolCategory::Shell => "builtin-shell",
+                axagent_tools::ToolCategory::Network => "builtin-network",
+                axagent_tools::ToolCategory::System => "builtin-system-tools",
+                axagent_tools::ToolCategory::Agent => "builtin-agent",
+            };
+            tool_defs.insert(
+                info.name.clone(),
+                LocalToolDef {
+                    group_id: gid.to_string(),
+                    group_name: gid.to_string(),
+                    tool_name: info.name.clone(),
+                    description: info.description.clone(),
+                    input_schema: info.input_schema.clone(),
+                    env_json: None,
+                    timeout_secs: None,
+                },
+            );
+        }
+
         Self {
             flat_tools: flat,
             enabled,
@@ -224,7 +270,33 @@ impl LocalToolRegistry {
         self.tool_defs.get(tool_name).map(|d| d.group_id.as_str())
     }
     pub fn get_tool_groups(&self) -> Vec<LocalToolGroup> {
-        Vec::new()
+        let mut groups_map: std::collections::HashMap<String, Vec<LocalToolDef>> =
+            std::collections::HashMap::new();
+        for def in self.tool_defs.values() {
+            groups_map
+                .entry(def.group_id.clone())
+                .or_default()
+                .push(def.clone());
+        }
+        let mut groups: Vec<LocalToolGroup> = groups_map
+            .into_iter()
+            .map(|(gid, tools)| {
+                let gname = self
+                    .group_names
+                    .get(&gid)
+                    .cloned()
+                    .unwrap_or_else(|| gid.clone());
+                let enabled = self.enabled.get(&gid).copied().unwrap_or(true);
+                LocalToolGroup {
+                    group_id: gid,
+                    group_name: gname,
+                    enabled,
+                    tools,
+                }
+            })
+            .collect();
+        groups.sort_by_key(|g| g.group_id.clone());
+        groups
     }
     pub async fn toggle_group(
         &mut self,

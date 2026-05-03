@@ -2,6 +2,8 @@
 //!
 //! 提供 Tool trait、ToolRegistry、编排器、流式执行器等核心组件。
 
+pub mod agent_def_loader;
+pub mod agent_def_types;
 pub mod bash;
 pub mod builtin_handlers;
 pub mod builtin_tools;
@@ -13,6 +15,7 @@ pub mod recorder;
 pub mod registry;
 pub mod stats;
 pub mod streaming;
+pub mod tool_orchestration;
 pub mod tools;
 
 pub use builtin_tools::{

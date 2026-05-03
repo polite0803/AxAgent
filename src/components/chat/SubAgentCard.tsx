@@ -1,5 +1,5 @@
 import type { SubAgentCardData } from "@/types/agent";
-import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
+import { BranchesOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import "./SubAgentCard.css";
 
@@ -74,6 +74,7 @@ export function SubAgentCard({ card }: SubAgentCardProps) {
       <div className="sub-agent-card__header">
         <span className="sub-agent-card__icon">{icon}</span>
         <span className="sub-agent-card__name" style={{ color }}>
+          {card.isFork && <BranchesOutlined style={{ marginRight: 4, color: "#722ed1" }} title="Fork" />}
           {card.agentName || card.agentType}
         </span>
         <span className="sub-agent-card__status">

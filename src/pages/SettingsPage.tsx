@@ -1,5 +1,6 @@
 import {
   AboutPage,
+  AcpSettings,
   BackupCenter,
   DashboardPluginsSettings,
   DataManager,
@@ -13,6 +14,7 @@ import {
   ProxySettings,
   SchedulerSettings,
   SearchProviderSettings,
+  SettingsPanel,
   SettingsSidebar,
   ShortcutSettings,
   SkillsHubSettings,
@@ -51,6 +53,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   tools: ToolManager,
   backup: BackupCenter,
   workflow: WorkflowSettings,
+  appConfig: SettingsPanel,
   userProfile: UserProfileSettings,
   skillsHub: SkillsHubSettings,
   dashboardPlugins: DashboardPluginsSettings,
@@ -58,6 +61,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   messageChannels: MessageChannelSettings,
   advanced: AdvancedSettings,
   promptTemplates: PromptTemplatesSettings,
+  acp: AcpSettings,
 };
 
 export function SettingsPage() {

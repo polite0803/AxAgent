@@ -12,6 +12,8 @@ export { usePreferenceStore } from "./domain/preferenceStore";
 export { useStreamStore } from "./domain/streamStore";
 export { useWorkspaceStore } from "./domain/workspaceStore";
 
+export { useAppConfigStore } from "./feature/appConfigStore";
+export type { FeatureFlags, ModelTier as AppConfigModelTier, PermissionMode } from "./feature/appConfigStore";
 export { useEvaluatorStore } from "./devtools/evaluatorStore";
 export { useFineTuneStore } from "./devtools/fineTuneStore";
 export { useRecommendationStore } from "./devtools/recommendationStore";
@@ -19,6 +21,8 @@ export { useRLStore } from "./devtools/rlStore";
 export { useTracerStore } from "./devtools/tracerStore";
 export { setupAgentEventListeners, useAgentStore } from "./feature/agentStore";
 export { useBackupStore } from "./feature/backupStore";
+export { useBuddyStore } from "./feature/buddyStore";
+export type { BuddyInfo, BuddyMessage, BuddyMood } from "./feature/buddyStore";
 export { useCategoryStore } from "./feature/categoryStore";
 export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useFileStore } from "./feature/fileStore";

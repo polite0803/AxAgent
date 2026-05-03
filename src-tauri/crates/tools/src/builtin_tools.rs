@@ -160,6 +160,29 @@ pub fn take_pending_sub_agent_card(parent_id: &str) -> Option<PendingSubAgentCar
     m.remove(parent_id)
 }
 
+// ── Fork 上下文代理 ──
+// Fork session 数据现在存储在 axagent_runtime::fork_bridge 中
+// 此处保留兼容的代理函数
+
+/// 存储 fork 上下文（代理到 runtime fork_bridge）
+pub fn store_fork_context(parent_id: &str, description: &str, prompt: &str) {
+    let data = axagent_runtime::fork_bridge::ForkSessionData {
+        parent_conversation_id: parent_id.to_string(),
+        description: description.to_string(),
+        prompt: prompt.to_string(),
+        created_at: chrono::Utc::now().to_rfc3339(),
+        parent_system_prompt: Vec::new(),
+        parent_messages_json: String::new(),
+        child_system_prompt: Some(axagent_runtime::fork_bridge::build_fork_child_prompt(prompt)),
+    };
+    axagent_runtime::fork_bridge::store_fork_session(data);
+}
+
+/// 检查是否存在 fork 上下文（代理到 runtime fork_bridge）
+pub fn has_fork_context(parent_id: &str) -> bool {
+    axagent_runtime::fork_bridge::has_fork_session(parent_id)
+}
+
 pub fn register_builtin_handler(server_name: &str, tool_name: &str, handler: BoxedToolHandler) {
     let mut handlers = BUILTIN_HANDLERS.write().unwrap();
     handlers.insert((server_name.to_string(), tool_name.to_string()), handler);

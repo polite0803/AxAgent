@@ -126,6 +126,11 @@ import { useExpertStore } from "@/stores/feature/expertStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { AgentPoolPanel } from "./AgentPoolPanel";
+import { TeammatePanel } from "./TeammatePanel";
+import { AgentProgressBar } from "./AgentProgressBar";
+import { BuddyWidget } from "./BuddyWidget";
+import { AgentHierarchyTree } from "./AgentHierarchyTree";
+import ProactiveSuggestionBar from "../proactive/ProactiveSuggestionBar";
 import AskUserCard from "./AskUserCard";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
@@ -154,7 +159,9 @@ import { MermaidZoomControls } from "./MermaidZoomControls";
 import { ModelSelector } from "./ModelSelector";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
 import PermissionCard from "./PermissionCard";
+import { PermissionModal } from "./PermissionModal";
 import { PlanCard } from "./PlanCard";
+import { QuickCommandBar } from "./QuickCommandBar";
 import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
 import { WebSearchNode } from "./WebSearchNode";
@@ -4233,6 +4240,14 @@ function ChatViewInner() {
               {activeConversation?.mode === "agent" && activeConversationId && (
                 <AgentPoolPanel conversationId={activeConversationId} />
               )}
+              {/* Agent 层级树 — Fork 父子关系 */}
+              {activeConversation?.mode === "agent" && activeConversationId && (
+                <AgentHierarchyTree conversationId={activeConversationId} />
+              )}
+              {/* Swarm 队友输出面板 */}
+              {activeConversation?.mode === "agent" && activeConversationId && (
+                <TeammatePanel conversationId={activeConversationId} />
+              )}
               {/* Plan Card - visible in agent mode when a plan is active */}
               {activeConversation?.mode === "agent" && activeConversationId && (
                 <PlanCardWrapper
@@ -4281,7 +4296,7 @@ function ChatViewInner() {
           )}
       </div>
 
-      {/* Agent status bar */}
+      {/* Agent status bar — 通用状态文本 + 执行进度指示器 */}
       {currentAgentStatus && (
         <div
           style={{
@@ -4295,6 +4310,17 @@ function ChatViewInner() {
         >
           <Spin size="small" /> {currentAgentStatus}
         </div>
+      )}
+      {/* Proactive 建议栏 */}
+      <ProactiveSuggestionBar />
+
+      {activeConversation?.mode === "agent" && activeConversationId && (
+        <AgentProgressBar conversationId={activeConversationId} />
+      )}
+
+      {/* Quick Command Bar — 快捷操作（仅 agent 模式显示） */}
+      {activeConversation?.mode === "agent" && (
+        <QuickCommandBar />
       )}
 
       {/* Input Area */}
@@ -4319,6 +4345,9 @@ function ChatViewInner() {
         )}
         <InputArea />
       </div>
+
+      {/* Permission Modal — 全局权限审批弹窗 */}
+      <PermissionModal />
       <Modal
         title={t("chat.compressionSummary")}
         open={summaryModalOpen}
@@ -4400,6 +4429,9 @@ function ChatViewInner() {
           />
         )}
       </Modal>
+
+      {/* Buddy 陪伴系统 — 右下角浮动组件 */}
+      <BuddyWidget />
     </div>
   );
 }

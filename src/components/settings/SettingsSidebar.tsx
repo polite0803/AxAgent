@@ -2,7 +2,7 @@ import { SETTINGS_ICON_COLORS } from "@/lib/iconColors";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { Menu, theme } from "antd";
+import { Menu, Tabs, theme } from "antd";
 import {
   ArrowLeft,
   Bell,
@@ -18,6 +18,7 @@ import {
   Info,
   LayoutDashboard,
   MessageSquare,
+  Network,
   Palette,
   Puzzle,
   Search,
@@ -29,7 +30,7 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -50,38 +51,25 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   backup: <CloudUpload size={16} color={SETTINGS_ICON_COLORS.CloudUpload} />,
   workflow: <GitBranch size={16} color={SETTINGS_ICON_COLORS.Workflow} />,
   userProfile: <User size={16} color={SETTINGS_ICON_COLORS.User} />,
+  acp: <Network size={16} color={SETTINGS_ICON_COLORS.Globe} />,
   skillsHub: <ShoppingBag size={16} color={SETTINGS_ICON_COLORS.ShoppingBag} />,
   dashboardPlugins: <LayoutDashboard size={16} color={SETTINGS_ICON_COLORS.LayoutDashboard} />,
   webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
   messageChannels: <Send size={16} color={SETTINGS_ICON_COLORS.Send} />,
   advanced: <SlidersHorizontal size={16} color={SETTINGS_ICON_COLORS.Settings} />,
   promptTemplates: <FileText size={16} color={SETTINGS_ICON_COLORS.FileText} />,
+  appConfig: <Bot size={16} color={SETTINGS_ICON_COLORS.Bot} />,
 };
 
-const SECTION_KEYS: SettingsSection[] = [
-  "general",
-  "display",
-  "providers",
-  "conversationSettings",
-  "defaultModel",
-  "searchProviders",
-  "tools",
-  "skillsHub",
-  "dashboardPlugins",
-  "messageChannels",
-  "webhooks",
-  "proxy",
-  "shortcuts",
-  "data",
-  "storage",
-  "scheduler",
-  "backup",
-  "workflow",
-  "promptTemplates",
-  "userProfile",
-  "advanced",
-  "about",
-];
+// 分组定义：tab key → 包含的 sections
+const TAB_GROUPS: Record<string, SettingsSection[]> = {
+  model: ["providers", "defaultModel", "conversationSettings", "promptTemplates", "searchProviders"],
+  appearance: ["general", "display", "shortcuts"],
+  extensions: ["tools", "skillsHub", "dashboardPlugins", "workflow", "appConfig", "userProfile"],
+  network: ["proxy", "messageChannels", "webhooks", "acp"],
+  data: ["data", "storage", "backup", "scheduler"],
+  system: ["advanced", "about"],
+};
 
 export function SettingsSidebar() {
   const { t } = useTranslation();
@@ -91,14 +79,25 @@ export function SettingsSidebar() {
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
 
-  const items = useMemo(() => {
-    const builtin = SECTION_KEYS.map((key) => ({
-      key,
-      icon: MENU_ICONS[key],
-      label: t([`settings.${key}.title`, `settings.${key}`]),
-    }));
+  // 根据当前选中的 section 反查所属 tab
+  const [activeTab, setActiveTab] = useState(() => {
+    for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
+      if (sections.includes(settingsSection)) return tab;
+    }
+    return "model";
+  });
 
-    const skillItems = skillSections.map((sec) => {
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    // 切换到该 tab 的第一个 section
+    const firstSection = TAB_GROUPS[key]?.[0];
+    if (firstSection) {
+      setSettingsSection(firstSection);
+    }
+  };
+
+  const skillItems = useMemo(() => {
+    return skillSections.map((sec) => {
       const IconComp = sec.icon ? resolveIconComponent(sec.icon) : Puzzle;
       return {
         key: `skill:${sec.skillName}:${sec.id}` as string,
@@ -106,9 +105,37 @@ export function SettingsSidebar() {
         label: sec.label,
       };
     });
+  }, [skillSections]);
 
-    return [...builtin, ...skillItems];
-  }, [t, skillSections]);
+  const tabItems = Object.entries(TAB_GROUPS).map(([key, sections]) => {
+    const builtin = sections.map((sec) => ({
+      key: sec,
+      icon: MENU_ICONS[sec],
+      label: t([`settings.${sec}.title`, `settings.${sec}`]),
+    }));
+    // 在最后添加技能扩展项
+    const items = key === "extensions" ? [...builtin, ...skillItems] : builtin;
+
+    return {
+      key,
+      label: t(`settings.tab${key.charAt(0).toUpperCase() + key.slice(1)}`),
+      children: (
+        <Menu
+          mode="inline"
+          selectedKeys={[settingsSection]}
+          items={items}
+          style={{ borderInlineEnd: "none" }}
+          onClick={({ key }) => {
+            if (typeof key === "string" && key.startsWith("skill:")) {
+              setSettingsSection(key as SettingsSection);
+            } else {
+              setSettingsSection(key as SettingsSection);
+            }
+          }}
+        />
+      ),
+    };
+  });
 
   return (
     <div
@@ -156,12 +183,13 @@ export function SettingsSidebar() {
         </span>
       </div>
       <div className="flex-1 pt-1" style={{ overflowY: "auto" }}>
-        <Menu
-          mode="inline"
-          selectedKeys={[settingsSection]}
-          items={items}
-          style={{ borderInlineEnd: "none" }}
-          onClick={({ key }) => setSettingsSection(key as SettingsSection)}
+        <Tabs
+          activeKey={activeTab}
+          onChange={handleTabChange}
+          items={tabItems}
+          tabPosition="left"
+          tabBarStyle={{ width: 72, flexShrink: 0 }}
+          style={{ height: "100%" }}
         />
       </div>
     </div>

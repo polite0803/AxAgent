@@ -92,6 +92,18 @@ function McpServerList({
               {s.transport.toUpperCase()}
             </Tag>
           )}
+          {/* 连接状态指示器 */}
+          <span
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: (s as { enabled?: boolean }).enabled !== false ? "#52c41a" : "#d9d9d9",
+              flexShrink: 0,
+            }}
+            title={(s as { enabled?: boolean }).enabled !== false ? "已启用" : "已禁用"}
+          />
         </div>
         <Switch
           size="small"

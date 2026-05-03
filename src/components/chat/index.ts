@@ -1,10 +1,15 @@
+export { AgentProgressBar } from "./AgentProgressBar";
 export { ArtifactPanel } from "./ArtifactPanel";
 export { BranchComparePanel } from "./BranchComparePanel";
+export { BuddyWidget } from "./BuddyWidget";
+export { BuddyMessageBubble } from "./BuddyMessage";
 export { ChatSidebar } from "./ChatSidebar";
 export { ChatView } from "./ChatView";
 export { CitationPanel } from "./CitationPanel";
 export { GitBranchPanel, GitCommitPanel } from "./GitCommitPanel";
 export { InputArea } from "./InputArea";
 export { ModelSelector } from "./ModelSelector";
+export { PermissionModal } from "./PermissionModal";
+export { QuickCommandBar } from "./QuickCommandBar";
 export { ToolCallCard } from "./ToolCallCard";
 export { default as WorkflowProgressPanel } from "./WorkflowProgressPanel";

@@ -4,6 +4,7 @@ import { TITLEBAR_ICON_COLORS } from "@/lib/iconColors";
 import { invoke, isTauri } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import { useBackupStore, useSettingsStore } from "@/stores";
+import { NotificationBell } from "./NotificationBell";
 import type { PageKey } from "@/types";
 import { App, Divider, Dropdown, Popover, Space, Spin, theme, Tooltip, Typography } from "antd";
 import type { MenuProps } from "antd";
@@ -655,6 +656,9 @@ export function TitleBar() {
               <Ellipsis size={12} color={TITLEBAR_ICON_COLORS.GitFork} />
             </button>
           </Dropdown>
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* Settings Toggle */}
           <Tooltip

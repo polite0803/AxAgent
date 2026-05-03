@@ -6,11 +6,8 @@ import { lazy, Suspense, useMemo } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 
 const LazyChatPage = lazy(() => import("@/pages/ChatPage").then((m) => ({ default: m.ChatPage })));
-const LazyKnowledgePage = lazy(() => import("@/pages/KnowledgePage").then((m) => ({ default: m.KnowledgePage })));
-const LazyMemoryPage = lazy(() => import("@/pages/MemoryPage").then((m) => ({ default: m.MemoryPage })));
-const LazyLinkPage = lazy(() => import("@/pages/LinkPage").then((m) => ({ default: m.LinkPage })));
-const LazyGatewayPage = lazy(() => import("@/pages/GatewayPage").then((m) => ({ default: m.GatewayPage })));
-const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ default: m.FilesPage })));
+const LazyKnowledgeHubPage = lazy(() => import("@/pages/KnowledgeHubPage").then((m) => ({ default: m.KnowledgeHubPage })));
+const LazyGatewayLinkPage = lazy(() => import("@/pages/GatewayLinkPage").then((m) => ({ default: m.GatewayLinkPage })));
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
 const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
@@ -24,7 +21,6 @@ const LazyToolRecommender = lazy(() =>
   import("@/pages/DevTools/ToolRecommender").then((m) => ({ default: m.ToolRecommender }))
 );
 const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.default })));
-const LazyLlmWikiPage = lazy(() => import("@/pages/LlmWikiPage").then((m) => ({ default: m.LlmWikiPage })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
 const LazyWikiGraphPage = lazy(() => import("@/pages/WikiGraphPage").then((m) => ({ default: m.WikiGraphPage })));
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
@@ -92,15 +88,14 @@ export function ContentArea() {
   return (
     <Routes>
       <Route path="/" element={<SafeLazyPage Page={LazyChatPage} />} />
-      <Route path="/knowledge" element={<SafeLazyPage Page={LazyKnowledgePage} />} />
-      <Route path="/memory" element={<SafeLazyPage Page={LazyMemoryPage} />} />
-      <Route path="/link" element={<SafeLazyPage Page={LazyLinkPage} />} />
-      <Route path="/gateway" element={<SafeLazyPage Page={LazyGatewayPage} />} />
-      <Route path="/files" element={<SafeLazyPage Page={LazyFilesPage} />} />
+      <Route path="/knowledge" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
+      <Route path="/memory" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
+      <Route path="/link" element={<SafeLazyPage Page={LazyGatewayLinkPage} />} />
+      <Route path="/gateway" element={<SafeLazyPage Page={LazyGatewayLinkPage} />} />
       <Route path="/settings/*" element={<SafeLazyPage Page={LazySettingsPage} />} />
       <Route path="/skills" element={<SafeLazyPage Page={LazySkillsPage} />} />
       <Route path="/workflow" element={<SafeLazyPage Page={LazyWorkflowPage} />} />
-      <Route path="/llm-wiki" element={<SafeLazyPage Page={LazyLlmWikiPage} />} />
+      <Route path="/llm-wiki" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
       <Route path="/llm-wiki/:wikiId/graph" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
       <Route path="/llm-wiki/:wikiId/ingest" element={<SafeLazyPage Page={LazyIngestPage} />} />
       <Route path="/quickbar" element={<SafeLazyPage Page={LazyQuickBarPage} />} />

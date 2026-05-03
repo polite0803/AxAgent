@@ -5,7 +5,16 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use serde_json::Value;
+use serde_json::{json, Value};
+
+/// 触发 Worktree 相关 HookEvent（best-effort，失败不影响主流程）
+fn fire_worktree_hook(event: axagent_runtime::HookEvent, data: &serde_json::Value) {
+    let runner = axagent_runtime::HookRunner::new(
+        axagent_runtime::RuntimeHookConfig::default(),
+    );
+    let data_str = data.to_string();
+    let _ = runner.run_event(event, &data_str);
+}
 
 // ── Worktree 工具 ──
 pub struct EnterWorktreeTool;
@@ -28,10 +37,21 @@ impl Tool for EnterWorktreeTool {
     }
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let name = i["name"].as_str().unwrap_or("auto-generated");
+        let cwd = std::env::current_dir().unwrap_or_default();
+
+        // 触发 WorktreeCreate hook (best-effort)
+        fire_worktree_hook(
+            axagent_runtime::HookEvent::WorktreeCreate,
+            &json!({
+                "name": name,
+                "cwd": cwd.display().to_string(),
+            }),
+        );
+
         Ok(ToolResult::success(format!(
             "🌳 已创建 git worktree: {} ({})",
             name,
-            std::env::current_dir().unwrap_or_default().display()
+            cwd.display()
         )))
     }
 }
@@ -55,13 +75,22 @@ impl Tool for ExitWorktreeTool {
     }
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let action = i["action"].as_str().unwrap_or("keep");
+        let is_remove = action == "remove";
+
+        // 仅在 remove 时触发 WorktreeRemove hook (best-effort)
+        if is_remove {
+            fire_worktree_hook(
+                axagent_runtime::HookEvent::WorktreeRemove,
+                &json!({
+                    "action": action,
+                    "discard_changes": i["discard_changes"].as_bool().unwrap_or(false),
+                }),
+            );
+        }
+
         Ok(ToolResult::success(format!(
             "📤 已{} worktree",
-            if action == "remove" {
-                "删除"
-            } else {
-                "保留"
-            }
+            if is_remove { "删除" } else { "保留" }
         )))
     }
 }

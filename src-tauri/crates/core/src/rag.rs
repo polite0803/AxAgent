@@ -94,6 +94,133 @@ impl RAGSource for MemoryRAG {
     }
 }
 
+/// RAG source backed by a Wiki vault (notes → chunked → embedded).
+pub struct WikiVaultRAG;
+
+#[async_trait]
+impl RAGSource for WikiVaultRAG {
+    fn collection_prefix(&self) -> &'static str {
+        "wiki"
+    }
+
+    fn context_label(&self) -> &'static str {
+        "Wiki Reference"
+    }
+
+    async fn resolve_embedding_provider(
+        &self,
+        db: &DatabaseConnection,
+        container_id: &str,
+    ) -> Result<String> {
+        let wiki = crate::repo::wiki::get_wiki(db, container_id).await?;
+        wiki.embedding_provider.ok_or_else(|| {
+            AxAgentError::Provider(
+                "Wiki vault has no embedding provider configured".to_string(),
+            )
+        })
+    }
+}
+
+// ── 统一知识容器（P2: 抽象三个系统的共性字段） ──────────────────────────────
+
+/// Knowledge/Memory/Wiki 三个系统的容器共性。
+/// 长期计划（P3）：将 `memory_namespaces` 合并到 `knowledge_bases`，Memory 作为特殊的轻量级知识库。
+#[derive(Debug, Clone)]
+pub struct KnowledgeContainer {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub container_type: ContainerType,
+    pub embedding_provider: Option<String>,
+    pub embedding_dimensions: Option<i32>,
+    pub retrieval_threshold: Option<f32>,
+    pub retrieval_top_k: Option<i32>,
+    pub icon_type: Option<String>,
+    pub icon_value: Option<String>,
+    pub sort_order: i32,
+    pub chunk_size: Option<i32>,
+    pub chunk_overlap: Option<i32>,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ContainerType {
+    KnowledgeBase,
+    Memory,
+    WikiVault,
+}
+
+impl KnowledgeContainer {
+    /// 从 memory_namespace 转换
+    pub fn from_memory_ns(ns: &crate::types::MemoryNamespace) -> Self {
+        Self {
+            id: ns.id.clone(),
+            name: ns.name.clone(),
+            description: None,
+            container_type: ContainerType::Memory,
+            embedding_provider: ns.embedding_provider.clone(),
+            embedding_dimensions: ns.embedding_dimensions,
+            retrieval_threshold: ns.retrieval_threshold,
+            retrieval_top_k: ns.retrieval_top_k,
+            icon_type: ns.icon_type.clone(),
+            icon_value: ns.icon_value.clone(),
+            sort_order: ns.sort_order,
+            chunk_size: None,
+            chunk_overlap: None,
+            enabled: true,
+        }
+    }
+
+    /// 从 knowledge_base 转换
+    pub fn from_knowledge_base(kb: &crate::types::KnowledgeBase) -> Self {
+        Self {
+            id: kb.id.clone(),
+            name: kb.name.clone(),
+            description: kb.description.clone(),
+            container_type: ContainerType::KnowledgeBase,
+            embedding_provider: kb.embedding_provider.clone(),
+            embedding_dimensions: kb.embedding_dimensions,
+            retrieval_threshold: kb.retrieval_threshold,
+            retrieval_top_k: kb.retrieval_top_k,
+            icon_type: kb.icon_type.clone(),
+            icon_value: kb.icon_value.clone(),
+            sort_order: kb.sort_order,
+            chunk_size: kb.chunk_size,
+            chunk_overlap: kb.chunk_overlap,
+            enabled: kb.enabled,
+        }
+    }
+
+    /// 从 wiki 转换
+    pub fn from_wiki(w: &crate::repo::wiki::Wiki) -> Self {
+        Self {
+            id: w.id.clone(),
+            name: w.name.clone(),
+            description: w.description.clone(),
+            container_type: ContainerType::WikiVault,
+            embedding_provider: w.embedding_provider.clone(),
+            embedding_dimensions: None,
+            retrieval_threshold: None,
+            retrieval_top_k: None,
+            icon_type: None,
+            icon_value: None,
+            sort_order: 0,
+            chunk_size: None,
+            chunk_overlap: None,
+            enabled: true,
+        }
+    }
+
+    /// 获取 RAG collection 名称
+    pub fn collection_name(&self) -> String {
+        match self.container_type {
+            ContainerType::KnowledgeBase => format!("kb_{}", self.id),
+            ContainerType::Memory => format!("mem_{}", self.id),
+            ContainerType::WikiVault => format!("wiki_{}", self.id),
+        }
+    }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /// Build the sanitised collection ID for a RAG source.

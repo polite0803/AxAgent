@@ -307,18 +307,40 @@ impl PermissionPolicy {
             reason: reason.clone(),
         };
 
+        // 触发 PermissionRequest hook (best-effort)
+        fire_permission_hook(
+            crate::hooks::HookEvent::PermissionRequest,
+            &request,
+        );
+
         match prompter.as_mut() {
             Some(prompter) => match prompter.decide(&request) {
                 PermissionPromptDecision::Allow => PermissionOutcome::Allow,
-                PermissionPromptDecision::Deny { reason } => PermissionOutcome::Deny { reason },
+                PermissionPromptDecision::Deny { reason: deny_reason } => {
+                    // 触发 PermissionDenied hook (best-effort)
+                    fire_permission_hook(
+                        crate::hooks::HookEvent::PermissionDenied,
+                        &request,
+                    );
+                    PermissionOutcome::Deny {
+                        reason: deny_reason,
+                    }
+                },
             },
-            None => PermissionOutcome::Deny {
-                reason: reason.unwrap_or_else(|| {
-                    format!(
-                        "tool '{tool_name}' requires approval to run while mode is {}",
-                        current_mode.as_str()
-                    )
-                }),
+            None => {
+                // 无 prompter 时默认拒绝，触发 PermissionDenied hook (best-effort)
+                fire_permission_hook(
+                    crate::hooks::HookEvent::PermissionDenied,
+                    &request,
+                );
+                PermissionOutcome::Deny {
+                    reason: reason.unwrap_or_else(|| {
+                        format!(
+                            "tool '{tool_name}' requires approval to run while mode is {}",
+                            current_mode.as_str()
+                        )
+                    }),
+                }
             },
         }
     }
@@ -442,6 +464,21 @@ fn find_last_unescaped(value: &str, needle: char) -> Option<usize> {
         }
     }
     None
+}
+
+/// 触发权限相关 HookEvent（best-effort，失败不影响主流程）
+fn fire_permission_hook(event: crate::hooks::HookEvent, request: &PermissionRequest) {
+    let runner = crate::hooks::HookRunner::new(
+        crate::config::RuntimeHookConfig::default(),
+    );
+    let data = serde_json::json!({
+        "tool_name": request.tool_name,
+        "input": request.input,
+        "current_mode": request.current_mode.as_str(),
+        "required_mode": request.required_mode.as_str(),
+        "reason": request.reason,
+    });
+    let _ = runner.run_event(event, &data.to_string());
 }
 
 fn extract_permission_subject(input: &str) -> Option<String> {

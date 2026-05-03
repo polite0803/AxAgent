@@ -123,6 +123,8 @@ pub trait ApiClient {
 }
 
 /// Trait implemented by tool dispatchers that execute model-requested tools.
+/// 注意：使用 `&mut self`。对于并发场景，外层通过 `Arc<Mutex<T>>` 包装。
+/// StaticToolExecutor 内部已使用 Mutex 实现内部可变性。
 pub trait ToolExecutor {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError>;
 }
@@ -589,7 +591,59 @@ where
                 break;
             }
 
+            // 工具并发执行：收集并发安全工具，并行调用 tool_executor.execute()
+            let concurrency_enabled = crate::feature_flags::global_feature_flags().tool_concurrency()
+                && pending_tool_uses.len() > 1;
+
+            // 并发安全工具 ID 集合（并行执行后跳过后续串行处理）
+            let mut concurrent_done: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+            if concurrency_enabled {
+                let concurrent_tools: Vec<_> = pending_tool_uses
+                    .iter()
+                    .filter(|(_, name, _)| matches!(
+                        name.as_str(),
+                        "FileRead" | "Glob" | "Grep" | "WebFetch" | "WebSearch" | "CtxInspect" | "ListPeers"
+                    ))
+                    .collect();
+
+                if concurrent_tools.len() > 1 {
+                    let executor = self.tool_executor.clone();
+                    // 使用 thread::scope 避免 'static 生命周期要求
+                    std::thread::scope(|s| {
+                        let mut handles = Vec::new();
+                        for (tid, tname, tinput) in &concurrent_tools {
+                            let exec = executor.clone();
+                            let name = (*tname).clone();
+                            let input = (*tinput).clone();
+                            let id = (*tid).clone();
+                            concurrent_done.insert(id.clone());
+                            handles.push(s.spawn(move || {
+                                let mut guard = exec.lock().unwrap();
+                                let result = guard.execute(&name, &input);
+                                (id, name, result)
+                            }));
+                        }
+                        for h in handles {
+                            if let Ok((tid, tname, result)) = h.join() {
+                                let output = result.as_ref().map_or_else(|e| e.to_string(), |o| o.clone());
+                                let is_err = result.is_err();
+                                let post_hook = self.run_post_tool_use_hook(&tname, "", &output, is_err, Some(&tid));
+                                let msg = ConversationMessage::tool_result(&tid, &tname, &output, is_err);
+                                self.session.push_message(msg.clone()).ok();
+                                tool_results.push(msg);
+                                let _ = post_hook;
+                            }
+                        }
+                    });
+                }
+            }
+
             for (tool_use_id, tool_name, input) in pending_tool_uses {
+                // 跳过已在并行批次中执行的工具
+                if concurrent_done.contains(&tool_use_id) {
+                    continue;
+                }
                 // Detect repeated identical tool calls to prevent infinite loops.
                 let input_hash = {
                     use std::hash::Hasher;
@@ -877,7 +931,6 @@ where
                 tool_results.push(result_message);
             }
         }
-
         let auto_compaction = self.maybe_auto_compact();
 
         let summary = TurnSummary {
@@ -1266,12 +1319,20 @@ fn merge_hook_feedback(messages: &[String], output: String, is_error: bool) -> S
     sections.join("\n\n")
 }
 
-type ToolHandler = Box<dyn FnMut(&str) -> Result<String, ToolError> + Send>;
+type ToolHandler = Box<dyn Fn(&str) -> Result<String, ToolError> + Send + Sync>;
 
 /// Simple in-memory tool executor for tests and lightweight integrations.
-#[derive(Default)]
+/// 使用 `Mutex` 实现内部可变性，支持 `&self` 并发调用。
 pub struct StaticToolExecutor {
-    handlers: BTreeMap<String, ToolHandler>,
+    handlers: std::sync::Mutex<BTreeMap<String, ToolHandler>>,
+}
+
+impl Default for StaticToolExecutor {
+    fn default() -> Self {
+        Self {
+            handlers: std::sync::Mutex::new(BTreeMap::new()),
+        }
+    }
 }
 
 impl StaticToolExecutor {
@@ -1282,20 +1343,21 @@ impl StaticToolExecutor {
 
     #[must_use]
     pub fn register(
-        mut self,
+        self,
         tool_name: impl Into<String>,
-        handler: impl FnMut(&str) -> Result<String, ToolError> + Send + 'static,
+        handler: impl Fn(&str) -> Result<String, ToolError> + Send + Sync + 'static,
     ) -> Self {
-        self.handlers.insert(tool_name.into(), Box::new(handler));
+        self.handlers.lock().unwrap().insert(tool_name.into(), Box::new(handler));
         self
     }
 }
 
 impl ToolExecutor for StaticToolExecutor {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
-        self.handlers
-            .get_mut(tool_name)
-            .ok_or_else(|| ToolError::new(format!("unknown tool: {tool_name}")))?(input)
+        let guard = self.handlers.lock().unwrap();
+        let handler = guard.get(tool_name)
+            .ok_or_else(|| ToolError::new(format!("unknown tool: {tool_name}")))?;
+        handler(input)
     }
 }
 

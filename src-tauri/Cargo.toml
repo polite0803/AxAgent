@@ -1,9 +1,9 @@
 [workspace]
-members = [".", "crates/core", "crates/code_engine", "crates/providers", "crates/gateway", "crates/migration", "crates/agent", "crates/runtime", "crates/trajectory", "crates/telemetry", "crates/plugins", "crates/tools"]
+members = [".", "crates/core", "crates/code_engine", "crates/providers", "crates/gateway", "crates/migration", "crates/agent", "crates/runtime", "crates/trajectory", "crates/telemetry", "crates/plugins", "crates/tools", "crates/acp"]
 resolver = "2"
 
 [workspace.package]
-version = "1.3.5"
+version = "1.3.6"
 edition = "2021"
 license = "AGPL-3.0-only"
 
