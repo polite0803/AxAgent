@@ -147,6 +147,7 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           version: '27.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
