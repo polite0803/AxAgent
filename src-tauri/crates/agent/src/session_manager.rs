@@ -2,7 +2,7 @@
 
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
-use crate::tool_registry::ToolRegistry;
+use crate::ToolRegistry;
 use axagent_core::repo::agent_session;
 use axagent_runtime::{
     compact_session, should_compact, CompactionConfig, ConversationRuntime, HookEvent,

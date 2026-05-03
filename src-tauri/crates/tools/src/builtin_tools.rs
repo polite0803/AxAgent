@@ -1,5 +1,5 @@
-use crate::error::{AxAgentError, Result};
-use crate::mcp_client::McpToolResult;
+use axagent_core::error::{AxAgentError, Result};
+use axagent_core::mcp_client::McpToolResult;
 use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -179,68 +179,12 @@ pub fn list_all_builtin_handlers() -> Vec<(String, String)> {
 
 pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
     vec![
-        BuiltinServerDefinition {
-            server_id: "builtin-fetch".to_string(),
-            server_name: "@axagent/fetch".to_string(),
-            tools: vec![
-                BuiltinToolDefinition {
-                    tool_name: "fetch_url".to_string(),
-                    description: "Fetch the content of a URL and return it as plain text. Use this when you need to read the content of a webpage.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "url": {
-                                "type": "string",
-                                "description": "The URL to fetch"
-                            },
-                            "max_length": {
-                                "type": "integer",
-                                "description": "Maximum number of characters to return",
-                                "default": 5000
-                            }
-                        },
-                        "required": ["url"]
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "fetch_markdown".to_string(),
-                    description: "Fetch a URL and convert it to Markdown format. Best for documentation, articles, and technical content.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "url": {
-                                "type": "string",
-                                "description": "The URL to fetch"
-                            },
-                            "max_length": {
-                                "type": "integer",
-                                "description": "Maximum number of characters to return",
-                                "default": 10000
-                            }
-                        },
-                        "required": ["url"]
-                    }),
-                },
-            ],
-        },
+        // @axagent/fetch 已删除 (fetch_url, fetch_markdown → 使用新 WebFetch)
         BuiltinServerDefinition {
             server_id: "builtin-search-file".to_string(),
             server_name: "@axagent/search-file".to_string(),
             tools: vec![
-                BuiltinToolDefinition {
-                    tool_name: "read_file".to_string(),
-                    description: "Read the entire content of a file from the filesystem. Use this to view source code, configuration files, or any text content.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "Absolute or relative path to the file"
-                            }
-                        },
-                        "required": ["path"]
-                    }),
-                },
+                // read_file, search_files, grep_content 已删除 (→ 使用新 FileRead/Glob/Grep)
                 BuiltinToolDefinition {
                     tool_name: "list_directory".to_string(),
                     description: "List all files and directories in a given path.".to_string(),
@@ -255,105 +199,14 @@ pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
                         }
                     }),
                 },
-                BuiltinToolDefinition {
-                    tool_name: "search_files".to_string(),
-                    description: "Search for files by name pattern in a directory tree.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "Root path to search",
-                                "default": "."
-                            },
-                            "pattern": {
-                                "type": "string",
-                                "description": "Glob pattern to match file names",
-                                "default": "*"
-                            },
-                            "max_results": {
-                                "type": "integer",
-                                "description": "Maximum number of results",
-                                "default": 50
-                            }
-                        }
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "grep_content".to_string(),
-                    description: "Search for a text pattern within file contents across a directory tree. Returns matching lines with file paths and line numbers. Use this to find specific code, text, or patterns inside files.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "Root directory to search in",
-                                "default": "."
-                            },
-                            "pattern": {
-                                "type": "string",
-                                "description": "Text pattern to search for in file contents"
-                            },
-                            "file_pattern": {
-                                "type": "string",
-                                "description": "Glob pattern to filter files (e.g. '*.rs', '*.ts')",
-                                "default": "*"
-                            },
-                            "max_results": {
-                                "type": "integer",
-                                "description": "Maximum number of matching lines to return",
-                                "default": 50
-                            }
-                        },
-                        "required": ["pattern"]
-                    }),
-                },
             ],
         },
+        // @axagent/filesystem: write_file, edit_file 已删除 (→ 使用新 FileWrite/FileEdit)
         BuiltinServerDefinition {
             server_id: "builtin-filesystem".to_string(),
             server_name: "@axagent/filesystem".to_string(),
             tools: vec![
-                BuiltinToolDefinition {
-                    tool_name: "write_file".to_string(),
-                    description: "Write content to a file, creating it if it doesn't exist or overwriting if it does.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "File path to write to"
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "Content to write to the file"
-                            }
-                        },
-                        "required": ["path", "content"]
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "edit_file".to_string(),
-                    description: "Edit a file by replacing the first occurrence of old_str with new_str.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "File path to edit"
-                            },
-                            "old_str": {
-                                "type": "string",
-                                "description": "String to find and replace"
-                            },
-                            "new_str": {
-                                "type": "string",
-                                "description": "Replacement string"
-                            }
-                        },
-                        "required": ["path", "old_str", "new_str"]
-                    }),
-                },
+                // write_file, edit_file 已删除 (→ 使用新 FileWrite/FileEdit)
                 BuiltinToolDefinition {
                     tool_name: "delete_file".to_string(),
                     description: "Delete a file from the filesystem.".to_string(),
@@ -434,25 +287,7 @@ pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
             server_id: "builtin-system".to_string(),
             server_name: "@axagent/system".to_string(),
             tools: vec![
-                BuiltinToolDefinition {
-                    tool_name: "run_command".to_string(),
-                    description: "Execute a shell command and return its output.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "command": {
-                                "type": "string",
-                                "description": "Shell command to execute"
-                            },
-                            "timeout_secs": {
-                                "type": "integer",
-                                "description": "Timeout in seconds for command execution",
-                                "default": 30
-                            }
-                        },
-                        "required": ["command"]
-                    }),
-                },
+                // run_command 已删除 (→ 使用新 Bash)
                 BuiltinToolDefinition {
                     tool_name: "get_system_info".to_string(),
                     description: "Get information about the system including OS, architecture, home directory, and uptime.".to_string(),
@@ -1512,28 +1347,7 @@ pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
                 },
             ],
         },
-        BuiltinServerDefinition {
-            server_id: "builtin-code-edit".to_string(),
-            server_name: "@axagent/code-edit".to_string(),
-            tools: vec![
-                BuiltinToolDefinition {
-                    tool_name: "search_replace".to_string(),
-                    description: "Perform precise search-and-replace edits on text files. Supports optional line range constraints and replace-all mode. Use this for targeted code modifications instead of rewriting entire files.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {"type": "string", "description": "Absolute path to the file to edit"},
-                            "old_str": {"type": "string", "description": "The exact text to search for"},
-                            "new_str": {"type": "string", "description": "The text to replace old_str with"},
-                            "start_line": {"type": "integer", "description": "Starting line number (1-based)"},
-                            "end_line": {"type": "integer", "description": "Ending line number (1-based, inclusive)"},
-                            "replace_all": {"type": "boolean", "description": "Replace all occurrences", "default": false}
-                        },
-                        "required": ["path", "old_str", "new_str"]
-                    }),
-                },
-            ],
-        },
+        // @axagent/code-edit 已删除 (search_replace → 使用新 FileEdit)
         BuiltinServerDefinition {
             server_id: "builtin-git".to_string(),
             server_name: "@axagent/git".to_string(),
@@ -1756,35 +1570,7 @@ pub fn get_dynamic_builtin_tools() -> std::collections::BTreeMap<String, Builtin
         },
     );
 
-    tools.insert(
-        "web_search".to_string(),
-        BuiltinDynamicTool {
-            server_id: "builtin-search".to_string(),
-            server_name: "@axagent/search".to_string(),
-            tool_name: "web_search".to_string(),
-            description: "Search the web using a configured search provider (Tavily, Zhipu, or Bocha). Returns a list of relevant results with titles, URLs, and content snippets.".to_string(),
-            input_schema: serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Search query string"
-                    },
-                    "max_results": {
-                        "type": "integer",
-                        "description": "Maximum number of results to return",
-                        "default": 5
-                    },
-                    "timeout_ms": {
-                        "type": "integer",
-                        "description": "Timeout in milliseconds for the search request",
-                        "default": 15000
-                    }
-                },
-                "required": ["query"]
-            }),
-        },
-    );
+    // web_search 已删除 (→ 使用新 WebSearch)
 
     tools.insert(
         "generate_image".to_string(),
@@ -1882,46 +1668,7 @@ pub fn get_dynamic_builtin_tools() -> std::collections::BTreeMap<String, Builtin
         },
     );
 
-    tools.insert(
-        "search_replace".to_string(),
-        BuiltinDynamicTool {
-            server_id: "builtin-code-edit".to_string(),
-            server_name: "@axagent/code-edit".to_string(),
-            tool_name: "search_replace".to_string(),
-            description: "Perform precise search-and-replace edits on text files. Finds the first occurrence of old_str in the specified file and replaces it with new_str. Supports optional line range constraints for disambiguation. Use this for targeted code modifications instead of rewriting entire files.".to_string(),
-            input_schema: serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Absolute path to the file to edit"
-                    },
-                    "old_str": {
-                        "type": "string",
-                        "description": "The exact text to search for. Must match exactly including whitespace and indentation."
-                    },
-                    "new_str": {
-                        "type": "string",
-                        "description": "The text to replace old_str with"
-                    },
-                    "start_line": {
-                        "type": "integer",
-                        "description": "Optional starting line number to constrain the search range (1-based)"
-                    },
-                    "end_line": {
-                        "type": "integer",
-                        "description": "Optional ending line number to constrain the search range (1-based, inclusive)"
-                    },
-                    "replace_all": {
-                        "type": "boolean",
-                        "description": "If true, replace all occurrences instead of just the first one",
-                        "default": false
-                    }
-                },
-                "required": ["path", "old_str", "new_str"]
-            }),
-        },
-    );
+    // search_replace 已删除 (→ 使用新 FileEdit)
 
     tools.insert(
         "git_status".to_string(),

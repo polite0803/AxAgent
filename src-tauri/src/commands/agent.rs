@@ -1119,7 +1119,7 @@ pub async fn agent_query(
     };
 
     // Set current conversation ID for builtin tools that need parent context (e.g., task tool)
-    axagent_core::builtin_tools_registry::set_current_conversation_id(&conversation_id);
+    axagent_tools::builtin_tools::set_current_conversation_id(&conversation_id);
 
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = request
@@ -2094,7 +2094,7 @@ struct SkillTaskContext {
 
 use std::sync::RwLock;
 
-static SKILL_MCP_REGISTRY: std::sync::OnceLock<axagent_agent::McpRegistry> =
+static SKILL_MCP_REGISTRY: std::sync::OnceLock<axagent_tools::registry::McpRegistry> =
     std::sync::OnceLock::new();
 
 #[derive(Clone)]
@@ -2158,8 +2158,8 @@ fn get_skill_output_tracker() -> &'static SkillOutputTracker {
     SKILL_OUTPUT_TRACKER.get_or_init(SkillOutputTracker::new)
 }
 
-fn get_skill_mcp_registry() -> &'static axagent_agent::McpRegistry {
-    SKILL_MCP_REGISTRY.get_or_init(axagent_agent::McpRegistry::new)
+fn get_skill_mcp_registry() -> &'static axagent_tools::registry::McpRegistry {
+    SKILL_MCP_REGISTRY.get_or_init(axagent_tools::registry::McpRegistry::new)
 }
 
 fn detect_inter_skill_dependencies(
@@ -2420,7 +2420,7 @@ impl SkillExecutionContext {
         }
     }
 
-    fn mcp_registry(&self) -> &'static axagent_agent::McpRegistry {
+    fn mcp_registry(&self) -> &'static axagent_tools::registry::McpRegistry {
         get_skill_mcp_registry()
     }
 }

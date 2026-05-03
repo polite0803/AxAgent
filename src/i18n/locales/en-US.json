@@ -3273,5 +3273,19 @@
       "title": "Skill Proposal",
       "viewContent": "View content"
     }
+  },
+  "tool": {
+    "common": {
+      "notFound": "Tool not found",
+      "permissionDenied": "Permission denied",
+      "invalidInput": "Invalid input",
+      "executionFailed": "Execution failed",
+      "timeout": "Execution timed out",
+      "cancelled": "Cancelled"
+    },
+    "tray": {
+      "show": "Show",
+      "quit": "Quit AxAgent"
+    }
   }
 }

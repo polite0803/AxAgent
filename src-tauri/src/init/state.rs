@@ -27,7 +27,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         let db_conn = sea_db.clone();
         let mk = master_key;
         let vs = vector_store_arc.clone();
-        axagent_core::builtin_tools::set_knowledge_search_callback(std::sync::Arc::new(
+        axagent_tools::builtin_handlers::set_knowledge_search_callback(std::sync::Arc::new(
             move |base_id: &str, query: &str, top_k: usize| {
                 let db = db_conn.clone();
                 let vs2 = vs.clone();
@@ -38,7 +38,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                         crate::indexing::search_knowledge(&db, &mk, &vs2, &bid, &q, top_k).await?;
                     Ok(results
                         .into_iter()
-                        .map(|r| axagent_core::builtin_tools::KnowledgeSearchHit {
+                        .map(|r| axagent_tools::builtin_handlers::KnowledgeSearchHit {
                             document_id: r.document_id,
                             chunk_index: r.chunk_index,
                             content: r.content,

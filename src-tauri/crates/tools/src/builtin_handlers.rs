@@ -1,12 +1,13 @@
-use crate::builtin_tools_registry::{
+#![allow(dead_code, unused_imports)]
+use crate::builtin_tools::{
     get_global_db_path, get_global_sea_db, get_handler, register_builtin_handler, BoxedToolHandler,
 };
-use crate::command_validator::CommandValidator;
-use crate::entity::{
+use axagent_core::command_validator::CommandValidator;
+use axagent_core::entity::{
     knowledge_documents, knowledge_entities, knowledge_flows, knowledge_interfaces,
 };
-use crate::error::{AxAgentError, Result};
-use crate::mcp_client::McpToolResult;
+use axagent_core::error::{AxAgentError, Result};
+use axagent_core::mcp_client::McpToolResult;
 use base64::Engine;
 use regex::Regex;
 use sea_orm::{ActiveModelTrait, Set};
@@ -55,49 +56,9 @@ fn save_skills_metadata(path: &std::path::Path, skills: &[SkillMetadata]) -> Res
 }
 
 pub fn init_builtin_handlers() {
-    register_builtin_handler(
-        "@axagent/fetch",
-        "fetch_url",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default();
-                let max_length = args
-                    .get("max_length")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                fetch_url(url, max_length).await
-            })
-        }),
-    );
+    // fetch_url, fetch_markdown → WebFetch 已删除
 
-    register_builtin_handler(
-        "@axagent/fetch",
-        "fetch_markdown",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default();
-                let max_length = args
-                    .get("max_length")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                fetch_markdown(url, max_length).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/search-file",
-        "read_file",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                read_file(path).await
-            })
-        }),
-    );
+    // read_file → FileRead 已删除
 
     register_builtin_handler(
         "@axagent/search-file",
@@ -110,84 +71,7 @@ pub fn init_builtin_handlers() {
         }),
     );
 
-    register_builtin_handler(
-        "@axagent/search-file",
-        "search_files",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
-                let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("*");
-                let max_results = args
-                    .get("max_results")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                search_files(path, pattern, max_results).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/search-file",
-        "grep_content",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
-                let pattern = args
-                    .get("pattern")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let file_pattern = args
-                    .get("file_pattern")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("*");
-                let max_results = args
-                    .get("max_results")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                grep_content(path, pattern, file_pattern, max_results).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/filesystem",
-        "write_file",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let content = args
-                    .get("content")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                write_file(path, content).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/filesystem",
-        "edit_file",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let old_str = args
-                    .get("old_str")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let new_str = args
-                    .get("new_str")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                edit_file(path, old_str, new_str).await
-            })
-        }),
-    );
+    // search_files, grep_content → Glob/Grep; write_file, edit_file → FileWrite/FileEdit 已删除
 
     register_builtin_handler(
         "@axagent/filesystem",
@@ -263,23 +147,7 @@ pub fn init_builtin_handlers() {
         }),
     );
 
-    register_builtin_handler(
-        "@axagent/system",
-        "run_command",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let command = args
-                    .get("command")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let timeout_secs = args
-                    .get("timeout_secs")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(30);
-                run_command(command, timeout_secs).await
-            })
-        }),
-    );
+    // run_command → Bash 已删除
 
     register_builtin_handler(
         "@axagent/system",
@@ -573,46 +441,7 @@ pub fn init_builtin_handlers() {
         }),
     );
 
-    register_builtin_handler(
-        "@axagent/search",
-        "web_search",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let query = args
-                    .get("query")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let provider_type = args
-                    .get("provider_type")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let api_key = args
-                    .get("api_key")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let endpoint = args.get("endpoint").and_then(|v| v.as_str());
-                let max_results = args
-                    .get("max_results")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as i32)
-                    .unwrap_or(5);
-                let timeout_ms = args
-                    .get("timeout_ms")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as i32)
-                    .unwrap_or(15000);
-                web_search(
-                    query,
-                    provider_type,
-                    api_key,
-                    endpoint,
-                    max_results,
-                    timeout_ms,
-                )
-                .await
-            })
-        }),
-    );
+    // web_search → WebSearch 已删除
 
     register_builtin_handler(
         "@axagent/skills",
@@ -724,15 +553,17 @@ pub fn init_builtin_handlers() {
                     .get("window_title")
                     .and_then(|v| v.as_str())
                     .map(String::from);
-                let region = args
-                    .get("region")
-                    .map(|v| crate::screen_capture::CaptureRegion {
-                        x: v.get("x").and_then(|x| x.as_i64()).unwrap_or(0) as i32,
-                        y: v.get("y").and_then(|y| y.as_i64()).unwrap_or(0) as i32,
-                        width: v.get("width").and_then(|w| w.as_u64()).unwrap_or(0) as u32,
-                        height: v.get("height").and_then(|h| h.as_u64()).unwrap_or(0) as u32,
-                    });
-                match crate::computer_control::screen_capture(monitor, region, window_title).await {
+                let region =
+                    args.get("region")
+                        .map(|v| axagent_core::screen_capture::CaptureRegion {
+                            x: v.get("x").and_then(|x| x.as_i64()).unwrap_or(0) as i32,
+                            y: v.get("y").and_then(|y| y.as_i64()).unwrap_or(0) as i32,
+                            width: v.get("width").and_then(|w| w.as_u64()).unwrap_or(0) as u32,
+                            height: v.get("height").and_then(|h| h.as_u64()).unwrap_or(0) as u32,
+                        });
+                match axagent_core::computer_control::screen_capture(monitor, region, window_title)
+                    .await
+                {
                     Ok(result) => Ok(McpToolResult {
                         content: serde_json::to_string(&result).unwrap(),
                         is_error: false,
@@ -748,7 +579,7 @@ pub fn init_builtin_handlers() {
         "find_ui_elements",
         make_handler(|args: Value| {
             Box::pin(async move {
-                let query = crate::ui_automation::UIElementQuery {
+                let query = axagent_core::ui_automation::UIElementQuery {
                     role: args.get("role").and_then(|v| v.as_str()).map(String::from),
                     name_contains: args
                         .get("name_contains")
@@ -765,7 +596,7 @@ pub fn init_builtin_handlers() {
                         .map(String::from),
                     max_depth: None,
                 };
-                match crate::computer_control::find_ui_elements(query).await {
+                match axagent_core::computer_control::find_ui_elements(query).await {
                     Ok(elements) => Ok(McpToolResult {
                         content: serde_json::to_string(&elements).unwrap(),
                         is_error: false,
@@ -787,7 +618,7 @@ pub fn init_builtin_handlers() {
                     .get("button")
                     .and_then(|v| v.as_str())
                     .map(String::from);
-                crate::computer_control::mouse_click(x, y, button)
+                axagent_core::computer_control::mouse_click(x, y, button)
                     .await
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 Ok(McpToolResult {
@@ -809,7 +640,7 @@ pub fn init_builtin_handlers() {
                     .unwrap_or_default();
                 let x = args.get("x").and_then(|v| v.as_f64());
                 let y = args.get("y").and_then(|v| v.as_f64());
-                crate::computer_control::type_text(text.to_string(), x, y)
+                axagent_core::computer_control::type_text(text.to_string(), x, y)
                     .await
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 Ok(McpToolResult {
@@ -835,7 +666,7 @@ pub fn init_builtin_handlers() {
                             .collect()
                     })
                     .unwrap_or_default();
-                crate::computer_control::press_key(key.to_string(), modifiers)
+                axagent_core::computer_control::press_key(key.to_string(), modifiers)
                     .await
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 Ok(McpToolResult {
@@ -854,7 +685,7 @@ pub fn init_builtin_handlers() {
                 let x = args.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0);
                 let y = args.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0);
                 let delta = args.get("delta").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-                crate::computer_control::mouse_scroll(x, y, delta)
+                axagent_core::computer_control::mouse_scroll(x, y, delta)
                     .await
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 Ok(McpToolResult {
@@ -881,7 +712,7 @@ pub fn init_builtin_handlers() {
                 let result = rt
                     .block_on(async {
                         let mut client =
-                            crate::browser_automation::PlaywrightClient::launch().await?;
+                            axagent_core::browser_automation::PlaywrightClient::launch().await?;
                         client.navigate(url).await
                     })
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -909,7 +740,7 @@ pub fn init_builtin_handlers() {
                 let result = rt
                     .block_on(async {
                         let mut client =
-                            crate::browser_automation::PlaywrightClient::launch().await?;
+                            axagent_core::browser_automation::PlaywrightClient::launch().await?;
                         client.screenshot(full_page).await
                     })
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -938,7 +769,8 @@ pub fn init_builtin_handlers() {
                     .build()
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 rt.block_on(async {
-                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    let mut client =
+                        axagent_core::browser_automation::PlaywrightClient::launch().await?;
                     client.click(selector).await
                 })
                 .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -971,7 +803,8 @@ pub fn init_builtin_handlers() {
                     .build()
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 rt.block_on(async {
-                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    let mut client =
+                        axagent_core::browser_automation::PlaywrightClient::launch().await?;
                     client.fill(selector, value).await
                 })
                 .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -1004,7 +837,8 @@ pub fn init_builtin_handlers() {
                     .build()
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 rt.block_on(async {
-                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    let mut client =
+                        axagent_core::browser_automation::PlaywrightClient::launch().await?;
                     client.type_text(selector, text).await
                 })
                 .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -1035,7 +869,7 @@ pub fn init_builtin_handlers() {
                 let text = rt
                     .block_on(async {
                         let mut client =
-                            crate::browser_automation::PlaywrightClient::launch().await?;
+                            axagent_core::browser_automation::PlaywrightClient::launch().await?;
                         client.extract_text(selector).await
                     })
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -1066,7 +900,7 @@ pub fn init_builtin_handlers() {
                 let elements = rt
                     .block_on(async {
                         let mut client =
-                            crate::browser_automation::PlaywrightClient::launch().await?;
+                            axagent_core::browser_automation::PlaywrightClient::launch().await?;
                         client.extract_all(selector).await
                     })
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -1092,7 +926,7 @@ pub fn init_builtin_handlers() {
                 let html = rt
                     .block_on(async {
                         let mut client =
-                            crate::browser_automation::PlaywrightClient::launch().await?;
+                            axagent_core::browser_automation::PlaywrightClient::launch().await?;
                         client.get_content().await
                     })
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -1125,7 +959,8 @@ pub fn init_builtin_handlers() {
                     .build()
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 rt.block_on(async {
-                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    let mut client =
+                        axagent_core::browser_automation::PlaywrightClient::launch().await?;
                     client.select_option(selector, value).await
                 })
                 .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -1158,7 +993,8 @@ pub fn init_builtin_handlers() {
                     .build()
                     .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
                 rt.block_on(async {
-                    let mut client = crate::browser_automation::PlaywrightClient::launch().await?;
+                    let mut client =
+                        axagent_core::browser_automation::PlaywrightClient::launch().await?;
                     client.wait_for(selector, timeout).await
                 })
                 .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
@@ -1452,40 +1288,7 @@ Rules:
         }),
     );
 
-    register_builtin_handler(
-        "@axagent/code-edit",
-        "search_replace",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let old_str = args
-                    .get("old_str")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let new_str = args
-                    .get("new_str")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let start_line = args
-                    .get("start_line")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                let end_line = args
-                    .get("end_line")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                let replace_all = args
-                    .get("replace_all")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-
-                search_replace_file(path, old_str, new_str, start_line, end_line, replace_all).await
-            })
-        }),
-    );
+    // search_replace → FileEdit 已删除
 
     register_builtin_handler(
         "@axagent/git",
@@ -2293,7 +2096,7 @@ async fn web_search(
         });
     }
 
-    match crate::search::execute_search(
+    match axagent_core::search::execute_search(
         provider_type,
         endpoint,
         api_key,
@@ -4154,6 +3957,7 @@ fn sea_db() -> Result<Arc<sea_orm::DatabaseConnection>> {
     get_global_sea_db().ok_or_else(|| AxAgentError::Internal("database not initialized".into()))
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn create_knowledge_entity_tool(
     kb_id: &str,
     name: &str,
@@ -4425,7 +4229,7 @@ async fn git_status_tool(repo_path: &str) -> Result<McpToolResult> {
         });
     }
 
-    match crate::git_tools::GitTools::get_status(repo_path) {
+    match axagent_core::git_tools::GitTools::get_status(repo_path) {
         Ok(entries) => {
             let output: Vec<serde_json::Value> = entries
                 .iter()
@@ -4458,8 +4262,8 @@ async fn git_diff_tool(repo_path: &str, base_branch: Option<&str>) -> Result<Mcp
     }
 
     let result = match base_branch {
-        Some(branch) => crate::git_tools::GitTools::get_branch_diff(repo_path, branch),
-        None => crate::git_tools::GitTools::get_staged_diff(repo_path),
+        Some(branch) => axagent_core::git_tools::GitTools::get_branch_diff(repo_path, branch),
+        None => axagent_core::git_tools::GitTools::get_staged_diff(repo_path),
     };
 
     match result {
@@ -4489,7 +4293,7 @@ async fn git_commit_tool(repo_path: &str, message: &str, stage_all: bool) -> Res
     }
 
     if stage_all {
-        if let Err(e) = crate::git_tools::GitTools::stage_all(repo_path) {
+        if let Err(e) = axagent_core::git_tools::GitTools::stage_all(repo_path) {
             return Ok(McpToolResult {
                 content: format!("Error staging files: {}", e),
                 is_error: true,
@@ -4497,7 +4301,7 @@ async fn git_commit_tool(repo_path: &str, message: &str, stage_all: bool) -> Res
         }
     }
 
-    match crate::git_tools::GitTools::commit(repo_path, message) {
+    match axagent_core::git_tools::GitTools::commit(repo_path, message) {
         Ok(output) => Ok(McpToolResult {
             content: output,
             is_error: false,
@@ -4517,7 +4321,7 @@ async fn git_log_tool(repo_path: &str, max_count: usize) -> Result<McpToolResult
         });
     }
 
-    match crate::git_tools::GitTools::get_log(repo_path, max_count) {
+    match axagent_core::git_tools::GitTools::get_log(repo_path, max_count) {
         Ok(entries) => Ok(McpToolResult {
             content: serde_json::to_string(&entries).unwrap_or_default(),
             is_error: false,
@@ -4542,7 +4346,7 @@ async fn git_branch_tool(
     }
 
     match action {
-        "list" => match crate::git_tools::GitTools::list_branches(repo_path) {
+        "list" => match axagent_core::git_tools::GitTools::list_branches(repo_path) {
             Ok(branches) => Ok(McpToolResult {
                 content: serde_json::to_string(&branches).unwrap_or_default(),
                 is_error: false,
@@ -4553,7 +4357,7 @@ async fn git_branch_tool(
             }),
         },
         "create" => match name {
-            Some(n) => match crate::git_tools::GitTools::create_branch(repo_path, n) {
+            Some(n) => match axagent_core::git_tools::GitTools::create_branch(repo_path, n) {
                 Ok(output) => Ok(McpToolResult {
                     content: format!("Created and switched to branch '{}': {}", n, output),
                     is_error: false,
@@ -4569,7 +4373,7 @@ async fn git_branch_tool(
             }),
         },
         "switch" => match name {
-            Some(n) => match crate::git_tools::GitTools::switch_branch(repo_path, n) {
+            Some(n) => match axagent_core::git_tools::GitTools::switch_branch(repo_path, n) {
                 Ok(output) => Ok(McpToolResult {
                     content: format!("Switched to branch '{}': {}", n, output),
                     is_error: false,
@@ -4603,8 +4407,8 @@ async fn git_review_tool(repo_path: &str, base_branch: Option<&str>) -> Result<M
     }
 
     let context = match base_branch {
-        Some(branch) => crate::git_tools::GitTools::generate_pr_context(repo_path, branch),
-        None => crate::git_tools::GitTools::generate_commit_context(repo_path),
+        Some(branch) => axagent_core::git_tools::GitTools::generate_pr_context(repo_path, branch),
+        None => axagent_core::git_tools::GitTools::generate_commit_context(repo_path),
     };
 
     match context {
@@ -4850,6 +4654,7 @@ fn url_encode(s: &str) -> String {
 
 // ─── Sequential Thinking ──────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 async fn sequential_thinking(
     thought: &str,
     _next_thought_needed: bool,
@@ -6781,7 +6586,7 @@ async fn task_tool_handler(
     description: &str,
     _prompt: &str,
 ) -> Result<McpToolResult> {
-    use crate::builtin_tools_registry::get_current_conversation_id;
+    use crate::builtin_tools::get_current_conversation_id;
     use rusqlite::params;
     use uuid::Uuid;
 
@@ -6798,7 +6603,7 @@ async fn task_tool_handler(
     let child_id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().timestamp_millis();
 
-    let db_path_str = match crate::builtin_tools_registry::get_global_db_path() {
+    let db_path_str = match crate::builtin_tools::get_global_db_path() {
         Some(p) => p,
         None => {
             return Ok(McpToolResult {

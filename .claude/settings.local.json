@@ -37,7 +37,30 @@
       "Bash(set RUSTC_WORKSPACE_WRAPPER=)",
       "Bash(findstr /n \"invoke\" \"D:\\\\OneManager\\\\AxAgent\\\\src\\\\stores\\\\feature\\\\llmWikiStore.ts\")",
       "Bash(git tag *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(cargo fix *)",
+      "Bash(awk '/^\\\\/\\\\/ -+$/{ if\\(prev\\) print prev; prev=NR; next } { prev=0 }' builtin_handlers.rs)",
+      "Bash(awk '/^\\\\/\\\\/ -+$/{print NR\": \"$0}' builtin_handlers.rs)",
+      "Bash(grep -v '^.*//')",
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(awk -F: '{sum+=$2} END {print \"总计: \"sum\" 处\"}')",
+      "Bash(grep -n 'commands::.*::.*,.*$' src/lib.rs)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/zh-CN.json','utf8'\\)\\); console.log\\('zh-CN.json: OK'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/en-US.json','utf8'\\)\\); console.log\\('en-US.json: OK'\\)\")",
+      "Bash(rg -n 'ToolError::invalid_input\\\\\\(\"' *.rs)",
+      "Bash(rg -n 'ToolError::execution_failed\\\\\\(\"' *.rs)",
+      "Bash(rg -n 'ToolError::permission_denied\\\\\\(\"' *.rs)",
+      "Bash(rg -n 'ToolError::not_found\\\\\\(\"' *.rs)",
+      "Bash(sed -i 's/ToolError::invalid_input\\(\"/ToolError::invalid_input_for\\(\"WebFetch\", \"/g' web_fetch.rs)",
+      "Bash(sed -i 's/ToolError::invalid_input\\(\"/ToolError::invalid_input_for\\(\"WebSearch\", \"/g' web_search.rs)",
+      "Bash(sed -i 's/invalid_input_for\\(\"X\",/invalid_input_for\\(\"WebFetch\",/g' web_fetch.rs)",
+      "Bash(sed -i 's/invalid_input_for\\(\"X\",/invalid_input_for\\(\"WebSearch\",/g' web_search.rs)",
+      "Bash(rg -n -E 'ToolResult::success\\\\\\(\"|ToolResult::error\\\\\\(\"|PermissionResult::Ask\\\\\\(\"|PermissionResult::Deny\\\\\\(\"|\\\\.push_str\\\\\\(\"|format!\\\\\\(\"|description.*=>' --type rust)",
+      "Bash(sed -i 's/ToolError::execution_failed\\(\"未找到显示器\"\\)/ToolError::execution_failed_for\\(\"ComputerUse\", \"未找到显示器\"\\)/g' computer_use.rs)",
+      "Bash(sed -i 's/ToolError::execution_failed\\(\"截图命令执行失败\"\\)/ToolError::execution_failed_for\\(\"ComputerUse\", \"截图命令执行失败\"\\)/g' computer_use.rs)",
+      "Bash(sed -i 's/ToolError::invalid_input\\(\"todos 必须是数组\"\\)/ToolError::invalid_input_for\\(\"TodoWrite\", \"todos 必须是数组\"\\)/g' todo_write.rs)",
+      "Bash(sed -i 's/ToolError::invalid_input\\(\"questions 必须是数组\"\\)/ToolError::invalid_input_for\\(\"AskUserQuestion\", \"questions 必须是数组\"\\)/g' todo_write.rs)",
+      "Bash(sed -i 's/ToolError::execution_failed\\(\"无效的 Notebook 格式\"\\)/ToolError::execution_failed_for\\(\"NotebookEdit\", \"无效的 Notebook 格式\"\\)/g' todo_write.rs)"
     ]
   }
 }

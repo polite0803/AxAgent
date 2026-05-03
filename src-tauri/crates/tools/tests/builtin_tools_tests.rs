@@ -1,8 +1,9 @@
-use axagent_core::builtin_tools;
+// builtin_tools 已迁移至 axagent-tools crate
+use axagent_tools::builtin_handlers::SkillMetadata;
 
 #[test]
 fn test_builtin_tools_module_has_skill_metadata() {
-    let metadata = builtin_tools::SkillMetadata {
+    let metadata = SkillMetadata {
         name: "test_skill".to_string(),
         description: "A test skill".to_string(),
         version: "1.0.0".to_string(),
@@ -15,7 +16,7 @@ fn test_builtin_tools_module_has_skill_metadata() {
 #[test]
 fn test_builtin_tools_skill_metadata_deserializes() {
     let json = r#"{"name":"test","description":"desc","version":"1.0"}"#;
-    let metadata: builtin_tools::SkillMetadata = serde_json::from_str(json).unwrap();
+    let metadata: SkillMetadata = serde_json::from_str(json).unwrap();
     assert_eq!(metadata.name, "test");
 }
 

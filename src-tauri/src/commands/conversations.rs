@@ -933,7 +933,7 @@ async fn execute_tool_call(
         "builtin" => {
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_core::builtin_tools::dispatch(
+                axagent_tools::builtin_handlers::dispatch(
                     &server.name,
                     &tool_call.function.name,
                     arguments,

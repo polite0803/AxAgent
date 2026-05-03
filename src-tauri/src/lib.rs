@@ -32,9 +32,9 @@ pub fn run() {
         )
         .init();
 
-    axagent_core::builtin_tools::init_builtin_handlers();
+    axagent_tools::builtin_handlers::init_builtin_handlers();
 
-    if let Err(e) = axagent_core::builtin_tools_registry::validate_builtin_tools() {
+    if let Err(e) = axagent_tools::builtin_tools::validate_builtin_tools() {
         tracing::warn!("Builtin tools validation failed: {}", e);
     }
 
@@ -650,6 +650,7 @@ pub fn run() {
             // Metrics
             commands::agent_nudge::get_invoke_metrics,
             commands::agent_nudge::proactive_convert_to_nudge,
+            crate::tray::set_tray_labels,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

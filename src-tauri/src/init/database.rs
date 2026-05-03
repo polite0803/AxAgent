@@ -24,7 +24,7 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
     let master_key = load_or_create_master_key(&key_path, &app_dir)?;
 
     axagent_core::vector_store::register_sqlite_vec_extension();
-    axagent_core::builtin_tools_registry::set_global_db_path(&db_path);
+    axagent_tools::builtin_tools::set_global_db_path(&db_path);
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     let db_handle = rt
@@ -32,9 +32,7 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
     // 注册 SeaORM 连接供 builtin_tools 使用
-    axagent_core::builtin_tools_registry::set_global_sea_db(std::sync::Arc::new(
-        db_handle.conn.clone(),
-    ));
+    axagent_tools::builtin_tools::set_global_sea_db(std::sync::Arc::new(db_handle.conn.clone()));
 
     Ok(DatabaseInitResult {
         db_handle,

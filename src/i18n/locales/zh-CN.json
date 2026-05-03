@@ -3297,5 +3297,19 @@
       "title": "技能提议",
       "viewContent": "查看内容"
     }
+  },
+  "tool": {
+    "common": {
+      "notFound": "工具未找到",
+      "permissionDenied": "权限被拒绝",
+      "invalidInput": "输入参数无效",
+      "executionFailed": "执行失败",
+      "timeout": "执行超时",
+      "cancelled": "已被取消"
+    },
+    "tray": {
+      "show": "显示主窗口",
+      "quit": "退出 AxAgent"
+    }
   }
 }

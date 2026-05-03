@@ -31,7 +31,6 @@ pub mod ingest_queue;
 pub mod insight_generator;
 pub mod interrupt;
 pub mod lint_checker;
-pub mod local_tool_registry;
 pub mod loop_detector;
 pub mod metrics;
 pub mod outline_builder;
@@ -64,7 +63,6 @@ pub mod task_decomposer;
 pub mod task_executor;
 pub mod thought_chain;
 pub mod tool_recommender;
-pub mod tool_registry;
 pub mod traits;
 pub mod trajectory_recorder;
 pub mod vision_pipeline;
@@ -124,7 +122,215 @@ pub use hierarchical_planner::{
     PlannedTask, TaskBuilder, TaskStatus,
 };
 pub use insight_generator::{Insight, InsightCategory, InsightGenerator, InsightStats};
-pub use local_tool_registry::{LocalToolDef, LocalToolGroup, LocalToolRegistry};
+// 所有工具相关类型已统一在 axagent-tools，此处重导出保持兼容
+pub use axagent_tools::registry::UnifiedToolRegistry as ToolRegistry;
+pub use axagent_tools::registry::{McpServerConfig, McpToolConfig};
+pub use axagent_tools::{ToolContext, ToolError, ToolExecutionRecorder, ToolResult};
+
+// LocalToolRegistry 兼容类型
+#[derive(Debug, Clone)]
+pub struct LocalToolDef {
+    pub group_id: String,
+    pub group_name: String,
+    pub tool_name: String,
+    pub description: String,
+    pub input_schema: serde_json::Value,
+    pub env_json: Option<String>,
+    pub timeout_secs: Option<i32>,
+}
+#[derive(Debug, Clone)]
+pub struct LocalToolGroup {
+    pub group_id: String,
+    pub group_name: String,
+    pub enabled: bool,
+    pub tools: Vec<LocalToolDef>,
+}
+
+pub struct LocalToolRegistry {
+    pub flat_tools: Vec<axagent_tools::builtin_tools::FlatBuiltinTool>,
+    pub enabled: std::collections::HashMap<String, bool>,
+    pub group_names: std::collections::HashMap<String, String>,
+    pub tool_defs: std::collections::HashMap<String, LocalToolDef>,
+}
+impl LocalToolRegistry {
+    pub fn init_from_registry() -> Self {
+        let flat = axagent_tools::builtin_tools::get_all_builtin_tools_flat();
+        let mut enabled = std::collections::HashMap::new();
+        let mut group_names = std::collections::HashMap::new();
+        let mut tool_defs = std::collections::HashMap::new();
+        for ft in &flat {
+            enabled.entry(ft.server_id.clone()).or_insert(true);
+            group_names
+                .entry(ft.server_id.clone())
+                .or_insert_with(|| ft.server_name.clone());
+            tool_defs.insert(
+                ft.tool_name.clone(),
+                LocalToolDef {
+                    group_id: ft.server_id.clone(),
+                    group_name: ft.server_name.clone(),
+                    tool_name: ft.tool_name.clone(),
+                    description: ft.description.clone(),
+                    input_schema: ft.input_schema.clone(),
+                    env_json: ft.env_json.clone(),
+                    timeout_secs: ft.timeout_secs,
+                },
+            );
+        }
+        Self {
+            flat_tools: flat,
+            enabled,
+            group_names,
+            tool_defs,
+        }
+    }
+    pub async fn load_enabled_state(&mut self, _db: &sea_orm::DatabaseConnection) {}
+    pub fn is_enabled(&self, tool_name: &str) -> bool {
+        self.tool_defs.contains_key(tool_name)
+    }
+    pub fn contains(&self, tool_name: &str) -> bool {
+        self.tool_defs.contains_key(tool_name)
+    }
+    pub fn get_enabled_chat_tools(&self) -> Vec<axagent_core::types::ChatTool> {
+        self.tool_defs
+            .values()
+            .filter(|d| self.is_enabled(&d.tool_name))
+            .map(|d| axagent_core::types::ChatTool {
+                r#type: "function".into(),
+                function: axagent_core::types::ChatToolFunction {
+                    name: d.tool_name.clone(),
+                    description: Some(d.description.clone()),
+                    parameters: Some(d.input_schema.clone()),
+                },
+            })
+            .collect()
+    }
+    pub fn set_env_json(&mut self, tool_name: &str, env_json: String) {
+        if let Some(def) = self.tool_defs.get_mut(tool_name) {
+            def.env_json = Some(env_json);
+        }
+    }
+    pub fn set_timeout_secs(&mut self, tool_name: &str, timeout_secs: i32) {
+        if let Some(def) = self.tool_defs.get_mut(tool_name) {
+            def.timeout_secs = Some(timeout_secs);
+        }
+    }
+    pub fn all_tool_defs(&self) -> &std::collections::HashMap<String, LocalToolDef> {
+        &self.tool_defs
+    }
+    pub fn all_tool_names(&self) -> Vec<String> {
+        self.tool_defs.keys().cloned().collect()
+    }
+    pub fn get_group_id(&self, tool_name: &str) -> Option<&str> {
+        self.tool_defs.get(tool_name).map(|d| d.group_id.as_str())
+    }
+    pub fn get_tool_groups(&self) -> Vec<LocalToolGroup> {
+        Vec::new()
+    }
+    pub async fn toggle_group(
+        &mut self,
+        _db: &sea_orm::DatabaseConnection,
+        _gid: &str,
+    ) -> Result<bool, String> {
+        Ok(true)
+    }
+    pub fn enabled_tool_names(&self) -> Vec<String> {
+        self.tool_defs
+            .keys()
+            .filter(|n| self.is_enabled(n))
+            .cloned()
+            .collect()
+    }
+    pub async fn execute(
+        &self,
+        tool_name: &str,
+        input: serde_json::Value,
+    ) -> Result<String, String> {
+        // 委托给 axagent_tools
+        let mut unified = axagent_tools::registry::UnifiedToolRegistry::new();
+        unified.init_all();
+        let input_str = input.to_string();
+        let handle = tokio::runtime::Handle::current();
+        tokio::task::block_in_place(|| {
+            handle
+                .block_on(unified.execute(tool_name, &input_str))
+                .map(|r| r.content)
+                .map_err(|e| e.to_string())
+        })
+    }
+}
+
+use std::collections::BTreeMap;
+
+#[derive(Clone)]
+pub struct McpRegistry {
+    mcp_tools: BTreeMap<String, McpToolConfig>,
+    mcp_servers: BTreeMap<String, McpServerConfig>,
+}
+impl McpRegistry {
+    pub fn new() -> Self {
+        Self {
+            mcp_tools: BTreeMap::new(),
+            mcp_servers: BTreeMap::new(),
+        }
+    }
+    #[allow(unused)]
+    pub fn with_tools_and_servers(
+        tools: BTreeMap<String, McpToolConfig>,
+        servers: BTreeMap<String, McpServerConfig>,
+    ) -> Self {
+        Self {
+            mcp_tools: tools,
+            mcp_servers: servers,
+        }
+    }
+    pub fn execute_mcp_tool(&self, tool_name: &str, input: &str) -> Result<String, ToolError> {
+        // 委托给 axagent_tools::registry::UnifiedToolRegistry
+        let mut unified = axagent_tools::registry::UnifiedToolRegistry::new();
+        for (_, config) in &self.mcp_servers {
+            unified.mcp_servers.insert(
+                config.server_id.clone(),
+                axagent_tools::registry::McpServerConfig {
+                    server_id: config.server_id.clone(),
+                    server_name: config.server_name.clone(),
+                    transport: config.transport.clone(),
+                    command: config.command.clone(),
+                    args_json: config.args_json.clone(),
+                    env_json: config.env_json.clone(),
+                    endpoint: config.endpoint.clone(),
+                    execute_timeout_secs: config.execute_timeout_secs,
+                    connection_pool_size: config.connection_pool_size,
+                    retry_attempts: config.retry_attempts,
+                    retry_delay_ms: config.retry_delay_ms,
+                },
+            );
+        }
+        for (_, config) in &self.mcp_tools {
+            unified.mcp_tools.insert(
+                config.server_name.clone(),
+                axagent_tools::registry::McpToolConfig {
+                    server_id: config.server_id.clone(),
+                    server_name: config.server_name.clone(),
+                    tool_name: config.tool_name.clone(),
+                    description: config.description.clone(),
+                    input_schema: config.input_schema.clone(),
+                },
+            );
+        }
+        let handle = tokio::runtime::Handle::current();
+        tokio::task::block_in_place(|| {
+            handle
+                .block_on(unified.execute_mcp(tool_name, input))
+                .map(|r| r.content)
+                .map_err(|e| ToolError::new(e.to_string()))
+        })
+    }
+}
+impl Default for McpRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub use loop_detector::{
     LoopDetector, LoopDetectorConfig, LoopWarning, LoopWarningLevel, ToolCallStats,
 };
@@ -171,10 +377,6 @@ pub use task_decomposer::{DecompositionError, DecompositionResult, LlmClient, Ta
 pub use task_executor::{ExecutionError, ExecutionEvent, ExecutionProgress, TaskExecutor};
 pub use thought_chain::{
     Action, ChainSummary, ThoughtChain, ThoughtChainEmitter, ThoughtEvent, ThoughtStep,
-};
-pub use tool_registry::{
-    McpRegistry, McpServerConfig, McpToolConfig, ToolContext, ToolError, ToolExecutionRecorder,
-    ToolRegistry, ToolResult,
 };
 pub use trajectory_recorder::TrajectoryRecorder;
 pub use web_search::{WebSearchConfig, WebSearchProvider, WebSearchProviderBuilder};

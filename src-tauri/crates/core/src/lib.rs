@@ -4,10 +4,9 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::should_implement_trait)]
 
+// builtin_tools, builtin_tools_registry 已迁移至 axagent-tools crate
 pub mod ast_index;
 pub mod browser_automation;
-pub mod builtin_tools;
-pub mod builtin_tools_registry;
 pub mod cache;
 pub mod cache_persister;
 pub mod cache_snapshot;
