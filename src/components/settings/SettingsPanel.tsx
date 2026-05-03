@@ -58,7 +58,12 @@ interface HookEventItem {
 const HOOK_EVENTS: HookEventItem[] = [
   { event: "PreToolUse", label: "工具使用前", description: "工具调用执行前触发", icon: <Play size={14} /> },
   { event: "PostToolUse", label: "工具使用后", description: "工具调用成功完成后触发", icon: <Code size={14} /> },
-  { event: "PostToolUseFailure", label: "工具使用失败", description: "工具调用失败后触发", icon: <AlertTriangle size={14} /> },
+  {
+    event: "PostToolUseFailure",
+    label: "工具使用失败",
+    description: "工具调用失败后触发",
+    icon: <AlertTriangle size={14} />,
+  },
   { event: "Notification", label: "通知", description: "系统通知事件", icon: <Zap size={14} /> },
   { event: "UserPromptSubmit", label: "用户提交提示", description: "用户提交消息时触发", icon: <Terminal size={14} /> },
   { event: "SessionStart", label: "会话开始", description: "Agent 会话启动时触发", icon: <Play size={14} /> },
@@ -74,7 +79,12 @@ const HOOK_EVENTS: HookEventItem[] = [
   { event: "TaskCompleted", label: "任务完成", description: "任务完成时触发", icon: <Play size={14} /> },
   { event: "Elicitation", label: "信息征询", description: "需要用户提供额外信息时触发", icon: <Terminal size={14} /> },
   { event: "ElicitationResult", label: "征询结果", description: "用户回复征询后触发", icon: <Terminal size={14} /> },
-  { event: "ConfigChange", label: "配置变更", description: "系统配置发生变更时触发", icon: <SlidersHorizontal size={14} /> },
+  {
+    event: "ConfigChange",
+    label: "配置变更",
+    description: "系统配置发生变更时触发",
+    icon: <SlidersHorizontal size={14} />,
+  },
   { event: "InstructionsLoaded", label: "指令加载", description: "Agent 指令加载完成时触发", icon: <Code size={14} /> },
   { event: "FileChanged", label: "文件变更", description: "监控的文件发生变更时触发", icon: <Code size={14} /> },
   { event: "CwdChanged", label: "目录切换", description: "当前工作目录切换时触发", icon: <Terminal size={14} /> },
@@ -208,12 +218,32 @@ const FEATURE_FLAG_META: Array<{
   description: string;
   icon: React.ReactNode;
 }> = [
-  { key: "forkSubagent", label: "Fork 子 Agent", description: "允许 Agent 派生子 Agent 执行并行任务", icon: <Puzzle size={14} /> },
-  { key: "coordinatorMode", label: "协调者模式", description: "Agent 以协调者角色运行，调度多个子任务", icon: <Bot size={14} /> },
-  { key: "proactiveMode", label: "主动模式", description: "Agent 主动预测用户需求并提前执行操作", icon: <Zap size={14} /> },
+  {
+    key: "forkSubagent",
+    label: "Fork 子 Agent",
+    description: "允许 Agent 派生子 Agent 执行并行任务",
+    icon: <Puzzle size={14} />,
+  },
+  {
+    key: "coordinatorMode",
+    label: "协调者模式",
+    description: "Agent 以协调者角色运行，调度多个子任务",
+    icon: <Bot size={14} />,
+  },
+  {
+    key: "proactiveMode",
+    label: "主动模式",
+    description: "Agent 主动预测用户需求并提前执行操作",
+    icon: <Zap size={14} />,
+  },
   { key: "swarmMode", label: "集群模式", description: "启用多 Agent 集群协作完成复杂任务", icon: <Shield size={14} /> },
   { key: "toolConcurrency", label: "工具并发", description: "允许同时执行多个独立工具调用", icon: <Play size={14} /> },
-  { key: "verificationAgent", label: "验证 Agent", description: "启用独立验证 Agent 审查执行结果", icon: <Code size={14} /> },
+  {
+    key: "verificationAgent",
+    label: "验证 Agent",
+    description: "启用独立验证 Agent 审查执行结果",
+    icon: <Code size={14} />,
+  },
   { key: "dreamTask", label: "Dream Task", description: "空闲时执行背景优化和反思任务", icon: <Bot size={14} /> },
 ];
 
@@ -314,64 +344,64 @@ function AgentsTab() {
         </Button>
       </div>
 
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 48 }}>
-          <Spin />
-          <div style={{ marginTop: 12, color: token.colorTextDescription, fontSize: 12 }}>加载中...</div>
-        </div>
-      ) : agents.length === 0 ? (
-        <Card size="small" style={{ borderRadius: 10, textAlign: "center", padding: 32 }}>
-          <Empty description="暂无已注册的 Agent" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        </Card>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {agents.map((agent) => (
-            <Card
-              key={agent.id}
-              size="small"
-              style={{ borderRadius: 10, border: "none", boxShadow: `0 0 0 0.5px ${token.colorBorderSecondary}` }}
-              title={
-                <div className="flex items-center justify-between" style={{ width: "100%" }}>
-                  <Space size={8}>
-                    <Bot size={16} color={token.colorPrimary} />
-                    <Text strong>{agent.name}</Text>
-                    <Tag color={statusColor[agent.status] || "default"}>
-                      {statusLabel[agent.status] || agent.status}
-                    </Tag>
-                  </Space>
-                </div>
-              }
-            >
-              <Descriptions size="small" column={1} colon={false}>
-                <Descriptions.Item label="描述">
-                  {agent.description}
-                </Descriptions.Item>
-                <Descriptions.Item label="类型">
-                  <Tag>{agent.agentType}</Tag>
-                </Descriptions.Item>
-                {agent.tools.length > 0 && (
-                  <Descriptions.Item label="工具">
-                    <Space size={4} wrap>
-                      {agent.tools.map((t) => (
-                        <Tag key={t} color="blue" style={{ fontSize: 11 }}>{t}</Tag>
-                      ))}
+      {loading
+        ? (
+          <div style={{ textAlign: "center", padding: 48 }}>
+            <Spin />
+            <div style={{ marginTop: 12, color: token.colorTextDescription, fontSize: 12 }}>加载中...</div>
+          </div>
+        )
+        : agents.length === 0
+        ? (
+          <Card size="small" style={{ borderRadius: 10, textAlign: "center", padding: 32 }}>
+            <Empty description="暂无已注册的 Agent" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          </Card>
+        )
+        : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {agents.map((agent) => (
+              <Card
+                key={agent.id}
+                size="small"
+                style={{ borderRadius: 10, border: "none", boxShadow: `0 0 0 0.5px ${token.colorBorderSecondary}` }}
+                title={
+                  <div className="flex items-center justify-between" style={{ width: "100%" }}>
+                    <Space size={8}>
+                      <Bot size={16} color={token.colorPrimary} />
+                      <Text strong>{agent.name}</Text>
+                      <Tag color={statusColor[agent.status] || "default"}>
+                        {statusLabel[agent.status] || agent.status}
+                      </Tag>
                     </Space>
+                  </div>
+                }
+              >
+                <Descriptions size="small" column={1} colon={false}>
+                  <Descriptions.Item label="描述">
+                    {agent.description}
                   </Descriptions.Item>
-                )}
-                {agent.capabilities.length > 0 && (
-                  <Descriptions.Item label="能力">
-                    <Space size={4} wrap>
-                      {agent.capabilities.map((c) => (
-                        <Tag key={c} color="purple" style={{ fontSize: 11 }}>{c}</Tag>
-                      ))}
-                    </Space>
+                  <Descriptions.Item label="类型">
+                    <Tag>{agent.agentType}</Tag>
                   </Descriptions.Item>
-                )}
-              </Descriptions>
-            </Card>
-          ))}
-        </div>
-      )}
+                  {agent.tools.length > 0 && (
+                    <Descriptions.Item label="工具">
+                      <Space size={4} wrap>
+                        {agent.tools.map((t) => <Tag key={t} color="blue" style={{ fontSize: 11 }}>{t}</Tag>)}
+                      </Space>
+                    </Descriptions.Item>
+                  )}
+                  {agent.capabilities.length > 0 && (
+                    <Descriptions.Item label="能力">
+                      <Space size={4} wrap>
+                        {agent.capabilities.map((c) => <Tag key={c} color="purple" style={{ fontSize: 11 }}>{c}</Tag>)}
+                      </Space>
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+              </Card>
+            ))}
+          </div>
+        )}
     </div>
   );
 }
@@ -385,7 +415,7 @@ function HooksTab() {
       event: e.event,
       enabled: e.event === "PreToolUse" || e.event === "UserPromptSubmit",
       commands: [],
-    })),
+    }))
   );
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
@@ -402,9 +432,7 @@ function HooksTab() {
   };
 
   const toggleHook = (event: string) => {
-    setHooks((prev) =>
-      prev.map((h) => (h.event === event ? { ...h, enabled: !h.enabled } : h)),
-    );
+    setHooks((prev) => prev.map((h) => (h.event === event ? { ...h, enabled: !h.enabled } : h)));
   };
 
   const addCommand = (event: string) => {
@@ -414,17 +442,15 @@ function HooksTab() {
       prev.map((h) =>
         h.event === event
           ? { ...h, commands: [...h.commands, { id: crypto.randomUUID(), command: cmd.trim() }] }
-          : h,
-      ),
+          : h
+      )
     );
     message.success(`已为 ${event} 添加命令`);
   };
 
   const removeCommand = (event: string, cmdId: string) => {
     setHooks((prev) =>
-      prev.map((h) =>
-        h.event === event ? { ...h, commands: h.commands.filter((c) => c.id !== cmdId) } : h,
-      ),
+      prev.map((h) => h.event === event ? { ...h, commands: h.commands.filter((c) => c.id !== cmdId) } : h)
     );
     message.success("命令已移除");
   };
@@ -485,33 +511,33 @@ function HooksTab() {
                 <div style={{ marginTop: 12, marginLeft: 28 }}>
                   <Divider style={{ margin: "4px 0 10px" }} />
 
-                  {hook.commands.length === 0 ? (
-                    <Text type="secondary" style={{ fontSize: 12 }}>暂无配置的 Shell 命令</Text>
-                  ) : (
-                    <List
-                      size="small"
-                      dataSource={hook.commands}
-                      renderItem={(cmd) => (
-                        <List.Item
-                          actions={[
-                            <Popconfirm
-                              key="del"
-                              title="确认移除?"
-                              onConfirm={() => removeCommand(hook.event, cmd.id)}
-                              okText="确认"
-                              cancelText="取消"
-                            >
-                              <Button size="small" type="text" danger icon={<Trash2 size={13} />} />
-                            </Popconfirm>,
-                          ]}
-                        >
-                          <Code size={12} style={{ marginRight: 8, opacity: 0.5 }} />
-                          <Text code style={{ fontSize: 12 }}>{cmd.command}</Text>
-                        </List.Item>
-                      )}
-                      style={{ marginTop: 4 }}
-                    />
-                  )}
+                  {hook.commands.length === 0
+                    ? <Text type="secondary" style={{ fontSize: 12 }}>暂无配置的 Shell 命令</Text>
+                    : (
+                      <List
+                        size="small"
+                        dataSource={hook.commands}
+                        renderItem={(cmd) => (
+                          <List.Item
+                            actions={[
+                              <Popconfirm
+                                key="del"
+                                title="确认移除?"
+                                onConfirm={() => removeCommand(hook.event, cmd.id)}
+                                okText="确认"
+                                cancelText="取消"
+                              >
+                                <Button size="small" type="text" danger icon={<Trash2 size={13} />} />
+                              </Popconfirm>,
+                            ]}
+                          >
+                            <Code size={12} style={{ marginRight: 8, opacity: 0.5 }} />
+                            <Text code style={{ fontSize: 12 }}>{cmd.command}</Text>
+                          </List.Item>
+                        )}
+                        style={{ marginTop: 4 }}
+                      />
+                    )}
 
                   <Button
                     size="small"

@@ -10,7 +10,7 @@ pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m20260501_000002_create_workflow_tables"
+        "m20240101_000002_init_workflow"
     }
 }
 

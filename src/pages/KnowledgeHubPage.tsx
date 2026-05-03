@@ -1,9 +1,9 @@
-import { MemoryPage } from "@/pages/MemoryPage";
+import { useActivePage } from "@/hooks/usePageRouting";
 import { KnowledgePage } from "@/pages/KnowledgePage";
 import { LlmWikiPage } from "@/pages/LlmWikiPage";
-import { useActivePage } from "@/hooks/usePageRouting";
+import { MemoryPage } from "@/pages/MemoryPage";
 import { Tabs } from "antd";
-import { Brain, BookOpen, Database } from "lucide-react";
+import { BookOpen, Brain, Database } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 

@@ -1,4 +1,4 @@
-import { useAxAgent, type Session } from "@/sdk";
+import { type Session, useAxAgent } from "@/sdk";
 import {
   Badge,
   Button,
@@ -14,13 +14,7 @@ import {
   theme,
   Typography,
 } from "antd";
-import {
-  Link2,
-  Plus,
-  Power,
-  RefreshCw,
-  Server,
-} from "lucide-react";
+import { Link2, Plus, Power, RefreshCw, Server } from "lucide-react";
 import { useCallback, useState } from "react";
 import { SettingsGroup } from "./SettingsGroup";
 
@@ -31,9 +25,7 @@ const DEFAULT_BASE_URL = "http://localhost:9876";
 
 export function AcpSettings() {
   const { token } = theme.useToken();
-  const [baseUrl, setBaseUrl] = useState(() =>
-    localStorage.getItem(STORAGE_KEY) || DEFAULT_BASE_URL,
-  );
+  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem(STORAGE_KEY) || DEFAULT_BASE_URL);
   const [connected, setConnected] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [workDir, setWorkDir] = useState("");
@@ -147,13 +139,11 @@ export function AcpSettings() {
           </span>
           <Space size={8}>
             <Badge
-              status={
-                connected === null
-                  ? "default"
-                  : connected
-                  ? "success"
-                  : "error"
-              }
+              status={connected === null
+                ? "default"
+                : connected
+                ? "success"
+                : "error"}
               text={
                 <Text style={{ fontSize: 13, color: st.color }}>
                   {st.text}
@@ -230,87 +220,85 @@ export function AcpSettings() {
           </Button>
         }
       >
-        {connected !== true ? (
-          <Empty
-            description="请先测试连接"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        ) : sessions.length === 0 ? (
-          <Empty
-            description="暂无活跃会话"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        ) : (
-          <List
-            size="small"
-            dataSource={sessions}
-            renderItem={(s: Session) => (
-              <List.Item
-                actions={[
-                  <Popconfirm
-                    key="close"
-                    title="确认关闭此会话?"
-                    onConfirm={() => handleCloseSession(s.sessionId)}
-                    okText="确认"
-                    cancelText="取消"
-                  >
-                    <Button size="small" type="text" danger icon={<Power size={13} />}>
-                      关闭
-                    </Button>
-                  </Popconfirm>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    s.status === "running" ? (
-                      <Badge status="processing" />
-                    ) : s.status === "idle" ? (
-                      <Badge status="success" />
-                    ) : (
-                      <Badge status="default" />
-                    )
-                  }
-                  title={
-                    <Space size={8}>
-                      <Text code style={{ fontSize: 12 }}>
-                        {s.sessionId.slice(0, 12)}...
-                      </Text>
-                      <Tag
-                        color={
-                          s.status === "running"
+        {connected !== true
+          ? (
+            <Empty
+              description="请先测试连接"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )
+          : sessions.length === 0
+          ? (
+            <Empty
+              description="暂无活跃会话"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )
+          : (
+            <List
+              size="small"
+              dataSource={sessions}
+              renderItem={(s: Session) => (
+                <List.Item
+                  actions={[
+                    <Popconfirm
+                      key="close"
+                      title="确认关闭此会话?"
+                      onConfirm={() => handleCloseSession(s.sessionId)}
+                      okText="确认"
+                      cancelText="取消"
+                    >
+                      <Button size="small" type="text" danger icon={<Power size={13} />}>
+                        关闭
+                      </Button>
+                    </Popconfirm>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={s.status === "running"
+                      ? <Badge status="processing" />
+                      : s.status === "idle"
+                      ? <Badge status="success" />
+                      : <Badge status="default" />}
+                    title={
+                      <Space size={8}>
+                        <Text code style={{ fontSize: 12 }}>
+                          {s.sessionId.slice(0, 12)}...
+                        </Text>
+                        <Tag
+                          color={s.status === "running"
                             ? "processing"
                             : s.status === "idle"
                             ? "success"
-                            : "default"
-                        }
-                      >
-                        {s.status}
-                      </Tag>
-                    </Space>
-                  }
-                  description={
-                    <Descriptions size="small" column={2} colon={false}>
-                      <Descriptions.Item label="目录">
-                        <Text style={{ fontSize: 12 }}>{s.workDir}</Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="权限">
-                        <Tag style={{ fontSize: 11 }}>{s.permissionMode}</Tag>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="活跃任务">
-                        <Text style={{ fontSize: 12 }}>{s.activeTasks}</Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="最后活跃">
-                        <Text style={{ fontSize: 12 }}>
-                          {new Date(s.lastActive).toLocaleString("zh-CN")}
-                        </Text>
-                      </Descriptions.Item>
-                    </Descriptions>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        )}
+                            : "default"}
+                        >
+                          {s.status}
+                        </Tag>
+                      </Space>
+                    }
+                    description={
+                      <Descriptions size="small" column={2} colon={false}>
+                        <Descriptions.Item label="目录">
+                          <Text style={{ fontSize: 12 }}>{s.workDir}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="权限">
+                          <Tag style={{ fontSize: 11 }}>{s.permissionMode}</Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="活跃任务">
+                          <Text style={{ fontSize: 12 }}>{s.activeTasks}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="最后活跃">
+                          <Text style={{ fontSize: 12 }}>
+                            {new Date(s.lastActive).toLocaleString("zh-CN")}
+                          </Text>
+                        </Descriptions.Item>
+                      </Descriptions>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
       </SettingsGroup>
 
       {error && (

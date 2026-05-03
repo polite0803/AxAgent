@@ -240,6 +240,7 @@ pub struct Conversation {
     pub work_strategy: Option<String>,
     pub scenario: Option<String>,
     pub enabled_skill_ids: Vec<String>,
+    pub expert_role_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -396,6 +397,8 @@ pub struct UpdateConversationInput {
     pub work_strategy: Option<Option<String>>,
     pub scenario: Option<String>,
     pub enabled_skill_ids: Option<Vec<String>>,
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    pub expert_role_id: Option<Option<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

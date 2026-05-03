@@ -3,7 +3,7 @@ use sea_orm_migration::prelude::*;
 pub struct Migration;
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m20260502_000003_create_trajectory_tables"
+        "m20240101_000005_init_trajectory"
     }
 }
 
@@ -53,10 +53,49 @@ impl MigrationTrait for Migration {
             manager.get_connection().execute_unprepared(idx).await?;
         }
 
+        // FTS5 virtual tables for full-text search
+        let db = manager.get_connection();
+        db.execute_unprepared(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectories_fts USING fts5(\
+                id UNINDEXED, session_id UNINDEXED, topic, summary, content, \
+                outcome UNINDEXED, quality_score UNINDEXED, created_at UNINDEXED, \
+                tokenize='porter unicode61')",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_memories_fts USING fts5(\
+                id UNINDEXED, memory_type UNINDEXED, content, entities, \
+                created_at UNINDEXED, tokenize='porter unicode61')",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_skills_fts USING fts5(\
+                id UNINDEXED, name, description, content, category UNINDEXED, \
+                tags, created_at UNINDEXED, tokenize='porter unicode61')",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_messages_fts USING fts5(\
+                id UNINDEXED, session_id UNINDEXED, role UNINDEXED, content, \
+                created_at UNINDEXED, tokenize='porter unicode61')",
+        )
+        .await?;
+
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        let db = manager.get_connection();
+        // Drop FTS5 virtual tables first
+        db.execute_unprepared("DROP TABLE IF EXISTS trajectory_messages_fts")
+            .await?;
+        db.execute_unprepared("DROP TABLE IF EXISTS trajectory_skills_fts")
+            .await?;
+        db.execute_unprepared("DROP TABLE IF EXISTS trajectory_memories_fts")
+            .await?;
+        db.execute_unprepared("DROP TABLE IF EXISTS trajectories_fts")
+            .await?;
+
         let tables = [
             "trajectory_preferences",
             "trajectory_learned_patterns",

@@ -34,11 +34,9 @@ import {
   BookOpen,
   Bot,
   Brain,
-  ChartNoAxesColumn,
   Check,
   CircleOff,
   ClipboardList,
-  Code,
   Eraser,
   ExternalLink,
   File,
@@ -49,8 +47,6 @@ import {
   Globe,
   GripHorizontal,
   Image as ImageIcon,
-  Languages,
-  Lightbulb,
   MessageSquare,
   Mic,
   Music,
@@ -59,8 +55,6 @@ import {
   Plug,
   Route,
   Scissors,
-  Search,
-  Share2,
   Shield,
   ShieldAlert,
   ShieldCheck,
@@ -72,7 +66,6 @@ import {
   SlidersHorizontal,
   Square,
   Trash2,
-  TrendingUp,
   Upload,
   X,
   Zap,
@@ -264,9 +257,6 @@ export function InputArea() {
 
   // Work strategy state (for plan mode)
   const [workStrategy, setWorkStrategy] = useState<"direct" | "plan">("direct");
-
-  // Scenario selection state (only effective before conversation creation)
-  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
   // Gateway links state
   const gatewayLinks = useGatewayLinkStore((s) => s.links);
@@ -584,19 +574,7 @@ export function InputArea() {
     [setThinkingBudget, thinkingOptions],
   );
 
-  // Scenario menu items (8 preset scenarios) - only used in chat mode
-  const scenarioMenuItems = useMemo<MenuProps["items"]>(() => [
-    { key: "coding", label: t("chat.welcomePromptCoding"), icon: <Code size={14} /> },
-    { key: "creative", label: t("chat.welcomePromptCreative"), icon: <Lightbulb size={14} /> },
-    { key: "translation", label: t("chat.welcomePromptTranslation"), icon: <Languages size={14} /> },
-    { key: "writing", label: t("chat.welcomePromptWriting"), icon: <FileText size={14} /> },
-    { key: "research", label: t("chat.welcomePromptResearch"), icon: <Search size={14} /> },
-    { key: "analysis", label: t("chat.welcomePromptAnalysis"), icon: <ChartNoAxesColumn size={14} /> },
-    { key: "investment", label: t("chat.welcomePromptInvestment"), icon: <TrendingUp size={14} /> },
-    { key: "social_media", label: t("chat.welcomePromptSocialMedia"), icon: <Share2 size={14} /> },
-  ], [t]);
-
-  // Expert menu items for agent mode
+  // Expert menu items — 专家角色选择（所有模式通用）
   const expertMenuItems = useMemo<MenuProps["items"]>(() => {
     const grouped = useExpertStore.getState().getRolesByCategory();
     const items: MenuProps["items"] = [];
@@ -660,51 +638,42 @@ export function InputArea() {
     return items;
   }, [t, gatewayLinks]);
 
-  // Handle scenario or expert selection
+  // Handle expert selection
   const handleScenarioClick = useCallback<NonNullable<MenuProps["onClick"]>>(
     async ({ key }) => {
-      if (key.startsWith("expert-")) {
-        const roleId = key.replace("expert-", "");
-        const role = useExpertStore.getState().getRoleById(roleId);
-        if (!role) { return; }
+      const expertPrefix = "expert-";
+      if (!key.startsWith(expertPrefix)) { return; }
+      const roleId = key.replace(expertPrefix, "");
+      const role = useExpertStore.getState().getRoleById(roleId);
+      if (!role) { return; }
 
-        let provider: ProviderConfig | undefined;
-        let model: Model | undefined;
-        if (role.suggestedProviderId && role.suggestedModelId) {
-          provider = providers.find((p) => p.id === role.suggestedProviderId);
-          model = provider?.models.find((m: Model) => m.model_id === role.suggestedModelId);
-        }
-        if (!provider || !model) {
-          provider = providers.find((p) => p.enabled && p.models.some((m: Model) => m.enabled));
-          model = provider?.models.find((m: Model) => m.enabled);
-        }
-        if (!provider || !model) {
-          messageApi.warning(t("chat.noModelsAvailable"));
-          return;
-        }
-
-        await createConversation(
-          role.displayName,
-          model.model_id,
-          provider.id,
-          {},
-        );
-        const activeId = useConversationStore.getState().activeConversationId;
-        if (activeId) {
-          updateConversation(activeId, {
-            mode: "agent",
-            expert_role_id: roleId,
-            system_prompt: role.systemPrompt || undefined,
-          });
-        }
+      let provider: ProviderConfig | undefined;
+      let model: Model | undefined;
+      if (role.suggestedProviderId && role.suggestedModelId) {
+        provider = providers.find((p) => p.id === role.suggestedProviderId);
+        model = provider?.models.find((m: Model) => m.model_id === role.suggestedModelId);
+      }
+      if (!provider || !model) {
+        provider = providers.find((p) => p.enabled && p.models.some((m: Model) => m.enabled));
+        model = provider?.models.find((m: Model) => m.enabled);
+      }
+      if (!provider || !model) {
+        messageApi.warning(t("chat.noModelsAvailable"));
         return;
       }
 
-      if (currentMode !== "agent") {
-        setSelectedScenario(key);
-      }
+      await createConversation(
+        role.displayName,
+        model.model_id,
+        provider.id,
+        {
+          mode: "agent",
+          expert_role_id: roleId,
+          system_prompt: role.systemPrompt || undefined,
+        },
+      );
     },
-    [currentMode, createConversation, providers, messageApi, t, updateConversation],
+    [createConversation, providers, messageApi, t],
   );
 
   // Agent permission mode menu items
@@ -794,7 +763,7 @@ export function InputArea() {
     async (strategy: "direct" | "plan") => {
       if (!activeConversationId || !activeConversation) { return; }
       if (isSwitchingStrategyRef.current) {
-        if (import.meta.env.DEV) console.log("[WorkStrategy] Already switching, ignoring");
+        if (import.meta.env.DEV) { console.log("[WorkStrategy] Already switching, ignoring"); }
         return;
       }
       isSwitchingStrategyRef.current = true;
@@ -1067,7 +1036,7 @@ export function InputArea() {
 
   const handleModeSwitch = useCallback(async (mode: "chat" | "agent") => {
     if (isSwitchingModeRef.current) {
-      if (import.meta.env.DEV) console.log("[ModeSwitch] Already switching mode, ignoring");
+      if (import.meta.env.DEV) { console.log("[ModeSwitch] Already switching mode, ignoring"); }
       return;
     }
     isSwitchingModeRef.current = true;
@@ -1088,16 +1057,16 @@ export function InputArea() {
       // Prevent switching while the current conversation is streaming
       const { activeStreams } = useStreamStore.getState();
       if (activeConversation.id in activeStreams) {
-        if (import.meta.env.DEV) console.log("[ModeSwitch] Conversation is streaming, cannot switch mode");
+        if (import.meta.env.DEV) { console.log("[ModeSwitch] Conversation is streaming, cannot switch mode"); }
         return;
       }
 
-      if (import.meta.env.DEV) console.log("[ModeSwitch] Starting switch to:", mode);
-      if (import.meta.env.DEV) console.log("[ModeSwitch] Conversation ID:", activeConversation.id);
+      if (import.meta.env.DEV) { console.log("[ModeSwitch] Starting switch to:", mode); }
+      if (import.meta.env.DEV) { console.log("[ModeSwitch] Conversation ID:", activeConversation.id); }
 
       try {
         await updateConversation(activeConversation.id, { mode });
-        if (import.meta.env.DEV) console.log("[ModeSwitch] updateConversation succeeded");
+        if (import.meta.env.DEV) { console.log("[ModeSwitch] updateConversation succeeded"); }
       } catch (e) {
         const errorMsg = String(e);
         if (errorMsg.includes("Not found: Conversation")) {
@@ -1119,7 +1088,7 @@ export function InputArea() {
       }
 
       if (mode === "agent") {
-        if (import.meta.env.DEV) console.log("[ModeSwitch] Initializing agent session...");
+        if (import.meta.env.DEV) { console.log("[ModeSwitch] Initializing agent session..."); }
         // Clear multi-model companion models — not applicable in agent mode
         if (companionModels.length > 0) {
           setCompanionModels([]);
@@ -1129,20 +1098,20 @@ export function InputArea() {
           const session = await invoke<{ cwd: string | null }>("agent_update_session", {
             request: { conversationId: activeConversation.id },
           });
-          if (import.meta.env.DEV) console.log("[ModeSwitch] agent_update_session returned:", session);
+          if (import.meta.env.DEV) { console.log("[ModeSwitch] agent_update_session returned:", session); }
           if (!session.cwd) {
-            if (import.meta.env.DEV) console.log("[ModeSwitch] No cwd, creating workspace...");
+            if (import.meta.env.DEV) { console.log("[ModeSwitch] No cwd, creating workspace..."); }
             const workspaceResult = await invoke<{ workspacePath: string }>("agent_ensure_workspace", {
               request: { conversationId: activeConversation.id },
             });
             const workspacePath = workspaceResult.workspacePath;
-            if (import.meta.env.DEV) console.log("[ModeSwitch] workspace created:", workspacePath);
+            if (import.meta.env.DEV) { console.log("[ModeSwitch] workspace created:", workspacePath); }
             await invoke("agent_update_session", {
               request: { conversationId: activeConversation.id, cwd: workspacePath },
             });
             setAgentCwd(workspacePath);
           } else {
-            if (import.meta.env.DEV) console.log("[ModeSwitch] Using existing cwd:", session.cwd);
+            if (import.meta.env.DEV) { console.log("[ModeSwitch] Using existing cwd:", session.cwd); }
             setAgentCwd(session.cwd);
           }
         } catch (e) {
@@ -1207,9 +1176,7 @@ export function InputArea() {
             messageApi.warning(t("chat.noModelsAvailable"));
             return;
           }
-          await createConversation(trimmed.slice(0, 30), model.model_id, provider.id, {
-            scenario: selectedScenario,
-          });
+          await createConversation(trimmed.slice(0, 30), model.model_id, provider.id, {});
         }
       }
 
@@ -1275,7 +1242,6 @@ export function InputArea() {
     searchProviderId,
     currentMode,
     workStrategy,
-    selectedScenario,
     selectedGatewayId,
   ]);
 
@@ -1903,20 +1869,18 @@ export function InputArea() {
                 trigger={["click"]}
                 placement="topLeft"
                 menu={{
-                  items: currentMode === "agent" ? expertMenuItems : scenarioMenuItems,
+                  items: expertMenuItems,
                   onClick: handleScenarioClick,
-                  selectedKeys: selectedScenario && currentMode !== "agent" ? [selectedScenario] : [],
                 }}
               >
                 <Tooltip
-                  title={currentMode === "agent" ? t("chat.selectExpert") : t("chat.scenarioTitle")}
+                  title={t("chat.selectExpert")}
                   open={undefined}
                 >
                   <Button
                     type="text"
                     size="small"
-                    icon={currentMode === "agent" ? <Bot size={14} /> : <Lightbulb size={14} />}
-                    style={currentMode === "agent" || selectedScenario ? { color: token.colorPrimary } : undefined}
+                    icon={<Bot size={14} />}
                   />
                 </Tooltip>
               </Dropdown>

@@ -1,5 +1,11 @@
 import type { SubAgentCardData } from "@/types/agent";
-import { BranchesOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
+import {
+  BranchesOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  LoadingOutlined,
+  RightOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import "./SubAgentCard.css";
 

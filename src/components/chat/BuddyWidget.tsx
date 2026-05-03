@@ -1,8 +1,8 @@
-import { useBuddyStore, type BuddyAttributes } from "@/stores/feature/buddyStore";
+import { type BuddyAttributes, useBuddyStore } from "@/stores/feature/buddyStore";
 import { CloseOutlined, RobotOutlined } from "@ant-design/icons";
 import { Button, Card, Progress, Tag, Typography } from "antd";
-import { BuddyMessageBubble } from "./BuddyMessage";
 import { useMemo } from "react";
+import { BuddyMessageBubble } from "./BuddyMessage";
 
 const { Text } = Typography;
 
@@ -51,7 +51,7 @@ export function BuddyWidget() {
 
   // 最近一条消息
   const lastMessage = useMemo(() => {
-    if (messages.length === 0) return null;
+    if (messages.length === 0) { return null; }
     return messages[messages.length - 1];
   }, [messages]);
 
@@ -207,9 +207,7 @@ export function BuddyWidget() {
         type="primary"
         shape="circle"
         size="large"
-        icon={
-          <Text style={{ fontSize: 22, lineHeight: 1 }}>{buddy.emoji}</Text>
-        }
+        icon={<Text style={{ fontSize: 22, lineHeight: 1 }}>{buddy.emoji}</Text>}
         onClick={togglePanel}
         style={{
           width: 52,
@@ -257,7 +255,11 @@ export function BuddyWidget() {
             {lastMessage && (
               <>
                 {" "}
-                — <Text style={{ fontSize: 12, color: "#999" }}>"{lastMessage.text.slice(0, 20)}{lastMessage.text.length > 20 ? "..." : ""}"</Text>
+                —{" "}
+                <Text style={{ fontSize: 12, color: "#999" }}>
+                  "{lastMessage.text.slice(0, 20)}
+                  {lastMessage.text.length > 20 ? "..." : ""}"
+                </Text>
               </>
             )}
           </Text>

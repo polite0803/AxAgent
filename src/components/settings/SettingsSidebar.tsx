@@ -82,7 +82,7 @@ export function SettingsSidebar() {
   // 根据当前选中的 section 反查所属 tab
   const [activeTab, setActiveTab] = useState(() => {
     for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
-      if (sections.includes(settingsSection)) return tab;
+      if (sections.includes(settingsSection)) { return tab; }
     }
     return "model";
   });

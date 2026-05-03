@@ -36,6 +36,7 @@ fn conversation_from_entity(m: conversations::Model) -> Conversation {
         work_strategy: m.work_strategy,
         scenario: m.scenario,
         enabled_skill_ids: parse_string_list(&m.enabled_skill_ids),
+        expert_role_id: m.expert_role_id,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -191,6 +192,9 @@ pub async fn update_conversation(
     }
     if let Some(enabled_skill_ids) = input.enabled_skill_ids {
         am.enabled_skill_ids = Set(stringify_string_list(&enabled_skill_ids));
+    }
+    if let Some(expert_role_id) = input.expert_role_id {
+        am.expert_role_id = Set(expert_role_id);
     }
     am.updated_at = Set(now);
     am.update(db).await?;

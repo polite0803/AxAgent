@@ -4,7 +4,6 @@ import { TITLEBAR_ICON_COLORS } from "@/lib/iconColors";
 import { invoke, isTauri } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import { useBackupStore, useSettingsStore } from "@/stores";
-import { NotificationBell } from "./NotificationBell";
 import type { PageKey } from "@/types";
 import { App, Divider, Dropdown, Popover, Space, Spin, theme, Tooltip, Typography } from "antd";
 import type { MenuProps } from "antd";
@@ -31,6 +30,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { NotificationBell } from "./NotificationBell";
 
 const IS_WINDOWS = navigator.userAgent.includes("Windows");
 

@@ -20,6 +20,9 @@ enum Providers {
     SortOrder,
     CreatedAt,
     UpdatedAt,
+    CustomHeaders,
+    Icon,
+    BuiltinId,
 }
 
 #[derive(DeriveIden)]
@@ -85,6 +88,7 @@ enum Conversations {
     WorkStrategy,
     Scenario,
     EnabledSkillIds,
+    ExpertRoleId,
 }
 
 #[derive(DeriveIden)]
@@ -107,6 +111,11 @@ enum Messages {
     ToolCallId,
     CreatedAt,
     Parts,
+    PromptTokens,
+    CompletionTokens,
+    Status,
+    TokensPerSecond,
+    FirstTokenLatencyMs,
 }
 
 #[derive(DeriveIden)]
@@ -216,6 +225,11 @@ enum McpServers {
     Enabled,
     PermissionPolicy,
     Source,
+    DiscoverTimeoutSecs,
+    ExecuteTimeoutSecs,
+    HeadersJson,
+    IconType,
+    IconValue,
 }
 
 #[derive(DeriveIden)]
@@ -241,6 +255,9 @@ enum ToolExecutions {
     OutputPreview,
     ErrorMessage,
     DurationMs,
+    ApprovalStatus,
+    SkillStepsJson,
+    DependsOn,
     CreatedAt,
 }
 
@@ -252,6 +269,15 @@ enum KnowledgeBases {
     Description,
     EmbeddingProvider,
     Enabled,
+    IconType,
+    IconValue,
+    SortOrder,
+    EmbeddingDimensions,
+    RetrievalThreshold,
+    RetrievalTopK,
+    ChunkSize,
+    ChunkOverlap,
+    Separator,
 }
 
 #[derive(DeriveIden)]
@@ -264,6 +290,11 @@ enum KnowledgeDocuments {
     MimeType,
     SizeBytes,
     IndexingStatus,
+    DocType,
+    IndexError,
+    SourceConversationId,
+    CreatedAt,
+    UpdatedAt,
 }
 
 #[derive(DeriveIden)]
@@ -287,6 +318,12 @@ enum MemoryNamespaces {
     Scope,
     AppId,
     EmbeddingProvider,
+    EmbeddingDimensions,
+    RetrievalThreshold,
+    RetrievalTopK,
+    IconType,
+    IconValue,
+    SortOrder,
 }
 
 #[derive(DeriveIden)]
@@ -297,6 +334,8 @@ enum MemoryItems {
     Title,
     Content,
     Source,
+    IndexStatus,
+    IndexError,
     UpdatedAt,
 }
 
@@ -619,6 +658,7 @@ enum Plans {
     Status,
     IsActive,
     CreatedUnderStrategy,
+    Reason,
     CreatedAt,
     UpdatedAt,
 }
@@ -637,6 +677,20 @@ enum AgencyExperts {
     ImportedAt,
     RecommendedWorkflows,
     RecommendedTools,
+}
+
+#[derive(DeriveIden)]
+enum SemanticCache {
+    Table,
+    Id,
+    PromptHash,
+    Response,
+    ModelId,
+    TokenCount,
+    TaskType,
+    TtlSecs,
+    CreatedAt,
+    HitCount,
 }
 
 // ===========================================================================
@@ -679,6 +733,9 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Providers::CreatedAt).integer().not_null())
                     .col(ColumnDef::new(Providers::UpdatedAt).integer().not_null())
+                    .col(ColumnDef::new(Providers::CustomHeaders).string().null())
+                    .col(ColumnDef::new(Providers::Icon).string().null())
+                    .col(ColumnDef::new(Providers::BuiltinId).string().null())
                     .to_owned(),
             )
             .await?;
@@ -933,6 +990,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("[]"),
                     )
+                    .col(ColumnDef::new(Conversations::ExpertRoleId).string().null())
                     .to_owned(),
             )
             .await?;
@@ -982,6 +1040,24 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Messages::ToolCallId).string().null())
                     .col(ColumnDef::new(Messages::CreatedAt).integer().not_null())
                     .col(ColumnDef::new(Messages::Parts).string().null())
+                    .col(ColumnDef::new(Messages::PromptTokens).big_integer().null())
+                    .col(
+                        ColumnDef::new(Messages::CompletionTokens)
+                            .big_integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(Messages::Status)
+                            .string()
+                            .not_null()
+                            .default("complete"),
+                    )
+                    .col(ColumnDef::new(Messages::TokensPerSecond).float().null())
+                    .col(
+                        ColumnDef::new(Messages::FirstTokenLatencyMs)
+                            .big_integer()
+                            .null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .from(Messages::Table, Messages::ConversationId)
@@ -1344,6 +1420,19 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("custom"),
                     )
+                    .col(
+                        ColumnDef::new(McpServers::DiscoverTimeoutSecs)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(McpServers::ExecuteTimeoutSecs)
+                            .integer()
+                            .null(),
+                    )
+                    .col(ColumnDef::new(McpServers::HeadersJson).string().null())
+                    .col(ColumnDef::new(McpServers::IconType).string().null())
+                    .col(ColumnDef::new(McpServers::IconValue).string().null())
                     .to_owned(),
             )
             .await?;
@@ -1443,6 +1532,17 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(ToolExecutions::ErrorMessage).string().null())
                     .col(ColumnDef::new(ToolExecutions::DurationMs).integer().null())
                     .col(
+                        ColumnDef::new(ToolExecutions::ApprovalStatus)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ToolExecutions::SkillStepsJson)
+                            .string()
+                            .null(),
+                    )
+                    .col(ColumnDef::new(ToolExecutions::DependsOn).string().null())
+                    .col(
                         ColumnDef::new(ToolExecutions::CreatedAt)
                             .string()
                             .not_null()
@@ -1518,6 +1618,36 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(1),
                     )
+                    .col(ColumnDef::new(KnowledgeBases::IconType).string().null())
+                    .col(ColumnDef::new(KnowledgeBases::IconValue).string().null())
+                    .col(
+                        ColumnDef::new(KnowledgeBases::SortOrder)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeBases::EmbeddingDimensions)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeBases::RetrievalThreshold)
+                            .float()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeBases::RetrievalTopK)
+                            .integer()
+                            .null(),
+                    )
+                    .col(ColumnDef::new(KnowledgeBases::ChunkSize).integer().null())
+                    .col(
+                        ColumnDef::new(KnowledgeBases::ChunkOverlap)
+                            .integer()
+                            .null(),
+                    )
+                    .col(ColumnDef::new(KnowledgeBases::Separator).text().null())
                     .to_owned(),
             )
             .await?;
@@ -1578,6 +1708,34 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null()
                             .default("pending"),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeDocuments::DocType)
+                            .string()
+                            .not_null()
+                            .default(""),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeDocuments::IndexError)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeDocuments::SourceConversationId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeDocuments::CreatedAt)
+                            .big_integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(KnowledgeDocuments::UpdatedAt)
+                            .big_integer()
+                            .not_null()
+                            .default(0),
                     )
                     .foreign_key(
                         ForeignKey::create()
@@ -1717,6 +1875,29 @@ impl MigrationTrait for Migration {
                             .string()
                             .null(),
                     )
+                    .col(
+                        ColumnDef::new(MemoryNamespaces::EmbeddingDimensions)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(MemoryNamespaces::RetrievalThreshold)
+                            .float()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(MemoryNamespaces::RetrievalTopK)
+                            .integer()
+                            .null(),
+                    )
+                    .col(ColumnDef::new(MemoryNamespaces::IconType).string().null())
+                    .col(ColumnDef::new(MemoryNamespaces::IconValue).string().null())
+                    .col(
+                        ColumnDef::new(MemoryNamespaces::SortOrder)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -1755,6 +1936,13 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("manual"),
                     )
+                    .col(
+                        ColumnDef::new(MemoryItems::IndexStatus)
+                            .string()
+                            .not_null()
+                            .default("pending"),
+                    )
+                    .col(ColumnDef::new(MemoryItems::IndexError).string().null())
                     .col(
                         ColumnDef::new(MemoryItems::UpdatedAt)
                             .string()
@@ -3085,6 +3273,7 @@ impl MigrationTrait for Migration {
                             .default(1),
                     )
                     .col(ColumnDef::new(Plans::CreatedUnderStrategy).string().null())
+                    .col(ColumnDef::new(Plans::Reason).string().null())
                     .col(ColumnDef::new(Plans::CreatedAt).integer().not_null())
                     .col(ColumnDef::new(Plans::UpdatedAt).integer().not_null())
                     .foreign_key(
@@ -3159,6 +3348,77 @@ impl MigrationTrait for Migration {
             .await
             .ok();
 
+        // =================================================================
+        // 37. Semantic Cache
+        // =================================================================
+        manager
+            .create_table(
+                Table::create()
+                    .table(SemanticCache::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(SemanticCache::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(SemanticCache::PromptHash)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(SemanticCache::Response).string().not_null())
+                    .col(ColumnDef::new(SemanticCache::ModelId).string().null())
+                    .col(
+                        ColumnDef::new(SemanticCache::TokenCount)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(SemanticCache::TaskType)
+                            .string()
+                            .not_null()
+                            .default("moderate"),
+                    )
+                    .col(ColumnDef::new(SemanticCache::TtlSecs).integer().not_null())
+                    .col(
+                        ColumnDef::new(SemanticCache::CreatedAt)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SemanticCache::HitCount)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_semantic_cache_hash")
+                    .table(SemanticCache::Table)
+                    .col(SemanticCache::PromptHash)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_semantic_cache_created")
+                    .table(SemanticCache::Table)
+                    .col(SemanticCache::CreatedAt)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 
@@ -3182,6 +3442,7 @@ impl MigrationTrait for Migration {
                     .await?;
             };
         }
+        drop_tbl!(SemanticCache::Table);
         drop_tbl!(GatewayRequestLogs::Table);
         drop_tbl!(AgentSessions::Table);
         drop_tbl!(SkillStates::Table);

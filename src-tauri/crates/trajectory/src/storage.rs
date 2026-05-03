@@ -46,6 +46,23 @@ impl TrajectoryStorage {
         }
     }
 
+    /// 从数据库文件路径创建带 FTS5 全文搜索的存储实例。
+    /// 自动创建 FTS5 虚拟表（如不存在）。
+    #[allow(clippy::arc_with_non_send_sync)]
+    pub fn with_fts_path(db: Arc<DatabaseConnection>, db_file_path: &str) -> Result<Self> {
+        let conn =
+            rusqlite::Connection::open(db_file_path).context("Failed to open FTS5 database")?;
+        conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;")
+            .context("Failed to set FTS5 connection pragmas")?;
+        let conn = Arc::new(std::sync::RwLock::new(conn));
+        let fts = FTS5Search::new(conn, FTS5Config::default());
+        fts.create_fts_tables()?;
+        Ok(Self {
+            db,
+            fts_searcher: Some(fts),
+        })
+    }
+
     /// 安全地 block_on：如果已在 tokio runtime 中则复用当前句柄，否则创建新的
     fn block_on<F: std::future::Future>(f: F) -> F::Output {
         match tokio::runtime::Handle::try_current() {
@@ -149,6 +166,7 @@ impl TrajectoryStorage {
                 .insert(self.db.as_ref())
                 .await?;
             }
+            let _ = self.index_trajectory_fts(t);
             Ok(())
         })
     }
@@ -395,6 +413,7 @@ impl TrajectoryStorage {
             )
             .exec(self.db.as_ref())
             .await?;
+            let _ = self.index_skill_fts(skill);
             Ok(())
         })
     }
@@ -429,6 +448,7 @@ impl TrajectoryStorage {
             trajectory_skills::Entity::delete_by_id(id)
                 .exec(self.db.as_ref())
                 .await?;
+            let _ = self.delete_skill_fts(id);
             info!("Deleted skill {}", id);
             Ok(())
         })
@@ -710,6 +730,7 @@ impl TrajectoryStorage {
             }
             .insert(self.db.as_ref())
             .await?;
+            let _ = self.index_message_fts(msg);
             Ok(())
         })
     }
@@ -978,7 +999,18 @@ impl TrajectoryStorage {
             .collect())
     }
 
-    pub fn search_trajectories_fts(&self, fts_query: &FTS5Query) -> Result<Vec<String>> {
+    pub fn search_trajectories(&self, fts_query: &FTS5Query) -> Result<Vec<String>> {
+        // 优先使用 FTS5 全文搜索，不可用时降级为 LIKE 查询
+        if let Some(ref fts) = self.fts_searcher {
+            let mut query = fts_query.clone();
+            query.filter_type = Some("trajectories_fts".to_string());
+            match fts.search(query) {
+                Ok(results) if !results.is_empty() => {
+                    return Ok(results.into_iter().map(|r| r.id).collect());
+                },
+                _ => {},
+            }
+        }
         Self::block_on(async {
             let pattern = format!("%{}%", fts_query.query);
             Ok(trajectories::Entity::find()
@@ -1018,10 +1050,11 @@ impl TrajectoryStorage {
             .unwrap_or(Ok(()))
     }
     pub fn search_fts(&self, query: FTS5Query) -> Result<Vec<FTS5Result>> {
-        self.fts_searcher
-            .as_ref()
-            .context("FTS not initialized")?
-            .search(query)
+        if let Some(ref fts) = self.fts_searcher {
+            fts.search(query)
+        } else {
+            Ok(Vec::new())
+        }
     }
     pub fn index_trajectory_fts(&self, t: &Trajectory) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
@@ -1044,6 +1077,13 @@ impl TrajectoryStorage {
             Ok(())
         }
     }
+    pub fn index_message_fts(&self, msg: &Message) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.index_message(msg)
+        } else {
+            Ok(())
+        }
+    }
     pub fn index_memory_fts(
         &self,
         id: &str,
@@ -1057,8 +1097,26 @@ impl TrajectoryStorage {
             Ok(())
         }
     }
-    pub fn delete_memory_fts(&self, _id: &str) -> Result<()> {
-        Ok(())
+    pub fn delete_memory_fts(&self, id: &str) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.delete_from_fts("trajectory_memories_fts", id)
+        } else {
+            Ok(())
+        }
+    }
+    pub fn delete_skill_fts(&self, id: &str) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.delete_from_fts("trajectory_skills_fts", id)
+        } else {
+            Ok(())
+        }
+    }
+    pub fn delete_trajectory_fts(&self, id: &str) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.delete_from_fts("trajectories_fts", id)
+        } else {
+            Ok(())
+        }
     }
     pub fn optimize_fts(&self) -> Result<()> {
         self.fts_searcher

@@ -156,7 +156,13 @@ interface ConversationState {
     title: string,
     model_id: string,
     providerId: string,
-    options?: { categoryId?: string | null; scenario?: string | null },
+    options?: {
+      categoryId?: string | null;
+      scenario?: string | null;
+      mode?: string;
+      expert_role_id?: string;
+      system_prompt?: string;
+    },
   ) => Promise<Conversation>;
   updateConversation: (id: string, input: UpdateConversationInput) => Promise<void>;
   renameConversation: (id: string, title: string) => Promise<void>;
@@ -553,7 +559,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         title,
         modelId: templateModelId,
         providerId: templateProviderId,
-        systemPrompt: category?.system_prompt ?? undefined,
+        systemPrompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
       });
       let conversation = createdConversation;
       try {
@@ -563,6 +569,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             ...categoryTemplateUpdateFromCategory(category),
             ...conversationPreferenceUpdateFromState(usePreferenceStore.getState()),
             scenario: options?.scenario,
+            expert_role_id: options?.expert_role_id,
+            mode: options?.mode,
           },
         });
       } catch (preferenceError) {
@@ -1425,6 +1433,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           input: content,
           providerId,
           model_id,
+          expertRoleId: conversation.expert_role_id ?? undefined,
+          systemPrompt: conversation.system_prompt ?? undefined,
         },
       }, 0);
 

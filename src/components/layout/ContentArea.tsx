@@ -6,7 +6,9 @@ import { lazy, Suspense, useMemo } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 
 const LazyChatPage = lazy(() => import("@/pages/ChatPage").then((m) => ({ default: m.ChatPage })));
-const LazyKnowledgeHubPage = lazy(() => import("@/pages/KnowledgeHubPage").then((m) => ({ default: m.KnowledgeHubPage })));
+const LazyKnowledgeHubPage = lazy(() =>
+  import("@/pages/KnowledgeHubPage").then((m) => ({ default: m.KnowledgeHubPage }))
+);
 const LazyGatewayLinkPage = lazy(() => import("@/pages/GatewayLinkPage").then((m) => ({ default: m.GatewayLinkPage })));
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
@@ -98,6 +100,8 @@ export function ContentArea() {
       <Route path="/llm-wiki" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
       <Route path="/llm-wiki/:wikiId/graph" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
       <Route path="/llm-wiki/:wikiId/ingest" element={<SafeLazyPage Page={LazyIngestPage} />} />
+      <Route path="/wiki" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
+      <Route path="/wiki/:wikiId" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
       <Route path="/quickbar" element={<SafeLazyPage Page={LazyQuickBarPage} />} />
       <Route path="/devtools/trace-explorer" element={<SafeLazyPage Page={LazyTraceExplorer} />} />
       <Route path="/devtools/benchmark" element={<SafeLazyPage Page={LazyBenchmarkRunner} />} />

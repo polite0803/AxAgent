@@ -1,12 +1,6 @@
 import { useCompressStore, useConversationStore } from "@/stores";
-import { Button, Tooltip, theme } from "antd";
-import {
-  Brain,
-  Eraser,
-  MessageSquare,
-  Scissors,
-  Zap,
-} from "lucide-react";
+import { Button, theme, Tooltip } from "antd";
+import { Brain, Eraser, MessageSquare, Scissors, Zap } from "lucide-react";
 import React, { useCallback } from "react";
 
 interface QuickCommand {

@@ -34,12 +34,16 @@ import {
 } from "antd";
 import {
   ChevronRight,
+  Code,
+  Cpu,
   Download,
+  FolderGit2,
   FolderOpen,
   GitFork,
   Layers,
   LayoutPanelTop,
   Lightbulb,
+  Package,
   Radio,
   RefreshCw,
   Sparkles,
@@ -47,6 +51,8 @@ import {
   Store,
   Trash2,
   Workflow,
+  Wrench,
+  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -102,6 +108,24 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
   axagent: <img src={appLogo} alt="" style={{ width: 14, height: 14, verticalAlign: "middle" }} />,
   claude: <Claude.Color size={14} />,
   agents: <Radio size={14} color={CHAT_ICON_COLORS.Route} />,
+  builtin: <Cpu size={14} />,
+  bundled: <Package size={14} />,
+  codebuddy: <Code size={14} />,
+  trae: <Zap size={14} />,
+  workbuddy: <Wrench size={14} />,
+  project: <FolderGit2 size={14} />,
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  axagent: "AxAgent",
+  claude: "Claude",
+  agents: "Agents",
+  builtin: "内置",
+  bundled: "捆绑",
+  codebuddy: "CodeBuddy",
+  trae: "Trae",
+  workbuddy: "WorkBuddy",
+  project: "项目",
 };
 
 const ALL_SOURCE_ICON = <Layers size={14} color={CHAT_ICON_COLORS.Layers} />;
@@ -145,8 +169,8 @@ function SkillCard({
             <CopyButton text={skill.name} size={12} />
             <Tag>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                {SOURCE_ICONS[skill.source]}
-                {t(`skills.source.${skill.source}`)}
+                {SOURCE_ICONS[skill.source] ?? <Radio size={14} />}
+                {SOURCE_LABELS[skill.source] ?? (skill.source)}
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
@@ -736,7 +760,7 @@ export function SkillsPage() {
             placeholder={t("skills.installUrlPlaceholder")}
             value={installUrl}
             onChange={(e) => setInstallUrl(e.target.value)}
-            onPressEnter={() => handleInstallFromUrl("axagent")}
+            onPressEnter={() => handleInstallFromUrl(sourceFilter === "all" ? "axagent" : sourceFilter)}
           />
           <Dropdown
             menu={{
@@ -776,42 +800,62 @@ export function SkillsPage() {
         <Tabs
           size="small"
           activeKey={sourceFilter}
-          onChange={(k) => setSourceFilter(k as "all" | "axagent" | "claude" | "agents")}
-          items={[
-            {
-              key: "all",
-              label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {ALL_SOURCE_ICON}
-                  {t("skills.sourceAll")}
-                </span>
-              ),
-            },
-            {
-              key: "axagent",
-              label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {SOURCE_ICONS.axagent}AxAgent
-                </span>
-              ),
-            },
-            {
-              key: "claude",
-              label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {SOURCE_ICONS.claude}Claude
-                </span>
-              ),
-            },
-            {
-              key: "agents",
-              label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {SOURCE_ICONS.agents}Agents
-                </span>
-              ),
-            },
-          ]}
+          onChange={(k) => setSourceFilter(k as any)}
+          items={(() => {
+            // 统计各来源的技能数量
+            const sourceCounts = new Map<string, number>();
+            for (const s of skills) {
+              sourceCounts.set(s.source, (sourceCounts.get(s.source) ?? 0) + 1);
+            }
+            // 标准来源 Tab，始终显示（即使 count=0）
+            const standardSources = ["axagent", "claude", "agents"];
+            const tabs: any[] = [
+              {
+                key: "all",
+                label: (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    {ALL_SOURCE_ICON}
+                    {t("skills.sourceAll")}
+                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>
+                      ({skills.length})
+                    </span>
+                  </span>
+                ),
+              },
+            ];
+            for (const src of standardSources) {
+              const count = sourceCounts.get(src) ?? 0;
+              tabs.push({
+                key: src,
+                label: (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    {SOURCE_ICONS[src] ?? <Radio size={14} />}
+                    {SOURCE_LABELS[src] ?? src}
+                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>
+                      ({count})
+                    </span>
+                  </span>
+                ),
+              });
+            }
+            // 动态添加其他来源 Tab
+            for (const [src, count] of sourceCounts) {
+              if (standardSources.includes(src)) { continue; }
+              tabs.push({
+                key: src,
+                label: (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    {SOURCE_ICONS[src] ?? <Radio size={14} />}
+                    {SOURCE_LABELS[src] ?? src}
+                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>
+                      ({count})
+                    </span>
+                  </span>
+                ),
+              });
+            }
+            return tabs;
+          })()}
           style={{ marginBottom: 8 }}
         />
       </div>

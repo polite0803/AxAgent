@@ -36,8 +36,8 @@ import { McpContainerNode } from "./McpContainerNode";
 import { MemoryRetrievalNode } from "./MemoryRetrievalNode";
 import { MermaidBlockHeaderActions } from "./MermaidBlockHeaderActions";
 import { MermaidZoomControls } from "./MermaidZoomControls";
-import { WebSearchNode } from "./WebSearchNode";
 import { StructuredThinking } from "./StructuredThinking";
+import { WebSearchNode } from "./WebSearchNode";
 
 interface CodeBlockActionContext {
   collapsed: boolean;
@@ -1140,21 +1140,29 @@ const AssistantMarkdown = React.memo(function AssistantMarkdown({
 ));
 
 export {
-  THINKING_LOADING_MARKER,
-  DEFAULT_LIGHT_CODE_BLOCK_THEME,
-  DEFAULT_DARK_CODE_BLOCK_THEME,
-  CHAT_RENDER_BATCH_PROPS,
-  CHAT_MERMAID_PROPS,
+  AssistantMarkdown,
   CHAT_INFOGRAPHIC_PROPS,
+  CHAT_MERMAID_PROPS,
+  CHAT_RENDER_BATCH_PROPS,
   type CodeBlockActionContext,
   type CodeBlockPreviewPayload,
-  normalizeCodeTheme,
-  getChatCodeThemes,
+  DEFAULT_DARK_CODE_BLOCK_THEME,
+  DEFAULT_LIGHT_CODE_BLOCK_THEME,
   getChatCodeBlockProps,
-  AssistantMarkdown,
+  getChatCodeThemes,
+  normalizeCodeTheme,
+  THINKING_LOADING_MARKER,
 };
 
-export function getCodeBlockPreviewHandler() { return _codeBlockPreviewHandler; }
-export function setCodeBlockPreviewHandler(h: ((payload: CodeBlockPreviewPayload) => void) | null) { _codeBlockPreviewHandler = h; }
-export function getMermaidOpenModalHandler() { return _mermaidOpenModalHandler; }
-export function setMermaidOpenModalHandler(h: ((svgString: string | null) => void) | null) { _mermaidOpenModalHandler = h; }
+export function getCodeBlockPreviewHandler() {
+  return _codeBlockPreviewHandler;
+}
+export function setCodeBlockPreviewHandler(h: ((payload: CodeBlockPreviewPayload) => void) | null) {
+  _codeBlockPreviewHandler = h;
+}
+export function getMermaidOpenModalHandler() {
+  return _mermaidOpenModalHandler;
+}
+export function setMermaidOpenModalHandler(h: ((svgString: string | null) => void) | null) {
+  _mermaidOpenModalHandler = h;
+}

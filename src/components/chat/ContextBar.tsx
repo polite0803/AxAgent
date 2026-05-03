@@ -18,9 +18,9 @@ interface ContextBarProps {
 }
 
 function getTokenUsageColor(ratio: number, token: ReturnType<typeof theme.useToken>["token"]) {
-  if (ratio > 0.95) return token.colorError;
-  if (ratio > 0.8) return token.colorWarning;
-  if (ratio > 0.5) return token.colorWarningText;
+  if (ratio > 0.95) { return token.colorError; }
+  if (ratio > 0.8) { return token.colorWarning; }
+  if (ratio > 0.5) { return token.colorWarningText; }
   return token.colorSuccess;
 }
 
@@ -124,11 +124,9 @@ export function ContextBar({
         {/* Token 用量进度条 */}
         {tokenMax != null && tokenMax > 0 && (
           <Tooltip
-            title={
-              tokenUsed != null
-                ? `${tokenUsed.toLocaleString()} / ${tokenMax.toLocaleString()} tokens (${tokenPercent}%)`
-                : `${t("chat.context.tokenMax")}: ${tokenMax.toLocaleString()}`
-            }
+            title={tokenUsed != null
+              ? `${tokenUsed.toLocaleString()} / ${tokenMax.toLocaleString()} tokens (${tokenPercent}%)`
+              : `${t("chat.context.tokenMax")}: ${tokenMax.toLocaleString()}`}
           >
             <div
               style={{

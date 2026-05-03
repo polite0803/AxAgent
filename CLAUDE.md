@@ -52,6 +52,7 @@ extension/ website/ e2e/ scripts/
 - i18n：UI 文本一律 `const { t } = useTranslation()`，禁止硬编码字符串
 - 路径别名：`@/` = `src/`
 - 样式：首选 Ant Design theme token + Tailwind 工具类，避免新建 CSS 文件
+- **dprint 格式化**：`npm run format`（即 `dprint fmt`）必须通过，CI 强制检查，禁止提交未格式化的 TS/JSON 代码
 
 ### 后端 (Rust)
 - Tauri 命令返回 `Result<T, String>`，用 `.map_err(|e| e.to_string())`
@@ -59,6 +60,7 @@ extension/ website/ e2e/ scripts/
 - 模块可见性：内部用 `pub(crate)`，对外 API 用 `pub`
 - 所有 `pub mod` 声明在 commands/mod.rs 中统一管理
 - 数据库操作：方向在 entity 层用 sea-orm，有复杂查询逻辑用 repository 模式
+- **rustfmt 格式化**：`cargo fmt` 必须通过，CI 强制检查，禁止提交未格式化的 Rust 代码
 - **clippy 零警告**：`cargo clippy -- -D warnings` 必须通过，CI 强制检查，禁止提交含 clippy 警告的代码
 
 ## 常用命令

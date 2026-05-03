@@ -1,14 +1,11 @@
 pub use sea_orm_migration::prelude::*;
 
 mod m20240101_000001_init;
-mod m20260501_000001_add_provider_columns;
-mod m20260501_000002_create_workflow_tables;
-mod m20260502_000001_create_missing_tables;
-mod m20260502_000002_create_notes_and_knowledge_tables;
-mod m20260502_000003_create_trajectory_tables;
-mod m20260503_000001_fix_provider_builtin_id;
-mod m20260504_000001_add_tool_execution_approval_status;
-mod m20260505_000001_add_wiki_count_columns;
+mod m20240101_000002_init_workflow;
+mod m20240101_000003_init_gateway_tools;
+mod m20240101_000004_init_knowledge;
+mod m20240101_000005_init_trajectory;
+mod m20240101_000006_init_prompt;
 
 pub struct Migrator;
 
@@ -17,14 +14,11 @@ impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
             Box::new(m20240101_000001_init::Migration),
-            Box::new(m20260501_000001_add_provider_columns::Migration),
-            Box::new(m20260501_000002_create_workflow_tables::Migration),
-            Box::new(m20260502_000001_create_missing_tables::Migration),
-            Box::new(m20260502_000002_create_notes_and_knowledge_tables::Migration),
-            Box::new(m20260502_000003_create_trajectory_tables::Migration),
-            Box::new(m20260503_000001_fix_provider_builtin_id::Migration),
-            Box::new(m20260504_000001_add_tool_execution_approval_status::Migration),
-            Box::new(m20260505_000001_add_wiki_count_columns::Migration),
+            Box::new(m20240101_000002_init_workflow::Migration),
+            Box::new(m20240101_000003_init_gateway_tools::Migration),
+            Box::new(m20240101_000004_init_knowledge::Migration),
+            Box::new(m20240101_000005_init_trajectory::Migration),
+            Box::new(m20240101_000006_init_prompt::Migration),
         ]
     }
 }

@@ -1,9 +1,9 @@
-import { GatewayPage } from "@/pages/GatewayPage";
-import { LinkPage } from "@/pages/LinkPage";
 import { useActivePage } from "@/hooks/usePageRouting";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
+import { GatewayPage } from "@/pages/GatewayPage";
+import { LinkPage } from "@/pages/LinkPage";
 import { Tabs } from "antd";
-import { Router, Link2 } from "lucide-react";
+import { Link2, Router } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 

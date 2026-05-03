@@ -1,8 +1,8 @@
 export { AgentProgressBar } from "./AgentProgressBar";
 export { ArtifactPanel } from "./ArtifactPanel";
 export { BranchComparePanel } from "./BranchComparePanel";
-export { BuddyWidget } from "./BuddyWidget";
 export { BuddyMessageBubble } from "./BuddyMessage";
+export { BuddyWidget } from "./BuddyWidget";
 export { ChatSidebar } from "./ChatSidebar";
 export { ChatView } from "./ChatView";
 export { CitationPanel } from "./CitationPanel";

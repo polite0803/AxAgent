@@ -1,16 +1,7 @@
 import { useAgentStore } from "@/stores";
 import type { PermissionRequestEvent } from "@/types/agent";
 import { Button, Modal, Space, Tag, Typography } from "antd";
-import {
-  CheckCircle,
-  Eye,
-  Info,
-  Pencil,
-  Shield,
-  ShieldCheck,
-  ShieldX,
-  Terminal,
-} from "lucide-react";
+import { CheckCircle, Eye, Info, Pencil, Shield, ShieldCheck, ShieldX, Terminal } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 const { Text, Paragraph } = Typography;
@@ -126,13 +117,11 @@ export const PermissionModal: React.FC = () => {
     }
   }, [pendingEntries.length]);
 
-  const currentEntry =
-    pendingEntries.length > 0 && currentIndex < pendingEntries.length
-      ? pendingEntries[currentIndex]
-      : null;
+  const currentEntry = pendingEntries.length > 0 && currentIndex < pendingEntries.length
+    ? pendingEntries[currentIndex]
+    : null;
 
-  const [requestId, permissionRequest]: [string, PermissionRequestEvent] | [null, null] =
-    currentEntry ?? [null, null];
+  const [requestId, permissionRequest]: [string, PermissionRequestEvent] | [null, null] = currentEntry ?? [null, null];
 
   const riskLevel: RiskLevel = permissionRequest?.riskLevel ?? "read_only";
   const riskCfg = RISK_CONFIG[riskLevel];

@@ -233,9 +233,9 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     return json;
   },
 
-  extractStructure: async (text: string) => {
+  extractStructure: async (expertId: string) => {
     try {
-      const row = await invoke<AgencyExpertRow>("extract_expert_structure", { text });
+      const row = await invoke<AgencyExpertRow>("extract_expert_structure", { request: { expertId } });
       if (!row) { return null; }
       return agencyRowToRole(row);
     } catch (e) {

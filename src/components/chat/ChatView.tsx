@@ -16,7 +16,6 @@ import {
   Modal,
   Popconfirm,
   Popover,
-  Select,
   Spin,
   Tag,
   theme,
@@ -90,14 +89,11 @@ import {
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
-import { AgentProgressBar } from "./AgentProgressBar";
-import { BuddyWidget } from "./BuddyWidget";
 import ProactiveSuggestionBar from "../proactive/ProactiveSuggestionBar";
+import { AgentProgressBar } from "./AgentProgressBar";
 import AskUserCard from "./AskUserCard";
 import { BreadcrumbBar } from "./BreadcrumbBar";
-import { ContextBar, estimateConversationTokens } from "./ContextBar";
-import { ContextGraphPanel } from "./ContextGraphPanel";
-import { ExecutionTimeline } from "./ExecutionTimeline";
+import { BuddyWidget } from "./BuddyWidget";
 import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import {
   CHAT_SCROLL_IS_REVERSED,
@@ -112,6 +108,11 @@ import {
 import { ChatScrollIndicator } from "./ChatScrollIndicator";
 import { getStreamingLoadingState, shouldRenderAssistantMarkdownFromContent } from "./chatStreaming";
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
+import { ContextBar, estimateConversationTokens } from "./ContextBar";
+import { ContextGraphPanel } from "./ContextGraphPanel";
+import { ExecutionTimeline } from "./ExecutionTimeline";
+import { ExpertBadge } from "./ExpertBadge";
+import { ExpertSelector } from "./ExpertSelector";
 import { InputArea } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
@@ -128,13 +129,12 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { registerHighlight } from "stream-markdown";
 import {
   AssistantMarkdown,
+  type CodeBlockPreviewPayload,
   getChatCodeThemes,
-  THINKING_LOADING_MARKER,
   setCodeBlockPreviewHandler,
   setMermaidOpenModalHandler,
-  type CodeBlockPreviewPayload,
+  THINKING_LOADING_MARKER,
 } from "./ChatMarkdownNodes";
-
 
 // ── Attachment preview component ────────────────────────────────────────
 
@@ -301,7 +301,6 @@ function AttachmentPreview({ att, themeColor }: { att: Attachment; themeColor: s
     </Dropdown>
   );
 }
-
 
 // ── Version pagination component for multi-version AI replies ──────────
 
@@ -1118,12 +1117,14 @@ function ChatViewInner() {
 
   // Pre-load Shiki themes into the singleton highlighter when theme settings change
   useEffect(() => {
-    if (import.meta.env.DEV) console.log("[AxAgent Theme Debug] themes changed:", {
-      codeBlockDarkTheme,
-      codeBlockLightTheme,
-      codeBlockThemes,
-      isDarkMode,
-    });
+    if (import.meta.env.DEV) {
+      console.log("[AxAgent Theme Debug] themes changed:", {
+        codeBlockDarkTheme,
+        codeBlockLightTheme,
+        codeBlockThemes,
+        isDarkMode,
+      });
+    }
     if (codeBlockThemes.length > 0) {
       registerHighlight({ themes: codeBlockThemes as any }).catch((err) => {
         console.error("[AxAgent Theme Debug] registerHighlight failed:", err);
@@ -1156,16 +1157,7 @@ function ChatViewInner() {
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const isTitleGenerating = activeConversationId != null && titleGeneratingConversationId === activeConversationId;
 
-  const expertOptions = useMemo(() => [
-    { value: "coding", label: t("chat.welcomePromptCoding") },
-    { value: "creative", label: t("chat.welcomePromptCreative") },
-    { value: "translation", label: t("chat.welcomePromptTranslation") },
-    { value: "writing", label: t("chat.welcomePromptWriting") },
-    { value: "research", label: t("chat.welcomePromptResearch") },
-    { value: "analysis", label: t("chat.welcomePromptAnalysis") },
-    { value: "investment", label: t("chat.welcomePromptInvestment") },
-    { value: "social_media", label: t("chat.welcomePromptSocialMedia") },
-  ], [t]);
+  const [expertOpen, setExpertOpen] = useState(false);
 
   const renderConvIconForChat = useCallback((size: number, model_id?: string | null) => {
     if (!activeConversation) {
@@ -3059,17 +3051,9 @@ function ChatViewInner() {
                   </Typography.Text>
                 )}
 
-              <Select
-                value={activeConversation.scenario || undefined}
-                onChange={(val) => {
-                  updateConversation(activeConversation.id, { scenario: val || null });
-                }}
-                disabled={messages.length > 0}
-                placeholder={t("chat.scenarioPlaceholder")}
-                size="small"
-                style={{ minWidth: 100 }}
-                allowClear
-                options={expertOptions}
+              <ExpertBadge
+                expertRoleId={activeConversation?.expert_role_id ?? null}
+                onClick={() => setExpertOpen(true)}
               />
 
               <div className="flex-1" />
@@ -3109,21 +3093,27 @@ function ChatViewInner() {
 
       {/* ContextBar：显示当前上下文状态 + Token 用量 */}
       <ContextBar
-        modelName={activeConversation ? (() => {
-          const provider = providers.find((p) => p.id === activeConversation.provider_id);
-          const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
-          return model?.name ?? activeConversation.model_id;
-        })() : undefined}
+        modelName={activeConversation
+          ? (() => {
+            const provider = providers.find((p) => p.id === activeConversation.provider_id);
+            const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
+            return model?.name ?? activeConversation.model_id;
+          })()
+          : undefined}
         searchEnabled={activeConversation?.search_enabled ?? false}
         toolCount={activeConversation?.enabled_mcp_server_ids?.length ?? 0}
         knowledgeCount={activeConversation?.enabled_knowledge_base_ids?.length ?? 0}
         memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
-        tokenUsed={activeMessages.length > 0 ? estimateConversationTokens(activeMessages.map(m => ({ role: m.role, content: m.content }))) : undefined}
-        tokenMax={activeConversation ? (() => {
-          const provider = providers.find((p) => p.id === activeConversation.provider_id);
-          const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
-          return model?.max_tokens ?? activeConversation.max_tokens ?? undefined;
-        })() : undefined}
+        tokenUsed={activeMessages.length > 0
+          ? estimateConversationTokens(activeMessages.map(m => ({ role: m.role, content: m.content })))
+          : undefined}
+        tokenMax={activeConversation
+          ? (() => {
+            const provider = providers.find((p) => p.id === activeConversation.provider_id);
+            const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
+            return model?.max_tokens ?? activeConversation.max_tokens ?? undefined;
+          })()
+          : undefined}
       />
 
       {/* Message Area */}
@@ -3266,9 +3256,7 @@ function ChatViewInner() {
       )}
 
       {/* Quick Command Bar — 快捷操作（仅 agent 模式显示） */}
-      {activeConversation?.mode === "agent" && (
-        <QuickCommandBar />
-      )}
+      {activeConversation?.mode === "agent" && <QuickCommandBar />}
 
       {/* Input Area */}
       <div className="relative">
@@ -3296,6 +3284,46 @@ function ChatViewInner() {
 
       {/* Permission Modal — 全局权限审批弹窗 */}
       <PermissionModal />
+      {/* Expert Selector — 专家角色选择弹窗 */}
+      <ExpertSelector
+        open={expertOpen}
+        onClose={() => setExpertOpen(false)}
+        selectedRoleId={activeConversation?.expert_role_id ?? null}
+        onSelect={(roleId) => {
+          if (!activeConversationId) { return; }
+          const expertStore = useExpertStore.getState();
+          const role = expertStore.getRoleById(roleId);
+          if (!role) { return; }
+
+          // 更新专家角色 + 系统提示词
+          updateConversation(activeConversationId, {
+            expert_role_id: roleId,
+            system_prompt: role.systemPrompt || undefined,
+          });
+          expertStore.recordSwitch(activeConversationId, roleId);
+
+          // 应用推荐的模型和提供者
+          if (role.suggestedProviderId && role.suggestedModelId) {
+            updateConversation(activeConversationId, {
+              provider_id: role.suggestedProviderId,
+              model_id: role.suggestedModelId,
+            });
+          }
+          if (role.suggestedTemperature != null) {
+            updateConversation(activeConversationId, {
+              temperature: role.suggestedTemperature,
+            });
+          }
+
+          // 应用推荐的权限模式
+          if (role.recommendPermissionMode) {
+            const { updatePermissionMode } = useAgentStore.getState();
+            updatePermissionMode(activeConversationId, role.recommendPermissionMode);
+          }
+
+          setExpertOpen(false);
+        }}
+      />
       <Modal
         title={t("chat.compressionSummary")}
         open={summaryModalOpen}

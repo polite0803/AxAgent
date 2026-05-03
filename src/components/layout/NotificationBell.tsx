@@ -1,8 +1,8 @@
 // 通知铃铛 — 显示 Agent 生命周期通知和未读计数
 
 import { BellOutlined } from "@ant-design/icons";
-import { Badge, Dropdown, Typography, Empty } from "antd";
-import { useState, useCallback } from "react";
+import { Badge, Dropdown, Empty, Typography } from "antd";
+import { useCallback, useState } from "react";
 
 const { Text } = Typography;
 
@@ -26,7 +26,7 @@ export function pushNotification(type: NotificationItem["type"], message: string
   };
   globalNotifications.unshift(item);
   // 保留最近 50 条
-  if (globalNotifications.length > 50) globalNotifications.length = 50;
+  if (globalNotifications.length > 50) { globalNotifications.length = 50; }
   listeners.forEach((fn) => fn());
 }
 
@@ -36,27 +36,37 @@ export function NotificationBell() {
 
   // 订阅全局通知变化
   const refresh = useCallback(() => setTick((n) => n + 1), []);
-  useState(() => { listeners.push(refresh); return () => { listeners = listeners.filter((l) => l !== refresh); }; });
+  useState(() => {
+    listeners.push(refresh);
+    return () => {
+      listeners = listeners.filter((l) => l !== refresh);
+    };
+  });
 
   const unreadCount = globalNotifications.length;
 
   const items = globalNotifications.length === 0
     ? [{ key: "empty", label: <Empty description="暂无通知" image={Empty.PRESENTED_IMAGE_SIMPLE} />, disabled: true }]
     : globalNotifications.slice(0, 20).map((n) => ({
-        key: n.id,
-        label: (
-          <div style={{ maxWidth: 320, padding: "4px 0" }}>
-            <Text style={{ fontSize: 12, color: n.type === "error" ? "#ff4d4f" : n.type === "warning" ? "#faad14" : "#52c41a" }}>
-              {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.message}
+      key: n.id,
+      label: (
+        <div style={{ maxWidth: 320, padding: "4px 0" }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: n.type === "error" ? "#ff4d4f" : n.type === "warning" ? "#faad14" : "#52c41a",
+            }}
+          >
+            {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.message}
+          </Text>
+          <div>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {new Date(n.time).toLocaleTimeString("zh-CN")}
             </Text>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {new Date(n.time).toLocaleTimeString("zh-CN")}
-              </Text>
-            </div>
           </div>
-        ),
-      }));
+        </div>
+      ),
+    }));
 
   return (
     <Dropdown menu={{ items }} open={open} onOpenChange={setOpen} trigger={["click"]} placement="bottomRight">

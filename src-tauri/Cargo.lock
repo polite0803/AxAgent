@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-acp"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "async-trait",
  "axagent-runtime",
@@ -615,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -651,7 +651,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-code-engine"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -666,7 +666,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-core"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-gateway"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -731,7 +731,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-migration"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -740,7 +740,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-plugins"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "serde",
  "serde_json",
@@ -748,7 +748,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-providers"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -806,7 +806,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-telemetry"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "chrono",
  "lazy_static",
@@ -819,7 +819,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-tools"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -857,7 +857,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-trajectory"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "anyhow",
  "async-trait",

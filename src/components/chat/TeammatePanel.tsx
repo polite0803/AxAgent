@@ -1,14 +1,9 @@
 import { useAgentStore } from "@/stores";
 import type { AgentPoolItem, TeammateStatus, WorkerMessage } from "@/types/agent";
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  LoadingOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
+import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, TeamOutlined } from "@ant-design/icons";
 import { Button, Collapse, message, Tag, Typography } from "antd";
 import { useMemo, useState } from "react";
-import { CreateTeamModal, type CreateTeamData } from "./CreateTeamModal";
+import { type CreateTeamData, CreateTeamModal } from "./CreateTeamModal";
 
 const { Text } = Typography;
 
@@ -67,10 +62,10 @@ function getStatusConfig(status: TeammateStatus) {
 function formatMessage(msg: WorkerMessage): string {
   const time = msg.timestamp
     ? new Date(msg.timestamp).toLocaleTimeString("zh-CN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
     : "";
   const prefix = time ? `[${time}] ` : "";
   return `${prefix}${msg.content}`;

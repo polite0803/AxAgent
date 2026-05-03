@@ -1,14 +1,6 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { theme } from "antd";
-import {
-  Brain,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  ListChecks,
-  Play,
-  Search,
-} from "lucide-react";
+import { Brain, CheckCircle2, ChevronDown, ChevronRight, ListChecks, Play, Search } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -35,39 +27,124 @@ const PHASE_PATTERNS: { phase: ThinkingPhase; keywords: string[] }[] = [
   {
     phase: "analysis",
     keywords: [
-      "分析", "理解", "了解", "查看", "检查一下", "让我看看", "先看",
-      "当前", "现状", "现有的", "代码库", "项目结构", "目录结构",
-      "让我读", "我先看", "先了解", "探索", "搜索", "查找",
-      "analyze", "understand", "look at", "check", "examine", "explore",
-      "search", "find", "read", "inspect",
+      "分析",
+      "理解",
+      "了解",
+      "查看",
+      "检查一下",
+      "让我看看",
+      "先看",
+      "当前",
+      "现状",
+      "现有的",
+      "代码库",
+      "项目结构",
+      "目录结构",
+      "让我读",
+      "我先看",
+      "先了解",
+      "探索",
+      "搜索",
+      "查找",
+      "analyze",
+      "understand",
+      "look at",
+      "check",
+      "examine",
+      "explore",
+      "search",
+      "find",
+      "read",
+      "inspect",
     ],
   },
   {
     phase: "planning",
     keywords: [
-      "计划", "方案", "步骤", "思路", "策略", "规划", "设计",
-      "首先", "然后", "接着", "最后", "第.*步",
-      "我会", "我将", "需要做", "接下来",
-      "plan", "strategy", "approach", "steps", "first", "then",
-      "I will", "I'll", "need to", "going to",
+      "计划",
+      "方案",
+      "步骤",
+      "思路",
+      "策略",
+      "规划",
+      "设计",
+      "首先",
+      "然后",
+      "接着",
+      "最后",
+      "第.*步",
+      "我会",
+      "我将",
+      "需要做",
+      "接下来",
+      "plan",
+      "strategy",
+      "approach",
+      "steps",
+      "first",
+      "then",
+      "I will",
+      "I'll",
+      "need to",
+      "going to",
     ],
   },
   {
     phase: "execution",
     keywords: [
-      "执行", "实现", "编写", "创建", "修改", "删除", "运行",
-      "编辑", "写入", "调用", "构建", "生成", "开始",
-      "execute", "implement", "create", "write", "modify", "delete",
-      "run", "edit", "call", "build", "generate", "start",
+      "执行",
+      "实现",
+      "编写",
+      "创建",
+      "修改",
+      "删除",
+      "运行",
+      "编辑",
+      "写入",
+      "调用",
+      "构建",
+      "生成",
+      "开始",
+      "execute",
+      "implement",
+      "create",
+      "write",
+      "modify",
+      "delete",
+      "run",
+      "edit",
+      "call",
+      "build",
+      "generate",
+      "start",
     ],
   },
   {
     phase: "verification",
     keywords: [
-      "验证", "检查", "确认", "测试", "确保", "通过", "完成",
-      "正确", "无误", "成功", "结果", "总结",
-      "verify", "check", "confirm", "test", "ensure", "done",
-      "complete", "correct", "success", "result", "summary",
+      "验证",
+      "检查",
+      "确认",
+      "测试",
+      "确保",
+      "通过",
+      "完成",
+      "正确",
+      "无误",
+      "成功",
+      "结果",
+      "总结",
+      "verify",
+      "check",
+      "confirm",
+      "test",
+      "ensure",
+      "done",
+      "complete",
+      "correct",
+      "success",
+      "result",
+      "summary",
     ],
   },
 ];
@@ -209,7 +286,8 @@ export const StructuredThinking = React.memo(function StructuredThinking({
   const toggleBlock = (idx: number) => {
     setExpandedBlocks((prev) => {
       const next = new Set(prev);
-      if (next.has(idx)) { next.delete(idx); } else { next.add(idx); }
+      if (next.has(idx)) { next.delete(idx); }
+      else { next.add(idx); }
       return next;
     });
   };
@@ -236,7 +314,12 @@ export const StructuredThinking = React.memo(function StructuredThinking({
         tabIndex={0}
         aria-expanded={expanded}
         aria-label={title}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleToggle(); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -254,7 +337,9 @@ export const StructuredThinking = React.memo(function StructuredThinking({
             {title}
           </span>
           {isStreaming && (
-            <SyncOutlined style={{ fontSize: 12, color: token.colorPrimary, animation: "axagent-think-spin 1s linear infinite" }} />
+            <SyncOutlined
+              style={{ fontSize: 12, color: token.colorPrimary, animation: "axagent-think-spin 1s linear infinite" }}
+            />
           )}
           {!isStreaming && blocks.length > 0 && (
             <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
@@ -291,7 +376,12 @@ export const StructuredThinking = React.memo(function StructuredThinking({
                   tabIndex={0}
                   aria-expanded={isBlockExpanded}
                   aria-label={block.title}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleBlock(idx); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleBlock(idx);
+                    }
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",

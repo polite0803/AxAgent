@@ -18,13 +18,13 @@
 // ── 类型定义 ──
 
 /** ACP 协议版本 */
-export const ACP_VERSION = '1.0.0';
+export const ACP_VERSION = "1.0.0";
 
 /** 会话状态 */
-export type SessionStatus = 'idle' | 'running' | 'waiting_permission' | 'compacting' | 'closed';
+export type SessionStatus = "idle" | "running" | "waiting_permission" | "compacting" | "closed";
 
 /** 权限模式 */
-export type PermissionMode = 'read-only' | 'workspace-write' | 'danger-full-access';
+export type PermissionMode = "read-only" | "workspace-write" | "danger-full-access";
 
 /** 创建会话参数 */
 export interface CreateSessionParams {
@@ -84,14 +84,14 @@ export class AxAgentClient {
   private authToken?: string;
 
   constructor(baseUrl: string, authToken?: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.baseUrl = baseUrl.replace(/\/$/, "");
     this.authToken = authToken;
   }
 
   private headers(): Record<string, string> {
-    const h: Record<string, string> = { 'Content-Type': 'application/json' };
+    const h: Record<string, string> = { "Content-Type": "application/json" };
     if (this.authToken) {
-      h['Authorization'] = `Bearer ${this.authToken}`;
+      h["Authorization"] = `Bearer ${this.authToken}`;
     }
     return h;
   }
@@ -114,22 +114,22 @@ export class AxAgentClient {
 
   /** 创建会话 */
   async createSession(params: CreateSessionParams): Promise<Session> {
-    return this.request<Session>('POST', '/acp/v1/sessions', params);
+    return this.request<Session>("POST", "/acp/v1/sessions", params);
   }
 
   /** 查询会话 */
   async getSession(sessionId: string): Promise<Session> {
-    return this.request<Session>('GET', `/acp/v1/sessions/${sessionId}`);
+    return this.request<Session>("GET", `/acp/v1/sessions/${sessionId}`);
   }
 
   /** 列出所有会话 */
   async listSessions(): Promise<Session[]> {
-    return this.request<Session[]>('GET', '/acp/v1/sessions');
+    return this.request<Session[]>("GET", "/acp/v1/sessions");
   }
 
   /** 发送 prompt */
   async sendPrompt(sessionId: string, prompt: string, maxTurns?: number): Promise<PromptResult> {
-    return this.request<PromptResult>('POST', `/acp/v1/sessions/${sessionId}/prompts`, {
+    return this.request<PromptResult>("POST", `/acp/v1/sessions/${sessionId}/prompts`, {
       sessionId,
       prompt,
       maxTurns,
@@ -138,23 +138,23 @@ export class AxAgentClient {
 
   /** 中断执行 */
   async interrupt(sessionId: string): Promise<void> {
-    await this.request('POST', `/acp/v1/sessions/${sessionId}/interrupt`);
+    await this.request("POST", `/acp/v1/sessions/${sessionId}/interrupt`);
   }
 
   /** 关闭会话 */
   async closeSession(sessionId: string): Promise<void> {
-    await this.request('POST', `/acp/v1/sessions/${sessionId}/close`);
+    await this.request("POST", `/acp/v1/sessions/${sessionId}/close`);
   }
 
   /** 注册 hook 回调 */
   async registerHook(params: RegisterHookParams): Promise<void> {
-    await this.request('POST', '/acp/v1/hooks', params);
+    await this.request("POST", "/acp/v1/hooks", params);
   }
 
   /** 健康检查 */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.getSession('health');
+      await this.getSession("health");
       return true;
     } catch {
       return false;
@@ -166,7 +166,7 @@ export class AxAgentClient {
    * 返回一个 AsyncIterator，可用于 for-await-of 循环
    */
   async *connectWebSocket(): AsyncGenerator<AcpNotification> {
-    const wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/acp/v1/ws';
+    const wsUrl = this.baseUrl.replace(/^http/, "ws") + "/acp/v1/ws";
     const ws = new WebSocket(wsUrl);
 
     const messageQueue: AcpNotification[] = [];
@@ -217,7 +217,7 @@ export class AxAgentClient {
 
 // ── React Hook ──
 
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from "react";
 
 /**
  * useAxAgent — React Hook，简化 ACP 客户端在 React 组件中的使用

@@ -393,6 +393,10 @@ pub struct AgentQueryRequest {
     /// When set, only tools matching the role's `default_tools()` are exposed
     /// to the LLM, and the role's system prompt is prepended.
     pub role: Option<String>,
+    /// Expert role ID from the agency_experts table. When set, the expert's
+    /// system_prompt takes precedence over the request-level system_prompt.
+    #[serde(rename = "expertRoleId")]
+    pub expert_role_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -518,6 +522,26 @@ pub async fn agent_query(
         .map_err(|e| e.to_string())?;
     let conversation_scenario = conversation.scenario.clone();
     let enabled_skill_ids = conversation.enabled_skill_ids.clone();
+
+    // Resolve expert system prompt: request.expert_role_id takes precedence
+    let effective_system_prompt = if let Some(ref expert_id) = request.expert_role_id {
+        if let Ok(Some(expert)) =
+            axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                .one(&app_state.sea_db)
+                .await
+                .map_err(|e| e.to_string())
+        {
+            if !expert.system_prompt.is_empty() {
+                Some(expert.system_prompt)
+            } else {
+                request.system_prompt.clone()
+            }
+        } else {
+            request.system_prompt.clone()
+        }
+    } else {
+        request.system_prompt.clone()
+    };
 
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point
@@ -1399,7 +1423,7 @@ pub async fn agent_query(
     let workspace_root_for_prompt = db_session.as_ref().and_then(|s| s.cwd.clone());
 
     let system_prompt = build_agent_system_prompt(
-        request.system_prompt.as_deref(),
+        effective_system_prompt.as_deref(),
         rag_context_parts.as_deref(),
         &skill_contents,
         resolved_role,

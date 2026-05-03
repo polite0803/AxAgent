@@ -5,7 +5,7 @@ pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m20260502_000002_create_notes_and_knowledge_tables"
+        "m20240101_000004_init_knowledge"
     }
 }
 
@@ -360,25 +360,6 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 补齐 knowledge_documents 的 created_at/updated_at 列
-        for col in &["created_at", "updated_at"] {
-            if !manager.has_column("knowledge_documents", col).await? {
-                manager
-                    .alter_table(
-                        Table::alter()
-                            .table(KnowledgeDocuments::Table)
-                            .add_column_if_not_exists(
-                                ColumnDef::new(Alias::new(*col))
-                                    .big_integer()
-                                    .not_null()
-                                    .default(0),
-                            )
-                            .to_owned(),
-                    )
-                    .await?;
-            }
-        }
-
         Ok(())
     }
 
@@ -537,8 +518,4 @@ enum KnowledgeInterfaces {
     Metadata,
     CreatedAt,
     UpdatedAt,
-}
-#[derive(Iden)]
-enum KnowledgeDocuments {
-    Table,
 }

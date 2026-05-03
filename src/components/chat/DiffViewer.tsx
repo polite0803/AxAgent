@@ -1,13 +1,5 @@
 import { Button, Space, Tag, theme, Tooltip, Typography } from "antd";
-import {
-  Check,
-  FileCode,
-  FileDiff,
-  GitBranch,
-  Minus,
-  Plus,
-  X,
-} from "lucide-react";
+import { Check, FileCode, FileDiff, GitBranch, Minus, Plus, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -217,7 +209,13 @@ export const FileChangeCard = React.memo(function FileChangeCard({
   return (
     <div
       style={{
-        border: `1px solid ${status === "accepted" ? token.colorSuccess : status === "rejected" ? token.colorError : token.colorBorderSecondary}`,
+        border: `1px solid ${
+          status === "accepted"
+            ? token.colorSuccess
+            : status === "rejected"
+            ? token.colorError
+            : token.colorBorderSecondary
+        }`,
         borderRadius: token.borderRadius,
         marginBottom: 8,
         overflow: "hidden",
@@ -231,7 +229,12 @@ export const FileChangeCard = React.memo(function FileChangeCard({
         tabIndex={0}
         aria-expanded={expanded}
         aria-label={`${change.filePath} - ${isNew ? "新建" : isDeleted ? "删除" : "修改"}`}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -252,20 +255,14 @@ export const FileChangeCard = React.memo(function FileChangeCard({
           <Typography.Text style={{ fontSize: 13, fontFamily: "monospace" }}>
             {change.filePath}
           </Typography.Text>
-          {isNew && (
-            <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>新建</Tag>
-          )}
-          {isDeleted && (
-            <Tag color="red" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>删除</Tag>
-          )}
+          {isNew && <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>新建</Tag>}
+          {isDeleted && <Tag color="red" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>删除</Tag>}
           {change.operation === "edit" && (
             <Tag color="orange" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>修改</Tag>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {!isDeleted && !isNew && (
-            <DiffStatBar original={change.originalContent} modified={change.modifiedContent} />
-          )}
+          {!isDeleted && !isNew && <DiffStatBar original={change.originalContent} modified={change.modifiedContent} />}
           {status === "pending" && (
             <Space size={4} onClick={(e) => e.stopPropagation()}>
               <Tooltip title={t("chat.diff.accept")}>
@@ -302,40 +299,42 @@ export const FileChangeCard = React.memo(function FileChangeCard({
       {/* Diff Content */}
       {expanded && !isDeleted && (
         <div style={{ padding: 4 }}>
-          {isNew ? (
-            <div
-              style={{
-                padding: 12,
-                backgroundColor: token.colorFillQuaternary,
-                borderRadius: token.borderRadiusSM,
-                maxHeight: 300,
-                overflow: "auto",
-                fontSize: 12,
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-              }}
-            >
+          {isNew
+            ? (
               <div
                 style={{
-                  color: token.colorSuccess,
-                  marginBottom: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
+                  padding: 12,
+                  backgroundColor: token.colorFillQuaternary,
+                  borderRadius: token.borderRadiusSM,
+                  maxHeight: 300,
+                  overflow: "auto",
+                  fontSize: 12,
+                  fontFamily: "monospace",
+                  whiteSpace: "pre-wrap",
                 }}
               >
-                <Plus size={12} /> 新文件
+                <div
+                  style={{
+                    color: token.colorSuccess,
+                    marginBottom: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <Plus size={12} /> 新文件
+                </div>
+                {change.modifiedContent}
               </div>
-              {change.modifiedContent}
-            </div>
-          ) : (
-            <MonacoDiffEditor
-              original={change.originalContent}
-              modified={change.modifiedContent}
-              language={lang}
-              height={Math.min(400, Math.max(150, change.modifiedContent.split("\n").length * 22))}
-            />
-          )}
+            )
+            : (
+              <MonacoDiffEditor
+                original={change.originalContent}
+                modified={change.modifiedContent}
+                language={lang}
+                height={Math.min(400, Math.max(150, change.modifiedContent.split("\n").length * 22))}
+              />
+            )}
         </div>
       )}
       {expanded && isDeleted && (
@@ -428,7 +427,9 @@ export const FileChangeList = React.memo(function FileChangeList({
 
 // ── Utility: extract file changes from tool call ─────────────────────────
 
-export function extractFileChanges(toolCalls: { toolName: string; input: Record<string, unknown>; output?: string }[]): FileChange[] {
+export function extractFileChanges(
+  toolCalls: { toolName: string; input: Record<string, unknown>; output?: string }[],
+): FileChange[] {
   const changes: FileChange[] = [];
 
   for (const tc of toolCalls) {

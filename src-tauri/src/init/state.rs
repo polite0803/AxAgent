@@ -71,7 +71,18 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         .expect("failed to create documents storage dirs (custom root)");
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
-        let storage = axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()));
+        let db_file_path = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+        let storage = axagent_trajectory::TrajectoryStorage::with_fts_path(
+            Arc::new(sea_db.clone()),
+            db_file_path,
+        )
+        .unwrap_or_else(|e| {
+            tracing::warn!(
+                "Failed to init trajectory FTS5, falling back to no-FTS: {}",
+                e
+            );
+            axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
+        });
         Arc::new(storage)
     };
 

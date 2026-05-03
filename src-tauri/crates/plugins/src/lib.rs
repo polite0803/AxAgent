@@ -741,6 +741,13 @@ impl PluginRegistryReport {
             Err(PluginError::LoadFailures(self.failures))
         }
     }
+
+    /// Like `into_registry()`, but ignores load failures and returns the
+    /// successfully loaded plugins. Failures are kept in `self.failures`
+    /// so callers can still inspect them via `failures()`.
+    pub fn into_registry_allowing_failures(self) -> PluginRegistry {
+        self.registry
+    }
 }
 
 #[derive(Debug, Default)]
@@ -1359,14 +1366,27 @@ impl PluginManager {
 
     fn derive_source_from_external_dir(directory: &Path) -> String {
         let dir_str = directory.to_string_lossy().to_lowercase();
+        // 按优先级匹配，避免 .codebuddy 被 .claude 误匹配
         if dir_str.contains(".axagent") {
             "axagent".to_string()
         } else if dir_str.contains(".claude") {
             "claude".to_string()
         } else if dir_str.contains(".agents") {
             "agents".to_string()
+        } else if dir_str.contains(".codebuddy") {
+            "codebuddy".to_string()
+        } else if dir_str.contains(".trae") {
+            "trae".to_string()
+        } else if dir_str.contains(".workbuddy") {
+            "workbuddy".to_string()
         } else {
-            directory.display().to_string()
+            // Fallback: use the parent directory name (e.g. ".custom" from "~/.custom/skills")
+            directory
+                .parent()
+                .and_then(|p| p.file_name())
+                .and_then(|n| n.to_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "unknown".to_string())
         }
     }
 

@@ -96,13 +96,27 @@ lazy_static::lazy_static! {
 #[tauri::command]
 pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
     let plugin_manager = create_plugin_manager_with_skill_dirs()?;
-    let plugins = plugin_manager.list_plugins().map_err(|e| e.to_string())?;
+    // Use plugin_registry_report() directly instead of list_plugins().
+    // list_plugins() -> plugin_registry() -> plugin_registry_report()?.into_registry()
+    // into_registry() returns Err(LoadFailures) if ANY plugin fails to load,
+    // which makes a single broken SKILL.md kill the entire skills page.
+    // By using the report directly, we can show successfully loaded plugins
+    // while logging failures.
+    let report = plugin_manager
+        .plugin_registry_report()
+        .map_err(|e| e.to_string())?;
+    let failures = report.failures();
+    for f in failures {
+        tracing::warn!("Skill load failure: {f}");
+    }
+    let plugins = report.into_registry_allowing_failures();
 
     let disabled = axagent_core::repo::skill::get_disabled_skills(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?;
 
     let result: Vec<SkillInfo> = plugins
+        .summaries()
         .into_iter()
         .map(|p| {
             let enabled = !disabled.contains(&p.metadata.name);
@@ -267,6 +281,9 @@ pub async fn install_skill(
     let target_dir = match target.as_deref() {
         Some("claude") => home_dir().join(".claude").join("skills"),
         Some("agents") => home_dir().join(".agents").join("skills"),
+        Some("trae") => home_dir().join(".trae").join("skills"),
+        Some("codebuddy") => home_dir().join(".codebuddy").join("skills"),
+        Some("workbuddy") => home_dir().join(".workbuddy").join("skills"),
         _ => skills_dir(),
     };
     std::fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;

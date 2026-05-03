@@ -46,7 +46,11 @@ export interface GraphData {
 export interface GraphViewProps {
   data: GraphData;
   onNodeClick?: (nodeId: string) => void;
+  onNodeDoubleClick?: (nodeId: string) => void;
   onNodeHover?: (nodeId: string | null) => void;
+  onContextMenu?: (nodeId: string, position: { x: number; y: number }) => void;
+  highlightedNodeIds?: Set<string>;
+  selectedNodeId?: string | null;
   filters?: {
     tags?: string[];
     pathPrefix?: string;
@@ -68,11 +72,17 @@ const CustomNode = ({
   data,
   selected,
 }: {
-  data: GraphNode & { onHover?: (id: string | null) => void };
+  data: GraphNode & {
+    onHover?: (id: string | null) => void;
+    isHighlighted?: boolean;
+    isSelected?: boolean;
+  };
   selected: boolean;
 }) => {
   const { token } = theme.useToken();
   const nodeColor = nodeColors[data.type] || nodeColors.note;
+  const isHighlighted = data.isHighlighted !== false;
+  const isSelected = data.isSelected || selected;
 
   return (
     <Tooltip
@@ -89,16 +99,29 @@ const CustomNode = ({
       <div
         style={{
           padding: "8px 12px",
-          borderRadius: 8,
-          background: token.colorBgContainer,
-          border: `2px solid ${selected ? nodeColor : "transparent"}`,
-          boxShadow: selected
-            ? `0 0 0 2px ${nodeColor}33, 0 4px 12px rgba(0,0,0,0.15)`
-            : "0 2px 8px rgba(0,0,0,0.1)",
+          borderRadius: 10,
+          background: `${token.colorBgContainer}ee`,
+          backdropFilter: "blur(8px)",
+          border: `1.5px solid ${isSelected ? nodeColor : `${token.colorBorderSecondary}30`}`,
+          boxShadow: isSelected
+            ? `0 0 0 1px ${nodeColor}30, 0 4px 24px ${nodeColor}20, 0 8px 16px rgba(0,0,0,0.08)`
+            : "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
+          opacity: isHighlighted ? 1 : 0.2,
           minWidth: 120,
           maxWidth: 200,
           cursor: "pointer",
-          transition: "all 0.2s ease",
+          transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+          transform: isSelected ? "scale(1.03)" : "scale(1)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.04)";
+          e.currentTarget.style.boxShadow = `0 4px 20px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06)`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = isSelected ? "scale(1.03)" : "scale(1)";
+          e.currentTarget.style.boxShadow = isSelected
+            ? `0 0 0 1px ${nodeColor}30, 0 4px 24px ${nodeColor}20, 0 8px 16px rgba(0,0,0,0.08)`
+            : "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)";
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
@@ -110,13 +133,36 @@ const CustomNode = ({
             {data.title}
           </Text>
         </div>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
           {data.tags.slice(0, 3).map((tag) => (
-            <Tag key={tag} style={{ fontSize: 10, margin: 0 }}>
+            <span
+              key={tag}
+              style={{
+                fontSize: 9,
+                padding: "1px 5px",
+                borderRadius: 999,
+                background: `${nodeColor}14`,
+                color: nodeColor,
+                fontWeight: 500,
+                letterSpacing: "0.02em",
+              }}
+            >
               {tag}
-            </Tag>
+            </span>
           ))}
-          {data.tags.length > 3 && <Tag style={{ fontSize: 10, margin: 0 }}>+{data.tags.length - 3}</Tag>}
+          {data.tags.length > 3 && (
+            <span
+              style={{
+                fontSize: 9,
+                padding: "1px 5px",
+                borderRadius: 999,
+                background: `${token.colorBorderSecondary}30`,
+                color: token.colorTextSecondary,
+              }}
+            >
+              +{data.tags.length - 3}
+            </span>
+          )}
         </div>
         <div
           style={{
@@ -142,7 +188,11 @@ const nodeTypes: NodeTypes = {
 export function GraphView({
   data,
   onNodeClick,
+  onNodeDoubleClick,
   onNodeHover,
+  onContextMenu,
+  highlightedNodeIds,
+  selectedNodeId,
   filters,
   onFiltersChange,
   showMinimap = true,
@@ -172,6 +222,8 @@ export function GraphView({
     return () => observer.disconnect();
   }, []);
 
+  const hasHighlights = highlightedNodeIds && highlightedNodeIds.size > 0;
+
   const filteredNodes = useMemo(() => {
     return data.nodes.filter((node) => {
       if (filters?.tags?.length && !node.tags.some((t) => filters.tags!.includes(t))) {
@@ -199,9 +251,14 @@ export function GraphView({
         id: node.id,
         type: "customNode",
         position: { x: node.x ?? Math.random() * 500, y: node.y ?? Math.random() * 500 },
-        data: { ...node, onHover: onNodeHover },
+        data: {
+          ...node,
+          onHover: onNodeHover,
+          isHighlighted: !hasHighlights || (highlightedNodeIds?.has(node.id) ?? true),
+          isSelected: selectedNodeId === node.id,
+        },
       })),
-    [filteredNodes, onNodeHover],
+    [filteredNodes, onNodeHover, hasHighlights, highlightedNodeIds, selectedNodeId],
   );
 
   const initialEdges: Edge[] = useMemo(
@@ -214,10 +271,13 @@ export function GraphView({
         style: {
           stroke: edge.type === "backlink" ? "#1890ff" : "#d9d9d9",
           strokeWidth: edge.type === "backlink" ? 2 : 1,
+          opacity: hasHighlights
+            ? (highlightedNodeIds?.has(edge.source) && highlightedNodeIds?.has(edge.target) ? 0.8 : 0.1)
+            : 1,
         },
         animated: edge.type === "backlink",
       })),
-    [filteredEdges],
+    [filteredEdges, hasHighlights, highlightedNodeIds],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -233,6 +293,21 @@ export function GraphView({
       onNodeClick?.(node.id);
     },
     [onNodeClick],
+  );
+
+  const onNodeDoubleClickHandler = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      onNodeDoubleClick?.(node.id);
+    },
+    [onNodeDoubleClick],
+  );
+
+  const onNodeContextMenuHandler = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      onContextMenu?.(node.id, { x: event.clientX, y: event.clientY });
+    },
+    [onContextMenu],
   );
 
   const onNodeMouseEnter = useCallback(
@@ -268,6 +343,8 @@ export function GraphView({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClickHandler}
+        onNodeDoubleClick={onNodeDoubleClickHandler}
+        onNodeContextMenu={onNodeContextMenuHandler}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
         nodeTypes={nodeTypes}
@@ -329,6 +406,11 @@ export function GraphView({
               <Text>
                 {t("wiki.graph.edges")}: {filteredEdges.length} / {data.edges.length}
               </Text>
+              {hasHighlights && (
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Highlighted: {highlightedNodeIds!.size}
+                </Text>
+              )}
             </Space>
           </Card>
         </Panel>

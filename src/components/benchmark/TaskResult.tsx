@@ -31,7 +31,9 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
 
       <Descriptions size="small" className="mb-4">
         <Descriptions.Item label={t("benchmark.taskId", "任务ID")}>{result.task_id}</Descriptions.Item>
-        {result.trace_id && <Descriptions.Item label={t("benchmark.traceId", "追踪ID")}>{result.trace_id}</Descriptions.Item>}
+        {result.trace_id && (
+          <Descriptions.Item label={t("benchmark.traceId", "追踪ID")}>{result.trace_id}</Descriptions.Item>
+        )}
       </Descriptions>
 
       {result.error && (

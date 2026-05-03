@@ -1462,7 +1462,68 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
 
     // ── Skills ────────────────────────────────────────────────────────
     case "list_skills":
-      return [] as T;
+      return [
+        {
+          name: "superpowers:brainstorming",
+          description: "You MUST use this before any creative work",
+          author: "AxAgent",
+          version: "1.0.0",
+          source: "builtin",
+          sourcePath: "builtin://superpowers-brainstorming",
+          enabled: true,
+          hasUpdate: false,
+          userInvocable: true,
+          argumentHint: null,
+          whenToUse: null,
+          group: "superpowers",
+          frontend: null,
+        },
+        {
+          name: "superpowers:systematic-debugging",
+          description: "Use when encountering any bug, test failure, or unexpected behavior",
+          author: "AxAgent",
+          version: "1.0.0",
+          source: "builtin",
+          sourcePath: "builtin://superpowers-debugging",
+          enabled: true,
+          hasUpdate: false,
+          userInvocable: true,
+          argumentHint: null,
+          whenToUse: null,
+          group: "superpowers",
+          frontend: null,
+        },
+        {
+          name: "superpowers:writing-plans",
+          description: "Use when you have a spec or requirements for a multi-step task",
+          author: "AxAgent",
+          version: "1.0.0",
+          source: "builtin",
+          sourcePath: "builtin://superpowers-writing-plans",
+          enabled: true,
+          hasUpdate: false,
+          userInvocable: true,
+          argumentHint: null,
+          whenToUse: null,
+          group: "superpowers",
+          frontend: null,
+        },
+        {
+          name: "superpowers:test-driven-development",
+          description: "Use when implementing any feature or bugfix, before writing implementation code",
+          author: "AxAgent",
+          version: "1.0.0",
+          source: "builtin",
+          sourcePath: "builtin://superpowers-tdd",
+          enabled: true,
+          hasUpdate: false,
+          userInvocable: true,
+          argumentHint: null,
+          whenToUse: null,
+          group: "superpowers",
+          frontend: null,
+        },
+      ] as T;
 
     case "get_skill":
       return {

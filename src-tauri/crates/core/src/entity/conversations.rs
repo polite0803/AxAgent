@@ -36,6 +36,7 @@ pub struct Model {
     pub work_strategy: Option<String>,
     pub scenario: Option<String>,
     pub enabled_skill_ids: String,
+    pub expert_role_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

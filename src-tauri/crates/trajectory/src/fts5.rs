@@ -97,7 +97,7 @@ impl FTS5Search {
                 tokenize='porter unicode61'
             );
 
-            CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+            CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_memories_fts USING fts5(
                 id UNINDEXED,
                 memory_type UNINDEXED,
                 content,
@@ -106,7 +106,7 @@ impl FTS5Search {
                 tokenize='porter unicode61'
             );
 
-            CREATE VIRTUAL TABLE IF NOT EXISTS skills_fts USING fts5(
+            CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_skills_fts USING fts5(
                 id UNINDEXED,
                 name,
                 description,
@@ -117,7 +117,7 @@ impl FTS5Search {
                 tokenize='porter unicode61'
             );
 
-            CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+            CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_messages_fts USING fts5(
                 id UNINDEXED,
                 session_id UNINDEXED,
                 role UNINDEXED,
@@ -126,20 +126,6 @@ impl FTS5Search {
                 tokenize='porter unicode61'
             );
 
-            CREATE TRIGGER IF NOT EXISTS trajectories_ai AFTER INSERT ON trajectories_fts BEGIN
-                INSERT INTO trajectories_fts(rowid, id, session_id, topic, summary, content, outcome, quality_score, created_at)
-                VALUES (NEW.rowid, NEW.id, NEW.session_id, NEW.topic, NEW.summary, NEW.content, NEW.outcome, NEW.quality_score, NEW.created_at);
-            END;
-
-            CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories_fts BEGIN
-                INSERT INTO memories_fts(rowid, id, memory_type, content, entities, created_at)
-                VALUES (NEW.rowid, NEW.id, NEW.memory_type, NEW.content, NEW.entities, NEW.created_at);
-            END;
-
-            CREATE TRIGGER IF NOT EXISTS skills_ai AFTER INSERT ON skills_fts BEGIN
-                INSERT INTO skills_fts(rowid, id, name, description, content, category, tags, created_at)
-                VALUES (NEW.rowid, NEW.id, NEW.name, NEW.description, NEW.content, NEW.category, NEW.tags, NEW.created_at);
-            END;
             "#,
         )
         .context("Failed to create FTS5 tables")?;
@@ -194,7 +180,7 @@ impl FTS5Search {
         let conn = self.conn.read().unwrap();
 
         conn.execute(
-            r#"INSERT INTO memories_fts (id, memory_type, content, entities, created_at)
+            r#"INSERT INTO trajectory_memories_fts (id, memory_type, content, entities, created_at)
                VALUES (?1, ?2, ?3, ?4, ?5)"#,
             params![
                 id,
@@ -221,7 +207,7 @@ impl FTS5Search {
         let conn = self.conn.read().unwrap();
 
         conn.execute(
-            r#"INSERT INTO skills_fts (id, name, description, content, category, tags, created_at)
+            r#"INSERT INTO trajectory_skills_fts (id, name, description, content, category, tags, created_at)
                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"#,
             params![
                 id,
@@ -238,6 +224,34 @@ impl FTS5Search {
         Ok(())
     }
 
+    pub fn index_message(&self, msg: &crate::storage::Message) -> Result<()> {
+        let conn = self.conn.read().unwrap();
+        conn.execute(
+            r#"INSERT INTO trajectory_messages_fts (id, session_id, role, content, created_at)
+               VALUES (?1, ?2, ?3, ?4, ?5)"#,
+            params![
+                msg.id,
+                msg.session_id,
+                msg.role,
+                msg.content,
+                msg.created_at.timestamp()
+            ],
+        )?;
+        debug!("Indexed message {} for FTS5", msg.id);
+        Ok(())
+    }
+
+    pub fn delete_from_fts(&self, table: &str, id: &str) -> Result<()> {
+        let conn = self.conn.read().unwrap();
+        let sql = format!(
+            "INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)",
+            table, table
+        );
+        conn.execute(&sql, params![id, ""])?;
+        debug!("Deleted {} from FTS5 table {}", id, table);
+        Ok(())
+    }
+
     pub fn search(&self, query: FTS5Query) -> Result<Vec<FTS5Result>> {
         let conn = self.conn.read().unwrap();
         let mut results = Vec::new();
@@ -247,9 +261,9 @@ impl FTS5Search {
         } else {
             vec![
                 "trajectories_fts".to_string(),
-                "memories_fts".to_string(),
-                "skills_fts".to_string(),
-                "messages_fts".to_string(),
+                "trajectory_memories_fts".to_string(),
+                "trajectory_skills_fts".to_string(),
+                "trajectory_messages_fts".to_string(),
             ]
         };
 
@@ -272,7 +286,7 @@ impl FTS5Search {
                     LIMIT ?2 OFFSET ?3
                     "#
                 },
-                "memories_fts" => {
+                "trajectory_memories_fts" => {
                     r#"
                     SELECT 
                         m.id,
@@ -282,14 +296,14 @@ impl FTS5Search {
                         m.created_at,
                         NULL as quality_score,
                         NULL as outcome,
-                        bm25(memories_fts) as rank
-                    FROM memories_fts m
-                    WHERE memories_fts MATCH ?1
+                        bm25(trajectory_memories_fts) as rank
+                    FROM trajectory_memories_fts m
+                    WHERE trajectory_memories_fts MATCH ?1
                     ORDER BY rank
                     LIMIT ?2 OFFSET ?3
                     "#
                 },
-                "skills_fts" => {
+                "trajectory_skills_fts" => {
                     r#"
                     SELECT 
                         s.id,
@@ -299,14 +313,14 @@ impl FTS5Search {
                         s.created_at,
                         NULL as quality_score,
                         NULL as outcome,
-                        bm25(skills_fts) as rank
-                    FROM skills_fts s
-                    WHERE skills_fts MATCH ?1
+                        bm25(trajectory_skills_fts) as rank
+                    FROM trajectory_skills_fts s
+                    WHERE trajectory_skills_fts MATCH ?1
                     ORDER BY rank
                     LIMIT ?2 OFFSET ?3
                     "#
                 },
-                "messages_fts" => {
+                "trajectory_messages_fts" => {
                     r#"
                     SELECT 
                         m.id,
@@ -316,9 +330,9 @@ impl FTS5Search {
                         m.created_at,
                         NULL as quality_score,
                         NULL as outcome,
-                        bm25(messages_fts) as rank
-                    FROM messages_fts m
-                    WHERE messages_fts MATCH ?1
+                        bm25(trajectory_messages_fts) as rank
+                    FROM trajectory_messages_fts m
+                    WHERE trajectory_messages_fts MATCH ?1
                     ORDER BY rank
                     LIMIT ?2 OFFSET ?3
                     "#
@@ -521,9 +535,9 @@ impl FTS5Search {
         conn.execute_batch(
             r#"
             INSERT INTO trajectories_fts(trajectories_fts) VALUES('optimize');
-            INSERT INTO memories_fts(memories_fts) VALUES('optimize');
-            INSERT INTO skills_fts(skills_fts) VALUES('optimize');
-            INSERT INTO messages_fts(messages_fts) VALUES('optimize');
+            INSERT INTO trajectory_memories_fts(trajectory_memories_fts) VALUES('optimize');
+            INSERT INTO trajectory_skills_fts(trajectory_skills_fts) VALUES('optimize');
+            INSERT INTO trajectory_messages_fts(trajectory_messages_fts) VALUES('optimize');
             "#,
         )?;
         info!("FTS5 indexes optimized");
@@ -535,9 +549,9 @@ impl FTS5Search {
         conn.execute_batch(
             r#"
             INSERT INTO trajectories_fts(trajectories_fts) VALUES('vacuum');
-            INSERT INTO memories_fts(memories_fts) VALUES('vacuum');
-            INSERT INTO skills_fts(skills_fts) VALUES('vacuum');
-            INSERT INTO messages_fts(messages_fts) VALUES('vacuum');
+            INSERT INTO trajectory_memories_fts(trajectory_memories_fts) VALUES('vacuum');
+            INSERT INTO trajectory_skills_fts(trajectory_skills_fts) VALUES('vacuum');
+            INSERT INTO trajectory_messages_fts(trajectory_messages_fts) VALUES('vacuum');
             "#,
         )?;
         info!("FTS5 indexes vacuumed");

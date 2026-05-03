@@ -1,32 +1,23 @@
 import { theme, Typography } from "antd";
-import {
-  BookOpen,
-  Brain,
-  GitBranch,
-  Link2,
-  Puzzle,
-  Search,
-  Wrench,
-  Zap,
-} from "lucide-react";
+import { BookOpen, Brain, GitBranch, Link2, Puzzle, Search, Wrench, Zap } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ReactFlow,
   Background,
   Controls,
-  MiniMap,
-  useNodesState,
-  useEdgesState,
-  type Node,
   type Edge,
-  type NodeTypes,
   Handle,
-  Position,
   MarkerType,
+  MiniMap,
+  type Node,
+  type NodeTypes,
+  Position,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { useMcpStore, useKnowledgeStore, useMemoryStore, useSkillExtensionStore } from "@/stores";
+import { useKnowledgeStore, useMcpStore, useMemoryStore, useSkillExtensionStore } from "@/stores";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -182,7 +173,8 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     const edges: ContextGraphEdge[] = [];
 
     // Conversation node (center)
-    const convName = conversationTitle || conversationId?.slice(0, 8) || t("chat.contextGraph.conversation", "当前对话");
+    const convName = conversationTitle || conversationId?.slice(0, 8)
+      || t("chat.contextGraph.conversation", "当前对话");
     nodes.push({ id: "conversation", type: "conversation", label: convName, detail: conversationId?.slice(0, 16) });
 
     // Model node
@@ -231,7 +223,22 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     }
 
     return { nodes, edges };
-  }, [conversationTitle, conversationId, modelName, providerName, knowledgeBaseIds, memoryNamespaceIds, mcpServerIds, searchEnabled, enabledSkillIds, knowledgeBases, memoryNamespaces, mcpServers, installedSkills, t]);
+  }, [
+    conversationTitle,
+    conversationId,
+    modelName,
+    providerName,
+    knowledgeBaseIds,
+    memoryNamespaceIds,
+    mcpServerIds,
+    searchEnabled,
+    enabledSkillIds,
+    knowledgeBases,
+    memoryNamespaces,
+    mcpServers,
+    installedSkills,
+    t,
+  ]);
 
   const layout = useMemo(
     () => layoutGraph(graphData.nodes, graphData.edges),
@@ -252,7 +259,8 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     }, 0);
   }
 
-  const totalSources = knowledgeBaseIds.length + memoryNamespaceIds.length + mcpServerIds.length + (searchEnabled ? 1 : 0) + enabledSkillIds.length;
+  const totalSources = knowledgeBaseIds.length + memoryNamespaceIds.length + mcpServerIds.length
+    + (searchEnabled ? 1 : 0) + enabledSkillIds.length;
 
   return (
     <div
@@ -296,7 +304,15 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                 color: style.border,
               }}
             >
-              {style.icon} {type === "conversation" ? "对话" : type === "model" ? "模型" : type === "knowledge" ? "知识" : type === "memory" ? "记忆" : "MCP"}
+              {style.icon} {type === "conversation"
+                ? "对话"
+                : type === "model"
+                ? "模型"
+                : type === "knowledge"
+                ? "知识"
+                : type === "memory"
+                ? "记忆"
+                : "MCP"}
             </span>
           ))}
         </div>
@@ -304,46 +320,48 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
       {/* Graph canvas */}
       <div style={{ height: 280, width: "100%" }}>
-        {totalSources > 0 ? (
-          <ReactFlow
-            nodes={rfNodes}
-            edges={rfEdges}
-            nodeTypes={nodeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            fitView
-            fitViewOptions={{ padding: 0.3 }}
-            attributionPosition="bottom-left"
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background color={token.colorBorderSecondary} gap={16} />
-            <Controls showInteractive={false} />
-            <MiniMap
-              style={{ height: 60 }}
-              nodeColor={(n: Node) => {
-                const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
-                const style = nodeData?.nodeType ? nodeTypeStyles[nodeData.nodeType] : undefined;
-                return style?.border || "#ddd";
+        {totalSources > 0
+          ? (
+            <ReactFlow
+              nodes={rfNodes}
+              edges={rfEdges}
+              nodeTypes={nodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              fitView
+              fitViewOptions={{ padding: 0.3 }}
+              attributionPosition="bottom-left"
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background color={token.colorBorderSecondary} gap={16} />
+              <Controls showInteractive={false} />
+              <MiniMap
+                style={{ height: 60 }}
+                nodeColor={(n: Node) => {
+                  const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
+                  const style = nodeData?.nodeType ? nodeTypeStyles[nodeData.nodeType] : undefined;
+                  return style?.border || "#ddd";
+                }}
+              />
+            </ReactFlow>
+          )
+          : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: token.colorTextQuaternary,
+                fontSize: 13,
               }}
-            />
-          </ReactFlow>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              color: token.colorTextQuaternary,
-              fontSize: 13,
-            }}
-          >
-            {t("chat.contextGraph.empty", "未启用上下文源")}
-          </div>
-        )}
+            >
+              {t("chat.contextGraph.empty", "未启用上下文源")}
+            </div>
+          )}
       </div>
     </div>
   );

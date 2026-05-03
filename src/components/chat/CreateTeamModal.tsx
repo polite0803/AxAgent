@@ -1,12 +1,5 @@
-import {
-  Button,
-  Form,
-  Input,
-  Modal,
-  Select,
-  Space,
-} from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Form, Input, Modal, Select, Space } from "antd";
 import { Users } from "lucide-react";
 
 export type TeammateBackendType = "InProcess" | "SubProcess";

@@ -1,12 +1,4 @@
-import {
-  Button,
-  Empty,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
+import { Button, Empty, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Code, Play, Terminal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -37,7 +29,7 @@ export interface HookExecutionRecord {
 function readLogs(): HookExecutionRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) { return []; }
     return JSON.parse(raw) as HookExecutionRecord[];
   } catch {
     return [];
@@ -128,16 +120,18 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       key: "toolName",
       width: 130,
       render: (name?: string) =>
-        name ? (
-          <div className="flex items-center gap-1">
-            <Code size={12} />
-            <Text style={{ fontSize: 12 }}>{name}</Text>
-          </div>
-        ) : (
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            —
-          </Text>
-        ),
+        name
+          ? (
+            <div className="flex items-center gap-1">
+              <Code size={12} />
+              <Text style={{ fontSize: 12 }}>{name}</Text>
+            </div>
+          )
+          : (
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              —
+            </Text>
+          ),
     },
     {
       title: "命令",
@@ -159,15 +153,17 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       key: "status",
       width: 80,
       render: (status: string) =>
-        status === "success" ? (
-          <Tag color="success" style={{ fontSize: 11 }}>
-            成功
-          </Tag>
-        ) : (
-          <Tag color="error" style={{ fontSize: 11 }}>
-            失败
-          </Tag>
-        ),
+        status === "success"
+          ? (
+            <Tag color="success" style={{ fontSize: 11 }}>
+              成功
+            </Tag>
+          )
+          : (
+            <Tag color="error" style={{ fontSize: 11 }}>
+              失败
+            </Tag>
+          ),
     },
     {
       title: "输出摘要",
@@ -175,15 +171,17 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       key: "outputSummary",
       ellipsis: true,
       render: (summary?: string) =>
-        summary ? (
-          <Text style={{ fontSize: 11, maxWidth: 200 }} ellipsis>
-            {summary}
-          </Text>
-        ) : (
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            —
-          </Text>
-        ),
+        summary
+          ? (
+            <Text style={{ fontSize: 11, maxWidth: 200 }} ellipsis>
+              {summary}
+            </Text>
+          )
+          : (
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              —
+            </Text>
+          ),
     },
   ];
 
@@ -226,20 +224,22 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       </div>
 
       {/* 表格 */}
-      {filteredLogs.length === 0 ? (
-        <Empty
-          description={logs.length === 0 ? "暂无 Hook 执行记录" : "无匹配的记录"}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
-      ) : (
-        <Table
-          size="small"
-          columns={columns}
-          dataSource={filteredLogs}
-          rowKey="id"
-          pagination={{ pageSize: 20, size: "small", showSizeChanger: false }}
-        />
-      )}
+      {filteredLogs.length === 0
+        ? (
+          <Empty
+            description={logs.length === 0 ? "暂无 Hook 执行记录" : "无匹配的记录"}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )
+        : (
+          <Table
+            size="small"
+            columns={columns}
+            dataSource={filteredLogs}
+            rowKey="id"
+            pagination={{ pageSize: 20, size: "small", showSizeChanger: false }}
+          />
+        )}
     </div>
   );
 }

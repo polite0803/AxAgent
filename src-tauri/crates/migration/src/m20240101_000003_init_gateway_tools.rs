@@ -10,7 +10,7 @@ pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m20260502_000001_create_missing_tables"
+        "m20240101_000003_init_gateway_tools"
     }
 }
 

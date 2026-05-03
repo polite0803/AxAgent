@@ -182,11 +182,12 @@ export function ToolCallCard({ toolCalls }: ToolCallChainProps) {
   }, [toolCalls, token, t]);
 
   const fileChanges = useMemo(
-    () => extractFileChanges(
-      toolCalls
-        .filter((tc) => tc.executionStatus === "success")
-        .map((tc) => ({ toolName: tc.toolName, input: tc.input, output: tc.output })),
-    ),
+    () =>
+      extractFileChanges(
+        toolCalls
+          .filter((tc) => tc.executionStatus === "success")
+          .map((tc) => ({ toolName: tc.toolName, input: tc.input, output: tc.output })),
+      ),
     [toolCalls],
   );
 

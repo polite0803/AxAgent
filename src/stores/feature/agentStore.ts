@@ -1,8 +1,7 @@
+import { pushNotification } from "@/components/layout/NotificationBell";
 import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import { useConversationStore, useStreamStore } from "@/stores";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
-import { message } from "antd";
-import { pushNotification } from "@/components/layout/NotificationBell";
 import type {
   AgentCancelledEvent,
   AgentDoneEvent,
@@ -23,6 +22,7 @@ import type {
   WorkerMessage,
 } from "@/types/agent";
 import type { ToolExecution } from "@/types/mcp";
+import { message } from "antd";
 import { create } from "zustand";
 
 interface QueryStats {

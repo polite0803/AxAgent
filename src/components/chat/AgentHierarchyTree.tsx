@@ -3,9 +3,9 @@
 import { useAgentStore } from "@/stores";
 import type { AgentPoolItem } from "@/types/agent";
 import { BranchesOutlined, CaretRightOutlined, RobotOutlined } from "@ant-design/icons";
-import { Tree, Typography, Tag } from "antd";
-import { useMemo } from "react";
+import { Tag, Tree, Typography } from "antd";
 import type { DataNode } from "antd/es/tree";
+import { useMemo } from "react";
 
 const { Text } = Typography;
 
@@ -24,11 +24,27 @@ function toTreeNode(item: AgentPoolItem, allItems: AgentPoolItem[]): DataNode {
     key: item.id,
     title: (
       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {isFork ? <BranchesOutlined style={{ color: "#722ed1", fontSize: 13 }} /> : <RobotOutlined style={{ color: "#1890ff", fontSize: 13 }} />}
+        {isFork
+          ? <BranchesOutlined style={{ color: "#722ed1", fontSize: 13 }} />
+          : <RobotOutlined style={{ color: "#1890ff", fontSize: 13 }} />}
         <Text style={{ fontSize: 13 }}>{item.name}</Text>
-        <Tag color={item.status === "running" ? "processing" : item.status === "completed" ? "success" : item.status === "failed" ? "error" : "default"}
-             style={{ fontSize: 10, lineHeight: "16px", margin: 0 }}>
-          {item.status === "running" ? "运行中" : item.status === "completed" ? "完成" : item.status === "failed" ? "失败" : item.status}
+        <Tag
+          color={item.status === "running"
+            ? "processing"
+            : item.status === "completed"
+            ? "success"
+            : item.status === "failed"
+            ? "error"
+            : "default"}
+          style={{ fontSize: 10, lineHeight: "16px", margin: 0 }}
+        >
+          {item.status === "running"
+            ? "运行中"
+            : item.status === "completed"
+            ? "完成"
+            : item.status === "failed"
+            ? "失败"
+            : item.status}
         </Tag>
         {item.agentType && item.agentType !== "general-purpose" && (
           <Text type="secondary" style={{ fontSize: 11 }}>{item.agentType}</Text>
@@ -54,7 +70,7 @@ export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) 
     return roots.map((item) => toTreeNode(item, pool));
   }, [pool]);
 
-  if (treeData.length === 0) return null;
+  if (treeData.length === 0) { return null; }
 
   return (
     <div style={{ padding: "8px 12px", borderBottom: "1px solid #f0f0f0", background: "#fafafa" }}>
