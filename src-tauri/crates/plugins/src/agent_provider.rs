@@ -1,7 +1,7 @@
 //! Plugin Agent 提供者 — 插件可以注册自定义 agent 定义
 
-use std::sync::RwLock;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 /// Agent 定义（简化的，避免循环依赖）
 #[derive(Debug, Clone)]
@@ -22,12 +22,17 @@ pub struct PluginAgentRegistry {
 
 impl PluginAgentRegistry {
     pub fn new() -> Self {
-        Self { agents: RwLock::new(HashMap::new()) }
+        Self {
+            agents: RwLock::new(HashMap::new()),
+        }
     }
 
     /// 插件注册一个 agent
     pub fn register(&self, def: PluginAgentDef) {
-        self.agents.write().unwrap().insert(def.agent_type.clone(), def);
+        self.agents
+            .write()
+            .unwrap()
+            .insert(def.agent_type.clone(), def);
     }
 
     /// 插件注销一个 agent
@@ -42,7 +47,9 @@ impl PluginAgentRegistry {
 }
 
 impl Default for PluginAgentRegistry {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// 全局单例

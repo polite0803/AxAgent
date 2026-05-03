@@ -173,7 +173,9 @@ pub fn store_fork_context(parent_id: &str, description: &str, prompt: &str) {
         created_at: chrono::Utc::now().to_rfc3339(),
         parent_system_prompt: Vec::new(),
         parent_messages_json: String::new(),
-        child_system_prompt: Some(axagent_runtime::fork_bridge::build_fork_child_prompt(prompt)),
+        child_system_prompt: Some(axagent_runtime::fork_bridge::build_fork_child_prompt(
+            prompt,
+        )),
     };
     axagent_runtime::fork_bridge::store_fork_session(data);
 }

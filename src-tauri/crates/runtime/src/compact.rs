@@ -170,11 +170,14 @@ pub fn get_compact_continuation_message(
 #[must_use]
 pub fn compact_session(session: &Session, config: CompactionConfig) -> CompactionResult {
     // PreCompact hook — 在压缩前通知外部监听器
-    let _ = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default())
-        .run_event(crate::hooks::HookEvent::PreCompact, &serde_json::json!({
+    let _ = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default()).run_event(
+        crate::hooks::HookEvent::PreCompact,
+        &serde_json::json!({
             "session_id": session.session_id,
             "message_count": session.messages.len(),
-        }).to_string());
+        })
+        .to_string(),
+    );
 
     if !should_compact(session, config) {
         return CompactionResult {
@@ -324,12 +327,15 @@ pub fn compact_session(session: &Session, config: CompactionConfig) -> Compactio
     };
 
     // PostCompact hook — 压缩完成后通知外部监听器
-    let _ = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default())
-        .run_event(crate::hooks::HookEvent::PostCompact, &serde_json::json!({
+    let _ = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default()).run_event(
+        crate::hooks::HookEvent::PostCompact,
+        &serde_json::json!({
             "session_id": session.session_id,
             "removed_messages": result.removed_message_count,
             "remaining_messages": result.compacted_session.messages.len(),
-        }).to_string());
+        })
+        .to_string(),
+    );
 
     result
 }

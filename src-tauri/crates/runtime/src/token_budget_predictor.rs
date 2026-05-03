@@ -65,15 +65,13 @@ impl TokenBudgetPredictor {
             total += 4;
             for block in &msg.blocks {
                 total += match block {
-                    crate::session::ContentBlock::Text { text } => {
-                        (text.len() as u32 / 4).max(1)
-                    }
+                    crate::session::ContentBlock::Text { text } => (text.len() as u32 / 4).max(1),
                     crate::session::ContentBlock::ToolUse { name, input, .. } => {
                         8 + (name.len() as u32 / 4) + (input.len() as u32 / 4)
-                    }
+                    },
                     crate::session::ContentBlock::ToolResult { output, .. } => {
                         4 + (output.len() as u32 / 4)
-                    }
+                    },
                 };
             }
         }
@@ -135,8 +133,7 @@ impl TokenBudgetPredictor {
             return None;
         }
         let last = self.history.last()?;
-        let remaining =
-            (self.context_window as f64 * 0.8) - last.total_tokens as f64;
+        let remaining = (self.context_window as f64 * 0.8) - last.total_tokens as f64;
         if remaining <= 0.0 {
             return Some(0);
         }

@@ -31,14 +31,19 @@ pub struct ToolOrchestrator {
 impl ToolOrchestrator {
     /// 创建新的编排器实例
     pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for ToolOrchestrator {
+    fn default() -> Self {
         Self {
-            max_concurrency: std::env::var("AXAGENT_MAX_TOOL_CONCURRENCY")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(10),
+            max_concurrency: 10,
         }
     }
+}
 
+impl ToolOrchestrator {
     /// 将工具调用列表分区为 batch 列表
     /// 连续的 concurrency_safe 工具归入同一个并行批次，非安全工具各自独占批次
     pub fn partition(
@@ -60,7 +65,7 @@ impl ToolOrchestrator {
                 Some(prev) if prev == is_safe => {
                     // 当前工具与上一个并发属性相同，加入同一批次
                     current_batch.push(call.clone());
-                }
+                },
                 _ => {
                     // 并发属性变化，先保存当前批次，再开始新批次
                     if !current_batch.is_empty() {
@@ -71,7 +76,7 @@ impl ToolOrchestrator {
                     }
                     current_batch.push(call.clone());
                     current_is_concurrent = Some(is_safe);
-                }
+                },
             }
         }
 

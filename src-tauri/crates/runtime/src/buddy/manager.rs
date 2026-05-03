@@ -151,7 +151,7 @@ impl BuddyManager {
                 } else {
                     BuddyMood::Concerned
                 }
-            }
+            },
             BuddyContext::BugFound => BuddyMood::Curious,
             BuddyContext::CodeWritten => BuddyMood::Happy,
             BuddyContext::ErrorOccurred => BuddyMood::Concerned,

@@ -358,7 +358,7 @@ impl McpRegistry {
     pub fn execute_mcp_tool(&self, tool_name: &str, input: &str) -> Result<String, ToolError> {
         // 委托给 axagent_tools::registry::UnifiedToolRegistry
         let mut unified = axagent_tools::registry::UnifiedToolRegistry::new();
-        for (_, config) in &self.mcp_servers {
+        for config in self.mcp_servers.values() {
             unified.mcp_servers.insert(
                 config.server_id.clone(),
                 axagent_tools::registry::McpServerConfig {
@@ -376,7 +376,7 @@ impl McpRegistry {
                 },
             );
         }
-        for (_, config) in &self.mcp_tools {
+        for config in self.mcp_tools.values() {
             unified.mcp_tools.insert(
                 config.server_name.clone(),
                 axagent_tools::registry::McpToolConfig {

@@ -1,21 +1,24 @@
 //! ACP HTTP/WebSocket 服务端
 //! Feature flag: ACP_PROTOCOL
 
-use std::sync::Arc;
 use axum::{
-    Router,
-    extract::{Json, Path, State, ws::{WebSocket, WebSocketUpgrade, Message}},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        Json, Path, State,
+    },
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
+    Router,
 };
+use std::sync::Arc;
 
 use crate::protocol::{
-    CreateSessionParams, CreateSessionResult, SendPromptParams, SendPromptResult,
-    RegisterHookParams, StatusResult,
+    CreateSessionParams, CreateSessionResult, RegisterHookParams, SendPromptParams,
+    SendPromptResult, StatusResult,
 };
 use crate::session::AcpSessionManager;
-use crate::types::{AcpRequest, AcpResponse, AcpNotification};
+use crate::types::{AcpNotification, AcpRequest, AcpResponse};
 
 /// ACP 服务端共享状态
 pub struct AcpServerState {
@@ -112,11 +115,15 @@ async fn get_session(
 ) -> impl IntoResponse {
     match state.session_manager.get_status(&session_id).await {
         Some(status) => (StatusCode::OK, Json(status)).into_response(),
-        None => (StatusCode::NOT_FOUND, Json(AcpResponse::error(
-            None,
-            crate::protocol::error_codes::SESSION_NOT_FOUND,
-            "会话不存在",
-        ))).into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(AcpResponse::error(
+                None,
+                crate::protocol::error_codes::SESSION_NOT_FOUND,
+                "会话不存在",
+            )),
+        )
+            .into_response(),
     }
 }
 
@@ -128,14 +135,15 @@ async fn close_session(
     if state.session_manager.close_session(&session_id).await {
         (StatusCode::OK, Json(serde_json::json!({"closed": true})))
     } else {
-        (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "会话不存在"})))
+        (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "会话不存在"})),
+        )
     }
 }
 
 /// 列出所有会话
-async fn list_sessions(
-    State(state): State<Arc<AcpServerState>>,
-) -> impl IntoResponse {
+async fn list_sessions(State(state): State<Arc<AcpServerState>>) -> impl IntoResponse {
     let sessions = state.session_manager.list_sessions().await;
     (StatusCode::OK, Json(sessions))
 }
@@ -149,19 +157,16 @@ async fn send_prompt(
     match state.session_manager.get_session(&session_id).await {
         Some(_session) => {
             let work_dir = _session.work_dir.clone();
-            state.session_manager.update_status(
-                &session_id,
-                crate::types::AcpSessionStatus::Running,
-            ).await;
+            state
+                .session_manager
+                .update_status(&session_id, crate::types::AcpSessionStatus::Running)
+                .await;
 
             // 通过注入的 PromptHandler 执行实际 agent 循环
             let result = if let Some(ref handler) = state.prompt_handler {
-                handler.handle_prompt(
-                    &session_id,
-                    &params.prompt,
-                    &work_dir,
-                    params.max_turns,
-                ).await
+                handler
+                    .handle_prompt(&session_id, &params.prompt, &work_dir, params.max_turns)
+                    .await
             } else {
                 // 无 handler 时返回提示
                 SendPromptResult {
@@ -176,13 +181,13 @@ async fn send_prompt(
                 }
             };
 
-            state.session_manager.update_status(
-                &session_id,
-                crate::types::AcpSessionStatus::Idle,
-            ).await;
+            state
+                .session_manager
+                .update_status(&session_id, crate::types::AcpSessionStatus::Idle)
+                .await;
 
             (StatusCode::OK, Json(result))
-        }
+        },
         None => {
             let error = AcpResponse::error(
                 None,
@@ -190,7 +195,7 @@ async fn send_prompt(
                 "会话不存在",
             );
             (StatusCode::NOT_FOUND, Json(error))
-        }
+        },
     }
 }
 
@@ -201,15 +206,19 @@ async fn interrupt(
 ) -> impl IntoResponse {
     match state.session_manager.get_session(&session_id).await {
         Some(_) => {
-            state.session_manager.update_status(
-                &session_id,
-                crate::types::AcpSessionStatus::Idle,
-            ).await;
-            (StatusCode::OK, Json(serde_json::json!({"interrupted": true})))
-        }
-        None => {
-            (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "会话不存在"})))
-        }
+            state
+                .session_manager
+                .update_status(&session_id, crate::types::AcpSessionStatus::Idle)
+                .await;
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({"interrupted": true})),
+            )
+        },
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "会话不存在"})),
+        ),
     }
 }
 
@@ -237,7 +246,10 @@ async fn register_hook(
     };
     state.broadcast(&notification).await;
 
-    (StatusCode::CREATED, Json(serde_json::json!({"registered": true})))
+    (
+        StatusCode::CREATED,
+        Json(serde_json::json!({"registered": true})),
+    )
 }
 
 /// WebSocket 处理

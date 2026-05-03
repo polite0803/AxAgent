@@ -36,14 +36,10 @@ pub fn score_message(msg: &ConversationMessage) -> u32 {
     }
 
     // 包含错误的工具结果减分（可丢弃）
-    let has_error = msg.blocks.iter().any(|b| {
-        matches!(
-            b,
-            ContentBlock::ToolResult {
-                is_error: true, ..
-            }
-        )
-    });
+    let has_error = msg
+        .blocks
+        .iter()
+        .any(|b| matches!(b, ContentBlock::ToolResult { is_error: true, .. }));
     if has_error {
         score -= 10;
     }
@@ -121,9 +117,7 @@ mod tests {
     fn tool_use_scores_higher() {
         let plain = ConversationMessage {
             role: MessageRole::Assistant,
-            blocks: vec![ContentBlock::Text {
-                text: "ok".into(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "ok".into() }],
             usage: None,
         };
         let with_tool = ConversationMessage {
@@ -174,9 +168,7 @@ mod tests {
         };
         let short_msg = ConversationMessage {
             role: MessageRole::Assistant,
-            blocks: vec![ContentBlock::Text {
-                text: "ok".into(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "ok".into() }],
             usage: None,
         };
         assert!(score_message(&long_msg) > score_message(&short_msg));

@@ -31,7 +31,10 @@ static FORK_SESSIONS: LazyLock<RwLock<HashMap<String, ForkSessionData>>> =
 
 /// 存储 fork session 数据（key = parent_conversation_id）
 pub fn store_fork_session(data: ForkSessionData) {
-    FORK_SESSIONS.write().unwrap().insert(data.parent_conversation_id.clone(), data);
+    FORK_SESSIONS
+        .write()
+        .unwrap()
+        .insert(data.parent_conversation_id.clone(), data);
 }
 
 /// 获取并移除 fork session 数据

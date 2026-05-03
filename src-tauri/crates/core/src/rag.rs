@@ -114,9 +114,7 @@ impl RAGSource for WikiVaultRAG {
     ) -> Result<String> {
         let wiki = crate::repo::wiki::get_wiki(db, container_id).await?;
         wiki.embedding_provider.ok_or_else(|| {
-            AxAgentError::Provider(
-                "Wiki vault has no embedding provider configured".to_string(),
-            )
+            AxAgentError::Provider("Wiki vault has no embedding provider configured".to_string())
         })
     }
 }

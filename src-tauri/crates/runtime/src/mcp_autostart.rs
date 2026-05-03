@@ -39,7 +39,9 @@ pub fn discover_and_start() -> McpAutoStartResult {
     }
 
     for (name, config) in servers {
-        let enabled = config.get("enabled").map_or(true, |v| v != "false" && v != "0");
+        let enabled = config
+            .get("enabled")
+            .is_none_or(|v| v != "false" && v != "0");
 
         if !enabled {
             result.skipped.push(name);

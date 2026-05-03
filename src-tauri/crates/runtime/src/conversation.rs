@@ -592,19 +592,29 @@ where
             }
 
             // 工具并发执行：收集并发安全工具，并行调用 tool_executor.execute()
-            let concurrency_enabled = crate::feature_flags::global_feature_flags().tool_concurrency()
+            let concurrency_enabled = crate::feature_flags::global_feature_flags()
+                .tool_concurrency()
                 && pending_tool_uses.len() > 1;
 
             // 并发安全工具 ID 集合（并行执行后跳过后续串行处理）
-            let mut concurrent_done: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut concurrent_done: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
 
             if concurrency_enabled {
                 let concurrent_tools: Vec<_> = pending_tool_uses
                     .iter()
-                    .filter(|(_, name, _)| matches!(
-                        name.as_str(),
-                        "FileRead" | "Glob" | "Grep" | "WebFetch" | "WebSearch" | "CtxInspect" | "ListPeers"
-                    ))
+                    .filter(|(_, name, _)| {
+                        matches!(
+                            name.as_str(),
+                            "FileRead"
+                                | "Glob"
+                                | "Grep"
+                                | "WebFetch"
+                                | "WebSearch"
+                                | "CtxInspect"
+                                | "ListPeers"
+                        )
+                    })
                     .collect();
 
                 if concurrent_tools.len() > 1 {
@@ -626,10 +636,19 @@ where
                         }
                         for h in handles {
                             if let Ok((tid, tname, result)) = h.join() {
-                                let output = result.as_ref().map_or_else(|e| e.to_string(), |o| o.clone());
+                                let output = result
+                                    .as_ref()
+                                    .map_or_else(|e| e.to_string(), |o| o.clone());
                                 let is_err = result.is_err();
-                                let post_hook = self.run_post_tool_use_hook(&tname, "", &output, is_err, Some(&tid));
-                                let msg = ConversationMessage::tool_result(&tid, &tname, &output, is_err);
+                                let post_hook = self.run_post_tool_use_hook(
+                                    &tname,
+                                    "",
+                                    &output,
+                                    is_err,
+                                    Some(&tid),
+                                );
+                                let msg =
+                                    ConversationMessage::tool_result(&tid, &tname, &output, is_err);
                                 self.session.push_message(msg.clone()).ok();
                                 tool_results.push(msg);
                                 let _ = post_hook;
@@ -1347,7 +1366,10 @@ impl StaticToolExecutor {
         tool_name: impl Into<String>,
         handler: impl Fn(&str) -> Result<String, ToolError> + Send + Sync + 'static,
     ) -> Self {
-        self.handlers.lock().unwrap().insert(tool_name.into(), Box::new(handler));
+        self.handlers
+            .lock()
+            .unwrap()
+            .insert(tool_name.into(), Box::new(handler));
         self
     }
 }
@@ -1355,7 +1377,8 @@ impl StaticToolExecutor {
 impl ToolExecutor for StaticToolExecutor {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
         let guard = self.handlers.lock().unwrap();
-        let handler = guard.get(tool_name)
+        let handler = guard
+            .get(tool_name)
             .ok_or_else(|| ToolError::new(format!("unknown tool: {tool_name}")))?;
         handler(input)
     }

@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::types::{AcpSession, AcpSessionStatus, AcpNotification};
 use crate::protocol::{CreateSessionParams, CreateSessionResult, StatusResult};
+use crate::types::{AcpNotification, AcpSession, AcpSessionStatus};
 
 /// ACP 会话管理器
 pub struct AcpSessionManager {
@@ -20,10 +20,7 @@ impl AcpSessionManager {
     }
 
     /// 创建新会话
-    pub async fn create_session(
-        &self,
-        params: &CreateSessionParams,
-    ) -> CreateSessionResult {
+    pub async fn create_session(&self, params: &CreateSessionParams) -> CreateSessionResult {
         let session_id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now();
 
@@ -46,10 +43,7 @@ impl AcpSessionManager {
             status: "idle".to_string(),
         };
 
-        self.sessions
-            .write()
-            .await
-            .insert(session_id, session);
+        self.sessions.write().await.insert(session_id, session);
 
         tracing::info!("[ACP] 会话已创建: {}", result.session_id);
         result
@@ -96,11 +90,7 @@ impl AcpSessionManager {
     }
 
     /// 更新会话状态
-    pub async fn update_status(
-        &self,
-        session_id: &str,
-        status: AcpSessionStatus,
-    ) {
+    pub async fn update_status(&self, session_id: &str, status: AcpSessionStatus) {
         if let Some(session) = self.sessions.write().await.get_mut(session_id) {
             session.status = status;
             session.last_active = chrono::Utc::now();
@@ -110,9 +100,10 @@ impl AcpSessionManager {
     /// 清理已关闭的会话（超过 1 小时的）
     pub async fn cleanup(&self) {
         let cutoff = chrono::Utc::now() - chrono::Duration::hours(1);
-        self.sessions.write().await.retain(|_, s| {
-            s.status != AcpSessionStatus::Closed || s.last_active > cutoff
-        });
+        self.sessions
+            .write()
+            .await
+            .retain(|_, s| s.status != AcpSessionStatus::Closed || s.last_active > cutoff);
     }
 }
 

@@ -82,7 +82,10 @@ fn parse_frontmatter(content: &str) -> Option<Frontmatter> {
                     fields.push((key, String::new()));
                 }
             } else {
-                let value = value.trim_start_matches('"').trim_end_matches('"').to_string();
+                let value = value
+                    .trim_start_matches('"')
+                    .trim_end_matches('"')
+                    .to_string();
                 fields.push((key, value));
             }
         }
@@ -177,7 +180,11 @@ fn parse_mcp_servers(block: &str) -> Vec<crate::agent_def_types::AgentMcpServerS
 }
 
 /// 从 frontmatter 字段构建 AgentDefinition
-fn build_definition(frontmatter: &Frontmatter, source: AgentDefSource, path: &Path) -> AgentDefinition {
+fn build_definition(
+    frontmatter: &Frontmatter,
+    source: AgentDefSource,
+    path: &Path,
+) -> AgentDefinition {
     let mut def = AgentDefinition::builtin("", "");
     def.source = source;
     def.source_path = Some(path.display().to_string());
@@ -188,7 +195,9 @@ fn build_definition(frontmatter: &Frontmatter, source: AgentDefSource, path: &Pa
             "description" => def.description = value.clone(),
             "whenToUse" | "when_to_use" => def.when_to_use = value.clone(),
             "tools" => def.tools = parse_yaml_array(value),
-            "disallowedTools" | "disallowed_tools" => def.disallowed_tools = parse_yaml_array(value),
+            "disallowedTools" | "disallowed_tools" => {
+                def.disallowed_tools = parse_yaml_array(value)
+            },
             "skills" => def.skills = parse_yaml_array(value),
             "model" => def.model = Some(value.clone()),
             "background" => def.background = value == "true",
@@ -262,7 +271,9 @@ pub fn load_agents_from_dir(dir: &Path) -> Vec<AgentDefinition> {
 
     for entry in entries.flatten() {
         let path = entry.path();
-        let Some(ext) = path.extension() else { continue };
+        let Some(ext) = path.extension() else {
+            continue;
+        };
         if ext != "md" && ext != "markdown" {
             continue;
         }
@@ -316,26 +327,22 @@ pub fn agent_memory_path(
     cwd: &Path,
 ) -> PathBuf {
     match scope {
-        crate::agent_def_types::MemoryScope::User => {
-            dirs::home_dir()
-                .unwrap_or_default()
-                .join(".axagent")
-                .join("agent-memory")
-                .join(agent_type)
-                .join("MEMORY.md")
-        },
-        crate::agent_def_types::MemoryScope::Project => {
-            cwd.join(".axagent")
-                .join("agent-memory")
-                .join(agent_type)
-                .join("MEMORY.md")
-        },
-        crate::agent_def_types::MemoryScope::Local => {
-            cwd.join(".axagent")
-                .join("agent-memory-local")
-                .join(agent_type)
-                .join("MEMORY.md")
-        },
+        crate::agent_def_types::MemoryScope::User => dirs::home_dir()
+            .unwrap_or_default()
+            .join(".axagent")
+            .join("agent-memory")
+            .join(agent_type)
+            .join("MEMORY.md"),
+        crate::agent_def_types::MemoryScope::Project => cwd
+            .join(".axagent")
+            .join("agent-memory")
+            .join(agent_type)
+            .join("MEMORY.md"),
+        crate::agent_def_types::MemoryScope::Local => cwd
+            .join(".axagent")
+            .join("agent-memory-local")
+            .join(agent_type)
+            .join("MEMORY.md"),
     }
 }
 
@@ -356,7 +363,8 @@ pub fn load_agent_memory(
             tracing::info!("加载 agent 记忆: {} ({:?})", agent_type, scope);
             Some(format!(
                 "## Agent 持久化记忆 ({})\n\n{}",
-                agent_type, content.trim()
+                agent_type,
+                content.trim()
             ))
         },
         _ => None,
@@ -415,10 +423,19 @@ background: true
 你是一个测试 agent。"#;
 
         let fm = parse_frontmatter(content).expect("should parse");
-        assert!(fm.fields.iter().any(|(k, v)| k == "name" && v == "test-agent"));
-        assert!(fm.fields.iter().any(|(k, v)| k == "description" && v == "测试 agent"));
+        assert!(fm
+            .fields
+            .iter()
+            .any(|(k, v)| k == "name" && v == "test-agent"));
+        assert!(fm
+            .fields
+            .iter()
+            .any(|(k, v)| k == "description" && v == "测试 agent"));
         assert!(fm.fields.iter().any(|(k, v)| k == "model" && v == "haiku"));
-        assert!(fm.fields.iter().any(|(k, v)| k == "background" && v == "true"));
+        assert!(fm
+            .fields
+            .iter()
+            .any(|(k, v)| k == "background" && v == "true"));
         assert!(fm.body.contains("你是一个测试 agent"));
     }
 
@@ -449,7 +466,11 @@ color: blue
 你是一个代码审查专家。"#;
 
         let fm = parse_frontmatter(content).unwrap();
-        let def = build_definition(&fm, AgentDefSource::User, Path::new("/tmp/agents/reviewer.md"));
+        let def = build_definition(
+            &fm,
+            AgentDefSource::User,
+            Path::new("/tmp/agents/reviewer.md"),
+        );
 
         assert_eq!(def.agent_type, "reviewer");
         assert_eq!(def.description, "代码审查");

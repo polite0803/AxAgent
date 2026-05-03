@@ -1,5 +1,5 @@
-mod hooks;
 pub mod agent_provider;
+mod hooks;
 #[cfg(test)]
 pub mod test_isolation;
 
@@ -1643,11 +1643,15 @@ fn load_manifest_from_skill_md(
         for line in &lines[1..] {
             let trimmed = line.trim();
             if trimmed == "---" {
-                if in_frontmatter { break; }
+                if in_frontmatter {
+                    break;
+                }
                 in_frontmatter = true;
                 continue;
             }
-            if !in_frontmatter { in_frontmatter = true; }
+            if !in_frontmatter {
+                in_frontmatter = true;
+            }
             if let Some((key, value)) = trimmed.split_once(':') {
                 let val = value.trim().trim_matches('"').trim_matches('\'');
                 match key.trim() {

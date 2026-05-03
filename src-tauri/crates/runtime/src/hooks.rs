@@ -386,11 +386,7 @@ impl HookRunner {
 
     /// 执行任意 hook 事件（用于非工具的通用事件）
     #[must_use]
-    pub fn run_event(
-        &self,
-        event: HookEvent,
-        event_data: &str,
-    ) -> HookRunResult {
+    pub fn run_event(&self, event: HookEvent, event_data: &str) -> HookRunResult {
         let commands: &[String] = match event {
             HookEvent::SubagentStart => self.config.subagent_start(),
             HookEvent::SubagentStop => self.config.subagent_stop(),
@@ -424,15 +420,7 @@ impl HookRunner {
         }
 
         Self::run_commands(
-            event,
-            commands,
-            "",
-            event_data,
-            None,
-            false,
-            None,
-            None,
-            None,
+            event, commands, "", event_data, None, false, None, None, None,
         )
     }
 

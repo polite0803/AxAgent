@@ -647,7 +647,10 @@ impl RuntimeHookConfig {
     pub fn extend(&mut self, other: &Self) {
         extend_unique(&mut self.pre_tool_use, other.pre_tool_use());
         extend_unique(&mut self.post_tool_use, other.post_tool_use());
-        extend_unique(&mut self.post_tool_use_failure, other.post_tool_use_failure());
+        extend_unique(
+            &mut self.post_tool_use_failure,
+            other.post_tool_use_failure(),
+        );
         extend_unique(&mut self.subagent_start, other.subagent_start());
         extend_unique(&mut self.subagent_stop, other.subagent_stop());
         extend_unique(&mut self.pre_compact, other.pre_compact());
@@ -674,41 +677,77 @@ impl RuntimeHookConfig {
     }
 
     #[must_use]
-    pub fn subagent_start(&self) -> &[String] { &self.subagent_start }
+    pub fn subagent_start(&self) -> &[String] {
+        &self.subagent_start
+    }
     #[must_use]
-    pub fn subagent_stop(&self) -> &[String] { &self.subagent_stop }
+    pub fn subagent_stop(&self) -> &[String] {
+        &self.subagent_stop
+    }
     #[must_use]
-    pub fn pre_compact(&self) -> &[String] { &self.pre_compact }
+    pub fn pre_compact(&self) -> &[String] {
+        &self.pre_compact
+    }
     #[must_use]
-    pub fn post_compact(&self) -> &[String] { &self.post_compact }
+    pub fn post_compact(&self) -> &[String] {
+        &self.post_compact
+    }
     #[must_use]
-    pub fn session_start(&self) -> &[String] { &self.session_start }
+    pub fn session_start(&self) -> &[String] {
+        &self.session_start
+    }
     #[must_use]
-    pub fn session_end(&self) -> &[String] { &self.session_end }
+    pub fn session_end(&self) -> &[String] {
+        &self.session_end
+    }
     #[must_use]
-    pub fn stop(&self) -> &[String] { &self.stop }
+    pub fn stop(&self) -> &[String] {
+        &self.stop
+    }
     #[must_use]
-    pub fn stop_failure(&self) -> &[String] { &self.stop_failure }
+    pub fn stop_failure(&self) -> &[String] {
+        &self.stop_failure
+    }
     #[must_use]
-    pub fn task_created(&self) -> &[String] { &self.task_created }
+    pub fn task_created(&self) -> &[String] {
+        &self.task_created
+    }
     #[must_use]
-    pub fn task_completed(&self) -> &[String] { &self.task_completed }
+    pub fn task_completed(&self) -> &[String] {
+        &self.task_completed
+    }
     #[must_use]
-    pub fn config_change(&self) -> &[String] { &self.config_change }
+    pub fn config_change(&self) -> &[String] {
+        &self.config_change
+    }
     #[must_use]
-    pub fn instructions_loaded(&self) -> &[String] { &self.instructions_loaded }
+    pub fn instructions_loaded(&self) -> &[String] {
+        &self.instructions_loaded
+    }
     #[must_use]
-    pub fn file_changed(&self) -> &[String] { &self.file_changed }
+    pub fn file_changed(&self) -> &[String] {
+        &self.file_changed
+    }
     #[must_use]
-    pub fn cwd_changed(&self) -> &[String] { &self.cwd_changed }
+    pub fn cwd_changed(&self) -> &[String] {
+        &self.cwd_changed
+    }
     #[must_use]
-    pub fn permission_request(&self) -> &[String] { &self.permission_request }
+    pub fn permission_request(&self) -> &[String] {
+        &self.permission_request
+    }
     #[must_use]
-    pub fn permission_denied(&self) -> &[String] { &self.permission_denied }
+    pub fn permission_denied(&self) -> &[String] {
+        &self.permission_denied
+    }
     #[must_use]
-    pub fn worktree_create(&self) -> &[String] { &self.worktree_create }
+    pub fn worktree_create(&self) -> &[String] {
+        &self.worktree_create
+    }
     #[must_use]
-    pub fn worktree_remove(&self) -> &[String] { &self.worktree_remove }
+    pub fn worktree_remove(&self) -> &[String] {
+        &self.worktree_remove
+    }
 }
 
 impl RuntimePermissionRuleConfig {
@@ -889,13 +928,18 @@ fn parse_optional_hooks_config_object(
         task_created: optional_string_array(hooks, "TaskCreated", context)?.unwrap_or_default(),
         task_completed: optional_string_array(hooks, "TaskCompleted", context)?.unwrap_or_default(),
         config_change: optional_string_array(hooks, "ConfigChange", context)?.unwrap_or_default(),
-        instructions_loaded: optional_string_array(hooks, "InstructionsLoaded", context)?.unwrap_or_default(),
+        instructions_loaded: optional_string_array(hooks, "InstructionsLoaded", context)?
+            .unwrap_or_default(),
         file_changed: optional_string_array(hooks, "FileChanged", context)?.unwrap_or_default(),
         cwd_changed: optional_string_array(hooks, "CwdChanged", context)?.unwrap_or_default(),
-        permission_request: optional_string_array(hooks, "PermissionRequest", context)?.unwrap_or_default(),
-        permission_denied: optional_string_array(hooks, "PermissionDenied", context)?.unwrap_or_default(),
-        worktree_create: optional_string_array(hooks, "WorktreeCreate", context)?.unwrap_or_default(),
-        worktree_remove: optional_string_array(hooks, "WorktreeRemove", context)?.unwrap_or_default(),
+        permission_request: optional_string_array(hooks, "PermissionRequest", context)?
+            .unwrap_or_default(),
+        permission_denied: optional_string_array(hooks, "PermissionDenied", context)?
+            .unwrap_or_default(),
+        worktree_create: optional_string_array(hooks, "WorktreeCreate", context)?
+            .unwrap_or_default(),
+        worktree_remove: optional_string_array(hooks, "WorktreeRemove", context)?
+            .unwrap_or_default(),
     })
 }
 

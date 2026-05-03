@@ -15,8 +15,8 @@
 //! - POST /acp/v1/hooks — 注册 hook 回调
 //! - WS   /acp/v1/ws — WebSocket 实时事件流
 
+pub mod client;
 pub mod protocol;
 pub mod server;
-pub mod client;
 pub mod session;
 pub mod types;

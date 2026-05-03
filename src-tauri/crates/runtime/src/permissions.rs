@@ -308,20 +308,16 @@ impl PermissionPolicy {
         };
 
         // 触发 PermissionRequest hook (best-effort)
-        fire_permission_hook(
-            crate::hooks::HookEvent::PermissionRequest,
-            &request,
-        );
+        fire_permission_hook(crate::hooks::HookEvent::PermissionRequest, &request);
 
         match prompter.as_mut() {
             Some(prompter) => match prompter.decide(&request) {
                 PermissionPromptDecision::Allow => PermissionOutcome::Allow,
-                PermissionPromptDecision::Deny { reason: deny_reason } => {
+                PermissionPromptDecision::Deny {
+                    reason: deny_reason,
+                } => {
                     // 触发 PermissionDenied hook (best-effort)
-                    fire_permission_hook(
-                        crate::hooks::HookEvent::PermissionDenied,
-                        &request,
-                    );
+                    fire_permission_hook(crate::hooks::HookEvent::PermissionDenied, &request);
                     PermissionOutcome::Deny {
                         reason: deny_reason,
                     }
@@ -329,10 +325,7 @@ impl PermissionPolicy {
             },
             None => {
                 // 无 prompter 时默认拒绝，触发 PermissionDenied hook (best-effort)
-                fire_permission_hook(
-                    crate::hooks::HookEvent::PermissionDenied,
-                    &request,
-                );
+                fire_permission_hook(crate::hooks::HookEvent::PermissionDenied, &request);
                 PermissionOutcome::Deny {
                     reason: reason.unwrap_or_else(|| {
                         format!(
@@ -468,9 +461,7 @@ fn find_last_unescaped(value: &str, needle: char) -> Option<usize> {
 
 /// 触发权限相关 HookEvent（best-effort，失败不影响主流程）
 fn fire_permission_hook(event: crate::hooks::HookEvent, request: &PermissionRequest) {
-    let runner = crate::hooks::HookRunner::new(
-        crate::config::RuntimeHookConfig::default(),
-    );
+    let runner = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default());
     let data = serde_json::json!({
         "tool_name": request.tool_name,
         "input": request.input,

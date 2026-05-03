@@ -152,7 +152,9 @@ impl AgentDefinition {
 
     /// 检查指定的工具是否被允许
     pub fn is_tool_allowed(&self, tool_name: &str) -> bool {
-        if !self.disallowed_tools.is_empty() && self.disallowed_tools.contains(&tool_name.to_string()) {
+        if !self.disallowed_tools.is_empty()
+            && self.disallowed_tools.contains(&tool_name.to_string())
+        {
             return false;
         }
         if self.tools.is_empty() {

@@ -175,9 +175,7 @@ where
             input.to_string()
         };
 
-        let result = self
-            .conversation_runtime
-            .run_turn(&effective_input, None);
+        let result = self.conversation_runtime.run_turn(&effective_input, None);
 
         // 恢复主动模式（如果之前因用户输入暂停）
         if let Some(ref mut proactive) = self.proactive {

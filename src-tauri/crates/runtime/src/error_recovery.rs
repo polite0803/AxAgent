@@ -12,10 +12,10 @@ use std::time::{Duration, Instant};
 /// 错误类型分类
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
-    RateLimit,      // 429
-    ServerError,    // 5xx
-    NetworkError,   // 超时/连接
-    ClientError,    // 4xx (不可重试)
+    RateLimit,    // 429
+    ServerError,  // 5xx
+    NetworkError, // 超时/连接
+    ClientError,  // 4xx (不可重试)
     Unknown,
 }
 
@@ -36,7 +36,11 @@ impl ErrorKind {
         {
             return Self::NetworkError;
         }
-        if lower.contains("400") || lower.contains("401") || lower.contains("403") || lower.contains("404") {
+        if lower.contains("400")
+            || lower.contains("401")
+            || lower.contains("403")
+            || lower.contains("404")
+        {
             return Self::ClientError;
         }
         Self::Unknown
@@ -44,7 +48,10 @@ impl ErrorKind {
 
     /// 判断该错误类型是否可以重试
     pub fn is_retryable(self) -> bool {
-        matches!(self, Self::RateLimit | Self::ServerError | Self::NetworkError)
+        matches!(
+            self,
+            Self::RateLimit | Self::ServerError | Self::NetworkError
+        )
     }
 }
 
@@ -77,17 +84,17 @@ impl RetryPolicy {
                 // 指数退避：2^attempt 秒
                 let secs = 2u64.pow(attempt).min(self.max_delay.as_secs());
                 Duration::from_secs(secs).min(self.max_delay)
-            }
+            },
             ErrorKind::ServerError => {
                 // 线性退避：base * attempt
                 let secs =
                     (self.base_delay.as_secs() * attempt as u64).min(self.max_delay.as_secs());
                 Duration::from_secs(secs).min(self.max_delay)
-            }
+            },
             ErrorKind::NetworkError => {
                 // 固定间隔重试
                 Duration::from_millis(500)
-            }
+            },
             _ => Duration::ZERO,
         }
     }
@@ -157,7 +164,7 @@ impl CircuitBreaker {
                     }
                 }
                 false
-            }
+            },
             CircuitState::HalfOpen => true,
         }
     }
@@ -287,19 +294,28 @@ mod tests {
             ErrorKind::classify("HTTP 500 Internal Server Error"),
             ErrorKind::ServerError
         );
-        assert_eq!(ErrorKind::classify("502 Bad Gateway"), ErrorKind::ServerError);
+        assert_eq!(
+            ErrorKind::classify("502 Bad Gateway"),
+            ErrorKind::ServerError
+        );
     }
 
     #[test]
     fn classify_network_error_from_message() {
-        assert_eq!(ErrorKind::classify("connection reset by peer"), ErrorKind::NetworkError);
-        assert_eq!(ErrorKind::classify("request timeout"), ErrorKind::NetworkError);
+        assert_eq!(
+            ErrorKind::classify("connection reset by peer"),
+            ErrorKind::NetworkError
+        );
+        assert_eq!(
+            ErrorKind::classify("request timeout"),
+            ErrorKind::NetworkError
+        );
     }
 
     #[test]
     fn max_retries_exceeded_stops_retry() {
         let policy = RetryPolicy::default();
         assert!(!policy.should_retry(ErrorKind::ServerError, 3)); // attempt 3 >= max_retries 3
-        assert!(policy.should_retry(ErrorKind::ServerError, 2));  // attempt 2 < max_retries 3
+        assert!(policy.should_retry(ErrorKind::ServerError, 2)); // attempt 2 < max_retries 3
     }
 }

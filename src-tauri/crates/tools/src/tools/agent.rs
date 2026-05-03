@@ -1,26 +1,23 @@
 //! AgentTool - 子 Agent 创建和生命周期管理
 //! 内置 6 个 Agent 类型 + 支持从 `.axagent/agents/*.md` 动态加载自定义 agent
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
-use crate::agent_def_types::{AgentDefSource, AgentDefinition};
 use crate::agent_def_loader::load_all_agents;
+use crate::agent_def_types::{AgentDefSource, AgentDefinition};
+use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::sync::{LazyLock, RwLock};
 
 /// 触发 HookEvent（best-effort，失败不影响主流程）
 fn fire_hook(event: axagent_runtime::HookEvent, data: &serde_json::Value) {
-    let runner = axagent_runtime::HookRunner::new(
-        axagent_runtime::RuntimeHookConfig::default(),
-    );
+    let runner = axagent_runtime::HookRunner::new(axagent_runtime::RuntimeHookConfig::default());
     let data_str = data.to_string();
     let _ = runner.run_event(event, &data_str);
 }
 
 /// 全局 Agent 注册表 — 包含内置 + 动态加载的 agent 定义
-static AGENT_REGISTRY: LazyLock<RwLock<Vec<AgentDefinition>>> = LazyLock::new(|| {
-    RwLock::new(builtin_agents())
-});
+static AGENT_REGISTRY: LazyLock<RwLock<Vec<AgentDefinition>>> =
+    LazyLock::new(|| RwLock::new(builtin_agents()));
 
 /// 内置 Agent 定义
 fn builtin_agents() -> Vec<AgentDefinition> {
@@ -39,9 +36,13 @@ fn builtin_agents() -> Vec<AgentDefinition> {
             description: "代码探索 Agent，只读工具".into(),
             when_to_use: "需要快速搜索代码库、查找文件、理解项目结构时使用".into(),
             tools: vec![
-                "FileRead".into(), "Glob".into(), "Grep".into(),
-                "WebFetch".into(), "WebSearch".into(),
-                "CtxInspect".into(), "ListPeers".into(),
+                "FileRead".into(),
+                "Glob".into(),
+                "Grep".into(),
+                "WebFetch".into(),
+                "WebSearch".into(),
+                "CtxInspect".into(),
+                "ListPeers".into(),
             ],
             omit_claude_md: true,
             ..AgentDefinition::builtin("Explore", "代码探索 Agent")
@@ -52,8 +53,12 @@ fn builtin_agents() -> Vec<AgentDefinition> {
             description: "架构设计 Agent，探索+设计".into(),
             when_to_use: "需要设计实现方案、规划架构时使用".into(),
             tools: vec![
-                "FileRead".into(), "Glob".into(), "Grep".into(),
-                "WebFetch".into(), "WebSearch".into(), "TodoWrite".into(),
+                "FileRead".into(),
+                "Glob".into(),
+                "Grep".into(),
+                "WebFetch".into(),
+                "WebSearch".into(),
+                "TodoWrite".into(),
             ],
             disallowed_tools: vec!["FileWrite".into(), "FileEdit".into(), "Bash".into()],
             omit_claude_md: true,
@@ -65,8 +70,11 @@ fn builtin_agents() -> Vec<AgentDefinition> {
             description: "验证 Agent，只读验证实现".into(),
             when_to_use: "代码实现完成后需要验证正确性时使用".into(),
             tools: vec![
-                "FileRead".into(), "Glob".into(), "Grep".into(),
-                "Bash".into(), "TodoWrite".into(),
+                "FileRead".into(),
+                "Glob".into(),
+                "Grep".into(),
+                "Bash".into(),
+                "TodoWrite".into(),
             ],
             disallowed_tools: vec!["FileWrite".into(), "FileEdit".into()],
             background: true,
@@ -79,8 +87,11 @@ fn builtin_agents() -> Vec<AgentDefinition> {
             description: "指南 Agent，回答关于 Claude Code 使用的问题".into(),
             when_to_use: "用户询问 Claude Code 功能、用法、配置等问题时使用".into(),
             tools: vec![
-                "FileRead".into(), "Glob".into(), "Grep".into(),
-                "WebFetch".into(), "WebSearch".into(),
+                "FileRead".into(),
+                "Glob".into(),
+                "Grep".into(),
+                "WebFetch".into(),
+                "WebSearch".into(),
             ],
             disallowed_tools: vec!["FileWrite".into(), "FileEdit".into(), "Bash".into()],
             model: Some("haiku".into()),

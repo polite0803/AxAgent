@@ -4,8 +4,8 @@ use reqwest::Client;
 use std::time::Duration;
 
 use crate::protocol::{
-    CreateSessionParams, CreateSessionResult, SendPromptParams, SendPromptResult,
-    RegisterHookParams, StatusResult,
+    CreateSessionParams, CreateSessionResult, RegisterHookParams, SendPromptParams,
+    SendPromptResult, StatusResult,
 };
 use crate::types::AcpRequest;
 
@@ -33,13 +33,10 @@ impl AcpClient {
     }
 
     /// 构建请求（带认证头）
-    fn request_builder(
-        &self,
-        method: reqwest::Method,
-        path: &str,
-    ) -> reqwest::RequestBuilder {
+    fn request_builder(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
         let url = format!("{}{}", self.base_url, path);
-        let mut builder = self.http_client
+        let mut builder = self
+            .http_client
             .request(method, &url)
             .timeout(Duration::from_secs(60))
             .header("Content-Type", "application/json");
