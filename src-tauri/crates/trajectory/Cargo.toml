@@ -20,7 +20,7 @@ tracing = "0.1"
 anyhow = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 directories = "5"
-dirs = "5"
+dirs = "6"
 rand = "0.8"
 futures = "0.3"
 itertools = "0.13"

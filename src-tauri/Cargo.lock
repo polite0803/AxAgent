@@ -559,7 +559,7 @@ dependencies = [
  "axagent-trajectory",
  "base64 0.22.1",
  "chrono",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "font-kit",
  "futures",
  "lazy_static",
@@ -675,7 +675,7 @@ dependencies = [
  "axagent-migration",
  "base64 0.22.1",
  "chrono",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "docx-rs",
  "futures",
  "hex",
@@ -778,7 +778,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "chrono",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "futures",
  "glob",
  "hex",
@@ -829,7 +829,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "diff",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "docx-rs",
  "futures",
  "glob",
@@ -866,7 +866,7 @@ dependencies = [
  "axum",
  "chrono",
  "directories",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "futures",
  "itertools 0.13.0",
  "rand 0.8.6",
@@ -2005,15 +2005,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
 dependencies = [
  "dirs-sys 0.3.7",
-]
-
-[[package]]
-name = "dirs"
-version = "5.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
-dependencies = [
- "dirs-sys 0.4.1",
 ]
 
 [[package]]

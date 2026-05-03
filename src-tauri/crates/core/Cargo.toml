@@ -27,7 +27,7 @@ sqlite-vec = { workspace = true }
 libsqlite3-sys = { workspace = true }
 pdf-extract = "0.7"
 zip = "2"
-dirs = "5"
+dirs = "6"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sysinfo = "0.32"
 axagent-migration = { path = "../migration" }
