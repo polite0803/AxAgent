@@ -8,6 +8,7 @@ mod m20260502_000002_create_notes_and_knowledge_tables;
 mod m20260502_000003_create_trajectory_tables;
 mod m20260503_000001_fix_provider_builtin_id;
 mod m20260504_000001_add_tool_execution_approval_status;
+mod m20260505_000001_add_wiki_count_columns;
 
 pub struct Migrator;
 
@@ -23,6 +24,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260502_000003_create_trajectory_tables::Migration),
             Box::new(m20260503_000001_fix_provider_builtin_id::Migration),
             Box::new(m20260504_000001_add_tool_execution_approval_status::Migration),
+            Box::new(m20260505_000001_add_wiki_count_columns::Migration),
         ]
     }
 }

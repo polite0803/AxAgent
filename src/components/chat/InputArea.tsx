@@ -794,7 +794,7 @@ export function InputArea() {
     async (strategy: "direct" | "plan") => {
       if (!activeConversationId || !activeConversation) { return; }
       if (isSwitchingStrategyRef.current) {
-        console.log("[WorkStrategy] Already switching, ignoring");
+        if (import.meta.env.DEV) console.log("[WorkStrategy] Already switching, ignoring");
         return;
       }
       isSwitchingStrategyRef.current = true;
@@ -1067,7 +1067,7 @@ export function InputArea() {
 
   const handleModeSwitch = useCallback(async (mode: "chat" | "agent") => {
     if (isSwitchingModeRef.current) {
-      console.log("[ModeSwitch] Already switching mode, ignoring");
+      if (import.meta.env.DEV) console.log("[ModeSwitch] Already switching mode, ignoring");
       return;
     }
     isSwitchingModeRef.current = true;
@@ -1088,16 +1088,16 @@ export function InputArea() {
       // Prevent switching while the current conversation is streaming
       const { activeStreams } = useStreamStore.getState();
       if (activeConversation.id in activeStreams) {
-        console.log("[ModeSwitch] Conversation is streaming, cannot switch mode");
+        if (import.meta.env.DEV) console.log("[ModeSwitch] Conversation is streaming, cannot switch mode");
         return;
       }
 
-      console.log("[ModeSwitch] Starting switch to:", mode);
-      console.log("[ModeSwitch] Conversation ID:", activeConversation.id);
+      if (import.meta.env.DEV) console.log("[ModeSwitch] Starting switch to:", mode);
+      if (import.meta.env.DEV) console.log("[ModeSwitch] Conversation ID:", activeConversation.id);
 
       try {
         await updateConversation(activeConversation.id, { mode });
-        console.log("[ModeSwitch] updateConversation succeeded");
+        if (import.meta.env.DEV) console.log("[ModeSwitch] updateConversation succeeded");
       } catch (e) {
         const errorMsg = String(e);
         if (errorMsg.includes("Not found: Conversation")) {
@@ -1119,7 +1119,7 @@ export function InputArea() {
       }
 
       if (mode === "agent") {
-        console.log("[ModeSwitch] Initializing agent session...");
+        if (import.meta.env.DEV) console.log("[ModeSwitch] Initializing agent session...");
         // Clear multi-model companion models — not applicable in agent mode
         if (companionModels.length > 0) {
           setCompanionModels([]);
@@ -1129,20 +1129,20 @@ export function InputArea() {
           const session = await invoke<{ cwd: string | null }>("agent_update_session", {
             request: { conversationId: activeConversation.id },
           });
-          console.log("[ModeSwitch] agent_update_session returned:", session);
+          if (import.meta.env.DEV) console.log("[ModeSwitch] agent_update_session returned:", session);
           if (!session.cwd) {
-            console.log("[ModeSwitch] No cwd, creating workspace...");
+            if (import.meta.env.DEV) console.log("[ModeSwitch] No cwd, creating workspace...");
             const workspaceResult = await invoke<{ workspacePath: string }>("agent_ensure_workspace", {
               request: { conversationId: activeConversation.id },
             });
             const workspacePath = workspaceResult.workspacePath;
-            console.log("[ModeSwitch] workspace created:", workspacePath);
+            if (import.meta.env.DEV) console.log("[ModeSwitch] workspace created:", workspacePath);
             await invoke("agent_update_session", {
               request: { conversationId: activeConversation.id, cwd: workspacePath },
             });
             setAgentCwd(workspacePath);
           } else {
-            console.log("[ModeSwitch] Using existing cwd:", session.cwd);
+            if (import.meta.env.DEV) console.log("[ModeSwitch] Using existing cwd:", session.cwd);
             setAgentCwd(session.cwd);
           }
         } catch (e) {
@@ -2326,6 +2326,7 @@ export function InputArea() {
                   shape="circle"
                   size="small"
                   data-testid="send-btn"
+                  aria-label={t("chat.sendMessage", "发送消息")}
                   icon={<ArrowUp size={14} />}
                   onClick={handleSend}
                   disabled={!value.trim() || streaming}

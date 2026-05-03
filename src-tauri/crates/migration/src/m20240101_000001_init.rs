@@ -513,6 +513,9 @@ enum Wikis {
     RootPath,
     SchemaVersion,
     Description,
+    NoteCount,
+    SourceCount,
+    EmbeddingProvider,
     CreatedAt,
     UpdatedAt,
 }
@@ -2814,6 +2817,19 @@ impl MigrationTrait for Migration {
                             .default("1.0"),
                     )
                     .col(ColumnDef::new(Wikis::Description).string().null())
+                    .col(
+                        ColumnDef::new(Wikis::NoteCount)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(Wikis::SourceCount)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(ColumnDef::new(Wikis::EmbeddingProvider).string().null())
                     .col(ColumnDef::new(Wikis::CreatedAt).integer().not_null())
                     .col(ColumnDef::new(Wikis::UpdatedAt).integer().not_null())
                     .to_owned(),

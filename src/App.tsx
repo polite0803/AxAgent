@@ -214,7 +214,7 @@ function AppRoot() {
       // Seed preset workflow templates
       try {
         await invoke("seed_preset_templates");
-        console.log("Seeded preset workflow templates");
+        if (import.meta.env.DEV) console.log("Seeded preset workflow templates");
       } catch (e) {
         console.warn("Failed to seed preset templates:", e);
       }

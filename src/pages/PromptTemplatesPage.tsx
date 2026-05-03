@@ -74,7 +74,7 @@ export function PromptTemplatesPage() {
 
   const handleSave = () => {
     form.validateFields().then((values) => {
-      console.log("Saving template:", values);
+      if (import.meta.env.DEV) console.log("Saving template:", values);
       message.success(editingTemplate ? t("promptTemplates.templateUpdated") : t("promptTemplates.templateCreated"));
       setIsEditorOpen(false);
     });

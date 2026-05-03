@@ -61,7 +61,12 @@
       "Bash(sed -i 's/ToolError::invalid_input\\(\"todos 必须是数组\"\\)/ToolError::invalid_input_for\\(\"TodoWrite\", \"todos 必须是数组\"\\)/g' todo_write.rs)",
       "Bash(sed -i 's/ToolError::invalid_input\\(\"questions 必须是数组\"\\)/ToolError::invalid_input_for\\(\"AskUserQuestion\", \"questions 必须是数组\"\\)/g' todo_write.rs)",
       "Bash(sed -i 's/ToolError::execution_failed\\(\"无效的 Notebook 格式\"\\)/ToolError::execution_failed_for\\(\"NotebookEdit\", \"无效的 Notebook 格式\"\\)/g' todo_write.rs)",
-      "Bash(grep -v \"^--$\")"
+      "Bash(grep -v \"^--$\")",
+      "Bash(npx vite *)",
+      "Bash(npx vitest *)",
+      "Bash(xargs -L1 basename)",
+      "Bash(git stash *)",
+      "Bash(npx dprint *)"
     ]
   }
 }

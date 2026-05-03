@@ -46,14 +46,20 @@ impl TrajectoryStorage {
         }
     }
 
-    fn rt() -> tokio::runtime::Runtime {
-        tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime")
+    /// 安全地 block_on：如果已在 tokio runtime 中则复用当前句柄，否则创建新的
+    fn block_on<F: std::future::Future>(f: F) -> F::Output {
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => tokio::task::block_in_place(|| handle.block_on(f)),
+            Err(_) => tokio::runtime::Runtime::new()
+                .expect("Failed to create Tokio runtime")
+                .block_on(f),
+        }
     }
 
     // ── Trajectories ──
 
     pub fn save_trajectory(&self, t: &Trajectory) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let am = trajectories::ActiveModel {
                 id: Set(t.id.clone()),
                 session_id: Set(t.session_id.clone()),
@@ -148,7 +154,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_trajectory(&self, id: &str) -> Result<Option<Trajectory>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(
                 match trajectories::Entity::find_by_id(id)
                     .one(self.db.as_ref())
@@ -166,7 +172,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_trajectories(&self, limit: Option<usize>) -> Result<Vec<Trajectory>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let models = trajectories::Entity::find()
                 .order_by_desc(trajectories::Column::CreatedAt)
                 .all(self.db.as_ref())
@@ -185,7 +191,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_session_trajectories(&self, session_id: &str) -> Result<Vec<Trajectory>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let models = trajectories::Entity::find()
                 .filter(trajectories::Column::SessionId.eq(session_id))
                 .order_by_asc(trajectories::Column::CreatedAt)
@@ -204,7 +210,7 @@ impl TrajectoryStorage {
     }
 
     pub fn query_trajectories(&self, query: &TrajectoryQuery) -> Result<Vec<Trajectory>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let mut q = trajectories::Entity::find();
             if let Some(ref sid) = query.session_id {
                 q = q.filter(trajectories::Column::SessionId.eq(sid));
@@ -245,7 +251,7 @@ impl TrajectoryStorage {
     }
 
     fn get_trajectory_steps(&self, trajectory_id: &str) -> Result<Vec<TrajectoryStep>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_steps::Entity::find()
                 .filter(trajectory_steps::Column::TrajectoryId.eq(trajectory_id))
                 .order_by_asc(trajectory_steps::Column::StepIndex)
@@ -266,7 +272,7 @@ impl TrajectoryStorage {
     }
 
     fn get_trajectory_rewards(&self, trajectory_id: &str) -> Result<Vec<RewardSignal>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_rewards::Entity::find()
                 .filter(trajectory_rewards::Column::TrajectoryId.eq(trajectory_id))
                 .all(self.db.as_ref())
@@ -297,7 +303,7 @@ impl TrajectoryStorage {
     // ── Patterns ──
 
     pub fn save_pattern(&self, p: &TrajectoryPattern) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_patterns::Entity::insert(trajectory_patterns::ActiveModel {
                 id: Set(p.id.clone()),
                 name: Set(p.name.clone()),
@@ -328,7 +334,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_patterns(&self) -> Result<Vec<TrajectoryPattern>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_patterns::Entity::find()
                 .order_by_desc(trajectory_patterns::Column::Frequency)
                 .all(self.db.as_ref())
@@ -344,7 +350,7 @@ impl TrajectoryStorage {
         min_sr: f64,
         limit: Option<usize>,
     ) -> Result<Vec<TrajectoryPattern>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let models = trajectory_patterns::Entity::find()
                 .filter(trajectory_patterns::Column::SuccessRate.gte(min_sr))
                 .order_by_desc(trajectory_patterns::Column::SuccessRate)
@@ -358,7 +364,7 @@ impl TrajectoryStorage {
     // ── Skills ──
 
     pub fn save_skill(&self, skill: &Skill) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_skills::Entity::insert(trajectory_skills::ActiveModel {
                 id: Set(skill.id.clone()),
                 name: Set(skill.name.clone()),
@@ -394,7 +400,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_skill(&self, id: &str) -> Result<Option<Skill>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_skills::Entity::find_by_id(id)
                 .one(self.db.as_ref())
                 .await?
@@ -403,7 +409,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_skills(&self) -> Result<Vec<Skill>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_skills::Entity::find()
                 .order_by_desc(trajectory_skills::Column::UsageCount)
                 .all(self.db.as_ref())
@@ -415,7 +421,7 @@ impl TrajectoryStorage {
     }
 
     pub fn delete_skill(&self, id: &str) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_skill_executions::Entity::delete_many()
                 .filter(trajectory_skill_executions::Column::SkillId.eq(id))
                 .exec(self.db.as_ref())
@@ -437,7 +443,7 @@ impl TrajectoryStorage {
         ia: Option<&serde_json::Value>,
         or: Option<&serde_json::Value>,
     ) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_skill_executions::ActiveModel {
                 id: Set(Uuid::new_v4().to_string()),
                 skill_id: Set(sid.to_string()),
@@ -455,7 +461,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_skill_analytics(&self, sid: &str) -> Result<SkillAnalytics> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let all_execs = trajectory_skill_executions::Entity::find()
                 .filter(trajectory_skill_executions::Column::SkillId.eq(sid))
                 .all(self.db.as_ref())
@@ -478,7 +484,7 @@ impl TrajectoryStorage {
     // ── Entities ──
 
     pub fn save_entity(&self, e: &Entity) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_entities::Entity::insert(trajectory_entities::ActiveModel {
                 id: Set(e.id.clone()), name: Set(e.name.clone()),
                 entity_type: Set(serde_json::to_string(&e.entity_type).unwrap_or_default()),
@@ -498,7 +504,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_entity(&self, id: &str) -> Result<Option<Entity>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_entities::Entity::find_by_id(id)
                 .one(self.db.as_ref())
                 .await?
@@ -507,7 +513,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_all_entities(&self) -> Result<Vec<Entity>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_entities::Entity::find()
                 .order_by_desc(trajectory_entities::Column::LastSeenAt)
                 .all(self.db.as_ref())
@@ -519,7 +525,7 @@ impl TrajectoryStorage {
     }
 
     pub fn search_entities(&self, query: &str, limit: usize) -> Result<Vec<Entity>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_entities::Entity::find()
                 .filter(trajectory_entities::Column::Name.like(format!("%{}%", query)))
                 .all(self.db.as_ref())
@@ -532,7 +538,7 @@ impl TrajectoryStorage {
     }
 
     pub fn delete_entity(&self, id: &str) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_entities::Entity::delete_by_id(id)
                 .exec(self.db.as_ref())
                 .await?;
@@ -543,7 +549,7 @@ impl TrajectoryStorage {
     // ── Relationships ──
 
     pub fn save_relationship(&self, rel: &Relationship) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_relationships::Entity::insert(trajectory_relationships::ActiveModel {
                 id: Set(rel.id.clone()),
                 source_id: Set(rel.source_id.clone()),
@@ -567,7 +573,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_relationships_by_entity(&self, eid: &str) -> Result<Vec<Relationship>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_relationships::Entity::find()
                 .filter(
                     trajectory_relationships::Column::SourceId
@@ -583,7 +589,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_all_relationships(&self) -> Result<Vec<Relationship>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_relationships::Entity::find()
                 .order_by_desc(trajectory_relationships::Column::CreatedAt)
                 .all(self.db.as_ref())
@@ -595,7 +601,7 @@ impl TrajectoryStorage {
     }
 
     pub fn delete_relationship(&self, id: &str) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_relationships::Entity::delete_by_id(id)
                 .exec(self.db.as_ref())
                 .await?;
@@ -606,7 +612,7 @@ impl TrajectoryStorage {
     // ── Sessions ──
 
     pub fn save_session(&self, s: &Session) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_sessions::Entity::insert(trajectory_sessions::ActiveModel {
                 id: Set(s.id.clone()),
                 title: Set(s.title.clone()),
@@ -637,7 +643,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_session(&self, id: &str) -> Result<Option<Session>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_sessions::Entity::find_by_id(id)
                 .one(self.db.as_ref())
                 .await?
@@ -646,7 +652,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_all_sessions(&self) -> Result<Vec<Session>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_sessions::Entity::find()
                 .order_by_desc(trajectory_sessions::Column::UpdatedAt)
                 .all(self.db.as_ref())
@@ -658,7 +664,7 @@ impl TrajectoryStorage {
     }
 
     pub fn update_session(&self, id: &str, updates: &SessionUpdate) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let m = trajectory_sessions::Entity::find_by_id(id)
                 .one(self.db.as_ref())
                 .await?
@@ -680,7 +686,7 @@ impl TrajectoryStorage {
     }
 
     pub fn delete_session(&self, id: &str) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_sessions::Entity::delete_by_id(id)
                 .exec(self.db.as_ref())
                 .await?;
@@ -691,7 +697,7 @@ impl TrajectoryStorage {
     // ── Messages ──
 
     pub fn save_message(&self, msg: &Message) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_messages::ActiveModel {
                 id: Set(msg.id.clone()),
                 session_id: Set(msg.session_id.clone()),
@@ -709,7 +715,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_messages_by_session(&self, sid: &str) -> Result<Vec<Message>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_messages::Entity::find()
                 .filter(trajectory_messages::Column::SessionId.eq(sid))
                 .order_by_asc(trajectory_messages::Column::CreatedAt)
@@ -722,7 +728,7 @@ impl TrajectoryStorage {
     }
 
     pub fn search_messages(&self, query: &str, limit: usize) -> Result<Vec<Message>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_messages::Entity::find()
                 .filter(trajectory_messages::Column::Content.like(format!("%{}%", query)))
                 .order_by_desc(trajectory_messages::Column::CreatedAt)
@@ -738,7 +744,7 @@ impl TrajectoryStorage {
     // ── Memories ──
 
     pub fn get_all_memories(&self) -> Result<Vec<crate::memory::MemoryEntry>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_memories::Entity::find()
                 .all(self.db.as_ref())
                 .await?
@@ -754,7 +760,7 @@ impl TrajectoryStorage {
     }
 
     pub fn save_memory(&self, mem: &crate::memory::MemoryEntry) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_memories::Entity::insert(trajectory_memories::ActiveModel {
                 id: Set(mem.id.clone()),
                 content: Set(mem.content.clone()),
@@ -776,7 +782,7 @@ impl TrajectoryStorage {
     }
 
     pub fn delete_memory(&self, id: &str) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_memories::Entity::delete_by_id(id)
                 .exec(self.db.as_ref())
                 .await?;
@@ -787,7 +793,7 @@ impl TrajectoryStorage {
     // ── Learned Patterns ──
 
     pub fn save_learning_pattern(&self, p: &Pattern) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_learned_patterns::Entity::insert(trajectory_learned_patterns::ActiveModel {
                 id: Set(p.id.clone()),
                 pattern: Set(p.pattern.clone()),
@@ -814,7 +820,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_patterns_list(&self) -> Result<Vec<Pattern>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_learned_patterns::Entity::find()
                 .all(self.db.as_ref())
                 .await?
@@ -838,7 +844,7 @@ impl TrajectoryStorage {
     }
 
     pub fn update_pattern_stats(&self, id: &str, sd: i32, fd: i32) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             if let Some(m) = trajectory_learned_patterns::Entity::find_by_id(id)
                 .one(self.db.as_ref())
                 .await?
@@ -856,7 +862,7 @@ impl TrajectoryStorage {
     // ── Preferences ──
 
     pub fn save_preference(&self, pref: &Preference) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             trajectory_preferences::Entity::insert(trajectory_preferences::ActiveModel {
                 id: Set(pref.id.clone()),
                 key: Set(pref.key.clone()),
@@ -880,7 +886,7 @@ impl TrajectoryStorage {
     }
 
     pub fn get_preferences_list(&self) -> Result<Vec<Preference>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             Ok(trajectory_preferences::Entity::find()
                 .all(self.db.as_ref())
                 .await?
@@ -899,7 +905,7 @@ impl TrajectoryStorage {
     }
 
     pub fn update_preference_by_key(&self, key: &str, updates: &Preference) -> Result<()> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             if let Some(m) = trajectory_preferences::Entity::find()
                 .filter(trajectory_preferences::Column::Key.eq(key))
                 .one(self.db.as_ref())
@@ -973,7 +979,7 @@ impl TrajectoryStorage {
     }
 
     pub fn search_trajectories_fts(&self, fts_query: &FTS5Query) -> Result<Vec<String>> {
-        Self::rt().block_on(async {
+        Self::block_on(async {
             let pattern = format!("%{}%", fts_query.query);
             Ok(trajectories::Entity::find()
                 .filter(

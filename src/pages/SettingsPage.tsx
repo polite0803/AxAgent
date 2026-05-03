@@ -32,7 +32,7 @@ import { WorkflowEditor } from "@/components/workflow";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
 import { theme } from "antd";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
 
 const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
@@ -72,6 +72,31 @@ export function SettingsPage() {
   const closeWorkflowEditor = useUIStore((s) => s.closeWorkflowEditor);
   const ContentComponent = SECTION_COMPONENTS[settingsSection as keyof typeof SECTION_COMPONENTS];
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
+
+  // 侧边栏可拖曳宽度
+  const [sidebarWidth, setSidebarWidth] = useState(224);
+  const resizingRef = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    resizingRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingRef.current) { return; }
+      setSidebarWidth(Math.max(180, Math.min(500, e.clientX)));
+    };
+    const handleMouseUp = () => {
+      resizingRef.current = false;
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   // 检查是否是技能设置段
   const isSkillSection = typeof settingsSection === "string" && settingsSection.startsWith("skill:");
@@ -115,11 +140,23 @@ export function SettingsPage() {
   return (
     <div className="flex h-full" data-testid="settings-panel">
       <div
-        className="w-56 shrink-0 h-full"
-        style={{ borderRight: "1px solid var(--border-color)", backgroundColor: token.colorBgContainer }}
+        className="shrink-0 h-full"
+        style={{ width: sidebarWidth, backgroundColor: token.colorBgContainer }}
       >
         <SettingsSidebar />
       </div>
+      <div
+        className="shrink-0 cursor-col-resize select-none"
+        style={{
+          width: 5,
+          borderRight: "1px solid var(--border-color)",
+          backgroundColor: "transparent",
+          transition: "background-color 0.15s",
+        }}
+        onMouseDown={handleResizeStart}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+      />
       <div className="min-w-0 flex-1 overflow-y-auto" style={{ backgroundColor: token.colorBgElevated }}>
         {settingsSection === "workflow"
           ? renderWorkflowContent()

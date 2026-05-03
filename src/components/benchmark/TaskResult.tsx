@@ -1,12 +1,14 @@
 import type { TaskResult as TaskResultType } from "@/types/evaluator";
 import { formatDuration, formatScore, getDifficultyLabel } from "@/types/evaluator";
 import { Badge, Card, Descriptions, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 interface TaskResultCardProps {
   result: TaskResultType;
 }
 
 export function TaskResultCard({ result }: TaskResultCardProps) {
+  const { t } = useTranslation();
   return (
     <Card className="mt-3">
       <div className="flex items-start justify-between mb-4">
@@ -16,7 +18,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
           </Typography.Title>
           <div className="flex gap-2">
             <Badge color={result.success ? "green" : "red"}>
-              {result.success ? "通过" : "失败"}
+              {result.success ? t("benchmark.passed", "通过") : t("benchmark.failed", "失败")}
             </Badge>
             <Badge color="blue">{getDifficultyLabel(result.difficulty)}</Badge>
           </div>
@@ -28,21 +30,21 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
       </div>
 
       <Descriptions size="small" className="mb-4">
-        <Descriptions.Item label="任务ID">{result.task_id}</Descriptions.Item>
-        {result.trace_id && <Descriptions.Item label="追踪ID">{result.trace_id}</Descriptions.Item>}
+        <Descriptions.Item label={t("benchmark.taskId", "任务ID")}>{result.task_id}</Descriptions.Item>
+        {result.trace_id && <Descriptions.Item label={t("benchmark.traceId", "追踪ID")}>{result.trace_id}</Descriptions.Item>}
       </Descriptions>
 
       {result.error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
           <Typography.Text type="danger" className="font-medium">
-            错误: {result.error}
+            {t("benchmark.error", "错误")}: {result.error}
           </Typography.Text>
         </div>
       )}
 
       <div className="mb-4">
         <Typography.Text strong className="mb-2 block">
-          评分详情
+          {t("benchmark.scoreDetails", "评分详情")}
         </Typography.Text>
         <div className="space-y-2">
           {result.scores.map((score) => (

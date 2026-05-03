@@ -4,6 +4,7 @@ import { Alert, Tag, theme, Typography } from "antd";
 import { FileEdit, Search, Terminal, Wrench } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { extractFileChanges, FileChangeList } from "./DiffViewer";
 
 interface ToolCallChainProps {
   toolCalls: ToolCallState[];
@@ -180,21 +181,36 @@ export function ToolCallCard({ toolCalls }: ToolCallChainProps) {
     });
   }, [toolCalls, token, t]);
 
-  if (chainItems.length === 0) { return null; }
+  const fileChanges = useMemo(
+    () => extractFileChanges(
+      toolCalls
+        .filter((tc) => tc.executionStatus === "success")
+        .map((tc) => ({ toolName: tc.toolName, input: tc.input, output: tc.output })),
+    ),
+    [toolCalls],
+  );
+
+  if (chainItems.length === 0 && fileChanges.length === 0) { return null; }
 
   return (
     <div style={{ margin: "8px 0 12px" }}>
-      <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
-        {t("chat.inspector.toolCalls", "工具调用")}
-      </Typography.Text>
-      <ThoughtChain
-        items={chainItems}
-        line="dashed"
-        styles={{
-          item: { padding: "6px 0" },
-          itemContent: { fontSize: 12 },
-        }}
-      />
+      {chainItems.length > 0 && (
+        <>
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+            {t("chat.inspector.toolCalls", "工具调用")}
+          </Typography.Text>
+          <ThoughtChain
+            items={chainItems}
+            line="dashed"
+            styles={{
+              item: { padding: "6px 0" },
+              itemContent: { fontSize: 12 },
+            }}
+          />
+        </>
+      )}
+      {/* 文件变更 diff 视图 */}
+      <FileChangeList changes={fileChanges} />
     </div>
   );
 }
