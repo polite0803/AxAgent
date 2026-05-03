@@ -72,7 +72,7 @@ export function SkillHtmlPage({ componentConfig, skillName }: SkillHtmlPageProps
       ref={iframeRef}
       srcDoc={srcdoc}
       title="Skill HTML Page"
-      sandbox="allow-scripts"
+      sandbox="allow-scripts" // allow-scripts only = 最严格的脚本沙箱（禁止 same-origin/cookies/表单/弹窗）
       style={{
         width: "100%",
         height: "100%",

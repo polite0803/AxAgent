@@ -98,7 +98,7 @@ export function Sidebar() {
         key: `plugin:${item.id}`,
         icon: <IconComp size={18} color={NAV_ICON_COLORS.Router} />,
         labelKey: item.label,
-        path: item.path,
+        path: `/skill/${item.skillName}/${item.pageId}`,
         isPlugin: true,
         pluginName: item.skillName,
       });
@@ -106,11 +106,11 @@ export function Sidebar() {
 
     const topItems = pluginItems.filter((i) => {
       const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
-      return orig?.position === "Top";
+      return (orig?.position ?? 1) === 0;
     });
     const bottomItems = pluginItems.filter((i) => {
       const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
-      return orig?.position !== "Top";
+      return (orig?.position ?? 1) !== 0;
     });
 
     return [...topItems, ...builtinNavItems, ...bottomItems];

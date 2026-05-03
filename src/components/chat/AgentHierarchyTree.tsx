@@ -1,6 +1,8 @@
 // Agent 层级树 — 展示 fork/子 Agent 的父子关系
 
 import { useAgentStore } from "@/stores";
+
+const _EMPTY: never[] = [];
 import type { AgentPoolItem } from "@/types/agent";
 import { BranchesOutlined, CaretRightOutlined, RobotOutlined } from "@ant-design/icons";
 import { Tag, Tree, Typography } from "antd";
@@ -58,7 +60,7 @@ function toTreeNode(item: AgentPoolItem, allItems: AgentPoolItem[]): DataNode {
 }
 
 export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) {
-  const pool = useAgentStore((s) => s.agentPool[conversationId] || []);
+  const pool = useAgentStore((s) => s.agentPool[conversationId] || _EMPTY);
 
   const treeData = useMemo(() => {
     // 找根节点（没有 dependsOn 或 dependsOn 为空的节点）

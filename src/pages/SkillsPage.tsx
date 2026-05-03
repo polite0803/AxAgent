@@ -50,6 +50,7 @@ import {
   Star,
   Store,
   Trash2,
+  Upload,
   Workflow,
   Wrench,
   Zap,
@@ -137,6 +138,7 @@ function SkillCard({
   onUninstall,
   onOpenDir,
   onEditFrontend,
+  onExport,
   t,
 }: {
   skill: Skill;
@@ -145,6 +147,7 @@ function SkillCard({
   onUninstall: (name: string) => void;
   onOpenDir: (path: string) => void;
   onEditFrontend: (name: string) => void;
+  onExport?: (name: string) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const hasFrontend = !!skill.frontend;
@@ -205,6 +208,15 @@ function SkillCard({
             onClick={() => onEditFrontend(skill.name)}
             title={hasFrontend ? "编辑前端扩展" : "添加前端扩展"}
           />
+          {onExport && (
+            <Button
+              type="text"
+              size="small"
+              icon={<Upload size={14} />}
+              onClick={() => onExport(skill.name)}
+              title="导出为可发布格式"
+            />
+          )}
           {skill.source !== "builtin" && (
             <Popconfirm
               title={t("skills.uninstallConfirm", { name: skill.name })}
@@ -379,7 +391,7 @@ export function SkillsPage() {
     { name: string; repo: string; content: string } | null
   >(null);
   const [marketplaceDetailLoading, setMarketplaceDetailLoading] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<"all" | "axagent" | "claude" | "agents">("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"popular" | "latest" | "stars">("popular");
   const [decomposePreviewOpen, setDecomposePreviewOpen] = useState(false);
   const [decomposeRequest, setDecomposeRequest] = useState<
@@ -468,6 +480,26 @@ export function SkillsPage() {
       setEditingFrontendSkill(skill);
     }
   }, [skills]);
+
+  const handleExport = useCallback(async (name: string) => {
+    try {
+      const result = await invoke<{ hermes_json: string; skill_name: string; version: string }>(
+        "skills_hub_export",
+        { skill_name: name },
+      );
+      // 下载为 JSON 文件
+      const blob = new Blob([result.hermes_json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${result.skill_name}-v${result.version}-export.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      messageApi.success(`技能 "${name}" 已导出`);
+    } catch (e) {
+      messageApi.error(`导出失败: ${String(e)}`);
+    }
+  }, [messageApi]);
 
   const handleMarketplaceDetail = useCallback(async (repo: string) => {
     const skill = marketplaceSkills.find(s => s.repo === repo);
@@ -807,8 +839,8 @@ export function SkillsPage() {
             for (const s of skills) {
               sourceCounts.set(s.source, (sourceCounts.get(s.source) ?? 0) + 1);
             }
-            // 标准来源 Tab，始终显示（即使 count=0）
-            const standardSources = ["axagent", "claude", "agents"];
+            // 来源 Tab，始终显示（即使 count=0），与 INSTALL_TARGETS 保持一致
+            const standardSources = INSTALL_TARGETS.map(t => t.key);
             const tabs: any[] = [
               {
                 key: "all",
@@ -840,7 +872,7 @@ export function SkillsPage() {
             }
             // 动态添加其他来源 Tab
             for (const [src, count] of sourceCounts) {
-              if (standardSources.includes(src)) { continue; }
+              if ((standardSources as readonly string[]).includes(src)) { continue; }
               tabs.push({
                 key: src,
                 label: (
@@ -925,6 +957,7 @@ export function SkillsPage() {
                   onUninstall={handleUninstall}
                   onOpenDir={handleOpenSkillDir}
                   onEditFrontend={handleEditFrontend}
+                  onExport={handleExport}
                   t={t}
                 />
               ))}
@@ -1005,6 +1038,7 @@ export function SkillsPage() {
                               onUninstall={handleUninstall}
                               onOpenDir={handleOpenSkillDir}
                               onEditFrontend={handleEditFrontend}
+                              onExport={handleExport}
                               t={t}
                             />
                           ))}

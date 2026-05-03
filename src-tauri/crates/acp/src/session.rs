@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::protocol::{CreateSessionParams, CreateSessionResult, StatusResult};
-use crate::types::{AcpNotification, AcpSession, AcpSessionStatus};
+use crate::types::{AcpSession, AcpSessionStatus};
 
 /// ACP 会话管理器
 pub struct AcpSessionManager {

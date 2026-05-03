@@ -1,6 +1,8 @@
 import { usePlanStore } from "@/stores";
 import type { Plan } from "@/types";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
+
+const _EMPTY: never[] = [];
 import { Badge, Button, Drawer, Tag, theme, Tooltip } from "antd";
 import { ClipboardList, History, RotateCcw } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -23,7 +25,7 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
   const [open, setOpen] = useState(false);
 
   const activePlan = usePlanStore((s) => s.activePlans[conversationId]);
-  const history = usePlanStore((s) => s.planHistory[conversationId] || []);
+  const history = usePlanStore((s) => s.planHistory[conversationId] || _EMPTY);
   const loadPlanHistory = usePlanStore((s) => s.loadPlanHistory);
   const resumePlan = usePlanStore((s) => s.resumePlan);
 

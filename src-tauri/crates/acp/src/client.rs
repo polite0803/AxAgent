@@ -7,7 +7,6 @@ use crate::protocol::{
     CreateSessionParams, CreateSessionResult, RegisterHookParams, SendPromptParams,
     SendPromptResult, StatusResult,
 };
-use crate::types::AcpRequest;
 
 /// ACP HTTP 客户端
 pub struct AcpClient {

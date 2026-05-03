@@ -2,6 +2,8 @@ import type { SkillComponentType } from "@/types";
 import { SkillHtmlPage } from "./SkillHtmlPage";
 import { SkillIframePage } from "./SkillIframePage";
 import { SkillMarkdownPage } from "./SkillMarkdownPage";
+import { SkillReactPage } from "./SkillReactPage";
+import { SkillWebComponentPage } from "./SkillWebComponentPage";
 
 interface SkillPageRendererProps {
   componentType: SkillComponentType;
@@ -18,11 +20,13 @@ export function SkillPageRenderer({ componentType, componentConfig, skillName }:
     case "Markdown":
       return <SkillMarkdownPage skillName={skillName} />;
     case "React":
+      return <SkillReactPage componentConfig={componentConfig} skillName={skillName} />;
     case "WebComponent":
+      return <SkillWebComponentPage componentConfig={componentConfig} skillName={skillName} />;
     default:
       return (
         <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
-          Component type "{componentType}" is not yet supported for external skills.
+          Unknown component type: "{componentType}"
         </div>
       );
   }

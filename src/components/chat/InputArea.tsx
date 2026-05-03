@@ -2,6 +2,7 @@ import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
+import { SkillToolbar } from "@/components/skill/SkillToolbar";
 import { invoke, isTauri } from "@/lib/invoke";
 import { findModelByIds, modelHasCapability, supportsReasoning } from "@/lib/modelCapabilities";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
@@ -1832,6 +1833,7 @@ export function InputArea() {
         {/* Bottom action bar */}
         <div className="flex items-center justify-between px-2 pb-2">
           <div className="flex items-center gap-0.5">
+            <SkillToolbar position="left" />
             {searchEnabled
               ? (
                 <Tooltip title={t("chat.search.title")}>
@@ -2274,6 +2276,7 @@ export function InputArea() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <SkillToolbar position="right" />
             {streaming
               ? (
                 <Button

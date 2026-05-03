@@ -1,6 +1,8 @@
 use crate::AppState;
 use axagent_trajectory::TaskType;
 use chrono;
+use notify::{Event, RecursiveMode, Watcher};
+use tauri::Emitter;
 
 pub fn start_background_services(
     app: &tauri::AppHandle,
@@ -21,6 +23,7 @@ pub fn start_background_services(
     start_skill_evolution(state);
     start_scheduled_task_executor(state);
     start_platform_adapters(state);
+    start_skill_watcher(app);
 }
 
 fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
@@ -680,6 +683,106 @@ fn start_skill_evolution(state: &AppState) {
                         );
                     }
                 }
+            }
+        }
+    });
+}
+
+fn start_skill_watcher(app: &tauri::AppHandle) {
+    let home = dirs::home_dir().unwrap_or_default();
+    let skill_dirs: Vec<std::path::PathBuf> = vec![
+        home.join(".axagent").join("skills"),
+        home.join(".claude").join("skills"),
+        home.join(".trae").join("skills"),
+        home.join(".codebuddy").join("skills"),
+        home.join(".workbuddy").join("skills"),
+        home.join(".agents").join("skills"),
+    ];
+
+    let app_handle = app.clone();
+    std::thread::spawn(move || {
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        let mut watcher =
+            match notify::recommended_watcher(move |res: Result<Event, notify::Error>| {
+                if let Ok(event) = res {
+                    let _ = tx.send(event);
+                }
+            }) {
+                Ok(w) => w,
+                Err(e) => {
+                    tracing::warn!("Failed to create skill watcher: {}", e);
+                    return;
+                },
+            };
+
+        for dir in &skill_dirs {
+            if dir.exists() {
+                if let Err(e) = watcher.watch(dir, RecursiveMode::NonRecursive) {
+                    tracing::warn!("Failed to watch skill dir {:?}: {}", dir, e);
+                }
+            }
+        }
+
+        tracing::info!("Skill file watcher started");
+
+        let mut pending: std::collections::HashMap<String, std::time::Instant> =
+            std::collections::HashMap::new();
+        let debounce = std::time::Duration::from_secs(2);
+
+        loop {
+            match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+                Ok(event) => {
+                    if !event.kind.is_modify() {
+                        continue;
+                    }
+                    for path in &event.paths {
+                        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                        let is_skill_file = matches!(
+                            name,
+                            "SKILL.md" | "manifest.json" | "skill-manifest.json" | "frontend.json"
+                        );
+                        if !is_skill_file {
+                            continue;
+                        }
+
+                        if let Some(parent) = path.parent() {
+                            if let Some(skill_name) = parent.file_name().and_then(|n| n.to_str()) {
+                                pending
+                                    .entry(skill_name.to_string())
+                                    .or_insert(std::time::Instant::now());
+                            }
+                        }
+                    }
+                },
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    // 检查是否有到期的事件需要发送
+                    let now = std::time::Instant::now();
+                    let mut ready: Vec<String> = vec![];
+                    pending.retain(|name, ts| {
+                        if now.duration_since(*ts) >= debounce {
+                            ready.push(name.clone());
+                            false
+                        } else {
+                            true
+                        }
+                    });
+
+                    if ready.is_empty() {
+                        continue;
+                    }
+
+                    let app = app_handle.clone();
+                    tauri::async_runtime::spawn(async move {
+                        for name in ready {
+                            let _ = app.emit("skill:file-changed", name);
+                        }
+                    });
+                },
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                    tracing::info!("Skill file watcher stopped");
+                    return;
+                },
             }
         }
     });

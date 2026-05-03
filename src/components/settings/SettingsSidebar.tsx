@@ -102,7 +102,7 @@ export function SettingsSidebar() {
       return {
         key: `skill:${sec.skillName}:${sec.id}` as string,
         icon: <IconComp size={16} />,
-        label: sec.label,
+        label: sec.title,
       };
     });
   }, [skillSections]);

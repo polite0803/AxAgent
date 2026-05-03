@@ -1,6 +1,8 @@
 import { useAgentStore } from "@/stores";
 import type { AgentPoolItem, TeammateStatus, WorkerMessage } from "@/types/agent";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, TeamOutlined } from "@ant-design/icons";
+
+const _EMPTY: never[] = [];
 import { Button, Collapse, message, Tag, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { type CreateTeamData, CreateTeamModal } from "./CreateTeamModal";
@@ -85,7 +87,7 @@ export function TeammatePanel({
   conversationId,
   visible = true,
 }: TeammatePanelProps) {
-  const pool = useAgentStore((s) => s.agentPool[conversationId] || []);
+  const pool = useAgentStore((s) => s.agentPool[conversationId] || _EMPTY);
   const upsertPoolItem = useAgentStore((s) => s.upsertPoolItem);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);

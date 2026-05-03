@@ -704,6 +704,7 @@ export interface Skill {
   whenToUse?: string;
   group?: string;
   frontend?: SkillFrontendExtension;
+  manifest?: SkillManifestMeta;
 }
 
 export interface SkillDetail {
@@ -761,43 +762,136 @@ export interface SkillFrontendExtension {
   commands: SkillUICommand[];
   panels: SkillUIPanel[];
   settingsSections: SkillSettingsSection[];
+  toolbar: SkillToolbarButton[];
+  chatCommand: SkillChatCommand[];
+  statusBar: SkillStatusBarItem[];
 }
+
+// ── Skill Manifest ──
+
+export interface SkillManifestMeta {
+  name: string;
+  version: string;
+  description: string;
+  author?: string;
+  icon?: string;
+  permissions?: SkillPermissions;
+  dependencies?: Record<string, string>;
+  lifecycle?: SkillLifecycleHooks;
+  frontend?: SkillFrontendExtension;
+  handlers?: Record<string, SkillHandler>;
+}
+
+export interface SkillPermissions {
+  tools?: string[];
+  toolCategories?: string[];
+  network?: string[];
+  filesystem?: { read?: string[]; write?: string[] };
+  commands?: string[];
+  events?: string[];
+}
+
+export interface SkillLifecycleHooks {
+  onInstall?: SkillCommandAction[];
+  onEnable?: SkillCommandAction[];
+  onDisable?: SkillCommandAction[];
+  onUninstall?: SkillCommandAction[];
+}
+
+// ── Skill Handler (声明式/Agentic 行为单元) ──
+
+export interface SkillHandler {
+  mode: "declarative" | "agentic";
+  description?: string;
+  actions?: SkillCommandAction[];
+  promptTemplate?: string;
+  contextGatherer?: SkillContextGatherer;
+  resultHandler?: SkillResultHandler;
+}
+
+// ── Navigation ──
 
 export interface SkillNavItem {
   id: string;
   label: string;
   icon: string;
-  path: string;
-  position: NavPosition;
-  order: number;
+  pageId: string;
+  position: number;
+  badge?: {
+    text?: string;
+    command: string;
+    refreshIntervalMs?: number;
+  };
+  visible?: {
+    command: string;
+  };
 }
 
 export type NavPosition = "Top" | "Bottom";
 
+// ── Pages ──
+
 export interface SkillPage {
   id: string;
-  path: string;
   title: string;
   componentType: SkillComponentType;
   componentConfig: Record<string, unknown>;
+  layout?: "default" | "fullscreen" | "sidebar";
+  icon?: string;
 }
 
 export type SkillComponentType = "Html" | "Iframe" | "React" | "WebComponent" | "Markdown";
 
+// ── Commands ──
+
 export interface SkillUICommand {
   id: string;
   label: string;
-  category: string;
+  description?: string;
+  category?: string;
   icon?: string;
   shortcut?: string;
-  action: SkillCommandAction;
+  actions: SkillCommandAction[];
 }
 
-export type SkillCommandAction =
-  | { type: "Navigate"; path: string }
-  | { type: "InvokeBackend"; command: string; args: Record<string, unknown> }
-  | { type: "EmitEvent"; event: string; payload: Record<string, unknown> }
-  | { type: "Custom"; handlerId: string; data: Record<string, unknown> };
+// ── SkillCommandAction (混合模式：声明式 + Agentic) ──
+
+export type SkillCommandAction = DeclarativeAction | AgenticAction;
+
+export interface DeclarativeAction {
+  mode: "declarative";
+  action: DeclarativeActionType;
+}
+
+export type DeclarativeActionType =
+  | { type: "invoke"; command: string; args?: Record<string, unknown> }
+  | { type: "navigate"; path: string }
+  | { type: "emit"; event: string; payload?: unknown }
+  | { type: "store"; operation: "get" | "set" | "update"; storeName: string; payload?: unknown }
+  | { type: "function"; name: string; args?: unknown[] }
+  | { type: "handler"; name: string; args?: Record<string, unknown> }
+  | { type: "chain"; actions: DeclarativeActionType[] };
+
+export interface AgenticAction {
+  mode: "agentic";
+  prompt: string;
+  skillName?: string;
+  context?: SkillContextGatherer;
+  resultHandler?: SkillResultHandler;
+}
+
+export interface SkillResultHandler {
+  type: "store" | "emit" | "navigate" | "stream";
+  target: string;
+}
+
+export interface SkillContextGatherer {
+  includeConversation?: boolean;
+  includeFiles?: boolean;
+  includeSelection?: boolean;
+}
+
+// ── Panels ──
 
 export interface SkillUIPanel {
   id: string;
@@ -814,12 +908,64 @@ export type UIPanelPosition = "Main" | "Sidebar" | "Header" | "Footer";
 
 export type UIPanelSize = "Small" | "Medium" | "Large" | "FullWidth";
 
+// ── Settings ──
+
 export interface SkillSettingsSection {
   id: string;
-  label: string;
+  title: string;
   icon?: string;
+  settingsGroup: string;
   componentType: SkillComponentType;
   componentConfig: Record<string, unknown>;
+}
+
+// ── Toolbar ──
+
+export interface SkillToolbarButton {
+  id: string;
+  icon: string;
+  tooltip: string;
+  position: "left" | "right";
+  priority: number;
+  onClick: SkillCommandAction[];
+  menu?: { label: string; actions: SkillCommandAction[] }[];
+}
+
+// ── Chat Command ──
+
+export interface SkillChatCommand {
+  name: string;
+  description: string;
+  icon?: string;
+  mode: "declarative" | "agentic";
+  actions?: SkillCommandAction[];
+  promptTemplate?: string;
+  contextGatherer?: SkillContextGatherer;
+  args?: SkillChatCommandArg[];
+}
+
+export interface SkillChatCommandArg {
+  name: string;
+  description: string;
+  required?: boolean;
+  type: "string" | "number" | "boolean" | "file";
+}
+
+// ── Status Bar ──
+
+export interface SkillStatusBarItem {
+  id: string;
+  alignment: "left" | "right";
+  priority: number;
+  text?: string;
+  icon?: string;
+  dynamicText?: {
+    command: string;
+    args?: Record<string, unknown>;
+    refreshIntervalMs: number;
+    template?: string;
+  };
+  onClick?: SkillCommandAction[];
 }
 
 // Phase-2 type modules

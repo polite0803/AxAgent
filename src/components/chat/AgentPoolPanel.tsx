@@ -1,6 +1,8 @@
 import { useAgentStore } from "@/stores";
 import type { AgentPoolItem, AgentPoolSummary, WorkerMessage } from "@/types/agent";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
+
+const _EMPTY: never[] = [];
 import { AlertTriangle, ChevronDown, ChevronRight, Clock, SkipForward } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -280,7 +282,7 @@ interface AgentPoolPanelProps {
 }
 
 export function AgentPoolPanel({ conversationId, visible = true }: AgentPoolPanelProps) {
-  const pool = useAgentStore((s) => s.agentPool[conversationId] || []);
+  const pool = useAgentStore((s) => s.agentPool[conversationId] || _EMPTY);
   const summary = useAgentStore((s) => s.getPoolSummary(conversationId));
 
   // 按依赖关系排序：无依赖的在前，有依赖的在后

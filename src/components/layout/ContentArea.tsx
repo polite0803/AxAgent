@@ -51,7 +51,7 @@ function SkillRoutePage() {
   const pages = useSkillExtensionStore((s) => s.pages);
 
   const page = useMemo(() => {
-    return pages.find((p) => p.path === location.pathname);
+    return pages.find((p) => `/skill/${p.skillName}/${p.id}` === location.pathname);
   }, [pages, location.pathname]);
 
   if (!page) {
@@ -80,8 +80,8 @@ export function ContentArea() {
   const pluginRoutes = useMemo(() => {
     return skillPages.map((page) => (
       <Route
-        key={page.path}
-        path={page.path}
+        key={page.id}
+        path={`/skill/${page.skillName}/${page.id}`}
         element={<SkillRoutePage />}
       />
     ));

@@ -1,7 +1,7 @@
 {
   "name": "axagent",
   "private": true,
-  "version": "1.3.7",
+  "version": "1.3.8",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -23,7 +23,9 @@
     "lint:fix": "dprint fmt",
     "check:types": "node scripts/type-consistency.mjs",
     "docs": "typedoc --out docs src",
-    "docs:watch": "typedoc --out docs --watch src"
+    "docs:watch": "typedoc --out docs --watch src",
+    "skill:create": "node scripts/create-axagent-skill.mjs",
+    "skill:validate": "node scripts/validate-skill.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",

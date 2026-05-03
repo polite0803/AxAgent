@@ -1,5 +1,5 @@
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
-import { executeSkillAction } from "@/lib/skillActionExecutor";
+import { executeActionChain } from "@/lib/skillActionExecutor";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import { Input, List, Modal, Tag, theme, Typography } from "antd";
@@ -236,7 +236,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         shortcut: cmd.shortcut,
         category: cmd.skillName,
         action: () => {
-          executeSkillAction(cmd.action, navigate);
+          executeActionChain(cmd.actions, navigate);
           onClose();
         },
       });

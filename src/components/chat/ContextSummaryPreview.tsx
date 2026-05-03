@@ -8,10 +8,13 @@ interface ContextSummaryPreviewProps {
   conversationId: string;
 }
 
+const EMPTY_ARRAY: never[] = [];
+
 const ContextSummaryPreview: React.FC<ContextSummaryPreviewProps> = ({
   conversationId,
 }) => {
-  const messages = useConversationStore((s) => s.activeConversationId === conversationId ? s.messages : []);
+  const isActive = useConversationStore((s) => s.activeConversationId === conversationId);
+  const messages = useConversationStore((s) => isActive ? s.messages : EMPTY_ARRAY);
   const mode = useConversationStore((s) => {
     const conv = s.conversations.find((c) => c.id === conversationId);
     return conv?.mode || null;

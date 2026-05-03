@@ -1,6 +1,8 @@
 import { useAgentStore, usePlanStore } from "@/stores";
 import type { PlanStep } from "@/types";
 import type { AgentPoolItem, ToolCallState } from "@/types/agent";
+
+const _EMPTY: never[] = [];
 import { SyncOutlined } from "@ant-design/icons";
 import { Progress, Tag, theme, Timeline, Typography } from "antd";
 import type { TimelineItemProps } from "antd";
@@ -157,7 +159,7 @@ export const ExecutionTimeline = React.memo(
     // Read from all three stores
     const plan = usePlanStore((s) => s.activePlans[conversationId]);
     const toolCalls = useAgentStore((s) => s.toolCalls);
-    const poolItems = useAgentStore((s) => s.agentPool[conversationId] ?? []);
+    const poolItems = useAgentStore((s) => s.agentPool[conversationId] ?? _EMPTY);
     const agentStatus = useAgentStore((s) => s.agentStatus[conversationId]);
 
     const events = useMemo(() => {

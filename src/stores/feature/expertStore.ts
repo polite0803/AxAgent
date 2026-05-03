@@ -192,6 +192,10 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   loadAgencyRoles: async () => {
     try {
       const rows = await invoke<AgencyExpertRow[]>("list_agency_experts");
+      if (!rows || !Array.isArray(rows)) {
+        set({ agencyLoaded: true });
+        return;
+      }
       const roles = rows.map(agencyRowToRole);
       set({ agencyRoles: roles, agencyLoaded: true });
     } catch (e) {

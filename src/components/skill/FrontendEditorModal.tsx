@@ -1,10 +1,14 @@
 import { invoke } from "@/lib/invoke";
 import { useSkillExtensionStore } from "@/stores";
 import type {
+  SkillChatCommand,
+  SkillCommandAction,
   SkillFrontendExtension,
   SkillNavItem,
   SkillPage,
   SkillSettingsSection,
+  SkillStatusBarItem,
+  SkillToolbarButton,
   SkillUICommand,
   SkillUIPanel,
 } from "@/types";
@@ -18,9 +22,9 @@ import {
   message,
   Modal,
   Popconfirm,
-  Radio,
   Select,
   Space,
+  Switch,
   Tabs,
   Typography,
 } from "antd";
@@ -31,6 +35,8 @@ import {
   FileCode,
   LayoutPanelTop,
   Lightbulb,
+  MessageSquare,
+  PanelBottom,
   Plus,
   Puzzle,
   Route,
@@ -39,6 +45,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActionChainEditor } from "./ActionChainEditor";
 
 const { Text } = Typography;
 
@@ -50,8 +57,16 @@ interface FrontendEditorModalProps {
   onSaved: () => void;
 }
 
-type EditorTab = "visual" | "json" | "preview";
-type SectionTab = "navigation" | "pages" | "commands" | "panels" | "settingsSections";
+type EditorTab = "visual" | "json" | "preview" | "manifest";
+type SectionTab =
+  | "navigation"
+  | "pages"
+  | "commands"
+  | "panels"
+  | "settingsSections"
+  | "toolbar"
+  | "chatCommand"
+  | "statusBar";
 
 const COMPONENT_TYPE_OPTIONS = [
   { value: "Html", label: "HTML" },
@@ -81,6 +96,9 @@ const EMPTY_EXTENSION: SkillFrontendExtension = {
   commands: [],
   panels: [],
   settingsSections: [],
+  toolbar: [],
+  chatCommand: [],
+  statusBar: [],
 };
 
 function formatJson(obj: unknown): string {
@@ -207,14 +225,12 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
     id: `nav-${Date.now()}`,
     label: "",
     icon: "lucide:Puzzle",
-    path: `/${skillName}`,
-    position: "Bottom",
-    order: 0,
+    pageId: "",
+    position: 1,
   });
 
   const newPage = (): SkillPage => ({
     id: `page-${Date.now()}`,
-    path: `/${skillName}`,
     title: "",
     componentType: "Html",
     componentConfig: { file: "index.html" },
@@ -224,7 +240,7 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
     id: `cmd-${Date.now()}`,
     label: "",
     category: skillName,
-    action: { type: "Navigate", path: `/${skillName}` },
+    actions: [],
   });
 
   const newPanel = (): SkillUIPanel => ({
@@ -240,9 +256,33 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
 
   const newSettingsSection = (): SkillSettingsSection => ({
     id: `settings-${Date.now()}`,
-    label: "",
+    title: "",
+    settingsGroup: "extensions",
     componentType: "Html",
     componentConfig: { file: "settings.html" },
+  });
+
+  const newToolbarButton = (): SkillToolbarButton => ({
+    id: `toolbar-${Date.now()}`,
+    icon: "lucide:Paperclip",
+    tooltip: "",
+    position: "left",
+    priority: 0,
+    onClick: [],
+  });
+
+  const newChatCommand = (): SkillChatCommand => ({
+    name: "",
+    description: "",
+    mode: "agentic",
+    promptTemplate: "",
+  });
+
+  const newStatusBarItem = (): SkillStatusBarItem => ({
+    id: `status-${Date.now()}`,
+    alignment: "left",
+    priority: 0,
+    text: "",
   });
 
   // ─── 计数标签 ───
@@ -254,6 +294,9 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
     { key: "commands", icon: <Zap size={14} />, label: `命令${countBadge(data.commands.length)}` },
     { key: "panels", icon: <LayoutPanelTop size={14} />, label: `面板${countBadge(data.panels.length)}` },
     { key: "settingsSections", icon: <Settings size={14} />, label: `设置${countBadge(data.settingsSections.length)}` },
+    { key: "toolbar", icon: <Puzzle size={14} />, label: `工具栏${countBadge(data.toolbar.length)}` },
+    { key: "chatCommand", icon: <MessageSquare size={14} />, label: `聊天命令${countBadge(data.chatCommand.length)}` },
+    { key: "statusBar", icon: <PanelBottom size={14} />, label: `状态栏${countBadge(data.statusBar.length)}` },
   ], [data]);
 
   const visualEditor = (
@@ -299,6 +342,9 @@ export function FrontendEditorModal({ open, skillName, currentFrontend, onClose,
                 commands: newCommand,
                 panels: newPanel,
                 settingsSections: newSettingsSection,
+                toolbar: newToolbarButton,
+                chatCommand: newChatCommand,
+                statusBar: newStatusBarItem,
               };
               addItem(sectionTab, factories[sectionTab] as () => never);
             }}
@@ -472,7 +518,13 @@ function getItemLabel(section: SectionTab, item: Record<string, unknown>): strin
     case "panels":
       return (item.title as string) || id;
     case "settingsSections":
-      return (item.label as string) || id;
+      return (item.title as string) || id;
+    case "toolbar":
+      return `${item.tooltip || id}`;
+    case "chatCommand":
+      return `/${item.name || id}`;
+    case "statusBar":
+      return (item.text as string) || id;
   }
 }
 
@@ -500,19 +552,13 @@ function renderItemEditor(
               placeholder="lucide:Puzzle"
             />
           </Form.Item>
-          <Form.Item label="路径">
-            <Input value={item.path as string} onChange={(e) => onChange(field("path", e.target.value))} />
-          </Form.Item>
-          <Form.Item label="位置">
-            <Radio.Group value={item.position as string} onChange={(e) => onChange(field("position", e.target.value))}>
-              <Radio.Button value="Top">顶部</Radio.Button>
-              <Radio.Button value="Bottom">底部</Radio.Button>
-            </Radio.Group>
+          <Form.Item label="页面 ID">
+            <Input value={item.pageId as string} onChange={(e) => onChange(field("pageId", e.target.value))} />
           </Form.Item>
           <Form.Item label="排序">
             <InputNumber
-              value={item.order as number}
-              onChange={(v) => onChange(field("order", v ?? 0))}
+              value={item.position as number}
+              onChange={(v) => onChange(field("position", v ?? 0))}
               style={{ width: 100 }}
             />
           </Form.Item>
@@ -524,9 +570,6 @@ function renderItemEditor(
         <Form layout="vertical" size="small">
           <Form.Item label="ID">
             <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
-          </Form.Item>
-          <Form.Item label="路径">
-            <Input value={item.path as string} onChange={(e) => onChange(field("path", e.target.value))} />
           </Form.Item>
           <Form.Item label="标题">
             <Input value={item.title as string} onChange={(e) => onChange(field("title", e.target.value))} />
@@ -567,33 +610,13 @@ function renderItemEditor(
               placeholder="lucide:Play"
             />
           </Form.Item>
-          <Form.Item label="动作类型">
-            <Select
-              value={(item.action as Record<string, unknown>)?.type as string || "Navigate"}
-              onChange={(v) => {
-                const defaults: Record<string, Record<string, unknown>> = {
-                  Navigate: { type: "Navigate", path: "/" },
-                  InvokeBackend: { type: "InvokeBackend", command: "", args: {} },
-                  EmitEvent: { type: "EmitEvent", event: "", payload: {} },
-                  Custom: { type: "Custom", handlerId: "", data: {} },
-                };
-                onChange(field("action", defaults[v]));
-              }}
-              options={[
-                { value: "Navigate", label: "导航" },
-                { value: "InvokeBackend", label: "调用后端" },
-                { value: "EmitEvent", label: "发送事件" },
-                { value: "Custom", label: "自定义" },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item label="动作参数 (JSON)">
+          <Form.Item label="Actions (JSON)">
             <Input.TextArea
-              rows={3}
-              value={JSON.stringify(item.action, null, 2)}
+              rows={4}
+              value={JSON.stringify(item.actions, null, 2)}
               onChange={(e) => {
                 try {
-                  onChange(field("action", JSON.parse(e.target.value)));
+                  onChange(field("actions", JSON.parse(e.target.value)));
                 } catch { /* ignore */ }
               }}
               style={{ fontFamily: "monospace", fontSize: 11 }}
@@ -647,14 +670,27 @@ function renderItemEditor(
           <Form.Item label="ID">
             <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
           </Form.Item>
-          <Form.Item label="标签">
-            <Input value={item.label as string} onChange={(e) => onChange(field("label", e.target.value))} />
+          <Form.Item label="标题">
+            <Input value={item.title as string} onChange={(e) => onChange(field("title", e.target.value))} />
           </Form.Item>
           <Form.Item label="图标">
             <Input
               value={item.icon as string || ""}
               onChange={(e) => onChange(field("icon", e.target.value))}
               placeholder="lucide:Settings"
+            />
+          </Form.Item>
+          <Form.Item label="设置组">
+            <Select
+              value={item.settingsGroup as string || "extensions"}
+              onChange={(v) => onChange(field("settingsGroup", v))}
+              options={[
+                { value: "extensions", label: "扩展" },
+                { value: "appearance", label: "外观" },
+                { value: "network", label: "网络" },
+                { value: "data", label: "数据" },
+                { value: "system", label: "系统" },
+              ]}
             />
           </Form.Item>
           <Form.Item label="组件类型">
@@ -669,6 +705,138 @@ function renderItemEditor(
               value={(item.componentConfig as Record<string, unknown>)?.file as string || ""}
               onChange={(e) => onChange(field("componentConfig", { file: e.target.value }))}
             />
+          </Form.Item>
+        </Form>
+      );
+
+    case "toolbar":
+      return (
+        <Form layout="vertical" size="small">
+          <Form.Item label="ID">
+            <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="图标">
+            <Input
+              value={item.icon as string}
+              onChange={(e) => onChange(field("icon", e.target.value))}
+              placeholder="lucide:Paperclip"
+            />
+          </Form.Item>
+          <Form.Item label="提示文本">
+            <Input value={item.tooltip as string} onChange={(e) => onChange(field("tooltip", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="位置">
+            <Select
+              value={item.position as string}
+              onChange={(v) => onChange(field("position", v))}
+              options={[{ value: "left", label: "左侧" }, { value: "right", label: "右侧" }]}
+              style={{ width: 120 }}
+            />
+          </Form.Item>
+          <Form.Item label="优先级">
+            <InputNumber
+              value={item.priority as number}
+              onChange={(v) => onChange(field("priority", v ?? 0))}
+              style={{ width: 80 }}
+            />
+          </Form.Item>
+          <Form.Item label="点击 Actions">
+            <ActionChainEditor
+              actions={(item.onClick as SkillCommandAction[]) || []}
+              availableHandlers={[]}
+              onChange={(actions) => onChange(field("onClick", actions))}
+            />
+          </Form.Item>
+        </Form>
+      );
+
+    case "chatCommand":
+      return (
+        <Form layout="vertical" size="small">
+          <Form.Item label="命令名 (/xxx)">
+            <Input
+              value={item.name as string}
+              onChange={(e) => onChange(field("name", e.target.value))}
+              placeholder="review"
+            />
+          </Form.Item>
+          <Form.Item label="描述">
+            <Input
+              value={item.description as string}
+              onChange={(e) => onChange(field("description", e.target.value))}
+            />
+          </Form.Item>
+          <Form.Item label="图标">
+            <Input
+              value={item.icon as string || ""}
+              onChange={(e) => onChange(field("icon", e.target.value))}
+              placeholder="lucide:Search"
+            />
+          </Form.Item>
+          <Form.Item label="执行模式">
+            <Select
+              value={item.mode as string}
+              onChange={(v) => onChange(field("mode", v))}
+              options={[{ value: "declarative", label: "声明式" }, { value: "agentic", label: "Agent 智能" }]}
+              style={{ width: 140 }}
+            />
+          </Form.Item>
+          {(item.mode as string) === "declarative" && (
+            <Form.Item label="Actions">
+              <ActionChainEditor
+                actions={(item.actions as SkillCommandAction[]) || []}
+                availableHandlers={[]}
+                onChange={(actions) => onChange(field("actions", actions))}
+              />
+            </Form.Item>
+          )}
+          {(item.mode as string) === "agentic" && (
+            <>
+              <Form.Item label="Prompt 模板">
+                <Input.TextArea
+                  size="small"
+                  rows={3}
+                  value={item.promptTemplate as string || ""}
+                  onChange={(e) => onChange(field("promptTemplate", e.target.value))}
+                  placeholder="可用变量: {{input}} {{conversation}} {{files}}"
+                />
+              </Form.Item>
+              <Form.Item label="附加上下文">
+                <span style={{ fontSize: 12 }}>
+                  <Switch size="small" /> 包含对话
+                </span>
+              </Form.Item>
+            </>
+          )}
+        </Form>
+      );
+
+    case "statusBar":
+      return (
+        <Form layout="vertical" size="small">
+          <Form.Item label="ID">
+            <Input value={item.id as string} onChange={(e) => onChange(field("id", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="对齐">
+            <Select
+              value={item.alignment as string}
+              onChange={(v) => onChange(field("alignment", v))}
+              options={[{ value: "left", label: "左侧" }, { value: "right", label: "右侧" }]}
+              style={{ width: 120 }}
+            />
+          </Form.Item>
+          <Form.Item label="优先级">
+            <InputNumber
+              value={item.priority as number}
+              onChange={(v) => onChange(field("priority", v ?? 0))}
+              style={{ width: 80 }}
+            />
+          </Form.Item>
+          <Form.Item label="图标">
+            <Input value={item.icon as string || ""} onChange={(e) => onChange(field("icon", e.target.value))} />
+          </Form.Item>
+          <Form.Item label="文本">
+            <Input value={item.text as string || ""} onChange={(e) => onChange(field("text", e.target.value))} />
           </Form.Item>
         </Form>
       );

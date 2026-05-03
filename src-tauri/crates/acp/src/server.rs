@@ -14,8 +14,7 @@ use axum::{
 use std::sync::Arc;
 
 use crate::protocol::{
-    CreateSessionParams, CreateSessionResult, RegisterHookParams, SendPromptParams,
-    SendPromptResult, StatusResult,
+    CreateSessionParams, RegisterHookParams, SendPromptParams, SendPromptResult,
 };
 use crate::session::AcpSessionManager;
 use crate::types::{AcpNotification, AcpRequest, AcpResponse};
@@ -39,6 +38,12 @@ pub trait PromptHandler: Send + Sync {
         work_dir: &str,
         max_turns: Option<u32>,
     ) -> SendPromptResult;
+}
+
+impl Default for AcpServerState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AcpServerState {
@@ -186,7 +191,7 @@ async fn send_prompt(
                 .update_status(&session_id, crate::types::AcpSessionStatus::Idle)
                 .await;
 
-            (StatusCode::OK, Json(result))
+            (StatusCode::OK, Json(result)).into_response()
         },
         None => {
             let error = AcpResponse::error(
@@ -194,7 +199,7 @@ async fn send_prompt(
                 crate::protocol::error_codes::SESSION_NOT_FOUND,
                 "会话不存在",
             );
-            (StatusCode::NOT_FOUND, Json(error))
+            (StatusCode::NOT_FOUND, Json(error)).into_response()
         },
     }
 }
@@ -273,7 +278,8 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AcpServerState>) {
             tokio::select! {
                 // 接收要发送的消息
                 Some(msg) = rx.recv() => {
-                    if socket.send(Message::Text(msg.into())).await.is_err() {
+                    let text = axum::extract::ws::Utf8Bytes::from(msg);
+                    if socket.send(Message::Text(text)).await.is_err() {
                         break;
                     }
                 }

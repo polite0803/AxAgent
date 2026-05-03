@@ -726,6 +726,28 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       }
       return undefined as T;
     }
+    case "agent_get_session": {
+      // Browser mock: return null session (not yet initialized)
+      return null as T;
+    }
+    case "agent_update_session": {
+      // Browser mock: return no cwd (will trigger workspace creation)
+      return { cwd: null } as T;
+    }
+    case "agent_ensure_workspace": {
+      const workspacePath = "/mock/workspace/" + Date.now();
+      return { workspacePath } as T;
+    }
+    case "list_agency_experts": {
+      return [] as T;
+    }
+    case "agent_query": {
+      // Browser mock: return immediately without error
+      return undefined as T;
+    }
+    case "plan_list": {
+      return [] as T;
+    }
     case "send_message": {
       const { conversationId, content, attachments } = args as any;
       const userMsgId = genId();

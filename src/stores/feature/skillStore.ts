@@ -74,6 +74,13 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     });
     try {
       await invoke("toggle_skill", { name, enabled });
+      // 生命周期钩子
+      const { triggerOnEnable, triggerOnDisable } = await import("@/lib/skillLifecycle");
+      if (enabled) {
+        triggerOnEnable(name).catch((e) => console.error("onEnable failed:", e));
+      } else {
+        triggerOnDisable(name).catch((e) => console.error("onDisable failed:", e));
+      }
     } catch (e) {
       console.error("Failed to toggle skill:", e);
       set({
@@ -92,10 +99,16 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     set({
       marketplaceSkills: get().marketplaceSkills.map(s => s.repo === source ? { ...s, installed: true } : s),
     });
+    // 生命周期钩子
+    const { triggerOnInstall } = await import("@/lib/skillLifecycle");
+    triggerOnInstall(name).catch((e) => console.error("onInstall failed:", e));
     return name;
   },
 
   uninstallSkill: async (name: string) => {
+    // 卸载前先触发钩子
+    const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
+    triggerOnUninstall(name).catch((e) => console.error("onUninstall failed:", e));
     await invoke("uninstall_skill", { name });
     set({ skills: get().skills.filter(s => s.name !== name) });
   },
