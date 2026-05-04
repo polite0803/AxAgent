@@ -26,7 +26,7 @@ interface SessionSearchPanelProps {
   onSelectResult?: (result: SearchResult) => void;
 }
 
-export default function SessionSearchPanel({
+export function SessionSearchPanel({
   visible,
   onClose,
   onSelectResult,

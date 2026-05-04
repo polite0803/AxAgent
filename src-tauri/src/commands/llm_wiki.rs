@@ -824,7 +824,6 @@ pub async fn wiki_get_capacity_info(
 }
 
 #[tauri::command]
-#[allow(dead_code)]
 pub async fn llm_wiki_get_purpose(
     state: State<'_, AppState>,
     wiki_id: String,
@@ -833,7 +832,6 @@ pub async fn llm_wiki_get_purpose(
 }
 
 #[tauri::command]
-#[allow(dead_code)]
 pub async fn llm_wiki_update_purpose(
     state: State<'_, AppState>,
     wiki_id: String,

@@ -15,7 +15,6 @@ pub mod recorder;
 pub mod registry;
 pub mod stats;
 pub mod streaming;
-pub mod tool_orchestration;
 pub mod tools;
 
 pub use builtin_tools::{

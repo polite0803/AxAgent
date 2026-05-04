@@ -185,6 +185,9 @@ pub fn run() {
             commands::skills::get_skill_proposals,
             commands::skills::create_skill_from_proposal,
             commands::skills::skill_set_frontend,
+            commands::skills::get_skill_versions,
+            commands::skills::rollback_skill,
+            commands::skills::get_marketplace_categories,
             commands::skills::skill_analyze_frontend,
             commands::skills::skill_read_asset,
             commands::skills_hub::skills_hub_search,
@@ -625,6 +628,8 @@ pub fn run() {
             commands::llm_wiki::wiki_sync_process_pending,
             commands::llm_wiki::wiki_check_capacity,
             commands::llm_wiki::wiki_get_capacity_info,
+            commands::llm_wiki::llm_wiki_get_purpose,
+            commands::llm_wiki::llm_wiki_update_purpose,
             // Wiki notes commands
             commands::wiki::wiki_notes_list,
             commands::wiki::wiki_notes_get,

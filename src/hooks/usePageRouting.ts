@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
   skills: "/skills",
-  prompts: "/prompts",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",

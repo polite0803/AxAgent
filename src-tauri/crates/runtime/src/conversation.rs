@@ -127,6 +127,20 @@ pub trait ApiClient {
 /// StaticToolExecutor 内部已使用 Mutex 实现内部可变性。
 pub trait ToolExecutor {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError>;
+
+    /// 批量执行工具调用。默认实现串行逐个执行，子类型可覆盖为并发编排。
+    fn execute_batch(
+        &mut self,
+        requests: &[(String, String, String)], // (tool_use_id, tool_name, input)
+    ) -> Vec<(String, String, Result<String, ToolError>)> {
+        requests
+            .iter()
+            .map(|(id, name, input)| {
+                let result = self.execute(name, input);
+                (id.clone(), name.clone(), result)
+            })
+            .collect()
+    }
 }
 
 /// Error returned when a tool invocation fails locally.
@@ -591,76 +605,38 @@ where
                 break;
             }
 
-            // 工具并发执行：收集并发安全工具，并行调用 tool_executor.execute()
-            let concurrency_enabled = crate::feature_flags::global_feature_flags()
-                .tool_concurrency()
-                && pending_tool_uses.len() > 1;
+            // 批量执行所有工具调用（通过 ToolExecutor::execute_batch，支持并发编排）
+            let batch_requests: Vec<(String, String, String)> = pending_tool_uses
+                .iter()
+                .map(|(id, name, input)| (id.clone(), name.clone(), input.clone()))
+                .collect();
 
-            // 并发安全工具 ID 集合（并行执行后跳过后续串行处理）
-            let mut concurrent_done: std::collections::HashSet<String> =
+            let executor = self.tool_executor.clone();
+            let batch_results = {
+                let mut guard = executor.lock().unwrap();
+                guard.execute_batch(&batch_requests)
+            };
+
+            let mut batch_done: std::collections::HashSet<String> =
                 std::collections::HashSet::new();
 
-            if concurrency_enabled {
-                let concurrent_tools: Vec<_> = pending_tool_uses
-                    .iter()
-                    .filter(|(_, name, _)| {
-                        matches!(
-                            name.as_str(),
-                            "FileRead"
-                                | "Glob"
-                                | "Grep"
-                                | "WebFetch"
-                                | "WebSearch"
-                                | "CtxInspect"
-                                | "ListPeers"
-                        )
-                    })
-                    .collect();
-
-                if concurrent_tools.len() > 1 {
-                    let executor = self.tool_executor.clone();
-                    // 使用 thread::scope 避免 'static 生命周期要求
-                    std::thread::scope(|s| {
-                        let mut handles = Vec::new();
-                        for (tid, tname, tinput) in &concurrent_tools {
-                            let exec = executor.clone();
-                            let name = (*tname).clone();
-                            let input = (*tinput).clone();
-                            let id = (*tid).clone();
-                            concurrent_done.insert(id.clone());
-                            handles.push(s.spawn(move || {
-                                let mut guard = exec.lock().unwrap();
-                                let result = guard.execute(&name, &input);
-                                (id, name, result)
-                            }));
-                        }
-                        for h in handles {
-                            if let Ok((tid, tname, result)) = h.join() {
-                                let output = result
-                                    .as_ref()
-                                    .map_or_else(|e| e.to_string(), |o| o.clone());
-                                let is_err = result.is_err();
-                                let post_hook = self.run_post_tool_use_hook(
-                                    &tname,
-                                    "",
-                                    &output,
-                                    is_err,
-                                    Some(&tid),
-                                );
-                                let msg =
-                                    ConversationMessage::tool_result(&tid, &tname, &output, is_err);
-                                self.session.push_message(msg.clone()).ok();
-                                tool_results.push(msg);
-                                let _ = post_hook;
-                            }
-                        }
-                    });
-                }
+            for (tid, tname, result) in batch_results {
+                batch_done.insert(tid.clone());
+                let output = result
+                    .as_ref()
+                    .map_or_else(|e| e.to_string(), |o| o.clone());
+                let is_err = result.is_err();
+                let post_hook =
+                    self.run_post_tool_use_hook(&tname, "", &output, is_err, Some(&tid));
+                let msg = ConversationMessage::tool_result(&tid, &tname, &output, is_err);
+                self.session.push_message(msg.clone()).ok();
+                tool_results.push(msg);
+                let _ = post_hook;
             }
 
             for (tool_use_id, tool_name, input) in pending_tool_uses {
-                // 跳过已在并行批次中执行的工具
-                if concurrent_done.contains(&tool_use_id) {
+                // 跳过已在批量执行中处理的工具
+                if batch_done.contains(&tool_use_id) {
                     continue;
                 }
                 // Detect repeated identical tool calls to prevent infinite loops.

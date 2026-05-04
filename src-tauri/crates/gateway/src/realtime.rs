@@ -29,12 +29,9 @@ enum RealtimeClientMessage {
 
 #[derive(Serialize)]
 #[serde(tag = "type")]
-#[allow(dead_code)]
 enum RealtimeServerMessage {
     #[serde(rename = "session.created")]
     SessionCreated { session_id: String },
-    #[serde(rename = "response.audio.delta")]
-    AudioDelta { delta: String },
     #[serde(rename = "response.text.delta")]
     TextDelta { delta: String },
     #[serde(rename = "response.done")]

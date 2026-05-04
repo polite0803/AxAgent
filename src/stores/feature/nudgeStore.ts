@@ -1,7 +1,8 @@
 import { invoke } from "@/lib/invoke";
 import type { FeedbackSource, FeedbackType, LearningInsight, Nudge, NudgeStats, PeriodicNudge } from "@/types/nudge";
-import type { ContextPrediction, ProactiveSuggestion } from "@/types/proactive";
+import type { ProactiveSuggestion } from "@/types/proactive";
 import { create } from "zustand";
+import { useProactiveStore } from "./proactiveStore";
 
 interface NudgeStore {
   // Pending nudges for the current session
@@ -12,10 +13,6 @@ interface NudgeStore {
   stats: NudgeStats | null;
   // Learning insights (P3)
   insights: LearningInsight[];
-  // Proactive suggestions
-  proactiveSuggestions: ProactiveSuggestion[];
-  proactivePredictions: ContextPrediction[];
-  proactiveEnabled: boolean;
   // Loading state
   isLoading: boolean;
 
@@ -34,13 +31,6 @@ interface NudgeStore {
   memoryFlush: (content: string, target?: string, category?: string) => Promise<void>;
   recordFeedback: (feedbackType: FeedbackType, source: FeedbackSource, content: string) => Promise<void>;
   clearSession: () => void;
-  // Proactive capability actions
-  fetchProactiveSuggestions: () => Promise<void>;
-  fetchProactivePredictions: (context: Record<string, unknown>) => Promise<void>;
-  dismissProactiveSuggestion: (id: string) => Promise<void>;
-  acceptProactiveSuggestion: (id: string) => Promise<void>;
-  setProactiveEnabled: (enabled: boolean) => Promise<void>;
-  convertSuggestionToNudge: (suggestion: ProactiveSuggestion) => Promise<void>;
 }
 
 export const useNudgeStore = create<NudgeStore>((set, get) => ({
@@ -48,9 +38,6 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
   closedLoopNudges: [],
   stats: null,
   insights: [],
-  proactiveSuggestions: [],
-  proactivePredictions: [],
-  proactiveEnabled: true,
   isLoading: false,
 
   fetchPendingNudges: async (sessionId: string) => {
@@ -176,60 +163,10 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
       closedLoopNudges: [],
       stats: null,
       insights: [],
-      proactiveSuggestions: [],
-      proactivePredictions: [],
     });
   },
 
-  fetchProactiveSuggestions: async () => {
-    try {
-      const suggestions = await invoke<ProactiveSuggestion[]>("proactive_list_suggestions");
-      set({ proactiveSuggestions: suggestions });
-    } catch (e) {
-      console.warn("[nudgeStore] Failed to fetch proactive suggestions:", e);
-    }
-  },
-
-  fetchProactivePredictions: async (context: Record<string, unknown>) => {
-    try {
-      const result = await invoke<{ predictions: ContextPrediction[] }>("proactive_predict", { context });
-      set({ proactivePredictions: result.predictions });
-    } catch (e) {
-      console.warn("[nudgeStore] Failed to fetch proactive predictions:", e);
-    }
-  },
-
-  dismissProactiveSuggestion: async (id: string) => {
-    try {
-      await invoke("proactive_dismiss_suggestion", { id });
-      set((state) => ({
-        proactiveSuggestions: state.proactiveSuggestions.filter((s) => s.id !== id),
-      }));
-    } catch (e) {
-      console.warn("[nudgeStore] Failed to dismiss proactive suggestion:", e);
-    }
-  },
-
-  acceptProactiveSuggestion: async (id: string) => {
-    try {
-      await invoke("proactive_accept_suggestion", { id });
-      set((state) => ({
-        proactiveSuggestions: state.proactiveSuggestions.map((s) => s.id === id ? { ...s, accepted: true } : s),
-      }));
-    } catch (e) {
-      console.warn("[nudgeStore] Failed to accept proactive suggestion:", e);
-    }
-  },
-
-  setProactiveEnabled: async (enabled: boolean) => {
-    try {
-      await invoke("proactive_set_enabled", { enabled });
-      set({ proactiveEnabled: enabled });
-    } catch (e) {
-      console.warn("[nudgeStore] Failed to set proactive enabled:", e);
-    }
-  },
-
+  // 将 proactive 建议转化为 nudge（nudge ↔ proactive 桥接）
   convertSuggestionToNudge: async (suggestion: ProactiveSuggestion) => {
     try {
       await invoke("proactive_convert_to_nudge", {
@@ -238,9 +175,8 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
         description: suggestion.description,
         priority: suggestion.priority,
       });
-      set((state) => ({
-        proactiveSuggestions: state.proactiveSuggestions.filter((s) => s.id !== suggestion.id),
-      }));
+      // 转化成功后从 proactiveStore 中移除该建议
+      useProactiveStore.getState().dismissSuggestion(suggestion.id);
     } catch (e) {
       console.warn("[nudgeStore] Failed to convert suggestion to nudge:", e);
     }

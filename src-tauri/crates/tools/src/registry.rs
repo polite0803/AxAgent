@@ -7,6 +7,7 @@ use crate::builtin_tools;
 use crate::hooks::executors::execute_hook;
 use crate::hooks::registry::HookRegistry;
 use crate::hooks::{HookAction, HookConfig, HookEventType};
+use crate::orchestration::{Orchestrator, ToolCallRequest};
 use crate::permissions::{PermissionMode, PermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
@@ -21,6 +22,7 @@ use std::time::{Duration, Instant};
 /// 统一工具注册表
 ///
 /// 支持按名称、别名查找工具，按类别筛选，启用/禁用管理。
+#[derive(Clone)]
 pub struct ToolRegistry {
     /// 工具名 -> 工具实例
     tools: HashMap<String, Arc<dyn Tool>>,
@@ -817,6 +819,54 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
                 }
             })
         })
+    }
+
+    fn execute_batch(
+        &mut self,
+        requests: &[(String, String, String)],
+    ) -> Vec<(String, String, Result<String, RuntimeToolError>)> {
+        use std::sync::Arc;
+
+        let handle = tokio::runtime::Handle::current();
+        let tool_requests: Vec<ToolCallRequest> = requests
+            .iter()
+            .map(|(id, name, input)| ToolCallRequest {
+                id: id.clone(),
+                name: name.clone(),
+                input: input.clone(),
+            })
+            .collect();
+
+        let ctx = crate::ToolContext {
+            working_dir: std::env::current_dir()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default(),
+            conversation_id: None,
+            message_id: None,
+            allow_write: true,
+            allow_execute: true,
+            allow_network: true,
+            abort_signal: None,
+            extra: std::collections::HashMap::new(),
+        };
+
+        let orchestrator = Orchestrator::default();
+        let registry = Arc::new(self.tools.clone());
+
+        let results: Vec<_> = tokio::task::block_in_place(|| {
+            handle.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
+        });
+
+        results
+            .into_iter()
+            .map(|r| {
+                let output = match r.result {
+                    Ok(tr) => Ok(tr.content),
+                    Err(e) => Err(RuntimeToolError::new(e.to_string())),
+                };
+                (r.id, r.name, output)
+            })
+            .collect()
     }
 }
 

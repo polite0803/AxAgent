@@ -607,7 +607,6 @@ pub struct SkillVersion {
     pub commit: String,
 }
 
-#[allow(dead_code)]
 #[tauri::command]
 pub async fn get_skill_versions(skill_name: String) -> Result<Vec<SkillVersion>, String> {
     let skill_dir = skills_dir().join(&skill_name);
@@ -639,7 +638,6 @@ pub async fn get_skill_versions(skill_name: String) -> Result<Vec<SkillVersion>,
     Ok(versions)
 }
 
-#[allow(dead_code)]
 #[tauri::command]
 pub async fn rollback_skill(skill_name: String, target_version: String) -> Result<String, String> {
     let skill_dir = skills_dir().join(&skill_name);
@@ -1177,7 +1175,6 @@ async fn search_skillhub_marketplace(
     Ok(results)
 }
 
-#[allow(dead_code)]
 #[tauri::command]
 pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, String> {
     let url = "https://skillshub.wtf/api/v1/categories";

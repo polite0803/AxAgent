@@ -4,14 +4,9 @@ export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
 
 export { useCompressStore } from "./domain/compressStore";
-export { useConversationListStore } from "./domain/conversationListStore";
 export { useConversationStore } from "./domain/conversationStore";
-export { useMessageStore } from "./domain/messageStore";
-export { useMultiModelStore } from "./domain/multiModelStore";
 export { usePreferenceStore } from "./domain/preferenceStore";
 export { useStreamStore } from "./domain/streamStore";
-export { useWorkspaceStore } from "./domain/workspaceStore";
-
 export { useEvaluatorStore } from "./devtools/evaluatorStore";
 export { useFineTuneStore } from "./devtools/fineTuneStore";
 export { useRecommendationStore } from "./devtools/recommendationStore";
@@ -39,9 +34,6 @@ export { setupPlanEventListeners, usePlanStore } from "./feature/planStore";
 export { usePlatformStore } from "./feature/platformStore";
 export { usePromptTemplateStore } from "./feature/promptTemplateStore";
 export { useProviderStore } from "./feature/providerStore";
-export { useRouterStore } from "./feature/routerStore";
-export type { ModelTier, RouteDecision } from "./feature/routerStore";
-export { useScreenVisionStore } from "./feature/screenVisionStore";
 export { useSearchStore } from "./feature/searchStore";
 export { useSettingsStore } from "./feature/settingsStore";
 export type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "./feature/settingsStore";

@@ -1,7 +1,8 @@
-//! 工具编排器 - 并发/串行执行工具调用
+//! 工具编排器 - 并发/串行执行工具调用，包含批次分区和重试逻辑
 
 use crate::registry::ToolRegistry;
 use crate::{ToolContext, ToolError, ToolResult};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 
@@ -17,6 +18,42 @@ pub struct ToolCallResponse {
     pub id: String,
     pub name: String,
     pub result: Result<ToolResult, ToolError>,
+}
+
+/// 一个工具执行批次
+#[derive(Debug)]
+pub struct ToolBatch {
+    pub calls: Vec<ToolBatchItem>,
+    /// 是否支持并发执行
+    pub is_concurrent: bool,
+}
+
+/// 单个工具调用项
+#[derive(Debug)]
+pub struct ToolBatchItem {
+    pub tool_name: String,
+    pub tool_input: serde_json::Value,
+    pub tool_use_id: String,
+}
+
+impl ToolBatchItem {
+    pub fn new(tool_name: String, tool_input: serde_json::Value, tool_use_id: String) -> Self {
+        Self {
+            tool_name,
+            tool_input,
+            tool_use_id,
+        }
+    }
+}
+
+impl Clone for ToolBatchItem {
+    fn clone(&self) -> Self {
+        Self {
+            tool_name: self.tool_name.clone(),
+            tool_input: self.tool_input.clone(),
+            tool_use_id: self.tool_use_id.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -94,6 +131,50 @@ impl Orchestrator {
         }
 
         (concurrent, serial)
+    }
+
+    /// 将工具调用列表分区为有序批次，保留原始调用顺序。
+    /// 连续的并发安全工具归入同一批次，非安全工具各自独占批次。
+    pub fn partition_ordered(
+        &self,
+        tool_calls: &[ToolBatchItem],
+        concurrency_map: &HashMap<String, bool>,
+    ) -> Vec<ToolBatch> {
+        let mut batches = Vec::new();
+        let mut current_batch = Vec::new();
+        let mut current_is_concurrent = None;
+
+        for call in tool_calls {
+            let is_safe = concurrency_map
+                .get(&call.tool_name)
+                .copied()
+                .unwrap_or(false);
+
+            match current_is_concurrent {
+                Some(prev) if prev == is_safe => {
+                    current_batch.push(call.clone());
+                }
+                _ => {
+                    if !current_batch.is_empty() {
+                        batches.push(ToolBatch {
+                            calls: std::mem::take(&mut current_batch),
+                            is_concurrent: current_is_concurrent.unwrap_or(false),
+                        });
+                    }
+                    current_batch.push(call.clone());
+                    current_is_concurrent = Some(is_safe);
+                }
+            }
+        }
+
+        if !current_batch.is_empty() {
+            batches.push(ToolBatch {
+                calls: current_batch,
+                is_concurrent: current_is_concurrent.unwrap_or(false),
+            });
+        }
+
+        batches
     }
 
     async fn run_concurrently(

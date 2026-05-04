@@ -12,6 +12,13 @@ export function useKeyboardShortcuts() {
 
   const handleKeyDown = useCallback(
     async (e: KeyboardEvent) => {
+      // 在输入框或工作流画布中不触发全局快捷键，避免与 useWorkflowShortcuts 冲突
+      const isInputField = e.target instanceof HTMLInputElement
+        || e.target instanceof HTMLTextAreaElement
+        || e.target instanceof HTMLSelectElement;
+      const isWorkflowCanvas = (e.target as HTMLElement)?.closest?.(".react-flow") != null;
+      if (isInputField || isWorkflowCanvas) { return; }
+
       // ── Tab navigation shortcuts (Ctrl+Tab / Ctrl+Shift+Tab) ──
       const isMod = e.metaKey || e.ctrlKey;
       if (isMod && e.key === "Tab") {

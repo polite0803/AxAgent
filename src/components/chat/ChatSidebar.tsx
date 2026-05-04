@@ -1,3 +1,4 @@
+import { SessionSearchPanel } from "@/components/search/SessionSearchPanel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { getConvIcon } from "@/lib/convIcon";
@@ -282,6 +283,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       .catch(() => setFts5ResultIds(null));
   }, [debouncedSearch]);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [advancedSearchVisible, setAdvancedSearchVisible] = useState(false);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
@@ -1451,6 +1453,16 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
+                <Tooltip title={t("chat.searchPastSessions") ?? "搜索历史会话"}>
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={() => setAdvancedSearchVisible(true)}
+                    style={{ color: token.colorTextSecondary, fontSize: 12 }}
+                  >
+                    {t("chat.searchPastSessions")}
+                  </Button>
+                </Tooltip>
                 <Tooltip title={t("chat.archived")}>
                   <Button
                     type="text"
@@ -1839,6 +1851,10 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         initialDefaultTopP={editingCategory?.default_top_p}
         initialDefaultFrequencyPenalty={editingCategory?.default_frequency_penalty}
         title={editingCategory ? t("chat.editCategory") : t("chat.createCategory")}
+      />
+      <SessionSearchPanel
+        visible={advancedSearchVisible}
+        onClose={() => setAdvancedSearchVisible(false)}
       />
     </div>
   );

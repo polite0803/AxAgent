@@ -19,8 +19,6 @@ mod auto_memory;
 mod batch;
 mod behavior_learner;
 mod behavior_tracker;
-#[allow(dead_code)]
-mod chat_memory;
 mod compactor;
 mod context;
 mod context_predictor;
@@ -39,8 +37,6 @@ mod platform_integration;
 mod preference_learner;
 mod proactive_assistant;
 mod reminder_manager;
-#[allow(dead_code)]
-mod retrieval;
 mod rl;
 mod rl_trainer;
 mod scheduled_task;
