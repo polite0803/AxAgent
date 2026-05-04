@@ -1798,7 +1798,9 @@
       "reset": "重置",
       "resetAll": "重置所有",
       "saved": "已保存"
-    }
+    },
+    "bocha": "Bocha",
+    "zhipu": "智谱"
   },
   "backup": {
     "title": "备份中心",
@@ -1986,7 +1988,23 @@
     "waitingForApproval": "等待审批",
     "createSuccess": "创建成功",
     "deleteSuccess": "删除成功",
-    "retry": "重试"
+    "retry": "重试",
+    "success": "成功",
+    "config": "配置",
+    "quality": "质量",
+    "entropyCoeff": "熵系数",
+    "gamma": "γ (折扣率)",
+    "lambda": "λ (TD)",
+    "rewardScale": "奖励缩放",
+    "rlEngine": "RL 引擎",
+    "rewardWeights": {
+      "task_completion": "任务完成",
+      "reasoning_quality": "推理质量",
+      "tool_efficiency": "工具效率",
+      "pattern_match": "模式匹配",
+      "error_recovery": "错误恢复",
+      "user_feedback": "用户反馈"
+    }
   },
   "plan": {
     "defaultTitle": "执行计划",
@@ -2339,7 +2357,18 @@
       "created": "技能「{{name}}」已创建",
       "error": "创建技能失败"
     },
-    "atomicSkills": "原子技能"
+    "atomicSkills": "原子技能",
+    "atomic": "原子",
+    "cancel": "取消",
+    "convertToWorkflow": "转换为工作流",
+    "createNewSkill": "创建新技能",
+    "dismiss": "忽略",
+    "extractAtomic": "提取原子技能",
+    "newest": "最新",
+    "popular": "热门",
+    "proposals": "提案",
+    "save": "保存",
+    "sort": "排序"
   },
   "agent": {
     "askUserPlaceholder": "输入您的回答...",
@@ -2359,7 +2388,8 @@
     "submitAnswer": "提交回答",
     "submitting": "提交中...",
     "supplementPlaceholder": "补充说明（可选）...",
-    "typeAnswerPlaceholder": "输入您的回答..."
+    "typeAnswerPlaceholder": "输入您的回答...",
+    "submitted": "已提交"
   },
   "profile": {
     "loading": "正在加载画像...",
@@ -2391,7 +2421,8 @@
       "formal": "正式",
       "neutral": "中性",
       "casual": "随意"
-    }
+    },
+    "documentStyle": "文档风格"
   },
   "style": {
     "preview": "风格预览",
@@ -2459,7 +2490,14 @@
       "naming": "命名风格",
       "structure": "结构化程度",
       "technicalDepth": "技术深度"
-    }
+    },
+    "applied": "已应用",
+    "applyCodeStyle": "应用代码风格",
+    "applyDocStyle": "应用文档风格",
+    "exportProfile": "导出配置",
+    "importProfile": "导入配置",
+    "learnFromCode": "从代码学习",
+    "learnFromMessages": "从消息学习"
   },
   "workflow": {
     "aiPanel": {

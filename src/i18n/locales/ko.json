@@ -1,6 +1,8 @@
 {
   "app": {
-    "name": "AxAgent"
+    "name": "AxAgent",
+    "title": "智聊助手",
+    "description": "智能工作助手"
   },
   "nav": {
     "chat": "채팅",
@@ -12,7 +14,8 @@
     "skills": "스킬",
     "marketplace": "마켓플레이스",
     "prompts": "템플릿",
-    "link": "링크"
+    "link": "링크",
+    "wiki": "Wiki"
   },
   "chat": {
     "newConversation": "새 대화",
@@ -358,7 +361,11 @@
       "upgradedName": "업그레이드된 이름",
       "inputSchema": "입력 스키마",
       "outputSchema": "출력 스키마",
-      "upgradeReasoning": "업그레이드 이유"
+      "upgradeReasoning": "업그레이드 이유",
+      "multiExpertCollab": {
+        "name": "多专家协作",
+        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
+      }
     },
     "modelRoutingConfig": {
       "title": "모델 라우팅 설정",
@@ -583,7 +590,15 @@
         "types": "Types"
       }
     },
-    "waiting": "Waiting..."
+    "waiting": "Waiting...",
+    "compactContext": "컨텍스트 압축",
+    "toolbar": {
+      "left": "왼쪽",
+      "right": "오른쪽"
+    },
+    "selectExpert": "选择专家角色",
+    "exportHtml": "导出 HTML",
+    "exportHtmlNoThinking": "导出 HTML（不含思考）"
   },
   "gateway": {
     "title": "게이트웨이",
@@ -1153,7 +1168,20 @@
       "statusLabel": "상태",
       "docType": "유형",
       "docTypeFile": "파일",
-      "docTitle": "문서"
+      "docTitle": "문서",
+      "commonPanel": "公共面板",
+      "commonPanelDesc": "知识库和Wiki的共同操作",
+      "loadFiles": "加载文件",
+      "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
+      "selectFolder": "选择文件夹",
+      "loadToRAG": "加载到知识库RAG",
+      "sources": "数据源",
+      "sourcesDesc": "管理所有已加载的数据源",
+      "recentSources": "最近使用",
+      "addSource": "添加数据源",
+      "loadToWiki": "加载到Wiki",
+      "ragTab": "知识库 RAG",
+      "wikiTab": "Wiki"
     },
     "memory": {
       "title": "메모리",
@@ -1647,7 +1675,18 @@
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
       "openEditor": "Open Editor"
-    }
+    },
+    "tabModel": "模型与服务",
+    "tabAppearance": "界面",
+    "tabExtensions": "工具与扩展",
+    "tabNetwork": "通信",
+    "tabData": "数据",
+    "tabSystem": "系统",
+    "promptTemplates": "提示词模板",
+    "appConfig": "Agent 控制面板",
+    "appConfigDesc": "模型选择、功能开关、Agent 管理与 Hook 配置",
+    "bocha": "Bocha",
+    "zhipu": "Zhipu"
   },
   "backup": {
     "title": "백업 센터",
@@ -1717,7 +1756,8 @@
       "device": "기기",
       "lastSync": "마지막 동기화"
     },
-    "backupSuccess": "백업 성공"
+    "backupSuccess": "백업 성공",
+    "error": "操作失败"
   },
   "common": {
     "confirm": "확인",
@@ -1846,7 +1886,11 @@
     "tags": "Tags",
     "text": "Text",
     "viewDetails": "View details",
-    "waitingForApproval": "Waiting for approval"
+    "waitingForApproval": "Waiting for approval",
+    "error": "操作失败",
+    "createSuccess": "创建成功",
+    "deleteSuccess": "删除成功",
+    "retry": "重试"
   },
   "multiAgent": {
     "title": "멀티 에이전트 상태",
@@ -2107,7 +2151,18 @@
     },
     "extractAtomicSkills": "원자 스킬 추출",
     "decomposeSuccess": "원자 스킬이 성공적으로 추출되었습니다",
-    "atomicSkills": "Atomic Skills"
+    "atomicSkills": "Atomic Skills",
+    "atomic": "Atomar",
+    "cancel": "Abbrechen",
+    "convertToWorkflow": "ワークフローに変換",
+    "createNewSkill": "Neue Fähigkeit",
+    "dismiss": "Verwerfen",
+    "extractAtomic": "Atomare Fähigkeiten extrahieren",
+    "newest": "Neueste",
+    "popular": "Beliebt",
+    "proposals": "Vorschläge",
+    "save": "Speichern",
+    "sort": "Sortieren"
   },
   "agent": {
     "askUserPlaceholder": "답변을 입력하세요...",
@@ -2127,7 +2182,8 @@
     "submitAnswer": "Submit answer",
     "submitting": "Submitting...",
     "supplementPlaceholder": "Additional notes (optional)...",
-    "typeAnswerPlaceholder": "Type your answer..."
+    "typeAnswerPlaceholder": "Type your answer...",
+    "submitted": "Eingereicht"
   },
   "link": {
     "title": "링크",
@@ -2316,7 +2372,14 @@
     "targetStyle": "Target Style",
     "templates": "Templates",
     "usedCount": "Used {{count}} times",
-    "variants": "Variants"
+    "variants": "Variants",
+    "applied": "適用済み",
+    "applyCodeStyle": "Code-Stil anwenden",
+    "applyDocStyle": "Dokument-Stil anwenden",
+    "exportProfile": "Profil exportieren",
+    "importProfile": "Profil importieren",
+    "learnFromCode": "Von Code lernen",
+    "learnFromMessages": "Von Nachrichten lernen"
   },
   "quickbar": {
     "title": "QuickBar",
@@ -2383,7 +2446,8 @@
       "copied": "Copied",
       "saveWiki": "Save",
       "continueAsk": "Follow up",
-      "error": "Error"
+      "error": "Error",
+      "noWikiSelected": "请先在知识库中选择一个 Wiki"
     }
   },
   "workflow": {
@@ -2820,7 +2884,15 @@
     "templateDeleted": "Template deleted",
     "templateUpdated": "Template updated",
     "variablesSchema": "Variables Schema",
-    "version": "Version"
+    "version": "Version",
+    "noTemplates": "暂无模板",
+    "fillVariables": "请填写以下变量：",
+    "hasVariables": "提示：模板包含未填充的变量：{{variables}}",
+    "selectFromLibrary": "从模板库选择",
+    "applied": "模板已应用",
+    "changeTemplate": "更换模板",
+    "selected": "已选择",
+    "preview": "预览"
   },
   "marketplace": {
     "reviewUpdated": "Review updated successfully",
@@ -3030,7 +3102,8 @@
       "uploadError": "Upload failed",
       "viewInGraph": "View in graph",
       "viewSource": "View source",
-      "wikiList": "Wiki List"
+      "wikiList": "Wiki List",
+      "selectWikiFirst": "请先选择一个Wiki"
     },
     "llmNote": "LLM Note",
     "log": {
@@ -3127,7 +3200,16 @@
       "name": "Name",
       "rootPath": "Root Path",
       "schemaVersion": "Schema Version"
-    }
+    },
+    "manage": "管理",
+    "viewingWiki": "正在查看 Wiki: {{id}}",
+    "deleted": "已删除",
+    "unsavedTitle": "未保存的更改",
+    "unsavedContent": "你有未保存的更改，确定放弃吗？",
+    "discard": "放弃",
+    "keepEditing": "继续编辑",
+    "confirmDelete": "确定删除这条笔记？",
+    "backToNotes": "返回笔记"
   },
   "notification": {
     "clear": "Clear",
@@ -3218,6 +3300,125 @@
       "successWorkflow": "Successful workflow",
       "title": "Skill Proposal",
       "viewContent": "View content"
+    },
+    "loadFailed": "스킬 \"{{name}}\" 로드 실패",
+    "unknownError": "알 수 없는 오류",
+    "retry": "재시도",
+    "loading": "스킬 컴포넌트 로딩 중..."
+  },
+  "task": {
+    "title": "백그라운드 작업",
+    "empty": "백그라운드 작업 없음",
+    "refresh": "새로고침",
+    "stopped": "작업 중지됨",
+    "stopFail": "중지 실패",
+    "stopConfirm": "이 작업을 중지하시겠습니까?",
+    "stop": "중지",
+    "statusPending": "대기 중",
+    "statusRunning": "실행 중",
+    "statusCompleted": "완료됨",
+    "statusFailed": "실패",
+    "statusStopped": "중지됨",
+    "exitCode": "종료 코드",
+    "noOutput": "(출력 없음)",
+    "startFailed": "시작 실패",
+    "bash": "bash",
+    "agent": "agent"
+  },
+  "skillEditor": {
+    "actionAdd": "액션 추가",
+    "actionDelete": "이 액션을 삭제하시겠습니까?",
+    "actionEmpty": "액션 없음, 추가 클릭",
+    "actionMode": "실행 모드",
+    "actionType": "액션 유형",
+    "actionChain": "중첩 체인",
+    "declarative": "선언형 (즉시 응답)",
+    "agentic": "Agent 지능형 (LLM 구동)",
+    "invoke": "백엔드 호출 (invoke)",
+    "navigate": "페이지 이동 (navigate)",
+    "emit": "이벤트 발송 (emit)",
+    "store": "Store 읽기/쓰기 (store)",
+    "func": "사용자 정의 함수 (function)",
+    "handler": "Handler 참조 (handler)",
+    "invokeCmd": "Tauri 명령",
+    "invokeArgs": "인자 (JSON)",
+    "navigatePath": "대상 경로",
+    "emitEvent": "이벤트 이름",
+    "emitPayload": "페이로드 (JSON)",
+    "storeName": "Store 이름",
+    "storeOp": "작업",
+    "storePayload": "페이로드 (JSON)",
+    "funcName": "함수 이름",
+    "handlerName": "Handler 이름",
+    "agenticPrompt": "사용자 의도 프롬프트",
+    "agenticPromptHint": "Agent가 수행할 작업 설명",
+    "agenticSkill": "Skill 이름 (선택)",
+    "agenticOptions": "추가 옵션",
+    "includeConv": "대화 포함",
+    "includeFiles": "파일 포함",
+    "includeSelection": "선택 영역 포함"
+  },
+  "knowledge": {
+    "commonPanel": "公共面板",
+    "commonPanelDesc": "知识库和Wiki的共同操作",
+    "loadFiles": "加载文件",
+    "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
+    "selectFolder": "选择文件夹",
+    "loadToRAG": "加载到知识库RAG",
+    "sources": "数据源",
+    "sourcesDesc": "管理所有已加载的数据源",
+    "recentSources": "最近使用",
+    "addSource": "添加数据源",
+    "loadToWiki": "加载到Wiki",
+    "ragTab": "知识库 RAG",
+    "wikiTab": "Wiki",
+    "importTitle": "导入文档",
+    "selectedFolder": "已选择文件夹",
+    "importDestination": "导入到",
+    "ragSystem": "RAG 知识库",
+    "wikiSystem": "Wiki 系统",
+    "import": "导入",
+    "selectFolderFirst": "请先选择文件夹",
+    "selectDestination": "请选择导入目标",
+    "selectKnowledgeBaseFirst": "请先选择一个知识库",
+    "importSuccess": "导入成功",
+    "folderSelected": "文件夹已选择: {{path}}"
+  },
+  "plan": {
+    "defaultTitle": "执行计划",
+    "strategyDirect": "直接执行",
+    "strategyPlan": "先规划再执行",
+    "status": {
+      "pending": "待执行",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "running": "执行中",
+      "completed": "已完成",
+      "error": "失败"
+    },
+    "approveAll": "批准并执行",
+    "approveStep": "批准此步骤",
+    "reject": "拒绝计划",
+    "rejectStep": "拒绝此步骤",
+    "cancel": "取消",
+    "resume": "恢复",
+    "executeApproved": "执行已批准步骤",
+    "stepsApproved": "个步骤已批准",
+    "reviewing": "审批中",
+    "executing": "执行中"
+  },
+  "tool": {
+    "common": {
+      "notFound": "工具未找到",
+      "permissionDenied": "权限被拒绝",
+      "invalidInput": "输入参数无效",
+      "executionFailed": "执行失败",
+      "timeout": "执行超时",
+      "cancelled": "已被取消"
+    },
+    "tray": {
+      "show": "显示主窗口",
+      "quit": "退出 AxAgent"
     }
   }
 }

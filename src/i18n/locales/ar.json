@@ -1,6 +1,8 @@
 {
   "app": {
-    "name": "AxAgent"
+    "name": "AxAgent",
+    "title": "智聊助手",
+    "description": "智能工作助手"
   },
   "nav": {
     "chat": "المحادثة",
@@ -12,7 +14,8 @@
     "skills": "المهارات",
     "marketplace": "السوق",
     "prompts": "القوالب",
-    "link": "الرابط"
+    "link": "الرابط",
+    "wiki": "Wiki"
   },
   "chat": {
     "newConversation": "محادثة جديدة",
@@ -233,7 +236,7 @@
     "pinnedModels": "النماذج المثبّتة",
     "scrollToBottom": "التمرير إلى الأسفل",
     "searchModelOrProvider": "البحث عن نموذج أو مزوّد",
-    "switchModel": "تبديل النموذج",
+    "switchModel": "تغيير النموذج",
     "stats": {
       "title": "إحصائيات المحادثة",
       "totalMessages": "إجمالي الرسائل",
@@ -358,7 +361,11 @@
       "upgradedName": "الاسم بعد الترقية",
       "inputSchema": "مخطط الإدخال",
       "outputSchema": "مخطط الإخراج",
-      "upgradeReasoning": "مبررات الترقية"
+      "upgradeReasoning": "مبررات الترقية",
+      "multiExpertCollab": {
+        "name": "多专家协作",
+        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
+      }
     },
     "modelRoutingConfig": {
       "title": "تكوين توجيه النموذج",
@@ -583,7 +590,15 @@
         "types": "Types"
       }
     },
-    "waiting": "Waiting..."
+    "waiting": "Waiting...",
+    "compactContext": "ضغط السياق",
+    "toolbar": {
+      "left": "يسار",
+      "right": "يمين"
+    },
+    "selectExpert": "选择专家角色",
+    "exportHtml": "导出 HTML",
+    "exportHtmlNoThinking": "导出 HTML（不含思考）"
   },
   "gateway": {
     "title": "البوابة",
@@ -1149,7 +1164,20 @@
       "statusLabel": "الحالة",
       "docType": "النوع",
       "docTypeFile": "ملف",
-      "docTitle": "مستند"
+      "docTitle": "مستند",
+      "commonPanel": "公共面板",
+      "commonPanelDesc": "知识库和Wiki的共同操作",
+      "loadFiles": "加载文件",
+      "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
+      "selectFolder": "选择文件夹",
+      "loadToRAG": "加载到知识库RAG",
+      "sources": "数据源",
+      "sourcesDesc": "管理所有已加载的数据源",
+      "recentSources": "最近使用",
+      "addSource": "添加数据源",
+      "loadToWiki": "加载到Wiki",
+      "ragTab": "知识库 RAG",
+      "wikiTab": "Wiki"
     },
     "memory": {
       "title": "الذاكرة",
@@ -1499,7 +1527,34 @@
       "tone": "النبرة",
       "language": "اللغة",
       "confidence": "ثقة الملف",
-      "loading": "جارٍ تحميل الملف..."
+      "loading": "جارٍ تحميل الملف...",
+      "description": "设置你的编码习惯和沟通偏好，AI 会根据这些信息调整回复风格",
+      "codingStyleDesc": "设定你习惯的代码编写方式，AI 生成的代码会尽量遵循这些偏好",
+      "namingConventionDesc": "变量和函数的命名方式",
+      "indentationStyleDesc": "代码缩进使用空格还是制表符",
+      "commentStyleDesc": "代码中注释的详细程度",
+      "communicationDesc": "设定 AI 回复时的表达方式，让它更符合你的阅读习惯",
+      "detailLevelDesc": "AI 回复内容的详尽程度",
+      "toneDesc": "AI 回复时的语言风格",
+      "languageDesc": "AI 回复时使用的语言",
+      "confidenceDesc": "AI 对你偏好的了解程度，会随着交互逐渐提升",
+      "options": {
+        "snake_case": "蛇形命名 (snake_case)",
+        "camelCase": "驼峰命名 (camelCase)",
+        "PascalCase": "帕斯卡命名 (PascalCase)",
+        "kebab-case": "短横线命名 (kebab-case)",
+        "spaces": "空格",
+        "tabs": "制表符",
+        "minimal": "精简",
+        "documented": "适中",
+        "verbose": "详尽",
+        "concise": "简洁",
+        "moderate": "适中",
+        "detailed": "详细",
+        "formal": "正式",
+        "neutral": "中性",
+        "casual": "随意"
+      }
     },
     "webhook": {
       "title": "Webhooks",
@@ -1618,7 +1673,20 @@
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
       "openEditor": "Open Editor"
-    }
+    },
+    "tabModel": "模型与服务",
+    "tabAppearance": "界面",
+    "tabExtensions": "工具与扩展",
+    "tabNetwork": "通信",
+    "tabData": "数据",
+    "tabSystem": "系统",
+    "messageChannels": "消息渠道",
+    "advanced": "高级设置",
+    "promptTemplates": "提示词模板",
+    "appConfig": "Agent 控制面板",
+    "appConfigDesc": "模型选择、功能开关、Agent 管理与 Hook 配置",
+    "bocha": "Bocha",
+    "zhipu": "Zhipu"
   },
   "backup": {
     "title": "مركز النسخ الاحتياطي",
@@ -1688,7 +1756,8 @@
       "device": "الجهاز",
       "lastSync": "آخر مزامنة"
     },
-    "backupSuccess": "تمّت النسخ الاحتياطي بنجاح"
+    "backupSuccess": "تمّت النسخ الاحتياطي بنجاح",
+    "error": "操作失败"
   },
   "common": {
     "confirm": "تأكيد",
@@ -1801,7 +1870,27 @@
     "tags": "Tags",
     "text": "Text",
     "viewDetails": "View details",
-    "waitingForApproval": "Waiting for approval"
+    "waitingForApproval": "Waiting for approval",
+    "error": "操作失败",
+    "createSuccess": "创建成功",
+    "deleteSuccess": "删除成功",
+    "retry": "重试",
+    "success": "成功",
+    "config": "配置",
+    "quality": "品質",
+    "entropyCoeff": "熵係數",
+    "gamma": "γ (折扣率)",
+    "lambda": "λ (TD)",
+    "rewardScale": "獎勵縮放",
+    "rlEngine": "RL 引擎",
+    "rewardWeights": {
+      "task_completion": "任務完成",
+      "reasoning_quality": "推理品質",
+      "tool_efficiency": "工具效率",
+      "pattern_match": "模式比對",
+      "error_recovery": "錯誤恢復",
+      "user_feedback": "使用者回饋"
+    }
   },
   "image": {
     "loadError": "فشل تحميل الصورة",
@@ -2033,7 +2122,18 @@
     },
     "extractAtomicSkills": "استخراج المهارات الذرية",
     "decomposeSuccess": "تم استخراج المهارات الذرية بنجاح",
-    "atomicSkills": "Atomic Skills"
+    "atomicSkills": "Atomic Skills",
+    "atomic": "Atomar",
+    "cancel": "Abbrechen",
+    "convertToWorkflow": "ワークフローに変換",
+    "createNewSkill": "Neue Fähigkeit",
+    "dismiss": "Verwerfen",
+    "extractAtomic": "Atomare Fähigkeiten extrahieren",
+    "newest": "Neueste",
+    "popular": "Beliebt",
+    "proposals": "Vorschläge",
+    "save": "Speichern",
+    "sort": "Sortieren"
   },
   "agent": {
     "askUserPlaceholder": "اكتب إجابتك...",
@@ -2053,7 +2153,8 @@
     "submitAnswer": "Submit answer",
     "submitting": "Submitting...",
     "supplementPlaceholder": "Additional notes (optional)...",
-    "typeAnswerPlaceholder": "Type your answer..."
+    "typeAnswerPlaceholder": "Type your answer...",
+    "submitted": "Eingereicht"
   },
   "link": {
     "title": "الرابط",
@@ -2202,7 +2303,8 @@
       "formal": "رسمي",
       "neutral": "محايد",
       "casual": "عادي"
-    }
+    },
+    "documentStyle": "ドキュメントスタイル"
   },
   "style": {
     "preview": "معاينة النمط",
@@ -2270,7 +2372,14 @@
     "targetStyle": "Target Style",
     "templates": "Templates",
     "usedCount": "Used {{count}} times",
-    "variants": "Variants"
+    "variants": "Variants",
+    "applied": "適用済み",
+    "applyCodeStyle": "Code-Stil anwenden",
+    "applyDocStyle": "Dokument-Stil anwenden",
+    "exportProfile": "Profil exportieren",
+    "importProfile": "Profil importieren",
+    "learnFromCode": "Von Code lernen",
+    "learnFromMessages": "Von Nachrichten lernen"
   },
   "terminal": {
     "online": "متصل",
@@ -2450,7 +2559,8 @@
       "uploadError": "Upload failed",
       "viewInGraph": "View in graph",
       "viewSource": "View source",
-      "wikiList": "Wiki List"
+      "wikiList": "Wiki List",
+      "selectWikiFirst": "请先选择一个Wiki"
     },
     "llmNote": "LLM Note",
     "log": {
@@ -2547,7 +2657,16 @@
       "name": "Name",
       "rootPath": "Root Path",
       "schemaVersion": "Schema Version"
-    }
+    },
+    "manage": "管理",
+    "viewingWiki": "正在查看 Wiki: {{id}}",
+    "deleted": "已删除",
+    "unsavedTitle": "未保存的更改",
+    "unsavedContent": "你有未保存的更改，确定放弃吗？",
+    "discard": "放弃",
+    "keepEditing": "继续编辑",
+    "confirmDelete": "确定删除这条笔记？",
+    "backToNotes": "返回笔记"
   },
   "quickbar": {
     "title": "الشريط السريع",
@@ -2614,7 +2733,8 @@
       "copied": "تم النسخ",
       "saveWiki": "حفظ",
       "continueAsk": "متابعة السؤال",
-      "error": "خطأ"
+      "error": "خطأ",
+      "noWikiSelected": "请先在知识库中选择一个 Wiki"
     }
   },
   "workflow": {
@@ -3051,7 +3171,15 @@
     "templateDeleted": "Template deleted",
     "templateUpdated": "Template updated",
     "variablesSchema": "Variables Schema",
-    "version": "Version"
+    "version": "Version",
+    "noTemplates": "暂无模板",
+    "fillVariables": "请填写以下变量：",
+    "hasVariables": "提示：模板包含未填充的变量：{{variables}}",
+    "selectFromLibrary": "从模板库选择",
+    "applied": "模板已应用",
+    "changeTemplate": "更换模板",
+    "selected": "已选择",
+    "preview": "预览"
   },
   "marketplace": {
     "reviewUpdated": "Review updated successfully",
@@ -3172,6 +3300,125 @@
       "successWorkflow": "Successful workflow",
       "title": "Skill Proposal",
       "viewContent": "View content"
+    },
+    "loadFailed": "فشل تحميل \"{{name}}\"",
+    "unknownError": "خطأ غير معروف",
+    "retry": "إعادة المحاولة",
+    "loading": "جار تحميل المكون..."
+  },
+  "task": {
+    "title": "مهام الخلفية",
+    "empty": "لا توجد مهام خلفية",
+    "refresh": "تحديث",
+    "stopped": "تم إيقاف المهمة",
+    "stopFail": "فشل الإيقاف",
+    "stopConfirm": "إيقاف هذه المهمة؟",
+    "stop": "إيقاف",
+    "statusPending": "قيد الانتظار",
+    "statusRunning": "قيد التشغيل",
+    "statusCompleted": "مكتمل",
+    "statusFailed": "فشل",
+    "statusStopped": "متوقف",
+    "exitCode": "رمز الخروج",
+    "noOutput": "(لا يوجد مخرجات)",
+    "startFailed": "فشل البدء",
+    "bash": "bash",
+    "agent": "agent"
+  },
+  "skillEditor": {
+    "actionAdd": "إضافة إجراء",
+    "actionDelete": "حذف هذا الإجراء؟",
+    "actionEmpty": "لا توجد إجراءات، انقر على إضافة",
+    "actionMode": "وضع التنفيذ",
+    "actionType": "نوع الإجراء",
+    "actionChain": "سلسلة متداخلة",
+    "declarative": "تصريحي (فوري)",
+    "agentic": "وكيل (مدعوم بـ LLM)",
+    "invoke": "استدعاء الخلفية (invoke)",
+    "navigate": "التنقل (navigate)",
+    "emit": "إرسال حدث (emit)",
+    "store": "قراءة/كتابة المخزن (store)",
+    "func": "دالة مخصصة (function)",
+    "handler": "مرجع المعالج (handler)",
+    "invokeCmd": "أمر Tauri",
+    "invokeArgs": "الوسائط (JSON)",
+    "navigatePath": "المسار الهدف",
+    "emitEvent": "اسم الحدث",
+    "emitPayload": "الحمولة (JSON)",
+    "storeName": "اسم المخزن",
+    "storeOp": "العملية",
+    "storePayload": "الحمولة (JSON)",
+    "funcName": "اسم الدالة",
+    "handlerName": "اسم المعالج",
+    "agenticPrompt": "موجه نية المستخدم",
+    "agenticPromptHint": "صف ما يجب على الوكيل فعله",
+    "agenticSkill": "اسم المهارة (اختياري)",
+    "agenticOptions": "خيارات إضافية",
+    "includeConv": "تضمين المحادثة",
+    "includeFiles": "تضمين الملفات",
+    "includeSelection": "تضمين التحديد"
+  },
+  "knowledge": {
+    "commonPanel": "公共面板",
+    "commonPanelDesc": "知识库和Wiki的共同操作",
+    "loadFiles": "加载文件",
+    "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
+    "selectFolder": "选择文件夹",
+    "loadToRAG": "加载到知识库RAG",
+    "sources": "数据源",
+    "sourcesDesc": "管理所有已加载的数据源",
+    "recentSources": "最近使用",
+    "addSource": "添加数据源",
+    "loadToWiki": "加载到Wiki",
+    "ragTab": "知识库 RAG",
+    "wikiTab": "Wiki",
+    "importTitle": "导入文档",
+    "selectedFolder": "已选择文件夹",
+    "importDestination": "导入到",
+    "ragSystem": "RAG 知识库",
+    "wikiSystem": "Wiki 系统",
+    "import": "导入",
+    "selectFolderFirst": "请先选择文件夹",
+    "selectDestination": "请选择导入目标",
+    "selectKnowledgeBaseFirst": "请先选择一个知识库",
+    "importSuccess": "导入成功",
+    "folderSelected": "文件夹已选择: {{path}}"
+  },
+  "plan": {
+    "defaultTitle": "执行计划",
+    "strategyDirect": "直接执行",
+    "strategyPlan": "先规划再执行",
+    "status": {
+      "pending": "待执行",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "running": "执行中",
+      "completed": "已完成",
+      "error": "失败"
+    },
+    "approveAll": "批准并执行",
+    "approveStep": "批准此步骤",
+    "reject": "拒绝计划",
+    "rejectStep": "拒绝此步骤",
+    "cancel": "取消",
+    "resume": "恢复",
+    "executeApproved": "执行已批准步骤",
+    "stepsApproved": "个步骤已批准",
+    "reviewing": "审批中",
+    "executing": "执行中"
+  },
+  "tool": {
+    "common": {
+      "notFound": "工具未找到",
+      "permissionDenied": "权限被拒绝",
+      "invalidInput": "输入参数无效",
+      "executionFailed": "执行失败",
+      "timeout": "执行超时",
+      "cancelled": "已被取消"
+    },
+    "tray": {
+      "show": "显示主窗口",
+      "quit": "退出 AxAgent"
     }
   }
 }

@@ -14,7 +14,8 @@
     "settings": "Settings",
     "skills": "Skills",
     "marketplace": "Marketplace",
-    "prompts": "Prompts"
+    "prompts": "Prompts",
+    "wiki": "Wiki"
   },
   "knowledge": {
     "commonPanel": "Common Panel",
@@ -420,7 +421,7 @@
     "pinnedModels": "Pinned models",
     "scrollToBottom": "Scroll to bottom",
     "searchModelOrProvider": "Search model or provider",
-    "switchModel": "Switch model",
+    "switchModel": "Switch Model",
     "switchModeShortcut": "Tip: Press Shift+Tab to quickly switch mode",
     "stats": {
       "title": "Conversation Stats",
@@ -615,7 +616,15 @@
         "types": "Types"
       }
     },
-    "waiting": "Waiting..."
+    "waiting": "Waiting...",
+    "compactContext": "Compact Context",
+    "toolbar": {
+      "left": "Left",
+      "right": "Right"
+    },
+    "selectExpert": "选择专家角色",
+    "exportHtml": "导出 HTML",
+    "exportHtmlNoThinking": "导出 HTML（不含思考）"
   },
   "gateway": {
     "title": "Gateway",
@@ -1789,7 +1798,9 @@
       "reset": "Reset",
       "resetAll": "Reset All",
       "saved": "Saved"
-    }
+    },
+    "bocha": "Bocha",
+    "zhipu": "Zhipu"
   },
   "backup": {
     "title": "Backup Center",
@@ -1859,7 +1870,8 @@
       "device": "Device",
       "lastSync": "Last sync"
     },
-    "backupSuccess": "Backup successful"
+    "backupSuccess": "Backup successful",
+    "error": "操作失败"
   },
   "common": {
     "confirm": "Confirm",
@@ -1973,7 +1985,26 @@
     "tags": "Tags",
     "text": "Text",
     "viewDetails": "View details",
-    "waitingForApproval": "Waiting for approval"
+    "waitingForApproval": "Waiting for approval",
+    "createSuccess": "创建成功",
+    "deleteSuccess": "删除成功",
+    "retry": "重试",
+    "success": "成功",
+    "config": "配置",
+    "quality": "品質",
+    "entropyCoeff": "熵係數",
+    "gamma": "γ (折扣率)",
+    "lambda": "λ (TD)",
+    "rewardScale": "獎勵縮放",
+    "rlEngine": "RL 引擎",
+    "rewardWeights": {
+      "task_completion": "任務完成",
+      "reasoning_quality": "推理品質",
+      "tool_efficiency": "工具效率",
+      "pattern_match": "模式比對",
+      "error_recovery": "錯誤恢復",
+      "user_feedback": "使用者回饋"
+    }
   },
   "plan": {
     "defaultTitle": "Execution Plan",
@@ -2175,7 +2206,8 @@
       "copied": "Copied",
       "saveWiki": "Save",
       "continueAsk": "Follow up",
-      "error": "Error"
+      "error": "Error",
+      "noWikiSelected": "请先在知识库中选择一个 Wiki"
     }
   },
   "appLaunch": {
@@ -2325,7 +2357,18 @@
       "created": "Skill '{{name}}' created",
       "error": "Failed to create skill"
     },
-    "atomicSkills": "Atomic Skills"
+    "atomicSkills": "Atomic Skills",
+    "atomic": "Atomar",
+    "cancel": "Abbrechen",
+    "convertToWorkflow": "ワークフローに変換",
+    "createNewSkill": "Neue Fähigkeit",
+    "dismiss": "Verwerfen",
+    "extractAtomic": "Atomare Fähigkeiten extrahieren",
+    "newest": "Neueste",
+    "popular": "Beliebt",
+    "proposals": "Vorschläge",
+    "save": "Speichern",
+    "sort": "Sortieren"
   },
   "agent": {
     "askUserPlaceholder": "Type your answer...",
@@ -2345,7 +2388,8 @@
     "submitAnswer": "Submit answer",
     "submitting": "Submitting...",
     "supplementPlaceholder": "Additional notes (optional)...",
-    "typeAnswerPlaceholder": "Type your answer..."
+    "typeAnswerPlaceholder": "Type your answer...",
+    "submitted": "Eingereicht"
   },
   "profile": {
     "loading": "Loading profile...",
@@ -2377,7 +2421,8 @@
       "formal": "Formal",
       "neutral": "Neutral",
       "casual": "Casual"
-    }
+    },
+    "documentStyle": "ドキュメントスタイル"
   },
   "style": {
     "preview": "Style Preview",
@@ -2445,7 +2490,14 @@
       "naming": "Naming",
       "structure": "Structure",
       "technicalDepth": "Technical Depth"
-    }
+    },
+    "applied": "適用済み",
+    "applyCodeStyle": "Code-Stil anwenden",
+    "applyDocStyle": "Dokument-Stil anwenden",
+    "exportProfile": "Profil exportieren",
+    "importProfile": "Profil importieren",
+    "learnFromCode": "Von Code lernen",
+    "learnFromMessages": "Von Nachrichten lernen"
   },
   "workflow": {
     "aiPanel": {
@@ -2881,7 +2933,15 @@
     "templateDeleted": "Template deleted",
     "templateUpdated": "Template updated",
     "variablesSchema": "Variables Schema",
-    "version": "Version"
+    "version": "Version",
+    "noTemplates": "暂无模板",
+    "fillVariables": "请填写以下变量：",
+    "hasVariables": "提示：模板包含未填充的变量：{{variables}}",
+    "selectFromLibrary": "从模板库选择",
+    "applied": "模板已应用",
+    "changeTemplate": "更换模板",
+    "selected": "已选择",
+    "preview": "预览"
   },
   "marketplace": {
     "reviewUpdated": "Review updated successfully",
@@ -3190,7 +3250,15 @@
       "name": "Name",
       "rootPath": "Root Path",
       "schemaVersion": "Schema Version"
-    }
+    },
+    "manage": "管理",
+    "viewingWiki": "正在查看 Wiki: {{id}}",
+    "deleted": "已删除",
+    "unsavedTitle": "未保存的更改",
+    "unsavedContent": "你有未保存的更改，确定放弃吗？",
+    "discard": "放弃",
+    "keepEditing": "继续编辑",
+    "confirmDelete": "确定删除这条笔记？"
   },
   "notification": {
     "clear": "Clear",
@@ -3281,7 +3349,11 @@
       "successWorkflow": "Successful workflow",
       "title": "Skill Proposal",
       "viewContent": "View content"
-    }
+    },
+    "loadFailed": "Skill \"{{name}}\" load failed",
+    "unknownError": "Unknown error",
+    "retry": "Retry",
+    "loading": "Loading skill component..."
   },
   "tool": {
     "common": {
@@ -3296,5 +3368,57 @@
       "show": "Show",
       "quit": "Quit AxAgent"
     }
+  },
+  "task": {
+    "title": "Background Tasks",
+    "empty": "No background tasks",
+    "refresh": "Refresh",
+    "stopped": "Task stopped",
+    "stopFail": "Failed to stop",
+    "stopConfirm": "Stop this task?",
+    "stop": "Stop",
+    "statusPending": "Pending",
+    "statusRunning": "Running",
+    "statusCompleted": "Completed",
+    "statusFailed": "Failed",
+    "statusStopped": "Stopped",
+    "exitCode": "Exit code",
+    "noOutput": "(No output)",
+    "startFailed": "Start failed",
+    "bash": "bash",
+    "agent": "agent"
+  },
+  "skillEditor": {
+    "actionAdd": "Add Action",
+    "actionDelete": "Delete this action?",
+    "actionEmpty": "No actions, click Add",
+    "actionMode": "Execution Mode",
+    "actionType": "Action Type",
+    "actionChain": "Nested Chain",
+    "declarative": "Declarative (instant)",
+    "agentic": "Agent (LLM-driven)",
+    "invoke": "Backend Call (invoke)",
+    "navigate": "Page Navigation (navigate)",
+    "emit": "Emit Event (emit)",
+    "store": "Store Read/Write (store)",
+    "func": "Custom Function (function)",
+    "handler": "Reference Handler (handler)",
+    "invokeCmd": "Tauri Command",
+    "invokeArgs": "Arguments (JSON)",
+    "navigatePath": "Target Path",
+    "emitEvent": "Event Name",
+    "emitPayload": "Payload (JSON)",
+    "storeName": "Store Name",
+    "storeOp": "Operation",
+    "storePayload": "Payload (JSON)",
+    "funcName": "Function Name",
+    "handlerName": "Handler Name",
+    "agenticPrompt": "User Intent Prompt",
+    "agenticPromptHint": "Describe what the agent should do",
+    "agenticSkill": "Skill Name (optional)",
+    "agenticOptions": "Additional Options",
+    "includeConv": "Include conversation",
+    "includeFiles": "Include files",
+    "includeSelection": "Include selection"
   }
 }
