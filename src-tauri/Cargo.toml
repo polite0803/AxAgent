@@ -22,7 +22,7 @@ anyhow = "1"
 reqwest = { version = "0.12", features = ["json"] }
 sqlite-vec = "0.1.8-alpha.1"
 libsqlite3-sys = { version = "0.30", features = ["bundled"] }
-sysinfo = "0.32"
+sysinfo = "0.38"
 lazy_static = "1"
 sha2 = "0.10"
 image = { version = "0.25", features = ["png"] }
