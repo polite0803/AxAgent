@@ -26,7 +26,7 @@ toml_edit = "0.22"
 sqlite-vec = { workspace = true }
 libsqlite3-sys = { workspace = true }
 pdf-extract = "0.7"
-zip = "2"
+zip = "4"
 dirs = "5"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sysinfo = "0.32"
