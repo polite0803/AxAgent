@@ -866,7 +866,16 @@ pub async fn agent_query(
             .map(|v| v.len())
             .unwrap_or(0)
     );
-    chat_tools.extend(unified_chat_tools);
+    // 去重：local_tools 已经包含统一工具，避免 DeepSeek 等 API 报 Tool names must be unique
+    let existing_names: std::collections::HashSet<String> = chat_tools
+        .iter()
+        .map(|t| t.function.name.clone())
+        .collect();
+    for t in unified_chat_tools {
+        if !existing_names.contains(&t.function.name) {
+            chat_tools.push(t);
+        }
+    }
 
     // Load enabled skills content for system prompt injection
     let skill_contents = load_enabled_skill_contents(
