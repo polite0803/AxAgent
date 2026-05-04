@@ -5,13 +5,43 @@ import { useConversationStore, useProviderStore, useTabStore } from "@/stores";
 import { theme } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const SIDEBAR_MIN = 180;
+const SIDEBAR_MAX = 480;
+const SIDEBAR_DEFAULT = 256;
+
 export function ChatPage() {
   const { token } = theme.useToken();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [dragging, setDragging] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const fetchConversations = useConversationStore((s) => s.fetchConversations);
   const conversationCount = useConversationStore((s) => s.conversations.length);
   const fetchProviders = useProviderStore((s) => s.fetchProviders);
   const providerCount = useProviderStore((s) => s.providers.length);
+
+  // 拖拽调整侧栏宽度
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!dragging) { return; }
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    const handleMouseMove = (e: MouseEvent) => {
+      setSidebarWidth(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, e.clientX)));
+    };
+    const handleMouseUp = () => setDragging(false);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.body.style.userSelect = prevUserSelect;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragging]);
 
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
@@ -99,16 +129,40 @@ export function ChatPage() {
   return (
     <div className="flex h-full" style={{ overflow: "hidden" }} data-testid="chat-view">
       <div
+        ref={sidebarRef}
         className="h-full transition-all duration-200"
         style={{
-          width: sidebarCollapsed ? "48px" : "256px",
+          width: sidebarCollapsed ? 48 : sidebarWidth,
           borderRight: "1px solid var(--border-color)",
           backgroundColor: token.colorBgContainer,
           flexShrink: 0,
+          transition: dragging ? "none" : "width 0.2s",
         }}
       >
         <ChatSidebar onCollapseChange={setSidebarCollapsed} />
       </div>
+      {/* 拖拽手柄 */}
+      {!sidebarCollapsed && (
+        <div
+          onMouseDown={handleMouseDown}
+          style={{
+            width: 4,
+            cursor: "col-resize",
+            flexShrink: 0,
+            backgroundColor: dragging ? "var(--color-primary)" : "transparent",
+            transition: "background-color 0.15s",
+            zIndex: 10,
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-primary)";
+          }}
+          onMouseLeave={(e) => {
+            if (!dragging) {
+              (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+            }
+          }}
+        />
+      )}
       <div
         style={{
           flex: 1,
