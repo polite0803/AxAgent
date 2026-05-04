@@ -1,5 +1,5 @@
 import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
-import type { AgentProfile, CreateAgentProfileInput, ExpertCategory, UpdateAgentProfileInput } from "@/types/agentProfile";
+import type { AgentProfile, CreateAgentProfileInput, ExpertCategory, PermissionMode, UpdateAgentProfileInput } from "@/types/agentProfile";
 import { Button, Card, Divider, Empty, Input, Modal, Popconfirm, Select, Space, Spin, Tag, Typography, theme } from "antd";
 import { Bot, Code, Database, Edit, FileText, Globe, Plus, Search, Shield, Trash2, TrendingUp, Workflow } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -94,7 +94,7 @@ export function AgentProfileManager() {
       suggestedProviderId: p.suggestedProviderId,
       suggestedModelId: p.suggestedModelId,
       suggestedTemperature: p.suggestedTemperature,
-      suggestMaxTokens: p.suggestedMaxTokens,
+      suggestedMaxTokens: p.suggestedMaxTokens,
       searchEnabled: p.searchEnabled,
       recommendPermissionMode: p.recommendPermissionMode,
       recommendedTools: p.recommendedTools,
@@ -339,7 +339,7 @@ export function AgentProfileManager() {
                   size="small"
                   style={{ width: "100%" }}
                   value={form.recommendPermissionMode ?? ""}
-                  onChange={(v) => setForm({ ...form, recommendPermissionMode: v || undefined })}
+                  onChange={(v) => setForm({ ...form, recommendPermissionMode: (v || undefined) as PermissionMode | undefined })}
                   options={[
                     { value: "", label: t("common.default") },
                     { value: "accept_edits", label: t("chat.agent.acceptEdits") },

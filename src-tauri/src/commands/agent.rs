@@ -4242,7 +4242,6 @@ pub struct SimilarWorkflow {
     pub similarity: f64,
 }
 
-const SIMILARITY_THRESHOLD: f64 = 0.8;
 
 /// Extract skill_ids from nodes.
 /// Checks both `config.skill_id` (frontend AtomicSkillNode format) and
@@ -4269,20 +4268,6 @@ fn extract_skill_ids_from_nodes(nodes: &[serde_json::Value]) -> Vec<String> {
     skill_ids
 }
 
-/// Calculate Jaccard similarity between two skill sets
-fn jaccard_similarity(set1: &[String], set2: &[String]) -> f64 {
-    if set1.is_empty() && set2.is_empty() {
-        return 0.0;
-    }
-    let set1_set: std::collections::HashSet<_> = set1.iter().collect();
-    let set2_set: std::collections::HashSet<_> = set2.iter().collect();
-    let intersection = set1_set.intersection(&set2_set).count();
-    let union = set1_set.union(&set2_set).count();
-    if union == 0 {
-        return 0.0;
-    }
-    intersection as f64 / union as f64
-}
 
 /// Find similar workflows — always returns empty (atomic_skills removed)
 async fn find_similar_workflows(

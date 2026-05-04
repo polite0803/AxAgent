@@ -84,8 +84,6 @@ import { ModelSelector } from "./ModelSelector";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { PromptTemplateSelector } from "./PromptTemplateSelector";
 import { VoiceCall } from "./VoiceCall";
-import WorkflowTemplateSelector from "./WorkflowTemplateSelector";
-import type { WorkflowTemplate } from "./WorkflowTemplateSelector";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
   return new Promise((resolve) => {

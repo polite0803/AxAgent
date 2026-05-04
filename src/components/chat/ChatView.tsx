@@ -1084,6 +1084,8 @@ function ChatViewInner() {
   const thinkingActiveMessageIds = useStreamStore((s) => s.thinkingActiveMessageIds);
   const storeError = useConversationStore((s) => s.error);
   const updateConversation = useConversationStore((s) => s.updateConversation);
+  const fetchConversation = useConversationStore((s) => s.fetchConversations);
+  const toggleArchive = useConversationStore((s) => s.toggleArchive);
   const titleGeneratingConversationId = useConversationStore((s) => s.titleGeneratingConversationId);
   const regenerateTitle = useConversationStore((s) => s.regenerateTitle);
   const loadOlderMessages = useConversationStore((s) => s.loadOlderMessages);
@@ -3063,16 +3065,16 @@ function ChatViewInner() {
                     session_type: "workflow",
                     workflow_template_id: templateId,
                   } as any);
-                  fetchConversation(activeConversation.id);
+                  fetchConversation();
                 }}
                 onRemoveWorkflow={() => {
                   void updateConversation(activeConversation.id, {
                     session_type: "conversation",
                     workflow_template_id: null,
                   } as any);
-                  fetchConversation(activeConversation.id);
+                  fetchConversation();
                 }}
-                disabled={isStreaming}
+                disabled={!!streamingMessageId}
               />
               <ExpertBadge
                 expertRoleId={activeConversation?.expert_role_id ?? null}
@@ -3280,7 +3282,7 @@ function ChatViewInner() {
                           session_type: "workflow",
                           workflow_template_id: templateId,
                         } as any);
-                        fetchConversation(activeConversation.id);
+                        fetchConversation();
                         useAgentStore.getState()
                           .setWorkflowMatchSuggestion(null);
                       }}

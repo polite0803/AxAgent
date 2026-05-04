@@ -88,7 +88,7 @@ export function WorkflowBadge({
         <WorkflowTemplateSelector
           open={selectorOpen}
           onClose={() => setSelectorOpen(false)}
-          onSelect={(template) => handleSelect(template.id)}
+          onSelect={(template) => handleSelect(template)}
         />
       </>
     );

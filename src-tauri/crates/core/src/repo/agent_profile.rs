@@ -4,7 +4,7 @@ use serde_json;
 use crate::entity::agent_profiles;
 use crate::error::{AxAgentError, Result};
 use crate::types::AgentProfile;
-use crate::utils::{gen_id, now_ts};
+use crate::utils::now_ts;
 
 fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
     let parse_json_arr = |raw: &Option<String>| -> Vec<String> {

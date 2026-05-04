@@ -1,5 +1,7 @@
+import { ExpertSelector } from "@/components/chat/ExpertSelector";
 import { ModelSelect } from "@/components/shared/ModelSelect";
-import { useAgentProfileStore, useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
+import { useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
+import { useExpertStore } from "@/stores/feature/expertStore";
 import { Button, Divider, Input, InputNumber, Select, Tag } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,9 +26,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     output_mode: "text" as OutputMode,
   };
 
-  const [profileSelectorOpen, setProfileSelectorOpen] = useState(false);
-  const getProfile = useAgentProfileStore((s) => s.getProfileById);
-  const selectedProfile = config.agentProfileId ? getProfile(config.agentProfileId) : undefined;
+  const [expertSelectorOpen, setExpertSelectorOpen] = useState(false);
+  const getExpert = useExpertStore((s) => s.getRoleById);
+  const selectedExpert = config.expertRoleId ? getExpert(config.expertRoleId) : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
@@ -105,10 +107,10 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Tag
                 closable
-                onClose={() => handleConfigChange("agentProfileId", undefined)}
+                onClose={() => handleConfigChange("expertRoleId", undefined)}
                 style={{ margin: 0, fontSize: 12, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}
               >
-                {selectedProfile.icon} {selectedProfile.name}
+                {selectedExpert.icon} {selectedExpert.displayName}
               </Tag>
             </div>
           )
@@ -117,12 +119,22 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
               size="small"
               type="dashed"
               block
-              onClick={() => setProfileSelectorOpen(true)}
+              onClick={() => setExpertSelectorOpen(true)}
             >
-              {t("workflow.props.selectProfile") || "选择能力集"}
+              {t("workflow.props.selectExpert") || "选择专家"}
             </Button>
           )}
       </div>
+
+      <ExpertSelector
+        open={expertSelectorOpen}
+        selectedRoleId={config.expertRoleId ?? null}
+        onSelect={(roleId) => {
+          handleConfigChange("expertRoleId", roleId);
+          setExpertSelectorOpen(false);
+        }}
+        onClose={() => setExpertSelectorOpen(false)}
+      />
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>

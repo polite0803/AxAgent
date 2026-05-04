@@ -643,7 +643,7 @@ pub async fn archive_workflow_session(
     feedback: Option<String>,
 ) -> Result<Conversation, String> {
     use axagent_core::entity::{conversations, workflow_template};
-    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+    use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
     let db = &state.sea_db;
 
@@ -669,7 +669,7 @@ pub async fn archive_workflow_session(
                 .await
                 .map_err(|e| e.to_string())?;
 
-            let execution_note = serde_json::json!({
+            let _execution_note = serde_json::json!({
                 "conversation_id": conversation_id,
                 "completed_at": axagent_core::utils::now_ts(),
                 "message_count": messages.len(),

@@ -278,6 +278,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
       setUpgradeModalState({
         visible: true,
+        existingSkill: bestMatch.existing_skill,
         generatedSkillName,
         generatedSkillDescription,
         nodeId,
@@ -754,6 +755,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       )}
 
       {upgradeModalState.visible && upgradeModalState.existingSkill && (
+        <SkillUpgradeModal
           open={upgradeModalState.visible}
           onClose={() => setUpgradeModalState((prev) => ({ ...prev, visible: false }))}
           existingSkill={upgradeModalState.existingSkill}
@@ -852,7 +854,7 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
       return { tool_name: "", input_mapping: {}, output_var: "" };
     case "code":
       return { language: "javascript", code: "", output_var: "" };
-    case "agent":
+    case "atomicSkill":
       return { skill_id: "", skill_name: "", entry_type: "builtin", input_mapping: {}, output_var: "" };
     case "end":
       return { output_var: "" };
@@ -930,10 +932,10 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
         type: "vectorRetrieve",
         config: { query: "", knowledge_base_id: "", top_k: 5, output_var: "" },
       };
-    case "agent":
+    case "atomicSkill":
       return {
         ...baseNode,
-        type: "agent",
+        type: "atomicSkill",
         config: { skill_id: "", skill_name: "", entry_type: "builtin", input_mapping: {}, output_var: "" },
       };
     case "end":

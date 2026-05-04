@@ -2,7 +2,7 @@ use crate::AppState;
 use axagent_core::repo::agent_profile;
 use axagent_core::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::State;
 
 #[derive(Debug, Serialize)]
