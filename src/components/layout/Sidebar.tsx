@@ -7,7 +7,7 @@ import { useSettingsStore, useSkillExtensionStore, useUserProfileStore } from "@
 import type { PageKey } from "@/types";
 import { Avatar, theme, Tooltip } from "antd";
 import { Database, MessageSquare, Router, Sparkles, User } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
@@ -32,7 +32,7 @@ function pathToPageKey(path: string): PageKey {
 }
 
 interface NavItem {
-  key: PageKey;
+  key: string;
   icon: React.ReactNode;
   labelKey: string;
   path: string;
@@ -69,11 +69,15 @@ const builtinNavItems: NavItem[] = [
     path: "/gateway",
     isPlugin: false,
   },
-  // 文件已集成到聊天页面的抽屉面板中
 ];
 
-const EXPANDED_WIDTH = 180;
-const COLLAPSED_WIDTH = 44;
+interface SidebarSection {
+  key: string;
+  labelKey: string;
+  items: NavItem[];
+}
+
+const SIDEBAR_WIDTH = 240;
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -85,12 +89,9 @@ export function Sidebar() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const resolvedAvatarSrc = useResolvedAvatarSrc(profile.avatarType, profile.avatarValue);
   const settings = useSettingsStore((s) => s.settings);
-  const [expanded, setExpanded] = useState(false);
-  const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skillNavItems = useSkillExtensionStore((s) => s.navItems);
 
-  const allNavItems = useMemo<NavItem[]>(() => {
+  const sections = useMemo<SidebarSection[]>(() => {
     const pluginItems: NavItem[] = [];
     for (const item of skillNavItems) {
       const IconComp = resolveIconComponent(item.icon);
@@ -104,29 +105,55 @@ export function Sidebar() {
       });
     }
 
-    const topItems = pluginItems.filter((i) => {
+    const topPlugins = pluginItems.filter((i) => {
       const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
       return (orig?.position ?? 1) === 0;
     });
-    const bottomItems = pluginItems.filter((i) => {
+    const bottomPlugins = pluginItems.filter((i) => {
       const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
       return (orig?.position ?? 1) !== 0;
     });
 
-    return [...topItems, ...builtinNavItems, ...bottomItems];
+    const sections: SidebarSection[] = [];
+
+    if (topPlugins.length > 0) {
+      sections.push({
+        key: "work",
+        labelKey: "sidebar.sectionWork",
+        items: [...topPlugins, ...builtinNavItems.filter((n) => n.key === "chat")],
+      });
+    } else {
+      sections.push({
+        key: "work",
+        labelKey: "sidebar.sectionWork",
+        items: [builtinNavItems.find((n) => n.key === "chat")!],
+      });
+    }
+
+    sections.push({
+      key: "tools",
+      labelKey: "sidebar.sectionTools",
+      items: builtinNavItems.filter((n) => n.key === "skills" || n.key === "knowledge"),
+    });
+
+    sections.push({
+      key: "infrastructure",
+      labelKey: "sidebar.sectionInfrastructure",
+      items: builtinNavItems.filter((n) => n.key === "gateway"),
+    });
+
+    if (bottomPlugins.length > 0) {
+      sections.push({
+        key: "plugins",
+        labelKey: "sidebar.sectionPlugins",
+        items: bottomPlugins,
+      });
+    }
+
+    return sections.filter((s) => s.items.length > 0);
   }, [skillNavItems]);
 
-  const handleMouseEnter = useCallback(() => {
-    if (leaveTimerRef.current) { clearTimeout(leaveTimerRef.current); }
-    enterTimerRef.current = setTimeout(() => setExpanded(true), 150);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    if (enterTimerRef.current) { clearTimeout(enterTimerRef.current); }
-    leaveTimerRef.current = setTimeout(() => setExpanded(false), 200);
-  }, []);
-
-  const NAV_SHORTCUT_MAP: Partial<Record<PageKey, ShortcutAction>> = {
+  const NAV_SHORTCUT_MAP: Partial<Record<string, ShortcutAction>> = {
     gateway: "toggleGateway",
   };
 
@@ -135,33 +162,33 @@ export function Sidebar() {
       ? location.pathname === item.path || location.pathname.startsWith(item.path + "/")
       : activePage === item.key;
     const label = item.isPlugin ? item.labelKey : t(item.labelKey);
-    const tooltipText = item.isPlugin
-      ? `${label} (${item.pluginName})`
-      : label;
-    const action = !item.isPlugin ? NAV_SHORTCUT_MAP[item.key] : undefined;
+    const tooltipText = item.isPlugin ? `${label} (${item.pluginName})` : label;
+    const action = !item.isPlugin && item.key in NAV_SHORTCUT_MAP
+      ? NAV_SHORTCUT_MAP[item.key]
+      : undefined;
     const shortcutLabel = action
       ? formatShortcutForDisplay(getShortcutBinding(settings, action))
       : "";
     const title = shortcutLabel ? `${tooltipText} (${shortcutLabel})` : tooltipText;
 
     return (
-      <Tooltip key={String(item.key)} title={expanded ? "" : title} placement="right">
+      <Tooltip key={item.key} title={title} placement="right">
         <div
           onClick={() => navigate(item.path)}
           className={isActive ? "ax-nav-item-active" : ""}
           style={{
             display: "flex",
             alignItems: "center",
-            height: 36,
+            height: 32,
             width: "100%",
             borderRadius: 6,
             cursor: "pointer",
             position: "relative",
             backgroundColor: isActive ? token.colorPrimaryBg : "transparent",
-            paddingLeft: 8,
-            paddingRight: 8,
+            paddingLeft: 12,
+            paddingRight: 12,
             gap: 10,
-            transition: "background-color 0.15s ease-in-out",
+            transition: "background-color 0.12s ease-in-out",
           }}
           onMouseEnter={(e) => {
             if (!isActive) {
@@ -181,17 +208,14 @@ export function Sidebar() {
           <span
             className="ax-nav-label"
             style={{
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: isActive ? 500 : 400,
               color: isActive ? token.colorPrimary : token.colorText,
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
             }}
           >
             {label}
           </span>
-          {shortcutLabel && expanded && (
+          {shortcutLabel && (
             <span style={{ marginLeft: "auto", fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 }}>
               {shortcutLabel}
             </span>
@@ -237,34 +261,38 @@ export function Sidebar() {
 
   return (
     <div
-      className={`ax-sidebar ${expanded ? "ax-sidebar-expanded" : ""}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className="ax-sidebar"
       style={{
         height: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
-        width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
-        padding: "8px 4px 12px",
+        width: SIDEBAR_WIDTH,
+        padding: "12px 8px 12px",
         overflow: "hidden",
       }}
     >
-      <nav className="flex flex-col gap-1" style={{ flexShrink: 0 }}>
-        {allNavItems.map(renderNavButton)}
+      <nav style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+        {sections.map((section) => (
+          <div key={section.key} style={{ marginBottom: 4 }}>
+            <div className="ax-sidebar-section-header">
+              {t(section.labelKey)}
+            </div>
+            {section.items.map(renderNavButton)}
+          </div>
+        ))}
       </nav>
 
       <div className="flex-1" />
 
-      {/* User Avatar */}
-      <Tooltip title={expanded ? "" : (profile.name || t("userProfile.title"))} placement="right">
+      <Tooltip title={profile.name || t("userProfile.title")} placement="right">
         <div
           onClick={() => setProfileModalOpen(true)}
           style={{
             display: "flex",
             alignItems: "center",
             gap: 8,
-            padding: "4px 6px",
+            padding: "6px 12px",
             borderRadius: 6,
             cursor: "pointer",
             flexShrink: 0,
@@ -280,11 +308,8 @@ export function Sidebar() {
           <span
             className="ax-nav-label"
             style={{
-              fontSize: 12,
+              fontSize: 13,
               color: token.colorTextSecondary,
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
             }}
           >
             {profile.name || t("userProfile.title")}

@@ -15,8 +15,18 @@
     "skills": "技能",
     "marketplace": "市场",
     "prompts": "提示词",
+    "devTools": "开发工具",
+    "workflow": "工作流",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "工作",
+    "sectionTools": "工具",
+    "sectionInfrastructure": "基础设施",
+    "sectionPlugins": "插件"
+  },
+
   "knowledge": {
     "commonPanel": "公共面板",
     "commonPanelDesc": "知识库和Wiki的共同操作",
@@ -374,7 +384,24 @@
       "upgradedName": "升级后名称",
       "inputSchema": "输入Schema",
       "outputSchema": "输出Schema",
-      "upgradeReasoning": "升级理由"
+      "upgradeReasoning": "升级理由",
+      "selectHint": "选择工作流",
+      "conversationMode": "对话模式",
+      "conversationModeDesc": "自由对话，无固定流程",
+      "unnamed": "工作流",
+      "completedTitle": "工作流执行完成",
+      "completedDesc": "\"{{name}}\" 已全部完成，共 {{total}} 个步骤，{{completed}} 个成功。",
+      "duration": "耗时",
+      "viewDetails": "查看步骤详情",
+      "archiveSession": "归档此会话",
+      "suggestionHint": "提示",
+      "suggestionDesc": "检测到你的需求与工作流 \"{{name}}\" 相似",
+      "suggestionReason": "使用工作流可以获得更结构化的多步骤执行",
+      "switchToWorkflow": "切换到此工作流",
+      "dismiss": "忽略",
+      "sessionCompletedHint": "此工作流已完成",
+      "archiveConfirmTitle": "归档工作流会话",
+      "archiveConfirmDesc": "是否将此执行结果作为案例记录到模板？"
     },
     "agentTaskList": {
       "title": "Agent 任务",

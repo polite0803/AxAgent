@@ -138,6 +138,14 @@ export interface Conversation {
   enabled_skill_ids: string[];
   /** Expert role identifier, references ExpertRole.id */
   expert_role_id?: string | null;
+  /** Agent profile identifier, references AgentProfile.id (supersedes expert_role_id) */
+  agent_profile_id?: string | null;
+  /** Workflow template ID bound to this conversation */
+  workflow_template_id?: string | null;
+  /** Session type: "conversation" = free dialog, "workflow" = bound to workflow template */
+  session_type: "conversation" | "workflow";
+  /** Workflow execution status: running / completed / failed / cancelled */
+  workflow_status?: string | null;
 }
 
 export interface ToolCall {
@@ -265,6 +273,10 @@ export interface UpdateConversationInput {
   scenario?: string | null;
   enabled_skill_ids?: string[];
   expert_role_id?: string | null;
+  agent_profile_id?: string | null;
+  workflow_template_id?: string | null;
+  session_type?: "conversation" | "workflow";
+  workflow_status?: string | null;
 }
 
 // === Gateway System ===

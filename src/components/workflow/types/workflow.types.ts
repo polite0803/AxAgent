@@ -71,7 +71,15 @@ export interface EventTriggerConfig {
   filter?: unknown;
 }
 
-export type AgentRole = "researcher" | "planner" | "developer" | "reviewer" | "synthesizer" | "executor";
+export type AgentRole =
+  | "researcher"
+  | "planner"
+  | "developer"
+  | "reviewer"
+  | "synthesizer"
+  | "executor"
+  | "coordinator"
+  | "browser";
 
 export type OutputMode = "json" | "text" | "artifact";
 
@@ -85,8 +93,10 @@ export interface AgentNodeConfig {
   max_tokens?: number;
   tools: string[];
   output_mode: OutputMode;
-  /** Expert role ID from  or built-in presets */
+  /** Expert role ID from agency_experts or built-in presets (deprecated, use agentProfileId) */
   expertRoleId?: string;
+  /** Agent profile ID from agent_profiles table (unified ExpertRole + AgentRole) */
+  agentProfileId?: string;
 }
 
 export interface AgentNode extends WorkflowNodeBase {

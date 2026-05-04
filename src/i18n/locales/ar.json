@@ -15,8 +15,18 @@
     "marketplace": "السوق",
     "prompts": "القوالب",
     "link": "الرابط",
+    "devTools": "أدوات المطور",
+    "workflow": "سير العمل",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "العمل",
+    "sectionTools": "الأدوات",
+    "sectionInfrastructure": "البنية التحتية",
+    "sectionPlugins": "الإضافات"
+  },
+
   "chat": {
     "newConversation": "محادثة جديدة",
     "searchPlaceholder": "البحث في المحادثات...",

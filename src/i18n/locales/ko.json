@@ -15,8 +15,18 @@
     "marketplace": "마켓플레이스",
     "prompts": "템플릿",
     "link": "링크",
+    "devTools": "개발 도구",
+    "workflow": "워크플로우",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "작업",
+    "sectionTools": "도구",
+    "sectionInfrastructure": "인프라",
+    "sectionPlugins": "플러그인"
+  },
+
   "chat": {
     "newConversation": "새 대화",
     "searchPlaceholder": "대화 검색...",

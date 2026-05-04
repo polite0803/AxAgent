@@ -1,7 +1,7 @@
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { useEffect, useState } from "react";
 
-const DARK_PRESETS: Set<string> = new Set(["dark-elegance", "dark-neon"]);
+const DARK_PRESETS: Set<string> = new Set(["dark-elegance", "dark-neon", "paperclip-dark"]);
 
 export function useResolvedDarkMode(themeMode: string, themePreset?: ThemePreset): boolean {
   const [systemDark, setSystemDark] = useState(

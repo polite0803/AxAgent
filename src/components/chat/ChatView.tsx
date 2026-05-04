@@ -121,6 +121,8 @@ import { PermissionModal } from "./PermissionModal";
 import { QuickCommandBar } from "./QuickCommandBar";
 import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
+import { WorkflowBadge } from "./WorkflowBadge";
+import { WorkflowEndMarker } from "./WorkflowEndMarker";
 
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { invoke } from "@/lib/invoke";
@@ -3051,6 +3053,26 @@ function ChatViewInner() {
                   </Typography.Text>
                 )}
 
+              <WorkflowBadge
+                sessionType={activeConversation?.session_type ?? "conversation"}
+                workflowTemplateId={activeConversation?.workflow_template_id}
+                workflowStatus={activeConversation?.workflow_status}
+                onSelectWorkflow={(templateId) => {
+                  void updateConversation(activeConversation.id, {
+                    session_type: "workflow",
+                    workflow_template_id: templateId,
+                  } as any);
+                  fetchConversation(activeConversation.id);
+                }}
+                onRemoveWorkflow={() => {
+                  void updateConversation(activeConversation.id, {
+                    session_type: "conversation",
+                    workflow_template_id: null,
+                  } as any);
+                  fetchConversation(activeConversation.id);
+                }}
+                disabled={isStreaming}
+              />
               <ExpertBadge
                 expertRoleId={activeConversation?.expert_role_id ?? null}
                 onClick={() => setExpertOpen(true)}
@@ -3225,6 +3247,19 @@ function ChatViewInner() {
                   overflowX: "hidden",
                 }}
               />
+              {activeConversation?.session_type === "workflow"
+                && activeConversation?.workflow_status === "completed"
+                && (
+                  <WorkflowEndMarker
+                    workflowName={activeConversation.workflow_template_id ?? "工作流"}
+                    stepCount={0}
+                    completedCount={0}
+                    durationSeconds={0}
+                    onArchive={() => {
+                      void toggleArchive(activeConversation.id);
+                    }}
+                  />
+                )}
               <ChatScrollIndicator />
               <MinimapScrollProvider scrollTo={minimapScrollTo} scrollBoxRef={scrollBoxRef}>
                 <ChatMinimap />

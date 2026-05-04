@@ -1,6 +1,6 @@
 [data-component="sub-agent-card"] {
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border-weak, #e8e8e8);
   background: color-mix(in srgb, var(--background-base, #fff) 94%, transparent);
   margin: 8px 0;

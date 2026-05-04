@@ -241,6 +241,9 @@ pub struct Conversation {
     pub scenario: Option<String>,
     pub enabled_skill_ids: Vec<String>,
     pub expert_role_id: Option<String>,
+    pub workflow_template_id: Option<String>,
+    pub session_type: String,
+    pub workflow_status: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -399,6 +402,10 @@ pub struct UpdateConversationInput {
     pub enabled_skill_ids: Option<Vec<String>>,
     #[serde(default, deserialize_with = "deserialize_double_option")]
     pub expert_role_id: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    pub workflow_template_id: Option<Option<String>>,
+    pub session_type: Option<String>,
+    pub workflow_status: Option<Option<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2177,4 +2184,68 @@ pub struct PromptTemplateVersion {
     pub variables_schema: Option<String>,
     pub changelog: Option<String>,
     pub created_at: i64,
+}
+
+// === Agent Profile ===
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentProfile {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub category: String,
+    pub icon: String,
+    pub system_prompt: String,
+    pub agent_role: Option<String>,
+    pub source: String,
+    pub tags: Vec<String>,
+    pub suggested_provider_id: Option<String>,
+    pub suggested_model_id: Option<String>,
+    pub suggested_temperature: Option<f64>,
+    pub suggested_max_tokens: Option<u32>,
+    pub search_enabled: Option<bool>,
+    pub recommend_permission_mode: Option<String>,
+    pub recommended_tools: Vec<String>,
+    pub disallowed_tools: Vec<String>,
+    pub recommended_workflows: Vec<String>,
+    pub sort_order: i32,
+    pub is_enabled: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CreateAgentProfileInput {
+    pub name: String,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub icon: Option<String>,
+    pub system_prompt: Option<String>,
+    pub agent_role: Option<String>,
+    pub source: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub suggested_provider_id: Option<String>,
+    pub suggested_model_id: Option<String>,
+    pub suggested_temperature: Option<f64>,
+    pub suggested_max_tokens: Option<u32>,
+    pub search_enabled: Option<bool>,
+    pub recommend_permission_mode: Option<String>,
+    pub recommended_tools: Option<Vec<String>>,
+    pub disallowed_tools: Option<Vec<String>>,
+    pub recommended_workflows: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateAgentProfileInput {
+    pub name: Option<String>,
+    pub description: Option<Option<String>>,
+    pub category: Option<String>,
+    pub icon: Option<String>,
+    pub system_prompt: Option<String>,
+    pub agent_role: Option<Option<String>>,
+    pub tags: Option<Vec<String>>,
+    pub is_enabled: Option<bool>,
 }

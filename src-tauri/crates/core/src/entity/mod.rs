@@ -54,6 +54,7 @@ pub mod workflow_template_version;
 pub mod prompt_template;
 pub mod prompt_template_version;
 
+pub mod agent_profiles;
 pub mod agent_sessions;
 
 // Wave 3: Atomic Skill & Work Engine entities

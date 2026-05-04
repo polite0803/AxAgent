@@ -21,7 +21,7 @@ function setValueByPath(obj, path, value) {
   const parts = path.split(".");
   let cur = obj;
   for (let i = 0; i < parts.length - 1; i++) {
-    if (!cur[parts[i]] || typeof cur[parts[i]] !== "object") cur[parts[i]] = {};
+    if (!cur[parts[i]] || typeof cur[parts[i]] !== "object") { cur[parts[i]] = {}; }
     cur = cur[parts[i]];
   }
   cur[parts[parts.length - 1]] = value;
@@ -30,7 +30,7 @@ function getValueByPath(obj, path) {
   const parts = path.split(".");
   let cur = obj;
   for (const p of parts) {
-    if (cur == null || typeof cur !== "object") return undefined;
+    if (cur == null || typeof cur !== "object") { return undefined; }
     cur = cur[p];
   }
   return cur;
@@ -90,7 +90,7 @@ console.log("zh-CN: +" + Object.keys(zhCNMissing).length + " keys added");
 
 // ── Step 3: 构建全集 ──
 const allKeys = new Set();
-for (const l of langs) getAllKeys(data[l]).forEach(k => allKeys.add(k));
+for (const l of langs) { getAllKeys(data[l]).forEach(k => allKeys.add(k)); }
 console.log("Complete key set: " + allKeys.size + " keys");
 
 // ── Step 4: 为每种语言补全缺失 key ──
@@ -98,20 +98,24 @@ console.log("Complete key set: " + allKeys.size + " keys");
 const lookupOrder = ["en-US", "zh-TW", "ja", "ko", "de", "fr", "es", "zh-CN"];
 
 for (const lang of langs) {
-  if (lang === "zh-CN") continue; // zh-CN already complete now
+  if (lang === "zh-CN") { continue; // zh-CN already complete now
+   }
 
   const langKeys = new Set(getAllKeys(data[lang]));
   const missing = [...allKeys].filter(k => !langKeys.has(k));
-  if (missing.length === 0) { console.log(lang + ": already complete"); continue; }
+  if (missing.length === 0) {
+    console.log(lang + ": already complete");
+    continue;
+  }
 
   let filled = 0;
   for (const key of missing) {
     // Try lookup order
     let val = undefined;
     for (const src of lookupOrder) {
-      if (src === lang) continue;
+      if (src === lang) { continue; }
       val = getValueByPath(data[src], key);
-      if (val !== undefined) break;
+      if (val !== undefined) { break; }
     }
     if (val !== undefined) {
       setValueByPath(data[lang], key, val);

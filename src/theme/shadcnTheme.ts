@@ -2,7 +2,13 @@ import { theme } from "antd";
 import type { ThemeConfig } from "antd";
 import { useMemo } from "react";
 
-export type ThemePreset = "dark-elegance" | "dark-neon" | "light-professional" | "light-minimal";
+export type ThemePreset =
+  | "dark-elegance"
+  | "dark-neon"
+  | "light-professional"
+  | "light-minimal"
+  | "paperclip-dark"
+  | "paperclip-light";
 
 interface PresetColors {
   bgBase: string;
@@ -12,7 +18,7 @@ interface PresetColors {
   textSecondary: string;
   primaryColor: string;
   borderRadiusBias: number;
-  shadowStyle: "soft-dark" | "glow" | "soft-light" | "none";
+  shadowStyle: "soft-dark" | "glow" | "soft-light" | "none" | "border-only";
 }
 
 const PRESETS: Record<ThemePreset, PresetColors> = {
@@ -56,6 +62,26 @@ const PRESETS: Record<ThemePreset, PresetColors> = {
     borderRadiusBias: 4,
     shadowStyle: "none",
   },
+  "paperclip-dark": {
+    bgBase: "#18181b",
+    bgElevated: "#27272a",
+    borderColor: "#3f3f46",
+    textPrimary: "rgba(250,250,250,0.95)",
+    textSecondary: "rgba(161,161,170,0.85)",
+    primaryColor: "#a1a1aa",
+    borderRadiusBias: 0,
+    shadowStyle: "border-only",
+  },
+  "paperclip-light": {
+    bgBase: "#fafafa",
+    bgElevated: "#ffffff",
+    borderColor: "#e4e4e7",
+    textPrimary: "rgba(24,24,27,0.92)",
+    textSecondary: "rgba(113,113,122,0.85)",
+    primaryColor: "#71717a",
+    borderRadiusBias: 0,
+    shadowStyle: "border-only",
+  },
 };
 
 const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
@@ -63,6 +89,8 @@ const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
   "dark-neon": true,
   "light-professional": false,
   "light-minimal": false,
+  "paperclip-dark": true,
+  "paperclip-light": false,
 };
 
 function resolveShadow(preset: PresetColors): { boxShadow: string; boxShadowSecondary: string } {
@@ -84,6 +112,11 @@ function resolveShadow(preset: PresetColors): { boxShadow: string; boxShadowSeco
       };
     case "none":
       return { boxShadow: "none", boxShadowSecondary: "none" };
+    case "border-only":
+      return {
+        boxShadow: "0 1px 2px 0 rgba(0,0,0,0.1)",
+        boxShadowSecondary: "0 1px 3px 0 rgba(0,0,0,0.06)",
+      };
   }
 }
 
@@ -165,7 +198,7 @@ export function useShadcnTheme(
           optionSelectedFontWeight: 500,
         },
         Modal: {
-          borderRadiusLG: Math.max(radiusLG, 8),
+          borderRadiusLG: Math.min(Math.max(radiusLG, 4), 8),
         },
         Slider: {
           handleSize: 8,

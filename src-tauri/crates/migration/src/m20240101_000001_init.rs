@@ -89,6 +89,9 @@ enum Conversations {
     Scenario,
     EnabledSkillIds,
     ExpertRoleId,
+    WorkflowTemplateId,
+    SessionType,
+    WorkflowStatus,
 }
 
 #[derive(DeriveIden)]
@@ -680,6 +683,33 @@ enum AgencyExperts {
 }
 
 #[derive(DeriveIden)]
+enum AgentProfiles {
+    Table,
+    Id,
+    Name,
+    Description,
+    Category,
+    Icon,
+    SystemPrompt,
+    AgentRole,
+    Source,
+    Tags,
+    SuggestedProviderId,
+    SuggestedModelId,
+    SuggestedTemperature,
+    SuggestedMaxTokens,
+    SearchEnabled,
+    RecommendPermissionMode,
+    RecommendedTools,
+    DisallowedTools,
+    RecommendedWorkflows,
+    SortOrder,
+    IsEnabled,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
 enum SemanticCache {
     Table,
     Id,
@@ -991,6 +1021,22 @@ impl MigrationTrait for Migration {
                             .default("[]"),
                     )
                     .col(ColumnDef::new(Conversations::ExpertRoleId).string().null())
+                    .col(
+                        ColumnDef::new(Conversations::WorkflowTemplateId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(Conversations::SessionType)
+                            .string()
+                            .not_null()
+                            .default("conversation"),
+                    )
+                    .col(
+                        ColumnDef::new(Conversations::WorkflowStatus)
+                            .string()
+                            .null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -3349,7 +3395,176 @@ impl MigrationTrait for Migration {
             .ok();
 
         // =================================================================
-        // 37. Semantic Cache
+        // 37. Agent Profiles (融合 ExpertRole + AgentRole 的智能体能力集)
+        // =================================================================
+        manager
+            .create_table(
+                Table::create()
+                    .table(AgentProfiles::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(AgentProfiles::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(AgentProfiles::Name).string().not_null())
+                    .col(ColumnDef::new(AgentProfiles::Description).string().null())
+                    .col(
+                        ColumnDef::new(AgentProfiles::Category)
+                            .string()
+                            .not_null()
+                            .default("general"),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::Icon)
+                            .string()
+                            .not_null()
+                            .default("🤖"),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::SystemPrompt)
+                            .string()
+                            .not_null()
+                            .default(""),
+                    )
+                    .col(ColumnDef::new(AgentProfiles::AgentRole).string().null())
+                    .col(
+                        ColumnDef::new(AgentProfiles::Source)
+                            .string()
+                            .not_null()
+                            .default("builtin"),
+                    )
+                    .col(ColumnDef::new(AgentProfiles::Tags).string().null())
+                    .col(
+                        ColumnDef::new(AgentProfiles::SuggestedProviderId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::SuggestedModelId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::SuggestedTemperature)
+                            .double()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::SuggestedMaxTokens)
+                            .big_integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::SearchEnabled)
+                            .boolean()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::RecommendPermissionMode)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::RecommendedTools)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::DisallowedTools)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::RecommendedWorkflows)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::SortOrder)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::IsEnabled)
+                            .integer()
+                            .not_null()
+                            .default(1),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AgentProfiles::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // Seed built-in agent profiles (12 presets: General, CodeReviewer, Developer, etc.)
+        {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as i64;
+
+            let builtin_profiles: Vec<(
+                &str, &str, &str, &str, &str, &str, Option<&str>, &str,
+            )> = vec![
+                ("general-assistant", "通用助手", "全能型 AI 助手", "general", "🤖", "", Some("coordinator"), "builtin"),
+                ("code-reviewer", "代码审查专家", "专注代码审查和安全", "development", "🔍", "你是一位代码审查专家。仔细审查代码的正确性、安全性、性能和可维护性。检查潜在的 bug、安全漏洞、不良实践和代码异味。提供具体、可操作的改进建议。", Some("reviewer"), "builtin"),
+                ("senior-developer", "高级开发工程师", "精通多语言，负责核心功能开发", "development", "⚡", "你是一位高级开发工程师。精通多种编程语言和框架。编写清晰、高效、可维护的代码。遵循最佳实践和设计模式。在实现新功能时考虑边界情况和错误处理。", Some("developer"), "builtin"),
+                ("security-auditor", "安全审计专家", "负责安全检查与审计", "security", "🛡️", "你是一位安全审计专家。审查代码和系统配置的安全漏洞。关注 OWASP Top 10、注入攻击、认证缺陷、敏感数据泄露等问题。提供安全加固建议。", Some("reviewer"), "builtin"),
+                ("data-analyst", "数据分析师", "负责数据分析和洞察", "data", "📊", "你是一位数据分析师。擅长使用统计方法和数据可视化工具分析数据。从数据中提取有意义的模式、趋势和洞察。清晰地呈现分析结果和结论。", Some("researcher"), "builtin"),
+                ("sql-expert", "SQL 专家", "精通 SQL 查询和数据库设计", "data", "🗄️", "你是一位 SQL 专家。精通 SQL 查询优化、数据库设计和数据建模。编写高效、安全的 SQL 查询。考虑索引策略、查询计划和并发控制。", Some("researcher"), "builtin"),
+                ("devops-engineer", "DevOps 工程师", "负责 CI/CD 和运维自动化", "devops", "🚀", "你是一位 DevOps 工程师。负责 CI/CD 流水线、基础设施即代码、容器化和监控。编写可靠的部署脚本和配置管理。重视自动化和可重复性。", Some("executor"), "builtin"),
+                ("tech-writer", "技术文档专家", "撰写技术文档和使用手册", "writing", "📝", "你是一位技术文档专家。撰写清晰、准确、易于理解的技术文档。将复杂的技术概念转化为通俗易懂的描述。组织文档结构使其易于导航和搜索。", Some("synthesizer"), "builtin"),
+                ("product-manager", "产品经理", "负责产品规划和需求分析", "business", "🎯", "你是一位产品经理。负责产品规划和需求分析。从用户角度思考问题，定义产品功能和优先级。平衡技术可行性和业务需求。", Some("coordinator"), "builtin"),
+                ("architect", "系统架构师", "负责系统架构设计和技术选型", "development", "🏗️", "你是一位系统架构师。负责系统架构设计、技术选型和架构评审。考虑可扩展性、可靠性、性能和成本。设计清晰的模块边界和接口契约。", Some("planner"), "builtin"),
+                ("debug-expert", "调试专家", "专业的 bug 排查和问题分析", "development", "🐛", "你是一位调试专家。系统性地分析 bug 报告和错误日志。使用科学方法定位问题根因。考虑多层依赖关系。验证修复方案并确保不引入新问题。", Some("developer"), "builtin"),
+                ("translator", "翻译专家", "专业的多语言翻译服务", "writing", "🌐", "你是一位翻译专家。精通多种语言的翻译。准确传达原文的含义和语气。注意文化差异和上下文。保持翻译的自然流畅。", Some("synthesizer"), "builtin"),
+            ];
+
+            for (id, name, desc, cat, icon, prompt, role, src) in &builtin_profiles {
+                let exists = db
+                    .query_one(sea_orm::Statement::from_sql_and_values(
+                        sea_orm::DatabaseBackend::Sqlite,
+                        "SELECT id FROM agent_profiles WHERE id = ?",
+                        vec![(*id).into()],
+                    ))
+                    .await
+                    .map(|r| r.is_some())
+                    .unwrap_or(false);
+
+                if !exists {
+                    db.execute(sea_orm::Statement::from_sql_and_values(
+                        sea_orm::DatabaseBackend::Sqlite,
+                        "INSERT INTO agent_profiles (id, name, description, category, icon, system_prompt, agent_role, source, sort_order, is_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)",
+                        vec![
+                            (*id).into(),
+                            (*name).into(),
+                            (*desc).into(),
+                            (*cat).into(),
+                            (*icon).into(),
+                            (*prompt).into(),
+                            (*role).into(),
+                            (*src).into(),
+                            now.into(),
+                            now.into(),
+                        ],
+                    )).await.ok();
+                }
+            }
+        }
+
+        // =================================================================
+        // 38. Semantic Cache
         // =================================================================
         manager
             .create_table(
@@ -3477,6 +3692,7 @@ impl MigrationTrait for Migration {
         drop_tbl!(Messages::Table);
         drop_tbl!(Plans::Table);
         drop_tbl!(AgencyExperts::Table);
+        drop_tbl!(AgentProfiles::Table);
         drop_tbl!(Conversations::Table);
         drop_tbl!(Models::Table);
         drop_tbl!(ProviderKeys::Table);

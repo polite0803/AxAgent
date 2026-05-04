@@ -4,13 +4,13 @@
 
 /* ── Base — dark-first defaults, overridden by JS on startup ──────── */
 :root {
-  --border-color: #2a2a2a;
-  --color-bg-container: #141414;
-  --color-bg-elevated: #1a1a1a;
-  --color-text: rgba(255, 255, 255, 0.85);
-  --color-text-secondary: rgba(255, 255, 255, 0.45);
-  --color-primary: #1677ff;
-  --color-fill-alter: rgba(255, 255, 255, 0.04);
+  --border-color: #3f3f46;
+  --color-bg-container: #18181b;
+  --color-bg-elevated: #27272a;
+  --color-text: rgba(250, 250, 250, 0.95);
+  --color-text-secondary: rgba(161, 161, 170, 0.85);
+  --color-primary: #a1a1aa;
+  --color-fill-alter: rgba(255, 255, 255, 0.03);
   --font-size-base: 14px;
 }
 
@@ -48,11 +48,11 @@ button,
 
 /* Page enter: fade + slight slide */
 @keyframes ax-page-enter {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .ax-page-transition {
-  animation: ax-page-enter 0.18s ease-out;
+  animation: ax-page-enter 0.12s ease-out;
 }
 
 /* Message slide-up (applied by ChatView) */
@@ -66,7 +66,7 @@ button:active:not(:disabled) {
   transform: scale(0.97);
 }
 button {
-  transition: transform 0.08s ease-out, background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+  transition: transform 0.06s ease-out, background-color 0.12s ease-in-out, color 0.12s ease-in-out;
 }
 
 /* Skeleton shimmer */
@@ -83,7 +83,7 @@ button {
   );
   background-size: 200% 100%;
   animation: ax-shimmer 1.5s ease-in-out infinite;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 /* Subtle card lift on hover */
@@ -94,24 +94,17 @@ button {
   transform: translateY(-1px);
 }
 
-/* ── Sidebar: hover expand ────────────────────────────────────────── */
+/* ── Sidebar: fixed-width Linear-style ────────────────────────────── */
 .ax-sidebar {
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
-/* When expanded (width > icon-only), show text */
-.ax-sidebar .ax-nav-label {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: opacity 0.1s ease, width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.ax-sidebar-expanded .ax-nav-label,
-.ax-sidebar:hover .ax-nav-label {
+.ax-nav-label {
   opacity: 1;
   width: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Active nav indicator (left bar) */
@@ -123,11 +116,23 @@ button {
   width: 3px;
   height: 0;
   border-radius: 0 3px 3px 0;
-  background: var(--color-primary, #1677ff);
-  transition: height 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--color-primary, #a1a1aa);
+  transition: height 0.12s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .ax-nav-item-active .ax-nav-indicator {
   height: 24px;
+}
+
+/* Sidebar section group header */
+.ax-sidebar-section-header {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 12px 12px 4px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ── TitleBar: compact mode ───────────────────────────────────────── */
@@ -168,7 +173,7 @@ code,
 
 .mermaid-block,
 .d2-block {
-  border-radius: 8px !important;
+  border-radius: 6px !important;
 }
 
 /* Mermaid block — use antd theme tokens instead of Tailwind defaults */
@@ -216,7 +221,7 @@ code,
   background: var(--color-bg-container) !important;
   color: var(--color-text) !important;
   border-color: var(--border-color) !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
 }
 
 .infographic-block-header {
@@ -247,7 +252,7 @@ code,
 }
 
 .code-block-container {
-  border-radius: 8px !important;
+  border-radius: 6px !important;
 }
 
 .code-editor-container {

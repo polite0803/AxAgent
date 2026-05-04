@@ -15,8 +15,18 @@
     "marketplace": "मार्केटप्लेस",
     "prompts": "टेम्पलेट",
     "link": "लिंक",
+    "devTools": "डेव टूल्स",
+    "workflow": "वर्कफ़्लो",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "कार्य",
+    "sectionTools": "उपकरण",
+    "sectionInfrastructure": "बुनियादी ढांचा",
+    "sectionPlugins": "प्लगइन"
+  },
+
   "chat": {
     "newConversation": "नई बातचीत",
     "searchPlaceholder": "बातचीत खोजें...",

@@ -6,9 +6,9 @@ import { create } from "zustand";
 const DEFAULT_SETTINGS: AppSettings = {
   language: "zh-CN",
   theme_mode: "dark",
-  theme_preset: "dark-elegance",
+  theme_preset: "paperclip-dark",
   primary_color: "#17A93D",
-  border_radius: 8,
+  border_radius: 6,
   auto_start: false,
   show_on_start: true,
   minimize_to_tray: true,

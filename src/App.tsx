@@ -1,3 +1,4 @@
+import { AppHeader } from "@/components/layout/AppHeader";
 import CommandPalette from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
 import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
@@ -150,6 +151,7 @@ function AppInner() {
         <>
           <SkillPanels />
           <TitleBar />
+          <AppHeader />
           <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
           <GlobalCopyMenu />
           <Layout

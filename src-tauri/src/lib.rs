@@ -649,6 +649,12 @@ pub fn run() {
             commands::agency_expert::update_agency_expert,
             commands::agency_expert::delete_agency_expert,
             commands::agency_expert::export_agency_experts,
+            commands::agent_profile::list_agent_profiles,
+            commands::agent_profile::get_agent_profile,
+            commands::agent_profile::create_agent_profile,
+            commands::agent_profile::update_agent_profile,
+            commands::agent_profile::delete_agent_profile,
+            commands::agent_profile::import_agent_profiles_from_agency,
             // Plugin commands
             commands::plugin::list_plugin_tools,
             commands::plugin::plugin_enable,

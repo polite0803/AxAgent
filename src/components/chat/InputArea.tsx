@@ -162,7 +162,6 @@ export function InputArea() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelRoutingOpen, setModelRoutingOpen] = useState(false);
-  const [workflowOpen, setWorkflowOpen] = useState(false);
   const [expertOpen, setExpertOpen] = useState(false);
   const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
@@ -2259,9 +2258,6 @@ export function InputArea() {
                     onClick={() => setModelRoutingOpen(true)}
                   />
                 </Tooltip>
-                <Tooltip title={t("chat.workflowTemplates")}>
-                  <Button type="text" size="small" icon={<Zap size={14} />} onClick={() => setWorkflowOpen(true)} />
-                </Tooltip>
               </>
             )}
             {hasRealtimeVoice && (
@@ -2296,7 +2292,18 @@ export function InputArea() {
                   aria-label={t("chat.sendMessage", "发送消息")}
                   icon={<ArrowUp size={14} />}
                   onClick={handleSend}
-                  disabled={!value.trim() || streaming}
+                  disabled={
+                    !value.trim()
+                    || streaming
+                    || (activeConversation?.session_type === "workflow"
+                      && activeConversation?.workflow_status === "completed")
+                  }
+                  title={
+                    activeConversation?.session_type === "workflow"
+                    && activeConversation?.workflow_status === "completed"
+                      ? t("chat.workflow.sessionCompletedHint")
+                      : undefined
+                  }
                 />
               )}
           </div>
@@ -2411,40 +2418,6 @@ export function InputArea() {
           conversationId={activeConversationId}
           open={modelRoutingOpen}
           onClose={() => setModelRoutingOpen(false)}
-        />
-      )}
-
-      {currentMode === "agent" && (
-        <WorkflowTemplateSelector
-          open={workflowOpen}
-          onClose={() => setWorkflowOpen(false)}
-          scenario={activeConversation?.scenario}
-          expertCategory={(() => {
-            if (!activeConversation?.expert_role_id) { return null; }
-            return useExpertStore.getState().getRoleById(activeConversation.expert_role_id)?.category ?? null;
-          })()}
-          onSelect={(template: WorkflowTemplate, workflowId?: string) => {
-            setWorkflowOpen(false);
-            // Set the template's system prompt and initial message
-            setValue(template.initialMessage);
-            // Store the system prompt for the next agent query
-            localStorage.setItem(
-              `axagent:workflow-prompt:${activeConversationId}`,
-              template.systemPrompt,
-            );
-            // Store permission mode
-            localStorage.setItem(
-              `axagent:workflow-permission:${activeConversationId}`,
-              template.permissionMode,
-            );
-            // Store workflow ID if a backend workflow was created
-            if (workflowId) {
-              localStorage.setItem(
-                `axagent:workflow-id:${activeConversationId}`,
-                workflowId,
-              );
-            }
-          }}
         />
       )}
 

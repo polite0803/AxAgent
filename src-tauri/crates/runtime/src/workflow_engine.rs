@@ -241,6 +241,10 @@ pub struct WorkflowStep {
     /// Circuit breaker state for this step (P4-1).
     #[serde(default)]
     pub circuit_breaker: CircuitBreaker,
+    /// Agent profile ID for this step. Loads system_prompt + agent_role + tools
+    /// from agent_profiles table. Supersedes expert_role_id.
+    #[serde(default)]
+    pub agent_profile_id: Option<String>,
     /// Skill ID to execute directly without LLM. If set, this step is a skill call.
     #[serde(default)]
     pub skill_id: Option<String>,

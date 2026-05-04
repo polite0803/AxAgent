@@ -37,6 +37,9 @@ fn conversation_from_entity(m: conversations::Model) -> Conversation {
         scenario: m.scenario,
         enabled_skill_ids: parse_string_list(&m.enabled_skill_ids),
         expert_role_id: m.expert_role_id,
+        workflow_template_id: m.workflow_template_id,
+        session_type: m.session_type,
+        workflow_status: m.workflow_status,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -195,6 +198,15 @@ pub async fn update_conversation(
     }
     if let Some(expert_role_id) = input.expert_role_id {
         am.expert_role_id = Set(expert_role_id);
+    }
+    if let Some(workflow_template_id) = input.workflow_template_id {
+        am.workflow_template_id = Set(workflow_template_id);
+    }
+    if let Some(session_type) = input.session_type {
+        am.session_type = Set(session_type);
+    }
+    if let Some(workflow_status) = input.workflow_status {
+        am.workflow_status = Set(workflow_status);
     }
     am.updated_at = Set(now);
     am.update(db).await?;
@@ -491,6 +503,10 @@ pub async fn branch_conversation(
         category_id: Set(source.category_id.clone()),
         parent_conversation_id: Set(parent_id),
         research_mode: Set(source.research_mode),
+        enabled_skill_ids: Set(source.enabled_skill_ids.clone()),
+        expert_role_id: Set(source.expert_role_id.clone()),
+        workflow_template_id: Set(source.workflow_template_id.clone()),
+        mode: Set(source.mode.clone()),
         created_at: Set(now),
         updated_at: Set(now),
         ..Default::default()

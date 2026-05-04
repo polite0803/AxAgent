@@ -397,6 +397,11 @@ pub struct AgentQueryRequest {
     /// system_prompt takes precedence over the request-level system_prompt.
     #[serde(rename = "expertRoleId")]
     pub expert_role_id: Option<String>,
+    /// Agent profile ID from the agent_profiles table. When set, the profile
+    /// provides system_prompt, agent_role, and tool recommendations in a
+    /// unified way. Takes precedence over expert_role_id.
+    #[serde(rename = "agentProfileId")]
+    pub agent_profile_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -523,25 +528,46 @@ pub async fn agent_query(
     let conversation_scenario = conversation.scenario.clone();
     let enabled_skill_ids = conversation.enabled_skill_ids.clone();
 
-    // Resolve expert system prompt: request.expert_role_id takes precedence
-    let effective_system_prompt = if let Some(ref expert_id) = request.expert_role_id {
-        if let Ok(Some(expert)) =
-            axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
-                .one(&app_state.sea_db)
-                .await
-                .map_err(|e| e.to_string())
-        {
-            if !expert.system_prompt.is_empty() {
-                Some(expert.system_prompt)
-            } else {
-                request.system_prompt.clone()
+    // Resolve system prompt, agent_role, and tool config from agent_profile_id (preferred)
+    // or expert_role_id (legacy fallback). agent_profile_id unifies ExpertRole + AgentRole.
+    let mut effective_system_prompt = None;
+    let mut effective_agent_role: Option<axagent_runtime::agent_roles::AgentRole> = None;
+    let mut profile_recommended_tools: Vec<String> = Vec::new();
+    let mut profile_disallowed_tools: Vec<String> = Vec::new();
+
+    if let Some(ref profile_id) = request.agent_profile_id {
+        match axagent_core::repo::agent_profile::get_agent_profile(
+            &app_state.sea_db, profile_id,
+        ).await {
+            Ok(profile) => {
+                if !profile.system_prompt.is_empty() {
+                    effective_system_prompt = Some(profile.system_prompt);
+                }
+                effective_agent_role = profile.agent_role
+                    .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r));
+                profile_recommended_tools = profile.recommended_tools;
+                profile_disallowed_tools = profile.disallowed_tools;
             }
-        } else {
-            request.system_prompt.clone()
+            Err(_) => {}
         }
-    } else {
-        request.system_prompt.clone()
-    };
+    }
+
+    // Legacy fallback: expert_role_id from agency_experts table
+    if effective_system_prompt.is_none() {
+        if let Some(ref expert_id) = request.expert_role_id {
+            if let Ok(Some(expert)) = axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                .one(&app_state.sea_db).await.map_err(|e| e.to_string()) {
+                if !expert.system_prompt.is_empty() {
+                    effective_system_prompt = Some(expert.system_prompt);
+                }
+            }
+        }
+    }
+
+    // Final fallback: request-level system_prompt
+    if effective_system_prompt.is_none() {
+        effective_system_prompt = request.system_prompt.clone();
+    }
 
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point
@@ -1124,31 +1150,41 @@ pub async fn agent_query(
         .map_err(|e| e.to_string())?;
 
     // Apply agent role if specified — sets role on session and filters tools
-    let resolved_role = request
-        .role
-        .as_deref()
-        .and_then(axagent_runtime::agent_roles::AgentRole::from_str_opt);
-    if let Some(role) = resolved_role {
-        info!("[agent_query] Applying role: {}", role);
-        // The role is stored on the session for tracking; tool filtering
-        // is applied below when building chat_tools.
-    }
+    // Apply agent role: prefer agent_profile.agent_role > request.role > auto-estimate
+    let mut resolved_role = if let Some(role) = effective_agent_role {
+        info!("[agent_query] Using role from agent_profile: {}", role);
+        Some(role)
+    } else if let Some(role) = request
+        .role.as_deref()
+        .and_then(axagent_runtime::agent_roles::AgentRole::from_str_opt)
+    {
+        info!("[agent_query] Using role from request: {}", role);
+        Some(role)
+    } else {
+        None
+    };
 
-    // Filter chat_tools by role's allowed tools if a role is specified
+    // Filter chat_tools by role's allowed tools, plus profile recommended/disallowed
     if let Some(role) = resolved_role {
         let allowed_tools: Vec<&str> = role.default_tools();
-        let allowed_set: HashSet<&str> = allowed_tools.iter().copied().collect();
+        let mut allowed_set: HashSet<&str> = allowed_tools.iter().copied().collect();
+        for t in &profile_recommended_tools {
+            allowed_set.insert(t.as_str());
+        }
+        for t in &profile_disallowed_tools {
+            allowed_set.remove(t.as_str());
+        }
         chat_tools.retain(|t| allowed_set.contains(t.function.name.as_str()));
         info!(
-            "[agent_query] Role '{}' filtered tools: {} remaining",
-            role,
-            chat_tools.len()
+            "[agent_query] Role '{}' filtered tools: {} remaining (profile: +{}/-{})",
+            role, chat_tools.len(),
+            profile_recommended_tools.len(), profile_disallowed_tools.len(),
         );
     }
 
     // Smart decision: if no explicit role was set, estimate task complexity
     // and auto-assign a role for high-complexity multi-step tasks.
-    let resolved_role = if resolved_role.is_none() {
+    resolved_role = if resolved_role.is_none() {
         let complexity = axagent_trajectory::estimate_complexity_public(&request.input);
         info!(
             "[agent_query] Auto-estimated task complexity: {:?}",

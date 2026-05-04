@@ -15,8 +15,18 @@
     "skills": "Skills",
     "marketplace": "Marketplace",
     "prompts": "Prompts",
+    "devTools": "DevTools",
+    "workflow": "Workflow",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "Work",
+    "sectionTools": "Tools",
+    "sectionInfrastructure": "Infrastructure",
+    "sectionPlugins": "Plugins"
+  },
+
   "knowledge": {
     "commonPanel": "Common Panel",
     "commonPanelDesc": "Common operations for Knowledge Base and Wiki",

@@ -9,6 +9,7 @@ import {
   GitBranch,
   Globe,
   Layers,
+  MessageCircle,
   Network,
   Rocket,
   Search,
@@ -1013,6 +1014,40 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* 对话模式 — 默认选项，不绑定任何工作流模板 */}
+        <Card
+          key="conversation-mode"
+          size="small"
+          hoverable
+          onClick={() => {
+            onSelect({
+              id: "",
+              name: t("chat.workflow.conversationMode"),
+              description: t("chat.workflow.conversationModeDesc"),
+              icon: <MessageCircle size={20} />,
+              tags: [],
+              systemPrompt: "",
+              initialMessage: "",
+              permissionMode: "default",
+            } as WorkflowTemplate);
+          }}
+          className="cursor-pointer border-dashed"
+          style={{ borderStyle: "dashed" }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 text-gray-400 mt-0.5">
+              <MessageCircle size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-sm text-gray-500">
+                {t("chat.workflow.conversationMode")}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                {t("chat.workflow.conversationModeDesc")}
+              </div>
+            </div>
+          </div>
+        </Card>
         {filteredTemplates.map((template) => (
           <Card
             key={template.id}

@@ -15,8 +15,18 @@
     "marketplace": "マーケットプレイス",
     "prompts": "テンプレート",
     "link": "リンク",
+    "devTools": "開発ツール",
+    "workflow": "ワークフロー",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "ワーク",
+    "sectionTools": "ツール",
+    "sectionInfrastructure": "インフラ",
+    "sectionPlugins": "プラグイン"
+  },
+
   "chat": {
     "newConversation": "新しい会話",
     "searchPlaceholder": "会話を検索...",

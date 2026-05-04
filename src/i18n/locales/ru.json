@@ -15,8 +15,18 @@
     "marketplace": "Маркетплейс",
     "prompts": "Шаблоны",
     "link": "Связь",
+    "devTools": "Инструменты разработчика",
+    "workflow": "Рабочий процесс",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "Работа",
+    "sectionTools": "Инструменты",
+    "sectionInfrastructure": "Инфраструктура",
+    "sectionPlugins": "Плагины"
+  },
+
   "chat": {
     "newConversation": "Новый чат",
     "searchPlaceholder": "Поиск чатов...",

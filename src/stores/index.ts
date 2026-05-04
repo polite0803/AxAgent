@@ -12,6 +12,7 @@ export { useCompressStore } from "./domain/compressStore";
 export { useConversationStore } from "./domain/conversationStore";
 export { usePreferenceStore } from "./domain/preferenceStore";
 export { useStreamStore } from "./domain/streamStore";
+export { useAgentProfileStore } from "./feature/agentProfileStore";
 export { setupAgentEventListeners, useAgentStore } from "./feature/agentStore";
 export { useAppConfigStore } from "./feature/appConfigStore";
 export type { FeatureFlags, ModelTier as AppConfigModelTier, PermissionMode } from "./feature/appConfigStore";

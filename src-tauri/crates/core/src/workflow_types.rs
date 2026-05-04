@@ -135,6 +135,10 @@ pub enum AgentRole {
     Synthesizer,
     #[serde(rename = "executor")]
     Executor,
+    #[serde(rename = "coordinator")]
+    Coordinator,
+    #[serde(rename = "browser")]
+    Browser,
 }
 
 impl AgentRole {
@@ -146,6 +150,8 @@ impl AgentRole {
             AgentRole::Reviewer => "reviewer",
             AgentRole::Synthesizer => "synthesizer",
             AgentRole::Executor => "executor",
+            AgentRole::Coordinator => "coordinator",
+            AgentRole::Browser => "browser",
         }
     }
 
@@ -157,6 +163,8 @@ impl AgentRole {
             "reviewer" => Some(AgentRole::Reviewer),
             "synthesizer" => Some(AgentRole::Synthesizer),
             "executor" => Some(AgentRole::Executor),
+            "coordinator" => Some(AgentRole::Coordinator),
+            "browser" => Some(AgentRole::Browser),
             _ => None,
         }
     }
@@ -183,6 +191,7 @@ pub struct AgentNodeConfig {
     pub max_tokens: Option<u32>,
     pub tools: Vec<String>,
     pub output_mode: OutputMode,
+    pub agent_profile_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

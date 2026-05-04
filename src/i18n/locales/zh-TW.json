@@ -15,8 +15,18 @@
     "marketplace": "市場",
     "prompts": "提示詞",
     "link": "連接",
+    "devTools": "開發工具",
+    "workflow": "工作流",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "工作",
+    "sectionTools": "工具",
+    "sectionInfrastructure": "基礎設施",
+    "sectionPlugins": "插件"
+  },
+
   "chat": {
     "newConversation": "新建對話",
     "searchPlaceholder": "搜尋對話...",

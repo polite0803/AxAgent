@@ -148,6 +148,7 @@ fn parse_llm_response(
                         output_var: "result".to_string(),
                         tools: vec![],
                         context_sources: vec![],
+                        agent_profile_id: None,
                     });
                 WorkflowNode::Agent(AgentNode {
                     base,
@@ -255,6 +256,7 @@ fn parse_llm_response(
                     output_var: "result".to_string(),
                     tools: vec![],
                     context_sources: vec![],
+                    agent_profile_id: None,
                 },
             }),
         };

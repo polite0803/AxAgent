@@ -78,7 +78,7 @@
 
 [data-component="agent-pool-item"] {
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border-weak, #e8e8e8);
   background: color-mix(in srgb, var(--background-base, #fff) 95%, transparent);
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;

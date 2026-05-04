@@ -161,6 +161,8 @@ interface ConversationState {
       scenario?: string | null;
       mode?: string;
       expert_role_id?: string;
+      agent_profile_id?: string;
+      workflow_template_id?: string;
       system_prompt?: string;
     },
   ) => Promise<Conversation>;
@@ -570,6 +572,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             ...conversationPreferenceUpdateFromState(usePreferenceStore.getState()),
             scenario: options?.scenario,
             expert_role_id: options?.expert_role_id,
+            agent_profile_id: options?.agent_profile_id,
+            workflow_template_id: options?.workflow_template_id,
             mode: options?.mode,
           },
         });
@@ -1434,6 +1438,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           providerId,
           model_id,
           expertRoleId: conversation.expert_role_id ?? undefined,
+          agentProfileId: conversation.agent_profile_id ?? undefined,
           systemPrompt: conversation.system_prompt ?? undefined,
         },
       }, 0);

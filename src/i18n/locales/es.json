@@ -15,8 +15,18 @@
     "marketplace": "Mercado",
     "prompts": "Plantillas",
     "link": "Enlace",
+    "devTools": "Herramientas de desarrollo",
+    "workflow": "Flujo de trabajo",
+
     "wiki": "Wiki"
   },
+  "sidebar": {
+    "sectionWork": "Trabajo",
+    "sectionTools": "Herramientas",
+    "sectionInfrastructure": "Infraestructura",
+    "sectionPlugins": "Plugins"
+  },
+
   "chat": {
     "newConversation": "Nueva conversación",
     "searchPlaceholder": "Buscar conversaciones...",
