@@ -69,7 +69,7 @@
     "reactflow": "^11.11.4",
     "stream-markdown": "^0.0.15",
     "stream-markdown-parser": "^0.0.88",
-    "stream-monaco": "^0.0.38",
+    "stream-monaco": "^0.0.40",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
