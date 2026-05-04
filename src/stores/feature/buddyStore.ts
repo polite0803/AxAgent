@@ -41,6 +41,10 @@ export interface BuddyState {
   showPanel: boolean;
   // Buddy 消息历史
   messages: BuddyMessage[];
+  // 是否可见（全局开关）
+  visible: boolean;
+  // 拖动位置（null 表示默认右下角）
+  position: { x: number; y: number } | null;
 
   // Actions
   summonBuddy: (speciesId?: string) => void;
@@ -48,6 +52,8 @@ export interface BuddyState {
   togglePanel: () => void;
   addMessage: (msg: BuddyMessage) => void;
   grantXp: (amount: number) => void;
+  setVisible: (v: boolean) => void;
+  setPosition: (x: number, y: number) => void;
 }
 
 // ── 物种数据 ──────────────────────────────────────────────
@@ -141,10 +147,12 @@ export const useBuddyStore = create<BuddyState>((set) => ({
   activeBuddy: null,
   showPanel: false,
   messages: [],
+  visible: false,
+  position: null,
 
   summonBuddy: (speciesId) => {
     const buddy = createBuddy(speciesId);
-    set({ activeBuddy: buddy, showPanel: true });
+    set({ activeBuddy: buddy, showPanel: true, visible: true });
   },
 
   dismissBuddy: () => {
@@ -158,7 +166,6 @@ export const useBuddyStore = create<BuddyState>((set) => ({
   addMessage: (msg) => {
     set((s) => {
       const messages = [...s.messages, msg];
-      // 只保留最近 50 条消息
       if (messages.length > 50) {
         return { messages: messages.slice(-50) };
       }
@@ -172,7 +179,6 @@ export const useBuddyStore = create<BuddyState>((set) => ({
       let { level, xp } = s.activeBuddy;
       xp += amount;
 
-      // 检查是否可以升级
       while (xp >= xpForNextLevel(level)) {
         xp -= xpForNextLevel(level);
         level += 1;
@@ -183,4 +189,8 @@ export const useBuddyStore = create<BuddyState>((set) => ({
       };
     });
   },
+
+  setVisible: (v) => set({ visible: v }),
+
+  setPosition: (x, y) => set({ position: { x, y } }),
 }));

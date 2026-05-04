@@ -449,12 +449,12 @@ pub type AgentCancelResponse = ();
 
 #[derive(Debug, Deserialize)]
 pub struct AgentUpdateSessionRequest {
-    #[serde(rename = "conversationId")]
+    #[serde(alias = "conversation_id", rename = "conversationId")]
     pub conversation_id: String,
     pub name: Option<String>,
     pub metadata: Option<Value>,
     pub cwd: Option<String>,
-    #[serde(rename = "permissionMode")]
+    #[serde(alias = "permission_mode", rename = "permissionMode")]
     pub permission_mode: Option<String>,
 }
 
