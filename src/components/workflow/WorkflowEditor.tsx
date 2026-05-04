@@ -130,8 +130,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     generatedSkillName: "",
     generatedSkillDescription: "",
     nodeId: "",
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  });
 
   const [similarWorkflowsModal, setSimilarWorkflowsModal] = useState<{
     visible: boolean;

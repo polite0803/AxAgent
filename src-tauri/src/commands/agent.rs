@@ -536,7 +536,8 @@ pub async fn agent_query(
 
     if let Some(ref profile_id) = request.agent_profile_id {
         if let Ok(profile) =
-            axagent_core::repo::agent_profile::get_agent_profile(&app_state.sea_db, profile_id).await
+            axagent_core::repo::agent_profile::get_agent_profile(&app_state.sea_db, profile_id)
+                .await
         {
             if !profile.system_prompt.is_empty() {
                 effective_system_prompt = Some(profile.system_prompt);

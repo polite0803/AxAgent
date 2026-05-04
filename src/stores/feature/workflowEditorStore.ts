@@ -915,105 +915,24 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     semanticCheckResult: null,
     pendingReplacements: new Map(),
 
-    checkSkillSemanticMatches: async (nodes: WorkflowNode[]) => {
-      const atomicSkillNodes = nodes
-        .filter((n) => n.type === "agent" && (n as any).config?.skill_name)
-        .map((n) => n as any);
-
-      if (atomicSkillNodes.length === 0) {
-        return null;
-      }
-
-      const skillsToCheck = atomicSkillNodes.map((node) => ({
-        name: node.config.skill_name || "",
-        description: node.title || "",
-        entry_type: node.config.entry_type || "local",
-        entry_ref: node.config.entry_ref || "",
-        category: node.config.category || "other",
-        node_id: node.id,
-      }));
-
-      try {
-        const result = await invoke<SemanticCheckResult>("check_skill_semantic_matches", {
-          request: { skills: skillsToCheck },
-          minSimilarity: 0.5,
-        });
-
-        set((state) => {
-          state.semanticCheckResult = result;
-        });
-
-        return result;
-      } catch (error) {
-        console.error("Failed to check semantic matches:", error);
-        return null;
-      }
+    checkSkillSemanticMatches: async (_nodes: WorkflowNode[]) => {
+      // atomicSkill nodes removed — no matching needed
+      return null;
     },
 
-    applySkillReplacement: (nodeId: string, existingSkillId: string, action: SkillReplacementAction) => {
-      const { semanticCheckResult } = get();
-      if (!semanticCheckResult) { return; }
-
-      const match = semanticCheckResult.matches.find((m) => m.node_id === nodeId);
-      if (!match) { return; }
-
-      const replacement = match.matches.find((m) => m.existing_skill.id === existingSkillId);
-      if (!replacement) { return; }
-
-      set((state) => {
-        state.pendingReplacements.set(nodeId, {
-          existingSkillId,
-          action,
-        });
-
-        if (action === "replace" || action === "upgrade_existing") {
-          const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
-          if (nodeIndex !== -1) {
-            const node = state.nodes[nodeIndex] as any;
-            node.config.skill_id = existingSkillId;
-            node.config.entry_ref = (replacement.existing_skill as any).entry_ref;
-          }
-        }
-      });
+    applySkillReplacement: (_nodeId: string, _existingSkillId: string, _action: SkillReplacementAction) => {
+      // atomicSkill nodes removed — no replacement needed
     },
 
-    applySemanticAction: (nodeId: string, action: "replace" | "keep" | "upgrade_existing") => {
+    applySemanticAction: (nodeId: string, _action: "replace" | "keep" | "upgrade_existing") => {
       const { semanticCheckResult } = get();
       if (!semanticCheckResult) { return; }
 
       const match = semanticCheckResult.matches.find((m) => m.node_id === nodeId);
       if (!match || !match.matches || match.matches.length === 0) { return; }
 
-      const bestMatch = match.matches[0];
-
+      // atomicSkill removed — noop
       set((state) => {
-        state.pendingReplacements.set(nodeId, {
-          existingSkillId: bestMatch.existing_skill.id,
-          action,
-        });
-
-        if (action === "replace" || action === "upgrade_existing") {
-          const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
-          if (nodeIndex !== -1) {
-            const node = state.nodes[nodeIndex] as any;
-            node.config.skill_id = bestMatch.existing_skill.id;
-            node.config.skill_name = bestMatch.existing_skill.name;
-            node.config.entry_ref = (bestMatch.existing_skill as any).entry_ref;
-            node.config.entry_type = (bestMatch.existing_skill as any).entry_type;
-            node.config.category = (bestMatch.existing_skill as any).category;
-            node.data.skillId = bestMatch.existing_skill.id;
-            node.data.skillName = bestMatch.existing_skill.name;
-          }
-        }
-
-        if (action === "keep") {
-          const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
-          if (nodeIndex !== -1) {
-            const node = state.nodes[nodeIndex] as any;
-            node.data.semanticMatch = undefined;
-          }
-        }
-
         const remainingMatches = state.semanticCheckResult?.matches.filter((m) => m.node_id !== nodeId) || [];
         if (remainingMatches.length === 0) {
           state.semanticCheckResult = null;

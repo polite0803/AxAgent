@@ -89,15 +89,6 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
             <Descriptions.Item label={t("workflow.existingSkill")}>
               <strong>{match.existing_skill.name}</strong>
             </Descriptions.Item>
-            <Descriptions.Item label={t("workflow.description")}>
-              {(match.existing_skill as any).description || "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label={t("workflow.category")}>
-              <Tag color="blue">{(match.existing_skill as any).category}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label={t("workflow.entryType")}>
-              <Tag>{(match.existing_skill as any).entry_type}</Tag>
-            </Descriptions.Item>
           </Descriptions>
           <Tag color={similarityColor} style={{ fontSize: 16, padding: "4px 12px" }}>
             {similarityPercent}%
