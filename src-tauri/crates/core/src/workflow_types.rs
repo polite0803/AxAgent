@@ -192,6 +192,7 @@ pub struct AgentNodeConfig {
     pub tools: Vec<String>,
     pub output_mode: OutputMode,
     pub agent_profile_id: Option<String>,
+    pub agent_role_override: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -383,22 +384,6 @@ pub struct CodeNode {
     pub config: CodeNodeConfig,
 }
 
-/// AtomicSkill node config - replaces Tool and Code nodes
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AtomicSkillNodeConfig {
-    pub skill_id: String,
-    pub input_mapping: std::collections::HashMap<String, String>,
-    pub output_var: String,
-}
-
-/// AtomicSkill node - the unified execution node type
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AtomicSkillNode {
-    #[serde(flatten)]
-    pub base: WorkflowNodeBase,
-    pub config: AtomicSkillNodeConfig,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubWorkflowNodeConfig {
     pub sub_workflow_id: String,
@@ -483,7 +468,6 @@ pub struct EndNode {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum WorkflowNode {
     Trigger(TriggerNode),
-    AtomicSkill(AtomicSkillNode),
     Agent(AgentNode),
     Llm(LLMNode),
     Condition(ConditionNode),
@@ -760,7 +744,7 @@ pub struct ValidationResult {
     pub warnings: Vec<ValidationWarning>,
 }
 
-/// Result of migrating a workflow from legacy Tool/Code nodes to AtomicSkill nodes
+/// Result of migrating a workflow from legacy Tool/Code nodes to Agent nodes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MigrationResult {
     pub workflow_id: String,
@@ -782,7 +766,7 @@ pub struct NodeMigrationEntry {
 pub struct WorkflowMigrator;
 
 impl WorkflowMigrator {
-    /// Migrate a workflow's Tool and Code nodes to AtomicSkill nodes.
+    /// Migrate a workflow Tool and Code nodes to Agent nodes.
     /// Returns a MigrationResult with details of what was migrated.
     #[allow(clippy::ptr_arg)]
     pub fn migrate(nodes: &mut Vec<WorkflowNode>) -> MigrationResult {
@@ -793,45 +777,53 @@ impl WorkflowMigrator {
             let new_node = match node {
                 WorkflowNode::Tool(tool_node) => {
                     has_changes = true;
-                    let skill_id = uuid::Uuid::new_v4().to_string();
-                    let skill_name = format!("atomic_{}", tool_node.config.tool_name);
-
                     migrated_nodes.push(NodeMigrationEntry {
                         node_id: tool_node.base.id.clone(),
                         from_type: "tool".to_string(),
-                        to_skill_id: skill_id.clone(),
-                        to_skill_name: skill_name,
-                        status: "migrated".to_string(),
+                        to_skill_id: String::new(),
+                        to_skill_name: String::new(),
+                        status: "migrated_to_agent".to_string(),
                     });
-
-                    Some(WorkflowNode::AtomicSkill(AtomicSkillNode {
+                    Some(WorkflowNode::Agent(AgentNode {
                         base: tool_node.base.clone(),
-                        config: AtomicSkillNodeConfig {
-                            skill_id,
-                            input_mapping: tool_node.config.input_mapping.clone(),
+                        config: AgentNodeConfig {
+                            role: AgentRole::Executor,
+                            system_prompt: String::new(),
+                            context_sources: Vec::new(),
                             output_var: tool_node.config.output_var.clone(),
+                            model: None,
+                            temperature: None,
+                            max_tokens: None,
+                            tools: vec![tool_node.config.tool_name.clone()],
+                            output_mode: OutputMode::Text,
+                            agent_profile_id: None,
+                            agent_role_override: None,
                         },
                     }))
                 },
                 WorkflowNode::Code(code_node) => {
                     has_changes = true;
-                    let skill_id = uuid::Uuid::new_v4().to_string();
-                    let skill_name = format!("atomic_code_{}", code_node.base.id);
-
                     migrated_nodes.push(NodeMigrationEntry {
                         node_id: code_node.base.id.clone(),
                         from_type: "code".to_string(),
-                        to_skill_id: skill_id.clone(),
-                        to_skill_name: skill_name,
-                        status: "migrated".to_string(),
+                        to_skill_id: String::new(),
+                        to_skill_name: String::new(),
+                        status: "migrated_to_agent".to_string(),
                     });
-
-                    Some(WorkflowNode::AtomicSkill(AtomicSkillNode {
+                    Some(WorkflowNode::Agent(AgentNode {
                         base: code_node.base.clone(),
-                        config: AtomicSkillNodeConfig {
-                            skill_id,
-                            input_mapping: std::collections::HashMap::new(),
+                        config: AgentNodeConfig {
+                            role: AgentRole::Executor,
+                            system_prompt: String::new(),
+                            context_sources: Vec::new(),
                             output_var: code_node.config.output_var.clone(),
+                            model: None,
+                            temperature: None,
+                            max_tokens: None,
+                            tools: Vec::new(),
+                            output_mode: OutputMode::Text,
+                            agent_profile_id: None,
+                            agent_role_override: None,
                         },
                     }))
                 },

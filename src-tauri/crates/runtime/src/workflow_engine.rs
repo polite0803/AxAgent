@@ -242,19 +242,12 @@ pub struct WorkflowStep {
     #[serde(default)]
     pub circuit_breaker: CircuitBreaker,
     /// Agent profile ID for this step. Loads system_prompt + agent_role + tools
-    /// from agent_profiles table. Supersedes expert_role_id.
+    /// from agent_profiles table.
     #[serde(default)]
     pub agent_profile_id: Option<String>,
-    /// Skill ID to execute directly without LLM. If set, this step is a skill call.
+    /// Override the agent_role from the profile. None = use profile default.
     #[serde(default)]
-    pub skill_id: Option<String>,
-    /// Parameters to pass to the skill executor.
-    #[serde(default)]
-    pub skill_params: Option<serde_json::Value>,
-    /// Expert role ID for this step. When set, the LLM executor will load
-    /// the expert's system prompt from agency_experts table.
-    #[serde(default)]
-    pub expert_role_id: Option<String>,
+    pub agent_role_override: Option<AgentRole>,
 }
 
 fn default_max_retries() -> u32 {
@@ -277,9 +270,8 @@ impl Default for WorkflowStep {
             on_failure: OnStepFailure::Abort,
             retry_policy: RetryPolicy::default(),
             circuit_breaker: CircuitBreaker::default(),
-            skill_id: None,
-            skill_params: None,
-            expert_role_id: None,
+            agent_profile_id: None,
+            agent_role_override: None,
         }
     }
 }
@@ -1116,9 +1108,8 @@ mod tests {
             on_failure: OnStepFailure::Abort,
             retry_policy: RetryPolicy::default(),
             circuit_breaker: CircuitBreaker::default(),
-            skill_id: None,
-            skill_params: None,
-            expert_role_id: None,
+            agent_profile_id: None,
+            agent_role_override: None,
         }
     }
 

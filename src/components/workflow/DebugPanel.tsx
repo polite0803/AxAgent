@@ -89,7 +89,7 @@ const mockNodeExecutions: NodeExecution[] = [
   {
     nodeId: "node-2",
     nodeName: "Fetch User Input",
-    nodeType: "atomic_skill",
+    nodeType: "agent",
     status: "completed",
     startTime: Date.now() - 4900,
     endTime: Date.now() - 4200,

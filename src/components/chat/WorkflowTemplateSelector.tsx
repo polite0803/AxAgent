@@ -27,8 +27,10 @@ interface WorkflowStepDef {
   goal: string;
   role: string;
   needs: string[];
-  /** Expert role ID to use for this step (references ExpertRole.id) */
-  expertRoleId?: string;
+  /** Agent profile ID for this step */
+  agentProfileId?: string;
+  /** Override agent_role from profile */
+  agentRoleOverride?: string;
 }
 
 interface WorkflowTemplate {

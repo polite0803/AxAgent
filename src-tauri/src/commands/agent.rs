@@ -1,6 +1,5 @@
 use crate::AppState;
 use axagent_agent::{AxAgentApiClient, McpServerConfig, ToolRegistry};
-use axagent_core::entity::skill_references;
 use axagent_core::repo::{conversation, message, provider};
 use axagent_core::types::{
     Attachment, AttachmentInput, ChatTool, ChatToolFunction, McpServer, MessageRole,
@@ -2459,20 +2458,31 @@ fn create_llm_step_executor(
                     store_response: None,
                 };
 
-                let system_prompt =
-                    if let (Some(ref expert_id), Some(db)) = (&step.expert_role_id, &db) {
-                        match axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
-                            .one(db.as_ref())
-                            .await
-                        {
-                            Ok(Some(expert)) if !expert.system_prompt.is_empty() => {
-                                expert.system_prompt
-                            },
-                            _ => step.agent_role.system_prompt().to_string(),
-                        }
-                    } else {
-                        step.agent_role.system_prompt().to_string()
-                    };
+                // Resolve system_prompt and effective agent_role:
+                // 1. agent_profile_id → load from agent_profiles table
+                // 2. agent_role_override → overrides profile's default role
+                // 3. Fallback: step.agent_role default system_prompt
+                let effective_role = step
+                    .agent_role_override
+                    .unwrap_or(step.agent_role);
+
+                let system_prompt = if let (Some(ref profile_id), Some(db)) =
+                    (&step.agent_profile_id, &db)
+                {
+                    match axagent_core::repo::agent_profile::get_agent_profile(
+                        db.as_ref(),
+                        profile_id,
+                    )
+                    .await
+                    {
+                        Ok(profile) if !profile.system_prompt.is_empty() => {
+                            profile.system_prompt
+                        },
+                        _ => effective_role.system_prompt().to_string(),
+                    }
+                } else {
+                    effective_role.system_prompt().to_string()
+                };
 
                 let mut user_message = format!("Task goal: {}\n\n", step.goal);
                 if !deps_results.is_empty() {
@@ -2531,84 +2541,6 @@ fn create_llm_step_executor(
     ) as StepExecutor
 }
 
-fn create_skill_step_executor(
-    sea_db: sea_orm::DatabaseConnection,
-    local_tool_registry: std::sync::Arc<tokio::sync::Mutex<axagent_agent::LocalToolRegistry>>,
-) -> StepExecutor {
-    Arc::new(
-        move |step: axagent_runtime::workflow_engine::WorkflowStep,
-              _deps_results: std::collections::HashMap<String, String>| {
-            let sea_db = sea_db.clone();
-            let local_tool_registry = local_tool_registry.clone();
-            let skill_id = step.skill_id.clone();
-            let skill_params = step.skill_params.clone();
-
-            async move {
-                let skill_id = skill_id.ok_or_else(|| "No skill_id provided".to_string())?;
-
-                let skill_model =
-                    axagent_core::repo::atomic_skill::get_atomic_skill(&sea_db, &skill_id)
-                        .await
-                        .map_err(|e| format!("Failed to get skill: {}", e))?
-                        .ok_or_else(|| format!("Skill not found: {}", skill_id))?;
-
-                let entry_type = match skill_model.entry_type.as_str() {
-                    "builtin" => axagent_trajectory::EntryType::Builtin,
-                    "mcp" => axagent_trajectory::EntryType::Mcp,
-                    "local" => axagent_trajectory::EntryType::Local,
-                    "plugin" => axagent_trajectory::EntryType::Plugin,
-                    _ => return Err(format!("Unknown entry type: {}", skill_model.entry_type)),
-                };
-
-                let input = skill_params.unwrap_or(serde_json::json!({}));
-
-                match entry_type {
-                    axagent_trajectory::EntryType::Builtin => Err(
-                        "Builtin skill execution not implemented in workflow context".to_string(),
-                    ),
-                    axagent_trajectory::EntryType::Mcp => {
-                        let mcp_registry = get_skill_mcp_registry();
-                        let args_json = serde_json::to_string(&input)
-                            .map_err(|e| format!("Failed to serialize arguments: {}", e))?;
-                        let result = mcp_registry
-                            .execute_mcp_tool(&skill_model.entry_ref, &args_json)
-                            .map_err(|e| format!("MCP tool execution failed: {}", e))?;
-                        Ok(result)
-                    },
-                    axagent_trajectory::EntryType::Local => {
-                        let registry = local_tool_registry.lock().await;
-                        let result = registry
-                            .execute(&skill_model.entry_ref, input)
-                            .await
-                            .map_err(|e| format!("Local tool execution failed: {}", e))?;
-                        Ok(result)
-                    },
-                    axagent_trajectory::EntryType::Plugin => {
-                        Err("Plugin skill execution not implemented in workflow context"
-                            .to_string())
-                    },
-                }
-            }
-            .boxed()
-        },
-    ) as StepExecutor
-}
-
-fn create_hybrid_step_executor(
-    llm_executor: StepExecutor,
-    skill_executor: StepExecutor,
-) -> StepExecutor {
-    Arc::new(
-        move |step: axagent_runtime::workflow_engine::WorkflowStep,
-              deps_results: std::collections::HashMap<String, String>| {
-            if step.skill_id.is_some() {
-                skill_executor(step, deps_results)
-            } else {
-                llm_executor(step, deps_results)
-            }
-        },
-    )
-}
 
 #[derive(Clone)]
 struct SkillExecutionContext {
@@ -2893,9 +2825,8 @@ fn skill_steps_to_workflow_steps(
                 on_failure: axagent_runtime::workflow_engine::OnStepFailure::Abort,
                 retry_policy: axagent_runtime::workflow_engine::RetryPolicy::default(),
                 circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
-                skill_id: None,
-                skill_params: None,
-                expert_role_id: None,
+                agent_profile_id: None,
+                agent_role_override: None,
             }
         })
         .collect()
@@ -3004,17 +2935,7 @@ async fn execute_skill_async(
                 let message_id_owned = ctx.message_id.clone();
                 let app_handle = ctx.app.clone();
 
-                let skill_refs = axagent_core::repo::skill_reference::get_references_by_skill(
-                    &ctx.sea_db,
-                    &skill_id_owned,
-                )
-                .await
-                .ok();
-
-                let cached_workflow_id = skill_refs
-                    .as_ref()
-                    .and_then(|refs| refs.first())
-                    .map(|r| r.workflow_id.clone());
+                let cached_workflow_id: Option<String> = None;
 
                 if let Some(workflow_id) = cached_workflow_id {
                     let step_executor = create_llm_step_executor(
@@ -3944,8 +3865,10 @@ pub struct WorkflowStepInput {
     /// Failure policy: "abort" (default) or "skip".
     #[serde(rename = "onFailure", default)]
     pub on_failure: String,
-    #[serde(rename = "expertRoleId", default)]
-    pub expert_role_id: Option<String>,
+    #[serde(rename = "agentProfileId", default)]
+    pub agent_profile_id: Option<String>,
+    #[serde(rename = "agentRoleOverride", default)]
+    pub agent_role_override: Option<String>,
 }
 
 fn default_max_retries() -> u32 {
@@ -3992,9 +3915,9 @@ pub async fn workflow_create(
                 on_failure,
                 retry_policy: axagent_runtime::workflow_engine::RetryPolicy::default(),
                 circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
-                skill_id: None,
-                skill_params: None,
-                expert_role_id: s.expert_role_id,
+                agent_profile_id: s.agent_profile_id,
+                agent_role_override: s.agent_role_override
+                    .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r)),
             }
         })
         .collect();
@@ -4255,13 +4178,6 @@ pub async fn workflow_execute_with_session(
         Some(Arc::new(app_state.sea_db.clone())),
     );
 
-    let skill_executor = create_skill_step_executor(
-        app_state.sea_db.clone(),
-        app_state.local_tool_registry.clone(),
-    );
-
-    let hybrid_executor = create_hybrid_step_executor(llm_executor, skill_executor);
-
     let session_callback: Arc<dyn SessionCallback> = Arc::new(TauriSessionCallback::new(
         app.clone(),
         conversation_id.clone(),
@@ -4270,7 +4186,7 @@ pub async fn workflow_execute_with_session(
 
     let callback_arc = Arc::clone(&session_callback);
     let step_executor = axagent_runtime::workflow_engine::wrap_executor_with_callback(
-        hybrid_executor,
+        llm_executor,
         callback_arc,
     );
 
@@ -4368,54 +4284,12 @@ fn jaccard_similarity(set1: &[String], set2: &[String]) -> f64 {
     intersection as f64 / union as f64
 }
 
-/// Find similar workflows based on skill_ids overlap
+/// Find similar workflows — always returns empty (atomic_skills removed)
 async fn find_similar_workflows(
-    db: &DatabaseConnection,
-    skill_ids: &[String],
+    _db: &DatabaseConnection,
+    _skill_ids: &[String],
 ) -> Result<Vec<SimilarWorkflow>, String> {
-    if skill_ids.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let all_workflow_ids: std::collections::HashSet<String> = skill_references::Entity::find()
-        .filter(skill_references::Column::SkillId.is_in(skill_ids.iter().map(|s| s.as_str())))
-        .all(db)
-        .await
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .map(|r| r.workflow_id)
-        .collect();
-
-    let mut similar_workflows = Vec::new();
-    for workflow_id in &all_workflow_ids {
-        let wf_id = workflow_id.clone();
-        let refs = skill_references::Entity::find()
-            .filter(skill_references::Column::WorkflowId.eq(wf_id.as_str()))
-            .all(db)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let existing_skill_ids: Vec<String> = refs.into_iter().map(|r| r.skill_id).collect();
-        let similarity = jaccard_similarity(skill_ids, &existing_skill_ids);
-
-        if similarity >= SIMILARITY_THRESHOLD {
-            let template = axagent_core::repo::workflow_template::get_workflow_template(db, &wf_id)
-                .await
-                .map_err(|e| e.to_string())?;
-
-            if let Some(t) = template {
-                similar_workflows.push(SimilarWorkflow {
-                    workflow_id: wf_id,
-                    name: t.name,
-                    skill_ids: existing_skill_ids,
-                    similarity,
-                });
-            }
-        }
-    }
-
-    similar_workflows.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap());
-    Ok(similar_workflows)
+    Ok(Vec::new())
 }
 
 /// Save a skill's parsed workflow from LLM result as a formal workflow template
@@ -4475,31 +4349,6 @@ pub async fn save_skill_workflow_from_llm(
     axagent_core::repo::workflow_template::insert_workflow_template(db, template)
         .await
         .map_err(|e| format!("Failed to save workflow template: {}", e))?;
-
-    let skill_node_map: std::collections::HashMap<String, String> = request
-        .nodes
-        .iter()
-        .filter_map(|node| {
-            let node_id = node.get("id")?.as_str()?.to_string();
-            let skill_id = node.get("data")?.get("skill_id")?.as_str()?.to_string();
-            Some((skill_id, node_id))
-        })
-        .collect();
-
-    for (skill_id, node_id) in skill_node_map {
-        let ref_id = uuid::Uuid::new_v4().to_string();
-        if let Err(e) = axagent_core::repo::skill_reference::create_reference(
-            db,
-            &ref_id,
-            &skill_id,
-            &workflow_id,
-            &node_id,
-        )
-        .await
-        {
-            tracing::warn!("Failed to create skill reference for {}: {}", skill_id, e);
-        }
-    }
 
     Ok(SaveSkillWorkflowResponse {
         needs_review: false,
@@ -4563,38 +4412,6 @@ pub async fn force_save_skill_workflow(
     axagent_core::repo::workflow_template::insert_workflow_template(db, template)
         .await
         .map_err(|e| format!("Failed to update workflow template: {}", e))?;
-
-    axagent_core::repo::skill_reference::delete_references_by_workflow(
-        db,
-        &request.target_workflow_id,
-    )
-    .await
-    .map_err(|e| e.to_string())?;
-
-    let skill_node_map: std::collections::HashMap<String, String> = request
-        .nodes
-        .iter()
-        .filter_map(|node| {
-            let node_id = node.get("id")?.as_str()?.to_string();
-            let skill_id = node.get("data")?.get("skill_id")?.as_str()?.to_string();
-            Some((skill_id, node_id))
-        })
-        .collect();
-
-    for (skill_id, node_id) in skill_node_map {
-        let ref_id = uuid::Uuid::new_v4().to_string();
-        if let Err(e) = axagent_core::repo::skill_reference::create_reference(
-            db,
-            &ref_id,
-            &skill_id,
-            &request.target_workflow_id,
-            &node_id,
-        )
-        .await
-        {
-            tracing::warn!("Failed to create skill reference for {}: {}", skill_id, e);
-        }
-    }
 
     Ok(request.target_workflow_id)
 }

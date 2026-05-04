@@ -4,7 +4,6 @@ pub mod agent_analytics;
 pub mod agent_insight;
 pub mod agent_nudge;
 pub mod artifacts;
-pub mod atomic_skills;
 pub mod background_tasks;
 pub mod backup;
 pub mod branches;

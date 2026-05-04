@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use super::tool_resolver::ToolDependency;
-use crate::atomic_skill::types::AtomicSkill;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeBlock {
@@ -375,10 +374,9 @@ impl ParsedStep {
     }
 }
 
-/// Result of decomposing a composite skill
+/// Result of decomposing a composite skill into a workflow template
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecompositionResult {
-    pub atomic_skills: Vec<AtomicSkill>,
     pub tool_dependencies: Vec<ToolDependency>,
     pub workflow_nodes: serde_json::Value,
     pub workflow_edges: serde_json::Value,
@@ -641,13 +639,10 @@ impl SkillDecomposer {
         })
     }
 
-    /// Decompose a parsed composite into atomic skills, tool dependencies,
-    /// and a workflow definition.
+    /// Decompose a parsed composite into a workflow definition with agent nodes.
     pub fn decompose(
         parsed: &ParsedComposite,
-        existing_skills: &[AtomicSkill],
     ) -> Result<DecompositionResult, DecompositionError> {
-        let mut atomic_skills = Vec::new();
         let mut tool_dependencies = Vec::new();
         let mut workflow_nodes = Vec::new();
         let mut workflow_edges = Vec::new();
@@ -678,49 +673,15 @@ impl SkillDecomposer {
 
                         let input_schema = block.infer_schema();
 
-                        let skill = AtomicSkill {
-                            id: uuid::Uuid::new_v4().to_string(),
-                            name: format!(
-                                "script_{}_{}_{}",
-                                slugify(&step.title),
-                                block_idx,
-                                block.language.clone().unwrap_or_else(|| "code".to_string())
-                            ),
-                            description: format!(
-                                "Script from step '{}' (language: {:?})\n\n```{}...\n```",
-                                step.title,
-                                block.language,
-                                &block.content.chars().take(50).collect::<String>()
-                            ),
-                            input_schema,
-                            output_schema: None,
-                            entry_type: crate::atomic_skill::types::EntryType::Builtin,
-                            entry_ref: format!("inline_script_{}", block_idx),
-                            category: "inline_script".to_string(),
-                            tags: vec![
-                                "inline_script".to_string(),
-                                block
-                                    .language
-                                    .clone()
-                                    .unwrap_or_else(|| "unknown".to_string()),
-                            ],
-                            version: "1.0.0".to_string(),
-                            enabled: true,
-                            source: "inline".to_string(),
-                            created_at: chrono::Utc::now().timestamp_millis(),
-                            updated_at: chrono::Utc::now().timestamp_millis(),
-                        };
-                        let skill_id = skill.id.clone();
-                        atomic_skills.push(skill);
-
                         workflow_nodes.push(serde_json::json!({
                             "id": block_node_id,
-                            "type": "inline_script",
+                            "type": "agent",
                             "data": {
-                                "skill_id": skill_id,
+                                "goal": format!("Execute script: {}", step.title),
                                 "language": block.language,
                                 "code_content": block.content,
                                 "dependencies": deps_for_node,
+                                "role": "executor",
                             }
                         }));
 
@@ -755,83 +716,32 @@ impl SkillDecomposer {
             }
 
             if !parsed.is_fully_parsed && i == 0 && parsed.steps.len() == 1 {
-                // Cannot decompose: keep as a single atomic skill
-                let skill = AtomicSkill {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    name: format!("atomic_{}", slugify(&parsed.name)),
-                    description: parsed.description.clone(),
-                    input_schema: None,
-                    output_schema: None,
-                    entry_type: crate::atomic_skill::types::EntryType::Builtin,
-                    entry_ref: "undecomposed".to_string(),
-                    category: "undecomposed".to_string(),
-                    tags: vec!["undecomposed".to_string()],
-                    version: "1.0.0".to_string(),
-                    enabled: true,
-                    source: "atomic".to_string(),
-                    created_at: chrono::Utc::now().timestamp_millis(),
-                    updated_at: chrono::Utc::now().timestamp_millis(),
-                };
-                atomic_skills.push(skill);
+                // Cannot decompose: keep as a single agent node
                 workflow_nodes.push(serde_json::json!({
                     "id": node_id,
-                    "type": "atomic_skill",
-                    "data": { "skill_id": atomic_skills.last().unwrap().id }
+                    "type": "agent",
+                    "data": {
+                        "goal": step.title.clone(),
+                        "role": "executor",
+                    }
                 }));
             } else if let Some(tool_name) = &step.tool_name {
-                // Check for semantic duplicate
-                let entry_type_str = step.tool_type.as_deref().unwrap_or("local");
-                let entry_type = match entry_type_str {
-                    "mcp" => crate::atomic_skill::types::EntryType::Mcp,
-                    "plugin" => crate::atomic_skill::types::EntryType::Plugin,
-                    "builtin" => crate::atomic_skill::types::EntryType::Builtin,
-                    _ => crate::atomic_skill::types::EntryType::Local,
-                };
-
-                // Try to reuse existing skill
-                let existing = existing_skills.iter().find(|s| {
-                    s.entry_type == entry_type
-                        && s.entry_ref == *tool_name
-                        && s.input_schema == step.input_schema
-                        && s.output_schema == step.output_schema
-                });
-
-                let skill_id = if let Some(existing) = existing {
-                    existing.id.clone()
-                } else {
-                    let skill = AtomicSkill {
-                        id: uuid::Uuid::new_v4().to_string(),
-                        name: format!("atomic_{}", slugify(tool_name)),
-                        description: step.description.clone(),
-                        input_schema: step.input_schema.clone(),
-                        output_schema: step.output_schema.clone(),
-                        entry_type: entry_type.clone(),
-                        entry_ref: tool_name.clone(),
-                        category: "decomposed".to_string(),
-                        tags: vec!["decomposed".to_string()],
-                        version: "1.0.0".to_string(),
-                        enabled: true,
-                        source: "atomic".to_string(),
-                        created_at: chrono::Utc::now().timestamp_millis(),
-                        updated_at: chrono::Utc::now().timestamp_millis(),
-                    };
-                    let id = skill.id.clone();
-                    atomic_skills.push(skill);
-                    id
-                };
-
                 // Add tool dependency
                 tool_dependencies.push(ToolDependency {
                     name: tool_name.clone(),
-                    tool_type: entry_type_str.to_string(),
+                    tool_type: step.tool_type.clone().unwrap_or_else(|| "local".to_string()),
                     source_info: None,
                     status: super::tool_resolver::ToolDependencyStatus::Satisfied,
                 });
 
                 workflow_nodes.push(serde_json::json!({
                     "id": node_id,
-                    "type": "atomic_skill",
-                    "data": { "skill_id": skill_id }
+                    "type": "agent",
+                    "data": {
+                        "goal": format!("Execute tool: {}", tool_name),
+                        "tool": tool_name,
+                        "role": "executor",
+                    }
                 }));
             } else if step.is_condition {
                 let _condition_expr = step
@@ -946,29 +856,14 @@ impl SkillDecomposer {
                     }));
                 }
             } else {
-                // Generic step as atomic skill
-                let skill = AtomicSkill {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    name: format!("atomic_{}_{}", slugify(&parsed.name), i),
-                    description: step.description.clone(),
-                    input_schema: step.input_schema.clone(),
-                    output_schema: step.output_schema.clone(),
-                    entry_type: crate::atomic_skill::types::EntryType::Builtin,
-                    entry_ref: format!("step_{}", i),
-                    category: "decomposed".to_string(),
-                    tags: vec!["decomposed".to_string()],
-                    version: "1.0.0".to_string(),
-                    enabled: true,
-                    source: "atomic".to_string(),
-                    created_at: chrono::Utc::now().timestamp_millis(),
-                    updated_at: chrono::Utc::now().timestamp_millis(),
-                };
-                let skill_id = skill.id.clone();
-                atomic_skills.push(skill);
+                // Generic step as agent node
                 workflow_nodes.push(serde_json::json!({
                     "id": node_id,
-                    "type": "atomic_skill",
-                    "data": { "skill_id": skill_id }
+                    "type": "agent",
+                    "data": {
+                        "goal": step.description.clone(),
+                        "role": "executor",
+                    }
                 }));
             }
 
@@ -983,7 +878,6 @@ impl SkillDecomposer {
         }
 
         Ok(DecompositionResult {
-            atomic_skills,
             tool_dependencies,
             workflow_nodes: serde_json::to_value(&workflow_nodes)
                 .unwrap_or(serde_json::Value::Null),

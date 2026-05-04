@@ -42,7 +42,7 @@ const WORKFLOW_NODE_TYPES: &str = r#"节点类型 (node.type):
 - delay: 延迟，config: { delay_type, seconds, until }
 - tool: 工具节点，config: { tool_name, input_mapping, output_var }
 - code: 代码节点，config: { language, code, output_var }
-- atomicSkill: 原子技能节点，config: { skill_id, skill_name, entry_type, input_mapping, output_var }
+- atomicSkill: 工作流步骤节点，config: { skill_id, skill_name, entry_type, input_mapping, output_var }
 - end: 结束节点，config: { output_var }"#;
 
 const WORKFLOW_EDGE_TYPES: &str = r#"边类型 (edge.edge_type):
@@ -63,7 +63,7 @@ const TOOL_ENTRY_TYPES: &str = r#"工具入口类型 (entry_type):
 impl PromptTemplates {
     pub fn turn1_understand() -> LlmPromptTemplate {
         LlmPromptTemplate {
-            system: r#"你是一个技能分解专家，负责将复合技能包拆分为原子技能和工作流。
+            system: r#"你是一个技能分解专家，负责将复合技能包拆分为工作流步骤和工作流。
 
 输入格式：
 用户将提供一个复合技能包，包含多个文件（Markdown、Python、JavaScript、TypeScript、Shell等）
@@ -233,7 +233,7 @@ impl PromptTemplates {
 分析要求：
 1. 理解每个函数实现的功能
 2. 识别输入输出（参数和返回值）
-3. 判断是否可以独立成原子技能
+3. 判断是否可以独立成工作流步骤
 4. 识别函数间的依赖关系
 
 用中文回复。"#
@@ -254,7 +254,7 @@ impl PromptTemplates {
 2. 输入参数和类型
 3. 输出/返回值
 4. 依赖的外部函数或模块
-5. 是否可独立成原子技能
+5. 是否可独立成工作流步骤
 6. 如果可以，建议的技能名称
 
 用中文回复。"#
@@ -328,7 +328,7 @@ impl PromptTemplates {
 
 工作流设计原则：
 1. 工作流必须是有向无环图（DAG）
-2. 每个节点代表一个原子技能或控制结构
+2. 每个节点代表一个工作流步骤或控制结构
 3. 边代表数据流或控制流
 4. 必须有明确的开始（trigger）和结束（end）节点
 
@@ -388,7 +388,7 @@ impl PromptTemplates {
                                 },
                                 "title": { "type": "string" },
                                 "config": { "type": "object" },
-                                "skill_ref": { "type": "string", "description": "引用的原子技能名称" },
+                                "skill_ref": { "type": "string", "description": "引用的工作流步骤名称" },
                                 "position": {
                                     "type": "object",
                                     "properties": {
@@ -446,7 +446,7 @@ impl PromptTemplates {
 
 输出必须严格遵循以下格式：
 
-原子技能格式（AtomicSkill）：
+工作流步骤格式（Agent）：
 {ATOMIC_SKILL_SCHEMA}
 
 工作流节点类型：
@@ -460,14 +460,14 @@ impl PromptTemplates {
 
 重要要求：
 1. 所有字段必须符合上述格式要求
-2. 原子技能的 name 必须是有效的标识符（snake_case）
+2. 工作流步骤的 name 必须是有效的标识符（snake_case）
 3. 工作流必须是有效的 DAG
-4. 每个原子技能必须有 metadata 说明来源
+4. 每个工作流步骤必须有 metadata 说明来源
 5. 使用 JSON 格式输出
 
 输出结构：
 {{
-  "atomic_skills": [/* AtomicSkill数组 */],
+  "agent_steps": [/* Agent数组 */],
   "tool_dependencies": [/* 工具依赖数组 */],
   "workflow": {{ /* 工作流定义 */ }}
 }}"#
@@ -481,19 +481,19 @@ impl PromptTemplates {
 {{function_analysis}}
 
 请生成完整的 JSON 输出，严格遵循格式要求：
-1. atomic_skills: 原子技能列表，每个包含完整的字段
+1. workflow_steps: 工作流步骤列表，每个包含完整的字段
 2. tool_dependencies: 工具依赖列表
 3. workflow: 工作流定义，包含 nodes 和 edges
 
 注意：
-- 每个 atomic_skill 必须有唯一的 name
+- 每个 agent_step 必须有唯一的 name
 - metadata 必须说明来源文件、函数名、行号
-- workflow.nodes 中的 atomicSkill 节点必须通过 skill_ref 或 config.skill_name 引用对应的原子技能"#
+- workflow.nodes 中的 atomicSkill 节点必须通过 skill_ref 或 config.skill_name 引用对应的工作流步骤"#
                 .to_string(),
             expected_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
-                    "atomic_skills": {
+                    "agent_steps": {
                         "type": "array",
                         "items": {
                             "type": "object",
@@ -651,7 +651,7 @@ impl PromptTemplates {
                         }
                     }
                 },
-                "required": ["atomic_skills", "tool_dependencies", "workflow"]
+                "required": ["agent_steps", "tool_dependencies", "workflow"]
             }),
         }
     }

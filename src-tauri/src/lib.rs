@@ -508,17 +508,6 @@ pub fn run() {
             commands::platform_integration::reconcile_platforms,
             commands::platform_integration::start_api_server,
             // Atomic Skill commands
-            commands::atomic_skills::list_atomic_skills,
-            commands::atomic_skills::get_atomic_skill,
-            commands::atomic_skills::create_atomic_skill,
-            commands::atomic_skills::update_atomic_skill,
-            commands::atomic_skills::delete_atomic_skill,
-            commands::atomic_skills::toggle_atomic_skill,
-            commands::atomic_skills::check_semantic_uniqueness,
-            commands::atomic_skills::get_skill_references,
-            commands::atomic_skills::execute_atomic_skill,
-            commands::atomic_skills::check_skill_semantic_matches,
-            commands::atomic_skills::upgrade_skill_with_llm,
             // Background Task commands
             commands::background_tasks::spawn_background_task,
             commands::background_tasks::list_background_tasks,

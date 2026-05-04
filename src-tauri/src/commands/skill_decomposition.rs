@@ -64,21 +64,11 @@ fn compute_content_hash(content: &str) -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecompositionPreviewResponse {
-    pub atomic_skills: Vec<AtomicSkillPreview>,
     pub tool_dependencies: Vec<ToolDependencyPreview>,
     pub workflow_nodes: serde_json::Value,
     pub workflow_edges: serde_json::Value,
     pub original_source: CompositeSourceInfoResponse,
     pub cache_id: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AtomicSkillPreview {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub entry_type: String,
-    pub entry_ref: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -327,18 +317,6 @@ pub async fn preview_decomposition(
             );
 
             return Ok(DecompositionPreviewResponse {
-                atomic_skills: cached
-                    .result
-                    .atomic_skills
-                    .iter()
-                    .map(|s| AtomicSkillPreview {
-                        id: s.id.clone(),
-                        name: s.name.clone(),
-                        description: s.description.clone(),
-                        entry_type: s.entry_type.to_string(),
-                        entry_ref: s.entry_ref.clone(),
-                    })
-                    .collect(),
                 tool_dependencies: dep_results
                     .iter()
                     .map(|d| ToolDependencyPreview {
@@ -372,39 +350,7 @@ pub async fn preview_decomposition(
 
     let parsed = axagent_trajectory::SkillDecomposer::parse(&composite).map_err(|e| e.message)?;
 
-    let existing_skills: Vec<axagent_trajectory::AtomicSkill> =
-        axagent_core::repo::atomic_skill::list_atomic_skills(&state.sea_db, None, None, None)
-            .await
-            .map_err(|e| e.to_string())?
-            .into_iter()
-            .map(|m| axagent_trajectory::AtomicSkill {
-                id: m.id,
-                name: m.name,
-                description: m.description,
-                input_schema: m.input_schema.and_then(|s| serde_json::from_str(&s).ok()),
-                output_schema: m.output_schema.and_then(|s| serde_json::from_str(&s).ok()),
-                entry_type: match m.entry_type.as_str() {
-                    "builtin" => axagent_trajectory::EntryType::Builtin,
-                    "mcp" => axagent_trajectory::EntryType::Mcp,
-                    "local" => axagent_trajectory::EntryType::Local,
-                    "plugin" => axagent_trajectory::EntryType::Plugin,
-                    _ => axagent_trajectory::EntryType::Local,
-                },
-                entry_ref: m.entry_ref,
-                category: m.category,
-                tags: m
-                    .tags
-                    .and_then(|t| serde_json::from_str(&t).ok())
-                    .unwrap_or_default(),
-                version: m.version,
-                enabled: m.enabled,
-                source: m.source,
-                created_at: m.created_at,
-                updated_at: m.updated_at,
-            })
-            .collect();
-
-    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed, &existing_skills)
+    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed)
         .map_err(|e| e.message)?;
 
     let mcp_tools = get_mcp_tool_names(&state.sea_db).await.unwrap_or_default();
@@ -433,17 +379,6 @@ pub async fn preview_decomposition(
     }
 
     Ok(DecompositionPreviewResponse {
-        atomic_skills: result
-            .atomic_skills
-            .iter()
-            .map(|s| AtomicSkillPreview {
-                id: s.id.clone(),
-                name: s.name.clone(),
-                description: s.description.clone(),
-                entry_type: s.entry_type.to_string(),
-                entry_ref: s.entry_ref.clone(),
-            })
-            .collect(),
         tool_dependencies: dep_results
             .iter()
             .map(|d| ToolDependencyPreview {
@@ -481,77 +416,8 @@ pub async fn confirm_decomposition(
 
     let parsed = axagent_trajectory::SkillDecomposer::parse(&composite).map_err(|e| e.message)?;
 
-    let existing_skills: Vec<axagent_trajectory::AtomicSkill> =
-        axagent_core::repo::atomic_skill::list_atomic_skills(&state.sea_db, None, None, None)
-            .await
-            .map_err(|e| e.to_string())?
-            .into_iter()
-            .map(|m| axagent_trajectory::AtomicSkill {
-                id: m.id,
-                name: m.name,
-                description: m.description,
-                input_schema: m.input_schema.and_then(|s| serde_json::from_str(&s).ok()),
-                output_schema: m.output_schema.and_then(|s| serde_json::from_str(&s).ok()),
-                entry_type: match m.entry_type.as_str() {
-                    "builtin" => axagent_trajectory::EntryType::Builtin,
-                    "mcp" => axagent_trajectory::EntryType::Mcp,
-                    "local" => axagent_trajectory::EntryType::Local,
-                    "plugin" => axagent_trajectory::EntryType::Plugin,
-                    _ => axagent_trajectory::EntryType::Local,
-                },
-                entry_ref: m.entry_ref,
-                category: m.category,
-                tags: m
-                    .tags
-                    .and_then(|t| serde_json::from_str(&t).ok())
-                    .unwrap_or_default(),
-                version: m.version,
-                enabled: m.enabled,
-                source: m.source,
-                created_at: m.created_at,
-                updated_at: m.updated_at,
-            })
-            .collect();
-
-    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed, &existing_skills)
+    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed)
         .map_err(|e| e.message)?;
-
-    let mut saved_skill_ids = Vec::new();
-    for skill in &result.atomic_skills {
-        let input_schema = skill
-            .input_schema
-            .as_ref()
-            .and_then(|s| serde_json::to_string(s).ok());
-        let output_schema = skill
-            .output_schema
-            .as_ref()
-            .and_then(|s| serde_json::to_string(s).ok());
-        let tags = serde_json::to_string(&skill.tags).ok();
-
-        if let Err(e) = axagent_core::repo::atomic_skill::create_atomic_skill(
-            &state.sea_db,
-            &skill.id,
-            &skill.name,
-            &skill.description,
-            input_schema.as_deref(),
-            output_schema.as_deref(),
-            &skill.entry_type.to_string(),
-            &skill.entry_ref,
-            &skill.category,
-            tags.as_deref(),
-            &skill.version,
-            skill.enabled,
-            &skill.source,
-        )
-        .await
-        {
-            if !e.to_string().contains("duplicate") {
-                return Err(e.to_string());
-            }
-        }
-
-        saved_skill_ids.push(skill.id.clone());
-    }
 
     let workflow_id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().timestamp_millis();
@@ -583,43 +449,8 @@ pub async fn confirm_decomposition(
         .await
         .map_err(|e| e.to_string())?;
 
-    let skill_node_map: std::collections::HashMap<String, String> = result
-        .workflow_nodes
-        .as_array()
-        .map(|nodes| {
-            nodes
-                .iter()
-                .filter_map(|node| {
-                    let node_id = node.get("id")?.as_str()?.to_string();
-                    let skill_id = node.get("data")?.get("skill_id")?.as_str()?.to_string();
-                    Some((skill_id, node_id))
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-
-    for skill_id in &saved_skill_ids {
-        let ref_id = uuid::Uuid::new_v4().to_string();
-        let node_id = skill_node_map
-            .get(skill_id)
-            .cloned()
-            .unwrap_or_else(|| "decomposed".to_string());
-        if let Err(e) = axagent_core::repo::skill_reference::create_reference(
-            &state.sea_db,
-            &ref_id,
-            skill_id,
-            &workflow_id,
-            &node_id,
-        )
-        .await
-        {
-            tracing::warn!("Failed to create skill reference: {}", e);
-        }
-    }
-
     Ok(serde_json::json!({
         "workflow_id": workflow_id,
-        "saved_skills": saved_skill_ids.len(),
     }))
 }
 

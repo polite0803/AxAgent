@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use axagent_core::workflow_types::WorkflowNode;
 
-use super::executors::{AtomicSkillExecutor, LlmExecutor, SubWorkflowExecutor};
+use super::executors::{LlmExecutor, SubWorkflowExecutor};
 use super::node_executor_trait::{NodeError, NodeExecutorTrait};
 use super::{ExecutionState, NodeOutput};
 
@@ -21,7 +21,6 @@ impl NodeDispatcher {
         let mut dispatcher = Self {
             executors: HashMap::new(),
         };
-        dispatcher.register(AtomicSkillExecutor::new());
         dispatcher.register(LlmExecutor::new());
         dispatcher.register(SubWorkflowExecutor::new());
         dispatcher
@@ -38,7 +37,6 @@ impl NodeDispatcher {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let node_type = match node {
-            WorkflowNode::AtomicSkill(_) => "atomic_skill",
             WorkflowNode::Agent(_) => "agent",
             WorkflowNode::Llm(_) => "llm",
             WorkflowNode::SubWorkflow(_) => "sub_workflow",

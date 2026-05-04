@@ -14,7 +14,6 @@
 #![allow(clippy::manual_strip)]
 
 mod adaptation;
-mod atomic_skill;
 mod auto_memory;
 mod batch;
 mod behavior_learner;
@@ -62,7 +61,6 @@ mod trajectory_compressor;
 mod user_profile;
 
 pub use adaptation::*;
-pub use atomic_skill::*;
 pub use auto_memory::*;
 pub use batch::*;
 pub use behavior_learner::*;

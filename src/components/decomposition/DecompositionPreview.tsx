@@ -94,9 +94,9 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 />
               )}
 
-              <Typography.Title level={5}>提取的原子Skill ({preview.atomic_skills.length})</Typography.Title>
+              <Typography.Title level={5}>工作流步骤</Typography.Title>
               <Table
-                dataSource={preview.atomic_skills}
+                dataSource={[]}
                 columns={[
                   { title: "名称", dataIndex: "name", key: "name" },
                   { title: "描述", dataIndex: "description", key: "description", ellipsis: true },

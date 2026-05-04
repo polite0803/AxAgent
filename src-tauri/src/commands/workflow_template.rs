@@ -75,7 +75,7 @@ pub async fn get_workflow_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    // Auto-migrate legacy Tool/Code nodes to AtomicSkill nodes on load
+    // Auto-migrate legacy Tool/Code nodes to Agent nodes on load
     if let Some(ref m) = template {
         let mut nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
             serde_json::from_str(&m.nodes).map_err(|e| e.to_string())?;
@@ -321,7 +321,6 @@ pub async fn validate_workflow_template(
         .iter()
         .filter_map(|n| match n {
             WorkflowNode::Trigger(t) => Some(t.base.id.clone()),
-            WorkflowNode::AtomicSkill(t) => Some(t.base.id.clone()),
             WorkflowNode::Agent(t) => Some(t.base.id.clone()),
             WorkflowNode::Llm(t) => Some(t.base.id.clone()),
             WorkflowNode::Condition(t) => Some(t.base.id.clone()),
@@ -405,28 +404,6 @@ pub async fn validate_workflow_template(
                 ),
                 suggestion: Some("Remove this edge or create the missing target node".to_string()),
             });
-        }
-    }
-
-    // Validate AtomicSkill nodes: check skill_id references exist
-    for node in &nodes {
-        if let WorkflowNode::AtomicSkill(n) = node {
-            if n.config.skill_id.is_empty() {
-                errors.push(ValidationError {
-                    error_type: "missing_skill_ref".to_string(),
-                    node_id: Some(n.base.id.clone()),
-                    message: "AtomicSkill node has no skill_id configured".to_string(),
-                    suggestion: Some("Select an atomic skill for this node".to_string()),
-                });
-            }
-            // Validate output_var is not empty
-            if n.config.output_var.is_empty() {
-                warnings.push(ValidationWarning {
-                    warning_type: "missing_output_var".to_string(),
-                    node_id: Some(n.base.id.clone()),
-                    message: "AtomicSkill node has no output_var configured. Output will not be stored in workflow variables.".to_string(),
-                });
-            }
         }
     }
 
@@ -518,7 +495,7 @@ pub async fn import_workflow_template(
     let template: WorkflowTemplateResponse =
         serde_json::from_str(&json_data).map_err(|e| format!("Invalid JSON format: {}", e))?;
 
-    // Auto-migrate legacy Tool/Code nodes to AtomicSkill nodes on import
+    // Auto-migrate legacy Tool/Code nodes to Agent nodes on import
     let mut nodes = template.nodes.clone();
     let migrated_nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
         if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {

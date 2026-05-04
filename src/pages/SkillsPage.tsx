@@ -1,6 +1,4 @@
 import appLogo from "@/assets/image/logo.png";
-import { AtomicSkillEditor } from "@/components/atomicSkill/AtomicSkillEditor";
-import { AtomicSkillList } from "@/components/atomicSkill/AtomicSkillList";
 import { SkillCreateModal } from "@/components/chat/SkillCreateEditModal";
 import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";
 import { CopyButton } from "@/components/common/CopyButton";
@@ -406,8 +404,6 @@ export function SkillsPage() {
   >(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
-  const [atomicSkillEditVisible, setAtomicSkillEditVisible] = useState(false);
-  const [editingAtomicSkill, setEditingAtomicSkill] = useState<import("@/types").AtomicSkill | null>(null);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
 
   const { previewDecomposition } = useDecompositionStore();
@@ -647,7 +643,6 @@ export function SkillsPage() {
     openWorkflowEditor,
   ]);
 
-  const handleMarketplaceExtractAtomicSkills = useCallback(async () => {
     const skill = marketplaceSkills.find(s => s.repo === marketplaceDetailContent?.repo);
     if (!skill || !marketplaceDetailContent?.content) { return; }
     setDecomposeRequest({
@@ -695,7 +690,6 @@ export function SkillsPage() {
     }
   }, [selectedSkill, previewDecomposition, setImportedWorkflowData, openWorkflowEditor]);
 
-  const handleExtractAtomicSkills = useCallback(async () => {
     if (!selectedSkill?.content) { return; }
     setDecomposeRequest({
       name: selectedSkill.info.name,
@@ -1153,28 +1147,6 @@ export function SkillsPage() {
               children: mySkillsContent,
             },
             {
-              key: "atomic",
-              label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  ⚛️{t("skills.atomicSkills", "原子Skill")}
-                </span>
-              ),
-              children: (
-                <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                  <AtomicSkillList
-                    onEdit={(skill) => {
-                      setEditingAtomicSkill(skill);
-                      setAtomicSkillEditVisible(true);
-                    }}
-                    onCreate={() => {
-                      setEditingAtomicSkill(null);
-                      setAtomicSkillEditVisible(true);
-                    }}
-                  />
-                </div>
-              ),
-            },
-            {
               key: "marketplace",
               label: (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -1231,7 +1203,6 @@ export function SkillsPage() {
             <Space>
               <Button
                 icon={<Layers size={14} />}
-                onClick={handleExtractAtomicSkills}
               >
                 {t("skills.extractAtomicSkills", "Extract Atomic Skills")}
               </Button>
@@ -1316,7 +1287,6 @@ export function SkillsPage() {
             <Space>
               <Button
                 icon={<Layers size={14} />}
-                onClick={handleMarketplaceExtractAtomicSkills}
               >
                 {t("skills.extractAtomicSkills", "Extract Atomic Skills")}
               </Button>
@@ -1384,12 +1354,8 @@ export function SkillsPage() {
         onClose={() => setProposalPanelOpen(false)}
       />
 
-      <AtomicSkillEditor
-        visible={atomicSkillEditVisible}
-        skill={editingAtomicSkill}
         onClose={() => {
           setAtomicSkillEditVisible(false);
-          setEditingAtomicSkill(null);
         }}
       />
 

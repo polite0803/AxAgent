@@ -1,11 +1,9 @@
 use sea_orm_migration::prelude::*;
 
 /// 补齐 entity 模型中已定义但迁移中缺失的表：
-/// - atomic_skills
 /// - gateway_links / gateway_link_policies / gateway_link_activities
 /// - generated_tools
 /// - scheduled_tasks
-/// - skill_references
 pub struct Migration;
 
 impl MigrationName for Migration {
@@ -17,53 +15,7 @@ impl MigrationName for Migration {
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // ── 1. atomic_skills ──
-        manager
-            .create_table(
-                Table::create()
-                    .table(AtomicSkills::Table)
-                    .if_not_exists()
-                    .col(
-                        ColumnDef::new(AtomicSkills::Id)
-                            .string()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(ColumnDef::new(AtomicSkills::Name).string().not_null())
-                    .col(
-                        ColumnDef::new(AtomicSkills::Description)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(ColumnDef::new(AtomicSkills::InputSchema).string().null())
-                    .col(ColumnDef::new(AtomicSkills::OutputSchema).string().null())
-                    .col(ColumnDef::new(AtomicSkills::EntryType).string().not_null())
-                    .col(ColumnDef::new(AtomicSkills::EntryRef).string().not_null())
-                    .col(ColumnDef::new(AtomicSkills::Category).string().not_null())
-                    .col(ColumnDef::new(AtomicSkills::Tags).string().null())
-                    .col(ColumnDef::new(AtomicSkills::Version).string().not_null())
-                    .col(
-                        ColumnDef::new(AtomicSkills::Enabled)
-                            .boolean()
-                            .not_null()
-                            .default(true),
-                    )
-                    .col(ColumnDef::new(AtomicSkills::Source).string().not_null())
-                    .col(
-                        ColumnDef::new(AtomicSkills::CreatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(AtomicSkills::UpdatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        // ── 2. gateway_links ──
+        // ── 1. gateway_links ──
         manager
             .create_table(
                 Table::create()
@@ -329,46 +281,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // ── 7. skill_references ──
-        manager
-            .create_table(
-                Table::create()
-                    .table(SkillReferences::Table)
-                    .if_not_exists()
-                    .col(
-                        ColumnDef::new(SkillReferences::Id)
-                            .string()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(ColumnDef::new(SkillReferences::SkillId).string().not_null())
-                    .col(
-                        ColumnDef::new(SkillReferences::WorkflowId)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(ColumnDef::new(SkillReferences::NodeId).string().not_null())
-                    .col(
-                        ColumnDef::new(SkillReferences::CreatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .drop_table(
-                Table::drop()
-                    .table(SkillReferences::Table)
-                    .if_exists()
-                    .to_owned(),
-            )
-            .await?;
         manager
             .drop_table(
                 Table::drop()
@@ -409,36 +325,10 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-        manager
-            .drop_table(
-                Table::drop()
-                    .table(AtomicSkills::Table)
-                    .if_exists()
-                    .to_owned(),
-            )
-            .await?;
         Ok(())
     }
 }
 
-#[derive(Iden)]
-enum AtomicSkills {
-    Table,
-    Id,
-    Name,
-    Description,
-    InputSchema,
-    OutputSchema,
-    EntryType,
-    EntryRef,
-    Category,
-    Tags,
-    Version,
-    Enabled,
-    Source,
-    CreatedAt,
-    UpdatedAt,
-}
 #[derive(Iden)]
 enum GatewayLinks {
     Table,
@@ -510,13 +400,4 @@ enum ScheduledTasks {
     Config,
     CreatedAt,
     UpdatedAt,
-}
-#[derive(Iden)]
-enum SkillReferences {
-    Table,
-    Id,
-    SkillId,
-    WorkflowId,
-    NodeId,
-    CreatedAt,
 }

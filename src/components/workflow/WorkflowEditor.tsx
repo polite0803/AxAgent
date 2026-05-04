@@ -24,7 +24,6 @@ import { BaseEdge } from "./Edges/BaseEdge";
 import { EditorHeader } from "./Header/EditorHeader";
 import {
   AgentNode,
-  AtomicSkillNode,
   BaseNode,
   CodeNode,
   ConditionNode,
@@ -43,12 +42,10 @@ import {
 } from "./Nodes";
 import { LeftPanel } from "./Panels/LeftPanel";
 import { RightPanel } from "./Panels/RightPanel";
-import { SkillUpgradeModal } from "./SkillUpgradeModal";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
 import {
   type AgentNode as AgentNodeType,
-  type AtomicSkillInfo,
   NODE_TYPE_MAP,
   type WorkflowEdge,
   type WorkflowNode,
@@ -66,7 +63,6 @@ const nodeTypes = {
   delay: DelayNode,
   tool: ToolNode,
   code: CodeNode,
-  atomicSkill: AtomicSkillNode,
   subWorkflow: SubWorkflowNode,
   documentParser: DocumentParserNode,
   vectorRetrieve: VectorRetrieveNode,
@@ -124,13 +120,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
   const [upgradeModalState, setUpgradeModalState] = React.useState<{
     visible: boolean;
-    existingSkill: AtomicSkillInfo | null;
     generatedSkillName: string;
     generatedSkillDescription: string;
     nodeId: string;
   }>({
     visible: false,
-    existingSkill: null,
     generatedSkillName: "",
     generatedSkillDescription: "",
     nodeId: "",
@@ -201,7 +195,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         const nodeType = NODE_TYPE_MAP[node.type] ? node.type : "base";
 
         let semanticMatch = undefined;
-        if (semanticCheckResult?.matches && node.type === "atomicSkill") {
+        if (semanticCheckResult?.matches && node.type === "agent") {
           const match = semanticCheckResult.matches.find((m) => m.node_id === node.id);
           if (match?.matches && match.matches.length > 0) {
             const bestMatch = match.matches[0];
@@ -284,7 +278,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
       setUpgradeModalState({
         visible: true,
-        existingSkill: bestMatch.existing_skill,
         generatedSkillName,
         generatedSkillDescription,
         nodeId,
@@ -761,7 +754,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       )}
 
       {upgradeModalState.visible && upgradeModalState.existingSkill && (
-        <SkillUpgradeModal
           open={upgradeModalState.visible}
           onClose={() => setUpgradeModalState((prev) => ({ ...prev, visible: false }))}
           existingSkill={upgradeModalState.existingSkill}
@@ -860,7 +852,7 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
       return { tool_name: "", input_mapping: {}, output_var: "" };
     case "code":
       return { language: "javascript", code: "", output_var: "" };
-    case "atomicSkill":
+    case "agent":
       return { skill_id: "", skill_name: "", entry_type: "builtin", input_mapping: {}, output_var: "" };
     case "end":
       return { output_var: "" };
@@ -938,10 +930,10 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
         type: "vectorRetrieve",
         config: { query: "", knowledge_base_id: "", top_k: 5, output_var: "" },
       };
-    case "atomicSkill":
+    case "agent":
       return {
         ...baseNode,
-        type: "atomicSkill",
+        type: "agent",
         config: { skill_id: "", skill_name: "", entry_type: "builtin", input_mapping: {}, output_var: "" },
       };
     case "end":

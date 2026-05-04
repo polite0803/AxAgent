@@ -74,7 +74,6 @@ pub trait NodeExecutorTrait: Send + Sync {
 pub fn node_type_name(node: &WorkflowNode) -> &'static str {
     match node {
         WorkflowNode::Trigger(_) => "trigger",
-        WorkflowNode::AtomicSkill(_) => "atomic_skill",
         WorkflowNode::Agent(_) => "agent",
         WorkflowNode::Llm(_) => "llm",
         WorkflowNode::Condition(_) => "condition",

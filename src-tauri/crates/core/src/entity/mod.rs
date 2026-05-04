@@ -58,9 +58,7 @@ pub mod agent_profiles;
 pub mod agent_sessions;
 
 // Wave 3: Atomic Skill & Work Engine entities
-pub mod atomic_skills;
 pub mod generated_tools;
-pub mod skill_references;
 pub mod workflow_executions;
 pub mod workflow_marketplace;
 pub mod workflow_marketplace_review;

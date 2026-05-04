@@ -1,5 +1,4 @@
 export { AgentPropertyPanel } from "./AgentPropertyPanel";
-export { AtomicSkillPropertyPanel } from "./AtomicSkillPropertyPanel";
 export { BasePropertyPanel } from "./BasePropertyPanel";
 export { CodePropertyPanel } from "./CodePropertyPanel";
 export { ConditionPropertyPanel } from "./ConditionPropertyPanel";

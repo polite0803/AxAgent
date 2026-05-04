@@ -5,7 +5,6 @@ import React from "react";
 import { NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "../types";
 import {
   AgentPropertyPanel,
-  AtomicSkillPropertyPanel,
   CodePropertyPanel,
   ConditionPropertyPanel,
   DelayPropertyPanel,
@@ -117,14 +116,6 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
         case "delay":
           return (
             <DelayPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "atomicSkill":
-          return (
-            <AtomicSkillPropertyPanel
               node={selectedNode}
               onUpdate={handleUpdateNode}
               onDelete={handleDeleteNode}

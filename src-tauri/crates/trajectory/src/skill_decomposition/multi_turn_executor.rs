@@ -261,10 +261,6 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
         let workflow_value = validated_json.get("workflow").cloned().unwrap_or_default();
 
         Ok(DecompositionResult {
-            atomic_skills: validated_json
-                .get("atomic_skills")
-                .and_then(|v| serde_json::from_value(v.clone()).ok())
-                .unwrap_or_default(),
             tool_dependencies: validated_json
                 .get("tool_dependencies")
                 .and_then(|v| serde_json::from_value(v.clone()).ok())

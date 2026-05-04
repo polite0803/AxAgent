@@ -93,10 +93,10 @@ export interface AgentNodeConfig {
   max_tokens?: number;
   tools: string[];
   output_mode: OutputMode;
-  /** Expert role ID from agency_experts or built-in presets (deprecated, use agentProfileId) */
-  expertRoleId?: string;
   /** Agent profile ID from agent_profiles table (unified ExpertRole + AgentRole) */
   agentProfileId?: string;
+  /** Override the agent_role from the profile. None = use profile default. */
+  agentRoleOverride?: AgentRole;
 }
 
 export interface AgentNode extends WorkflowNodeBase {
@@ -269,21 +269,6 @@ export interface EndNodeConfig {
   output_var?: string;
 }
 
-export interface AtomicSkillNodeConfig {
-  skill_id?: string;
-  skill_name?: string;
-  entry_type?: string;
-  entry_ref?: string;
-  category?: string;
-  input_mapping?: Record<string, string>;
-  output_var?: string;
-}
-
-export interface AtomicSkillNode extends WorkflowNodeBase {
-  type: "atomicSkill";
-  config: AtomicSkillNodeConfig;
-}
-
 export interface EndNode extends WorkflowNodeBase {
   type: "end";
   config: EndNodeConfig;
@@ -324,7 +309,6 @@ export type WorkflowNode =
   | SubWorkflowNode
   | DocumentParserNode
   | VectorRetrieveNode
-  | AtomicSkillNode
   | ValidationNode
   | EndNode;
 
@@ -457,18 +441,8 @@ export const NODE_TYPE_MAP: Record<string, { label: string; category: string; co
   code: { label: "代码(旧)", category: "execution", color: "#52c41a" },
 };
 
-export interface AtomicSkillInfo {
-  id: string;
-  name: string;
-  description: string;
-  entry_type: string;
-  entry_ref: string;
-  category: string;
-  version: string;
-}
-
 export interface SkillMatchResult {
-  existing_skill: AtomicSkillInfo;
+  existing_skill: { id: string; name: string };
   similarity_score: number;
   match_reasons: string[];
 }

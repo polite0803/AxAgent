@@ -1,7 +1,6 @@
 pub mod agent_profile;
 pub mod agent_session;
 pub mod artifact;
-pub mod atomic_skill;
 pub mod backup;
 pub mod cli_config;
 pub mod context_source;
@@ -30,7 +29,6 @@ pub mod scheduled_task;
 pub mod search_provider;
 pub mod settings;
 pub mod skill;
-pub mod skill_reference;
 pub mod stored_file;
 pub mod tool_execution;
 pub mod workflow_execution;

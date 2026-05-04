@@ -1107,74 +1107,6 @@ export type CompareResponsesResult = {
   rightMessage: { id: string; content: string };
 };
 
-// ── Atomic Skills ─────────────────────────────────────────────────────
-export interface AtomicSkill {
-  id: string;
-  name: string;
-  description: string;
-  input_schema: Record<string, unknown> | null;
-  output_schema: Record<string, unknown> | null;
-  entry_type: "builtin" | "mcp" | "local" | "plugin";
-  entry_ref: string;
-  category: string;
-  tags: string[];
-  version: string;
-  enabled: boolean;
-  source: "atomic" | "auto-generated";
-  created_at: number;
-  updated_at: number;
-}
-
-export interface AtomicSkillExecutionResult {
-  skill_id: string;
-  success: boolean;
-  output: unknown;
-  execution_time_ms: number;
-  error?: { error_type: string; message: string };
-}
-
-export interface AtomicSkillFilter {
-  category?: string;
-  source?: string;
-  enabled?: boolean;
-}
-
-export interface CreateAtomicSkillParams {
-  name: string;
-  description: string;
-  input_schema?: Record<string, unknown>;
-  output_schema?: Record<string, unknown>;
-  entry_type: "builtin" | "mcp" | "local" | "plugin";
-  entry_ref: string;
-  category?: string;
-  tags?: string[];
-  version?: string;
-  enabled?: boolean;
-  source?: string;
-}
-
-export interface UpdateAtomicSkillParams {
-  name?: string;
-  description?: string;
-  input_schema?: Record<string, unknown>;
-  output_schema?: Record<string, unknown>;
-  entry_type?: "builtin" | "mcp" | "local" | "plugin";
-  entry_ref?: string;
-  category?: string;
-  tags?: string[];
-  version?: string;
-  enabled?: boolean;
-  source?: string;
-}
-
-export interface SkillReference {
-  id: string;
-  skill_id: string;
-  workflow_id: string;
-  node_id: string;
-  created_at: number;
-}
-
 // ── Tool Dependencies ─────────────────────────────────────────────────
 export type ToolDependencyStatus = "satisfied" | "auto_installable" | "manual_installable" | "needs_generation";
 
@@ -1189,13 +1121,6 @@ export interface ToolDependency {
 
 // ── Decomposition ─────────────────────────────────────────────────────
 export interface DecompositionPreview {
-  atomic_skills: Array<{
-    id: string;
-    name: string;
-    description: string;
-    entry_type: string;
-    entry_ref: string;
-  }>;
   tool_dependencies: ToolDependency[];
   workflow_nodes: unknown;
   workflow_edges: unknown;

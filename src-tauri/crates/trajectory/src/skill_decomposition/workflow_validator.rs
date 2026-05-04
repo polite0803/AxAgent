@@ -25,20 +25,6 @@ const VALID_EDGE_TYPES: &[&str] = &[
     "error",
 ];
 
-const VALID_ENTRY_TYPES: &[&str] = &["builtin", "mcp", "local", "plugin"];
-
-const VALID_CATEGORIES: &[&str] = &[
-    "data_processing",
-    "web_scraping",
-    "file_operation",
-    "api_integration",
-    "text_processing",
-    "automation",
-    "monitoring",
-    "integration",
-    "other",
-];
-
 const VALID_LOOP_TYPES: &[&str] = &["forEach", "while", "doWhile", "until"];
 
 const VALID_COMPARE_OPERATORS: &[&str] = &[
@@ -117,15 +103,6 @@ impl WorkflowValidator {
             }
         }
 
-        if let Some(skills) = corrected
-            .get_mut("atomic_skills")
-            .and_then(|s| s.as_array_mut())
-        {
-            for skill in skills.iter_mut() {
-                let skill_issues = Self::validate_atomic_skill(skill);
-                issues.extend(skill_issues);
-            }
-        }
 
         let has_errors = issues.iter().any(|i| i.severity == IssueSeverity::Error);
         let is_valid = !has_errors;
@@ -410,83 +387,6 @@ impl WorkflowValidator {
         issues
     }
 
-    fn validate_atomic_skill(skill: &mut serde_json::Value) -> Vec<ValidationIssue> {
-        let mut issues = Vec::new();
-        let skill_name = skill
-            .get("name")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-
-        if let Some(entry_type) = skill.get("entry_type").and_then(|v| v.as_str()) {
-            if !VALID_ENTRY_TYPES.contains(&entry_type) {
-                issues.push(ValidationIssue {
-                    severity: IssueSeverity::Warning,
-                    node_id: skill_name.clone(),
-                    field: Some("entry_type".to_string()),
-                    message: format!("无效入口类型 '{}'，降级为 'local'", entry_type),
-                    original_value: Some(entry_type.to_string()),
-                    corrected_value: Some("local".to_string()),
-                });
-                if let Some(map) = skill.as_object_mut() {
-                    map.insert(
-                        "entry_type".to_string(),
-                        serde_json::Value::String("local".to_string()),
-                    );
-                }
-            }
-        }
-
-        if let Some(category) = skill.get("category").and_then(|v| v.as_str()) {
-            if !VALID_CATEGORIES.contains(&category) {
-                issues.push(ValidationIssue {
-                    severity: IssueSeverity::Warning,
-                    node_id: skill_name.clone(),
-                    field: Some("category".to_string()),
-                    message: format!("无效分类 '{}'，降级为 'other'", category),
-                    original_value: Some(category.to_string()),
-                    corrected_value: Some("other".to_string()),
-                });
-                if let Some(map) = skill.as_object_mut() {
-                    map.insert(
-                        "category".to_string(),
-                        serde_json::Value::String("other".to_string()),
-                    );
-                }
-            }
-        }
-
-        if skill_name.is_none() {
-            issues.push(ValidationIssue {
-                severity: IssueSeverity::Error,
-                node_id: None,
-                field: Some("name".to_string()),
-                message: "原子技能缺少 'name' 字段".to_string(),
-                original_value: None,
-                corrected_value: None,
-            });
-        }
-
-        if skill.get("entry_ref").and_then(|v| v.as_str()).is_none() {
-            if let Some(name) = &skill_name {
-                issues.push(ValidationIssue {
-                    severity: IssueSeverity::Warning,
-                    node_id: skill_name.clone(),
-                    field: Some("entry_ref".to_string()),
-                    message: format!("原子技能缺少 'entry_ref'，使用 name '{}' 作为默认值", name),
-                    original_value: None,
-                    corrected_value: Some(name.clone()),
-                });
-                if let Some(map) = skill.as_object_mut() {
-                    map.insert(
-                        "entry_ref".to_string(),
-                        serde_json::Value::String(name.clone()),
-                    );
-                }
-            }
-        }
-
-        issues
-    }
 
     fn find_closest_node_type(input: &str) -> &'static str {
         let input_lower = input.to_lowercase();
