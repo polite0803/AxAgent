@@ -2,6 +2,7 @@ import { useCompressStore, useConversationStore, useProviderStore } from "@/stor
 import { Button, Dropdown, theme, Tooltip } from "antd";
 import { Cpu, Eraser, Scissors } from "lucide-react";
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface QuickCommand {
   key: string;
@@ -12,6 +13,7 @@ interface QuickCommand {
 }
 
 export const QuickCommandBar: React.FC = () => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const clearAllMessages = useConversationStore((s) => s.clearAllMessages);
   const compressContext = useCompressStore((s) => s.compressContext);
@@ -36,7 +38,6 @@ export const QuickCommandBar: React.FC = () => {
     [switchModel],
   );
 
-  // 从所有启用的供应商中收集当前可用的模型
   const availableModels = useMemo(() => {
     return providers
       .filter((p) => p.enabled)
@@ -50,7 +51,6 @@ export const QuickCommandBar: React.FC = () => {
       );
   }, [providers, handleModelSwitch]);
 
-  // 当前会话使用的模型
   const currentModel = useMemo(() => {
     if (!activeConversationId) { return null; }
     const conv = conversations.find((c) => c.id === activeConversationId);
@@ -78,14 +78,14 @@ export const QuickCommandBar: React.FC = () => {
       key: "clear",
       label: "/clear",
       icon: <Eraser size={12} />,
-      tooltip: "清空当前对话",
+      tooltip: t("chat.clearConversation"),
       action: handleClear,
     },
     {
       key: "compact",
       label: "/compact",
       icon: <Scissors size={12} />,
-      tooltip: "压缩上下文",
+      tooltip: t("chat.compactContext"),
       action: handleCompact,
     },
   ];
@@ -128,10 +128,9 @@ export const QuickCommandBar: React.FC = () => {
         </Tooltip>
       ))}
 
-      {/* 动态模型切换器：替代硬编码的 /model opus|sonnet|haiku */}
       {availableModels.length > 0 && (
         <Dropdown menu={{ items: modelMenuItems }} trigger={["click"]} placement="bottomLeft">
-          <Tooltip title="切换模型" placement="top">
+          <Tooltip title={t("chat.switchModel")} placement="top">
             <Button
               size="small"
               type="text"

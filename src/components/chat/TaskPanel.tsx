@@ -2,6 +2,7 @@ import { invoke, listen } from "@/lib/invoke";
 import { Badge, Button, Empty, message, Popconfirm, Spin, Tag, Typography } from "antd";
 import { Circle, LoaderCircle, StopCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
 
@@ -21,22 +22,23 @@ interface BackgroundTask {
   finished_at?: number;
 }
 
-const STATUS_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-  pending: { color: "default", icon: <Circle size={10} />, label: "等待中" },
-  running: {
-    color: "processing",
-    icon: <LoaderCircle size={10} style={{ animation: "spin 1s linear infinite" }} />,
-    label: "运行中",
-  },
-  completed: { color: "success", icon: <Circle size={10} fill="currentColor" />, label: "已完成" },
-  failed: { color: "error", icon: <Circle size={10} fill="currentColor" />, label: "失败" },
-  stopped: { color: "warning", icon: <StopCircle size={10} />, label: "已停止" },
-};
-
 export function TaskPanel() {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<BackgroundTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const STATUS_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
+    pending: { color: "default", icon: <Circle size={10} />, label: t("task.statusPending") },
+    running: {
+      color: "processing",
+      icon: <LoaderCircle size={10} style={{ animation: "spin 1s linear infinite" }} />,
+      label: t("task.statusRunning"),
+    },
+    completed: { color: "success", icon: <Circle size={10} fill="currentColor" />, label: t("task.statusCompleted") },
+    failed: { color: "error", icon: <Circle size={10} fill="currentColor" />, label: t("task.statusFailed") },
+    stopped: { color: "warning", icon: <StopCircle size={10} />, label: t("task.statusStopped") },
+  };
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -51,7 +53,6 @@ export function TaskPanel() {
     setLoading(true);
     fetchTasks().finally(() => setLoading(false));
 
-    // 监听实时更新
     let unlistenCreated: (() => void) | undefined;
     let unlistenUpdated: (() => void) | undefined;
 
@@ -79,12 +80,12 @@ export function TaskPanel() {
   const handleStop = useCallback(async (taskId: string) => {
     try {
       await invoke("stop_background_task", { taskId });
-      message.success("任务已停止");
+      message.success(t("task.stopped"));
       fetchTasks();
     } catch (e) {
-      message.error(`停止失败: ${String(e)}`);
+      message.error(`${t("task.stopFail")}: ${String(e)}`);
     }
-  }, [fetchTasks]);
+  }, [fetchTasks, t]);
 
   const runningCount = tasks.filter((t) => t.status === "running").length;
   const pendingCount = tasks.filter((t) => t.status === "pending").length;
@@ -101,13 +102,13 @@ export function TaskPanel() {
         }}
       >
         <span style={{ fontWeight: 600, fontSize: 14 }}>
-          后台任务
+          {t("task.title")}
           {(runningCount > 0 || pendingCount > 0) && (
             <Badge count={runningCount + pendingCount} size="small" style={{ marginLeft: 8 }} />
           )}
         </span>
         <Button size="small" onClick={fetchTasks} loading={loading}>
-          刷新
+          {t("task.refresh")}
         </Button>
       </div>
 
@@ -115,7 +116,7 @@ export function TaskPanel() {
         {loading && tasks.length === 0 && <Spin style={{ display: "block", margin: "24px auto" }} />}
 
         {!loading && tasks.length === 0 && (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无后台任务" style={{ marginTop: 32 }} />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("task.empty")} style={{ marginTop: 32 }} />
         )}
 
         {tasks.map((task) => {
@@ -151,14 +152,14 @@ export function TaskPanel() {
                 <Tag style={{ margin: 0, fontSize: 11 }}>{task.task_type}</Tag>
                 {task.status === "running" && (
                   <Popconfirm
-                    title="确定停止此任务？"
+                    title={t("task.stopConfirm")}
                     onConfirm={(e) => {
                       e?.stopPropagation();
                       handleStop(task.id);
                     }}
                     onCancel={(e) => e?.stopPropagation()}
-                    okText="停止"
-                    cancelText="取消"
+                    okText={t("task.stop")}
+                    cancelText={t("common.cancel")}
                   >
                     <Button
                       type="text"
@@ -185,7 +186,7 @@ export function TaskPanel() {
                   )}
                   {task.exit_code != null && (
                     <Text type="secondary" style={{ fontSize: 11 }}>
-                      退出码: {task.exit_code}
+                      {t("task.exitCode")}: {task.exit_code}
                     </Text>
                   )}
                   <div
@@ -202,7 +203,7 @@ export function TaskPanel() {
                       wordBreak: "break-all",
                     }}
                   >
-                    {task.output || "(无输出)"}
+                    {task.output || t("task.noOutput")}
                   </div>
                 </div>
               )}

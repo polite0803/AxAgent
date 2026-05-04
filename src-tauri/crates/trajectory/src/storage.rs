@@ -64,19 +64,9 @@ impl TrajectoryStorage {
     }
 
     /// 安全地 block_on：如果已在 tokio runtime 中则复用当前句柄，否则创建新的
-    /// current_thread runtime 不支持 block_in_place，需要新建临时 runtime
     fn block_on<F: std::future::Future>(f: F) -> F::Output {
         match tokio::runtime::Handle::try_current() {
-            Ok(handle) => {
-                if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::CurrentThread {
-                    // current_thread 不支持 block_in_place，创建临时多线程 runtime
-                    tokio::runtime::Runtime::new()
-                        .expect("Failed to create temporary Tokio runtime")
-                        .block_on(f)
-                } else {
-                    tokio::task::block_in_place(|| handle.block_on(f))
-                }
-            },
+            Ok(handle) => handle.block_on(f),
             Err(_) => tokio::runtime::Runtime::new()
                 .expect("Failed to create Tokio runtime")
                 .block_on(f),

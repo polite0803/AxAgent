@@ -619,7 +619,12 @@
         "types": "类型"
       }
     },
-    "waiting": "等待中..."
+    "waiting": "等待中...",
+    "compactContext": "压缩上下文",
+    "toolbar": {
+      "left": "左侧",
+      "right": "右侧"
+    }
   },
   "gateway": {
     "title": "网关",
@@ -1980,7 +1985,8 @@
     "viewDetails": "查看详情",
     "waitingForApproval": "等待审批",
     "createSuccess": "创建成功",
-    "deleteSuccess": "删除成功"
+    "deleteSuccess": "删除成功",
+    "retry": "重试"
   },
   "plan": {
     "defaultTitle": "执行计划",
@@ -3305,7 +3311,11 @@
       "successWorkflow": "成功工作流",
       "title": "技能提议",
       "viewContent": "查看内容"
-    }
+    },
+    "loadFailed": "技能 \"{{name}}\" 加载失败",
+    "unknownError": "未知错误",
+    "retry": "重试",
+    "loading": "加载技能组件..."
   },
   "tool": {
     "common": {
@@ -3320,5 +3330,57 @@
       "show": "显示主窗口",
       "quit": "退出 AxAgent"
     }
+  },
+  "task": {
+    "title": "后台任务",
+    "empty": "暂无后台任务",
+    "refresh": "刷新",
+    "stopped": "任务已停止",
+    "stopFail": "停止失败",
+    "stopConfirm": "确定停止此任务？",
+    "stop": "停止",
+    "statusPending": "等待中",
+    "statusRunning": "运行中",
+    "statusCompleted": "已完成",
+    "statusFailed": "失败",
+    "statusStopped": "已停止",
+    "bash": "bash",
+    "agent": "agent",
+    "exitCode": "退出码",
+    "noOutput": "(无输出)",
+    "startFailed": "启动失败"
+  },
+  "skillEditor": {
+    "actionAdd": "添加 Action",
+    "actionDelete": "删除此 Action?",
+    "actionEmpty": "暂无 Action，点击添加",
+    "actionMode": "执行模式",
+    "actionType": "Action 类型",
+    "actionChain": "嵌套子链 (chain)",
+    "declarative": "声明式（毫秒响应）",
+    "agentic": "Agent 智能（LLM 驱动）",
+    "invoke": "调用后端 (invoke)",
+    "navigate": "页面跳转 (navigate)",
+    "emit": "发送事件 (emit)",
+    "store": "读写 Store (store)",
+    "func": "自定义函数 (function)",
+    "handler": "引用 Handler (handler)",
+    "invokeCmd": "Tauri 命令",
+    "invokeArgs": "参数 (JSON)",
+    "navigatePath": "目标路径",
+    "emitEvent": "事件名",
+    "emitPayload": "载荷 (JSON)",
+    "storeName": "Store 名称",
+    "storeOp": "操作",
+    "storePayload": "载荷 (JSON)",
+    "funcName": "函数名",
+    "handlerName": "Handler 名称",
+    "agenticPrompt": "用户意图 Prompt",
+    "agenticPromptHint": "描述需要 Agent 执行的操作",
+    "agenticSkill": "Skill 名称（可选）",
+    "agenticOptions": "附加选项",
+    "includeConv": "包含会话",
+    "includeFiles": "包含文件",
+    "includeSelection": "包含选区"
   }
 }

@@ -1,6 +1,7 @@
 import { Alert, Button, Result } from "antd";
 import { RefreshCw } from "lucide-react";
 import { Component, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SkillErrorBoundaryProps {
   skillName: string;
@@ -30,20 +31,36 @@ export class SkillErrorBoundary extends Component<SkillErrorBoundaryProps, Skill
   render() {
     if (this.state.hasError) {
       return (
-        <Result
-          status="warning"
-          title={`技能 "${this.props.skillName}" 加载失败`}
-          subTitle={this.state.error?.message || "未知错误"}
-          extra={
-            <Button type="primary" icon={<RefreshCw size={14} />} onClick={this.handleRetry}>
-              重试
-            </Button>
-          }
+        <SkillErrorBoundaryInner
+          skillName={this.props.skillName}
+          error={this.state.error}
+          onRetry={this.handleRetry}
         />
       );
     }
     return this.props.children;
   }
+}
+
+/** Class 组件内不能直接 useTranslation，拆出函数组件 */
+function SkillErrorBoundaryInner({ skillName, error, onRetry }: {
+  skillName: string;
+  error: Error | null;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Result
+      status="warning"
+      title={t("skill.loadFailed", { name: skillName })}
+      subTitle={error?.message || t("skill.unknownError")}
+      extra={
+        <Button type="primary" icon={<RefreshCw size={14} />} onClick={onRetry}>
+          {t("skill.retry")}
+        </Button>
+      }
+    />
+  );
 }
 
 /** 通用错误展示（非 boundary 场景） */
@@ -52,13 +69,18 @@ export function SkillErrorFallback({ skillName, error, onRetry }: {
   error: string;
   onRetry?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Alert
       type="error"
       showIcon
-      message={`技能 "${skillName}" 加载失败`}
+      message={t("skill.loadFailed", { name: skillName })}
       description={error}
-      action={onRetry && <Button size="small" onClick={onRetry} icon={<RefreshCw size={12} />}>重试</Button>}
+      action={onRetry && (
+        <Button size="small" onClick={onRetry} icon={<RefreshCw size={12} />}>
+          {t("skill.retry")}
+        </Button>
+      )}
       style={{ margin: 16 }}
     />
   );
@@ -66,6 +88,7 @@ export function SkillErrorFallback({ skillName, error, onRetry }: {
 
 /** 通用加载骨架 */
 export function SkillLoadingSkeleton() {
+  const { t } = useTranslation();
   return (
     <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
       <div
@@ -79,7 +102,7 @@ export function SkillLoadingSkeleton() {
           margin: "0 auto 12px",
         }}
       />
-      <div>加载技能组件...</div>
+      <div>{t("skill.loading")}</div>
     </div>
   );
 }

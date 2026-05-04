@@ -2,20 +2,9 @@ import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
 import type { ExpertCategory } from "@/types/expert";
 import type { ExpertRole } from "@/types/expert";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { App, Button, Card, Input, Modal, Popconfirm, Popover, Select, Space, Tag, Typography } from "antd";
-import {
-  ArrowDown,
-  ArrowUp,
-  Check,
-  Download,
-  FileDown,
-  FolderOpen,
-  Info,
-  Pencil,
-  Plus,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Info, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const { Text } = Typography;
@@ -40,7 +29,6 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   const removeCustomRole = useExpertStore((s) => s.removeCustomRole);
   const updateCustomRole = useExpertStore((s) => s.updateCustomRole);
   const exportCustomRoles = useExpertStore((s) => s.exportCustomRoles);
-  const importCustomRoles = useExpertStore((s) => s.importCustomRoles);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [importPath, setImportPath] = useState("");
@@ -185,27 +173,35 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
     app.message.success("自定义专家已导出");
   };
 
-  const handleImportCustom = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) { return; }
-      try {
-        const text = await file.text();
-        const result = importCustomRoles(text);
-        if (result.count > 0) {
-          app.message.success(`导入 ${result.count} 个自定义专家`);
+  const handleImportFromFolder = async () => {
+    try {
+      const folderPath = await openDialog({ directory: true, multiple: false, title: "选择专家文件夹" });
+      if (!folderPath) { return; }
+      setImporting(true);
+      const result = await importAgencyExperts(folderPath);
+      if (result.count > 0) {
+        const parts = [`成功导入 ${result.count} 个专家`];
+        if (result.workflows_created && result.workflows_created > 0) {
+          parts.push(`自动创建 ${result.workflows_created} 个工作流`);
         }
-        if (result.errors.length > 0) {
-          app.message.warning(`${result.errors.length} 个导入失败: ${result.errors[0]}`);
+        if (result.tools_matched && result.tools_matched > 0) {
+          parts.push(`匹配 ${result.tools_matched} 个工具`);
         }
-      } catch (err) {
-        app.message.error(`导入失败: ${String(err)}`);
+        app.message.success(parts.join("，"));
       }
-    };
-    input.click();
+      if (result.errors.length > 0) {
+        const errorPreview = result.errors.slice(0, 3).join("; ");
+        const more = result.errors.length > 3 ? ` 等 ${result.errors.length} 个错误` : "";
+        app.message.warning(
+          `导入完成，但有 ${result.errors.length} 个错误: ${errorPreview}${more}`,
+          8,
+        );
+      }
+    } catch (e) {
+      app.message.error(`导入失败: ${String(e)}`);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleDeleteExpert = async (role: ExpertRole) => {
@@ -310,7 +306,12 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         />
         <Button size="small" icon={<Plus size={14} />} onClick={() => setShowAddModal(true)} title="新建自定义专家" />
         <Button size="small" icon={<FileDown size={14} />} onClick={handleExport} title="导出外部专家" />
-        <Button size="small" icon={<Upload size={14} />} onClick={handleImportCustom} title="导入自定义专家" />
+        <Button
+          size="small"
+          icon={<FolderOpen size={14} />}
+          onClick={handleImportFromFolder}
+          title="从文件夹导入专家"
+        />
         <Button size="small" icon={<Download size={14} />} onClick={handleExportCustom} title="导出自定义专家" />
       </div>
 

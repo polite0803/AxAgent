@@ -1,6 +1,7 @@
 import type { SkillCommandAction } from "@/types";
 import { Button, Collapse, Empty, Popconfirm } from "antd";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ActionModeSelector } from "./ActionModeSelector";
 
 interface ActionChainEditorProps {
@@ -10,6 +11,8 @@ interface ActionChainEditorProps {
 }
 
 export function ActionChainEditor({ actions, availableHandlers, onChange }: ActionChainEditorProps) {
+  const { t } = useTranslation();
+
   const addAction = () => {
     onChange([...actions, { mode: "declarative", action: { type: "invoke", command: "" } }]);
   };
@@ -34,11 +37,11 @@ export function ActionChainEditor({ actions, availableHandlers, onChange }: Acti
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="暂无 Action，点击添加"
+        description={t("skillEditor.actionEmpty")}
         style={{ margin: "8px 0" }}
       >
         <Button type="dashed" size="small" icon={<Plus size={12} />} onClick={addAction}>
-          添加 Action
+          {t("skillEditor.actionAdd")}
         </Button>
       </Empty>
     );
@@ -46,24 +49,24 @@ export function ActionChainEditor({ actions, availableHandlers, onChange }: Acti
 
   const getActionLabel = (action: SkillCommandAction, index: number): string => {
     if (action.mode === "agentic") {
-      return `#${index + 1} Agentic: ${action.prompt.slice(0, 30) || "(空)"}`;
+      return `#${index + 1} Agentic: ${action.prompt.slice(0, 30) || "(-)"}`;
     }
     const a = action.action;
     switch (a.type) {
       case "invoke":
-        return `#${index + 1} invoke: ${a.command || "(空)"}`;
+        return `#${index + 1} invoke: ${a.command || "(-)"}`;
       case "navigate":
         return `#${index + 1} navigate: ${a.path}`;
       case "emit":
-        return `#${index + 1} emit: ${a.event || "(空)"}`;
+        return `#${index + 1} emit: ${a.event || "(-)"}`;
       case "store":
         return `#${index + 1} store: ${a.storeName}.${a.operation}`;
       case "function":
-        return `#${index + 1} function: ${a.name || "(空)"}`;
+        return `#${index + 1} function: ${a.name || "(-)"}`;
       case "handler":
-        return `#${index + 1} handler: ${a.name || "(空)"}`;
+        return `#${index + 1} handler: ${a.name || "(-)"}`;
       case "chain":
-        return `#${index + 1} chain: ${a.actions?.length || 0} 个子 action`;
+        return `#${index + 1} chain: ${a.actions?.length || 0}`;
     }
   };
 
@@ -87,7 +90,12 @@ export function ActionChainEditor({ actions, availableHandlers, onChange }: Acti
               >
                 <GripVertical size={12} style={{ transform: "rotate(-90deg)" }} />
               </Button>
-              <Popconfirm title="删除此 Action?" onConfirm={() => removeAction(index)} okText="删除" cancelText="取消">
+              <Popconfirm
+                title={t("skillEditor.actionDelete")}
+                onConfirm={() => removeAction(index)}
+                okText={t("common.delete")}
+                cancelText={t("common.cancel")}
+              >
                 <Button type="text" size="small" danger icon={<Trash2 size={12} />} />
               </Popconfirm>
             </div>
@@ -103,7 +111,7 @@ export function ActionChainEditor({ actions, availableHandlers, onChange }: Acti
       />
       <div style={{ marginTop: 8 }}>
         <Button type="dashed" size="small" icon={<Plus size={12} />} onClick={addAction}>
-          添加 Action
+          {t("skillEditor.actionAdd")}
         </Button>
       </div>
     </div>
