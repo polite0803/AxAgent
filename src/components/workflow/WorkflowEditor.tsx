@@ -47,8 +47,8 @@ import { ImportExportModal } from "./Templates/ImportExportModal";
 import {
   type AgentNode as AgentNodeType,
   type AgentRole,
-  type OutputMode,
   NODE_TYPE_MAP,
+  type OutputMode,
   type WorkflowEdge,
   type WorkflowNode,
 } from "./types";
@@ -130,7 +130,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     generatedSkillName: "",
     generatedSkillDescription: "",
     nodeId: "",
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
   const [similarWorkflowsModal, setSimilarWorkflowsModal] = useState<{
@@ -711,7 +711,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         </div>
       )}
 
-
       <Modal
         title={t("workflow.similarWorkflowsFound", { count: similarWorkflowsModal.workflows.length })}
         open={similarWorkflowsModal.visible}
@@ -883,7 +882,14 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
       return {
         ...baseNode,
         type: "agent",
-        config: { role: "executor" as AgentRole, system_prompt: "", context_sources: [], output_var: "", tools: [], output_mode: "text" as OutputMode },
+        config: {
+          role: "executor" as AgentRole,
+          system_prompt: "",
+          context_sources: [],
+          output_var: "",
+          tools: [],
+          output_mode: "text" as OutputMode,
+        },
       };
     case "end":
       return { ...baseNode, type: "end", config: {} };

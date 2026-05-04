@@ -640,9 +640,7 @@ impl SkillDecomposer {
     }
 
     /// Decompose a parsed composite into a workflow definition with agent nodes.
-    pub fn decompose(
-        parsed: &ParsedComposite,
-    ) -> Result<DecompositionResult, DecompositionError> {
+    pub fn decompose(parsed: &ParsedComposite) -> Result<DecompositionResult, DecompositionError> {
         let mut tool_dependencies = Vec::new();
         let mut workflow_nodes = Vec::new();
         let mut workflow_edges = Vec::new();
@@ -729,7 +727,10 @@ impl SkillDecomposer {
                 // Add tool dependency
                 tool_dependencies.push(ToolDependency {
                     name: tool_name.clone(),
-                    tool_type: step.tool_type.clone().unwrap_or_else(|| "local".to_string()),
+                    tool_type: step
+                        .tool_type
+                        .clone()
+                        .unwrap_or_else(|| "local".to_string()),
                     source_info: None,
                     status: super::tool_resolver::ToolDependencyStatus::Satisfied,
                 });

@@ -44,7 +44,10 @@ pub async fn import_agent_roles(
         let entry = entry.map_err(|e| e.to_string())?;
         let file_path = entry.path();
 
-        if file_path.extension().map_or(true, |e| e != "yaml" && e != "yml") {
+        if file_path
+            .extension()
+            .is_none_or(|e| e != "yaml" && e != "yml")
+        {
             continue;
         }
 
@@ -68,11 +71,11 @@ pub async fn import_agent_roles(
                     Ok(_) => imported += 1,
                     Err(e) => errors.push(format!("{}: {}", file_path.display(), e)),
                 }
-            }
+            },
             Err(e) => {
                 skipped += 1;
                 errors.push(format!("{}: {}", file_path.display(), e));
-            }
+            },
         }
     }
 
@@ -85,10 +88,7 @@ pub async fn import_agent_roles(
 
 /// 删除导入的 AgentRole（builtin 不可删除）
 #[tauri::command]
-pub async fn delete_agent_role(
-    app_state: State<'_, AppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Result<(), String> {
     let role = agent_role::get_agent_role(&app_state.sea_db, &id)
         .await
         .map_err(|e| e.to_string())?

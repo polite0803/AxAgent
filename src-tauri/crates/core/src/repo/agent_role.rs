@@ -44,10 +44,7 @@ pub async fn list_agent_roles(
     Ok(rows.into_iter().map(role_from_entity).collect())
 }
 
-pub async fn get_agent_role(
-    db: &DatabaseConnection,
-    id: &str,
-) -> Result<Option<AgentRoleDef>> {
+pub async fn get_agent_role(db: &DatabaseConnection, id: &str) -> Result<Option<AgentRoleDef>> {
     let row = agent_roles::Entity::find_by_id(id).one(db).await?;
     Ok(row.map(role_from_entity))
 }

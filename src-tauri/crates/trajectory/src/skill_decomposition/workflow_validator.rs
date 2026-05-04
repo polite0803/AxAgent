@@ -103,7 +103,6 @@ impl WorkflowValidator {
             }
         }
 
-
         let has_errors = issues.iter().any(|i| i.severity == IssueSeverity::Error);
         let is_valid = !has_errors;
 
@@ -386,7 +385,6 @@ impl WorkflowValidator {
 
         issues
     }
-
 
     fn find_closest_node_type(input: &str) -> &'static str {
         let input_lower = input.to_lowercase();

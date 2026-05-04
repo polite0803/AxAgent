@@ -405,7 +405,7 @@ export function SkillsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [_atomicSkillEditVisible, _setAtomicSkillEditVisible] = useState(false);
-  const [_editingAtomicSkill, _setEditingAtomicSkill] = useState<{id:string;name:string} | null>(null);
+  const [_editingAtomicSkill, _setEditingAtomicSkill] = useState<{ id: string; name: string } | null>(null);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
 
   const { previewDecomposition } = useDecompositionStore();

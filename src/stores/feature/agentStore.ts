@@ -146,8 +146,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   agentPool: {},
   workflowMatchSuggestion: null,
 
-  setWorkflowMatchSuggestion: (suggestion) =>
-    set({ workflowMatchSuggestion: suggestion }),
+  setWorkflowMatchSuggestion: (suggestion) => set({ workflowMatchSuggestion: suggestion }),
 
   // --- AgentPool actions ---
 

@@ -350,8 +350,7 @@ pub async fn preview_decomposition(
 
     let parsed = axagent_trajectory::SkillDecomposer::parse(&composite).map_err(|e| e.message)?;
 
-    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed)
-        .map_err(|e| e.message)?;
+    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed).map_err(|e| e.message)?;
 
     let mcp_tools = get_mcp_tool_names(&state.sea_db).await.unwrap_or_default();
     let local_tools = get_local_tool_names(&state).await;
@@ -416,8 +415,7 @@ pub async fn confirm_decomposition(
 
     let parsed = axagent_trajectory::SkillDecomposer::parse(&composite).map_err(|e| e.message)?;
 
-    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed)
-        .map_err(|e| e.message)?;
+    let result = axagent_trajectory::SkillDecomposer::decompose(&parsed).map_err(|e| e.message)?;
 
     let workflow_id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().timestamp_millis();

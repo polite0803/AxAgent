@@ -52,14 +52,114 @@ impl AgentRole {
 
     pub fn default_tools(&self) -> Vec<&'static str> {
         match self {
-            AgentRole::Coordinator => vec!["web_search","read_file","list_directory","search_files","grep_content","skill_manage","session_search","memory_flush","get_system_info","get_storage_info","list_storage_files"],
-            AgentRole::Researcher => vec!["web_search","fetch_url","fetch_markdown","read_file","list_directory","search_files","grep_content","search_knowledge","list_knowledge_bases","session_search","list_storage_files","download_storage_file"],
-            AgentRole::Developer => vec!["write_file","edit_file","search_replace","read_file","list_directory","search_files","grep_content","run_command","file_exists","get_file_info","create_directory","delete_file","move_file","get_system_info","list_processes","get_storage_info","list_storage_files","upload_storage_file","download_storage_file","delete_storage_file","git_status","git_diff","git_commit","git_log","git_branch","git_review"],
-            AgentRole::Reviewer => vec!["read_file","list_directory","search_files","grep_content","run_command","file_exists","get_file_info","get_system_info","list_processes","git_status","git_diff","git_log","git_review"],
-            AgentRole::Browser => vec!["fetch_url","fetch_markdown","web_search"],
-            AgentRole::Synthesizer => vec!["write_file","read_file","list_directory","search_files","grep_content"],
-            AgentRole::Planner => vec!["read_file","list_directory","search_files","grep_content","web_search","session_search","memory_flush","get_system_info","get_storage_info","list_storage_files"],
-            AgentRole::Executor => vec!["run_command","write_file","edit_file","read_file","list_directory","search_files","grep_content","create_directory","delete_file","move_file","file_exists","get_system_info","list_processes","upload_storage_file","download_storage_file","delete_storage_file"],
+            AgentRole::Coordinator => vec![
+                "web_search",
+                "read_file",
+                "list_directory",
+                "search_files",
+                "grep_content",
+                "skill_manage",
+                "session_search",
+                "memory_flush",
+                "get_system_info",
+                "get_storage_info",
+                "list_storage_files",
+            ],
+            AgentRole::Researcher => vec![
+                "web_search",
+                "fetch_url",
+                "fetch_markdown",
+                "read_file",
+                "list_directory",
+                "search_files",
+                "grep_content",
+                "search_knowledge",
+                "list_knowledge_bases",
+                "session_search",
+                "list_storage_files",
+                "download_storage_file",
+            ],
+            AgentRole::Developer => vec![
+                "write_file",
+                "edit_file",
+                "search_replace",
+                "read_file",
+                "list_directory",
+                "search_files",
+                "grep_content",
+                "run_command",
+                "file_exists",
+                "get_file_info",
+                "create_directory",
+                "delete_file",
+                "move_file",
+                "get_system_info",
+                "list_processes",
+                "get_storage_info",
+                "list_storage_files",
+                "upload_storage_file",
+                "download_storage_file",
+                "delete_storage_file",
+                "git_status",
+                "git_diff",
+                "git_commit",
+                "git_log",
+                "git_branch",
+                "git_review",
+            ],
+            AgentRole::Reviewer => vec![
+                "read_file",
+                "list_directory",
+                "search_files",
+                "grep_content",
+                "run_command",
+                "file_exists",
+                "get_file_info",
+                "get_system_info",
+                "list_processes",
+                "git_status",
+                "git_diff",
+                "git_log",
+                "git_review",
+            ],
+            AgentRole::Browser => vec!["fetch_url", "fetch_markdown", "web_search"],
+            AgentRole::Synthesizer => vec![
+                "write_file",
+                "read_file",
+                "list_directory",
+                "search_files",
+                "grep_content",
+            ],
+            AgentRole::Planner => vec![
+                "read_file",
+                "list_directory",
+                "search_files",
+                "grep_content",
+                "web_search",
+                "session_search",
+                "memory_flush",
+                "get_system_info",
+                "get_storage_info",
+                "list_storage_files",
+            ],
+            AgentRole::Executor => vec![
+                "run_command",
+                "write_file",
+                "edit_file",
+                "read_file",
+                "list_directory",
+                "search_files",
+                "grep_content",
+                "create_directory",
+                "delete_file",
+                "move_file",
+                "file_exists",
+                "get_system_info",
+                "list_processes",
+                "upload_storage_file",
+                "download_storage_file",
+                "delete_storage_file",
+            ],
         }
     }
 
@@ -92,10 +192,7 @@ impl AgentRole {
 
 impl AgentRole {
     /// DB-first role resolver: look up `agent_roles` table, fall back to enum.
-    pub async fn resolve(
-        db: &DatabaseConnection,
-        role_name: &str,
-    ) -> Option<ResolvedRole> {
+    pub async fn resolve(db: &DatabaseConnection, role_name: &str) -> Option<ResolvedRole> {
         if let Ok(Some(row)) = get_role_from_db(db, role_name).await {
             return Some(ResolvedRole {
                 name: row.name,
@@ -220,20 +317,26 @@ impl RoleConfig {
 
     pub fn effective_tools(&self) -> Vec<String> {
         self.custom_tools.clone().unwrap_or_else(|| {
-            self.role.default_tools().iter().map(|s| s.to_string()).collect()
+            self.role
+                .default_tools()
+                .iter()
+                .map(|s| s.to_string())
+                .collect()
         })
     }
 
     pub fn effective_max_concurrent(&self) -> usize {
-        self.custom_max_concurrent.unwrap_or_else(|| self.role.max_concurrent())
+        self.custom_max_concurrent
+            .unwrap_or_else(|| self.role.max_concurrent())
     }
 
     pub fn effective_timeout_seconds(&self) -> u64 {
-        self.custom_timeout_seconds.unwrap_or_else(|| self.role.timeout_seconds())
+        self.custom_timeout_seconds
+            .unwrap_or_else(|| self.role.timeout_seconds())
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RoleRegistry {
     roles: HashMap<AgentRole, RoleConfig>,
 }

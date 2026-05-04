@@ -2762,7 +2762,7 @@
     "inputSchema": "Input Schema",
     "outputSchema": "Output Schema",
     "tagsCommaSeparated": "Tags (comma separated)",
-    "tagsPlaceholder": "tag1, tag2",
+    "tagsPlaceholder": "tag1, tag2"
   },
   "workEngine": {
     "nodeProgress": "Node Progress",

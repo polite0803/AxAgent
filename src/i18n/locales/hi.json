@@ -2141,7 +2141,7 @@
     "proposals": "प्रस्ताव",
     "dismiss": "ख़ारिज करें",
     "atomic": "परमाणु",
-    "extractAtomic": "परमाणु कौशल निकालें",
+    "extractAtomic": "परमाणु कौशल निकालें"
   },
   "agent": {
     "askUserPlaceholder": "अपना उत्तर टाइप करें...",
@@ -3000,7 +3000,7 @@
     "inputSchema": "Input Schema",
     "outputSchema": "Output Schema",
     "tagsCommaSeparated": "Tags (comma separated)",
-    "tagsPlaceholder": "tag1, tag2",
+    "tagsPlaceholder": "tag1, tag2"
   },
   "workEngine": {
     "nodeProgress": "Node Progress",

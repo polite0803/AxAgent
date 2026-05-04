@@ -61,10 +61,7 @@ pub async fn list_agent_profiles(
     Ok(rows.into_iter().map(profile_from_entity).collect())
 }
 
-pub async fn get_agent_profile(
-    db: &DatabaseConnection,
-    id: &str,
-) -> Result<AgentProfile> {
+pub async fn get_agent_profile(db: &DatabaseConnection, id: &str) -> Result<AgentProfile> {
     let row = agent_profiles::Entity::find_by_id(id)
         .one(db)
         .await?
@@ -73,10 +70,7 @@ pub async fn get_agent_profile(
     Ok(profile_from_entity(row))
 }
 
-pub async fn get_agent_profile_system_prompt(
-    db: &DatabaseConnection,
-    id: &str,
-) -> Result<String> {
+pub async fn get_agent_profile_system_prompt(db: &DatabaseConnection, id: &str) -> Result<String> {
     let row = agent_profiles::Entity::find_by_id(id)
         .one(db)
         .await?
@@ -186,7 +180,6 @@ pub async fn upsert_agent_profile(
         is_enabled: Set(1),
         created_at: Set(now),
         updated_at: Set(now),
-        ..Default::default()
     };
 
     agent_profiles::Entity::insert(am)
@@ -270,16 +263,15 @@ pub async fn update_agent_profile(
     get_agent_profile(db, id).await
 }
 
-pub async fn delete_agent_profile(
-    db: &DatabaseConnection,
-    id: &str,
-) -> Result<()> {
+pub async fn delete_agent_profile(db: &DatabaseConnection, id: &str) -> Result<()> {
     let row = agent_profiles::Entity::find_by_id(id)
         .one(db)
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentProfile {}", id)))?;
 
-    agent_profiles::Entity::delete_by_id(row.id).exec(db).await?;
+    agent_profiles::Entity::delete_by_id(row.id)
+        .exec(db)
+        .await?;
     Ok(())
 }
 
@@ -292,5 +284,9 @@ pub async fn resolve_profile_tools(
     // agent_role 字符串
     // recommended_tools 额外工具
     // disallowed_tools 禁止工具
-    Ok((profile.agent_role, profile.recommended_tools, profile.disallowed_tools))
+    Ok((
+        profile.agent_role,
+        profile.recommended_tools,
+        profile.disallowed_tools,
+    ))
 }

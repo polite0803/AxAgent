@@ -535,27 +535,29 @@ pub async fn agent_query(
     let mut profile_disallowed_tools: Vec<String> = Vec::new();
 
     if let Some(ref profile_id) = request.agent_profile_id {
-        match axagent_core::repo::agent_profile::get_agent_profile(
-            &app_state.sea_db, profile_id,
-        ).await {
-            Ok(profile) => {
-                if !profile.system_prompt.is_empty() {
-                    effective_system_prompt = Some(profile.system_prompt);
-                }
-                effective_agent_role = profile.agent_role
-                    .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r));
-                profile_recommended_tools = profile.recommended_tools;
-                profile_disallowed_tools = profile.disallowed_tools;
+        if let Ok(profile) =
+            axagent_core::repo::agent_profile::get_agent_profile(&app_state.sea_db, profile_id).await
+        {
+            if !profile.system_prompt.is_empty() {
+                effective_system_prompt = Some(profile.system_prompt);
             }
-            Err(_) => {}
+            effective_agent_role = profile
+                .agent_role
+                .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r));
+            profile_recommended_tools = profile.recommended_tools;
+            profile_disallowed_tools = profile.disallowed_tools;
         }
     }
 
     // Legacy fallback: expert_role_id from agency_experts table
     if effective_system_prompt.is_none() {
         if let Some(ref expert_id) = request.expert_role_id {
-            if let Ok(Some(expert)) = axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
-                .one(&app_state.sea_db).await.map_err(|e| e.to_string()) {
+            if let Ok(Some(expert)) =
+                axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                    .one(&app_state.sea_db)
+                    .await
+                    .map_err(|e| e.to_string())
+            {
                 if !expert.system_prompt.is_empty() {
                     effective_system_prompt = Some(expert.system_prompt);
                 }
@@ -600,7 +602,8 @@ pub async fn agent_query(
                 workflow_status: Some(Some("running".to_string())),
                 ..Default::default()
             },
-        ).await;
+        )
+        .await;
     }
 
     info!("[agent_query] Got provider: {}", request.provider_id);
@@ -905,10 +908,8 @@ pub async fn agent_query(
             .unwrap_or(0)
     );
     // 去重：local_tools 已经包含统一工具，避免 DeepSeek 等 API 报 Tool names must be unique
-    let existing_names: std::collections::HashSet<String> = chat_tools
-        .iter()
-        .map(|t| t.function.name.clone())
-        .collect();
+    let existing_names: std::collections::HashSet<String> =
+        chat_tools.iter().map(|t| t.function.name.clone()).collect();
     for t in unified_chat_tools {
         if !existing_names.contains(&t.function.name) {
             chat_tools.push(t);
@@ -1167,7 +1168,8 @@ pub async fn agent_query(
         info!("[agent_query] Using role from agent_profile: {}", role);
         Some(role)
     } else if let Some(role) = request
-        .role.as_deref()
+        .role
+        .as_deref()
         .and_then(axagent_runtime::agent_roles::AgentRole::from_str_opt)
     {
         info!("[agent_query] Using role from request: {}", role);
@@ -1189,8 +1191,10 @@ pub async fn agent_query(
         chat_tools.retain(|t| allowed_set.contains(t.function.name.as_str()));
         info!(
             "[agent_query] Role '{}' filtered tools: {} remaining (profile: +{}/-{})",
-            role, chat_tools.len(),
-            profile_recommended_tools.len(), profile_disallowed_tools.len(),
+            role,
+            chat_tools.len(),
+            profile_recommended_tools.len(),
+            profile_disallowed_tools.len(),
         );
     }
 
@@ -1806,7 +1810,8 @@ pub async fn agent_query(
                         workflow_status: Some(Some("completed".to_string())),
                         ..Default::default()
                     },
-                ).await;
+                )
+                .await;
             }
 
             // Semantic workflow matching for conversation-type sessions:
@@ -1817,7 +1822,8 @@ pub async fn agent_query(
                     &app,
                     &conversation_id,
                     &request.input,
-                ).await;
+                )
+                .await;
             }
 
             // P4: Record trajectory for closed-loop learning
@@ -2070,7 +2076,8 @@ pub async fn agent_query(
                         workflow_status: Some(Some("failed".to_string())),
                         ..Default::default()
                     },
-                ).await;
+                )
+                .await;
             }
 
             // Emit agent-error event
@@ -2102,22 +2109,111 @@ async fn check_and_suggest_workflow_match(
 
     // 预设模板关键字映射（与 WorkflowTemplateSelector 中的定义对应）
     let template_keywords: Vec<(&str, Vec<&str>)> = vec![
-        ("code-review", vec!["review", "审查", "review", "code review", "代码审查", "pr", "pull request", "merge"]),
-        ("bug-fix", vec!["bug", "fix", "修复", "调试", "debug", "error", "错误", "crash", "崩溃"]),
-        ("doc-gen", vec!["doc", "文档", "document", "generate", "生成", "readme", "api doc"]),
-        ("test-gen", vec!["test", "测试", "unit test", "单元测试", "coverage", "覆盖", "e2e"]),
-        ("refactor", vec!["refactor", "重构", "clean", "清理", "restructure", "整理"]),
-        ("explore", vec!["explore", "探索", "understand", "理解", "navigate", "浏览", "search", "查找"]),
-        ("performance", vec!["performance", "性能", "optimize", "优化", "slow", "慢", "speed", "加速"]),
-        ("security", vec!["security", "安全", "audit", "审计", "vulnerability", "漏洞", "scan"]),
-        ("api-design", vec!["api", "design", "设计", "endpoint", "接口", "rest", "graphql"]),
-        ("feature", vec!["feature", "功能", "implement", "实现", "build", "构建", "create", "创建", "add", "添加"]),
+        (
+            "code-review",
+            vec![
+                "review",
+                "审查",
+                "review",
+                "code review",
+                "代码审查",
+                "pr",
+                "pull request",
+                "merge",
+            ],
+        ),
+        (
+            "bug-fix",
+            vec![
+                "bug", "fix", "修复", "调试", "debug", "error", "错误", "crash", "崩溃",
+            ],
+        ),
+        (
+            "doc-gen",
+            vec![
+                "doc", "文档", "document", "generate", "生成", "readme", "api doc",
+            ],
+        ),
+        (
+            "test-gen",
+            vec![
+                "test",
+                "测试",
+                "unit test",
+                "单元测试",
+                "coverage",
+                "覆盖",
+                "e2e",
+            ],
+        ),
+        (
+            "refactor",
+            vec!["refactor", "重构", "clean", "清理", "restructure", "整理"],
+        ),
+        (
+            "explore",
+            vec![
+                "explore",
+                "探索",
+                "understand",
+                "理解",
+                "navigate",
+                "浏览",
+                "search",
+                "查找",
+            ],
+        ),
+        (
+            "performance",
+            vec![
+                "performance",
+                "性能",
+                "optimize",
+                "优化",
+                "slow",
+                "慢",
+                "speed",
+                "加速",
+            ],
+        ),
+        (
+            "security",
+            vec![
+                "security",
+                "安全",
+                "audit",
+                "审计",
+                "vulnerability",
+                "漏洞",
+                "scan",
+            ],
+        ),
+        (
+            "api-design",
+            vec![
+                "api", "design", "设计", "endpoint", "接口", "rest", "graphql",
+            ],
+        ),
+        (
+            "feature",
+            vec![
+                "feature",
+                "功能",
+                "implement",
+                "实现",
+                "build",
+                "构建",
+                "create",
+                "创建",
+                "add",
+                "添加",
+            ],
+        ),
     ];
 
     // 计算每个模板的匹配分数（Jaccard-like word overlap）
     let mut matches: Vec<(String, f64)> = Vec::new();
-    let input_words: std::collections::HashSet<&str> =
-        input_lower.split_whitespace().collect();
+    let input_words: std::collections::HashSet<&str> = input_lower.split_whitespace().collect();
 
     for (template_id, keywords) in &template_keywords {
         let mut keyword_hits = 0u32;
@@ -2130,7 +2226,11 @@ async fn check_and_suggest_workflow_match(
         let kw_set: std::collections::HashSet<&str> = keywords.iter().copied().collect();
         let intersection = kw_set.intersection(&input_words).count() as f64;
         let union = kw_set.union(&input_words).count() as f64;
-        let jaccard = if union > 0.0 { intersection / union } else { 0.0 };
+        let jaccard = if union > 0.0 {
+            intersection / union
+        } else {
+            0.0
+        };
         let score = (keyword_hits as f64 * 0.6) + (jaccard * 0.4);
 
         if score > 0.15 {
@@ -2143,10 +2243,7 @@ async fn check_and_suggest_workflow_match(
     if let Some((best_id, similarity)) = matches.first() {
         if *similarity >= 0.3 {
             // 确认模板存在
-            if let Ok(Some(tmpl)) = workflow_template::Entity::find_by_id(best_id)
-                .one(db)
-                .await
-            {
+            if let Ok(Some(tmpl)) = workflow_template::Entity::find_by_id(best_id).one(db).await {
                 let _ = app.emit(
                     "workflow-match-suggestion",
                     serde_json::json!({
@@ -2462,9 +2559,7 @@ fn create_llm_step_executor(
                 // 1. agent_profile_id → load from agent_profiles table
                 // 2. agent_role_override → overrides profile's default role
                 // 3. Fallback: step.agent_role default system_prompt
-                let effective_role = step
-                    .agent_role_override
-                    .unwrap_or(step.agent_role);
+                let effective_role = step.agent_role_override.unwrap_or(step.agent_role);
 
                 let system_prompt = if let (Some(ref profile_id), Some(db)) =
                     (&step.agent_profile_id, &db)
@@ -2475,9 +2570,7 @@ fn create_llm_step_executor(
                     )
                     .await
                     {
-                        Ok(profile) if !profile.system_prompt.is_empty() => {
-                            profile.system_prompt
-                        },
+                        Ok(profile) if !profile.system_prompt.is_empty() => profile.system_prompt,
                         _ => effective_role.system_prompt().to_string(),
                     }
                 } else {
@@ -2540,7 +2633,6 @@ fn create_llm_step_executor(
         },
     ) as StepExecutor
 }
-
 
 #[derive(Clone)]
 struct SkillExecutionContext {
@@ -3916,7 +4008,8 @@ pub async fn workflow_create(
                 retry_policy: axagent_runtime::workflow_engine::RetryPolicy::default(),
                 circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
                 agent_profile_id: s.agent_profile_id,
-                agent_role_override: s.agent_role_override
+                agent_role_override: s
+                    .agent_role_override
                     .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r)),
             }
         })
@@ -4185,10 +4278,8 @@ pub async fn workflow_execute_with_session(
     ));
 
     let callback_arc = Arc::clone(&session_callback);
-    let step_executor = axagent_runtime::workflow_engine::wrap_executor_with_callback(
-        llm_executor,
-        callback_arc,
-    );
+    let step_executor =
+        axagent_runtime::workflow_engine::wrap_executor_with_callback(llm_executor, callback_arc);
 
     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
         app_state.workflow_engine.clone(),
@@ -4242,7 +4333,6 @@ pub struct SimilarWorkflow {
     pub similarity: f64,
 }
 
-
 /// Extract skill_ids from nodes.
 /// Checks both `config.skill_id` (frontend AtomicSkillNode format) and
 /// `data.skill_id` (legacy format) paths.
@@ -4267,7 +4357,6 @@ fn extract_skill_ids_from_nodes(nodes: &[serde_json::Value]) -> Vec<String> {
     }
     skill_ids
 }
-
 
 /// Find similar workflows — always returns empty (atomic_skills removed)
 async fn find_similar_workflows(

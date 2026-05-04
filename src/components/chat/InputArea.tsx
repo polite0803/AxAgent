@@ -2290,18 +2290,14 @@ export function InputArea() {
                   aria-label={t("chat.sendMessage", "发送消息")}
                   icon={<ArrowUp size={14} />}
                   onClick={handleSend}
-                  disabled={
-                    !value.trim()
+                  disabled={!value.trim()
                     || streaming
                     || (activeConversation?.session_type === "workflow"
-                      && activeConversation?.workflow_status === "completed")
-                  }
-                  title={
-                    activeConversation?.session_type === "workflow"
-                    && activeConversation?.workflow_status === "completed"
-                      ? t("chat.workflow.sessionCompletedHint")
-                      : undefined
-                  }
+                      && activeConversation?.workflow_status === "completed")}
+                  title={activeConversation?.session_type === "workflow"
+                      && activeConversation?.workflow_status === "completed"
+                    ? t("chat.workflow.sessionCompletedHint")
+                    : undefined}
                 />
               )}
           </div>

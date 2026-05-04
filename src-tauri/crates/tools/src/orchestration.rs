@@ -153,7 +153,7 @@ impl Orchestrator {
             match current_is_concurrent {
                 Some(prev) if prev == is_safe => {
                     current_batch.push(call.clone());
-                }
+                },
                 _ => {
                     if !current_batch.is_empty() {
                         batches.push(ToolBatch {
@@ -163,7 +163,7 @@ impl Orchestrator {
                     }
                     current_batch.push(call.clone());
                     current_is_concurrent = Some(is_safe);
-                }
+                },
             }
         }
 

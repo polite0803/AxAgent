@@ -2170,7 +2170,7 @@
     "proposals": "Propositions",
     "dismiss": "Ignorer",
     "atomic": "Atomique",
-    "extractAtomic": "Extraire les compétences atomiques",
+    "extractAtomic": "Extraire les compétences atomiques"
   },
   "agent": {
     "askUserPlaceholder": "Saisissez votre réponse...",
@@ -3000,7 +3000,7 @@
     "inputSchema": "Input Schema",
     "outputSchema": "Output Schema",
     "tagsCommaSeparated": "Tags (comma separated)",
-    "tagsPlaceholder": "tag1, tag2",
+    "tagsPlaceholder": "tag1, tag2"
   },
   "workEngine": {
     "nodeProgress": "Node Progress",

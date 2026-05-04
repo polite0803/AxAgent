@@ -2809,7 +2809,7 @@
     "inputSchema": "输入 Schema",
     "outputSchema": "输出 Schema",
     "tagsCommaSeparated": "标签（逗号分隔）",
-    "tagsPlaceholder": "标签1, 标签2",
+    "tagsPlaceholder": "标签1, 标签2"
   },
   "workEngine": {
     "nodeProgress": "节点进度",

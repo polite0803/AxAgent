@@ -1,7 +1,40 @@
 import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
-import type { AgentProfile, CreateAgentProfileInput, ExpertCategory, PermissionMode, UpdateAgentProfileInput } from "@/types/agentProfile";
-import { Button, Card, Divider, Empty, Input, Modal, Popconfirm, Select, Space, Spin, Tag, Typography, theme } from "antd";
-import { Bot, Code, Database, Edit, FileText, Globe, Plus, Search, Shield, Trash2, TrendingUp, Workflow } from "lucide-react";
+import type {
+  AgentProfile,
+  CreateAgentProfileInput,
+  ExpertCategory,
+  PermissionMode,
+  UpdateAgentProfileInput,
+} from "@/types/agentProfile";
+import {
+  Button,
+  Card,
+  Divider,
+  Empty,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Spin,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
+import {
+  Bot,
+  Code,
+  Database,
+  Edit,
+  FileText,
+  Globe,
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  TrendingUp,
+  Workflow,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -53,7 +86,9 @@ export function AgentProfileManager() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -72,7 +107,8 @@ export function AgentProfileManager() {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  const catLabel = (cat: string) => t(`chat.workflow.agentProfile${cat.charAt(0).toUpperCase() + cat.slice(1)}`, CATEGORY_LABELS[cat] ?? cat);
+  const catLabel = (cat: string) =>
+    t(`chat.workflow.agentProfile${cat.charAt(0).toUpperCase() + cat.slice(1)}`, CATEGORY_LABELS[cat] ?? cat);
 
   const openCreate = () => {
     setEditingProfile(null);
@@ -105,7 +141,7 @@ export function AgentProfileManager() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) { return; }
     setSaving(true);
     try {
       if (editingProfile) {
@@ -140,8 +176,8 @@ export function AgentProfileManager() {
   };
 
   const sourceLabel = (src: string) => {
-    if (src === "builtin") return t("chat.workflow.agentProfileBuiltin");
-    if (src === "agency") return t("chat.workflow.agentProfileAgency");
+    if (src === "builtin") { return t("chat.workflow.agentProfileBuiltin"); }
+    if (src === "agency") { return t("chat.workflow.agentProfileAgency"); }
     return t("chat.workflow.agentProfileCustom");
   };
 
@@ -197,7 +233,8 @@ export function AgentProfileManager() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <Text strong style={{ fontSize: 13 }}>{p.name}</Text>
-                        {p.agentRole && <Tag style={{ fontSize: 10, lineHeight: "16px" }}>{roleLabel(p.agentRole)}</Tag>}
+                        {p.agentRole && <Tag style={{ fontSize: 10, lineHeight: "16px" }}>{roleLabel(p.agentRole)}
+                        </Tag>}
                         <Tag
                           color={p.source === "builtin" ? "blue" : p.source === "agency" ? "purple" : "orange"}
                           style={{ fontSize: 10, lineHeight: "16px" }}
@@ -226,11 +263,17 @@ export function AgentProfileManager() {
                         size="small"
                         type="text"
                         icon={<Edit size={12} />}
-                        onClick={(e) => { e.stopPropagation(); openEdit(p); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(p);
+                        }}
                       />
                       <Popconfirm
                         title={t("chat.workflow.agentProfileDelete")}
-                        onConfirm={(e) => { e?.stopPropagation(); handleDelete(p.id); }}
+                        onConfirm={(e) => {
+                          e?.stopPropagation();
+                          handleDelete(p.id);
+                        }}
                         onCancel={(e) => e?.stopPropagation()}
                         okText={t("common.delete")}
                         cancelText={t("common.cancel")}
@@ -263,14 +306,29 @@ export function AgentProfileManager() {
         okText={t("common.save")}
         cancelText={t("common.cancel")}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px", maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px 16px",
+            maxHeight: "60vh",
+            overflowY: "auto",
+            paddingRight: 4,
+          }}
+        >
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileName")} *</Text>
             <Input size="small" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileIcon")}</Text>
-            <Input size="small" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="🤖" maxLength={4} />
+            <Input
+              size="small"
+              value={form.icon}
+              onChange={(e) => setForm({ ...form, icon: e.target.value })}
+              placeholder="🤖"
+              maxLength={4}
+            />
           </div>
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileCategory")}</Text>
@@ -298,7 +356,11 @@ export function AgentProfileManager() {
           </div>
           <div style={{ gridColumn: "span 2" }}>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileDesc")}</Text>
-            <Input size="small" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <Input
+              size="small"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
           </div>
           <div style={{ gridColumn: "span 2" }}>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileSystemPrompt")}</Text>
@@ -310,14 +372,20 @@ export function AgentProfileManager() {
             />
           </div>
           <div style={{ gridColumn: "span 2" }}>
-            <Divider style={{ margin: "4px 0 8px", fontSize: 12 }}>{t("chat.workflow.agentProfileRecommendedTools")}</Divider>
+            <Divider style={{ margin: "4px 0 8px", fontSize: 12 }}>
+              {t("chat.workflow.agentProfileRecommendedTools")}
+            </Divider>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <div>
                 <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileRecommendedTools")}</Text>
                 <Input
                   size="small"
                   value={form.recommendedTools?.join(", ") ?? ""}
-                  onChange={(e) => setForm({ ...form, recommendedTools: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      recommendedTools: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    })}
                 />
               </div>
               <div>
@@ -325,7 +393,11 @@ export function AgentProfileManager() {
                 <Input
                   size="small"
                   value={form.disallowedTools?.join(", ") ?? ""}
-                  onChange={(e) => setForm({ ...form, disallowedTools: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      disallowedTools: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    })}
                 />
               </div>
             </div>
@@ -339,7 +411,8 @@ export function AgentProfileManager() {
                   size="small"
                   style={{ width: "100%" }}
                   value={form.recommendPermissionMode ?? ""}
-                  onChange={(v) => setForm({ ...form, recommendPermissionMode: (v || undefined) as PermissionMode | undefined })}
+                  onChange={(v) =>
+                    setForm({ ...form, recommendPermissionMode: (v || undefined) as PermissionMode | undefined })}
                   options={[
                     { value: "", label: t("common.default") },
                     { value: "accept_edits", label: t("chat.agent.acceptEdits") },
@@ -353,7 +426,8 @@ export function AgentProfileManager() {
                 <Input
                   size="small"
                   value={form.tags?.join(", ") ?? ""}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                  onChange={(e) =>
+                    setForm({ ...form, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
                 />
               </div>
             </div>

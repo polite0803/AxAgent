@@ -1,10 +1,10 @@
 pub mod agency_expert;
 pub mod agent;
 pub mod agent_analytics;
-pub mod agent_profile;
-pub mod agent_role;
 pub mod agent_insight;
 pub mod agent_nudge;
+pub mod agent_profile;
+pub mod agent_role;
 pub mod artifacts;
 pub mod background_tasks;
 pub mod backup;
