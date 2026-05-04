@@ -28,7 +28,7 @@
     "skill:validate": "node scripts/validate-skill.mjs"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.1.1",
+    "@ant-design/icons": "^6.2.2",
     "@ant-design/x": "^2.5.0",
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
     "@lobehub/icons": "^5.4.0",
