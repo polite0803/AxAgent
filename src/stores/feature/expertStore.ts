@@ -91,7 +91,7 @@ interface ExpertState {
   recordSwitch: (conversationId: string, roleId: string) => void;
   consumeSwitch: (conversationId: string) => { roleId: string } | null;
 
-  /** Import from agency-agents-zh repo */
+  /** Import from  repo */
   importAgencyExperts: (
     path: string,
   ) => Promise<{ count: number; workflows_created?: number; tools_matched?: number; errors: string[] }>;

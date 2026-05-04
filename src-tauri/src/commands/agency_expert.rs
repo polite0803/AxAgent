@@ -400,7 +400,26 @@ pub async fn import_agency_experts(
                 recommended_tools: Set(recommended_tools_json),
             };
 
-            match model.save(db).await {
+            // 使用 UPSERT 支持重复导入：已存在的记录会被更新
+            match agency_experts::Entity::insert(model)
+                .on_conflict(
+                    sea_orm::sea_query::OnConflict::column(agency_experts::Column::Id)
+                        .update_columns([
+                            agency_experts::Column::Name,
+                            agency_experts::Column::Description,
+                            agency_experts::Column::Category,
+                            agency_experts::Column::SystemPrompt,
+                            agency_experts::Column::Color,
+                            agency_experts::Column::SourceDir,
+                            agency_experts::Column::ImportedAt,
+                            agency_experts::Column::RecommendedWorkflows,
+                            agency_experts::Column::RecommendedTools,
+                        ])
+                        .to_owned(),
+                )
+                .exec(db)
+                .await
+            {
                 Ok(_) => count += 1,
                 Err(e) => {
                     errors.push(format!("保存失败 {}: {}", id, e));

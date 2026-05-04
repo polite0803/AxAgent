@@ -515,6 +515,11 @@ pub fn run() {
             commands::atomic_skills::execute_atomic_skill,
             commands::atomic_skills::check_skill_semantic_matches,
             commands::atomic_skills::upgrade_skill_with_llm,
+            // Background Task commands
+            commands::background_tasks::spawn_background_task,
+            commands::background_tasks::list_background_tasks,
+            commands::background_tasks::get_background_task_output,
+            commands::background_tasks::stop_background_task,
             // Skill Decomposition commands
             commands::skill_decomposition::preview_decomposition,
             commands::skill_decomposition::confirm_decomposition,

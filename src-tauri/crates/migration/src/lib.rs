@@ -6,6 +6,7 @@ mod m20240101_000003_init_gateway_tools;
 mod m20240101_000004_init_knowledge;
 mod m20240101_000005_init_trajectory;
 mod m20240101_000006_init_prompt;
+mod m20240101_000007_init_background_tasks;
 
 pub struct Migrator;
 
@@ -19,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000004_init_knowledge::Migration),
             Box::new(m20240101_000005_init_trajectory::Migration),
             Box::new(m20240101_000006_init_prompt::Migration),
+            Box::new(m20240101_000007_init_background_tasks::Migration),
         ]
     }
 }

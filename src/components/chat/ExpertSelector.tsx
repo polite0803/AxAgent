@@ -136,8 +136,13 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         app.message.success(parts.join("，"));
       }
       if (result.errors.length > 0) {
-        app.message.warning(`导入完成，但有 ${result.errors.length} 个错误`);
-        console.warn("Import errors:", result.errors.slice(0, 5));
+        const errorPreview = result.errors.slice(0, 3).join("; ");
+        const more = result.errors.length > 3 ? ` 等 ${result.errors.length} 个错误` : "";
+        app.message.warning(
+          `导入完成，但有 ${result.errors.length} 个错误: ${errorPreview}${more}`,
+          8,
+        );
+        console.warn("全部导入错误:", result.errors);
       }
       setShowImport(false);
     } catch (e) {
@@ -322,7 +327,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                 )
                 : (
                   <Button size="small" icon={<Download size={14} />} onClick={() => setShowImport(true)}>
-                    导入 agency-agents-zh
+                    导入
                   </Button>
                 )}
               {agencyRoles.length > 0 && (
@@ -343,12 +348,12 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             style={{ marginBottom: 12, padding: 12, background: "var(--color-background-secondary)", borderRadius: 8 }}
           >
             <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
-              输入 agency-agents-zh 本地仓库路径（如 ~/agency-agents-zh）
+              输入 本地仓库路径（如 ~/）
             </Text>
             <div style={{ display: "flex", gap: 8 }}>
               <Input
                 size="small"
-                placeholder="~/agency-agents-zh"
+                placeholder="~/"
                 value={importPath}
                 onChange={(e) => setImportPath(e.target.value)}
                 style={{ flex: 1 }}

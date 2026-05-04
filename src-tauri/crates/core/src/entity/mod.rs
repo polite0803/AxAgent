@@ -1,5 +1,6 @@
 //! SeaORM entity definitions for AxAgent database tables.
 
+pub mod background_tasks;
 pub mod conversation_categories;
 pub mod conversation_summaries;
 pub mod conversations;

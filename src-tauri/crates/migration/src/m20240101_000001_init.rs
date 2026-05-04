@@ -3293,7 +3293,7 @@ impl MigrationTrait for Migration {
             .await
             .ok(); // Silently ignore if column already exists
 
-        // Agency experts table — imported from agency-agents-zh
+        // Agency experts table — imported from
         manager
             .create_table(
                 Table::create()
