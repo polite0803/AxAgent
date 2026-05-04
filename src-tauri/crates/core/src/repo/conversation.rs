@@ -9,7 +9,7 @@ use crate::types::{
 };
 use crate::utils::{gen_id, now_ts};
 
-fn conversation_from_entity(m: conversations::Model) -> Conversation {
+pub(crate) fn conversation_from_entity(m: conversations::Model) -> Conversation {
     Conversation {
         id: m.id,
         title: m.title,
@@ -506,6 +506,8 @@ pub async fn branch_conversation(
         enabled_skill_ids: Set(source.enabled_skill_ids.clone()),
         expert_role_id: Set(source.expert_role_id.clone()),
         workflow_template_id: Set(source.workflow_template_id.clone()),
+        session_type: Set(source.session_type.clone()),
+        workflow_status: Set(source.workflow_status.clone()),
         mode: Set(source.mode.clone()),
         created_at: Set(now),
         updated_at: Set(now),

@@ -123,6 +123,7 @@ import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
 import { WorkflowBadge } from "./WorkflowBadge";
 import { WorkflowEndMarker } from "./WorkflowEndMarker";
+import { WorkflowSuggestionCard } from "./WorkflowSuggestionCard";
 
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { invoke } from "@/lib/invoke";
@@ -3260,6 +3261,38 @@ function ChatViewInner() {
                     }}
                   />
                 )}
+              {(() => {
+                const suggestion = useAgentStore.getState()
+                  .workflowMatchSuggestion;
+                if (
+                  suggestion
+                  && suggestion.conversationId === activeConversation?.id
+                ) {
+                  return (
+                    <WorkflowSuggestionCard
+                      match={{
+                        templateId: suggestion.templateId,
+                        templateName: suggestion.templateName,
+                        similarity: suggestion.similarity,
+                      }}
+                      onSwitch={(templateId) => {
+                        void updateConversation(activeConversation.id, {
+                          session_type: "workflow",
+                          workflow_template_id: templateId,
+                        } as any);
+                        fetchConversation(activeConversation.id);
+                        useAgentStore.getState()
+                          .setWorkflowMatchSuggestion(null);
+                      }}
+                      onDismiss={() => {
+                        useAgentStore.getState()
+                          .setWorkflowMatchSuggestion(null);
+                      }}
+                    />
+                  );
+                }
+                return null;
+              })()}
               <ChatScrollIndicator />
               <MinimapScrollProvider scrollTo={minimapScrollTo} scrollBoxRef={scrollBoxRef}>
                 <ChatMinimap />

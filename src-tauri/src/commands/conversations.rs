@@ -635,6 +635,77 @@ pub async fn list_archived_conversations(
         .map_err(|e| e.to_string())
 }
 
+/// 工作流型会话归档：将执行结果写回原始工作流模板
+#[tauri::command]
+pub async fn archive_workflow_session(
+    state: State<'_, AppState>,
+    conversation_id: String,
+    feedback: Option<String>,
+) -> Result<Conversation, String> {
+    use axagent_core::entity::{conversations, workflow_template};
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+
+    let db = &state.sea_db;
+
+    let conv = conversations::Entity::find_by_id(&conversation_id)
+        .one(db)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Conversation {} not found", conversation_id))?;
+
+    if conv.session_type != "workflow" {
+        return Err("此会话不是工作流类型，请使用普通归档".to_string());
+    }
+
+    // 如果有绑定的工作流模板，将执行数据写回模板
+    if let Some(ref template_id) = conv.workflow_template_id {
+        if let Some(tmpl) = workflow_template::Entity::find_by_id(template_id)
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?
+        {
+            // 提取消息作为执行记录
+            let messages = axagent_core::repo::message::list_messages(db, &conversation_id)
+                .await
+                .map_err(|e| e.to_string())?;
+
+            let execution_note = serde_json::json!({
+                "conversation_id": conversation_id,
+                "completed_at": axagent_core::utils::now_ts(),
+                "message_count": messages.len(),
+                "feedback": feedback,
+                "workflow_status": conv.workflow_status,
+            });
+
+            // 追加到模板的描述中（作为案例记录）
+            let mut current_desc = tmpl.description.unwrap_or_default();
+            let case_entry = format!(
+                "\n\n---\n📋 执行案例 ({})\n消息数: {}, 状态: {}, 反馈: {}",
+                chrono::Utc::now().format("%Y-%m-%d %H:%M"),
+                messages.len(),
+                conv.workflow_status.as_deref().unwrap_or("unknown"),
+                feedback.as_deref().unwrap_or("无"),
+            );
+            current_desc.push_str(&case_entry);
+
+            let mut am: workflow_template::ActiveModel = tmpl.into();
+            am.description = Set(Some(current_desc));
+            am.updated_at = Set(axagent_core::utils::now_ts());
+            am.update(db).await.map_err(|e| e.to_string())?;
+        }
+    }
+
+    // 标记会话为已归档
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut am: conversations::ActiveModel = conv.into();
+    am.is_archived = Set(1);
+    am.updated_at = Set(now);
+    let updated = am.update(db).await.map_err(|e| e.to_string())?;
+
+    let conv = axagent_core::repo::conversation::conversation_from_entity(updated);
+    Ok(conv)
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn consume_stream(
     app: &tauri::AppHandle,

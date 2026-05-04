@@ -72,6 +72,7 @@ pub fn run() {
             commands::conversations::toggle_pin_conversation,
             commands::conversations::toggle_archive_conversation,
             commands::conversations::archive_conversation_to_knowledge_base,
+            commands::conversations::archive_workflow_session,
             commands::conversations::list_archived_conversations,
             commands::conversations::regenerate_message,
             commands::conversations::regenerate_with_model,

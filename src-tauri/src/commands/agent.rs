@@ -591,6 +591,19 @@ pub async fn agent_query(
             running_agents: app_state.running_agents.clone(),
         }
     };
+
+    // Set workflow_status to "running" for workflow-type sessions
+    if conversation.session_type == "workflow" {
+        let _ = axagent_core::repo::conversation::update_conversation(
+            &app_state.sea_db,
+            &conversation_id,
+            axagent_core::types::UpdateConversationInput {
+                workflow_status: Some(Some("running".to_string())),
+                ..Default::default()
+            },
+        ).await;
+    }
+
     info!("[agent_query] Got provider: {}", request.provider_id);
 
     // Get provider
@@ -1785,6 +1798,29 @@ pub async fn agent_query(
             };
             let _ = app.emit("agent-done", &payload);
 
+            // Set workflow_status to "completed" for workflow-type sessions
+            if conversation.session_type == "workflow" {
+                let _ = axagent_core::repo::conversation::update_conversation(
+                    &app_state.sea_db,
+                    &conversation_id,
+                    axagent_core::types::UpdateConversationInput {
+                        workflow_status: Some(Some("completed".to_string())),
+                        ..Default::default()
+                    },
+                ).await;
+            }
+
+            // Semantic workflow matching for conversation-type sessions:
+            // After the first agent response, check if user input matches any preset template
+            if conversation.session_type == "conversation" {
+                let _ = check_and_suggest_workflow_match(
+                    &app_state.sea_db,
+                    &app,
+                    &conversation_id,
+                    &request.input,
+                ).await;
+            }
+
             // P4: Record trajectory for closed-loop learning
             // Build a Trajectory from the turn summary and save to TrajectoryStorage.
             // This is the critical data pipeline that feeds ClosedLoopService.tick().
@@ -2026,6 +2062,18 @@ pub async fn agent_query(
         Err(e) => {
             let error_msg = e.to_string();
 
+            // Set workflow_status to "failed" for workflow-type sessions
+            if conversation.session_type == "workflow" {
+                let _ = axagent_core::repo::conversation::update_conversation(
+                    &app_state.sea_db,
+                    &conversation_id,
+                    axagent_core::types::UpdateConversationInput {
+                        workflow_status: Some(Some("failed".to_string())),
+                        ..Default::default()
+                    },
+                ).await;
+            }
+
             // Emit agent-error event
             let _ = app.emit(
                 "agent-error",
@@ -2039,6 +2087,81 @@ pub async fn agent_query(
             Err(error_msg)
         },
     }
+}
+
+/// 语义匹配：检查用户输入是否匹配已有工作流模板
+async fn check_and_suggest_workflow_match(
+    db: &DatabaseConnection,
+    app: &tauri::AppHandle,
+    conversation_id: &str,
+    user_input: &str,
+) -> Result<(), String> {
+    use axagent_core::entity::workflow_template;
+    use sea_orm::EntityTrait;
+
+    let input_lower = user_input.to_lowercase();
+
+    // 预设模板关键字映射（与 WorkflowTemplateSelector 中的定义对应）
+    let template_keywords: Vec<(&str, Vec<&str>)> = vec![
+        ("code-review", vec!["review", "审查", "review", "code review", "代码审查", "pr", "pull request", "merge"]),
+        ("bug-fix", vec!["bug", "fix", "修复", "调试", "debug", "error", "错误", "crash", "崩溃"]),
+        ("doc-gen", vec!["doc", "文档", "document", "generate", "生成", "readme", "api doc"]),
+        ("test-gen", vec!["test", "测试", "unit test", "单元测试", "coverage", "覆盖", "e2e"]),
+        ("refactor", vec!["refactor", "重构", "clean", "清理", "restructure", "整理"]),
+        ("explore", vec!["explore", "探索", "understand", "理解", "navigate", "浏览", "search", "查找"]),
+        ("performance", vec!["performance", "性能", "optimize", "优化", "slow", "慢", "speed", "加速"]),
+        ("security", vec!["security", "安全", "audit", "审计", "vulnerability", "漏洞", "scan"]),
+        ("api-design", vec!["api", "design", "设计", "endpoint", "接口", "rest", "graphql"]),
+        ("feature", vec!["feature", "功能", "implement", "实现", "build", "构建", "create", "创建", "add", "添加"]),
+    ];
+
+    // 计算每个模板的匹配分数（Jaccard-like word overlap）
+    let mut matches: Vec<(String, f64)> = Vec::new();
+    let input_words: std::collections::HashSet<&str> =
+        input_lower.split_whitespace().collect();
+
+    for (template_id, keywords) in &template_keywords {
+        let mut keyword_hits = 0u32;
+        for kw in keywords {
+            if input_lower.contains(kw) {
+                keyword_hits += 1;
+            }
+        }
+        // Also check word overlap for CJK
+        let kw_set: std::collections::HashSet<&str> = keywords.iter().copied().collect();
+        let intersection = kw_set.intersection(&input_words).count() as f64;
+        let union = kw_set.union(&input_words).count() as f64;
+        let jaccard = if union > 0.0 { intersection / union } else { 0.0 };
+        let score = (keyword_hits as f64 * 0.6) + (jaccard * 0.4);
+
+        if score > 0.15 {
+            matches.push((template_id.to_string(), score));
+        }
+    }
+
+    matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    if let Some((best_id, similarity)) = matches.first() {
+        if *similarity >= 0.3 {
+            // 确认模板存在
+            if let Ok(Some(tmpl)) = workflow_template::Entity::find_by_id(best_id)
+                .one(db)
+                .await
+            {
+                let _ = app.emit(
+                    "workflow-match-suggestion",
+                    serde_json::json!({
+                        "conversationId": conversation_id,
+                        "templateId": best_id,
+                        "templateName": tmpl.name,
+                        "similarity": similarity,
+                    }),
+                );
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Load the content of enabled skills from the file system based on conversation scenario.

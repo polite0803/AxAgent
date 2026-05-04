@@ -679,11 +679,22 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   archivedConversations: [],
 
-  toggleArchive: async (id) => {
+  toggleArchive: async (id, feedback?: string) => {
     try {
-      const updated = await invoke<Conversation>("toggle_archive_conversation", { id });
+      const conv = get().conversations.find((c) => c.id === id)
+        ?? get().archivedConversations.find((c) => c.id === id);
+
+      // 工作流型会话：调用 archive_workflow_session 更新模板
+      // 对话型会话：调用 toggle_archive_conversation（原有逻辑）
+      const command = conv?.session_type === "workflow"
+        ? "archive_workflow_session"
+        : "toggle_archive_conversation";
+      const params = conv?.session_type === "workflow"
+        ? { conversationId: id, feedback }
+        : { id };
+
+      const updated = await invoke<Conversation>(command, params);
       if (updated.is_archived) {
-        // Moved to archive — remove from active list, add to archived
         set((s) => ({
           conversations: s.conversations.filter((c) => c.id !== id),
           archivedConversations: [updated, ...s.archivedConversations],
@@ -692,7 +703,6 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           error: null,
         }));
       } else {
-        // Unarchived — remove from archived, add to active
         set((s) => ({
           conversations: [updated, ...s.conversations],
           archivedConversations: s.archivedConversations.filter((c) => c.id !== id),

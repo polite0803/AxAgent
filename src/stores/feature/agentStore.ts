@@ -32,6 +32,13 @@ interface QueryStats {
   costUsd?: number;
 }
 
+export interface WorkflowMatchSuggestion {
+  conversationId: string;
+  templateId: string;
+  templateName: string;
+  similarity: number;
+}
+
 /** 当前正在执行（或最近执行）的工具调用追踪 */
 export interface CurrentToolCall {
   toolName: string;
@@ -59,6 +66,10 @@ interface AgentStore {
   currentToolCall: CurrentToolCall | null; // 当前正在执行的工具调用
   isExecuting: Record<string, boolean>; // conversationId → 是否正在执行工具
   executingConversationIds: string[]; // 当前有工具在执行的对话 ID 列表（有序）
+
+  // Workflow match suggestion for conversation-type sessions
+  workflowMatchSuggestion: WorkflowMatchSuggestion | null;
+  setWorkflowMatchSuggestion: (suggestion: WorkflowMatchSuggestion | null) => void;
 
   // Unified Agent Pool — 子Agent + 工作者 + 工作流步骤
   agentPool: Record<string, AgentPoolItem[]>; // conversationId → pool items
@@ -133,6 +144,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   isExecuting: {},
   executingConversationIds: [],
   agentPool: {},
+  workflowMatchSuggestion: null,
+
+  setWorkflowMatchSuggestion: (suggestion) =>
+    set({ workflowMatchSuggestion: suggestion }),
 
   // --- AgentPool actions ---
 
@@ -946,6 +961,13 @@ export function setupAgentEventListeners(): () => void {
   unlisteners.push(
     listen<AgentErrorEvent>("agent-error", (event) => {
       store.handleError(event.payload);
+    }),
+  );
+
+  // Listen for workflow match suggestions from semantic matching
+  unlisteners.push(
+    listen<WorkflowMatchSuggestion>("workflow-match-suggestion", (event) => {
+      store.setWorkflowMatchSuggestion(event.payload);
     }),
   );
 
