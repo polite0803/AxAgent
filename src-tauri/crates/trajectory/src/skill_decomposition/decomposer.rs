@@ -671,7 +671,7 @@ impl SkillDecomposer {
                             }
                         }
 
-                        let input_schema = block.infer_schema();
+                        let _input_schema = block.infer_schema();
 
                         workflow_nodes.push(serde_json::json!({
                             "id": block_node_id,
