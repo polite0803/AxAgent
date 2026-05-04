@@ -1,108 +1,72 @@
-import { BUILTIN_AGENT_PROFILES } from "@/data/agentProfilePresets";
 import { invoke } from "@/lib/invoke";
 import type { AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput } from "@/types/agentProfile";
 import { create } from "zustand";
 
 interface AgentProfileState {
-  builtinProfiles: AgentProfile[];
-  customProfiles: AgentProfile[];
-  agencyProfiles: AgentProfile[];
-  agencyLoaded: boolean;
+  profiles: AgentProfile[];
+  loaded: boolean;
 
+  loadProfiles(): Promise<void>;
   getAllProfiles(): AgentProfile[];
   getProfileById(id: string): AgentProfile | undefined;
   getSystemPrompt(id: string): string | undefined;
 
-  loadAgencyProfiles(): Promise<void>;
   importFromAgency(): Promise<{ count: number; errors: string[] }>;
 
-  createCustomProfile(
-    input: CreateAgentProfileInput,
-  ): Promise<AgentProfile>;
-  updateCustomProfile(
-    id: string,
-    input: UpdateAgentProfileInput,
-  ): Promise<AgentProfile>;
+  createCustomProfile(input: CreateAgentProfileInput): Promise<AgentProfile>;
+  updateCustomProfile(id: string, input: UpdateAgentProfileInput): Promise<AgentProfile>;
   deleteCustomProfile(id: string): Promise<void>;
 }
 
-export const useAgentProfileStore = create<AgentProfileState>(
-  (set, get) => ({
-    builtinProfiles: BUILTIN_AGENT_PROFILES,
-    customProfiles: [],
-    agencyProfiles: [],
-    agencyLoaded: false,
+export const useAgentProfileStore = create<AgentProfileState>((set, get) => ({
+  profiles: [],
+  loaded: false,
 
-    getAllProfiles(): AgentProfile[] {
-      const { builtinProfiles, agencyProfiles, customProfiles } = get();
-      // 内置优先，然后是 agency，最后是自定义
-      return [...builtinProfiles, ...agencyProfiles, ...customProfiles];
-    },
+  async loadProfiles(): Promise<void> {
+    try {
+      const rows: AgentProfile[] = await invoke("list_agent_profiles");
+      set({ profiles: rows, loaded: true });
+    } catch {
+      set({ loaded: true });
+    }
+  },
 
-    getProfileById(id: string): AgentProfile | undefined {
-      return get().getAllProfiles().find((p) => p.id === id);
-    },
+  getAllProfiles(): AgentProfile[] {
+    return get().profiles;
+  },
 
-    getSystemPrompt(id: string): string | undefined {
-      const profile = get().getProfileById(id);
-      return profile?.systemPrompt || undefined;
-    },
+  getProfileById(id: string): AgentProfile | undefined {
+    return get().profiles.find((p) => p.id === id);
+  },
 
-    async loadAgencyProfiles(): Promise<void> {
-      try {
-        const rows: AgentProfile[] = await invoke(
-          "list_agent_profiles",
-          { source: "agency" },
-        );
-        set({ agencyProfiles: rows, agencyLoaded: true });
-      } catch {
-        set({ agencyLoaded: true });
-      }
-    },
+  getSystemPrompt(id: string): string | undefined {
+    return get().getProfileById(id)?.systemPrompt || undefined;
+  },
 
-    async importFromAgency(): Promise<{
-      count: number;
-      errors: string[];
-    }> {
-      const result: { count: number; errors: string[] } = await invoke(
-        "import_agent_profiles_from_agency",
-      );
-      await get().loadAgencyProfiles();
-      return result;
-    },
+  async importFromAgency(): Promise<{ count: number; errors: string[] }> {
+    const result: { count: number; errors: string[] } = await invoke(
+      "import_agent_profiles_from_agency",
+    );
+    await get().loadProfiles();
+    return result;
+  },
 
-    async createCustomProfile(
-      input: CreateAgentProfileInput,
-    ): Promise<AgentProfile> {
-      const profile: AgentProfile = await invoke(
-        "create_agent_profile",
-        { input },
-      );
-      set((s) => ({
-        customProfiles: [...s.customProfiles, profile],
-      }));
-      return profile;
-    },
+  async createCustomProfile(input: CreateAgentProfileInput): Promise<AgentProfile> {
+    const profile: AgentProfile = await invoke("create_agent_profile", { input });
+    set((s) => ({ profiles: [...s.profiles, profile] }));
+    return profile;
+  },
 
-    async updateCustomProfile(
-      id: string,
-      input: UpdateAgentProfileInput,
-    ): Promise<AgentProfile> {
-      const profile: AgentProfile = await invoke(
-        "update_agent_profile",
-        { id, input },
-      );
-      set((s) => ({
-        customProfiles: s.customProfiles.map((p) => p.id === id ? profile : p),
-      }));
-      return profile;
-    },
+  async updateCustomProfile(id: string, input: UpdateAgentProfileInput): Promise<AgentProfile> {
+    const profile: AgentProfile = await invoke("update_agent_profile", { id, input });
+    set((s) => ({
+      profiles: s.profiles.map((p) => (p.id === id ? profile : p)),
+    }));
+    return profile;
+  },
 
-    async deleteCustomProfile(id: string): Promise<void> {
-      await invoke("delete_agent_profile", { id });
-      set((s) => ({
-        customProfiles: s.customProfiles.filter((p) => p.id !== id),
-      }));
-    },
-  }),
-);
+  async deleteCustomProfile(id: string): Promise<void> {
+    await invoke("delete_agent_profile", { id });
+    set((s) => ({ profiles: s.profiles.filter((p) => p.id !== id) }));
+  },
+}));

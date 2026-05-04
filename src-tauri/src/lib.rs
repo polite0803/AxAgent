@@ -645,6 +645,9 @@ pub fn run() {
             commands::agent_profile::update_agent_profile,
             commands::agent_profile::delete_agent_profile,
             commands::agent_profile::import_agent_profiles_from_agency,
+            commands::agent_role::list_agent_roles,
+            commands::agent_role::import_agent_roles,
+            commands::agent_role::delete_agent_role,
             // Plugin commands
             commands::plugin::list_plugin_tools,
             commands::plugin::plugin_enable,

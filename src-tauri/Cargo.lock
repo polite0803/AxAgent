@@ -572,6 +572,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sha2",
  "tauri",
  "tauri-build",
@@ -597,7 +598,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -633,7 +634,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-core"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -675,7 +676,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-gateway"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -698,16 +699,17 @@ dependencies = [
 
 [[package]]
 name = "axagent-migration"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
+ "serde_json",
  "tokio",
 ]
 
 [[package]]
 name = "axagent-plugins"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -715,7 +717,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-providers"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -732,7 +734,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -773,7 +775,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-telemetry"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "chrono",
  "lazy_static",
@@ -786,7 +788,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-tools"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -824,7 +826,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-trajectory"
-version = "1.3.9"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "async-trait",

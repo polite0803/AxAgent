@@ -678,7 +678,7 @@ pub async fn archive_workflow_session(
             });
 
             // 追加到模板的描述中（作为案例记录）
-            let mut current_desc = tmpl.description.unwrap_or_default();
+            let mut current_desc = tmpl.description.clone().unwrap_or_default();
             let case_entry = format!(
                 "\n\n---\n📋 执行案例 ({})\n消息数: {}, 状态: {}, 反馈: {}",
                 chrono::Utc::now().format("%Y-%m-%d %H:%M"),

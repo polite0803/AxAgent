@@ -41,6 +41,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AgentProfileManager } from "./AgentProfileManager";
 import { HookExecutionLog } from "./HookExecutionLog";
 import { SettingsGroup } from "./SettingsGroup";
 
@@ -335,9 +336,11 @@ function AgentsTab() {
 
   return (
     <div className="p-6 pb-12">
+      <AgentProfileManager />
+      <Divider style={{ margin: "20px 0" }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Text strong style={{ fontSize: 13, color: token.colorTextSecondary }}>
-          已注册 Agent 列表
+          运行时 Agent 列表
         </Text>
         <Button size="small" icon={<ChevronRight size={14} />} onClick={fetchAgents} loading={loading}>
           刷新

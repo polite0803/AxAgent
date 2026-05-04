@@ -6,4 +6,5 @@ edition.workspace = true
 [dependencies]
 sea-orm-migration = { version = "1", features = ["sqlx-sqlite", "runtime-tokio-native-tls"] }
 async-trait = "0.1"
+serde_json = { workspace = true }
 tokio = { workspace = true }

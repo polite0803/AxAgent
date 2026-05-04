@@ -9,7 +9,7 @@ use crate::types::{
 };
 use crate::utils::{gen_id, now_ts};
 
-pub(crate) fn conversation_from_entity(m: conversations::Model) -> Conversation {
+pub fn conversation_from_entity(m: conversations::Model) -> Conversation {
     Conversation {
         id: m.id,
         title: m.title,

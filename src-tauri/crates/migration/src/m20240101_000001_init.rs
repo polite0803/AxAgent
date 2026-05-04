@@ -710,6 +710,22 @@ enum AgentProfiles {
 }
 
 #[derive(DeriveIden)]
+enum AgentRoles {
+    Table,
+    Id,
+    Name,
+    Description,
+    SystemPrompt,
+    DefaultTools,
+    MaxConcurrent,
+    TimeoutSeconds,
+    Source,
+    SortOrder,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
 enum SemanticCache {
     Table,
     Id,
@@ -3564,7 +3580,62 @@ impl MigrationTrait for Migration {
         }
 
         // =================================================================
-        // 38. Semantic Cache
+        // 38. Agent Roles (数据库驱动的角色定义，可从外部导入)
+        manager
+            .create_table(
+                Table::create()
+                    .table(AgentRoles::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(AgentRoles::Id).string().not_null().primary_key())
+                    .col(ColumnDef::new(AgentRoles::Name).string().not_null())
+                    .col(ColumnDef::new(AgentRoles::Description).string().null())
+                    .col(ColumnDef::new(AgentRoles::SystemPrompt).string().not_null().default(""))
+                    .col(ColumnDef::new(AgentRoles::DefaultTools).string().null())
+                    .col(ColumnDef::new(AgentRoles::MaxConcurrent).integer().not_null().default(3))
+                    .col(ColumnDef::new(AgentRoles::TimeoutSeconds).big_integer().not_null().default(600))
+                    .col(ColumnDef::new(AgentRoles::Source).string().not_null().default("builtin"))
+                    .col(ColumnDef::new(AgentRoles::SortOrder).integer().not_null().default(0))
+                    .col(ColumnDef::new(AgentRoles::CreatedAt).big_integer().not_null())
+                    .col(ColumnDef::new(AgentRoles::UpdatedAt).big_integer().not_null())
+                    .to_owned(),
+            )
+            .await?;
+
+        // Seed 8 built-in roles
+        {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64;
+            let roles: Vec<(&str, &str, &str, &[&str], usize, u64)> = vec![
+                ("coordinator", "Coordinator", "任务分解、工作者分配和结果综合", &["web_search","read_file","list_directory","search_files","grep_content","skill_manage","session_search","memory_flush","get_system_info","get_storage_info","list_storage_files"], 1, 300),
+                ("researcher", "Researcher", "信息收集、数据分析和综合研究", &["web_search","fetch_url","fetch_markdown","read_file","list_directory","search_files","grep_content","search_knowledge","list_knowledge_bases","session_search","list_storage_files","download_storage_file"], 4, 600),
+                ("developer", "Developer", "编写、编辑和重构代码", &["write_file","edit_file","search_replace","read_file","list_directory","search_files","grep_content","run_command","file_exists","get_file_info","create_directory","delete_file","move_file","get_system_info","list_processes","get_storage_info","list_storage_files","upload_storage_file","download_storage_file","delete_storage_file","git_status","git_diff","git_commit","git_log","git_branch","git_review"], 3, 900),
+                ("reviewer", "Reviewer", "评估工作质量、提供建设性反馈", &["read_file","list_directory","search_files","grep_content","run_command","file_exists","get_file_info","get_system_info","list_processes","git_status","git_diff","git_log","git_review"], 2, 600),
+                ("browser", "Browser", "与网页交互、填充表单和验证视觉内容", &["fetch_url","fetch_markdown","web_search"], 3, 300),
+                ("synthesizer", "Synthesizer", "聚合多个 Agent 的结果为统一输出", &["write_file","read_file","list_directory","search_files","grep_content"], 1, 180),
+                ("planner", "Planner", "战略思维、风险评估和计划制定", &["read_file","list_directory","search_files","grep_content","web_search","session_search","memory_flush","get_system_info","get_storage_info","list_storage_files"], 2, 300),
+                ("executor", "Executor", "精确执行离散任务", &["run_command","write_file","edit_file","read_file","list_directory","search_files","grep_content","create_directory","delete_file","move_file","file_exists","get_system_info","list_processes","upload_storage_file","download_storage_file","delete_storage_file"], 5, 600),
+            ];
+            for (id, name, desc, tools, mc, to) in &roles {
+                let exists = db.query_one(sea_orm::Statement::from_sql_and_values(
+                    sea_orm::DatabaseBackend::Sqlite,
+                    "SELECT id FROM agent_roles WHERE id = ?", vec![(*id).into()],
+                )).await.map(|r| r.is_some()).unwrap_or(false);
+                if !exists {
+                    db.execute(sea_orm::Statement::from_sql_and_values(
+                        sea_orm::DatabaseBackend::Sqlite,
+                        "INSERT INTO agent_roles (id, name, description, system_prompt, default_tools, max_concurrent, timeout_seconds, source, sort_order, created_at, updated_at) VALUES (?, ?, ?, '', ?, ?, ?, 'builtin', 0, ?, ?)",
+                        vec![
+                            (*id).into(), (*name).into(), (*desc).into(),
+                            serde_json::to_string(tools).unwrap_or_default().into(),
+                            (*mc as i32).into(), (*to as i64).into(),
+                            now.into(), now.into(),
+                        ],
+                    )).await.ok();
+                }
+            }
+        }
+
+        // 39. Semantic Cache
         // =================================================================
         manager
             .create_table(
@@ -3693,6 +3764,7 @@ impl MigrationTrait for Migration {
         drop_tbl!(Plans::Table);
         drop_tbl!(AgencyExperts::Table);
         drop_tbl!(AgentProfiles::Table);
+        drop_tbl!(AgentRoles::Table);
         drop_tbl!(Conversations::Table);
         drop_tbl!(Models::Table);
         drop_tbl!(ProviderKeys::Table);

@@ -1594,7 +1594,7 @@ pub async fn agent_query(
     > = session_manager
         .run_turn_with_tools(
             &session_id,
-            request.input,
+            request.input.clone(),
             api_client,
             tool_registry,
             system_prompt,

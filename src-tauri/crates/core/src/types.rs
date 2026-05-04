@@ -367,7 +367,7 @@ pub struct ConversationSummary {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateConversationInput {
     pub title: Option<String>,
     pub provider_id: Option<String>,
@@ -2235,6 +2235,24 @@ pub struct CreateAgentProfileInput {
     pub recommended_tools: Option<Vec<String>>,
     pub disallowed_tools: Option<Vec<String>>,
     pub recommended_workflows: Option<Vec<String>>,
+}
+
+// === Agent Role Def (DB-driven, importable) ===
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRoleDef {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub system_prompt: String,
+    pub default_tools: Vec<String>,
+    pub max_concurrent: usize,
+    pub timeout_seconds: u64,
+    pub source: String,
+    pub sort_order: i32,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
