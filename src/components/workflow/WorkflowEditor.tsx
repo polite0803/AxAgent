@@ -46,6 +46,8 @@ import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
 import {
   type AgentNode as AgentNodeType,
+  type AgentRole,
+  type OutputMode,
   NODE_TYPE_MAP,
   type WorkflowEdge,
   type WorkflowNode,
@@ -118,7 +120,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   const [reactFlowEdges, setREdges, onEdgesChange] = useEdgesState([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
-  const [upgradeModalState, setUpgradeModalState] = React.useState<{
+  const [_upgradeModalState, setUpgradeModalState] = React.useState<{
     visible: boolean;
     generatedSkillName: string;
     generatedSkillDescription: string;
@@ -128,7 +130,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     generatedSkillName: "",
     generatedSkillDescription: "",
     nodeId: "",
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 
   const [similarWorkflowsModal, setSimilarWorkflowsModal] = useState<{
     visible: boolean;
@@ -228,9 +231,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                 contextSources: (node as AgentNodeType).config.context_sources,
                 outputMode: (node as AgentNodeType).config.output_mode,
                 model: (node as AgentNodeType).config.model,
-                expertRoleId: (node as AgentNodeType).config.expertRoleId,
+                expertRoleId: (node as AgentNodeType).config.agentProfileId,
                 ...(function() {
-                  const roleId = (node as AgentNodeType).config.expertRoleId;
+                  const roleId = (node as AgentNodeType).config.agentProfileId;
                   if (roleId) {
                     const role = useExpertStore.getState().getRoleById(roleId);
                     return { expertIcon: role?.icon, expertName: role?.displayName };
@@ -278,58 +281,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
       setUpgradeModalState({
         visible: true,
-        existingSkill: bestMatch.existing_skill,
         generatedSkillName,
         generatedSkillDescription,
         nodeId,
       });
     },
     [semanticCheckResult],
-  );
-
-  const handleUpgradeConfirm = useCallback(
-    (
-      suggestion: {
-        name: string;
-        description: string;
-        input_schema: Record<string, unknown> | null;
-        output_schema: Record<string, unknown> | null;
-        reasoning: string;
-      },
-    ) => {
-      const { nodeId, existingSkill } = upgradeModalState;
-      if (!existingSkill) { return; }
-
-      useWorkflowEditorStore.setState((state) => {
-        const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
-        if (nodeIndex !== -1) {
-          const node = state.nodes[nodeIndex] as any;
-          node.config.skill_id = existingSkill.id;
-          node.config.skill_name = suggestion.name;
-          node.config.entry_ref = existingSkill.entry_ref;
-          node.config.entry_type = existingSkill.entry_type;
-          node.config.category = existingSkill.category;
-          node.title = suggestion.name;
-          node.description = suggestion.description;
-          node.data.skillId = existingSkill.id;
-          node.data.skillName = suggestion.name;
-        }
-
-        state.pendingReplacements.set(nodeId, {
-          existingSkillId: existingSkill.id,
-          action: "upgrade_existing",
-        });
-
-        const remainingMatches = state.semanticCheckResult?.matches.filter((m) => m.node_id !== nodeId) || [];
-        if (remainingMatches.length === 0) {
-          state.semanticCheckResult = null;
-        }
-      });
-
-      setUpgradeModalState((prev) => ({ ...prev, visible: false }));
-      message.success(t("workflow.semanticCheckApplied"));
-    },
-    [upgradeModalState, t],
   );
 
   const onConnect = useCallback(
@@ -754,16 +711,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         </div>
       )}
 
-      {upgradeModalState.visible && upgradeModalState.existingSkill && (
-        <SkillUpgradeModal
-          open={upgradeModalState.visible}
-          onClose={() => setUpgradeModalState((prev) => ({ ...prev, visible: false }))}
-          existingSkill={upgradeModalState.existingSkill}
-          generatedSkillName={upgradeModalState.generatedSkillName}
-          generatedSkillDescription={upgradeModalState.generatedSkillDescription}
-          onConfirm={handleUpgradeConfirm}
-        />
-      )}
 
       <Modal
         title={t("workflow.similarWorkflowsFound", { count: similarWorkflowsModal.workflows.length })}
@@ -854,7 +801,7 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
       return { tool_name: "", input_mapping: {}, output_var: "" };
     case "code":
       return { language: "javascript", code: "", output_var: "" };
-    case "atomicSkill":
+    case "agent":
       return { skill_id: "", skill_name: "", entry_type: "builtin", input_mapping: {}, output_var: "" };
     case "end":
       return { output_var: "" };
@@ -932,11 +879,11 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
         type: "vectorRetrieve",
         config: { query: "", knowledge_base_id: "", top_k: 5, output_var: "" },
       };
-    case "atomicSkill":
+    case "agent":
       return {
         ...baseNode,
-        type: "atomicSkill",
-        config: { skill_id: "", skill_name: "", entry_type: "builtin", input_mapping: {}, output_var: "" },
+        type: "agent",
+        config: { role: "executor" as AgentRole, system_prompt: "", context_sources: [], output_var: "", tools: [], output_mode: "text" as OutputMode },
       };
     case "end":
       return { ...baseNode, type: "end", config: {} };

@@ -28,7 +28,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
   const [expertSelectorOpen, setExpertSelectorOpen] = useState(false);
   const getExpert = useExpertStore((s) => s.getRoleById);
-  const selectedExpert = config.expertRoleId ? getExpert(config.expertRoleId) : null;
+  const selectedExpert = config.agentProfileId ? getExpert(config.agentProfileId) : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
@@ -107,7 +107,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Tag
                 closable
-                onClose={() => handleConfigChange("expertRoleId", undefined)}
+                onClose={() => handleConfigChange("agentProfileId", undefined)}
                 style={{ margin: 0, fontSize: 12, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}
               >
                 {selectedExpert.icon} {selectedExpert.displayName}
@@ -128,9 +128,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <ExpertSelector
         open={expertSelectorOpen}
-        selectedRoleId={config.expertRoleId ?? null}
+        selectedRoleId={config.agentProfileId ?? null}
         onSelect={(roleId) => {
-          handleConfigChange("expertRoleId", roleId);
+          handleConfigChange("agentProfileId", roleId);
           setExpertSelectorOpen(false);
         }}
         onClose={() => setExpertSelectorOpen(false)}

@@ -917,13 +917,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     checkSkillSemanticMatches: async (nodes: WorkflowNode[]) => {
       const atomicSkillNodes = nodes
-        .filter((n) => n.type === "atomicSkill" && (n as any).config?.skill_name)
-        .map((n) =>
-          n as WorkflowNode & {
-            type: "atomicSkill";
-            config: { skill_name?: string; entry_type?: string; entry_ref?: string; category?: string };
-          }
-        );
+        .filter((n) => n.type === "agent" && (n as any).config?.skill_name)
+        .map((n) => n as any);
 
       if (atomicSkillNodes.length === 0) {
         return null;
@@ -976,7 +971,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           if (nodeIndex !== -1) {
             const node = state.nodes[nodeIndex] as any;
             node.config.skill_id = existingSkillId;
-            node.config.entry_ref = replacement.existing_skill.entry_ref;
+            node.config.entry_ref = (replacement.existing_skill as any).entry_ref;
           }
         }
       });
@@ -1003,9 +998,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             const node = state.nodes[nodeIndex] as any;
             node.config.skill_id = bestMatch.existing_skill.id;
             node.config.skill_name = bestMatch.existing_skill.name;
-            node.config.entry_ref = bestMatch.existing_skill.entry_ref;
-            node.config.entry_type = bestMatch.existing_skill.entry_type;
-            node.config.category = bestMatch.existing_skill.category;
+            node.config.entry_ref = (bestMatch.existing_skill as any).entry_ref;
+            node.config.entry_type = (bestMatch.existing_skill as any).entry_type;
+            node.config.category = (bestMatch.existing_skill as any).category;
             node.data.skillId = bestMatch.existing_skill.id;
             node.data.skillName = bestMatch.existing_skill.name;
           }

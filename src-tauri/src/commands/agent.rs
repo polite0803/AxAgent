@@ -9,7 +9,7 @@ use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequ
 use axagent_runtime::workflow_engine::SessionCallback;
 use base64::Engine;
 use futures::FutureExt;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};

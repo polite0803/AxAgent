@@ -404,8 +404,8 @@ export function SkillsPage() {
   >(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
-  const [atomicSkillEditVisible, setAtomicSkillEditVisible] = useState(false);
-  const [editingAtomicSkill, setEditingAtomicSkill] = useState<import("@/types").AtomicSkill | null>(null);
+  const [_atomicSkillEditVisible, _setAtomicSkillEditVisible] = useState(false);
+  const [_editingAtomicSkill, _setEditingAtomicSkill] = useState<{id:string;name:string} | null>(null);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
 
   const { previewDecomposition } = useDecompositionStore();
@@ -1151,27 +1151,6 @@ export function SkillsPage() {
               children: mySkillsContent,
             },
             {
-              key: "atomic",
-              label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  ⚛️{t("skills.atomicSkills", "原子Skill")}
-                </span>
-              ),
-              children: (
-                <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                    onEdit={(skill) => {
-                      setEditingAtomicSkill(skill);
-                      setAtomicSkillEditVisible(true);
-                    }}
-                    onCreate={() => {
-                      setEditingAtomicSkill(null);
-                      setAtomicSkillEditVisible(true);
-                    }}
-                  />
-                </div>
-              ),
-            },
-            {
               key: "marketplace",
               label: (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -1379,14 +1358,6 @@ export function SkillsPage() {
       <SkillProposalPanel
         open={proposalPanelOpen}
         onClose={() => setProposalPanelOpen(false)}
-      />
-
-        visible={atomicSkillEditVisible}
-        skill={editingAtomicSkill}
-        onClose={() => {
-          setAtomicSkillEditVisible(false);
-          setEditingAtomicSkill(null);
-        }}
       />
 
       {decomposeRequest && (

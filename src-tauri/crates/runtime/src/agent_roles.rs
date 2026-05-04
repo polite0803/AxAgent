@@ -136,7 +136,7 @@ pub struct ResolvedRole {
 
 /// DB accessor
 pub mod db_access {
-    use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+    use sea_orm::{DatabaseConnection, EntityTrait};
 
     pub struct AgentRoleRow {
         pub name: String,
