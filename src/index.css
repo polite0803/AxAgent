@@ -518,3 +518,20 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   overflow: hidden;
   min-width: 0;
 }
+
+/* ── Switch 启用/禁用高对比度 ──────── */
+.ant-switch.ant-switch-checked {
+  background-color: #52c41a !important;
+}
+.ant-switch.ant-switch-checked:hover:not(.ant-switch-disabled) {
+  background-color: #73d13d !important;
+}
+.ant-switch.ant-switch-small.ant-switch-checked {
+  background-color: #52c41a !important;
+}
+.ant-switch:not(.ant-switch-checked) {
+  background-color: rgba(0, 0, 0, 0.25) !important;
+}
+:root[data-theme="dark"] .ant-switch:not(.ant-switch-checked) {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}

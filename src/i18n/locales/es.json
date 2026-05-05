@@ -65,6 +65,7 @@
     "compressing": "Comprimiendo...",
     "contextMessages": "en contexto",
     "compressionSummary": "Resumen de compresión",
+    "noSkillExecutions": "No hay ejecuciones de habilidades en esta conversación. Una plantilla de flujo de trabajo solo puede crearse a partir de conversaciones donde se usaron habilidades.",
     "noSummary": "No hay resumen disponible",
     "exportMd": "Exportar Markdown",
     "exportJson": "Exportar JSON",
@@ -762,6 +763,7 @@
     "webhooks": "Webhooks",
     "data": "Gestión de datos",
     "about": "Acerca de",
+    "acp": "ACP",
     "language": "Idioma",
     "theme": {
       "label": "Tema",
@@ -1692,7 +1694,40 @@
     "tabNetwork": "通信",
     "tabData": "数据",
     "tabSystem": "系统",
-    "messageChannels": "消息渠道",
+    "messageChannels": "Canales de mensajes",
+    "platform": {
+      "enable": "Activar",
+      "generalSettings": "Configuración general",
+      "enableApiServer": "Activar API Server",
+      "apiServerPort": "Puerto API Server",
+      "autoSyncMessages": "Sincronizar mensajes automáticamente",
+      "maxHistoryPerSession": "Máx. historial por sesión",
+      "wechatMode": "Modo",
+      "wechatModeOfficial": "Cuenta oficial (Webhook)",
+      "wechatModeCustomer": "Servicio al cliente (Sondeo, experimental)",
+      "placeholder": {
+        "telegramBotToken": "Obtener de @BotFather",
+        "discordDevPortal": "Obtener del Portal de Desarrolladores de Discord",
+        "slackAppToken": "xapp-... de Slack App → App-Level Tokens",
+        "webhookVerify": "Para verificación de webhook de Meta",
+        "apiVersion": "Predeterminado v18.0",
+        "dingtalkAgent": "AgentId de la app DingTalk"
+      },
+      "tabConfig": "Configuración de plataforma",
+      "tabStatus": "Estado de conexión",
+      "applyConfig": "Aplicar configuración",
+      "applyStarted": "Iniciado: {{platforms}}",
+      "applyStopped": "Detenido: {{platforms}}",
+      "applyErrors": "Errores: {{errors}}",
+      "applyFailed": "Error al aplicar configuración",
+      "status": "Estado",
+      "statusDisabled": "Desactivado",
+      "statusConnected": "Conectado",
+      "statusConnecting": "Conectando",
+      "lastActivity": "Última actividad",
+      "activeSessions": "Sesiones activas",
+      "noStatuses": "Sin estados disponibles"
+    },
     "advanced": "高级设置",
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "Ejecutando",
+    "historyTitle": "Historial de planes"
   },
   "tool": {
     "common": {

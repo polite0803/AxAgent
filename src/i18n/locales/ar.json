@@ -65,6 +65,7 @@
     "compressing": "جارٍ الضغط...",
     "contextMessages": "في السياق",
     "compressionSummary": "ملخص الضغط",
+    "noSkillExecutions": "لم يتم العثور على تنفيذات للمهارات في هذه المحادثة. يمكن إنشاء قالب سير العمل فقط من المحادثات التي استخدمت فيها المهارات.",
     "noSummary": "لا يوجد ملخص",
     "exportMd": "تصدير Markdown",
     "exportJson": "تصدير JSON",
@@ -802,6 +803,7 @@
     "webhooks": "Webhooks",
     "data": "إدارة البيانات",
     "about": "حول",
+    "acp": "ACP",
     "language": "اللغة",
     "theme": {
       "label": "السمة",
@@ -1690,7 +1692,40 @@
     "tabNetwork": "通信",
     "tabData": "数据",
     "tabSystem": "系统",
-    "messageChannels": "消息渠道",
+    "messageChannels": "قنوات الرسائل",
+    "platform": {
+      "enable": "تمكين",
+      "generalSettings": "الإعدادات العامة",
+      "enableApiServer": "تمكين API Server",
+      "apiServerPort": "منفذ API Server",
+      "autoSyncMessages": "مزامنة تلقائية للرسائل",
+      "maxHistoryPerSession": "الحد الأقصى للسجل لكل جلسة",
+      "wechatMode": "الوضع",
+      "wechatModeOfficial": "الحساب الرسمي (Webhook)",
+      "wechatModeCustomer": "خدمة العملاء (استطلاع، تجريبي)",
+      "placeholder": {
+        "telegramBotToken": "احصل عليه من @BotFather",
+        "discordDevPortal": "احصل عليه من بوابة مطوري Discord",
+        "slackAppToken": "xapp-... من Slack App → App-Level Tokens",
+        "webhookVerify": "للتحقق من Meta webhook",
+        "apiVersion": "الافتراضي v18.0",
+        "dingtalkAgent": "AgentId تطبيق DingTalk"
+      },
+      "tabConfig": "تكوين المنصة",
+      "tabStatus": "حالة الاتصال",
+      "applyConfig": "تطبيق التكوين",
+      "applyStarted": "تم البدء: {{platforms}}",
+      "applyStopped": "تم الإيقاف: {{platforms}}",
+      "applyErrors": "أخطاء: {{errors}}",
+      "applyFailed": "فشل تطبيق التكوين",
+      "status": "الحالة",
+      "statusDisabled": "معطل",
+      "statusConnected": "متصل",
+      "statusConnecting": "جاري الاتصال",
+      "lastActivity": "آخر نشاط",
+      "activeSessions": "الجلسات النشطة",
+      "noStatuses": "لا توجد حالات متاحة"
+    },
     "advanced": "高级设置",
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "قيد التنفيذ",
+    "historyTitle": "سجل الخطط"
   },
   "tool": {
     "common": {

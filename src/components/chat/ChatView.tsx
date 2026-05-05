@@ -93,7 +93,6 @@ import ProactiveSuggestionBar from "../proactive/ProactiveSuggestionBar";
 import { AgentProgressBar } from "./AgentProgressBar";
 import AskUserCard from "./AskUserCard";
 import { BreadcrumbBar } from "./BreadcrumbBar";
-import { BuddyWidget } from "./BuddyWidget";
 import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import {
   CHAT_SCROLL_IS_REVERSED,
@@ -2066,11 +2065,21 @@ function ChatViewInner() {
     const nativeEl = bubbleListRef.current?.scrollBoxNativeElement;
     if (nativeEl && nativeEl !== scrollContainerRef.current) {
       scrollContainerRef.current = nativeEl as HTMLDivElement;
+      // Force the virtualizer to re-measure now that the scroll element is available.
+      // Without this, the virtualizer initializes with a null scroll element and may
+      // produce an incorrect visible range (e.g. only 2 items for a 6-item list).
+      virtualizer.measure();
     }
   });
 
   const visibleBubbleItems = useMemo(() => {
     const range = virtualizer.range;
+    // Skip virtual scrolling for short conversations (< 30 items) — avoids
+    // the virtualizer producing incorrect ranges when the scroll container
+    // ref is not immediately available (e.g. on initial mount).
+    if (allBubbleItems.length < 30) {
+      return allBubbleItems;
+    }
     if (range) {
       return allBubbleItems.slice(range.startIndex, range.endIndex + 1);
     }
@@ -3476,8 +3485,6 @@ function ChatViewInner() {
         )}
       </Modal>
 
-      {/* Buddy 陪伴系统 — 右下角浮动组件 */}
-      <BuddyWidget />
     </div>
   );
 }

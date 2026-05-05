@@ -559,9 +559,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       const createdConversation = await invoke<Conversation>("create_conversation", {
         title,
-        model_id: templateModelId,
-        provider_id: templateProviderId,
-        system_prompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
+        modelId: templateModelId,
+        providerId: templateProviderId,
+        systemPrompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
       });
       let conversation = createdConversation;
       try {
@@ -1452,7 +1452,6 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           systemPrompt: conversation.system_prompt ?? undefined,
         },
       }, 0);
-
       // Wait for agent-done or agent-error event
       await eventPromise;
     } catch (e) {
@@ -2036,12 +2035,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           if (_multiModelTotalRemaining <= 0 && _multiModelDoneResolve) {
             const r = _multiModelDoneResolve;
             setMultiModelDoneResolve(null);
-            useStreamStore.setState({
-              streaming: false,
-              streamingMessageId: null,
-              streamingConversationId: null,
+            useStreamStore.setState((s) => ({
+              ...stopConversationStream(s.activeStreams, conversationId),
+              streamingStartTimestamps: (() => {
+                const t = { ...s.streamingStartTimestamps };
+                delete t[conversationId];
+                return t;
+              })(),
               thinkingActiveMessageIds: new Set<string>(),
-            });
+            }));
             r();
           }
         })
@@ -2353,12 +2355,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
           if (_multiModelTotalRemaining <= 0) {
             // All models done
-            useStreamStore.setState({
-              streaming: false,
-              streamingMessageId: null,
-              streamingConversationId: null,
+            useStreamStore.setState((s) => ({
+              ...stopConversationStream(s.activeStreams, conversation_id),
+              streamingStartTimestamps: (() => {
+                const t = { ...s.streamingStartTimestamps };
+                delete t[conversation_id];
+                return t;
+              })(),
               thinkingActiveMessageIds: new Set<string>(),
-            });
+            }));
             if (_multiModelDoneResolve) {
               const resolve = _multiModelDoneResolve;
               setMultiModelDoneResolve(null);
@@ -2382,12 +2387,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             ),
           ),
         );
-        useStreamStore.setState({
-          streaming: false,
-          streamingMessageId: null,
-          streamingConversationId: null,
+        useStreamStore.setState((s) => ({
+          // Must use stopConversationStream to ALSO clean up activeStreams,
+          // otherwise InputArea sees the stale entry and keeps the stop button.
+          ...stopConversationStream(s.activeStreams, conversation_id),
+          streamingStartTimestamps: (() => {
+            const t = { ...s.streamingStartTimestamps };
+            delete t[conversation_id];
+            return t;
+          })(),
           thinkingActiveMessageIds: new Set<string>(),
-        });
+        }));
         set((s) => ({
           conversations: s.conversations.map((c) =>
             c.id === conversation_id
@@ -2476,23 +2486,29 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       // Only show error if still on the same conversation
       if (get().activeConversationId !== conversation_id) {
-        useStreamStore.setState({
-          streaming: false,
-          streamingMessageId: null,
-          streamingConversationId: null,
+        useStreamStore.setState((s) => ({
+          ...stopConversationStream(s.activeStreams, conversation_id),
+          streamingStartTimestamps: (() => {
+            const t = { ...s.streamingStartTimestamps };
+            delete t[conversation_id];
+            return t;
+          })(),
           thinkingActiveMessageIds: new Set<string>(),
-        });
+        }));
         return;
       }
 
       // Update the streaming message to show error inline
       const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
-      useStreamStore.setState({
-        streaming: false,
-        streamingMessageId: null,
-        streamingConversationId: null,
+      useStreamStore.setState((s) => ({
+        ...stopConversationStream(s.activeStreams, conversation_id),
+        streamingStartTimestamps: (() => {
+          const t = { ...s.streamingStartTimestamps };
+          delete t[conversation_id];
+          return t;
+        })(),
         thinkingActiveMessageIds: new Set<string>(),
-      });
+      }));
       set((s) => ({
         messages: s.messages.map(m =>
           m.id === message_id || m.id === currentStreamingMessageId
@@ -2760,7 +2776,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       return;
     }
     try {
-      await invoke("delete_message_group", { conversation_id: conversationId, user_message_id: userMessageId });
+      await invoke("delete_message_group", { conversationId: conversationId, userMessageId: userMessageId });
       set((s) => ({
         messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));

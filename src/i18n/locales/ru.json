@@ -65,6 +65,7 @@
     "compressing": "Сжатие...",
     "contextMessages": "в контексте",
     "compressionSummary": "Сводка сжатия",
+    "noSkillExecutions": "В этом разговоре нет записей о выполнении навыков. Шаблон рабочего процесса можно создать только из разговоров, в которых использовались навыки.",
     "noSummary": "Нет сводки",
     "exportMd": "Экспорт в Markdown",
     "exportJson": "Экспорт в JSON",
@@ -802,6 +803,7 @@
     "webhooks": "Webhooks",
     "data": "Управление данными",
     "about": "О программе",
+    "acp": "ACP",
     "language": "Язык",
     "theme": {
       "label": "Тема",
@@ -1690,7 +1692,40 @@
     "tabNetwork": "通信",
     "tabData": "数据",
     "tabSystem": "系统",
-    "messageChannels": "消息渠道",
+    "messageChannels": "Каналы сообщений",
+    "platform": {
+      "enable": "Включить",
+      "generalSettings": "Общие настройки",
+      "enableApiServer": "Включить API Server",
+      "apiServerPort": "Порт API Server",
+      "autoSyncMessages": "Автосинхронизация сообщений",
+      "maxHistoryPerSession": "Макс. история за сессию",
+      "wechatMode": "Режим",
+      "wechatModeOfficial": "Официальный аккаунт (Webhook)",
+      "wechatModeCustomer": "Служба поддержки (Опрос, экспериментально)",
+      "placeholder": {
+        "telegramBotToken": "Получить у @BotFather",
+        "discordDevPortal": "Получить на портале разработчиков Discord",
+        "slackAppToken": "xapp-... из Slack App → App-Level Tokens",
+        "webhookVerify": "Для проверки webhook Meta",
+        "apiVersion": "По умолчанию v18.0",
+        "dingtalkAgent": "AgentId приложения DingTalk"
+      },
+      "tabConfig": "Конфигурация платформ",
+      "tabStatus": "Состояние подключения",
+      "applyConfig": "Применить конфигурацию",
+      "applyStarted": "Запущено: {{platforms}}",
+      "applyStopped": "Остановлено: {{platforms}}",
+      "applyErrors": "Ошибки: {{errors}}",
+      "applyFailed": "Не удалось применить конфигурацию",
+      "status": "Статус",
+      "statusDisabled": "Отключено",
+      "statusConnected": "Подключено",
+      "statusConnecting": "Подключение",
+      "lastActivity": "Последняя активность",
+      "activeSessions": "Активные сессии",
+      "noStatuses": "Нет статусов"
+    },
     "advanced": "高级设置",
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "Выполняется",
+    "historyTitle": "История планов"
   },
   "tool": {
     "common": {

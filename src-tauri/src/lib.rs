@@ -131,11 +131,12 @@ pub fn run() {
             commands::context_sources::remove_context_source,
             commands::context_sources::toggle_context_source,
             commands::search::list_search_providers,
-            // commands::search::create_search_provider,       // TODO: implement
-            // commands::search::update_search_provider,       // TODO: implement
+            commands::search::get_search_provider,
+            commands::search::create_search_provider,
+            commands::search::update_search_provider,
             commands::search::delete_search_provider,
-            // commands::search::test_search_provider,         // TODO: implement
-            // commands::search::execute_search,               // TODO: implement
+            commands::search::test_search_provider,
+            commands::search::execute_search,
             commands::mcp::list_mcp_servers,
             commands::mcp::create_mcp_server,
             commands::mcp::update_mcp_server,
@@ -482,6 +483,7 @@ pub fn run() {
             commands::workflow_template::export_workflow_template,
             commands::workflow_template::import_workflow_template,
             commands::workflow_template::import_n8n_directory,
+            commands::workflow_template::import_workflow_directory,
             commands::workflow_template::seed_preset_templates,
             commands::workflow_template::get_template_versions,
             commands::workflow_template::get_template_by_version,
@@ -503,6 +505,8 @@ pub fn run() {
             commands::platform_integration::get_platform_statuses,
             commands::platform_integration::reconcile_platforms,
             commands::platform_integration::start_api_server,
+            commands::platform_integration::stop_api_server,
+            commands::platform_integration::process_platform_message,
             // Atomic Skill commands
             // Background Task commands
             commands::background_tasks::spawn_background_task,

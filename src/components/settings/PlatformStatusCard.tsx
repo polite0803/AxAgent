@@ -1,12 +1,14 @@
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS } from "@/types/platform";
-import { Card, Tag, Typography } from "antd";
+import { Card, Empty, Tag, Typography } from "antd";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
 export function PlatformStatusCard() {
+  const { t } = useTranslation();
   const statuses = usePlatformStore((s) => s.statuses);
   const loadStatuses = usePlatformStore((s) => s.loadStatuses);
 
@@ -18,6 +20,14 @@ export function PlatformStatusCard() {
 
   const metaMap = new Map(ALL_PLATFORMS.map(p => [p.name, p]));
 
+  if (statuses.length === 0) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+        <Empty description={t("settings.platform.noStatuses")} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {statuses.map((s) => {
@@ -26,30 +36,30 @@ export function PlatformStatusCard() {
           <Card key={s.name} size="small" title={`${meta?.icon ?? "?"} ${meta?.label ?? s.name}`}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="flex items-center justify-between">
-                <Text type="secondary">Status</Text>
+                <Text type="secondary">{t("settings.platform.status")}</Text>
                 {!s.enabled
-                  ? <Tag color="default">Disabled</Tag>
+                  ? <Tag color="default">{t("settings.platform.statusDisabled")}</Tag>
                   : s.connected
                   ? (
                     <Tag icon={<CheckCircle size={14} />} color="success">
-                      Connected
+                      {t("settings.platform.statusConnected")}
                     </Tag>
                   )
                   : (
                     <Tag icon={<Loader2 size={14} className="animate-spin" />} color="processing">
-                      Connecting
+                      {t("settings.platform.statusConnecting")}
                     </Tag>
                   )}
               </div>
               {s.last_activity && (
                 <div className="flex items-center justify-between">
-                  <Text type="secondary">Last Activity</Text>
+                  <Text type="secondary">{t("settings.platform.lastActivity")}</Text>
                   <Text>{new Date(s.last_activity).toLocaleString()}</Text>
                 </div>
               )}
               {s.enabled && (
                 <div className="flex items-center justify-between">
-                  <Text type="secondary">Active Sessions</Text>
+                  <Text type="secondary">{t("settings.platform.activeSessions")}</Text>
                   <Text>{s.active_sessions}</Text>
                 </div>
               )}

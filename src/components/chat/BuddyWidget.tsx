@@ -53,12 +53,15 @@ export function BuddyWidget() {
   // 拖动状态
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(savedPosition);
   const dragging = useRef(false);
+  const hasDragged = useRef(false); // 区分拖动和点击: >= 5px 视为拖动
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const currentDragPos = useRef<{ x: number; y: number } | null>(null); // 用 ref 避免 useEffect 依赖变化
   const widgetRef = useRef<HTMLDivElement>(null);
 
   // 同步 store position 到本地 state
   useEffect(() => {
     setDragPos(savedPosition);
+    currentDragPos.current = savedPosition;
   }, [savedPosition]);
 
   const lastMessage = useMemo(() => {
@@ -70,11 +73,14 @@ export function BuddyWidget() {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       dragging.current = true;
-      const currentPos = dragPos ?? {
+      hasDragged.current = false;
+      const currentPos = currentDragPos.current ?? {
         x: window.innerWidth - 76,
         y: window.innerHeight - 76,
       };
+      currentDragPos.current = currentPos;
       dragStart.current = {
         x: e.clientX,
         y: e.clientY,
@@ -82,26 +88,36 @@ export function BuddyWidget() {
         posY: currentPos.y,
       };
     },
-    [dragPos],
+    [], // 空依赖 — 只用 ref
   );
 
-  // 拖动中
+  // 包裹 onClick: 拖动超过 5px 时忽略点击
+  const wrapClick = useCallback((fn: () => void) => {
+    return () => {
+      if (!hasDragged.current) { fn(); }
+    };
+  }, []);
+
+  // 拖动中 — 只在挂载时注册一次，用 ref 避免依赖变化
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragging.current) { return; }
       const dx = e.clientX - dragStart.current.x;
       const dy = e.clientY - dragStart.current.y;
+      if (Math.abs(dx) >= 5 || Math.abs(dy) >= 5) {
+        hasDragged.current = true;
+      }
       const newX = Math.max(0, Math.min(window.innerWidth - 60, dragStart.current.posX + dx));
       const newY = Math.max(0, Math.min(window.innerHeight - 60, dragStart.current.posY + dy));
+      currentDragPos.current = { x: newX, y: newY };
       setDragPos({ x: newX, y: newY });
     };
 
     const handleMouseUp = () => {
-      if (dragging.current) {
-        dragging.current = false;
-        if (dragPos) {
-          setPosition(dragPos.x, dragPos.y);
-        }
+      if (!dragging.current) { return; }
+      dragging.current = false;
+      if (hasDragged.current && currentDragPos.current) {
+        setPosition(currentDragPos.current.x, currentDragPos.current.y);
       }
     };
 
@@ -111,7 +127,7 @@ export function BuddyWidget() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragPos, setPosition]);
+  }, [setPosition]); // 只依赖 setPosition（stable zustand setter）
 
   // 隐藏时显示微型恢复按钮
   if (!visible) {
@@ -167,7 +183,7 @@ export function BuddyWidget() {
           size="large"
           icon={<RobotOutlined />}
           onMouseDown={handleMouseDown}
-          onClick={() => summonBuddy()}
+          onClick={wrapClick(() => summonBuddy())}
           style={{
             width: 52,
             height: 52,
@@ -316,7 +332,7 @@ export function BuddyWidget() {
           size="large"
           icon={<Text style={{ fontSize: 22, lineHeight: 1 }}>{buddy.emoji}</Text>}
           onMouseDown={handleMouseDown}
-          onClick={togglePanel}
+          onClick={wrapClick(togglePanel)}
           style={{
             width: 52,
             height: 52,

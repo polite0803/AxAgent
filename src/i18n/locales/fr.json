@@ -65,6 +65,7 @@
     "compressing": "Compression…",
     "contextMessages": "dans le contexte",
     "compressionSummary": "Résumé de compression",
+    "noSkillExecutions": "Aucune exécution de compétence trouvée dans cette conversation. Un modèle de workflow ne peut être créé qu'à partir de conversations où des compétences ont été utilisées.",
     "noSummary": "Aucun résumé disponible",
     "exportMd": "Exporter en Markdown",
     "exportJson": "Exporter en JSON",
@@ -802,6 +803,7 @@
     "webhooks": "Webhooks",
     "data": "Gestion des données",
     "about": "À propos",
+    "acp": "ACP",
     "language": "Langue",
     "theme": {
       "label": "Thème",
@@ -1690,7 +1692,40 @@
     "tabNetwork": "通信",
     "tabData": "数据",
     "tabSystem": "系统",
-    "messageChannels": "消息渠道",
+    "messageChannels": "Canaux de messages",
+    "platform": {
+      "enable": "Activer",
+      "generalSettings": "Paramètres généraux",
+      "enableApiServer": "Activer API Server",
+      "apiServerPort": "Port API Server",
+      "autoSyncMessages": "Synchronisation automatique",
+      "maxHistoryPerSession": "Max historique par session",
+      "wechatMode": "Mode",
+      "wechatModeOfficial": "Compte officiel (Webhook)",
+      "wechatModeCustomer": "Service client (Polling, expérimental)",
+      "placeholder": {
+        "telegramBotToken": "Obtenir depuis @BotFather",
+        "discordDevPortal": "Obtenir depuis le portail développeur Discord",
+        "slackAppToken": "xapp-... depuis Slack App → App-Level Tokens",
+        "webhookVerify": "Pour la vérification webhook Meta",
+        "apiVersion": "Par défaut v18.0",
+        "dingtalkAgent": "AgentId de l'app DingTalk"
+      },
+      "tabConfig": "Configuration des plateformes",
+      "tabStatus": "État de la connexion",
+      "applyConfig": "Appliquer la configuration",
+      "applyStarted": "Démarré : {{platforms}}",
+      "applyStopped": "Arrêté : {{platforms}}",
+      "applyErrors": "Erreurs : {{errors}}",
+      "applyFailed": "Échec de l'application de la configuration",
+      "status": "Statut",
+      "statusDisabled": "Désactivé",
+      "statusConnected": "Connecté",
+      "statusConnecting": "Connexion en cours",
+      "lastActivity": "Dernière activité",
+      "activeSessions": "Sessions actives",
+      "noStatuses": "Aucun statut disponible"
+    },
     "advanced": "高级设置",
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "En cours",
+    "historyTitle": "Historique des plans"
   },
   "tool": {
     "common": {

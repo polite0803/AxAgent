@@ -17,6 +17,8 @@ import {
   theme,
   Typography,
 } from "antd";
+import { invoke } from "@/lib/invoke";
+import { ImportExportModal } from "@/components/workflow/Templates/ImportExportModal";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -96,6 +98,7 @@ function formatDate(timestamp: number): string {
 export function WorkflowMarketplace() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [templates] = useState<MarketplaceTemplate[]>(mockTemplates);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -194,7 +197,11 @@ export function WorkflowMarketplace() {
   };
 
   const handleImport = () => {
-    message.info(t("marketplace.importInfo"));
+    setImportModalOpen(true);
+  };
+
+  const handleImportSubmit = async (jsonData: string) => {
+    return await invoke<string>("import_workflow_template", { jsonData });
   };
 
   const renderTemplateCard = (template: MarketplaceTemplate) => (
@@ -540,6 +547,13 @@ export function WorkflowMarketplace() {
           </div>
         )}
       </Modal>
+
+      <ImportExportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={handleImportSubmit}
+        onExport={async () => null}
+      />
     </div>
   );
 }

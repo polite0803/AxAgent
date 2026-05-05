@@ -1,4 +1,15 @@
-export type SearchProviderType = "tavily" | "zhipu" | "bocha";
+export type SearchProviderType =
+  | "tavily"
+  | "zhipu"
+  | "bocha"
+  | "serpapi"
+  | "brave"
+  | "searxng"
+  | "bing"
+  | "google_pse"
+  | "duckduckgo"
+  | "perplexity"
+  | "exa";
 
 export type SearchProvider = {
   id: string;

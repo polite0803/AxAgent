@@ -157,7 +157,7 @@ impl PlatformMessageCallback for PlatformBridge {
         }
 
         match self
-            .process_incoming_message(platform, user_id, username, chat_id, text)
+            .route_incoming_message(platform, user_id, username, chat_id, text)
             .await
         {
             Ok(reply) => {
@@ -203,7 +203,8 @@ impl PlatformMessageCallback for PlatformBridge {
 }
 
 impl PlatformBridge {
-    async fn process_incoming_message(
+    /// 公开入口：处理来自任意平台的入站消息，调用 LLM 并返回回复文本
+    pub async fn route_incoming_message(
         &self,
         platform: &str,
         user_id: &str,

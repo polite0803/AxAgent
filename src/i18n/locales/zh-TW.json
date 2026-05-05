@@ -67,6 +67,7 @@
     "compressing": "正在壓縮中...",
     "contextMessages": "條上下文",
     "compressionSummary": "壓縮摘要",
+    "noSkillExecutions": "此對話中沒有技能執行記錄，無法轉換為工作流模板。請使用包含技能調用的對話。",
     "noSummary": "暫無摘要",
     "exportMd": "匯出 Markdown",
     "exportJson": "匯出 JSON",
@@ -752,6 +753,39 @@
     "display": "顯示設定",
     "proxy": "代理設定",
     "messageChannels": "訊息渠道",
+    "platform": {
+      "enable": "啟用",
+      "generalSettings": "一般設定",
+      "enableApiServer": "啟用 API Server",
+      "apiServerPort": "API Server 連接埠",
+      "autoSyncMessages": "自動同步訊息",
+      "maxHistoryPerSession": "單會話最大歷史訊息數",
+      "wechatMode": "執行模式",
+      "wechatModeOfficial": "公眾號模式 (Webhook 接收)",
+      "wechatModeCustomer": "客服模式 (輪詢接收，實驗性)",
+      "placeholder": {
+        "telegramBotToken": "從 @BotFather 取得",
+        "discordDevPortal": "從 Discord Developer Portal 取得",
+        "slackAppToken": "xapp-... 從 Slack App → App-Level Tokens 取得",
+        "webhookVerify": "用於 Meta webhook 驗證",
+        "apiVersion": "預設 v18.0",
+        "dingtalkAgent": "釘釘應用 AgentId"
+      },
+      "tabConfig": "平台配置",
+      "tabStatus": "連線狀態",
+      "applyConfig": "套用配置",
+      "applyStarted": "已啟動: {{platforms}}",
+      "applyStopped": "已停止: {{platforms}}",
+      "applyErrors": "錯誤: {{errors}}",
+      "applyFailed": "套用配置失敗",
+      "status": "狀態",
+      "statusDisabled": "已停用",
+      "statusConnected": "已連線",
+      "statusConnecting": "連線中",
+      "lastActivity": "最後活躍",
+      "activeSessions": "活躍連線數",
+      "noStatuses": "暫無連線狀態"
+    },
     "shortcuts": {
       "label": "快捷鍵",
       "title": "快捷鍵",
@@ -764,6 +798,7 @@
     "advanced": "進階設定",
     "data": "資料管理",
     "about": "關於",
+    "acp": "ACP 設定",
     "language": "語言",
     "theme": {
       "label": "主題",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "執行中",
+    "historyTitle": "計畫歷史"
   },
   "tool": {
     "common": {

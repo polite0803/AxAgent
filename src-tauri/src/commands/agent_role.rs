@@ -73,6 +73,10 @@ pub async fn import_agent_roles(
                 }
             },
             Err(e) => {
+                // 跳过没有 agent block 的非 Open Agent Spec 文件（如 .pre-commit-config.yaml）
+                if e == "Missing 'agent' block" {
+                    continue;
+                }
                 skipped += 1;
                 errors.push(format!("{}: {}", file_path.display(), e));
             },
@@ -103,7 +107,7 @@ pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Re
         .map_err(|e| e.to_string())
 }
 
-/// 解析 Open Agent Spec YAML 文件
+/// 解析 Open Agent Spec YAML 文件，无 agent block 则返回 None
 fn parse_open_agent_spec(yaml_str: &str) -> Result<AgentRoleDef, String> {
     let doc: serde_yaml::Value =
         serde_yaml::from_str(yaml_str).map_err(|e| format!("YAML parse error: {}", e))?;

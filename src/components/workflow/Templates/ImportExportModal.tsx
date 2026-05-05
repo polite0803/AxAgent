@@ -96,6 +96,78 @@ function BatchImportN8n() {
   );
 }
 
+function BatchImportFolder() {
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null);
+
+  const handleBatchImport = async () => {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({ directory: true, multiple: false });
+      if (!selected) { return; }
+
+      setImporting(true);
+      setResult(null);
+
+      const res = await invoke<{
+        imported: number;
+        errors: number;
+        error_details: string[];
+      }>("import_workflow_directory", { path: selected as string });
+
+      setResult({
+        imported: res.imported,
+        errors: res.error_details,
+      });
+      if (res.imported > 0) {
+        message.success(`成功导入 ${res.imported} 个工作流模板`);
+      } else if (res.error_details.length === 0) {
+        message.warning("目录中未找到 JSON 文件");
+      }
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div>
+      <Button
+        icon={<FolderOpen size={14} />}
+        onClick={handleBatchImport}
+        loading={importing}
+        style={{ width: "100%" }}
+      >
+        选择文件夹批量导入工作流
+      </Button>
+      {result && (
+        <Alert
+          style={{ marginTop: 8 }}
+          type={result.errors.length > 0 ? "warning" : "success"}
+          message={
+            <div style={{ fontSize: 12 }}>
+              <div>
+                导入 {result.imported} 个{result.errors.length > 0 && ` · 错误 ${result.errors.length} 个`}
+              </div>
+              {result.errors.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  {result.errors.slice(0, 10).map((e, i) => (
+                    <div key={i} style={{ color: "#595959", fontSize: 11, marginBottom: 2 }}>{e}</div>
+                  ))}
+                  {result.errors.length > 10 && (
+                    <div style={{ color: "#999", fontSize: 11 }}>...及其他 {result.errors.length - 10} 个错误</div>
+                  )}
+                </div>
+              )}
+            </div>
+          }
+        />
+      )}
+    </div>
+  );
+}
+
 interface ImportExportModalProps {
   open: boolean;
   onClose: () => void;
@@ -319,6 +391,9 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           <p style={{ color: "#666", fontSize: 11, marginTop: 12 }}>
             导入将创建一个新的模板副本。导入的模板默认是自定义模板（非预设）。
           </p>
+
+          <Divider style={{ margin: "12px 0", fontSize: 11 }}>批量导入</Divider>
+          <BatchImportFolder />
 
           <Divider style={{ margin: "12px 0", fontSize: 11 }}>n8n 批量导入</Divider>
 

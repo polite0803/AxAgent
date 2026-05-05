@@ -14,6 +14,8 @@ import type {
   Message,
   MemoryNamespace,
   MemoryItem,
+  PlatformConfig,
+  PlatformSession,
   ProgramPolicy,
   SaveProgramPolicyInput,
   SearchProvider,
@@ -2121,6 +2123,100 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const deleteId = (args as { id?: string }).id;
       const templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
       setStore("workflow_templates", templates.filter((t) => t.id !== deleteId));
+      return undefined as T;
+    }
+
+    // Platform / Message Channel commands
+    case "get_platform_config": {
+      return (getStore<PlatformConfig | null>("platform_config", null) ?? {
+        telegram_enabled: false, telegram_bot_token: null, telegram_webhook_url: null, telegram_webhook_secret: null, telegram_allowed_users: null,
+        discord_enabled: false, discord_bot_token: null, discord_webhook_url: null, discord_allowed_channels: null,
+        slack_enabled: false, slack_bot_token: null, slack_signing_secret: null, slack_workspace_id: null, slack_app_token: null,
+        whatsapp_enabled: false, whatsapp_phone_number_id: null, whatsapp_access_token: null, whatsapp_business_account_id: null, whatsapp_webhook_verify_token: null, whatsapp_api_version: null,
+        wechat_enabled: false, wechat_app_id: null, wechat_app_secret: null, wechat_token: null, wechat_encoding_aes_key: null, wechat_original_id: null, wechat_mode: null,
+        feishu_enabled: false, feishu_app_id: null, feishu_app_secret: null, feishu_verification_token: null, feishu_encrypt_key: null,
+        qq_enabled: false, qq_bot_app_id: null, qq_bot_token: null, qq_bot_secret: null,
+        dingtalk_enabled: false, dingtalk_app_key: null, dingtalk_app_secret: null, dingtalk_agent_id: null, dingtalk_robot_code: null,
+        api_server_enabled: false, api_server_port: 8080,
+        auto_sync_messages: false, max_history_per_session: 100,
+      }) as T;
+    }
+    case "update_platform_config": {
+      const input = args as Partial<PlatformConfig>;
+      const existing = getStore<PlatformConfig | null>("platform_config", null) ?? {} as PlatformConfig;
+      const merged = { ...existing, ...input };
+      setStore("platform_config", merged);
+      return undefined as T;
+    }
+    case "get_platform_statuses": {
+      const config = getStore<PlatformConfig | null>("platform_config", null);
+      if (!config) { return [] as T; }
+      const keys: { key: keyof PlatformConfig; name: string }[] = [
+        { key: "telegram_enabled", name: "Telegram" },
+        { key: "discord_enabled", name: "Discord" },
+        { key: "slack_enabled", name: "Slack" },
+        { key: "whatsapp_enabled", name: "WhatsApp" },
+        { key: "wechat_enabled", name: "WeChat" },
+        { key: "feishu_enabled", name: "Feishu" },
+        { key: "qq_enabled", name: "QQ" },
+        { key: "dingtalk_enabled", name: "DingTalk" },
+      ];
+      return keys.map(({ key, name }) => ({
+        name,
+        enabled: !!config[key],
+        connected: false,
+        last_activity: null,
+        active_sessions: 0,
+      })) as T;
+    }
+    case "reconcile_platforms": {
+      return { started: [], stopped: [], errors: [] } as T;
+    }
+    case "get_active_sessions": {
+      return (getStore<PlatformSession[]>("platform_sessions", [])) as T;
+    }
+    case "create_platform_session": {
+      const input = args as { platform: string; chat_id: string };
+      const sessions = getStore<PlatformSession[]>("platform_sessions", []);
+      const session: PlatformSession = {
+        session_id: `mock-${input.platform}-${Date.now()}`,
+        platform: input.platform,
+        user_id: input.chat_id,
+        username: null,
+        is_active: true,
+        last_activity: Date.now(),
+      };
+      sessions.push(session);
+      setStore("platform_sessions", sessions);
+      return session as T;
+    }
+    case "deactivate_platform_session": {
+      const input = args as { sessionId: string };
+      const sessions = getStore<PlatformSession[]>("platform_sessions", []);
+      setStore("platform_sessions", sessions.map((s) =>
+        s.session_id === input.sessionId ? { ...s, is_active: false } : s,
+      ));
+      return undefined as T;
+    }
+    case "send_platform_message": {
+      return { ok: true, message_id: `mock-msg-${Date.now()}` } as T;
+    }
+    case "process_telegram_message":
+    case "process_discord_message":
+    case "process_wechat_message":
+    case "process_feishu_message":
+    case "process_qq_message":
+    case "process_dingtalk_message":
+    case "process_slack_message":
+    case "process_whatsapp_message": {
+      return { success: true, reply_sent: false } as T;
+    }
+    case "start_api_server": {
+      setStore("api_server_running", true);
+      return { port: (args as { port?: number }).port ?? 8080 } as T;
+    }
+    case "stop_api_server": {
+      setStore("api_server_running", false);
       return undefined as T;
     }
 

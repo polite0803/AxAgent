@@ -3,9 +3,10 @@ import { NAV_ICON_COLORS } from "@/lib/iconColors";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
-import { useSettingsStore, useSkillExtensionStore, useUserProfileStore } from "@/stores";
+import { useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { PageKey } from "@/types";
 import { Avatar, theme, Tooltip } from "antd";
+import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Database, MessageSquare, Router, Sparkles, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -78,6 +79,7 @@ interface SidebarSection {
 }
 
 const SIDEBAR_WIDTH = 240;
+const SIDEBAR_COLLAPSED_WIDTH = 56;
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -90,6 +92,8 @@ export function Sidebar() {
   const resolvedAvatarSrc = useResolvedAvatarSrc(profile.avatarType, profile.avatarValue);
   const settings = useSettingsStore((s) => s.settings);
   const skillNavItems = useSkillExtensionStore((s) => s.navItems);
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
   const sections = useMemo<SidebarSection[]>(() => {
     const pluginItems: NavItem[] = [];
@@ -205,16 +209,18 @@ export function Sidebar() {
           <span style={{ display: "flex", alignItems: "center", flexShrink: 0, width: 20, justifyContent: "center" }}>
             {item.icon}
           </span>
-          <span
-            className="ax-nav-label"
-            style={{
-              fontSize: 13,
-              fontWeight: isActive ? 500 : 400,
-              color: isActive ? token.colorPrimary : token.colorText,
-            }}
-          >
-            {label}
-          </span>
+          {!sidebarCollapsed && (
+            <span
+              className="ax-nav-label"
+              style={{
+                fontSize: 13,
+                fontWeight: isActive ? 500 : 400,
+                color: isActive ? token.colorPrimary : token.colorText,
+              }}
+            >
+              {label}
+            </span>
+          )}
           {shortcutLabel && (
             <span style={{ marginLeft: "auto", fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 }}>
               {shortcutLabel}
@@ -267,18 +273,52 @@ export function Sidebar() {
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
-        width: SIDEBAR_WIDTH,
-        padding: "12px 8px 12px",
+        width: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
+        padding: sidebarCollapsed ? "12px 4px 12px" : "12px 8px 12px",
         overflow: "hidden",
+        transition: "width 0.2s ease",
       }}
     >
+      {/* Collapse toggle */}
+      <div
+        onClick={toggleSidebar}
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: 32,
+          marginBottom: 8,
+          cursor: "pointer",
+          borderRadius: 6,
+          color: token.colorTextSecondary,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = token.colorFillSecondary;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "transparent";
+        }}
+      >
+        {sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+      </div>
+
       <nav style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 }}>
         {sections.map((section) => (
           <div key={section.key} style={{ marginBottom: 4 }}>
-            <div className="ax-sidebar-section-header">
-              {t(section.labelKey)}
-            </div>
-            {section.items.map(renderNavButton)}
+            {!sidebarCollapsed && (
+              <div className="ax-sidebar-section-header">
+                {t(section.labelKey)}
+              </div>
+            )}
+            {section.items.map((item) => (
+              <Tooltip
+                key={item.key}
+                title={sidebarCollapsed ? (item.isPlugin ? `${t(item.labelKey)} (${item.pluginName})` : t(item.labelKey)) : ""}
+                placement="right"
+              >
+                {renderNavButton(item)}
+              </Tooltip>
+            ))}
           </div>
         ))}
       </nav>
@@ -305,15 +345,17 @@ export function Sidebar() {
           }}
         >
           {renderUserAvatar()}
-          <span
-            className="ax-nav-label"
-            style={{
-              fontSize: 13,
-              color: token.colorTextSecondary,
-            }}
-          >
-            {profile.name || t("userProfile.title")}
-          </span>
+          {!sidebarCollapsed && (
+            <span
+              className="ax-nav-label"
+              style={{
+                fontSize: 13,
+                color: token.colorTextSecondary,
+              }}
+            >
+              {profile.name || t("userProfile.title")}
+            </span>
+          )}
         </div>
       </Tooltip>
 

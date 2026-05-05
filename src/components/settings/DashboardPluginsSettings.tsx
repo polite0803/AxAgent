@@ -202,7 +202,7 @@ export default function DashboardPluginsSettings() {
           >
             {t("settings.dashboardPlugins.refresh")}
           </Button>
-          <Button type="primary" icon={<Plus size={16} />}>
+          <Button type="primary" icon={<Plus size={16} />} onClick={handleRefresh}>
             {t("settings.dashboardPlugins.install")}
           </Button>
         </div>
@@ -224,7 +224,7 @@ export default function DashboardPluginsSettings() {
               description={
                 <div>
                   <Paragraph>{t("settings.dashboardPlugins.noPlugins")}</Paragraph>
-                  <Button type="primary" icon={<Plus size={16} />}>
+                  <Button type="primary" icon={<Plus size={16} />} onClick={handleRefresh}>
                     {t("settings.dashboardPlugins.installFirst")}
                   </Button>
                 </div>
@@ -238,7 +238,7 @@ export default function DashboardPluginsSettings() {
         <Paragraph type="secondary" className="mb-4">
           {t("settings.dashboardPlugins.pluginDirsDescription")}
         </Paragraph>
-        <Button icon={<FolderOpen size={16} />}>
+        <Button icon={<FolderOpen size={16} />} onClick={handleRefresh}>
           {t("settings.dashboardPlugins.openPluginsFolder")}
         </Button>
       </Card>

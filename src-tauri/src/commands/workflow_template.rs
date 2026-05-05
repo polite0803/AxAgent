@@ -1162,6 +1162,55 @@ pub async fn import_n8n_directory(
     }))
 }
 
+/// 批量导入目录下所有 JSON 工作流模板文件
+#[tauri::command]
+pub async fn import_workflow_directory(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<serde_json::Value, String> {
+    use std::fs;
+    use std::path::Path;
+
+    let dir = Path::new(&path);
+    if !dir.is_dir() {
+        return Err(format!("路径不存在或不是目录: {}", path));
+    }
+
+    let mut imported = Vec::new();
+    let mut errors = Vec::new();
+
+    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let file_path = entry.path();
+
+        if file_path.extension().is_none_or(|e| e != "json") {
+            continue;
+        }
+
+        let content = fs::read_to_string(&file_path)
+            .map_err(|e| format!("{}: {}", file_path.display(), e))?;
+        if serde_json::from_str::<serde_json::Value>(&content).is_err() {
+            errors.push(format!("{}: JSON 格式无效", file_path.display()));
+            continue;
+        }
+
+        match import_workflow_template(state.clone(), content).await {
+            Ok(id) => {
+                imported.push(id);
+            }
+            Err(e) => {
+                errors.push(format!("{}: {}", file_path.display(), e));
+            }
+        }
+    }
+
+    Ok(serde_json::json!({
+        "imported": imported.len(),
+        "errors": errors.len(),
+        "error_details": errors,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

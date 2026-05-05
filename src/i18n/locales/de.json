@@ -65,6 +65,7 @@
     "compressing": "Komprimierung…",
     "contextMessages": "im Kontext",
     "compressionSummary": "Komprimierungszusammenfassung",
+    "noSkillExecutions": "Keine Skill-Ausführungen in dieser Konversation gefunden. Eine Workflow-Vorlage kann nur aus Konversationen erstellt werden, in denen Skills verwendet wurden.",
     "noSummary": "Keine Zusammenfassung verfügbar",
     "exportMd": "Als Markdown exportieren",
     "exportJson": "Als JSON exportieren",
@@ -762,6 +763,7 @@
     "webhooks": "Webhooks",
     "data": "Datenverwaltung",
     "about": "Über",
+    "acp": "ACP",
     "language": "Sprache",
     "theme": {
       "label": "Design",
@@ -1690,7 +1692,40 @@
     "tabNetwork": "通信",
     "tabData": "数据",
     "tabSystem": "系统",
-    "messageChannels": "消息渠道",
+    "messageChannels": "Nachrichtenkanäle",
+    "platform": {
+      "enable": "Aktivieren",
+      "generalSettings": "Allgemeine Einstellungen",
+      "enableApiServer": "API Server aktivieren",
+      "apiServerPort": "API Server Port",
+      "autoSyncMessages": "Nachrichten automatisch synchronisieren",
+      "maxHistoryPerSession": "Max. Verlauf pro Sitzung",
+      "wechatMode": "Modus",
+      "wechatModeOfficial": "Offizielles Konto (Webhook)",
+      "wechatModeCustomer": "Kundendienst (Polling, experimentell)",
+      "placeholder": {
+        "telegramBotToken": "Von @BotFather erhalten",
+        "discordDevPortal": "Vom Discord Developer Portal erhalten",
+        "slackAppToken": "xapp-... von Slack App → App-Level Tokens",
+        "webhookVerify": "Für Meta Webhook-Verifizierung",
+        "apiVersion": "Standard v18.0",
+        "dingtalkAgent": "DingTalk App AgentId"
+      },
+      "tabConfig": "Plattform-Konfiguration",
+      "tabStatus": "Verbindungsstatus",
+      "applyConfig": "Konfiguration anwenden",
+      "applyStarted": "Gestartet: {{platforms}}",
+      "applyStopped": "Gestoppt: {{platforms}}",
+      "applyErrors": "Fehler: {{errors}}",
+      "applyFailed": "Konfiguration konnte nicht angewendet werden",
+      "status": "Status",
+      "statusDisabled": "Deaktiviert",
+      "statusConnected": "Verbunden",
+      "statusConnecting": "Verbinde",
+      "lastActivity": "Letzte Aktivität",
+      "activeSessions": "Aktive Sitzungen",
+      "noStatuses": "Keine Status verfügbar"
+    },
     "advanced": "高级设置",
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "Läuft",
+    "historyTitle": "Plan-Verlauf"
   },
   "tool": {
     "common": {

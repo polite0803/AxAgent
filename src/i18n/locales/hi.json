@@ -65,6 +65,7 @@
     "compressing": "संपीड़ित हो रहा है...",
     "contextMessages": "संदर्भ में",
     "compressionSummary": "संपीड़न सारांश",
+    "noSkillExecutions": "इस वार्तालाप में कोई कौशल निष्पादन नहीं मिला। वर्कफ़्लो टेम्पलेट केवल उन वार्तालापों से बनाया जा सकता है जहां कौशल का उपयोग किया गया था।",
     "noSummary": "कोई सारांश उपलब्ध नहीं",
     "exportMd": "Markdown निर्यात करें",
     "exportJson": "JSON निर्यात करें",
@@ -762,6 +763,7 @@
     "webhooks": "Webhooks",
     "data": "डेटा प्रबंधन",
     "about": "के बारे में",
+    "acp": "ACP",
     "language": "भाषा",
     "theme": {
       "label": "थीम",
@@ -1690,7 +1692,40 @@
     "tabNetwork": "通信",
     "tabData": "数据",
     "tabSystem": "系统",
-    "messageChannels": "消息渠道",
+    "messageChannels": "संदेश चैनल",
+    "platform": {
+      "enable": "सक्षम करें",
+      "generalSettings": "सामान्य सेटिंग्स",
+      "enableApiServer": "API Server सक्षम करें",
+      "apiServerPort": "API Server पोर्ट",
+      "autoSyncMessages": "संदेश स्वतः सिंक करें",
+      "maxHistoryPerSession": "प्रति सत्र अधिकतम इतिहास",
+      "wechatMode": "मोड",
+      "wechatModeOfficial": "आधिकारिक खाता (Webhook)",
+      "wechatModeCustomer": "ग्राहक सेवा (पोलिंग, प्रायोगिक)",
+      "placeholder": {
+        "telegramBotToken": "@BotFather से प्राप्त करें",
+        "discordDevPortal": "Discord Developer Portal से प्राप्त करें",
+        "slackAppToken": "xapp-... Slack App → App-Level Tokens से",
+        "webhookVerify": "Meta webhook सत्यापन के लिए",
+        "apiVersion": "डिफ़ॉल्ट v18.0",
+        "dingtalkAgent": "DingTalk ऐप AgentId"
+      },
+      "tabConfig": "प्लेटफ़ॉर्म कॉन्फ़िगरेशन",
+      "tabStatus": "कनेक्शन स्थिति",
+      "applyConfig": "कॉन्फ़िगरेशन लागू करें",
+      "applyStarted": "शुरू: {{platforms}}",
+      "applyStopped": "रोका गया: {{platforms}}",
+      "applyErrors": "त्रुटियाँ: {{errors}}",
+      "applyFailed": "कॉन्फ़िगरेशन लागू करने में विफल",
+      "status": "स्थिति",
+      "statusDisabled": "अक्षम",
+      "statusConnected": "कनेक्टेड",
+      "statusConnecting": "कनेक्ट हो रहा है",
+      "lastActivity": "अंतिम गतिविधि",
+      "activeSessions": "सक्रिय सत्र",
+      "noStatuses": "कोई स्थिति उपलब्ध नहीं"
+    },
     "advanced": "高级设置",
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "चल रहा है",
+    "historyTitle": "योजना इतिहास"
   },
   "tool": {
     "common": {

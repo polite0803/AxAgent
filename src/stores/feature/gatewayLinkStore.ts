@@ -147,7 +147,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   pushModels: async (linkId, modelIds) => {
     try {
-      await invoke("push_gateway_link_models", { link_id: linkId, model_ids: modelIds });
+      await invoke("push_gateway_link_models", { linkId: linkId, modelIds: modelIds });
       await get().fetchModelSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });
@@ -157,7 +157,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   syncAllModels: async (linkId) => {
     try {
-      await invoke("sync_all_gateway_link_models", { link_id: linkId });
+      await invoke("sync_all_gateway_link_models", { linkId: linkId });
       await get().fetchModelSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });
@@ -176,7 +176,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   pushSkills: async (linkId, skillNames) => {
     try {
-      await invoke("push_gateway_link_skills", { link_id: linkId, skill_names: skillNames });
+      await invoke("push_gateway_link_skills", { linkId: linkId, skillNames: skillNames });
       await get().fetchSkillSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });
@@ -186,7 +186,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
 
   syncAllSkills: async (linkId) => {
     try {
-      await invoke("sync_all_gateway_link_skills", { link_id: linkId });
+      await invoke("sync_all_gateway_link_skills", { linkId: linkId });
       await get().fetchSkillSyncs(linkId);
     } catch (e) {
       set({ error: String(e) });

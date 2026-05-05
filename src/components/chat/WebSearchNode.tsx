@@ -60,7 +60,7 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
   // Searching state
   if (status === "searching") {
     return (
-      <div
+      <span
         style={{
           display: "flex",
           alignItems: "center",
@@ -80,14 +80,14 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
         <span style={{ color: token.colorTextSecondary, fontSize: 13 }}>
           {t("chat.search.searching")}
         </span>
-      </div>
+      </span>
     );
   }
 
   // Error state
   if (status === "error") {
     return (
-      <div
+      <span
         style={{
           display: "flex",
           alignItems: "center",
@@ -102,7 +102,7 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
       >
         <AlertCircle size={16} />
         <span>{node.content || t("chat.search.error")}</span>
-      </div>
+      </span>
     );
   }
 
@@ -110,8 +110,9 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
   if (results.length === 0) { return null; }
 
   return (
-    <div
+    <span
       style={{
+        display: "block",
         marginBottom: 8,
         borderRadius: 8,
         border: `1px solid ${token.colorBorderSecondary}`,
@@ -249,6 +250,6 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
           ))}
         </div>
       )}
-    </div>
+    </span>
   );
 }

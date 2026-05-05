@@ -1,6 +1,8 @@
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS, type PlatformConfig } from "@/types/platform";
 import { Card, Input, Select, Switch, Typography } from "antd";
+import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -14,86 +16,97 @@ type PlatformFieldDef = {
 
 const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
   telegram: [
-    { key: "telegram_enabled", label: "启用", type: "switch" },
-    { key: "telegram_bot_token", label: "Bot Token", type: "password", placeholder: "从 @BotFather 获取" },
-    { key: "telegram_webhook_url", label: "Webhook URL (可选)", type: "text" },
-    { key: "telegram_webhook_secret", label: "Webhook Secret (可选)", type: "password" },
+    { key: "telegram_enabled", label: "settings.platform.enable", type: "switch" },
+    { key: "telegram_bot_token", label: "Bot Token", type: "password", placeholder: "settings.platform.placeholder.telegramBotToken" },
+    { key: "telegram_webhook_url", label: "Webhook URL (Optional)", type: "text" },
+    { key: "telegram_webhook_secret", label: "Webhook Secret (Optional)", type: "password" },
   ],
   discord: [
-    { key: "discord_enabled", label: "启用", type: "switch" },
-    { key: "discord_bot_token", label: "Bot Token", type: "password", placeholder: "从 Discord Developer Portal 获取" },
-    { key: "discord_webhook_url", label: "Webhook URL (可选)", type: "text" },
+    { key: "discord_enabled", label: "settings.platform.enable", type: "switch" },
+    { key: "discord_bot_token", label: "Bot Token", type: "password", placeholder: "settings.platform.placeholder.discordDevPortal" },
+    { key: "discord_webhook_url", label: "Webhook URL (Optional)", type: "text" },
   ],
   slack: [
-    { key: "slack_enabled", label: "启用", type: "switch" },
+    { key: "slack_enabled", label: "settings.platform.enable", type: "switch" },
     { key: "slack_bot_token", label: "Bot Token", type: "password" },
     {
       key: "slack_app_token",
       label: "App Token (Socket Mode)",
       type: "password",
-      placeholder: "xapp-... 从 Slack App → App-Level Tokens 获取",
+      placeholder: "settings.platform.placeholder.slackAppToken",
     },
     { key: "slack_signing_secret", label: "Signing Secret", type: "password" },
     { key: "slack_workspace_id", label: "Workspace ID", type: "text" },
   ],
   whatsapp: [
-    { key: "whatsapp_enabled", label: "启用", type: "switch" },
+    { key: "whatsapp_enabled", label: "settings.platform.enable", type: "switch" },
     { key: "whatsapp_phone_number_id", label: "Phone Number ID", type: "text" },
     { key: "whatsapp_access_token", label: "Access Token", type: "password" },
     { key: "whatsapp_business_account_id", label: "Business Account ID", type: "text" },
     {
       key: "whatsapp_webhook_verify_token",
-      label: "Webhook Verify Token (可选)",
+      label: "Webhook Verify Token (Optional)",
       type: "text",
-      placeholder: "用于 Meta webhook 验证",
+      placeholder: "settings.platform.placeholder.webhookVerify",
     },
-    { key: "whatsapp_api_version", label: "API Version (可选)", type: "text", placeholder: "默认 v18.0" },
+    { key: "whatsapp_api_version", label: "API Version (Optional)", type: "text", placeholder: "settings.platform.placeholder.apiVersion" },
   ],
   wechat: [
-    { key: "wechat_enabled", label: "启用", type: "switch" },
+    { key: "wechat_enabled", label: "settings.platform.enable", type: "switch" },
     {
       key: "wechat_mode",
-      label: "运行模式",
+      label: "settings.platform.wechatMode",
       type: "select",
       options: [
-        { value: "official_account", label: "公众号模式 (Webhook 接收)" },
-        { value: "customer_service", label: "客服模式 (轮询接收，实验性)" },
+        { value: "official_account", label: "settings.platform.wechatModeOfficial" },
+        { value: "customer_service", label: "settings.platform.wechatModeCustomer" },
       ],
     },
     { key: "wechat_app_id", label: "App ID", type: "text" },
     { key: "wechat_app_secret", label: "App Secret", type: "password" },
-    { key: "wechat_token", label: "Token (公众号模式必填)", type: "text" },
-    { key: "wechat_encoding_aes_key", label: "Encoding AES Key (可选)", type: "password" },
-    { key: "wechat_original_id", label: "Original ID (可选)", type: "text" },
+    { key: "wechat_token", label: "Token (Official Account)", type: "text" },
+    { key: "wechat_encoding_aes_key", label: "Encoding AES Key (Optional)", type: "password" },
+    { key: "wechat_original_id", label: "Original ID (Optional)", type: "text" },
   ],
   feishu: [
-    { key: "feishu_enabled", label: "启用", type: "switch" },
+    { key: "feishu_enabled", label: "settings.platform.enable", type: "switch" },
     { key: "feishu_app_id", label: "App ID", type: "text" },
     { key: "feishu_app_secret", label: "App Secret", type: "password" },
-    { key: "feishu_verification_token", label: "Verification Token (可选)", type: "password" },
-    { key: "feishu_encrypt_key", label: "Encrypt Key (可选)", type: "password" },
+    { key: "feishu_verification_token", label: "Verification Token (Optional)", type: "password" },
+    { key: "feishu_encrypt_key", label: "Encrypt Key (Optional)", type: "password" },
   ],
   qq: [
-    { key: "qq_enabled", label: "启用", type: "switch" },
+    { key: "qq_enabled", label: "settings.platform.enable", type: "switch" },
     { key: "qq_bot_app_id", label: "App ID", type: "text" },
     { key: "qq_bot_token", label: "Token", type: "password" },
-    { key: "qq_bot_secret", label: "Secret (可选)", type: "password" },
+    { key: "qq_bot_secret", label: "Secret (Optional)", type: "password" },
   ],
   dingtalk: [
-    { key: "dingtalk_enabled", label: "启用", type: "switch" },
+    { key: "dingtalk_enabled", label: "settings.platform.enable", type: "switch" },
     { key: "dingtalk_app_key", label: "App Key", type: "text" },
     { key: "dingtalk_app_secret", label: "App Secret", type: "password" },
-    { key: "dingtalk_agent_id", label: "Agent ID", type: "text", placeholder: "钉钉应用 AgentId" },
-    { key: "dingtalk_robot_code", label: "Robot Code (可选)", type: "text" },
+    { key: "dingtalk_agent_id", label: "Agent ID", type: "text", placeholder: "settings.platform.placeholder.dingtalkAgent" },
+    { key: "dingtalk_robot_code", label: "Robot Code (Optional)", type: "text" },
   ],
 };
 
 export function GatewayConfigPanel() {
+  const { t } = useTranslation();
   const config = usePlatformStore((s) => s.config);
   const saveConfig = usePlatformStore((s) => s.saveConfig);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<Partial<PlatformConfig>>({});
 
   const handleChange = (key: keyof PlatformConfig, value: unknown) => {
-    saveConfig({ [key]: value });
+    // Immediately update local store state for responsive UI
+    usePlatformStore.setState((s) => ({ config: { ...s.config, [key]: value } }));
+    // Debounce backend save to avoid excessive API calls on rapid input
+    (pendingRef.current as Record<string, unknown>)[key] = value;
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      saveConfig(pendingRef.current);
+      pendingRef.current = {};
+    }, 300);
   };
 
   return (
@@ -111,7 +124,7 @@ export function GatewayConfigPanel() {
               if (field.type === "switch") {
                 return (
                   <div key={field.key} className="flex items-center justify-between py-1">
-                    <span>{field.label}</span>
+                    <span>{t(field.label)}</span>
                     <Switch
                       checked={enabled}
                       onChange={(v) => handleChange(field.key, v)}
@@ -122,13 +135,13 @@ export function GatewayConfigPanel() {
               if (!enabled) { return null; }
               return (
                 <div key={field.key} className="mt-3">
-                  <Text type="secondary">{field.label}</Text>
+                  <Text type="secondary">{t(field.label)}</Text>
                   {field.type === "select"
                     ? (
                       <Select
                         value={(config[field.key] as string) ?? ""}
                         onChange={(v) => handleChange(field.key, v)}
-                        options={field.options}
+                        options={field.options?.map((o) => ({ ...o, label: t(o.label) }))}
                         style={{ width: "100%" }}
                       />
                     )
@@ -137,14 +150,14 @@ export function GatewayConfigPanel() {
                       <Input.Password
                         value={(config[field.key] as string) ?? ""}
                         onChange={(e) => handleChange(field.key, e.target.value)}
-                        placeholder={field.placeholder}
+                        placeholder={field.placeholder ? t(field.placeholder) : undefined}
                       />
                     )
                     : (
                       <Input
                         value={(config[field.key] as string) ?? ""}
                         onChange={(e) => handleChange(field.key, e.target.value)}
-                        placeholder={field.placeholder}
+                        placeholder={field.placeholder ? t(field.placeholder) : undefined}
                       />
                     )}
                 </div>
@@ -154,9 +167,9 @@ export function GatewayConfigPanel() {
         );
       })}
 
-      <Card size="small" title="通用设置">
+      <Card size="small" title={t("settings.platform.generalSettings")}>
         <div className="flex items-center justify-between py-1">
-          <span>启用 API Server</span>
+          <span>{t("settings.platform.enableApiServer")}</span>
           <Switch
             checked={config.api_server_enabled}
             onChange={(v) => handleChange("api_server_enabled", v)}
@@ -164,7 +177,7 @@ export function GatewayConfigPanel() {
         </div>
         {config.api_server_enabled && (
           <div className="mt-3">
-            <Text type="secondary">API Server 端口</Text>
+            <Text type="secondary">{t("settings.platform.apiServerPort")}</Text>
             <Input
               type="number"
               value={config.api_server_port ?? 8080}
@@ -174,14 +187,14 @@ export function GatewayConfigPanel() {
           </div>
         )}
         <div className="flex items-center justify-between py-1 mt-2">
-          <span>自动同步消息</span>
+          <span>{t("settings.platform.autoSyncMessages")}</span>
           <Switch
             checked={config.auto_sync_messages}
             onChange={(v) => handleChange("auto_sync_messages", v)}
           />
         </div>
         <div className="mt-3">
-          <Text type="secondary">单会话最大历史消息数</Text>
+          <Text type="secondary">{t("settings.platform.maxHistoryPerSession")}</Text>
           <Input
             type="number"
             value={config.max_history_per_session}

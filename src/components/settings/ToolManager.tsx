@@ -1,23 +1,19 @@
-import { useGeneratedToolStore, useLocalToolStore } from "@/stores";
-import type { GeneratedToolInfo } from "@/types";
-import { Button, Empty, message, Popconfirm, Spin, Switch, Table, Tabs, Tag, Typography } from "antd";
+import { useLocalToolStore } from "@/stores";
+import { Spin, Switch, Tabs, Tag, Typography } from "antd";
 import {
   BookOpen,
   Brain,
-  Code,
   FileEdit,
   FileSearch,
   Globe,
   HardDrive,
   MessageSquare,
-  RefreshCw,
   Search,
   Terminal,
-  Trash2,
   Wrench,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import McpServerSettings from "./McpServerSettings";
 import ToolSemanticCheck from "./ToolSemanticCheck";
@@ -113,122 +109,6 @@ function BuiltinToolsTab() {
   );
 }
 
-// ── Tab: Generated Tools ─────────────────────────────────
-
-function GeneratedToolsTab() {
-  const { t } = useTranslation();
-  const { tools, loading, loadTools, deleteTool } = useGeneratedToolStore();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadTools();
-  }, [loadTools]);
-
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
-    try {
-      await deleteTool(id);
-      message.success(t("settings.generatedTools.deleteSuccess"));
-    } catch (e) {
-      message.error(String(e));
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const columns = [
-    {
-      title: t("settings.generatedTools.toolName"),
-      dataIndex: "toolName",
-      key: "toolName",
-      width: 200,
-      render: (name: string) => <span className="font-mono text-sm">{name}</span>,
-    },
-    {
-      title: t("settings.generatedTools.originalName"),
-      dataIndex: "originalName",
-      key: "originalName",
-      width: 180,
-    },
-    {
-      title: t("settings.generatedTools.description"),
-      dataIndex: "originalDescription",
-      key: "originalDescription",
-      ellipsis: true,
-    },
-    {
-      title: t("settings.generatedTools.createdAt"),
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 160,
-      render: (ts: number) => new Date(ts).toLocaleString(),
-    },
-    {
-      title: "",
-      key: "actions",
-      width: 80,
-      render: (_: unknown, record: GeneratedToolInfo) => (
-        <Popconfirm
-          title={t("settings.generatedTools.deleteConfirm")}
-          onConfirm={() => handleDelete(record.id)}
-          okText={t("common.confirm")}
-          cancelText={t("common.cancel")}
-          okButtonProps={{ danger: true }}
-        >
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<Trash2 size={14} />}
-            loading={deletingId === record.id}
-          />
-        </Popconfirm>
-      ),
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-3xl">
-      <Paragraph type="secondary" className="mb-4">
-        {t("settings.generatedTools.description")}
-      </Paragraph>
-
-      <div className="flex items-center justify-between mb-3">
-        <Typography.Text type="secondary">
-          {t("settings.generatedTools.total", { count: tools.length })}
-        </Typography.Text>
-        <Button
-          size="small"
-          icon={<RefreshCw size={14} />}
-          onClick={loadTools}
-        >
-          {t("common.refresh")}
-        </Button>
-      </div>
-
-      {tools.length === 0
-        ? <Empty description={t("settings.generatedTools.empty")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        : (
-          <Table
-            dataSource={tools}
-            columns={columns}
-            rowKey="id"
-            pagination={false}
-            size="small"
-          />
-        )}
-    </div>
-  );
-}
-
 // ── Tab: MCP Servers ─────────────────────────────────────
 
 function McpServersTab() {
@@ -260,16 +140,6 @@ export default function ToolManager() {
         </span>
       ),
       children: <McpServersTab />,
-    },
-    {
-      key: "generated",
-      label: (
-        <span className="flex items-center gap-2">
-          <Code size={16} />
-          {t("settings.tools.tabGenerated")}
-        </span>
-      ),
-      children: <GeneratedToolsTab />,
     },
     {
       key: "semantic",

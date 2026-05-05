@@ -1,9 +1,11 @@
 import { usePlatformStore } from "@/stores";
 import { App, Button, Tabs } from "antd";
+import { useTranslation } from "react-i18next";
 import { GatewayConfigPanel } from "./GatewayConfigPanel";
 import { PlatformStatusCard } from "./PlatformStatusCard";
 
 export function MessageChannelSettings() {
+  const { t } = useTranslation();
   const reconcile = usePlatformStore((s) => s.reconcile);
   const { message } = App.useApp();
 
@@ -11,28 +13,28 @@ export function MessageChannelSettings() {
     try {
       const report = await reconcile();
       if (report.started.length > 0) {
-        message.success(`已启动: ${report.started.join(", ")}`);
+        message.success(t("settings.platform.applyStarted", { platforms: report.started.join(", ") }));
       }
       if (report.stopped.length > 0) {
-        message.info(`已停止: ${report.stopped.join(", ")}`);
+        message.info(t("settings.platform.applyStopped", { platforms: report.stopped.join(", ") }));
       }
       if (report.errors.length > 0) {
-        message.error(`错误: ${report.errors.map((e) => e[0]).join(", ")}`);
+        message.error(t("settings.platform.applyErrors", { errors: report.errors.map((e) => e[0]).join(", ") }));
       }
     } catch {
-      message.error("应用配置失败");
+      message.error(t("settings.platform.applyFailed"));
     }
   };
 
   const items = [
     {
       key: "config",
-      label: "平台配置",
+      label: t("settings.platform.tabConfig"),
       children: <GatewayConfigPanel />,
     },
     {
       key: "status",
-      label: "连接状态",
+      label: t("settings.platform.tabStatus"),
       children: <PlatformStatusCard />,
     },
   ];
@@ -40,9 +42,9 @@ export function MessageChannelSettings() {
   return (
     <div className="p-6 pb-12">
       <div className="flex items-center justify-between mb-4">
-        <h2 style={{ fontSize: 18, fontWeight: 600 }}>消息渠道</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600 }}>{t("settings.messageChannels")}</h2>
         <Button type="primary" onClick={handleApply}>
-          应用配置
+          {t("settings.platform.applyConfig")}
         </Button>
       </div>
       <Tabs items={items} />

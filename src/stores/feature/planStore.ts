@@ -194,7 +194,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
 
   resumePlan: async (conversationId, planId) => {
     try {
-      const plan: Plan = await invoke("plan_get", { planId });
+      const plan: Plan = await invoke("plan_get", { request: { planId } });
       if (plan) {
         set((s) => ({
           activePlans: { ...s.activePlans, [conversationId]: plan },

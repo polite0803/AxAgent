@@ -32,7 +32,6 @@ mod nudge;
 mod parallel_execution;
 mod pattern;
 mod pattern_analyzer;
-mod platform_integration;
 mod preference_learner;
 mod proactive_assistant;
 mod reminder_manager;
@@ -87,7 +86,6 @@ pub use nudge::{
     NudgeService, NudgeSession, NudgeType, Urgency,
 };
 pub use parallel_execution::*;
-pub use platform_integration::*;
 pub use preference_learner::*;
 pub use rl::*;
 pub use rl_trainer::{RLTrainer, TrainingEpisode, TrainingReport};
@@ -176,11 +174,6 @@ pub mod prelude {
     pub use crate::pattern::{
         CrossSessionInsight, CrossSessionLearner, DetectedPattern, PatternConfig, PatternLearner,
         PatternStatistics, PatternStep, PatternType,
-    };
-    pub use crate::platform_integration::{
-        DiscordHandler, DiscordMessage, MessagePlatform, OutgoingMessage, PlatformConfig,
-        PlatformIntegrationService, PlatformMessage, PlatformSession, TelegramHandler,
-        TelegramMessage,
     };
     pub use crate::rl::{RLConfig, RLEngine, RLState, RewardNormalizer, RewardWeights};
     pub use crate::scheduled_task::{

@@ -65,6 +65,7 @@
     "compressing": "압축 중...",
     "contextMessages": "컨텍스트 내",
     "compressionSummary": "압축 요약",
+    "noSkillExecutions": "이 대화에는 스킬 실행 기록이 없습니다. 워크플로우 템플릿으로 변환하려면 스킬이 사용된 대화를 선택하세요.",
     "noSummary": "요약 없음",
     "exportMd": "Markdown으로 내보내기",
     "exportJson": "JSON으로 내보내기",
@@ -752,6 +753,39 @@
     "display": "디스플레이",
     "proxy": "프록시",
     "messageChannels": "메시지 채널",
+    "platform": {
+      "enable": "활성화",
+      "generalSettings": "일반 설정",
+      "enableApiServer": "API Server 활성화",
+      "apiServerPort": "API Server 포트",
+      "autoSyncMessages": "메시지 자동 동기화",
+      "maxHistoryPerSession": "세션당 최대 기록 수",
+      "wechatMode": "모드",
+      "wechatModeOfficial": "공식 계정 (Webhook)",
+      "wechatModeCustomer": "고객 서비스 (폴링, 실험적)",
+      "placeholder": {
+        "telegramBotToken": "@BotFather 에서 가져오기",
+        "discordDevPortal": "Discord Developer Portal 에서 가져오기",
+        "slackAppToken": "xapp-... Slack App → App-Level Tokens",
+        "webhookVerify": "Meta webhook 확인용",
+        "apiVersion": "기본 v18.0",
+        "dingtalkAgent": "DingTalk 앱 AgentId"
+      },
+      "tabConfig": "플랫폼 설정",
+      "tabStatus": "연결 상태",
+      "applyConfig": "설정 적용",
+      "applyStarted": "시작됨: {{platforms}}",
+      "applyStopped": "중지됨: {{platforms}}",
+      "applyErrors": "오류: {{errors}}",
+      "applyFailed": "설정 적용 실패",
+      "status": "상태",
+      "statusDisabled": "비활성화",
+      "statusConnected": "연결됨",
+      "statusConnecting": "연결 중",
+      "lastActivity": "마지막 활동",
+      "activeSessions": "활성 세션",
+      "noStatuses": "상태 정보 없음"
+    },
     "shortcuts": {
       "label": "단축키",
       "title": "단축키",
@@ -804,6 +838,7 @@
     "advanced": "고급 설정",
     "data": "데이터 관리",
     "about": "정보",
+    "acp": "ACP",
     "language": "언어",
     "theme": {
       "label": "테마",
@@ -3409,7 +3444,8 @@
     "executeApproved": "执行已批准步骤",
     "stepsApproved": "个步骤已批准",
     "reviewing": "审批中",
-    "executing": "执行中"
+    "executing": "실행 중",
+    "historyTitle": "계획 이력"
   },
   "tool": {
     "common": {

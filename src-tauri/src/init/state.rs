@@ -120,6 +120,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         db_path,
         auto_backup_handle: Arc::new(Mutex::new(None)),
         webdav_sync_handle: Arc::new(Mutex::new(None)),
+        api_server_handle: Arc::new(Mutex::new(None)),
         vector_store: vector_store_arc,
         indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
         stream_cancel_flags: Arc::new(Mutex::new(std::collections::HashMap::new())),
@@ -201,14 +202,6 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         scheduled_task_service: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::ScheduledTaskService::new(100),
         )),
-        platform_integration_service: {
-            let platform_config = rt.block_on(
-                axagent_core::repo::platform_config::get_platform_config(&sea_db),
-            );
-            Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::PlatformIntegrationService::with_config(platform_config),
-            ))
-        },
         platform_manager: platform_manager.clone(),
         platform_bridge: platform_bridge.clone(),
         user_profile: Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new())),

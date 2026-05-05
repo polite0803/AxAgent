@@ -205,6 +205,12 @@ export function useShadcnTheme(
           handleSizeHover: 10,
           railSize: 4,
         },
+        Switch: {
+          // High-contrast enabled/disabled distinction
+          trackHeight: 22,
+          trackMinWidth: 44,
+          handleSize: 18,
+        },
       },
     };
   }, [isDark, primaryColor, fontSize, borderRadius, fontFamily, codeFontFamily, themePreset]);

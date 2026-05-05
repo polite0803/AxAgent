@@ -162,6 +162,27 @@ page.addInitScript(() => {
       case "list_knowledge_bases":
       case "list_memory_namespaces":
         return [];
+      // Platform / Message Channel commands
+      case "get_platform_config":
+        return null;
+      case "update_platform_config":
+        return {};
+      case "get_platform_statuses":
+        return [];
+      case "get_active_sessions":
+        return [];
+      case "reconcile_platforms":
+        return { started: [], stopped: [], errors: [] };
+      case "start_api_server":
+      case "stop_api_server":
+        return {};
+      case "send_platform_message":
+      case "create_platform_session":
+      case "deactivate_platform_session":
+      case "process_telegram_message":
+      case "process_discord_message":
+      case "process_platform_message":
+        return {};
       default:
         if (cmd.startsWith("plugin:")) {
           return pluginSafe(cmd);

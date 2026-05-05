@@ -19,6 +19,7 @@ pub struct AppState {
     pub db_path: String,
     pub auto_backup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub webdav_sync_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    pub api_server_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,
     pub indexing_semaphore: Arc<tokio::sync::Semaphore>,
     pub stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
@@ -56,8 +57,6 @@ pub struct AppState {
     pub parallel_execution_service:
         Arc<tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>>,
     pub scheduled_task_service: Arc<tokio::sync::RwLock<axagent_trajectory::ScheduledTaskService>>,
-    pub platform_integration_service:
-        Arc<tokio::sync::RwLock<axagent_trajectory::PlatformIntegrationService>>,
     pub platform_manager: Arc<axagent_runtime::message_gateway::platform_manager::PlatformManager>,
     pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,

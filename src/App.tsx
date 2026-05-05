@@ -5,6 +5,7 @@ import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
 import GlobalErrorBoundary from "@/components/layout/GlobalErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
+import { BuddyWidget } from "@/components/chat/BuddyWidget";
 import { SkillPanels } from "@/components/skill/SkillPanels";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
@@ -183,6 +184,8 @@ function AppInner() {
           </Layout>
         </>
       )}
+      {/* Buddy 陪伴系统 — 全局浮动组件 */}
+      <BuddyWidget />
     </div>
   );
 }

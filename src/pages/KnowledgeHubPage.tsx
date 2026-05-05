@@ -1,17 +1,24 @@
 import { useActivePage } from "@/hooks/usePageRouting";
 import { KnowledgePage } from "@/pages/KnowledgePage";
-import { LlmWikiPage } from "@/pages/LlmWikiPage";
 import { MemoryPage } from "@/pages/MemoryPage";
 import { Tabs } from "antd";
 import { BookOpen, Brain, Database } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export function KnowledgeHubPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const pageKey = useActivePage();
   const defaultKey = pageKey === "memory" ? "memory" : pageKey === "llm-wiki" ? "wiki" : "knowledge";
   const [activeKey, setActiveKey] = useState(defaultKey);
+
+  useEffect(() => {
+    if (activeKey === "wiki") {
+      navigate("/wiki");
+    }
+  }, [activeKey, navigate]);
 
   const items = [
     {
@@ -30,7 +37,7 @@ export function KnowledgeHubPage() {
       key: "wiki",
       label: t("nav.wiki"),
       icon: <BookOpen size={16} />,
-      children: <LlmWikiPage />,
+      children: null,
     },
   ];
 

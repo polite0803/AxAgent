@@ -2,11 +2,13 @@ import { SETTINGS_ICON_COLORS } from "@/lib/iconColors";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { Menu, Tabs, theme } from "antd";
+import { Menu, Tabs, theme, Tooltip } from "antd";
 import {
   ArrowLeft,
   Bell,
   Bot,
+  Boxes,
+  Cable,
   Clock,
   Cloud,
   CloudUpload,
@@ -18,6 +20,7 @@ import {
   Info,
   LayoutDashboard,
   MessageSquare,
+  Monitor,
   Network,
   Palette,
   Puzzle,
@@ -30,7 +33,7 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -71,6 +74,45 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
   system: ["advanced", "about"],
 };
 
+// Tab 图标映射
+const TAB_ICONS: Record<string, React.ReactNode> = {
+  model: <Boxes size={18} />,
+  appearance: <Monitor size={18} />,
+  extensions: <Puzzle size={18} />,
+  network: <Cable size={18} />,
+  data: <Database size={18} />,
+  system: <SlidersHorizontal size={18} />,
+};
+
+function useDraggableWidth(initial: number, min: number, max: number) {
+  const [width, setWidth] = useState(initial);
+  const dragging = useRef(false);
+  const startRef = useRef({ startX: 0, startWidth: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      const dx = e.clientX - startRef.current.startX;
+      setWidth(Math.max(min, Math.min(max, startRef.current.startWidth + dx)));
+    };
+    const handleMouseUp = () => { dragging.current = false; };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [min, max]);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    startRef.current = { startX: e.clientX, startWidth: width };
+  }, [width]);
+
+  return { width, onMouseDown };
+}
+
 export function SettingsSidebar() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -78,6 +120,7 @@ export function SettingsSidebar() {
   const settingsSection = useUIStore((s) => s.settingsSection);
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
+  const { width: tabBarWidth, onMouseDown: onTabBarResize } = useDraggableWidth(72, 48, 200);
 
   // 根据当前选中的 section 反查所属 tab
   const [activeTab, setActiveTab] = useState(() => {
@@ -116,9 +159,17 @@ export function SettingsSidebar() {
     // 在最后添加技能扩展项
     const items = key === "extensions" ? [...builtin, ...skillItems] : builtin;
 
+    const tabLabel = t(`settings.tab${key.charAt(0).toUpperCase() + key.slice(1)}`);
     return {
       key,
-      label: t(`settings.tab${key.charAt(0).toUpperCase() + key.slice(1)}`),
+      label: (
+        <Tooltip title={tabLabel} placement="right">
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {TAB_ICONS[key]}
+            {tabBarWidth > 120 && <span style={{ fontSize: 13 }}>{tabLabel}</span>}
+          </span>
+        </Tooltip>
+      ),
       children: (
         <Menu
           mode="inline"
@@ -126,7 +177,9 @@ export function SettingsSidebar() {
           items={items}
           style={{ borderInlineEnd: "none" }}
           onClick={({ key }) => {
-            if (typeof key === "string" && key.startsWith("skill:")) {
+            if (typeof key === "string" && key === "skillsHub") {
+              navigate("/skills");
+            } else if (typeof key === "string" && key.startsWith("skill:")) {
               setSettingsSection(key as SettingsSection);
             } else {
               setSettingsSection(key as SettingsSection);
@@ -182,14 +235,31 @@ export function SettingsSidebar() {
           Esc
         </span>
       </div>
-      <div className="flex-1 pt-1" style={{ overflowY: "auto" }}>
+      <div className="flex-1 pt-1" style={{ overflowY: "auto", display: "flex" }}>
         <Tabs
           activeKey={activeTab}
           onChange={handleTabChange}
           items={tabItems}
           tabPosition="left"
-          tabBarStyle={{ width: 72, flexShrink: 0 }}
-          style={{ height: "100%" }}
+          tabBarStyle={{ width: tabBarWidth, flexShrink: 0, transition: "width 0.05s" }}
+          style={{ height: "100%", flex: 1 }}
+        />
+        {/* Resize handle */}
+        <div
+          onMouseDown={onTabBarResize}
+          style={{
+            width: 4,
+            cursor: "col-resize",
+            flexShrink: 0,
+            backgroundColor: "transparent",
+            transition: "background-color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = token.colorPrimary;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
         />
       </div>
     </div>

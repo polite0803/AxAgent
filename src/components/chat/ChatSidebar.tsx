@@ -36,7 +36,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { ModelIcon } from "@lobehub/icons";
-import { App, Avatar, Button, Checkbox, Dropdown, Empty, Input, Modal, Radio, Space, theme, Tooltip, type MenuProps } from "antd";
+import { App, Avatar, Button, Checkbox, Dropdown, Empty, Input, Modal, Radio, Space, Tag, theme, Tooltip, type MenuProps } from "antd";
 import {
   Archive,
   ArrowLeft,
@@ -505,9 +505,14 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       await loadConversationWorkflowPreview(convId);
       openWorkflowEditor();
     } catch (e) {
-      messageApi.error(String(e));
+      const errMsg = String(e);
+      if (errMsg.includes("WORKFLOW_NO_SKILL_EXECUTIONS")) {
+        messageApi.warning(t("chat.noSkillExecutions"));
+      } else {
+        messageApi.error(errMsg);
+      }
     }
-  }, [loadConversationWorkflowPreview, openWorkflowEditor, messageApi]);
+  }, [loadConversationWorkflowPreview, openWorkflowEditor, messageApi, t]);
 
   const handleArchiveConfirm = useCallback(async () => {
     if (!selectedKbId) { return; }
@@ -697,11 +702,25 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
           label = (
             <span className="flex items-center gap-1">
               <span className="truncate">{conv.title}</span>
+              {conv.mode === "gateway" && (
+                <Tag style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }} color="blue">
+                  {t("settings.messageChannels")}
+                </Tag>
+              )}
               <Pin size={12} style={{ color: token.colorTextQuaternary, flexShrink: 0 }} />
             </span>
           );
         } else {
-          label = conv.title;
+          label = (
+            <span className="flex items-center gap-1">
+              <span className="truncate">{conv.title}</span>
+              {conv.mode === "gateway" && (
+                <Tag style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }} color="blue">
+                  {t("settings.messageChannels")}
+                </Tag>
+              )}
+            </span>
+          );
         }
 
         // Wrap label with expand/collapse toggle for parents with children

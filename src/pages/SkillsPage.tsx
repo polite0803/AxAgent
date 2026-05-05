@@ -4,11 +4,9 @@ import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";
 import { CopyButton } from "@/components/common/CopyButton";
 import { DecompositionPreview } from "@/components/decomposition/DecompositionPreview";
 import { FrontendEditorModal } from "@/components/skill/FrontendEditorModal";
-import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { invoke } from "@/lib/invoke";
-import { useSkillStore, useUIStore, useWorkflowEditorStore } from "@/stores";
-import { useDecompositionStore } from "@/stores/feature/decompositionStore";
+import { useSkillStore } from "@/stores";
 import type { MarketplaceSkill, Skill } from "@/types";
 import { Claude } from "@lobehub/icons";
 import {
@@ -50,7 +48,6 @@ import {
   Store,
   Trash2,
   Upload,
-  Workflow,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -241,8 +238,6 @@ function MarketplaceCard({
   skill,
   onInstall,
   onDetail,
-  onExtract,
-  onConvert,
   installing,
   t,
   source,
@@ -250,8 +245,6 @@ function MarketplaceCard({
   skill: MarketplaceSkill;
   onInstall: (repo: string, target: string) => void;
   onDetail: (repo: string) => void;
-  onExtract: (repo: string) => void;
-  onConvert: (repo: string) => void;
   installing: string | null;
   t: (key: string) => string;
   source: string;
@@ -332,23 +325,15 @@ function MarketplaceCard({
                 )
             )
             : (
-              <Space size={4}>
-                <Button
-                  size="small"
-                  icon={<Layers size={14} />}
-                  onClick={() => onExtract(skill.repo)}
-                >
-                  {t("skills.extractAtomicSkills")}
-                </Button>
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<Workflow size={14} />}
-                  onClick={() => onConvert(skill.repo)}
-                >
-                  {t("skills.marketplace.convertToWorkflow")}
-                </Button>
-              </Space>
+              <Button
+                size="small"
+                type="primary"
+                loading={installing === skill.repo}
+                icon={<Download size={14} />}
+                onClick={() => onInstall(skill.repo, "axagent")}
+              >
+                {t("skills.install")}
+              </Button>
             )}
         </div>
       </div>
@@ -408,10 +393,6 @@ export function SkillsPage() {
   const [_atomicSkillEditVisible, _setAtomicSkillEditVisible] = useState(false);
   const [_editingAtomicSkill, _setEditingAtomicSkill] = useState<{ id: string; name: string } | null>(null);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
-
-  const { previewDecomposition } = useDecompositionStore();
-  const { setImportedWorkflowData } = useWorkflowEditorStore();
-  const { openWorkflowEditor } = useUIStore();
 
   useEffect(() => {
     loadSkills();
@@ -530,183 +511,6 @@ export function SkillsPage() {
       setMarketplaceDetailLoading(false);
     }
   }, [marketplaceSkills, t]);
-
-  const handleMarketplaceExtract = useCallback(async (repo: string) => {
-    const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill) { return; }
-    try {
-      const result = await invoke<{ content: string; file_name: string; found: boolean; error: string | null }>(
-        "get_marketplace_skill_content",
-        { repo },
-      );
-      if (!result.found || !result.content.trim()) {
-        messageApi.error(result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found");
-        return;
-      }
-      setDecomposeRequest({
-        name: skill.name,
-        description: skill.description,
-        content: result.content,
-        source: marketplaceSource,
-        repo: repo,
-        version: skill.currentVersion || skill.latestVersion,
-      });
-      setDecomposePreviewOpen(true);
-    } catch {
-      messageApi.error(t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content");
-    }
-  }, [marketplaceSkills, marketplaceSource, messageApi, t]);
-
-  const handleMarketplaceConvert = useCallback(async (repo: string) => {
-    const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill) { return; }
-    try {
-      const result = await invoke<{ content: string; file_name: string; found: boolean; error: string | null }>(
-        "get_marketplace_skill_content",
-        { repo },
-      );
-      if (!result.found || !result.content.trim()) {
-        messageApi.error(result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found");
-        return;
-      }
-      await previewDecomposition({
-        name: skill.name,
-        description: skill.description,
-        content: result.content,
-        source: marketplaceSource,
-        repo,
-      });
-      const { preview } = useDecompositionStore.getState();
-      if (preview?.workflow_nodes && preview?.workflow_edges) {
-        setImportedWorkflowData({
-          nodes: preview.workflow_nodes as WorkflowNode[],
-          edges: preview.workflow_edges as WorkflowEdge[],
-          name: skill.name,
-          description: skill.description,
-          isDecompositionWorkflow: true,
-          decompositionSource: {
-            market: marketplaceSource,
-            repo: repo,
-            version: skill.currentVersion || skill.latestVersion,
-            content: result.content,
-          },
-        });
-        openWorkflowEditor();
-      }
-    } catch {
-      messageApi.error(t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content");
-    }
-  }, [
-    marketplaceSkills,
-    marketplaceSource,
-    previewDecomposition,
-    setImportedWorkflowData,
-    openWorkflowEditor,
-    messageApi,
-    t,
-  ]);
-
-  const handleConvertToWorkflow = useCallback(async (repo: string) => {
-    const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill || !marketplaceDetailContent?.content) { return; }
-    try {
-      await previewDecomposition({
-        name: skill.name,
-        description: skill.description,
-        content: marketplaceDetailContent.content,
-        source: marketplaceSource,
-        repo,
-      });
-      const { preview } = useDecompositionStore.getState();
-      if (preview?.workflow_nodes && preview?.workflow_edges) {
-        setImportedWorkflowData({
-          nodes: preview.workflow_nodes as WorkflowNode[],
-          edges: preview.workflow_edges as WorkflowEdge[],
-          name: skill.name,
-          description: skill.description,
-          isDecompositionWorkflow: true,
-          decompositionSource: {
-            market: marketplaceSource,
-            repo: repo,
-            version: skill.currentVersion || skill.latestVersion,
-            content: marketplaceDetailContent.content,
-          },
-        });
-        openWorkflowEditor();
-      }
-    } catch (e) {
-      console.error("Failed to convert skill to workflow:", e);
-    }
-  }, [
-    marketplaceSkills,
-    marketplaceDetailContent,
-    marketplaceSource,
-    previewDecomposition,
-    setImportedWorkflowData,
-    openWorkflowEditor,
-  ]);
-
-  const handleMarketplaceExtractAtomicSkills = useCallback(async () => {
-    const skill = marketplaceSkills.find(s => s.repo === marketplaceDetailContent?.repo);
-    if (!skill || !marketplaceDetailContent?.content) { return; }
-    setDecomposeRequest({
-      name: skill.name,
-      description: skill.description,
-      content: marketplaceDetailContent.content,
-      source: marketplaceSource,
-      repo: marketplaceDetailContent.repo,
-      version: skill.currentVersion || skill.latestVersion,
-    });
-    setDecomposePreviewOpen(true);
-    setMarketplaceDetailOpen(false);
-  }, [marketplaceSkills, marketplaceDetailContent, marketplaceSource, setMarketplaceDetailOpen]);
-
-  const handleConvertMySkillToWorkflow = useCallback(async () => {
-    if (!selectedSkill?.content) { return; }
-    try {
-      await previewDecomposition({
-        name: selectedSkill.info.name,
-        description: selectedSkill.info.description,
-        content: selectedSkill.content,
-        source: selectedSkill.info.source,
-        repo: selectedSkill.info.name,
-      });
-      const { preview } = useDecompositionStore.getState();
-      if (preview?.workflow_nodes && preview?.workflow_edges) {
-        setImportedWorkflowData({
-          nodes: preview.workflow_nodes as WorkflowNode[],
-          edges: preview.workflow_edges as WorkflowEdge[],
-          name: selectedSkill.info.name,
-          description: selectedSkill.info.description,
-          isDecompositionWorkflow: true,
-          decompositionSource: {
-            market: selectedSkill.info.source,
-            repo: selectedSkill.info.name,
-            version: selectedSkill.info.version,
-            content: selectedSkill.content,
-          },
-        });
-        openWorkflowEditor();
-        setDetailOpen(false);
-      }
-    } catch (e) {
-      console.error("Failed to convert my skill to workflow:", e);
-    }
-  }, [selectedSkill, previewDecomposition, setImportedWorkflowData, openWorkflowEditor]);
-
-  const handleExtractAtomicSkills = useCallback(async () => {
-    if (!selectedSkill?.content) { return; }
-    setDecomposeRequest({
-      name: selectedSkill.info.name,
-      description: selectedSkill.info.description,
-      content: selectedSkill.content,
-      source: selectedSkill.info.source,
-      repo: selectedSkill.info.name,
-      version: selectedSkill.info.version,
-    });
-    setDecomposePreviewOpen(true);
-    setDetailOpen(false);
-  }, [selectedSkill, setDetailOpen]);
 
   const handleDecomposeComplete = useCallback(() => {
     setDecomposePreviewOpen(false);
@@ -1110,8 +914,6 @@ export function SkillsPage() {
                   skill={skill}
                   onInstall={handleInstallFromMarketplace}
                   onDetail={handleMarketplaceDetail}
-                  onExtract={handleMarketplaceExtract}
-                  onConvert={handleMarketplaceConvert}
                   installing={installing}
                   t={t}
                   source={marketplaceSource}
@@ -1203,24 +1005,7 @@ export function SkillsPage() {
           setDetailOpen(false);
           clearSelectedSkill();
         }}
-        footer={selectedSkill && selectedSkill.content && !selectedSkill.content.startsWith("(")
-          ? (
-            <Space>
-              <Button
-                icon={<Layers size={14} />}
-                onClick={handleExtractAtomicSkills}
-              >
-                {t("skills.extractAtomicSkills", "Extract Atomic Skills")}
-              </Button>
-              <Button
-                icon={<Workflow size={14} />}
-                onClick={handleConvertMySkillToWorkflow}
-              >
-                {t("skills.marketplace.convertToWorkflow")}
-              </Button>
-            </Space>
-          )
-          : null}
+        footer={null}
         width={640}
       >
         {selectedSkill && (
@@ -1288,24 +1073,7 @@ export function SkillsPage() {
           setMarketplaceDetailOpen(false);
           setMarketplaceDetailContent(null);
         }}
-        footer={marketplaceDetailContent && !marketplaceDetailContent.content.startsWith("(")
-          ? (
-            <Space>
-              <Button
-                icon={<Layers size={14} />}
-                onClick={handleMarketplaceExtractAtomicSkills}
-              >
-                {t("skills.extractAtomicSkills", "Extract Atomic Skills")}
-              </Button>
-              <Button
-                icon={<Workflow size={14} />}
-                onClick={() => handleConvertToWorkflow(marketplaceDetailContent.repo)}
-              >
-                {t("skills.marketplace.convertToWorkflow")}
-              </Button>
-            </Space>
-          )
-          : null}
+        footer={null}
         width={640}
       >
         {marketplaceDetailContent && (

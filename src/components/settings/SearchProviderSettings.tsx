@@ -25,30 +25,17 @@ import { useTranslation } from "react-i18next";
 
 function providerSelectOptions(t: (key: string, fallback?: string) => string) {
   return [
-    {
-      value: "tavily",
-      label: (
-        <span className="flex items-center gap-2">
-          <Tavily.Color size={16} /> Tavily
-        </span>
-      ),
-    },
-    {
-      value: "zhipu",
-      label: (
-        <span className="flex items-center gap-2">
-          <ProviderIcon provider="zhipu" size={16} type="color" /> {t("settings.searchProviders.zhipu")}
-        </span>
-      ),
-    },
-    {
-      value: "bocha",
-      label: (
-        <span className="flex items-center gap-2">
-          <img src="/icons/bocha.ico" alt="" style={{ width: 16, height: 16 }} /> {t("settings.searchProviders.bocha")}
-        </span>
-      ),
-    },
+    { value: "tavily", label: <span className="flex items-center gap-2"><Tavily.Color size={16} /> Tavily</span> },
+    { value: "serpapi", label: <span className="flex items-center gap-2">🔍 SerpAPI</span> },
+    { value: "brave", label: <span className="flex items-center gap-2">🦁 Brave Search</span> },
+    { value: "bing", label: <span className="flex items-center gap-2">🔷 Bing Search</span> },
+    { value: "google_pse", label: <span className="flex items-center gap-2">🔴 Google PSE</span> },
+    { value: "duckduckgo", label: <span className="flex items-center gap-2">🦆 DuckDuckGo</span> },
+    { value: "searxng", label: <span className="flex items-center gap-2">🔎 SearXNG</span> },
+    { value: "perplexity", label: <span className="flex items-center gap-2">🧠 Perplexity</span> },
+    { value: "exa", label: <span className="flex items-center gap-2">⚡ Exa</span> },
+    { value: "zhipu", label: <span className="flex items-center gap-2"><ProviderIcon provider="zhipu" size={16} type="color" /> {t("settings.searchProviders.zhipu")}</span> },
+    { value: "bocha", label: <span className="flex items-center gap-2"><img src="/icons/bocha.ico" alt="" style={{ width: 16, height: 16 }} /> {t("settings.searchProviders.bocha")}</span> },
   ];
 }
 
@@ -56,6 +43,14 @@ const PROVIDER_LABEL_MAP: Record<string, string> = PROVIDER_TYPE_LABELS;
 
 const DEFAULT_ENDPOINTS: Record<string, string> = {
   tavily: "https://api.tavily.com/search",
+  serpapi: "https://serpapi.com/search",
+  brave: "https://api.search.brave.com/res/v1/web/search",
+  bing: "https://api.bing.microsoft.com/v7.0/search",
+  google_pse: "https://www.googleapis.com/customsearch/v1",
+  duckduckgo: "https://api.duckduckgo.com",
+  searxng: "https://searx.example.com/search",
+  perplexity: "https://api.perplexity.ai/chat/completions",
+  exa: "https://api.exa.ai/search",
   zhipu: "https://open.bigmodel.cn/api/paas/v4/web_search",
   bocha: "https://api.bochaai.com/v1/web-search",
 };
@@ -187,11 +182,11 @@ function SearchProviderDetail({
         { id: provider.id },
       );
       if (result.ok) {
-        message.success(
-          `${t("settings.searchProviders.testSuccess")} (${result.latencyMs}ms, ${result.resultCount} ${
-            t("settings.searchProviders.results")
-          })`,
-        );
+        const latencyPart = `${result.latencyMs}ms`;
+        const countPart = (result.resultCount ?? 0) > 0
+          ? `, ${result.resultCount} ${t("settings.searchProviders.results")}`
+          : "";
+        message.success(`${t("settings.searchProviders.testSuccess")} (${latencyPart}${countPart})`);
       } else {
         message.error(result.error || t("settings.searchProviders.testFailed"));
       }

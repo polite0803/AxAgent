@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { useAppConfigStore } from "@/stores/feature/appConfigStore";
-import type { FeatureFlags, ModelTier } from "@/stores/feature/appConfigStore";
+import type { FeatureFlags } from "@/stores/feature/appConfigStore";
 import type { SubAgent } from "@/types";
 import {
   Badge,
@@ -14,7 +14,6 @@ import {
   message,
   Popconfirm,
   Radio,
-  Select,
   Space,
   Spin,
   Switch,
@@ -124,32 +123,13 @@ interface AgentDisplay {
 
 function GeneralTab() {
   const { token } = theme.useToken();
-  const { model, permissionMode, maxIterations, setModel, setPermissionMode, setMaxIterations } = useAppConfigStore();
-
-  const modelOptions = [
-    { label: "Opus (最强推理)", value: "opus" as ModelTier },
-    { label: "Sonnet (平衡性能)", value: "sonnet" as ModelTier },
-    { label: "Haiku (极速响应)", value: "haiku" as ModelTier },
-  ];
+  const { permissionMode, maxIterations, setPermissionMode, setMaxIterations } = useAppConfigStore();
 
   const rowStyle = { padding: "6px 0" };
 
   return (
     <div className="p-6 pb-12">
-      <SettingsGroup title="模型配置">
-        <div style={rowStyle} className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Bot size={14} /> 模型选择
-          </span>
-          <Select
-            value={model}
-            onChange={(v) => setModel(v)}
-            options={modelOptions}
-            style={{ width: 220 }}
-            size="small"
-          />
-        </div>
-        <Divider style={{ margin: "4px 0" }} />
+      <SettingsGroup title="Agent 配置">
         <div style={rowStyle} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Gauge size={14} /> 最大迭代次数

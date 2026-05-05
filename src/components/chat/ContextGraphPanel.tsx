@@ -1,6 +1,6 @@
 import { theme, Typography } from "antd";
-import { BookOpen, Brain, GitBranch, Link2, Puzzle, Search, Wrench, Zap } from "lucide-react";
-import React, { useMemo } from "react";
+import { BookOpen, Brain, ChevronDown, ChevronUp, GitBranch, Link2, Puzzle, Search, Wrench, Zap } from "lucide-react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Background,
@@ -162,6 +162,8 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
+  const [collapsed, setCollapsed] = useState(true);
+
   // Get detail info from various stores
   const knowledgeBases = useKnowledgeStore((s) => s.bases ?? []);
   const memoryNamespaces = useMemoryStore((s) => s.namespaces ?? []);
@@ -271,15 +273,18 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
         marginBottom: 12,
       }}
     >
-      {/* Header */}
+      {/* Header — click to toggle */}
       <div
+        onClick={() => setCollapsed(!collapsed)}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "8px 12px",
+          padding: "6px 12px",
           backgroundColor: token.colorFillQuaternary,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          borderBottom: collapsed ? "none" : `1px solid ${token.colorBorderSecondary}`,
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -290,79 +295,132 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>
             {totalSources} 个上下文源
           </Typography.Text>
+          {/* Inline source pills when collapsed — compact one-line overview */}
+          {collapsed && totalSources > 0 && (
+            <div style={{ display: "flex", gap: 4, marginLeft: 4, flexWrap: "wrap", maxWidth: 260, overflow: "hidden" }}>
+              {(() => {
+                const pills: { label: string; color: string }[] = [];
+                if (modelName) { pills.push({ label: modelName.slice(0, 12), color: nodeTypeStyles.model.border }); }
+                for (const kbId of knowledgeBaseIds.slice(0, 2)) {
+                  const kb = knowledgeBases.find((k: any) => k.id === kbId);
+                  pills.push({ label: (kb?.name || kbId).slice(0, 10), color: nodeTypeStyles.knowledge.border });
+                }
+                if (knowledgeBaseIds.length > 2) { pills.push({ label: `+${knowledgeBaseIds.length - 2}`, color: nodeTypeStyles.knowledge.border }); }
+                for (const nsId of memoryNamespaceIds.slice(0, 1)) {
+                  const ns = memoryNamespaces.find((n: any) => n.id === nsId);
+                  pills.push({ label: (ns?.name || nsId).slice(0, 10), color: nodeTypeStyles.memory.border });
+                }
+                if (memoryNamespaceIds.length > 1) { pills.push({ label: `+${memoryNamespaceIds.length - 1}`, color: nodeTypeStyles.memory.border }); }
+                for (const srvId of mcpServerIds.slice(0, 1)) {
+                  const srv = mcpServers.find((s: any) => s.id === srvId);
+                  pills.push({ label: (srv?.name || srvId).slice(0, 10), color: nodeTypeStyles.mcp.border });
+                }
+                if (mcpServerIds.length > 1) { pills.push({ label: `+${mcpServerIds.length - 1}`, color: nodeTypeStyles.mcp.border }); }
+                if (searchEnabled) { pills.push({ label: "搜索", color: nodeTypeStyles.search.border }); }
+                for (const skillId of enabledSkillIds.slice(0, 1)) {
+                  const sk = installedSkills.find((s: any) => s.id === skillId);
+                  pills.push({ label: (sk?.name || skillId).slice(0, 10), color: nodeTypeStyles.skill.border });
+                }
+                if (enabledSkillIds.length > 1) { pills.push({ label: `+${enabledSkillIds.length - 1}`, color: nodeTypeStyles.skill.border }); }
+                return pills.map((p, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      fontSize: 10,
+                      padding: "0 5px",
+                      borderRadius: 8,
+                      border: `1px solid ${p.color}`,
+                      color: p.color,
+                      whiteSpace: "nowrap",
+                      lineHeight: "18px",
+                    }}
+                  >
+                    {p.label}
+                  </span>
+                ));
+              })()}
+            </div>
+          )}
         </div>
-        {/* Legend */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {Object.entries(nodeTypeStyles).slice(0, 5).map(([type, style]) => (
-            <span
-              key={type}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3,
-                fontSize: 10,
-                color: style.border,
-              }}
-            >
-              {style.icon} {type === "conversation"
-                ? "对话"
-                : type === "model"
-                ? "模型"
-                : type === "knowledge"
-                ? "知识"
-                : type === "memory"
-                ? "记忆"
-                : "MCP"}
-            </span>
-          ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Legend — only when expanded */}
+          {!collapsed && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Object.entries(nodeTypeStyles).slice(0, 5).map(([type, style]) => (
+                <span
+                  key={type}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    fontSize: 10,
+                    color: style.border,
+                  }}
+                >
+                  {style.icon} {type === "conversation"
+                    ? "对话"
+                    : type === "model"
+                    ? "模型"
+                    : type === "knowledge"
+                    ? "知识"
+                    : type === "memory"
+                    ? "记忆"
+                    : "MCP"}
+                </span>
+              ))}
+            </div>
+          )}
+          {collapsed ? <ChevronDown size={14} style={{ color: token.colorTextSecondary }} /> : <ChevronUp size={14} style={{ color: token.colorTextSecondary }} />}
         </div>
       </div>
 
-      {/* Graph canvas */}
-      <div style={{ height: 280, width: "100%" }}>
-        {totalSources > 0
-          ? (
-            <ReactFlow
-              nodes={rfNodes}
-              edges={rfEdges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              fitView
-              fitViewOptions={{ padding: 0.3 }}
-              attributionPosition="bottom-left"
-              nodesDraggable={false}
-              nodesConnectable={false}
-              elementsSelectable={false}
-              proOptions={{ hideAttribution: true }}
-            >
-              <Background color={token.colorBorderSecondary} gap={16} />
-              <Controls showInteractive={false} />
-              <MiniMap
-                style={{ height: 60 }}
-                nodeColor={(n: Node) => {
-                  const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
-                  const style = nodeData?.nodeType ? nodeTypeStyles[nodeData.nodeType] : undefined;
-                  return style?.border || "#ddd";
+      {/* Graph canvas — only when expanded */}
+      {!collapsed && (
+        <div style={{ height: 280, width: "100%" }}>
+          {totalSources > 0
+            ? (
+              <ReactFlow
+                nodes={rfNodes}
+                edges={rfEdges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                fitView
+                fitViewOptions={{ padding: 0.3 }}
+                attributionPosition="bottom-left"
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={false}
+                proOptions={{ hideAttribution: true }}
+              >
+                <Background color={token.colorBorderSecondary} gap={16} />
+                <Controls showInteractive={false} />
+                <MiniMap
+                  style={{ height: 60 }}
+                  nodeColor={(n: Node) => {
+                    const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
+                    const style = nodeData?.nodeType ? nodeTypeStyles[nodeData.nodeType] : undefined;
+                    return style?.border || "#ddd";
+                  }}
+                />
+              </ReactFlow>
+            )
+            : (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  color: token.colorTextQuaternary,
+                  fontSize: 13,
                 }}
-              />
-            </ReactFlow>
-          )
-          : (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                color: token.colorTextQuaternary,
-                fontSize: 13,
-              }}
-            >
-              {t("chat.contextGraph.empty", "未启用上下文源")}
-            </div>
-          )}
-      </div>
+              >
+                {t("chat.contextGraph.empty", "未启用上下文源")}
+              </div>
+            )}
+        </div>
+      )}
     </div>
   );
 });

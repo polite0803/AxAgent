@@ -953,11 +953,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       try {
         const response = await invoke<ConversationWorkflowPreviewResponse>(
           "get_conversation_workflow_preview",
-          { conversation_id: conversationId },
+          { conversationId: conversationId },
         );
 
         if (response.skill_count === 0) {
-          throw new Error("No skill executions found in this conversation");
+          throw new Error("WORKFLOW_NO_SKILL_EXECUTIONS: No skill executions found in this conversation");
         }
 
         // D7: runtime validation — verify nodes have required 'type' and 'id' fields

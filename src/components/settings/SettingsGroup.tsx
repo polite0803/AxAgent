@@ -10,7 +10,9 @@ interface SettingsGroupProps {
 
 export function SettingsGroup({ title, children, extra, style }: SettingsGroupProps) {
   const { token } = theme.useToken();
-  const isLight = parseInt(token.colorBgBase.replace("#", "").substring(0, 2), 16) > 200;
+  const baseHex = token.colorBgBase;
+  const r = baseHex ? parseInt(baseHex.replace("#", "").substring(0, 2), 16) : 255;
+  const isLight = !isNaN(r) && r > 200;
   const cardBg = isLight ? "#fcfcfc" : token.colorBgContainer;
 
   return (

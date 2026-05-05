@@ -974,6 +974,71 @@ async fn execute_tool_call(
     tool_call: &ToolCall,
     mcp_server_ids: &[String],
 ) -> (String, bool) {
+    // Handle builtin web_search — use the search provider directly
+    if tool_call.function.name == "web_search" {
+        let query = serde_json::from_str::<serde_json::Value>(&tool_call.function.arguments)
+            .ok()
+            .and_then(|args| args.get("query").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .unwrap_or_default();
+        if query.is_empty() {
+            return ("Error: web_search requires a 'query' parameter".to_string(), true);
+        }
+        // Append current year to query for recency if not already included
+        let current_year = chrono::Local::now().format("%Y").to_string();
+        let search_query = if query.contains(&current_year) {
+            query.clone()
+        } else {
+            format!("{} {}", query, current_year)
+        };
+        // Find any enabled search provider
+        if let Ok(providers) =
+            axagent_core::repo::search_provider::list_search_providers(db).await
+        {
+            if let Some(provider) = providers.iter().find(|p| p.enabled) {
+                // Use DuckDuckGo HTML search as fallback (no API key needed)
+                let encoded = reqwest::Url::parse("https://html.duckduckgo.com/html/")
+                    .unwrap()
+                    .query_pairs_mut()
+                    .append_pair("q", &search_query)
+                    .finish()
+                    .to_string();
+                match reqwest::get(&encoded).await {
+                    Ok(resp) => {
+                        match resp.text().await {
+                            Ok(html) => {
+                                // Extract snippets from DuckDuckGo results
+                                let results: Vec<String> = html
+                                    .split("result__snippet")
+                                    .skip(1)
+                                    .take(5)
+                                    .filter_map(|s| {
+                                        let start = s.find('>')? + 1;
+                                        let end = s.find("</")?;
+                                        let text = s[start..end].trim().to_string();
+                                        if text.is_empty() { None } else { Some(text) }
+                                    })
+                                    .collect();
+                                if results.is_empty() {
+                                    return (format!("web_search for '{}': no results found", search_query), false);
+                                }
+                                let formatted = results
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, r)| format!("{}. {}", i + 1, r))
+                                    .collect::<Vec<_>>()
+                                    .join("\n");
+                                return (format!("Web search results for '{}':\n{}", search_query, formatted), false);
+                            }
+                            Err(e) => return (format!("web_search error: {}", e), true),
+                        }
+                    }
+                    Err(e) => return (format!("web_search error: {}", e), true),
+                }
+            }
+        }
+        return ("web_search: no search provider configured".to_string(), true);
+    }
+
     let server_and_tool = axagent_core::repo::mcp_server::find_server_for_tool(
         db,
         &tool_call.function.name,
@@ -1335,9 +1400,26 @@ async fn generate_ai_title_with(
         .trim_matches('》')
         .to_string();
     if title.is_empty() {
-        let err = "AI returned empty title".to_string();
-        tracing::error!("[title-gen] {}", err);
-        Err(err)
+        // Fallback: use first line of raw response (before stripping), or user message
+        let fallback: String = response
+            .content
+            .lines()
+            .next()
+            .unwrap_or("")
+            .chars()
+            .take(40)
+            .collect::<String>()
+            .trim()
+            .trim_matches('"')
+            .to_string();
+        if fallback.is_empty() {
+            let fallback = user_content.chars().take(40).collect::<String>();
+            tracing::warn!("[title-gen] AI empty, using fallback: {}", fallback);
+            Ok(fallback)
+        } else {
+            tracing::warn!("[title-gen] AI empty after trim, using raw: {}", fallback);
+            Ok(fallback)
+        }
     } else {
         tracing::info!("[title-gen] Generated title: {}", title);
         Ok(title)
@@ -2156,6 +2238,21 @@ pub async fn send_message(
         );
     }
 
+    // Inject current date so the LLM knows what "today" means for search queries
+    {
+        let now = chrono::Local::now();
+        let date_msg = format!(
+            "Today's date is {} (YYYY-MM-DD format). When searching the web for recent or real-time information, use this date to formulate accurate queries.",
+            now.format("%Y-%m-%d")
+        );
+        chat_messages.push(ChatMessage {
+            role: if no_system_role { "user".to_string() } else { "system".to_string() },
+            content: ChatContent::Text(date_msg),
+            tool_calls: None,
+            tool_call_id: None,
+        });
+    }
+
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = enabled_knowledge_base_ids.unwrap_or_default();
     let mem_ids = enabled_memory_namespace_ids.unwrap_or_default();
@@ -2406,10 +2503,39 @@ pub async fn send_message(
 
     // 6. Load MCP tools for enabled servers
     let mcp_ids = enabled_mcp_server_ids.unwrap_or_default();
-    let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() {
+    // Check if any search provider is configured — auto-include web_search if so
+    let has_search_provider = axagent_core::repo::search_provider::list_search_providers(
+        &state.sea_db,
+    )
+    .await
+    .map(|providers| providers.iter().any(|p| p.enabled))
+    .unwrap_or(false);
+    let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
         let mut all_tools = Vec::new();
+        // Auto-include web_search if any search provider is configured
+        if has_search_provider {
+            all_tools.push(ChatTool {
+                r#type: "function".to_string(),
+                function: ChatToolFunction {
+                    name: "web_search".to_string(),
+                    description: Some(
+                        "Search the web for real-time information. Use this when you need current news, recent events, or up-to-date facts beyond your training data. Input: a search query string.".to_string()
+                    ),
+                    parameters: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    })),
+                },
+            });
+        }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
                 axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
@@ -3956,9 +4082,6 @@ mod tests {
             )),
             scheduled_task_service: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::ScheduledTaskService::new(100),
-            )),
-            platform_integration_service: Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::PlatformIntegrationService::new(),
             )),
             platform_manager: Arc::new(
                 axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),

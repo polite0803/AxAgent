@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
-import { App, Button, Divider, Input, InputNumber } from "antd";
+import { App, Button, Input, InputNumber } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
@@ -64,7 +64,7 @@ export function ProxySettings() {
             ]}
           />
         </div>
-        <Divider style={{ margin: "4px 0" }} />
+        <div style={{ height: 1, margin: "4px 0", backgroundColor: "var(--border-color)" }} />
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.proxyAddress")}</span>
           <Input
@@ -75,7 +75,7 @@ export function ProxySettings() {
             style={{ width: 280 }}
           />
         </div>
-        <Divider style={{ margin: "4px 0" }} />
+        <div style={{ height: 1, margin: "4px 0", backgroundColor: "var(--border-color)" }} />
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.proxyPort")}</span>
           <InputNumber
@@ -88,7 +88,7 @@ export function ProxySettings() {
             style={{ width: 150 }}
           />
         </div>
-        <Divider style={{ margin: "4px 0" }} />
+        <div style={{ height: 1, margin: "4px 0", backgroundColor: "var(--border-color)" }} />
         <div style={{ padding: "4px 0", display: "flex", justifyContent: "flex-end" }}>
           <Button onClick={handleTestProxy} disabled={!needsAddress} loading={testing}>
             {t("settings.testProxy")}

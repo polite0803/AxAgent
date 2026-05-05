@@ -150,7 +150,20 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
   },
 
   processMessage: async (platform: string, payload: unknown) => {
-    const cmd = platform === "telegram" ? "process_telegram_message" : "process_discord_message";
-    return await invoke(cmd, { payload });
+    const cmdMap: Record<string, string> = {
+      telegram: "process_telegram_message",
+      discord: "process_discord_message",
+      wechat: "process_wechat_message",
+      feishu: "process_feishu_message",
+      qq: "process_qq_message",
+      dingtalk: "process_dingtalk_message",
+      slack: "process_slack_message",
+      whatsapp: "process_whatsapp_message",
+    };
+    const cmd = cmdMap[platform];
+    if (cmd) {
+      return await invoke(cmd, { payload });
+    }
+    return await invoke("process_platform_message", { platform, payload });
   },
 }));
