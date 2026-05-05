@@ -500,13 +500,13 @@ fn build_request(request: &ChatRequest, messages: &[ChatMessage], stream: bool) 
     };
 
     // "reasoning_effort" style (OpenAI): reasoning_effort field
+    // Clamp to "high" max — "xhigh" is not supported by most OpenAI-compatible providers (e.g. NVIDIA)
     let reasoning_effort = if thinking_style == "reasoning_effort" {
         request.thinking_budget.map(|b| match b {
             0 => "none".to_string(),
             1..=2048 => "low".to_string(),
             2049..=6144 => "medium".to_string(),
-            6145..=12288 => "high".to_string(),
-            _ => "xhigh".to_string(),
+            _ => "high".to_string(),
         })
     } else {
         None

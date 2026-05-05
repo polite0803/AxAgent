@@ -1,8 +1,8 @@
 {
   "app": {
     "name": "AxAgent",
-    "title": "智聊助手",
-    "description": "智能工作助手"
+    "title": "स्मार्ट वर्कस्पेस",
+    "description": "AI-संचालित वर्क असिस्टेंट"
   },
   "nav": {
     "chat": "चैट",
@@ -374,8 +374,8 @@
       "outputSchema": "आउटपुट स्कीमा",
       "upgradeReasoning": "उन्नयन तर्क",
       "multiExpertCollab": {
-        "name": "多专家协作",
-        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
+        "name": "मल्टी-एक्सपर्ट सहयोग",
+        "description": "जटिल कार्यों को विभाजित और जीतने के लिए कई डोमेन विशेषज्ञ एजेंटों को समानांतर या क्रमिक सहयोग में लॉन्च करें।"
       }
     },
     "modelRoutingConfig": {

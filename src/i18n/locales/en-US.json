@@ -633,9 +633,9 @@
       "left": "Left",
       "right": "Right"
     },
-    "selectExpert": "选择专家角色",
-    "exportHtml": "导出 HTML",
-    "exportHtmlNoThinking": "导出 HTML（不含思考）"
+    "selectExpert": "Select Expert Role",
+    "exportHtml": "Export HTML",
+    "exportHtmlNoThinking": "Export HTML (No Thinking)"
   },
   "gateway": {
     "title": "Gateway",

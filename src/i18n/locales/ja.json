@@ -374,8 +374,8 @@
       "outputSchema": "出力スキーマ",
       "upgradeReasoning": "アップグレード理由",
       "multiExpertCollab": {
-        "name": "多专家协作",
-        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
+        "name": "マルチエキスパートコラボレーション",
+        "description": "複雑なタスクを分割して征服するために、複数のドメイン専門エージェントを並列または直列で起動します。"
       }
     },
     "modelRoutingConfig": {

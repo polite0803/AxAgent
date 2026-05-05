@@ -1,8 +1,8 @@
 {
   "app": {
     "name": "AxAgent",
-    "title": "智聊助手",
-    "description": "智能工作助手"
+    "title": "스마트 워크스페이스",
+    "description": "AI 기반 워크 어시스턴트"
   },
   "nav": {
     "chat": "채팅",
@@ -374,8 +374,8 @@
       "outputSchema": "출력 스키마",
       "upgradeReasoning": "업그레이드 이유",
       "multiExpertCollab": {
-        "name": "多专家协作",
-        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
+        "name": "멀티-전문가 협업",
+        "description": "복잡한 작업을 나누고 정복하기 위해 여러 도메인 전문가 에이전트를 병렬 또는 직렬로 실행합니다."
       }
     },
     "modelRoutingConfig": {

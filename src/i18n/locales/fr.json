@@ -1,8 +1,8 @@
 {
   "app": {
     "name": "AxAgent",
-    "title": "智聊助手",
-    "description": "智能工作助手"
+    "title": "Espace de Travail Intelligent",
+    "description": "Assistant de Travail Alimenté par IA"
   },
   "nav": {
     "chat": "Chat",
@@ -374,8 +374,8 @@
       "outputSchema": "Schéma de Sortie",
       "upgradeReasoning": "Raisonnement de Mise à Niveau",
       "multiExpertCollab": {
-        "name": "多专家协作",
-        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
+        "name": "Collaboration Multi-Expert",
+        "description": "Lancez plusieurs agents experts en domaines spécifiques pour une collaboration parallèle ou série afin de diviser et conquérir les tâches complexes."
       }
     },
     "modelRoutingConfig": {

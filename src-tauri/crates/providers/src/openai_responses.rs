@@ -412,8 +412,7 @@ fn build_request(request: &ChatRequest, stream: bool) -> ResponsesRequest {
             0 => "none",
             1..=2048 => "low",
             2049..=6144 => "medium",
-            6145..=12288 => "high",
-            _ => "xhigh",
+            _ => "high",
         };
         ResponsesReasoning {
             effort: effort.to_string(),
