@@ -24,7 +24,7 @@ diff = "0.1"
 base64 = "0.22"
 walkdir = "2"
 which = "7"
-dirs = "5"
+dirs = "6"
 pdf-extract = "0.8"
 parking_lot = "0.12"
 sea-orm = { workspace = true }

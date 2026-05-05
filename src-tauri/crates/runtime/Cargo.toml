@@ -24,7 +24,7 @@ anyhow = "1"
 futures = "0.3"
 quick_cache = "0.4"
 chrono = { workspace = true }
-dirs = "5"
+dirs = "6"
 sea-orm = { workspace = true }
 axagent-core = { path = "../core" }
 axagent-trajectory = { path = "../trajectory" }
