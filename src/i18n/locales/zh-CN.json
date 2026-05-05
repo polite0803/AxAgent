@@ -973,7 +973,7 @@
     "browserWarning": "桌面功能需要通过 Tauri 应用使用",
     "capabilities": "桌面功能",
     "closeConfirmCancel": "取消",
-    "closeConfirmContent": "确定要退出 AxAgent 吗？",
+    "closeConfirmContent": "确定要退出 吗？",
     "closeConfirmOk": "退出",
     "closeConfirmTitle": "退出应用",
     "closeToTray": "关闭到托盘",
@@ -2955,7 +2955,7 @@
       "timeout": "执行超时"
     },
     "tray": {
-      "quit": "退出 AxAgent",
+      "quit": "退出",
       "show": "显示主窗口"
     }
   },

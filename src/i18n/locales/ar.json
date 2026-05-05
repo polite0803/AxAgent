@@ -607,9 +607,9 @@
       "left": "يسار",
       "right": "يمين"
     },
-    "selectExpert": "选择专家角色",
-    "exportHtml": "导出 HTML",
-    "exportHtmlNoThinking": "导出 HTML（不含思考）"
+    "selectExpert": "اختر الخبير",
+    "exportHtml": "تصدير HTML",
+    "exportHtmlNoThinking": "تصدير HTML (بدون تفكير)"
   },
   "gateway": {
     "title": "البوابة",
@@ -1177,19 +1177,19 @@
       "docType": "النوع",
       "docTypeFile": "ملف",
       "docTitle": "مستند",
-      "commonPanel": "公共面板",
-      "commonPanelDesc": "知识库和Wiki的共同操作",
-      "loadFiles": "加载文件",
-      "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
-      "selectFolder": "选择文件夹",
-      "loadToRAG": "加载到知识库RAG",
-      "sources": "数据源",
-      "sourcesDesc": "管理所有已加载的数据源",
-      "recentSources": "最近使用",
-      "addSource": "添加数据源",
-      "loadToWiki": "加载到Wiki",
-      "ragTab": "知识库 RAG",
-      "wikiTab": "Wiki"
+      "commonPanel": "اللوحة المشتركة",
+      "commonPanelDesc": "العمليات المشتركة لقاعدة المعرفة والويكي",
+      "loadFiles": "تحميل الملفات",
+      "loadFilesDesc": "تحميل المستندات من مجلد إلى قاعدة المعرفة أو الويكي",
+      "selectFolder": "اختر مجلد",
+      "loadToRAG": "تحميل إلى RAG",
+      "sources": "مصادر البيانات",
+      "sourcesDesc": "إدارة جميع مصادر البيانات المحملة",
+      "recentSources": "المستخدم حديثاً",
+      "addSource": "إضافة مصدر بيانات",
+      "loadToWiki": "تحميل إلى الويكي",
+      "ragTab": "RAG",
+      "wikiTab": "ويكي"
     },
     "memory": {
       "title": "الذاكرة",
@@ -1540,32 +1540,32 @@
       "language": "اللغة",
       "confidence": "ثقة الملف",
       "loading": "جارٍ تحميل الملف...",
-      "description": "设置你的编码习惯和沟通偏好，AI 会根据这些信息调整回复风格",
-      "codingStyleDesc": "设定你习惯的代码编写方式，AI 生成的代码会尽量遵循这些偏好",
-      "namingConventionDesc": "变量和函数的命名方式",
-      "indentationStyleDesc": "代码缩进使用空格还是制表符",
-      "commentStyleDesc": "代码中注释的详细程度",
-      "communicationDesc": "设定 AI 回复时的表达方式，让它更符合你的阅读习惯",
-      "detailLevelDesc": "AI 回复内容的详尽程度",
-      "toneDesc": "AI 回复时的语言风格",
-      "languageDesc": "AI 回复时使用的语言",
-      "confidenceDesc": "AI 对你偏好的了解程度，会随着交互逐渐提升",
+      "description": "اضبط عادات البرمجة وتفضيلات التواصل الخاصة بك. سيعدّل الذكاء الاصطناعي أسلوب الردود بناءً على هذه المعلومات",
+      "codingStyleDesc": "حدد طريقتك المفضلة في كتابة الكود. سيحاول الذكاء الاصطناعي اتباع هذه التفضيلات عند إنشاء الكود",
+      "namingConventionDesc": "اصطلاح التسمية للمتغيرات والدوال",
+      "indentationStyleDesc": "استخدام المسافات أو علامات التبويب للمسافات البادئة",
+      "commentStyleDesc": "مستوى التفصيل في التعليقات",
+      "communicationDesc": "اضبط طريقة تعبير الذكاء الاصطناعي لتناسب عادات القراءة الخاصة بك",
+      "detailLevelDesc": "مستوى التفصيل في ردود الذكاء الاصطناعي",
+      "toneDesc": "الأسلوب اللغوي في ردود الذكاء الاصطناعي",
+      "languageDesc": "لغة ردود الذكاء الاصطناعي",
+      "confidenceDesc": "مدى معرفة الذكاء الاصطناعي لتفضيلاتك، تتحسن مع التفاعل",
       "options": {
-        "snake_case": "蛇形命名 (snake_case)",
-        "camelCase": "驼峰命名 (camelCase)",
-        "PascalCase": "帕斯卡命名 (PascalCase)",
-        "kebab-case": "短横线命名 (kebab-case)",
-        "spaces": "空格",
-        "tabs": "制表符",
-        "minimal": "精简",
-        "documented": "适中",
-        "verbose": "详尽",
-        "concise": "简洁",
-        "moderate": "适中",
-        "detailed": "详细",
-        "formal": "正式",
-        "neutral": "中性",
-        "casual": "随意"
+        "snake_case": "نمط الثعبان (snake_case)",
+        "camelCase": "نمط الجمل (camelCase)",
+        "PascalCase": "باسكال (PascalCase)",
+        "kebab-case": "نمط الكباب (kebab-case)",
+        "spaces": "مسافات",
+        "tabs": "علامات تبويب",
+        "minimal": "مُختصَر",
+        "documented": "مُوَثَّق",
+        "verbose": "مُفصَّل",
+        "concise": "وجيز",
+        "moderate": "متوازن",
+        "detailed": "دقيق",
+        "formal": "رسمي",
+        "neutral": "محايد",
+        "casual": "غير رسمي"
       }
     },
     "webhook": {
@@ -1686,12 +1686,12 @@
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
       "openEditor": "Open Editor"
     },
-    "tabModel": "模型与服务",
-    "tabAppearance": "界面",
-    "tabExtensions": "工具与扩展",
-    "tabNetwork": "通信",
-    "tabData": "数据",
-    "tabSystem": "系统",
+    "tabModel": "النموذج والخدمات",
+    "tabAppearance": "الواجهة",
+    "tabExtensions": "الأدوات والإضافات",
+    "tabNetwork": "الاتصالات",
+    "tabData": "البيانات",
+    "tabSystem": "النظام",
     "messageChannels": "قنوات الرسائل",
     "platform": {
       "enable": "تمكين",
@@ -1726,10 +1726,10 @@
       "activeSessions": "الجلسات النشطة",
       "noStatuses": "لا توجد حالات متاحة"
     },
-    "advanced": "高级设置",
-    "promptTemplates": "提示词模板",
-    "appConfig": "Agent 控制面板",
-    "appConfigDesc": "模型选择、功能开关、Agent 管理与 Hook 配置",
+    "advanced": "الإعدادات المتقدمة",
+    "promptTemplates": "قوالب الأوامر",
+    "appConfig": "لوحة تحكم الوكيل",
+    "appConfigDesc": "اختيار النموذج، مفاتيح الميزات، إدارة الوكيل وتكوين الخطافات",
     "bocha": "Bocha",
     "zhipu": "Zhipu"
   },
@@ -1802,7 +1802,7 @@
       "lastSync": "آخر مزامنة"
     },
     "backupSuccess": "تمّت النسخ الاحتياطي بنجاح",
-    "error": "操作失败"
+    "error": "فشلت العملية"
   },
   "common": {
     "confirm": "تأكيد",
@@ -1916,25 +1916,25 @@
     "text": "Text",
     "viewDetails": "View details",
     "waitingForApproval": "Waiting for approval",
-    "error": "操作失败",
-    "createSuccess": "创建成功",
-    "deleteSuccess": "删除成功",
-    "retry": "重试",
-    "success": "成功",
-    "config": "配置",
-    "quality": "品質",
-    "entropyCoeff": "熵係數",
-    "gamma": "γ (折扣率)",
+    "error": "فشلت العملية",
+    "createSuccess": "تم الإنشاء بنجاح",
+    "deleteSuccess": "تم الحذف بنجاح",
+    "retry": "إعادة المحاولة",
+    "success": "نجاح",
+    "config": "التكوين",
+    "quality": "الجودة",
+    "entropyCoeff": "معامل الانتروبيا",
+    "gamma": "γ (معدل الخصم)",
     "lambda": "λ (TD)",
-    "rewardScale": "獎勵縮放",
-    "rlEngine": "RL 引擎",
+    "rewardScale": "مقياس المكافأة",
+    "rlEngine": "محرك RL",
     "rewardWeights": {
-      "task_completion": "任務完成",
-      "reasoning_quality": "推理品質",
-      "tool_efficiency": "工具效率",
-      "pattern_match": "模式比對",
-      "error_recovery": "錯誤恢復",
-      "user_feedback": "使用者回饋"
+      "task_completion": "إكمال المهمة",
+      "reasoning_quality": "جودة الاستدلال",
+      "tool_efficiency": "كفاءة الأداة",
+      "pattern_match": "مطابقة النمط",
+      "error_recovery": "استعادة الأخطاء",
+      "user_feedback": "تعليق المستخدم"
     }
   },
   "image": {
@@ -1960,9 +1960,9 @@
     "closeConversation": "إغلاق المحادثة",
     "focusSearch": "التركيز على البحث",
     "openSettings": "فتح الإعدادات",
-    "conflictApp1": "飞书/微信/企业微信/钉钉",
-    "conflictApp2": "QQ/微信",
-    "conflictApp3": "微信 (Windows)"
+    "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
+    "conflictApp2": "QQ/WeChat",
+    "conflictApp3": "WeChat (Windows)"
   },
   "tray": {
     "show": "إظهار",
@@ -2445,10 +2445,10 @@
     "useRegex": "Use regex"
   },
   "lang": {
-    "zhCN": "简体中文",
-    "zhTW": "繁體中文",
-    "ja": "日本語",
-    "ko": "한국어"
+    "zhCN": "الصينية المبسطة",
+    "zhTW": "الصينية التقليدية",
+    "ja": "اليابانية",
+    "ko": "الكورية"
   },
   "wiki": {
     "compile": {
@@ -2603,7 +2603,7 @@
       "viewInGraph": "View in graph",
       "viewSource": "View source",
       "wikiList": "Wiki List",
-      "selectWikiFirst": "请先选择一个Wiki"
+      "selectWikiFirst": "يرجى اختيار ويكي أولاً"
     },
     "llmNote": "LLM Note",
     "log": {
@@ -2701,15 +2701,15 @@
       "rootPath": "Root Path",
       "schemaVersion": "Schema Version"
     },
-    "manage": "管理",
-    "viewingWiki": "正在查看 Wiki: {{id}}",
-    "deleted": "已删除",
-    "unsavedTitle": "未保存的更改",
-    "unsavedContent": "你有未保存的更改，确定放弃吗？",
-    "discard": "放弃",
-    "keepEditing": "继续编辑",
-    "confirmDelete": "确定删除这条笔记？",
-    "backToNotes": "返回笔记"
+    "manage": "إدارة",
+    "viewingWiki": "عرض الويكي: {{id}}",
+    "deleted": "تم الحذف",
+    "unsavedTitle": "تغييرات غير محفوظة",
+    "unsavedContent": "لديك تغييرات غير محفوظة. هل أنت متأكد من رغبتك في التخلي عنها؟",
+    "discard": "تجاهل",
+    "keepEditing": "متابعة التحرير",
+    "confirmDelete": "هل أنت متأكد من رغبتك في حذف هذه الملاحظة؟",
+    "backToNotes": "العودة إلى الملاحظات"
   },
   "quickbar": {
     "title": "الشريط السريع",
@@ -2777,7 +2777,7 @@
       "saveWiki": "حفظ",
       "continueAsk": "متابعة السؤال",
       "error": "خطأ",
-      "noWikiSelected": "请先在知识库中选择一个 Wiki"
+      "noWikiSelected": "يرجى اختيار ويكي من قاعدة المعرفة أولاً"
     }
   },
   "workflow": {
@@ -3211,14 +3211,14 @@
     "templateUpdated": "Template updated",
     "variablesSchema": "Variables Schema",
     "version": "Version",
-    "noTemplates": "暂无模板",
-    "fillVariables": "请填写以下变量：",
-    "hasVariables": "提示：模板包含未填充的变量：{{variables}}",
-    "selectFromLibrary": "从模板库选择",
-    "applied": "模板已应用",
-    "changeTemplate": "更换模板",
-    "selected": "已选择",
-    "preview": "预览"
+    "noTemplates": "لا توجد قوالب بعد",
+    "fillVariables": "يرجى ملء المتغيرات التالية:",
+    "hasVariables": "ملاحظة: القالب يحتوي على متغيرات غير مملوءة: {{variables}}",
+    "selectFromLibrary": "اختر من مكتبة القوالب",
+    "applied": "تم تطبيق القالب",
+    "changeTemplate": "تغيير القالب",
+    "selected": "تم الاختيار",
+    "preview": "معاينة"
   },
   "marketplace": {
     "reviewUpdated": "Review updated successfully",
@@ -3398,67 +3398,67 @@
     "includeSelection": "تضمين التحديد"
   },
   "knowledge": {
-    "commonPanel": "公共面板",
-    "commonPanelDesc": "知识库和Wiki的共同操作",
-    "loadFiles": "加载文件",
-    "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
-    "selectFolder": "选择文件夹",
-    "loadToRAG": "加载到知识库RAG",
-    "sources": "数据源",
-    "sourcesDesc": "管理所有已加载的数据源",
-    "recentSources": "最近使用",
-    "addSource": "添加数据源",
-    "loadToWiki": "加载到Wiki",
-    "ragTab": "知识库 RAG",
-    "wikiTab": "Wiki",
-    "importTitle": "导入文档",
-    "selectedFolder": "已选择文件夹",
-    "importDestination": "导入到",
-    "ragSystem": "RAG 知识库",
-    "wikiSystem": "Wiki 系统",
-    "import": "导入",
-    "selectFolderFirst": "请先选择文件夹",
-    "selectDestination": "请选择导入目标",
-    "selectKnowledgeBaseFirst": "请先选择一个知识库",
-    "importSuccess": "导入成功",
-    "folderSelected": "文件夹已选择: {{path}}"
+    "commonPanel": "اللوحة المشتركة",
+    "commonPanelDesc": "العمليات المشتركة لقاعدة المعرفة والويكي",
+    "loadFiles": "تحميل الملفات",
+    "loadFilesDesc": "تحميل المستندات من مجلد إلى قاعدة المعرفة أو الويكي",
+    "selectFolder": "اختر مجلد",
+    "loadToRAG": "تحميل إلى RAG",
+    "sources": "مصادر البيانات",
+    "sourcesDesc": "إدارة جميع مصادر البيانات المحملة",
+    "recentSources": "المستخدم حديثاً",
+    "addSource": "إضافة مصدر بيانات",
+    "loadToWiki": "تحميل إلى الويكي",
+    "ragTab": "RAG",
+    "wikiTab": "ويكي",
+    "importTitle": "استيراد مستند",
+    "selectedFolder": "المجلد المحدد",
+    "importDestination": "استيراد إلى",
+    "ragSystem": "RAG قاعدة المعرفة",
+    "wikiSystem": "نظام الويكي",
+    "import": "استيراد",
+    "selectFolderFirst": "يرجى اختيار مجلد أولاً",
+    "selectDestination": "يرجى اختيار هدف الاستيراد",
+    "selectKnowledgeBaseFirst": "يرجى اختيار قاعدة Conocimiento أولاً",
+    "importSuccess": "تم الاستيراد بنجاح",
+    "folderSelected": "تم تحديد المجلد: {{path}}"
   },
   "plan": {
-    "defaultTitle": "执行计划",
-    "strategyDirect": "直接执行",
-    "strategyPlan": "先规划再执行",
+    "defaultTitle": "خطة التنفيذ",
+    "strategyDirect": "تنفيذ مباشر",
+    "strategyPlan": "التخطيط أولاً",
     "status": {
-      "pending": "待执行",
-      "approved": "已批准",
-      "rejected": "已拒绝",
-      "running": "执行中",
-      "completed": "已完成",
-      "error": "失败"
+      "pending": "قيد الانتظار",
+      "approved": "موافق عليه",
+      "rejected": "مرفوض",
+      "running": "قيد التنفيذ",
+      "completed": "مكتمل",
+      "error": "فشل"
     },
-    "approveAll": "批准并执行",
-    "approveStep": "批准此步骤",
-    "reject": "拒绝计划",
-    "rejectStep": "拒绝此步骤",
-    "cancel": "取消",
-    "resume": "恢复",
-    "executeApproved": "执行已批准步骤",
-    "stepsApproved": "个步骤已批准",
-    "reviewing": "审批中",
+    "approveAll": "موافقة وتنفيذ الكل",
+    "approveStep": "موافقة على هذه الخطوة",
+    "reject": "رفض الخطة",
+    "rejectStep": "رفض هذه الخطوة",
+    "cancel": "إلغاء",
+    "resume": "استئناف",
+    "executeApproved": "تنفيذ الخطوات الموافق عليها",
+    "stepsApproved": "خطوات موافق عليها",
+    "reviewing": "قيد المراجعة",
     "executing": "قيد التنفيذ",
     "historyTitle": "سجل الخطط"
   },
   "tool": {
     "common": {
-      "notFound": "工具未找到",
-      "permissionDenied": "权限被拒绝",
-      "invalidInput": "输入参数无效",
-      "executionFailed": "执行失败",
-      "timeout": "执行超时",
-      "cancelled": "已被取消"
+      "notFound": "الأداة غير موجودة",
+      "permissionDenied": "تم رفض الإذن",
+      "invalidInput": "معاملات الإدخال غير صالحة",
+      "executionFailed": "فشل التنفيذ",
+      "timeout": "انتهت مهلة التنفيذ",
+      "cancelled": "تم الإلغاء"
     },
     "tray": {
-      "show": "显示主窗口",
-      "quit": "退出 AxAgent"
+      "show": "إظهار النافذة الرئيسية",
+      "quit": "خروج"
     }
   }
 }

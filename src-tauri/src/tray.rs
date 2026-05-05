@@ -11,7 +11,7 @@ const TRAY_ID: &str = "axagent-tray";
 
 /// 托盘标签由前端 i18n 系统通过 `set_tray_labels` 命令传入
 static TRAY_LABELS: LazyLock<RwLock<(String, String)>> =
-    LazyLock::new(|| RwLock::new(("显示主窗口".to_string(), "退出 AxAgent".to_string())));
+    LazyLock::new(|| RwLock::new(("显示主窗口".to_string(), "退出".to_string())));
 
 /// 前端调用：设置托盘菜单标签文本
 #[tauri::command]

@@ -4033,6 +4033,7 @@ mod tests {
             db_path: "sqlite::memory:".to_string(),
             auto_backup_handle: Arc::new(Mutex::new(None)),
             webdav_sync_handle: Arc::new(Mutex::new(None)),
+            api_server_handle: Arc::new(Mutex::new(None)),
             vector_store,
             indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
             stream_cancel_flags: Arc::new(Mutex::new(std::collections::HashMap::new())),

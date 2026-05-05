@@ -607,9 +607,9 @@
       "left": "Gauche",
       "right": "Droite"
     },
-    "selectExpert": "选择专家角色",
-    "exportHtml": "导出 HTML",
-    "exportHtmlNoThinking": "导出 HTML（不含思考）"
+    "selectExpert": "Sélectionner un expert",
+    "exportHtml": "Exporter en HTML",
+    "exportHtmlNoThinking": "Exporter en HTML (sans réflexion)"
   },
   "gateway": {
     "title": "Passerelle",
@@ -1179,18 +1179,18 @@
       "docType": "Type",
       "docTypeFile": "Fichier",
       "docTitle": "Document",
-      "commonPanel": "公共面板",
-      "commonPanelDesc": "知识库和Wiki的共同操作",
-      "loadFiles": "加载文件",
-      "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
-      "selectFolder": "选择文件夹",
-      "loadToRAG": "加载到知识库RAG",
-      "sources": "数据源",
-      "sourcesDesc": "管理所有已加载的数据源",
-      "recentSources": "最近使用",
-      "addSource": "添加数据源",
-      "loadToWiki": "加载到Wiki",
-      "ragTab": "知识库 RAG",
+      "commonPanel": "Panneau commun",
+      "commonPanelDesc": "Opérations communes à la base de connaissances et au Wiki",
+      "loadFiles": "Charger des fichiers",
+      "loadFilesDesc": "Charger des documents depuis un dossier vers la base de connaissances ou le Wiki",
+      "selectFolder": "Sélectionner un dossier",
+      "loadToRAG": "Charger dans RAG",
+      "sources": "Sources de données",
+      "sourcesDesc": "Gérer toutes les sources de données chargées",
+      "recentSources": "Récemment utilisé",
+      "addSource": "Ajouter une source de données",
+      "loadToWiki": "Charger dans Wiki",
+      "ragTab": "RAG",
       "wikiTab": "Wiki"
     },
     "memory": {
@@ -1540,32 +1540,32 @@
       "language": "Langue",
       "confidence": "Confiance du Profil",
       "loading": "Chargement du profil...",
-      "description": "设置你的编码习惯和沟通偏好，AI 会根据这些信息调整回复风格",
-      "codingStyleDesc": "设定你习惯的代码编写方式，AI 生成的代码会尽量遵循这些偏好",
-      "namingConventionDesc": "变量和函数的命名方式",
-      "indentationStyleDesc": "代码缩进使用空格还是制表符",
-      "commentStyleDesc": "代码中注释的详细程度",
-      "communicationDesc": "设定 AI 回复时的表达方式，让它更符合你的阅读习惯",
-      "detailLevelDesc": "AI 回复内容的详尽程度",
-      "toneDesc": "AI 回复时的语言风格",
-      "languageDesc": "AI 回复时使用的语言",
-      "confidenceDesc": "AI 对你偏好的了解程度，会随着交互逐渐提升",
+      "description": "Définissez vos habitudes de codage et vos préférences de communication. L'IA ajustera son style de réponse en fonction de ces informations",
+      "codingStyleDesc": "Définissez votre façon préférée d'écrire du code. Le code généré par l'IA suivra ces préférences dans la mesure du possible",
+      "namingConventionDesc": "Conventions de nommage pour les variables et les fonctions",
+      "indentationStyleDesc": "Utilisation d'espaces ou de tabulations pour l'indentation du code",
+      "commentStyleDesc": "Niveau de détail des commentaires dans le code",
+      "communicationDesc": "Définissez comment vous voulez que l'IA réponde pour mieux s'adapter à vos habitudes de lecture",
+      "detailLevelDesc": "Niveau de détail des réponses de l'IA",
+      "toneDesc": "Style de langage des réponses de l'IA",
+      "languageDesc": "Langue des réponses de l'IA",
+      "confidenceDesc": "Dans quelle mesure l'IA connaît vos préférences, s'améliore avec l'interaction",
       "options": {
-        "snake_case": "蛇形命名 (snake_case)",
-        "camelCase": "驼峰命名 (camelCase)",
-        "PascalCase": "帕斯卡命名 (PascalCase)",
-        "kebab-case": "短横线命名 (kebab-case)",
-        "spaces": "空格",
-        "tabs": "制表符",
-        "minimal": "精简",
-        "documented": "适中",
-        "verbose": "详尽",
-        "concise": "简洁",
-        "moderate": "适中",
-        "detailed": "详细",
-        "formal": "正式",
-        "neutral": "中性",
-        "casual": "随意"
+        "snake_case": "Snake case (snake_case)",
+        "camelCase": "Camel case (camelCase)",
+        "PascalCase": "Pascal case (PascalCase)",
+        "kebab-case": "Kebab case (kebab-case)",
+        "spaces": "Espaces",
+        "tabs": "Tabulations",
+        "minimal": "Minimal",
+        "documented": "Modéré",
+        "verbose": "Détaillé",
+        "concise": "Concis",
+        "moderate": "Équilibré",
+        "detailed": "Détaillé",
+        "formal": "Formel",
+        "neutral": "Neutre",
+        "casual": "Décontracté"
       }
     },
     "webhook": {
@@ -1686,12 +1686,12 @@
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
       "openEditor": "Open Editor"
     },
-    "tabModel": "模型与服务",
-    "tabAppearance": "界面",
-    "tabExtensions": "工具与扩展",
-    "tabNetwork": "通信",
-    "tabData": "数据",
-    "tabSystem": "系统",
+    "tabModel": "Modèle et Services",
+    "tabAppearance": "Interface",
+    "tabExtensions": "Outils et Extensions",
+    "tabNetwork": "Communication",
+    "tabData": "Données",
+    "tabSystem": "Système",
     "messageChannels": "Canaux de messages",
     "platform": {
       "enable": "Activer",
@@ -1726,10 +1726,10 @@
       "activeSessions": "Sessions actives",
       "noStatuses": "Aucun statut disponible"
     },
-    "advanced": "高级设置",
-    "promptTemplates": "提示词模板",
-    "appConfig": "Agent 控制面板",
-    "appConfigDesc": "模型选择、功能开关、Agent 管理与 Hook 配置",
+    "advanced": "Paramètres avancés",
+    "promptTemplates": "Modèles de prompts",
+    "appConfig": "Panneau de contrôle de l'Agent",
+    "appConfigDesc": "Sélection du modèle, interrupteurs de fonctions, gestion de l'Agent et configuration des Hooks",
     "bocha": "Bocha",
     "zhipu": "Zhipu"
   },
@@ -1802,7 +1802,7 @@
       "lastSync": "Dernière synchronisation"
     },
     "backupSuccess": "Sauvegarde réussie",
-    "error": "操作失败"
+    "error": "L'opération a échoué"
   },
   "common": {
     "confirm": "Confirmer",
@@ -1932,10 +1932,10 @@
     "text": "Text",
     "viewDetails": "View details",
     "waitingForApproval": "Waiting for approval",
-    "error": "操作失败",
-    "createSuccess": "创建成功",
-    "deleteSuccess": "删除成功",
-    "retry": "重试"
+    "error": "L'opération a échoué",
+    "createSuccess": "Créé avec succès",
+    "deleteSuccess": "Supprimé avec succès",
+    "retry": "Réessayer"
   },
   "multiAgent": {
     "title": "État Multi-Agent",
@@ -1989,9 +1989,9 @@
     "closeConversation": "Fermer la conversation",
     "focusSearch": "Mettre le focus sur la recherche",
     "openSettings": "Ouvrir les paramètres",
-    "conflictApp1": "飞书/微信/企业微信/钉钉",
-    "conflictApp2": "QQ/微信",
-    "conflictApp3": "微信 (Windows)"
+    "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
+    "conflictApp2": "QQ/WeChat",
+    "conflictApp3": "WeChat (Windows)"
   },
   "tray": {
     "show": "Afficher",
@@ -2445,10 +2445,10 @@
     "useRegex": "Use regex"
   },
   "lang": {
-    "zhCN": "简体中文",
-    "zhTW": "繁體中文",
-    "ja": "日本語",
-    "ko": "한국어"
+    "zhCN": "Chinois simplifié",
+    "zhTW": "Chinois traditionnel",
+    "ja": "Japonais",
+    "ko": "Coréen"
   },
   "wiki": {
     "compile": {
@@ -2603,7 +2603,7 @@
       "viewInGraph": "View in graph",
       "viewSource": "View source",
       "wikiList": "Wiki List",
-      "selectWikiFirst": "请先选择一个Wiki"
+      "selectWikiFirst": "Veuillez d'abord sélectionner un Wiki"
     },
     "llmNote": "LLM Note",
     "log": {
@@ -2701,15 +2701,15 @@
       "rootPath": "Root Path",
       "schemaVersion": "Schema Version"
     },
-    "manage": "管理",
-    "viewingWiki": "正在查看 Wiki: {{id}}",
-    "deleted": "已删除",
-    "unsavedTitle": "未保存的更改",
-    "unsavedContent": "你有未保存的更改，确定放弃吗？",
-    "discard": "放弃",
-    "keepEditing": "继续编辑",
-    "confirmDelete": "确定删除这条笔记？",
-    "backToNotes": "返回笔记"
+    "manage": "Gérer",
+    "viewingWiki": "Visualisation du Wiki: {{id}}",
+    "deleted": "Supprimé",
+    "unsavedTitle": "Modifications non enregistrées",
+    "unsavedContent": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir les abandonner?",
+    "discard": "Abandonner",
+    "keepEditing": "Continuer à éditer",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette note?",
+    "backToNotes": "Retour aux notes"
   },
   "quickbar": {
     "title": "QuickBar",
@@ -2777,7 +2777,7 @@
       "saveWiki": "Enregistrer",
       "continueAsk": "Suivre",
       "error": "Erreur",
-      "noWikiSelected": "请先在知识库中选择一个 Wiki"
+      "noWikiSelected": "Veuillez d'abord sélectionner un Wiki dans la base de connaissances"
     }
   },
   "workflow": {
@@ -3211,14 +3211,14 @@
     "templateUpdated": "Template updated",
     "variablesSchema": "Variables Schema",
     "version": "Version",
-    "noTemplates": "暂无模板",
-    "fillVariables": "请填写以下变量：",
-    "hasVariables": "提示：模板包含未填充的变量：{{variables}}",
-    "selectFromLibrary": "从模板库选择",
-    "applied": "模板已应用",
-    "changeTemplate": "更换模板",
-    "selected": "已选择",
-    "preview": "预览"
+    "noTemplates": "Pas encore de modèles",
+    "fillVariables": "Veuillez remplir les variables suivantes:",
+    "hasVariables": "Note: Le modèle contient des variables non remplies: {{variables}}",
+    "selectFromLibrary": "Sélectionner dans la bibliothèque de modèles",
+    "applied": "Modèle appliqué",
+    "changeTemplate": "Changer de modèle",
+    "selected": "Sélectionné",
+    "preview": "Aperçu"
   },
   "marketplace": {
     "reviewUpdated": "Review updated successfully",
@@ -3398,67 +3398,67 @@
     "includeSelection": "Inclure la sélection"
   },
   "knowledge": {
-    "commonPanel": "公共面板",
-    "commonPanelDesc": "知识库和Wiki的共同操作",
-    "loadFiles": "加载文件",
-    "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
-    "selectFolder": "选择文件夹",
-    "loadToRAG": "加载到知识库RAG",
-    "sources": "数据源",
-    "sourcesDesc": "管理所有已加载的数据源",
-    "recentSources": "最近使用",
-    "addSource": "添加数据源",
-    "loadToWiki": "加载到Wiki",
-    "ragTab": "知识库 RAG",
+    "commonPanel": "Panneau commun",
+    "commonPanelDesc": "Opérations communes à la base de connaissances et au Wiki",
+    "loadFiles": "Charger des fichiers",
+    "loadFilesDesc": "Charger des documents depuis un dossier vers la base de connaissances ou le Wiki",
+    "selectFolder": "Sélectionner un dossier",
+    "loadToRAG": "Charger dans RAG",
+    "sources": "Sources de données",
+    "sourcesDesc": "Gérer toutes les sources de données chargées",
+    "recentSources": "Récemment utilisé",
+    "addSource": "Ajouter une source de données",
+    "loadToWiki": "Charger dans Wiki",
+    "ragTab": "RAG",
     "wikiTab": "Wiki",
-    "importTitle": "导入文档",
-    "selectedFolder": "已选择文件夹",
-    "importDestination": "导入到",
-    "ragSystem": "RAG 知识库",
-    "wikiSystem": "Wiki 系统",
-    "import": "导入",
-    "selectFolderFirst": "请先选择文件夹",
-    "selectDestination": "请选择导入目标",
-    "selectKnowledgeBaseFirst": "请先选择一个知识库",
-    "importSuccess": "导入成功",
-    "folderSelected": "文件夹已选择: {{path}}"
+    "importTitle": "Importer un document",
+    "selectedFolder": "Dossier sélectionné",
+    "importDestination": "Importer vers",
+    "ragSystem": "RAG",
+    "wikiSystem": "Wiki",
+    "import": "Importer",
+    "selectFolderFirst": "Veuillez d'abord sélectionner un dossier",
+    "selectDestination": "Veuillez sélectionner la destination d'importation",
+    "selectKnowledgeBaseFirst": "Veuillez d'abord sélectionner une base de connaissances",
+    "importSuccess": "Importation réussie",
+    "folderSelected": "Dossier sélectionné: {{path}}"
   },
   "plan": {
-    "defaultTitle": "执行计划",
-    "strategyDirect": "直接执行",
-    "strategyPlan": "先规划再执行",
+    "defaultTitle": "Plan d'exécution",
+    "strategyDirect": "Exécuter directement",
+    "strategyPlan": "Planifier d'abord",
     "status": {
-      "pending": "待执行",
-      "approved": "已批准",
-      "rejected": "已拒绝",
-      "running": "执行中",
-      "completed": "已完成",
-      "error": "失败"
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "rejected": "Rejeté",
+      "running": "En cours",
+      "completed": "Terminé",
+      "error": "Échoué"
     },
-    "approveAll": "批准并执行",
-    "approveStep": "批准此步骤",
-    "reject": "拒绝计划",
-    "rejectStep": "拒绝此步骤",
-    "cancel": "取消",
-    "resume": "恢复",
-    "executeApproved": "执行已批准步骤",
-    "stepsApproved": "个步骤已批准",
-    "reviewing": "审批中",
+    "approveAll": "Tout approuver et exécuter",
+    "approveStep": "Approuver cette étape",
+    "reject": "Rejeter le plan",
+    "rejectStep": "Rejeter cette étape",
+    "cancel": "Annuler",
+    "resume": "Reprendre",
+    "executeApproved": "Exécuter les étapes approuvées",
+    "stepsApproved": "étapes approuvées",
+    "reviewing": "En révision",
     "executing": "En cours",
     "historyTitle": "Historique des plans"
   },
   "tool": {
     "common": {
-      "notFound": "工具未找到",
-      "permissionDenied": "权限被拒绝",
-      "invalidInput": "输入参数无效",
-      "executionFailed": "执行失败",
-      "timeout": "执行超时",
-      "cancelled": "已被取消"
+      "notFound": "Outil non trouvé",
+      "permissionDenied": "Permission refusée",
+      "invalidInput": "Paramètres d'entrée invalides",
+      "executionFailed": "Échec de l'exécution",
+      "timeout": "Délai d'exécution dépassé",
+      "cancelled": "Annulé"
     },
     "tray": {
-      "show": "显示主窗口",
-      "quit": "退出 AxAgent"
+      "show": "Afficher la fenêtre principale",
+      "quit": "Quitter AxAgent"
     }
   }
 }

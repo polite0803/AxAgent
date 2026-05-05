@@ -607,9 +607,9 @@
       "left": "왼쪽",
       "right": "오른쪽"
     },
-    "selectExpert": "选择专家角色",
-    "exportHtml": "导出 HTML",
-    "exportHtmlNoThinking": "导出 HTML（不含思考）"
+    "selectExpert": "전문가 선택",
+    "exportHtml": "HTML 내보내기",
+    "exportHtmlNoThinking": "HTML 내보내기 (思考 없음)"
   },
   "gateway": {
     "title": "게이트웨이",
@@ -1214,18 +1214,18 @@
       "docType": "유형",
       "docTypeFile": "파일",
       "docTitle": "문서",
-      "commonPanel": "公共面板",
-      "commonPanelDesc": "知识库和Wiki的共同操作",
-      "loadFiles": "加载文件",
-      "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
-      "selectFolder": "选择文件夹",
-      "loadToRAG": "加载到知识库RAG",
-      "sources": "数据源",
-      "sourcesDesc": "管理所有已加载的数据源",
-      "recentSources": "最近使用",
-      "addSource": "添加数据源",
-      "loadToWiki": "加载到Wiki",
-      "ragTab": "知识库 RAG",
+      "commonPanel": "공통 패널",
+      "commonPanelDesc": "지식 베이스와 Wiki의 공통 작업",
+      "loadFiles": "파일 로드",
+      "loadFilesDesc": "폴더에서 지식 베이스 또는 Wiki로 문서 로드",
+      "selectFolder": "폴더 선택",
+      "loadToRAG": "RAG에 로드",
+      "sources": "데이터 소스",
+      "sourcesDesc": "로드된 모든 데이터 소스 관리",
+      "recentSources": "최근 사용",
+      "addSource": "데이터 소스 추가",
+      "loadToWiki": "Wiki에 로드",
+      "ragTab": "RAG",
       "wikiTab": "Wiki"
     },
     "memory": {
@@ -1721,15 +1721,15 @@
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
       "openEditor": "Open Editor"
     },
-    "tabModel": "模型与服务",
-    "tabAppearance": "界面",
-    "tabExtensions": "工具与扩展",
-    "tabNetwork": "通信",
-    "tabData": "数据",
-    "tabSystem": "系统",
-    "promptTemplates": "提示词模板",
-    "appConfig": "Agent 控制面板",
-    "appConfigDesc": "模型选择、功能开关、Agent 管理与 Hook 配置",
+    "tabModel": "모델 및 서비스",
+    "tabAppearance": "인터페이스",
+    "tabExtensions": "도구 및 확장",
+    "tabNetwork": "통신",
+    "tabData": "데이터",
+    "tabSystem": "시스템",
+    "promptTemplates": "프롬프트 템플릿",
+    "appConfig": "에이전트 제어 패널",
+    "appConfigDesc": "모델 선택, 기능 스위치, 에이전트 관리 및 Hook 구성",
     "bocha": "Bocha",
     "zhipu": "Zhipu"
   },
@@ -1802,7 +1802,7 @@
       "lastSync": "마지막 동기화"
     },
     "backupSuccess": "백업 성공",
-    "error": "操作失败"
+    "error": "작업 실패"
   },
   "common": {
     "confirm": "확인",
@@ -1932,10 +1932,10 @@
     "text": "Text",
     "viewDetails": "View details",
     "waitingForApproval": "Waiting for approval",
-    "error": "操作失败",
-    "createSuccess": "创建成功",
-    "deleteSuccess": "删除成功",
-    "retry": "重试"
+    "error": "작업 실패",
+    "createSuccess": "생성 성공",
+    "deleteSuccess": "삭제 성공",
+    "retry": "재시도"
   },
   "multiAgent": {
     "title": "멀티 에이전트 상태",
@@ -1989,9 +1989,9 @@
     "closeConversation": "대화 닫기",
     "focusSearch": "검색 포커스",
     "openSettings": "설정 열기",
-    "conflictApp1": "飞书/微信/企业微信/钉钉",
-    "conflictApp2": "QQ/微信",
-    "conflictApp3": "微信 (Windows)"
+    "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
+    "conflictApp2": "QQ/WeChat",
+    "conflictApp3": "WeChat (Windows)"
   },
   "tray": {
     "show": "표시",
@@ -2490,7 +2490,7 @@
       "saveWiki": "Save",
       "continueAsk": "Follow up",
       "error": "Error",
-      "noWikiSelected": "请先在知识库中选择一个 Wiki"
+      "noWikiSelected": "먼저 지식 베이스에서 Wiki를 선택하세요"
     }
   },
   "workflow": {
@@ -2924,14 +2924,14 @@
     "templateUpdated": "Template updated",
     "variablesSchema": "Variables Schema",
     "version": "Version",
-    "noTemplates": "暂无模板",
-    "fillVariables": "请填写以下变量：",
-    "hasVariables": "提示：模板包含未填充的变量：{{variables}}",
-    "selectFromLibrary": "从模板库选择",
-    "applied": "模板已应用",
-    "changeTemplate": "更换模板",
-    "selected": "已选择",
-    "preview": "预览"
+    "noTemplates": "아직 템플릿이 없습니다",
+    "fillVariables": "다음 변수를 입력하세요:",
+    "hasVariables": "참고: 템플릿에 채워지지 않은 변수가 있습니다: {{variables}}",
+    "selectFromLibrary": "템플릿 라이브러리에서 선택",
+    "applied": "템플릿 적용됨",
+    "changeTemplate": "템플릿 변경",
+    "selected": "선택됨",
+    "preview": "미리보기"
   },
   "marketplace": {
     "reviewUpdated": "Review updated successfully",
@@ -2984,9 +2984,9 @@
     "useRegex": "Use regex"
   },
   "lang": {
-    "zhCN": "简体中文",
-    "zhTW": "繁體中文",
-    "ja": "日本語",
+    "zhCN": "중국어 간체",
+    "zhTW": "중국어 번체",
+    "ja": "일본어",
     "ko": "한국어"
   },
   "wiki": {
@@ -3142,7 +3142,7 @@
       "viewInGraph": "View in graph",
       "viewSource": "View source",
       "wikiList": "Wiki List",
-      "selectWikiFirst": "请先选择一个Wiki"
+      "selectWikiFirst": "먼저 Wiki를 선택하세요"
     },
     "llmNote": "LLM Note",
     "log": {
@@ -3240,15 +3240,15 @@
       "rootPath": "Root Path",
       "schemaVersion": "Schema Version"
     },
-    "manage": "管理",
-    "viewingWiki": "正在查看 Wiki: {{id}}",
-    "deleted": "已删除",
-    "unsavedTitle": "未保存的更改",
-    "unsavedContent": "你有未保存的更改，确定放弃吗？",
-    "discard": "放弃",
-    "keepEditing": "继续编辑",
-    "confirmDelete": "确定删除这条笔记？",
-    "backToNotes": "返回笔记"
+    "manage": "관리",
+    "viewingWiki": "Wiki 보는 중: {{id}}",
+    "deleted": "삭제됨",
+    "unsavedTitle": "저장되지 않은 변경 사항",
+    "unsavedContent": "저장되지 않은 변경 사항이 있습니다. 정말 폐기하시겠습니까?",
+    "discard": "폐기",
+    "keepEditing": "편집 계속",
+    "confirmDelete": "이 노트를 삭제하시겠습니까?",
+    "backToNotes": "노트로 돌아가기"
   },
   "notification": {
     "clear": "Clear",
@@ -3398,67 +3398,67 @@
     "includeSelection": "선택 영역 포함"
   },
   "knowledge": {
-    "commonPanel": "公共面板",
-    "commonPanelDesc": "知识库和Wiki的共同操作",
-    "loadFiles": "加载文件",
-    "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
-    "selectFolder": "选择文件夹",
-    "loadToRAG": "加载到知识库RAG",
-    "sources": "数据源",
-    "sourcesDesc": "管理所有已加载的数据源",
-    "recentSources": "最近使用",
-    "addSource": "添加数据源",
-    "loadToWiki": "加载到Wiki",
-    "ragTab": "知识库 RAG",
+    "commonPanel": "공통 패널",
+    "commonPanelDesc": "지식 베이스와 Wiki의 공통 작업",
+    "loadFiles": "파일 로드",
+    "loadFilesDesc": "폴더에서 지식 베이스 또는 Wiki로 문서 로드",
+    "selectFolder": "폴더 선택",
+    "loadToRAG": "RAG에 로드",
+    "sources": "데이터 소스",
+    "sourcesDesc": "로드된 모든 데이터 소스 관리",
+    "recentSources": "최근 사용",
+    "addSource": "데이터 소스 추가",
+    "loadToWiki": "Wiki에 로드",
+    "ragTab": "RAG",
     "wikiTab": "Wiki",
-    "importTitle": "导入文档",
-    "selectedFolder": "已选择文件夹",
-    "importDestination": "导入到",
-    "ragSystem": "RAG 知识库",
-    "wikiSystem": "Wiki 系统",
-    "import": "导入",
-    "selectFolderFirst": "请先选择文件夹",
-    "selectDestination": "请选择导入目标",
-    "selectKnowledgeBaseFirst": "请先选择一个知识库",
-    "importSuccess": "导入成功",
-    "folderSelected": "文件夹已选择: {{path}}"
+    "importTitle": "문서 가져오기",
+    "selectedFolder": "선택된 폴더",
+    "importDestination": "가져오기 대상",
+    "ragSystem": "RAG 지식 베이스",
+    "wikiSystem": "Wiki 시스템",
+    "import": "가져오기",
+    "selectFolderFirst": "먼저 폴더를 선택하세요",
+    "selectDestination": "가져오기 대상을 선택하세요",
+    "selectKnowledgeBaseFirst": "먼저 지식 베이스를 선택하세요",
+    "importSuccess": "가져오기 성공",
+    "folderSelected": "폴더 선택됨: {{path}}"
   },
   "plan": {
-    "defaultTitle": "执行计划",
-    "strategyDirect": "直接执行",
-    "strategyPlan": "先规划再执行",
+    "defaultTitle": "실행 계획",
+    "strategyDirect": "직접 실행",
+    "strategyPlan": "먼저 계획",
     "status": {
-      "pending": "待执行",
-      "approved": "已批准",
-      "rejected": "已拒绝",
-      "running": "执行中",
-      "completed": "已完成",
-      "error": "失败"
+      "pending": "대기 중",
+      "approved": "승인됨",
+      "rejected": "거부됨",
+      "running": "실행 중",
+      "completed": "완료됨",
+      "error": "실패"
     },
-    "approveAll": "批准并执行",
-    "approveStep": "批准此步骤",
-    "reject": "拒绝计划",
-    "rejectStep": "拒绝此步骤",
-    "cancel": "取消",
-    "resume": "恢复",
-    "executeApproved": "执行已批准步骤",
-    "stepsApproved": "个步骤已批准",
-    "reviewing": "审批中",
+    "approveAll": "모두 승인 및 실행",
+    "approveStep": "이 단계 승인",
+    "reject": "계획 거부",
+    "rejectStep": "이 단계 거부",
+    "cancel": "취소",
+    "resume": "재개",
+    "executeApproved": "승인된 단계 실행",
+    "stepsApproved": "단계 승인됨",
+    "reviewing": "검토 중",
     "executing": "실행 중",
     "historyTitle": "계획 이력"
   },
   "tool": {
     "common": {
-      "notFound": "工具未找到",
-      "permissionDenied": "权限被拒绝",
-      "invalidInput": "输入参数无效",
-      "executionFailed": "执行失败",
-      "timeout": "执行超时",
-      "cancelled": "已被取消"
+      "notFound": "도구를 찾을 수 없음",
+      "permissionDenied": "권한 거부됨",
+      "invalidInput": "입력 매개변수 오류",
+      "executionFailed": "실행 실패",
+      "timeout": "실행 시간 초과",
+      "cancelled": "취소됨"
     },
     "tray": {
-      "show": "显示主窗口",
-      "quit": "退出 AxAgent"
+      "show": "메인 창 표시",
+      "quit": "종료"
     }
   }
 }
