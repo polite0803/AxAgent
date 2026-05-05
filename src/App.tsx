@@ -12,7 +12,7 @@ import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
-import { invoke, isTauri, listen } from "@/lib/invoke";
+import { checkIpcHealth, invoke, isTauri, listen } from "@/lib/invoke";
 import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
 import { useConversationStore, useSettingsStore, useSkillExtensionStore, useStreamStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
@@ -119,7 +119,12 @@ function AppInner() {
   // 加载技能前端扩展
   const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
   useEffect(() => {
-    fetchSkills();
+    console.log("[启动] 开始调用 list_skills...");
+    fetchSkills().then(() => {
+      console.log("[启动] list_skills 成功");
+    }).catch((e: unknown) => {
+      console.warn("[启动] list_skills 失败:", e);
+    });
   }, [fetchSkills]);
 
   // Auto-check for updates on startup and periodically
@@ -207,32 +212,48 @@ function AppRoot() {
   // Load persisted settings from backend on startup, then apply native settings
   useEffect(() => {
     const init = async () => {
+      const t0 = performance.now();
+      console.log(`[启动] useEffect 触发, isTauri=${isTauri()}, timestamp=${Date.now()}`);
+
+      // IPC 通道健康检查
+      if (isTauri()) {
+        const health = await checkIpcHealth();
+        console.log(`[启动] IPC 健康检查: ok=${health.ok}, detail="${health.detail}"`);
+      }
+
       try {
+        console.log("[启动] 开始调用 get_settings...");
         await useSettingsStore.getState().fetchSettings();
+        console.log(`[启动] get_settings 成功 (${Math.round(performance.now() - t0)}ms)`);
       } catch (e) {
-        console.warn("Failed to fetch settings:", e);
+        console.warn(`[启动] get_settings 失败 (${Math.round(performance.now() - t0)}ms):`, e);
       }
 
       // Seed preset workflow templates
       try {
+        console.log("[启动] 开始调用 seed_preset_templates...");
         await invoke("seed_preset_templates");
-        if (import.meta.env.DEV) { console.log("Seeded preset workflow templates"); }
+        console.log(`[启动] seed_preset_templates 成功 (${Math.round(performance.now() - t0)}ms)`);
       } catch (e) {
-        console.warn("Failed to seed preset templates:", e);
+        console.warn(`[启动] seed_preset_templates 失败 (${Math.round(performance.now() - t0)}ms):`, e);
       }
 
-      if (!isTauri()) { return; }
+      if (!isTauri()) {
+        console.log("[启动] 非 Tauri 环境，跳过原生设置");
+        return;
+      }
       const settings = useSettingsStore.getState().settings;
 
       // Apply native window settings
       try {
-        const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
-        await tauriInvoke("apply_startup_settings", {
+        console.log("[启动] 开始调用 apply_startup_settings...");
+        await invoke("apply_startup_settings", {
           alwaysOnTop: settings.always_on_top ?? false,
           closeToTray: settings.minimize_to_tray ?? false,
         });
+        console.log(`[启动] apply_startup_settings 成功 (${Math.round(performance.now() - t0)}ms)`);
       } catch (e) {
-        console.warn("Failed to apply native settings:", e);
+        console.warn(`[启动] apply_startup_settings 失败 (${Math.round(performance.now() - t0)}ms):`, e);
       }
 
       // Autostart (skip in dev mode — exe path doesn't exist)

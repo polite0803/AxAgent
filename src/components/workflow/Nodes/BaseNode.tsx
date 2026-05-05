@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { Handle, type NodeProps, Position } from "reactflow";
 import { NODE_TYPE_MAP } from "../types";
 
-interface BaseNodeData {
+export interface BaseNodeData {
   id: string;
   type: string;
   title: string;

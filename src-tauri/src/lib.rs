@@ -146,10 +146,6 @@ pub fn run() {
             commands::mcp::list_tool_executions,
             commands::mcp::hot_reload_mcp_server,
             commands::mcp::discover_available_mcp_servers,
-            commands::context_sources::list_context_sources,
-            commands::context_sources::add_context_source,
-            commands::context_sources::remove_context_source,
-            commands::context_sources::toggle_context_source,
 
             commands::local_tool::list_local_tools,
             commands::local_tool::toggle_local_tool,
@@ -502,7 +498,6 @@ pub fn run() {
             commands::platform_integration::get_active_sessions,
             commands::platform_integration::deactivate_platform_session,
             commands::platform_integration::send_telegram_message,
-            commands::platform_integration::send_telegram_message,
             commands::platform_integration::send_discord_message,
             commands::platform_integration::send_platform_message,
             commands::platform_integration::get_platform_statuses,
@@ -649,6 +644,13 @@ pub fn run() {
             commands::agent_role::list_agent_roles,
             commands::agent_role::import_agent_roles,
             commands::agent_role::delete_agent_role,
+            // App config
+            commands::app_config::get_app_config,
+            commands::app_config::save_app_config,
+            // Dream / consolidation
+            commands::dream::dream_consolidate_now,
+            commands::dream::dream_get_status,
+            commands::dream::dream_set_config,
             // Plugin commands
             commands::plugin::list_plugin_tools,
             commands::plugin::plugin_enable,

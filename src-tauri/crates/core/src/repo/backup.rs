@@ -102,7 +102,7 @@ async fn create_sqlite_backup(db: &DatabaseConnection, dest: &Path) -> Result<()
             AxAgentError::Gateway(format!("Failed to remove existing backup file: {}", e))
         })?;
     }
-    db.execute(Statement::from_string(
+    db.execute_raw(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
         format!("VACUUM INTO '{}'", dest_str.replace('\'', "''")),
     ))
@@ -238,12 +238,12 @@ fn json_value_to_sea_value(v: &serde_json::Value) -> Value {
                 Value::BigInt(None)
             }
         },
-        serde_json::Value::String(s) => Value::String(Some(Box::new(s.clone()))),
+        serde_json::Value::String(s) => Value::String(Some(s.clone())),
         serde_json::Value::Array(a) => {
-            Value::String(Some(Box::new(serde_json::to_string(a).unwrap_or_default())))
+            Value::String(Some(serde_json::to_string(a).unwrap_or_default()))
         },
         serde_json::Value::Object(o) => {
-            Value::String(Some(Box::new(serde_json::to_string(o).unwrap_or_default())))
+            Value::String(Some(serde_json::to_string(o).unwrap_or_default()))
         },
     }
 }
@@ -339,7 +339,7 @@ pub async fn restore_json_backup(
 
         // Overwrite 策略：先清空表
         if matches!(strategy, crate::types::RestoreStrategy::Overwrite) {
-            txn.execute(Statement::from_string(
+            txn.execute_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
                 format!("DELETE FROM \"{}\"", table_name),
             ))
@@ -386,7 +386,7 @@ pub async fn restore_json_backup(
                 .collect();
 
             match txn
-                .execute(Statement::from_sql_and_values(
+                .execute_raw(Statement::from_sql_and_values(
                     DatabaseBackend::Sqlite,
                     &sql,
                     values,

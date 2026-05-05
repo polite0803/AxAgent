@@ -26,6 +26,7 @@ import {
   Spin,
   Switch,
   Tabs,
+  type TabsProps,
   Tag,
   theme,
   Typography,
@@ -830,7 +831,7 @@ export function SkillsPage() {
         <Tabs
           size="small"
           activeKey={sourceFilter}
-          onChange={(k) => setSourceFilter(k as any)}
+          onChange={(k) => setSourceFilter(k)}
           items={(() => {
             // 统计各来源的技能数量
             const sourceCounts = new Map<string, number>();
@@ -839,7 +840,7 @@ export function SkillsPage() {
             }
             // 来源 Tab，始终显示（即使 count=0），与 INSTALL_TARGETS 保持一致
             const standardSources = INSTALL_TARGETS.map(t => t.key);
-            const tabs: any[] = [
+            const tabs: TabsProps["items"] = [
               {
                 key: "all",
                 label: (

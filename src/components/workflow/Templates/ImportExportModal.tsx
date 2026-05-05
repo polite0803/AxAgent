@@ -11,8 +11,11 @@ function BatchImportN8n() {
       imported: number;
       skipped: number;
       errors: string[];
+      errorCount: number;
+      importedNames: string[];
     } | null
   >(null);
+  const [showAllErrors, setShowAllErrors] = useState(false);
 
   const handleBatchImport = async () => {
     try {
@@ -22,6 +25,7 @@ function BatchImportN8n() {
 
       setImporting(true);
       setResult(null);
+      setShowAllErrors(false);
       const res = await invoke<{
         imported: number;
         imported_names: string[];
@@ -33,7 +37,9 @@ function BatchImportN8n() {
       setResult({
         imported: res.imported,
         skipped: res.skipped,
-        errors: res.error_details.slice(0, 5),
+        errors: res.error_details,
+        errorCount: res.errors,
+        importedNames: res.imported_names,
       });
       if (res.imported > 0) {
         message.success(`成功导入 ${res.imported} 个工作流`);
@@ -60,10 +66,29 @@ function BatchImportN8n() {
           style={{ marginTop: 8 }}
           type={result.errors.length > 0 ? "warning" : "success"}
           message={
-            <span style={{ fontSize: 12 }}>
-              导入 {result.imported} 个 · 跳过 {result.skipped} 个
-              {result.errors.length > 0 && ` · 错误 ${result.errors.length} 个`}
-            </span>
+            <div style={{ fontSize: 12 }}>
+              <div>
+                导入 {result.imported} 个 · 跳过 {result.skipped} 个
+                {result.errorCount > 0 && ` · 错误 ${result.errorCount} 个`}
+              </div>
+              {result.errors.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  {(showAllErrors ? result.errors : result.errors.slice(0, 5)).map((e, i) => (
+                    <div key={i} style={{ color: "#595959", fontSize: 11, marginBottom: 2 }}>{e}</div>
+                  ))}
+                  {result.errors.length > 5 && !showAllErrors && (
+                    <Button
+                      type="link"
+                      size="small"
+                      style={{ padding: 0, fontSize: 11 }}
+                      onClick={() => setShowAllErrors(true)}
+                    >
+                      查看全部 {result.errors.length} 个错误
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           }
         />
       )}
@@ -136,7 +161,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         message.error("导入失败");
       }
     } catch (error) {
-      message.error("导入失败");
+      message.error(`导入失败: ${String(error)}`);
     } finally {
       setIsImporting(false);
     }

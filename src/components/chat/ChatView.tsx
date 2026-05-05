@@ -1131,7 +1131,7 @@ function ChatViewInner() {
       });
     }
     if (codeBlockThemes.length > 0) {
-      registerHighlight({ themes: codeBlockThemes as any }).catch((err) => {
+      registerHighlight({ themes: codeBlockThemes as import("@shikijs/types").ThemeInput[] }).catch((err) => {
         console.error("[AxAgent Theme Debug] registerHighlight failed:", err);
       });
     }
@@ -3064,14 +3064,14 @@ function ChatViewInner() {
                   void updateConversation(activeConversation.id, {
                     session_type: "workflow",
                     workflow_template_id: templateId,
-                  } as any);
+                  });
                   fetchConversation();
                 }}
                 onRemoveWorkflow={() => {
                   void updateConversation(activeConversation.id, {
                     session_type: "conversation",
                     workflow_template_id: null,
-                  } as any);
+                  });
                   fetchConversation();
                 }}
                 disabled={!!streamingMessageId}
@@ -3281,7 +3281,7 @@ function ChatViewInner() {
                         void updateConversation(activeConversation.id, {
                           session_type: "workflow",
                           workflow_template_id: templateId,
-                        } as any);
+                        });
                         fetchConversation();
                         useAgentStore.getState()
                           .setWorkflowMatchSuggestion(null);

@@ -86,7 +86,7 @@ export function SyncStatus({
     setProcessing(false);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "success" | "error" | "processing" | "default" | "warning" => {
     switch (status) {
       case "completed":
         return "success";
@@ -245,7 +245,7 @@ export function SyncStatus({
                 <List.Item className="px-0">
                   <div className="flex items-center justify-between w-full">
                     <Space>
-                      <Badge status={getStatusColor(item.status) as any} />
+                      <Badge status={getStatusColor(item.status)} />
                       <Tag>{getEventTypeLabel(item.eventType)}</Tag>
                     </Space>
                     <Space>

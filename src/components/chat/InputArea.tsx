@@ -158,7 +158,9 @@ function AgentRoleSelect({
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    invoke<{ id: string; name: string }[]>("list_agent_roles").then(setRoles).catch(() => {});
+    invoke<{ id: string; name: string }[]>("list_agent_roles")
+      .then(setRoles)
+      .catch((e) => console.error("[AgentRoleSelect] Failed to load roles:", e));
   }, []);
 
   return (

@@ -109,7 +109,7 @@ impl HybridSearcher {
 
         let rows = self
             .db
-            .query_all(Statement::from_sql_and_values(
+            .query_all_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 &sql,
                 vec![sanitized.into(), (top_k as i64).into()],

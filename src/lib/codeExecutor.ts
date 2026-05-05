@@ -19,7 +19,7 @@ declare global {
   }
 }
 
-interface PyodideInterface {
+export interface PyodideInterface {
   runPythonAsync: (code: string) => Promise<string>;
 }
 

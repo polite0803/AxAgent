@@ -890,7 +890,7 @@ impl ExponentialBackoff {
 
     pub fn next_delay(&mut self) -> std::time::Duration {
         let delay = std::cmp::min(
-            self.base_delay_ms * 2u64.pow(self.current_attempt.min(10)),
+            self.base_delay_ms * 2u64.pow(std::cmp::Ord::min(self.current_attempt, 10)),
             self.max_delay_ms,
         );
         self.current_attempt += 1;

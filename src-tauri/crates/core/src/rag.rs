@@ -700,7 +700,7 @@ async fn count_collection_items(db: &DatabaseConnection, collection_name: &str) 
     let sanitized = collection_name.replace(['-', '\'', '"', ';'], "_");
     let table_name = format!("vec_{}_meta", sanitized);
     let count: i64 = db
-        .query_one(Statement::from_string(
+        .query_one_raw(Statement::from_string(
             DbBackend::Sqlite,
             format!("SELECT COUNT(*) as cnt FROM \"{}\"", table_name),
         ))
@@ -737,7 +737,7 @@ async fn get_oldest_item_timestamp(
     let sanitized = collection_name.replace(['-', '\'', '"', ';'], "_");
     let table_name = format!("vec_{}_meta", sanitized);
     let result = db
-        .query_one(Statement::from_string(
+        .query_one_raw(Statement::from_string(
             DbBackend::Sqlite,
             format!(
                 "SELECT created_at FROM \"{}\" ORDER BY created_at ASC LIMIT 1",

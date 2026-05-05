@@ -28,7 +28,8 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
         if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
         timeoutRef.current = setTimeout(() => setCopiedValue(null), timeout);
         return true;
-      } catch {
+      } catch (e) {
+        console.error("[useCopyToClipboard] writeToClipboard failed:", e);
         return false;
       }
     },

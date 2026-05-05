@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 const { Column } = Table;
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string): "success" | "error" | "processing" | "default" | "warning" => {
   switch (status) {
     case "Pending":
       return "default";
@@ -90,7 +90,7 @@ export function TrainingJobList() {
             title="Status"
             dataIndex="status"
             key="status"
-            render={(status: string) => <Badge status={getStatusColor(status) as any} text={status} />}
+            render={(status: string) => <Badge status={getStatusColor(status)} text={status} />}
           />
           <Column title="Base Model" dataIndex="base_model" key="base_model" />
           <Column title="Dataset ID" dataIndex="dataset_id" key="dataset_id" />

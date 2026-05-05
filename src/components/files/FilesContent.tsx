@@ -27,9 +27,11 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     setSearch("");
     setSortKey("createdAt");
     setSelectedRowKeys([]);
-    void loadCategory(activeCategory);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    void loadCategory(activeCategory);
+  }, [activeCategory, loadCategory]);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);

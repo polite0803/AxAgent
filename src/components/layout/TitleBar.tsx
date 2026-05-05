@@ -334,7 +334,7 @@ export function TitleBar() {
       label: t("titlebar.giveStar"),
     },
   ];
-  const handleGithubClick: MenuProps["onClick"] = ({ key }) => {
+  const handleGithubClick = ({ key }: { key: string }) => {
     let url = GITHUB_REPO;
     if (key === "feature") { url = `${GITHUB_REPO}/issues/new?labels=enhancement&template=feature_request.yml`; }
     else if (key === "bug") { url = `${GITHUB_REPO}/issues/new?labels=bug&template=bug_report.yml`; }
@@ -477,9 +477,9 @@ export function TitleBar() {
           <Dropdown
             menu={{
               items: [
-                { type: "group", label: t("settings.groupTheme"), children: themeMenuItems as any },
+                { type: "group", label: t("settings.groupTheme"), children: themeMenuItems },
                 { type: "divider" },
-                ...langMenuItems as any,
+                ...langMenuItems,
               ],
               onClick: ({ key }) => {
                 if (THEME_OPTIONS.some((o) => o.key === key)) {
@@ -624,7 +624,7 @@ export function TitleBar() {
           <Dropdown
             menu={{
               items: [
-                ...githubMenuItems as any,
+                ...githubMenuItems,
                 { type: "divider" },
                 ...(isTauri()
                   ? [{
@@ -638,11 +638,11 @@ export function TitleBar() {
                   icon: <RotateCcw size={12} color={TITLEBAR_ICON_COLORS.RotateCcw} />,
                   label: t("desktop.reloadPage"),
                 },
-              ],
+              ] as MenuProps["items"],
               onClick: ({ key }) => {
                 if (key === "reload") { handleReload(); }
                 else if (key === "checkUpdate") { handleCheckUpdate(); }
-                else { handleGithubClick({ key } as any); }
+                else { handleGithubClick({ key }); }
               },
             }}
             trigger={["click"]}

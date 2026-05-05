@@ -982,13 +982,23 @@ export interface SkillStatusBarItem {
 
 // Phase-2 type modules
 export * from "./agent";
+export * from "./agentProfile";
 export * from "./artifact";
 export * from "./backup";
+export * from "./evaluator";
+export * from "./expert";
 export * from "./knowledge";
+export * from "./llmWiki";
+export * from "./localTool";
 export * from "./mcp";
 export * from "./memory";
 export * from "./nudge";
+export * from "./platform";
+export * from "./proactive";
 export * from "./search";
+export * from "./style";
+export * from "./tracer";
+export * from "./wiki";
 
 // ── Workspace / Context Types (merged from workspace.ts) ───────────────
 export type ContextSourceType = "attachment" | "search" | "knowledge" | "memory" | "tool";

@@ -1,5 +1,5 @@
 export { AgentNode } from "./AgentNode";
-export { BaseNode } from "./BaseNode";
+export { BaseNode, type BaseNodeData } from "./BaseNode";
 export { CodeNode } from "./CodeNode";
 export { ConditionNode } from "./ConditionNode";
 export { DelayNode } from "./DelayNode";

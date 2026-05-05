@@ -2,6 +2,7 @@ import { BUILTIN_EXPERT_PRESETS } from "@/data/expertPresets";
 import { invoke } from "@/lib/invoke";
 import type { ExpertRole } from "@/types/expert";
 import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
+import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
@@ -200,6 +201,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       set({ agencyRoles: roles, agencyLoaded: true });
     } catch (e) {
       console.error("[expertStore] loadAgencyRoles failed:", e);
+      message.error(`加载外部专家失败: ${String(e)}`);
       set({ agencyLoaded: true });
     }
   },
@@ -210,6 +212,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       set({ agencyRoles: [], agencyLoaded: false });
     } catch (e) {
       console.error("[expertStore] clearAgencyExperts failed:", e);
+      message.error(`清除外部专家失败: ${String(e)}`);
     }
   },
 
@@ -220,6 +223,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       set({ agencyRoles: roles });
     } catch (e) {
       console.error("[expertStore] deleteAgencyExpert failed:", e);
+      message.error(`删除外部专家失败: ${String(e)}`);
     }
   },
 
@@ -229,6 +233,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       await get().loadAgencyRoles();
     } catch (e) {
       console.error("[expertStore] updateAgencyExpert failed:", e);
+      message.error(`更新外部专家失败: ${String(e)}`);
     }
   },
 
@@ -244,6 +249,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       return agencyRowToRole(row);
     } catch (e) {
       console.error("[expertStore] extractStructure failed:", e);
+      message.error(`提取专家结构失败: ${String(e)}`);
       return null;
     }
   },

@@ -76,7 +76,7 @@ impl SemanticCache {
             CREATE INDEX IF NOT EXISTS idx_semantic_cache_created ON semantic_cache(created_at);
         ";
 
-        db.execute(Statement::from_string(
+        db.execute_raw(Statement::from_string(
             DatabaseBackend::Sqlite,
             create_sql.to_string(),
         ))
@@ -133,7 +133,7 @@ impl SemanticCache {
 
         let result = self
             .db
-            .query_one(Statement::from_sql_and_values(
+            .query_one_raw(Statement::from_sql_and_values(
                 DatabaseBackend::Sqlite,
                 "SELECT id, response, model_id, token_count, hit_count \
                  FROM semantic_cache \
@@ -156,7 +156,7 @@ impl SemanticCache {
             // Increment hit counter
             let _ = self
                 .db
-                .execute(Statement::from_sql_and_values(
+                .execute_raw(Statement::from_sql_and_values(
                     DatabaseBackend::Sqlite,
                     "UPDATE semantic_cache SET hit_count = hit_count + 1 WHERE id = ?1",
                     vec![entry.id.clone().into()],
@@ -190,7 +190,7 @@ impl SemanticCache {
             .as_secs() as i64;
 
         self.db
-            .execute(Statement::from_sql_and_values(
+            .execute_raw(Statement::from_sql_and_values(
                 DatabaseBackend::Sqlite,
                 "INSERT OR REPLACE INTO semantic_cache \
                  (id, prompt_hash, response, model_id, token_count, task_type, ttl_secs, created_at, hit_count) \
@@ -212,7 +212,7 @@ impl SemanticCache {
         // Evict oldest entries if over limit
         let count: Option<i64> = self
             .db
-            .query_one(Statement::from_string(
+            .query_one_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
                 "SELECT COUNT(*) FROM semantic_cache".to_string(),
             ))
@@ -226,7 +226,7 @@ impl SemanticCache {
                 let excess = c - self.config.max_entries as i64;
                 let _ = self
                     .db
-                    .execute(Statement::from_sql_and_values(
+                    .execute_raw(Statement::from_sql_and_values(
                         DatabaseBackend::Sqlite,
                         "DELETE FROM semantic_cache WHERE id IN (\
                          SELECT id FROM semantic_cache ORDER BY created_at ASC LIMIT ?1)",
@@ -261,7 +261,7 @@ impl SemanticCache {
 
         let total: i64 = self
             .db
-            .query_one(Statement::from_string(
+            .query_one_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
                 "SELECT COUNT(*) FROM semantic_cache".to_string(),
             ))
@@ -273,7 +273,7 @@ impl SemanticCache {
 
         let active: i64 = self
             .db
-            .query_one(Statement::from_sql_and_values(
+            .query_one_raw(Statement::from_sql_and_values(
                 DatabaseBackend::Sqlite,
                 "SELECT COUNT(*) FROM semantic_cache WHERE (created_at + ttl_secs) > ?1",
                 vec![now.into()],
@@ -286,7 +286,7 @@ impl SemanticCache {
 
         let total_hits: i64 = self
             .db
-            .query_one(Statement::from_string(
+            .query_one_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
                 "SELECT COALESCE(SUM(hit_count), 0) FROM semantic_cache".to_string(),
             ))

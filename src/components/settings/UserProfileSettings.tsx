@@ -1,6 +1,6 @@
 import { StylePreviewPanel } from "@/components/style";
 import { useStyleStore } from "@/stores/feature/styleStore";
-import { useUserProfileStore } from "@/stores/feature/userProfileStore";
+import { useUserProfileStore, type NamingConvention, type IndentationStyle, type CommentStyle, type DetailLevel, type Tone } from "@/stores/feature/userProfileStore";
 import { Divider, Input, Slider, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -97,7 +97,7 @@ export function UserProfileSettings() {
           </div>
           <SettingsSelect
             value={trajectoryProfile?.codingStyle?.namingConvention || "snake_case"}
-            onChange={(val) => updateCodingStyle({ namingConvention: val as any })}
+            onChange={(val) => updateCodingStyle({ namingConvention: val as NamingConvention })}
             options={namingOptions}
           />
         </div>
@@ -111,7 +111,7 @@ export function UserProfileSettings() {
           </div>
           <SettingsSelect
             value={trajectoryProfile?.codingStyle?.indentationStyle || "spaces"}
-            onChange={(val) => updateCodingStyle({ indentationStyle: val as any })}
+            onChange={(val) => updateCodingStyle({ indentationStyle: val as IndentationStyle })}
             options={indentationOptions}
           />
         </div>
@@ -125,7 +125,7 @@ export function UserProfileSettings() {
           </div>
           <SettingsSelect
             value={trajectoryProfile?.codingStyle?.commentStyle || "documented"}
-            onChange={(val) => updateCodingStyle({ commentStyle: val as any })}
+            onChange={(val) => updateCodingStyle({ commentStyle: val as CommentStyle })}
             options={commentOptions}
           />
         </div>
@@ -146,7 +146,7 @@ export function UserProfileSettings() {
           </div>
           <SettingsSelect
             value={trajectoryProfile?.communication?.detailLevel || "moderate"}
-            onChange={(val) => updateCommunicationPrefs({ detailLevel: val as any })}
+            onChange={(val) => updateCommunicationPrefs({ detailLevel: val as DetailLevel })}
             options={detailOptions}
           />
         </div>
@@ -160,7 +160,7 @@ export function UserProfileSettings() {
           </div>
           <SettingsSelect
             value={trajectoryProfile?.communication?.tone || "neutral"}
-            onChange={(val) => updateCommunicationPrefs({ tone: val as any })}
+            onChange={(val) => updateCommunicationPrefs({ tone: val as Tone })}
             options={toneOptions}
           />
         </div>

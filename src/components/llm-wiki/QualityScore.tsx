@@ -145,14 +145,14 @@ export function QualityScore({
     return t("wiki.quality.poor", "Poor");
   };
 
-  const getIssueSeverityColor = (severity: string) => {
+  const getIssueSeverityColor = (severity: string): "success" | "error" | "processing" | "default" | "warning" => {
     switch (severity) {
       case "error":
         return "error";
       case "warning":
         return "warning";
       case "info":
-        return "info";
+        return "default";
       default:
         return "default";
     }
@@ -249,7 +249,7 @@ export function QualityScore({
             renderItem={(issue) => (
               <List.Item className="px-0 py-1">
                 <Space size="small">
-                  <Badge status={getIssueSeverityColor(issue.severity) as any} />
+                  <Badge status={getIssueSeverityColor(issue.severity)} />
                   <Text className="text-xs">{issue.message}</Text>
                   {issue.line && <Tag className="text-xs">L{issue.line}</Tag>}
                 </Space>

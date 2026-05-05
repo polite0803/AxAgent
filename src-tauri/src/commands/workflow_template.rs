@@ -558,11 +558,7 @@ fn infer_agent_from_n8n(
             "DevOps工程师: 监控系统状态、处理告警和自动化运维。",
         );
     }
-    if n.contains("analyze")
-        || n.contains("analyze")
-        || n.contains("insight")
-        || n.contains("report")
-    {
+    if n.contains("analyze") || n.contains("insight") || n.contains("report") {
         return (
             "data-analyst",
             "researcher",
@@ -673,14 +669,16 @@ fn infer_agent_from_n8n(
 /// 确保 AgentRole 存在，不存在则创建
 async fn ensure_agent_role(db: &DatabaseConnection, role_name: &str) -> Result<(), String> {
     use axagent_core::entity::agent_roles;
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
-    let exists = agent_roles::Entity::find_by_id(role_name)
+    // 按 name 字段查重，避免仅按主键匹配导致同名字段创建重复记录
+    let existing = agent_roles::Entity::find()
+        .filter(agent_roles::Column::Name.eq(role_name))
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
-        .is_some();
+        .map_err(|e: sea_orm::DbErr| e.to_string())?;
 
-    if !exists {
+    if existing.is_none() {
         let now = chrono::Utc::now().timestamp_millis();
         let am = agent_roles::ActiveModel {
             id: Set(role_name.to_string()),
@@ -747,6 +745,9 @@ async fn ensure_agent_profile(
 }
 
 /// 语义重复检查：Jaccard 相似度 ≥ 0.6 视为重复
+/// 注意：此函数当前全表扫描已导入模板进行字符级相似度比较。
+/// 本地客户端模板数量有限（通常 < 1000），性能影响可接受。
+/// 若未来支持云端同步或大规模模板库，应改为数据库模糊查询或向量索引。
 async fn check_workflow_duplicate(
     db: &DatabaseConnection,
     name: &str,
@@ -1159,4 +1160,228 @@ pub async fn import_n8n_directory(
         "errors": errors.len(),
         "error_details": errors,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // ── is_n8n_format ──────────────────────────────────────
+
+    #[test]
+    fn test_is_n8n_format_true() {
+        let json = json!({
+            "nodes": [
+                { "type": "n8n-nodes-base.httpRequest" },
+                { "type": "n8n-nodes-base.code" }
+            ]
+        });
+        assert!(is_n8n_format(&json));
+    }
+
+    #[test]
+    fn test_is_n8n_format_false_for_axagent() {
+        let json = json!({
+            "nodes": [
+                { "type": "Agent", "id": "1" },
+                { "type": "Code", "id": "2" }
+            ]
+        });
+        assert!(!is_n8n_format(&json));
+    }
+
+    #[test]
+    fn test_is_n8n_format_empty_nodes() {
+        let json = json!({ "nodes": [] });
+        assert!(!is_n8n_format(&json));
+    }
+
+    #[test]
+    fn test_is_n8n_format_no_nodes_key() {
+        let json = json!({ "other": "value" });
+        assert!(!is_n8n_format(&json));
+    }
+
+    // ── infer_agent_from_n8n ────────────────────────────────
+
+    #[test]
+    fn test_infer_by_node_name_review() {
+        let (profile, role, expert, prompt) =
+            infer_agent_from_n8n("n8n-nodes-base.noOp", "Review PR changes");
+        assert_eq!(profile, "code-reviewer");
+        assert_eq!(role, "reviewer");
+        assert_eq!(expert, "code-reviewer");
+        assert!(prompt.contains("审查"));
+    }
+
+    #[test]
+    fn test_infer_by_node_name_debug() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.noOp", "Debug login error");
+        assert_eq!(profile, "debug-expert");
+        assert_eq!(role, "developer");
+    }
+
+    #[test]
+    fn test_infer_by_node_name_test() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.noOp", "Test API endpoints");
+        assert_eq!(profile, "debug-expert");
+        assert_eq!(role, "reviewer");
+    }
+
+    #[test]
+    fn test_infer_by_node_name_doc() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.noOp", "Write documentation");
+        assert_eq!(profile, "tech-writer");
+        assert_eq!(role, "synthesizer");
+    }
+
+    #[test]
+    fn test_infer_by_node_name_plan() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.noOp", "Plan architecture");
+        assert_eq!(profile, "architect");
+        assert_eq!(role, "planner");
+    }
+
+    #[test]
+    fn test_infer_by_node_name_monitor() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.noOp", "Monitor server health");
+        assert_eq!(profile, "devops-engineer");
+        assert_eq!(role, "executor");
+    }
+
+    #[test]
+    fn test_infer_by_node_name_analyze() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.noOp", "Analyze user data");
+        assert_eq!(profile, "data-analyst");
+        assert_eq!(role, "researcher");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_http() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.httpRequest", "do something generic");
+        assert_eq!(profile, "devops-engineer");
+        assert_eq!(role, "executor");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_database() {
+        let (profile, role, _, _) = infer_agent_from_n8n("n8n-nodes-base.postgres", "generic node");
+        assert_eq!(profile, "sql-expert");
+        assert_eq!(role, "researcher");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_code() {
+        let (profile, role, _, _) = infer_agent_from_n8n("n8n-nodes-base.code", "generic node");
+        assert_eq!(profile, "senior-developer");
+        assert_eq!(role, "developer");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_ai() {
+        let (profile, role, _, _) = infer_agent_from_n8n("n8n-nodes-base.openAi", "generic node");
+        assert_eq!(profile, "general-assistant");
+        assert_eq!(role, "coordinator");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_email() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.emailSend", "generic node");
+        assert_eq!(profile, "product-manager");
+        assert_eq!(role, "coordinator");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_file() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.spreadsheetFile", "generic node");
+        assert_eq!(profile, "data-analyst");
+        assert_eq!(role, "researcher");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_security() {
+        let (profile, role, _, _) = infer_agent_from_n8n("n8n-nodes-base.oauth2", "generic node");
+        assert_eq!(profile, "security-auditor");
+        assert_eq!(role, "reviewer");
+    }
+
+    #[test]
+    fn test_infer_by_node_type_transform() {
+        let (profile, role, _, _) = infer_agent_from_n8n("n8n-nodes-base.merge", "generic node");
+        assert_eq!(profile, "tech-writer");
+        assert_eq!(role, "synthesizer");
+    }
+
+    #[test]
+    fn test_infer_fallback_to_debug_expert() {
+        let (profile, role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.somethingUnknown", "unknown node");
+        assert_eq!(profile, "debug-expert");
+        assert_eq!(role, "executor");
+    }
+
+    #[test]
+    fn test_infer_name_has_priority_over_type() {
+        // node name "review" should match before node type "http"
+        let (profile, _role, _, _) =
+            infer_agent_from_n8n("n8n-nodes-base.httpRequest", "review API response");
+        assert_eq!(profile, "code-reviewer");
+        // 确认名称关键词 "review" 优先级高于节点类型 "http" — 映射到 code-reviewer 而非 devops-engineer
+    }
+
+    // ── extract_goal_from_n8n ───────────────────────────────
+
+    #[test]
+    fn test_extract_goal_http_node() {
+        let node = json!({
+            "parameters": {
+                "method": "GET",
+                "url": "https://api.example.com/users"
+            }
+        });
+        let goal = extract_goal_from_n8n(&node);
+        assert!(goal.contains("GET"));
+        assert!(goal.contains("api.example.com"));
+    }
+
+    #[test]
+    fn test_extract_goal_database_node() {
+        let node = json!({
+            "parameters": {
+                "operation": "SELECT",
+                "table": "orders"
+            }
+        });
+        let goal = extract_goal_from_n8n(&node);
+        assert!(goal.contains("SELECT"));
+        assert!(goal.contains("orders"));
+    }
+
+    #[test]
+    fn test_extract_goal_email_node() {
+        let node = json!({
+            "parameters": {
+                "subject": "Weekly Report"
+            }
+        });
+        let goal = extract_goal_from_n8n(&node);
+        assert!(goal.contains("Weekly Report"));
+    }
+
+    #[test]
+    fn test_extract_goal_empty_node() {
+        let node = json!({});
+        let goal = extract_goal_from_n8n(&node);
+        assert!(goal.is_empty());
+    }
 }

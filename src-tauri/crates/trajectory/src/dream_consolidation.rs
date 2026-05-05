@@ -254,9 +254,9 @@ impl DreamConsolidator {
     /// - `on_suggestions`: 建议生成回调
     pub async fn consolidate(
         &self,
-        on_memories: Option<&dyn Fn(usize)>,
-        on_patterns: Option<&dyn Fn(usize)>,
-        on_suggestions: Option<&dyn Fn(usize)>,
+        on_memories: Option<&(dyn Fn(usize) + Send + Sync)>,
+        on_patterns: Option<&(dyn Fn(usize) + Send + Sync)>,
+        on_suggestions: Option<&(dyn Fn(usize) + Send + Sync)>,
     ) -> DreamConsolidationResult {
         let config = self.get_config().await;
 

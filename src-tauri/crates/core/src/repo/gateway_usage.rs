@@ -41,26 +41,32 @@ pub async fn get_metrics(db: &DatabaseConnection) -> Result<GatewayMetrics> {
         total_tokens: i64,
     }
 
-    let all = MetricsRow::find_by_statement(Statement::from_string(
-        DatabaseBackend::Sqlite,
-        "SELECT COUNT(*) as total_requests, \
-         COALESCE(SUM(request_tokens + response_tokens), 0) as total_tokens \
-         FROM gateway_usage",
-    ))
-    .one(db)
-    .await?
-    .unwrap_or(MetricsRow { total_requests: 0, total_tokens: 0 });
+    let all = db
+        .exec_query(
+            db.get_database_backend().build(&Statement::from_string(
+                DatabaseBackend::Sqlite,
+                "SELECT COUNT(*) as total_requests, \
+                 COALESCE(SUM(request_tokens + response_tokens), 0) as total_tokens \
+                 FROM gateway_usage",
+            )),
+        )
+        .await?
+        .into_one()
+        .unwrap_or(MetricsRow { total_requests: 0, total_tokens: 0 });
 
-    let today = MetricsRow::find_by_statement(Statement::from_sql_and_values(
-        DatabaseBackend::Sqlite,
-        "SELECT COUNT(*) as total_requests, \
-         COALESCE(SUM(request_tokens + response_tokens), 0) as total_tokens \
-         FROM gateway_usage WHERE created_at >= ?",
-        [today_start.into()],
-    ))
-    .one(db)
-    .await?
-    .unwrap_or(MetricsRow { total_requests: 0, total_tokens: 0 });
+    let today = db
+        .exec_query(
+            db.get_database_backend().build(&Statement::from_sql_and_values(
+                DatabaseBackend::Sqlite,
+                "SELECT COUNT(*) as total_requests, \
+                 COALESCE(SUM(request_tokens + response_tokens), 0) as total_tokens \
+                 FROM gateway_usage WHERE created_at >= ?",
+                [today_start.into()],
+            )),
+        )
+        .await?
+        .into_one()
+        .unwrap_or(MetricsRow { total_requests: 0, total_tokens: 0 });
 
     Ok(GatewayMetrics {
         total_requests: all.total_requests as u64,
@@ -80,18 +86,20 @@ pub async fn get_usage_by_key(db: &DatabaseConnection) -> Result<Vec<UsageByKey>
         token_count: i64,
     }
 
-    let rows = Row::find_by_statement(Statement::from_string(
-        DatabaseBackend::Sqlite,
-        "SELECT gu.key_id, gk.name as key_name, \
-         COUNT(*) as request_count, \
-         COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count \
-         FROM gateway_usage gu \
-         JOIN gateway_keys gk ON gk.id = gu.key_id \
-         GROUP BY gu.key_id \
-         ORDER BY token_count DESC",
-    ))
-    .all(db)
-    .await?;
+    let rows = db
+        .exec_query(
+            db.get_database_backend().build(&Statement::from_string(
+                DatabaseBackend::Sqlite,
+                "SELECT gu.key_id, gk.name as key_name, \
+                 COUNT(*) as request_count, \
+                 COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count \
+                 FROM gateway_usage gu \
+                 JOIN gateway_keys gk ON gk.id = gu.key_id \
+                 GROUP BY gu.key_id \
+                 ORDER BY token_count DESC",
+            )),
+        )
+        .await?;
 
     Ok(rows
         .into_iter()
@@ -113,18 +121,20 @@ pub async fn get_usage_by_provider(db: &DatabaseConnection) -> Result<Vec<UsageB
         token_count: i64,
     }
 
-    let rows = Row::find_by_statement(Statement::from_string(
-        DatabaseBackend::Sqlite,
-        "SELECT gu.provider_id, COALESCE(p.name, gu.provider_id) as provider_name, \
-         COUNT(*) as request_count, \
-         COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count \
-         FROM gateway_usage gu \
-         LEFT JOIN providers p ON p.id = gu.provider_id \
-         GROUP BY gu.provider_id \
-         ORDER BY token_count DESC",
-    ))
-    .all(db)
-    .await?;
+    let rows = db
+        .exec_query(
+            db.get_database_backend().build(&Statement::from_string(
+                DatabaseBackend::Sqlite,
+                "SELECT gu.provider_id, COALESCE(p.name, gu.provider_id) as provider_name, \
+                 COUNT(*) as request_count, \
+                 COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count \
+                 FROM gateway_usage gu \
+                 LEFT JOIN providers p ON p.id = gu.provider_id \
+                 GROUP BY gu.provider_id \
+                 ORDER BY token_count DESC",
+            )),
+        )
+        .await?;
 
     Ok(rows
         .into_iter()
@@ -147,19 +157,21 @@ pub async fn get_usage_by_day(db: &DatabaseConnection, days: u32) -> Result<Vec<
 
     let since = now_ts() - (days as i64 * 86400);
 
-    let rows = Row::find_by_statement(Statement::from_sql_and_values(
-        DatabaseBackend::Sqlite,
-        "SELECT date(created_at, 'unixepoch') as date, \
-         COUNT(*) as request_count, \
-         COALESCE(SUM(request_tokens + response_tokens), 0) as token_count \
-         FROM gateway_usage \
-         WHERE created_at >= ? \
-         GROUP BY date \
-         ORDER BY date ASC",
-        [since.into()],
-    ))
-    .all(db)
-    .await?;
+    let rows = db
+        .exec_query(
+            db.get_database_backend().build(&Statement::from_sql_and_values(
+                DatabaseBackend::Sqlite,
+                "SELECT date(created_at, 'unixepoch') as date, \
+                 COUNT(*) as request_count, \
+                 COALESCE(SUM(request_tokens + response_tokens), 0) as token_count \
+                 FROM gateway_usage \
+                 WHERE created_at >= ? \
+                 GROUP BY date \
+                 ORDER BY date ASC",
+                [since.into()],
+            )),
+        )
+        .await?;
 
     Ok(rows
         .into_iter()
@@ -190,25 +202,27 @@ pub async fn get_connected_programs(db: &DatabaseConnection) -> Result<Vec<Conne
         last_active_at: Option<i64>,
     }
 
-    let rows = Row::find_by_statement(Statement::from_sql_and_values(
-        DatabaseBackend::Sqlite,
-        "SELECT gk.id as key_id, gk.name as key_name, gk.key_prefix, \
-         COALESCE(t.cnt, 0) as today_requests, \
-         COALESCE(t.tokens, 0) as today_tokens, \
-         gk.last_used_at as last_active_at \
-         FROM gateway_keys gk \
-         LEFT JOIN ( \
-             SELECT key_id, COUNT(*) as cnt, \
-             SUM(request_tokens + response_tokens) as tokens \
-             FROM gateway_usage WHERE created_at >= ? \
-             GROUP BY key_id \
-         ) t ON t.key_id = gk.id \
-         WHERE gk.enabled = 1 \
-         ORDER BY gk.created_at DESC",
-        [today_start.into()],
-    ))
-    .all(db)
-    .await?;
+    let rows = db
+        .exec_query(
+            db.get_database_backend().build(&Statement::from_sql_and_values(
+                DatabaseBackend::Sqlite,
+                "SELECT gk.id as key_id, gk.name as key_name, gk.key_prefix, \
+                 COALESCE(t.cnt, 0) as today_requests, \
+                 COALESCE(t.tokens, 0) as today_tokens, \
+                 gk.last_used_at as last_active_at \
+                 FROM gateway_keys gk \
+                 LEFT JOIN ( \
+                     SELECT key_id, COUNT(*) as cnt, \
+                     SUM(request_tokens + response_tokens) as tokens \
+                     FROM gateway_usage WHERE created_at >= ? \
+                     GROUP BY key_id \
+                 ) t ON t.key_id = gk.id \
+                 WHERE gk.enabled = 1 \
+                 ORDER BY gk.created_at DESC",
+                [today_start.into()],
+            )),
+        )
+        .await?;
 
     Ok(rows
         .into_iter()

@@ -1,6 +1,8 @@
 // AgentProfile — 融合 ExpertRole + AgentRole 的智能体能力集
 // 替代原有的分离式 ExpertRole 和 AgentRole 概念
 
+import type { ExpertCategory } from "./expert";
+
 export interface AgentProfile {
   id: string;
   name: string;
@@ -28,15 +30,8 @@ export interface AgentProfile {
   updatedAt: number;
 }
 
-export type ExpertCategory =
-  | "general"
-  | "development"
-  | "security"
-  | "data"
-  | "devops"
-  | "design"
-  | "writing"
-  | "business";
+// ExpertCategory 已从 ./expert 导入，此处不重复导出
+export type { ExpertCategory };
 
 export type PermissionMode = "default" | "accept_edits" | "full_access";
 

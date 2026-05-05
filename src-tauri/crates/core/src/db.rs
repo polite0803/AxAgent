@@ -30,32 +30,32 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
 
     let conn = Database::connect(opt).await?;
 
-    conn.execute(Statement::from_string(
+    conn.execute_raw(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA journal_mode=WAL;",
     ))
     .await?;
-    conn.execute(Statement::from_string(
+    conn.execute_raw(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA foreign_keys=ON;",
     ))
     .await?;
-    conn.execute(Statement::from_string(
+    conn.execute_raw(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA busy_timeout=5000;",
     ))
     .await?;
-    conn.execute(Statement::from_string(
+    conn.execute_raw(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA synchronous=NORMAL;",
     ))
     .await?;
-    conn.execute(Statement::from_string(
+    conn.execute_raw(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA cache_size=-64000;",
     ))
     .await?;
-    conn.execute(Statement::from_string(
+    conn.execute_raw(Statement::from_string(
         DbBackend::Sqlite,
         "PRAGMA temp_store=MEMORY;",
     ))

@@ -42,6 +42,7 @@ pub mod knowledge_relations;
 pub mod memory_items;
 pub mod memory_namespaces;
 pub mod retrieval_hits;
+pub mod rl_policies;
 
 pub mod stored_files;
 

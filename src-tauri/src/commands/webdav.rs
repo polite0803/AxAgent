@@ -346,7 +346,7 @@ async fn do_webdav_backup_once(
     let _ = std::fs::remove_file(&temp_db_path);
 
     let db_str = temp_db_path.to_string_lossy().to_string();
-    db.execute(Statement::from_string(
+    db.execute_raw(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
         format!("VACUUM INTO '{}'", db_str.replace('\'', "''")),
     ))

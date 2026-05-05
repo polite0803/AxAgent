@@ -76,7 +76,7 @@ fn match_content(pattern: &str, input: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::permissions::{PermissionBehavior, PermissionRule};
+    use crate::permissions::PermissionRule;
 
     #[test]
     fn test_exact_match() {

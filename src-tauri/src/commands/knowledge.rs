@@ -678,7 +678,7 @@ pub async fn reindex_knowledge_chunk(
         let name = format!("vec_kb_{}", base_id.replace('-', "_"));
         let row = state
             .sea_db
-            .query_one(Statement::from_sql_and_values(
+            .query_one_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("SELECT content FROM {name}_meta WHERE id = $1"),
                 vec![chunk_id.clone().into()],

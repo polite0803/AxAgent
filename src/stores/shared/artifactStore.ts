@@ -45,6 +45,7 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
       });
       set({ artifacts, loading: false });
     } catch (e) {
+      console.error("[artifactStore] loadArtifacts failed:", e);
       set({ error: String(e), loading: false });
     }
   },
@@ -55,6 +56,7 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
       set((s) => ({ artifacts: [...s.artifacts, artifact] }));
       return artifact;
     } catch (e) {
+      console.error("[artifactStore] operation failed:", e);
       set({ error: String(e) });
       return null;
     }
@@ -69,6 +71,7 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
       }));
       return updated;
     } catch (e) {
+      console.error("[artifactStore] operation failed:", e);
       set({ error: String(e) });
       return null;
     }

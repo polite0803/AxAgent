@@ -9,6 +9,7 @@ import type {
   PlanStepStatus,
   PlanStepUpdateEvent,
 } from "@/types";
+import { message } from "antd";
 import { create } from "zustand";
 
 // ── Plan Event Types (frontend-only, derived from backend events) ─────
@@ -88,6 +89,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       return plan;
     } catch (e) {
       const errMsg = String(e);
+      message.error(errMsg);
       set((s) => ({
         loading: { ...s.loading, [conversationId]: false },
         errors: { ...s.errors, [conversationId]: errMsg },
@@ -108,6 +110,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       // Plan status will be updated via planStepUpdate / planExecutionComplete events
     } catch (e) {
       const errMsg = String(e);
+      message.error(errMsg);
       set((s) => ({
         loading: { ...s.loading, [conversationId]: false },
         errors: { ...s.errors, [conversationId]: errMsg },
@@ -134,6 +137,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       });
     } catch (e) {
       console.error("[planStore] rejectPlan failed:", e);
+      message.error(`拒绝计划失败: ${String(e)}`);
     }
   },
 
@@ -166,6 +170,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }
     } catch (e) {
       console.error("[planStore] modifyStep failed:", e);
+      message.error(`修改步骤失败: ${String(e)}`);
     }
   },
 
@@ -179,6 +184,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       await invoke("plan_execute", { request });
     } catch (e) {
       const errMsg = String(e);
+      message.error(errMsg);
       set((s) => ({
         loading: { ...s.loading, [conversationId]: false },
         errors: { ...s.errors, [conversationId]: errMsg },
@@ -196,6 +202,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }
     } catch (e) {
       console.error("[planStore] resumePlan failed:", e);
+      message.error(`恢复计划失败: ${String(e)}`);
     }
   },
 
@@ -215,6 +222,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       });
     } catch (e) {
       console.error("[planStore] cancelPlan failed:", e);
+      message.error(`取消计划失败: ${String(e)}`);
     }
   },
 
@@ -228,6 +236,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }));
     } catch (e) {
       console.error("[planStore] loadPlanHistory failed:", e);
+      message.error(`加载计划历史失败: ${String(e)}`);
     }
   },
 

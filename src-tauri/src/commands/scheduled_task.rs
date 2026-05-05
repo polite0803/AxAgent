@@ -117,7 +117,10 @@ pub async fn create_scheduled_task(
     }
     let task_id = service.create_task(task).await.map_err(|e| e.to_string())?;
 
-    let saved_task = service.get_task(&task_id).await.unwrap();
+    let saved_task = service
+        .get_task(&task_id)
+        .await
+        .ok_or_else(|| format!("创建后未能找到任务: {}", task_id))?;
     let entity = task_to_entity(&saved_task);
     db_repo::upsert_scheduled_task(&state.sea_db, entity)
         .await
@@ -154,7 +157,10 @@ pub async fn create_backup_task(
         .await
         .map_err(|e| e.to_string())?;
 
-    let saved_task = service.get_task(&task_id).await.unwrap();
+    let saved_task = service
+        .get_task(&task_id)
+        .await
+        .ok_or_else(|| format!("创建后未能找到任务: {}", task_id))?;
     let entity = task_to_entity(&saved_task);
     db_repo::upsert_scheduled_task(&state.sea_db, entity)
         .await
@@ -176,7 +182,10 @@ pub async fn create_cleanup_task(
         .await
         .map_err(|e| e.to_string())?;
 
-    let saved_task = service.get_task(&task_id).await.unwrap();
+    let saved_task = service
+        .get_task(&task_id)
+        .await
+        .ok_or_else(|| format!("创建后未能找到任务: {}", task_id))?;
     let entity = task_to_entity(&saved_task);
     db_repo::upsert_scheduled_task(&state.sea_db, entity)
         .await

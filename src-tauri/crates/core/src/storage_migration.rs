@@ -203,7 +203,7 @@ mod tests {
     async fn test_db() -> DatabaseConnection {
         let db = Database::connect("sqlite::memory:").await.unwrap();
         for ddl in [CREATE_STORED_FILES, CREATE_MESSAGES] {
-            db.execute(Statement::from_string(DbBackend::Sqlite, ddl))
+            db.execute_raw(Statement::from_string(DbBackend::Sqlite, ddl))
                 .await
                 .unwrap();
         }

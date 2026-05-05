@@ -594,20 +594,20 @@ pub async fn search_conversations(
 }
 
 pub async fn increment_message_count(db: &DatabaseConnection, conversation_id: &str) -> Result<()> {
-    db.execute(Statement::from_sql_and_values(
+    db.execute_raw(Statement::from_sql_and_values(
         DatabaseBackend::Sqlite,
         "UPDATE conversations SET message_count = message_count + 1, updated_at = ? WHERE id = ?",
-        [now_ts().into(), conversation_id.into()],
+        vec![now_ts().into(), conversation_id.into()],
     ))
     .await?;
     Ok(())
 }
 
 pub async fn decrement_message_count(db: &DatabaseConnection, conversation_id: &str) -> Result<()> {
-    db.execute(Statement::from_sql_and_values(
+    db.execute_raw(Statement::from_sql_and_values(
         DatabaseBackend::Sqlite,
         "UPDATE conversations SET message_count = MAX(0, message_count - 1), updated_at = ? WHERE id = ?",
-        [now_ts().into(), conversation_id.into()],
+        vec![now_ts().into(), conversation_id.into()],
     ))
     .await?;
     Ok(())

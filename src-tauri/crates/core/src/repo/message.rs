@@ -337,7 +337,7 @@ pub async fn append_message_content(
 ) -> Result<()> {
     let query = r#"UPDATE messages SET content = content || $1 WHERE id = $2"#;
 
-    db.execute(Statement::from_sql_and_values(
+    db.execute_raw(Statement::from_sql_and_values(
         sea_orm::DatabaseBackend::Sqlite,
         query.to_owned(),
         vec![append_content.into(), id.into()],
@@ -608,19 +608,7 @@ pub async fn get_conversation_stats(
     db: &DatabaseConnection,
     conversation_id: &str,
 ) -> Result<ConversationStats> {
-    use sea_orm::{FromQueryResult, Statement};
-
-    #[derive(Debug, FromQueryResult)]
-    struct StatsRow {
-        total_messages: i64,
-        total_user_messages: i64,
-        total_assistant_messages: i64,
-        total_prompt_tokens: i64,
-        total_completion_tokens: i64,
-        avg_tokens_per_second: Option<f64>,
-        avg_first_token_latency_ms: Option<f64>,
-        avg_response_time_ms: Option<f64>,
-    }
+    use sea_orm::Statement;
 
     let sql = r#"
         SELECT
@@ -640,37 +628,41 @@ pub async fn get_conversation_stats(
         WHERE conversation_id = ? AND is_active = 1
     "#;
 
-    let row = StatsRow::find_by_statement(Statement::from_sql_and_values(
-        db.get_database_backend(),
-        sql,
-        vec![conversation_id.into()],
-    ))
-    .one(db)
-    .await?
-    .unwrap_or(StatsRow {
-        total_messages: 0,
-        total_user_messages: 0,
-        total_assistant_messages: 0,
-        total_prompt_tokens: 0,
-        total_completion_tokens: 0,
-        avg_tokens_per_second: None,
-        avg_first_token_latency_ms: None,
-        avg_response_time_ms: None,
-    });
+    let row = db
+        .query_one_raw(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            sql,
+            vec![conversation_id.into()],
+        ))
+        .await?;
 
-    let total_prompt = row.total_prompt_tokens as u64;
-    let total_completion = row.total_completion_tokens as u64;
+    let total_prompt = row
+        .as_ref()
+        .and_then(|r| r.try_get::<i64>("", "total_prompt_tokens").ok())
+        .unwrap_or(0) as u64;
+    let total_completion = row
+        .as_ref()
+        .and_then(|r| r.try_get::<i64>("", "total_completion_tokens").ok())
+        .unwrap_or(0) as u64;
+
+    let r = row.as_ref();
 
     Ok(ConversationStats {
-        total_messages: row.total_messages as u64,
-        total_user_messages: row.total_user_messages as u64,
-        total_assistant_messages: row.total_assistant_messages as u64,
+        total_messages: r
+            .and_then(|r| r.try_get::<i64>("", "total_messages").ok())
+            .unwrap_or(0) as u64,
+        total_user_messages: r
+            .and_then(|r| r.try_get::<i64>("", "total_user_messages").ok())
+            .unwrap_or(0) as u64,
+        total_assistant_messages: r
+            .and_then(|r| r.try_get::<i64>("", "total_assistant_messages").ok())
+            .unwrap_or(0) as u64,
         total_prompt_tokens: total_prompt,
         total_completion_tokens: total_completion,
         total_tokens: total_prompt + total_completion,
-        avg_tokens_per_second: row.avg_tokens_per_second,
-        avg_first_token_latency_ms: row.avg_first_token_latency_ms,
-        avg_response_time_ms: row.avg_response_time_ms,
+        avg_tokens_per_second: r.and_then(|r| r.try_get("", "avg_tokens_per_second").ok()),
+        avg_first_token_latency_ms: r.and_then(|r| r.try_get("", "avg_first_token_latency_ms").ok()),
+        avg_response_time_ms: r.and_then(|r| r.try_get("", "avg_response_time_ms").ok()),
     })
 }
 

@@ -71,4 +71,5 @@ pub struct AppState {
     // 浏览器客户端：使用 tokio::sync::Mutex 取代全局 static mut，避免数据竞争
     pub browser_client:
         Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
+    pub dream_consolidator: Arc<axagent_trajectory::DreamConsolidator>,
 }

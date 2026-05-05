@@ -5,7 +5,7 @@ import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, TeamOutlined
 const _EMPTY: never[] = [];
 import { Button, Collapse, message, Tag, Typography } from "antd";
 import { useMemo, useState } from "react";
-import { type CreateTeamData, CreateTeamModal } from "./CreateTeamModal";
+import { type CreateTeamData, CreateTeamModal, type TeammateBackendType } from "./CreateTeamModal";
 
 const { Text } = Typography;
 
@@ -233,8 +233,7 @@ export function TeammatePanel({
               name: tm.name,
               status: "pending",
               teamName,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              agentType: tm.backendType as any,
+              agentType: tm.backendType as TeammateBackendType,
               currentTask: "等待分配任务",
             });
           }

@@ -3549,34 +3549,23 @@ impl MigrationTrait for Migration {
                 ("translator", "翻译专家", "专业的多语言翻译服务", "writing", "🌐", "你是一位翻译专家。精通多种语言的翻译。准确传达原文的含义和语气。注意文化差异和上下文。保持翻译的自然流畅。", Some("synthesizer"), "builtin"),
             ];
 
+            let db = manager.get_connection();
+
             for (id, name, desc, cat, icon, prompt, role, src) in &builtin_profiles {
-                let exists = db
-                    .query_one(sea_orm::Statement::from_sql_and_values(
-                        sea_orm::DatabaseBackend::Sqlite,
-                        "SELECT id FROM agent_profiles WHERE id = ?",
-                        vec![(*id).into()],
-                    ))
-                    .await
-                    .map(|r| r.is_some())
-                    .unwrap_or(false);
+                let check_sql = format!(
+                    "SELECT id FROM agent_profiles WHERE id = '{}'",
+                    id
+                );
+                let result = db.execute_unprepared(&check_sql).await;
+                let exists = result.map(|r| r.rows_affected() > 0).unwrap_or(false);
 
                 if !exists {
-                    db.execute(sea_orm::Statement::from_sql_and_values(
-                        sea_orm::DatabaseBackend::Sqlite,
-                        "INSERT INTO agent_profiles (id, name, description, category, icon, system_prompt, agent_role, source, sort_order, is_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)",
-                        vec![
-                            (*id).into(),
-                            (*name).into(),
-                            (*desc).into(),
-                            (*cat).into(),
-                            (*icon).into(),
-                            (*prompt).into(),
-                            (*role).into(),
-                            (*src).into(),
-                            now.into(),
-                            now.into(),
-                        ],
-                    )).await.ok();
+                    let insert_sql = format!(
+                        "INSERT INTO agent_profiles (id, name, description, category, icon, system_prompt, agent_role, source, sort_order, is_enabled, created_at, updated_at) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', 0, 1, {}, {})",
+                        id, name, desc, cat, icon, prompt, role.unwrap_or(""), src, now, now
+                    );
+                    db.execute_unprepared(&insert_sql)
+                        .await.ok();
                 }
             }
         }
@@ -3813,27 +3802,24 @@ impl MigrationTrait for Migration {
                     600,
                 ),
             ];
+
+            let db = manager.get_connection();
+
             for (id, name, desc, tools, mc, to) in &roles {
-                let exists = db
-                    .query_one(sea_orm::Statement::from_sql_and_values(
-                        sea_orm::DatabaseBackend::Sqlite,
-                        "SELECT id FROM agent_roles WHERE id = ?",
-                        vec![(*id).into()],
-                    ))
-                    .await
-                    .map(|r| r.is_some())
-                    .unwrap_or(false);
+                let check_sql = format!(
+                    "SELECT id FROM agent_roles WHERE id = '{}'",
+                    id
+                );
+                let result = db.execute_unprepared(&check_sql).await;
+                let exists = result.map(|r| r.rows_affected() > 0).unwrap_or(false);
                 if !exists {
-                    db.execute(sea_orm::Statement::from_sql_and_values(
-                        sea_orm::DatabaseBackend::Sqlite,
-                        "INSERT INTO agent_roles (id, name, description, system_prompt, default_tools, max_concurrent, timeout_seconds, source, sort_order, created_at, updated_at) VALUES (?, ?, ?, '', ?, ?, ?, 'builtin', 0, ?, ?)",
-                        vec![
-                            (*id).into(), (*name).into(), (*desc).into(),
-                            serde_json::to_string(tools).unwrap_or_default().into(),
-                            (*mc as i32).into(), (*to as i64).into(),
-                            now.into(), now.into(),
-                        ],
-                    )).await.ok();
+                    let tools_json = serde_json::to_string(tools).unwrap_or_default();
+                    let insert_sql = format!(
+                        "INSERT INTO agent_roles (id, name, description, system_prompt, default_tools, max_concurrent, timeout_seconds, source, sort_order, created_at, updated_at) VALUES ('{}', '{}', '{}', '', '{}', {}, {}, 'builtin', 0, {}, {})",
+                        id, name, desc, tools_json, mc, to, now, now
+                    );
+                    db.execute_unprepared(&insert_sql)
+                        .await.ok();
                 }
             }
         }

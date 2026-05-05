@@ -559,9 +559,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       const createdConversation = await invoke<Conversation>("create_conversation", {
         title,
-        modelId: templateModelId,
-        providerId: templateProviderId,
-        systemPrompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
+        model_id: templateModelId,
+        provider_id: templateProviderId,
+        system_prompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
       });
       let conversation = createdConversation;
       try {

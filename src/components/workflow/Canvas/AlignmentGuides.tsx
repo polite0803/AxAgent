@@ -163,13 +163,13 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
 
     const container = containerRef.current;
     if (container) {
-      container.addEventListener("nodeDragStart", handleNodeDragStart as any);
+      container.addEventListener("nodeDragStart", handleNodeDragStart as EventListener);
       container.addEventListener("pane-click", handlePaneClick);
     }
 
     return () => {
       if (container) {
-        container.removeEventListener("nodeDragStart", handleNodeDragStart as any);
+        container.removeEventListener("nodeDragStart", handleNodeDragStart as EventListener);
         container.removeEventListener("pane-click", handlePaneClick);
       }
     };

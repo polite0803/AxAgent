@@ -177,6 +177,120 @@ export function getInvokeMetrics(): InvokeMetricsSnapshot {
 // Slow-call threshold (3 seconds) — log warnings to console
 const SLOW_CALL_THRESHOLD_MS = 3000;
 
+// ─── 启动诊断 ───
+
+interface IpcDiagEntry {
+  index: number;
+  cmd: string;
+  timestamp: number;
+  timeSinceStartup: number;
+  isTauri: boolean;
+  success: boolean;
+  durationMs?: number;
+  error?: string;
+}
+
+interface IpcConnectionError {
+  timestamp: number;
+  cmd: string;
+  error: string;
+  tauriInternalsKeys?: string[];
+}
+
+interface IpcDiagState {
+  startupTimestamp: number;
+  firstInvokeTimestamp: number | null;
+  isTauriAtStartup: boolean | null;
+  calls: IpcDiagEntry[];
+  connectionErrors: IpcConnectionError[];
+  tauriInternalsFirstSeen: number | null;
+}
+
+function initDiagState(): IpcDiagState {
+  return {
+    startupTimestamp: Date.now(),
+    firstInvokeTimestamp: null,
+    isTauriAtStartup: null,
+    calls: [],
+    connectionErrors: [],
+    tauriInternalsFirstSeen: null,
+  };
+}
+
+function ensureDiag(): IpcDiagState {
+  if (typeof window === "undefined") { return initDiagState(); }
+  const key = "__AXAGENT_IPC_DIAG__" as keyof Window & "__AXAGENT_IPC_DIAG__";
+  if (!(window as unknown as Record<string, unknown>)[key]) {
+    (window as unknown as Record<string, unknown>)[key] = initDiagState();
+  }
+  return (window as unknown as Record<string, unknown>)[key] as IpcDiagState;
+}
+
+let _diagCallIndex = 0;
+
+function recordDiag(
+  cmd: string,
+  success: boolean,
+  durationMs?: number,
+  error?: string,
+) {
+  try {
+    const diag = ensureDiag();
+    if (diag.firstInvokeTimestamp === null) {
+      diag.firstInvokeTimestamp = Date.now();
+      diag.isTauriAtStartup = isTauri();
+      if (diag.isTauriAtStartup) {
+        diag.tauriInternalsFirstSeen = Date.now();
+      }
+    }
+    if (diag.calls.length < 200) {
+      diag.calls.push({
+        index: _diagCallIndex++,
+        cmd,
+        timestamp: Date.now(),
+        timeSinceStartup: Date.now() - diag.startupTimestamp,
+        isTauri: isTauri(),
+        success,
+        durationMs,
+        error: error?.slice(0, 200),
+      });
+    }
+    if (!success && error) {
+      const msg = error.toLowerCase();
+      if (msg.includes("connection") || msg.includes("refused") || msg.includes("fetch")) {
+        if (diag.connectionErrors.length < 50) {
+          const internalsObj = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
+            ? (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as Record<string, unknown>
+            : undefined;
+          diag.connectionErrors.push({
+            timestamp: Date.now(),
+            cmd,
+            error: error.slice(0, 300),
+            tauriInternalsKeys: internalsObj ? Object.keys(internalsObj).slice(0, 20) : undefined,
+          });
+        }
+      }
+    }
+  } catch { /* 诊断自身出错，静默忽略 */ }
+}
+
+/**
+ * 检查 IPC 通道健康状态。
+ * 在 Tauri 环境尝试一次轻量 IPC，带 5 秒超时。
+ */
+export async function checkIpcHealth(): Promise<{ ok: boolean; detail: string; isTauri: boolean }> {
+  if (!isTauri()) {
+    return { ok: false, detail: "非 Tauri 环境，__TAURI_INTERNALS__ 未注入", isTauri: false };
+  }
+  try {
+    await invoke<unknown>("get_settings", undefined, 5000);
+    return { ok: true, detail: "IPC 通道正常", isTauri: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, detail: msg.slice(0, 200), isTauri: true };
+  }
+}
+
 export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
@@ -201,13 +315,16 @@ export async function invoke<T>(cmd: string, args?: Record<string, unknown>, tim
     }
     const elapsed = Math.round(performance.now() - start);
     recordInvocation(cmd, elapsed, true);
+    recordDiag(cmd, true, elapsed);
     if (elapsed > SLOW_CALL_THRESHOLD_MS) {
       console.warn(`[invoke] Slow call: "${cmd}" took ${elapsed}ms`);
     }
     return result;
   } catch (e) {
     const elapsed = Math.round(performance.now() - start);
-    recordInvocation(cmd, elapsed, false, String(e));
+    const errorMsg = String(e);
+    recordInvocation(cmd, elapsed, false, errorMsg);
+    recordDiag(cmd, false, elapsed, errorMsg);
     throw e;
   }
 }

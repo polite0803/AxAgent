@@ -36,7 +36,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { ModelIcon } from "@lobehub/icons";
-import { App, Avatar, Button, Checkbox, Dropdown, Empty, Input, Modal, Radio, Space, theme, Tooltip } from "antd";
+import { App, Avatar, Button, Checkbox, Dropdown, Empty, Input, Modal, Radio, Space, theme, Tooltip, type MenuProps } from "antd";
 import {
   Archive,
   ArrowLeft,
@@ -1241,9 +1241,9 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   }, [multiSelectMode, toggleSelect, setActiveConversation]);
 
   const rightClickMenuConfig = useMemo(() => {
-    if (!rightClickedConvId) { return { items: [] as any[] }; }
+    if (!rightClickedConvId) { return { items: [] as MenuProps["items"] }; }
     const conv = conversations.find((c) => c.id === rightClickedConvId);
-    if (!conv) { return { items: [] as any[] }; }
+    if (!conv) { return { items: [] as MenuProps["items"] }; }
     const isPinned = conv.is_pinned ?? false;
     const categoryItems: any[] = [];
     if (categories.length > 0) {

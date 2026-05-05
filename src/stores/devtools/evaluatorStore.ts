@@ -54,6 +54,8 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
     }
   },
 
+  // TODO: 添加 importDataset(path) action 调用 evaluator_import_dataset 命令，
+  // 并在 BenchmarkRunner 页面增加"导入数据集"按钮（参考 AgentProfileManager 中的 handleImportRoles 实现）
   loadDatasets: async () => {
     set({ isLoading: true, error: null });
     try {

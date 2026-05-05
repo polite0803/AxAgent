@@ -4,7 +4,12 @@ import path from "path";
 import monacoEditorPluginModule from "vite-plugin-monaco-editor";
 import { defineConfig, type Plugin } from "vitest/config";
 
-const monacoEditorPlugin = (monacoEditorPluginModule as any).default || monacoEditorPluginModule;
+interface MonacoEditorPluginModule {
+  default?: Plugin;
+  [key: string]: unknown;
+}
+
+const monacoEditorPlugin = (monacoEditorPluginModule as MonacoEditorPluginModule).default || monacoEditorPluginModule as Plugin;
 
 const host = process.env.TAURI_DEV_HOST;
 

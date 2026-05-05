@@ -59,13 +59,11 @@ impl SkillsHubClient {
         page: usize,
         page_size: usize,
     ) -> Result<SkillsHubSearchResult, String> {
-        let url = format!("{}/v1/skills/search", self.config.api_url);
-        let params = [
-            ("q", query),
-            ("page", &page.to_string()),
-            ("page_size", &page_size.to_string()),
-        ];
-        let mut req = self.client.get(&url).query(&params);
+        let url = format!(
+            "{}/v1/skills/search?q={}&page={}&page_size={}",
+            self.config.api_url, query, page, page_size
+        );
+        let mut req = self.client.get(&url);
         if let Some(key) = &self.config.api_key {
             req = req.header("Authorization", format!("Bearer {}", key));
         }

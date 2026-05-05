@@ -187,7 +187,7 @@ const CommandSuggest: React.FC<CommandSuggestProps> = ({
 
   // Expose key handler
   useEffect(() => {
-    (CommandSuggest as any)._handleKeyDown = handleKeyDown;
+    (CommandSuggest as unknown as { _handleKeyDown: typeof handleKeyDown })._handleKeyDown = handleKeyDown;
   }, [handleKeyDown]);
 
   if (suggestions.length === 0 || !visible) { return null; }

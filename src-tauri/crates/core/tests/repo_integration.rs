@@ -445,6 +445,9 @@ async fn test_conversation_update_input() {
         scenario: None,
         enabled_skill_ids: None,
         expert_role_id: None,
+        workflow_template_id: None,
+        session_type: None,
+        workflow_status: None,
     };
     let updated = conversation::update_conversation(db, &conv.id, input)
         .await

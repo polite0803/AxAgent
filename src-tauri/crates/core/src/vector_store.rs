@@ -160,7 +160,7 @@ impl VectorStore {
         }
         let row = self
             .db
-            .query_one(Statement::from_string(
+            .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
                 format!(
                     "SELECT dimensions FROM pragma_table_info('{name}') WHERE name = 'embedding'"
@@ -279,7 +279,7 @@ impl VectorStore {
             // can exist in vec0 after a previous crash/panic mid-insert.
             let meta_max = self
                 .db
-                .query_one(Statement::from_string(
+                .query_one_raw(Statement::from_string(
                     DbBackend::Sqlite,
                     format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}_meta"),
                 ))
@@ -290,7 +290,7 @@ impl VectorStore {
 
             let vec_max = self
                 .db
-                .query_one(Statement::from_string(
+                .query_one_raw(Statement::from_string(
                     DbBackend::Sqlite,
                     format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}"),
                 ))
@@ -308,7 +308,7 @@ impl VectorStore {
 
                 // Insert embedding into vec0 with explicit rowid
                 self.db
-                    .execute(Statement::from_sql_and_values(
+                    .execute_raw(Statement::from_sql_and_values(
                         DbBackend::Sqlite,
                         format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                         vec![rid.into(), vec_json.into()],
@@ -318,7 +318,7 @@ impl VectorStore {
 
                 // Insert meta with the same rowid
                 self.db
-                    .execute(Statement::from_sql_and_values(
+                    .execute_raw(Statement::from_sql_and_values(
                         DbBackend::Sqlite,
                         format!(
                             "INSERT INTO {name}_meta (rowid, id, document_id, chunk_index, content) \
@@ -372,7 +372,7 @@ impl VectorStore {
         // Determine next chunk_index for this document
         let max_index = self
             .db
-            .query_one(Statement::from_sql_and_values(
+            .query_one_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("SELECT COALESCE(MAX(chunk_index), -1) AS max_idx FROM {meta_table} WHERE document_id = $1"),
                 vec![document_id.to_string().into()],
@@ -388,7 +388,7 @@ impl VectorStore {
         // Determine next safe rowid
         let meta_max = self
             .db
-            .query_one(Statement::from_string(
+            .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
                 format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {meta_table}"),
             ))
@@ -399,7 +399,7 @@ impl VectorStore {
 
         let vec_max = self
             .db
-            .query_one(Statement::from_string(
+            .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
                 format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}"),
             ))
@@ -417,7 +417,7 @@ impl VectorStore {
         // Insert embedding into vec0
         let vec_result = self
             .db
-            .execute(Statement::from_sql_and_values(
+            .execute_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                 vec![rid.into(), vec_json.into()],
@@ -432,7 +432,7 @@ impl VectorStore {
 
         let meta_result = self
             .db
-            .execute(Statement::from_sql_and_values(
+            .execute_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!(
                     "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
@@ -485,7 +485,7 @@ impl VectorStore {
 
         let rows = match self
             .db
-            .query_all(Statement::from_sql_and_values(
+            .query_all_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 &sql,
                 vec![vec_json.into(), (top_k as i64).into()],
@@ -553,7 +553,7 @@ impl VectorStore {
         // We need the dimensions to recreate, so read from an existing row first
         let dim_row = self
             .db
-            .query_one(Statement::from_string(
+            .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
                 format!("SELECT vec_length(embedding) AS dim FROM {name} LIMIT 1"),
             ))
@@ -607,7 +607,7 @@ impl VectorStore {
 
         let rows = if let Some(doc_id) = document_id {
             self.db
-                .query_all(Statement::from_sql_and_values(
+                .query_all_raw(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("SELECT rowid, id, content FROM \"{meta_table}\" WHERE document_id = $1 ORDER BY rowid"),
                     vec![doc_id.to_string().into()],
@@ -616,7 +616,7 @@ impl VectorStore {
                 .map_err(Self::wrap)?
         } else {
             self.db
-                .query_all(Statement::from_string(
+                .query_all_raw(Statement::from_string(
                     DbBackend::Sqlite,
                     format!("SELECT rowid, id, content FROM {meta_table} ORDER BY rowid"),
                 ))
@@ -663,7 +663,7 @@ impl VectorStore {
 
         // Ensure the vec0 table exists with correct dimensions
         self.db
-            .execute(Statement::from_string(
+            .execute_raw(Statement::from_string(
                 DbBackend::Sqlite,
                 format!("CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"),
             ))
@@ -673,10 +673,9 @@ impl VectorStore {
         self.exec("BEGIN IMMEDIATE").await?;
 
         for (rid, embedding) in &entries {
-            // Delete existing row if present (ignore errors — may not exist)
             let _ = self
                 .db
-                .execute(Statement::from_sql_and_values(
+                .execute_raw(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![(*rid).into()],
@@ -686,7 +685,7 @@ impl VectorStore {
             let vec_json = Self::embedding_to_json(embedding);
             if let Err(e) = self
                 .db
-                .execute(Statement::from_sql_and_values(
+                .execute_raw(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
                     vec![(*rid).into(), vec_json.into()],
@@ -714,7 +713,7 @@ impl VectorStore {
         // Get the rowid from _meta
         let row = self
             .db
-            .query_one(Statement::from_sql_and_values(
+            .query_one_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
                 vec![chunk_id.to_string().into()],
@@ -730,7 +729,7 @@ impl VectorStore {
             // Delete from vec0
             if let Err(e) = self
                 .db
-                .execute(Statement::from_sql_and_values(
+                .execute_raw(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![rid.into()],
@@ -743,7 +742,7 @@ impl VectorStore {
             // Delete from _meta
             if let Err(e) = self
                 .db
-                .execute(Statement::from_sql_and_values(
+                .execute_raw(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("DELETE FROM {meta_table} WHERE id = $1"),
                     vec![chunk_id.to_string().into()],
@@ -775,7 +774,7 @@ impl VectorStore {
         }
 
         self.db
-            .execute(Statement::from_sql_and_values(
+            .execute_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("UPDATE {meta_table} SET content = $1 WHERE id = $2"),
                 vec![new_content.to_string().into(), chunk_id.to_string().into()],
@@ -803,7 +802,7 @@ impl VectorStore {
         // Get the rowid from _meta
         let row = self
             .db
-            .query_one(Statement::from_sql_and_values(
+            .query_one_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
                 vec![chunk_id.to_string().into()],
@@ -817,7 +816,7 @@ impl VectorStore {
 
         // Update embedding in vec0
         self.db
-            .execute(Statement::from_sql_and_values(
+            .execute_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("UPDATE {name} SET embedding = $1 WHERE rowid = $2"),
                 vec![vec_json.into(), rid.into()],
@@ -843,7 +842,7 @@ impl VectorStore {
         document_id: &str,
     ) -> Result<()> {
         self.db
-            .execute(Statement::from_sql_and_values(
+            .execute_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!(
                     "DELETE FROM {table_name} WHERE rowid IN (SELECT rowid FROM {table_name}_meta WHERE document_id = $1)"
@@ -854,7 +853,7 @@ impl VectorStore {
             .map_err(Self::wrap)?;
 
         self.db
-            .execute(Statement::from_sql_and_values(
+            .execute_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("DELETE FROM {table_name}_meta WHERE document_id = $1"),
                 vec![document_id.to_string().into()],
@@ -884,7 +883,7 @@ impl VectorStore {
     async fn table_exists(&self, table_name: &str) -> Result<bool> {
         let row = self
             .db
-            .query_one(Statement::from_sql_and_values(
+            .query_one_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 "SELECT name FROM sqlite_master WHERE type='table' AND name=$1",
                 vec![table_name.to_string().into()],
@@ -926,7 +925,7 @@ impl VectorStore {
 
         let rows = self
             .db
-            .query_all(Statement::from_sql_and_values(
+            .query_all_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 &sql,
                 vec![document_id.to_string().into()],
@@ -953,7 +952,7 @@ impl VectorStore {
     /// Shorthand for executing a statement with no parameters.
     async fn exec(&self, sql: &str) -> Result<()> {
         self.db
-            .execute(Statement::from_string(DbBackend::Sqlite, sql))
+            .execute_raw(Statement::from_string(DbBackend::Sqlite, sql))
             .await
             .map_err(Self::wrap)?;
         Ok(())

@@ -29,7 +29,7 @@ pub async fn dream_consolidate_now(state: State<'_, AppState>) -> Result<String,
     } else {
         Err(format!(
             "梦境巩固未执行: {}",
-            result.error.unwrap_or_else(|| "未知原因".to_string())
+            result.error.as_deref().unwrap_or("未知原因")
         ))
     }
 }

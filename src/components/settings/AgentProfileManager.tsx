@@ -13,6 +13,7 @@ import {
   Divider,
   Empty,
   Input,
+  message,
   Modal,
   Popconfirm,
   Select,
@@ -28,6 +29,7 @@ import {
   Database,
   Edit,
   FileText,
+  FolderOpen,
   Globe,
   Plus,
   Search,
@@ -84,6 +86,33 @@ export function AgentProfileManager() {
       const roles: { id: string; name: string }[] = await invoke("list_agent_roles");
       setRoleOptions(roles.map((r) => ({ value: r.id, label: r.name })));
     } catch { /* fallback */ }
+  };
+
+  const [importingRoles, setImportingRoles] = useState(false);
+  const handleImportRoles = async () => {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({ directory: true, multiple: false });
+      if (!selected) { return; }
+      setImportingRoles(true);
+      const res = await invoke<{ imported: number; skipped: number; errors: string[] }>(
+        "import_agent_roles",
+        { path: selected },
+      );
+      if (res.imported > 0) {
+        message.success(`成功导入 ${res.imported} 个角色`);
+      }
+      if (res.skipped > 0 || res.errors.length > 0) {
+        message.warning(
+          `跳过 ${res.skipped} 个，${res.errors.length} 个错误: ${res.errors.slice(0, 3).join("; ")}`,
+        );
+      }
+      await loadRoles();
+    } catch (e) {
+      message.error(`导入角色失败: ${String(e)}`);
+    } finally {
+      setImportingRoles(false);
+    }
   };
 
   const loadExperts = async () => {
@@ -219,6 +248,14 @@ export function AgentProfileManager() {
           />
           <Button size="small" type="primary" icon={<Plus size={14} />} onClick={openCreate}>
             {t("chat.workflow.agentProfileCreate")}
+          </Button>
+          <Button
+            size="small"
+            icon={<FolderOpen size={14} />}
+            onClick={handleImportRoles}
+            loading={importingRoles}
+          >
+            导入角色
           </Button>
         </Space>
       </div>

@@ -3989,6 +3989,7 @@ mod tests {
             webhook_subscription_manager: None,
             semantic_cache,
             browser_client: Arc::new(tokio::sync::Mutex::new(None)),
+            dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
         };
 
         let attachments = vec![AttachmentInput {

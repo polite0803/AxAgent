@@ -5,6 +5,12 @@ import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "emoji-picker-element";
 
+interface EmojiPickerElement extends HTMLElement {
+  locale: string;
+  i18n: object;
+  dataSource: string;
+}
+
 interface EmojiPickerProps {
   open: boolean;
   onClose: () => void;
@@ -12,7 +18,7 @@ interface EmojiPickerProps {
 }
 
 export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) {
-  const pickerRef = useRef<HTMLElement | null>(null);
+  const pickerRef = useRef<EmojiPickerElement | null>(null);
   const { token } = theme.useToken();
   const { t, i18n } = useTranslation();
   const themeMode = useSettingsStore((s) => s.settings.theme_mode);
@@ -37,7 +43,7 @@ export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) 
     if (pickerRef.current) {
       pickerRef.current.removeEventListener("emoji-click", handleClick);
     }
-    pickerRef.current = node;
+    pickerRef.current = node as EmojiPickerElement | null;
     // Attach to new node
     if (node) {
       node.addEventListener("emoji-click", handleClick);
@@ -46,7 +52,7 @@ export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) 
 
   // Sync locale + i18n translations
   useEffect(() => {
-    const picker = pickerRef.current as any;
+    const picker = pickerRef.current;
     if (!picker) { return; }
     const lang = i18n.language;
     if (lang.startsWith("zh")) {

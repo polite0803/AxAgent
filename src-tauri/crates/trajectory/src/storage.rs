@@ -16,8 +16,8 @@ use axagent_core::entity::{
 };
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ExprTrait, IntoActiveModel,
+    QueryFilter, QueryOrder, Set,
 };
 use std::sync::Arc;
 use tracing::info;
@@ -496,7 +496,7 @@ impl TrajectoryStorage {
                     0.0
                 },
                 avg_execution_time_ms: 0.0,
-                recent_executions: total.min(100) as u32,
+                recent_executions: std::cmp::Ord::min(total, 100) as u32,
             })
         })
     }

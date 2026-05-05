@@ -240,5 +240,6 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             Arc::new(tokio::sync::Mutex::new(cache))
         },
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
+        dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
     }
 }

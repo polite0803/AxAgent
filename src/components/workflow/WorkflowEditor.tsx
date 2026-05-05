@@ -25,6 +25,7 @@ import { EditorHeader } from "./Header/EditorHeader";
 import {
   AgentNode,
   BaseNode,
+  type BaseNodeData,
   CodeNode,
   ConditionNode,
   DelayNode,
@@ -632,7 +633,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                 <Background color="#333" gap={16} />
                 <Controls />
                 <MiniMap
-                  nodeColor={(node: Node) => (node.data as any)?.color || "#999"}
+                  nodeColor={(node: Node<BaseNodeData>) => node.data?.color || "#999"}
                   maskColor="rgba(0, 0, 0, 0.8)"
                 />
                 {nodes.length === 0 && (
