@@ -705,6 +705,7 @@ enum AgentProfiles {
     RecommendedWorkflows,
     SortOrder,
     IsEnabled,
+    ExpertId,
     CreatedAt,
     UpdatedAt,
 }
@@ -3509,6 +3510,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(1),
                     )
+                    .col(ColumnDef::new(AgentProfiles::ExpertId).string().null())
                     .col(
                         ColumnDef::new(AgentProfiles::CreatedAt)
                             .big_integer()

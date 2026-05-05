@@ -22,12 +22,13 @@ import {
   useStreamStore,
   useUIStore,
 } from "@/stores";
+import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
 import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Tag, theme, Tooltip } from "antd";
+import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Select, Tag, theme, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import {
   ArrowUp,
@@ -145,6 +146,33 @@ function getFileIcon(category: FileTypeCategory) {
 
 // In-memory draft cache: persists input text per-conversation across component unmounts
 const _draftCache = new Map<string, string>();
+
+function AgentRoleSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (roleName: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    invoke<{ id: string; name: string }[]>("list_agent_roles").then(setRoles).catch(() => {});
+  }, []);
+
+  return (
+    <Select
+      size="small"
+      style={{ minWidth: 120 }}
+      value={value || undefined}
+      onChange={(v) => onChange(v)}
+      placeholder={t("chat.workflow.agentProfileRole")}
+      options={roles.map((r) => ({ value: r.id, label: r.name }))}
+      allowClear
+    />
+  );
+}
 
 export function InputArea() {
   const { t } = useTranslation();
@@ -2242,8 +2270,19 @@ export function InputArea() {
                 </Button>
               </Tooltip>
             )}
-            {currentMode === "agent" && activeConversationId && (
+            {activeConversationId && activeConversation?.session_type !== "workflow" && (
               <>
+                <AgentRoleSelect
+                  value={activeConversation?.agent_profile_id ?? ""}
+                  onChange={(profileId) => {
+                    const profile = useAgentProfileStore.getState().getProfileById(profileId);
+                    updateConversation(activeConversationId, {
+                      agent_profile_id: profileId || null,
+                      system_prompt: profile?.systemPrompt || undefined,
+                      expert_role_id: null, // AgentProfile supersedes standalone Expert
+                    });
+                  }}
+                />
                 <ExpertBadge
                   expertRoleId={activeConversation?.expert_role_id ?? null}
                   onClick={() => setExpertOpen(true)}

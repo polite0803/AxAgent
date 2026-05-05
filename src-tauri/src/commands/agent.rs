@@ -527,9 +527,10 @@ pub async fn agent_query(
     let conversation_scenario = conversation.scenario.clone();
     let enabled_skill_ids = conversation.enabled_skill_ids.clone();
 
-    // Resolve system prompt, agent_role, and tool config from agent_profile_id (preferred)
-    // or expert_role_id (legacy fallback). agent_profile_id unifies ExpertRole + AgentRole.
-    let mut effective_system_prompt = None;
+    // AgentProfile = AgentRole + Expert + ProfileOverride (three-layer assembly)
+    let mut role_system_prompt: Option<String> = None;
+    let mut expert_system_prompt: Option<String> = None;
+    let mut profile_override_prompt: Option<String> = None;
     let mut effective_agent_role: Option<axagent_runtime::agent_roles::AgentRole> = None;
     let mut profile_recommended_tools: Vec<String> = Vec::new();
     let mut profile_disallowed_tools: Vec<String> = Vec::new();
@@ -539,19 +540,58 @@ pub async fn agent_query(
             axagent_core::repo::agent_profile::get_agent_profile(&app_state.sea_db, profile_id)
                 .await
         {
-            if !profile.system_prompt.is_empty() {
-                effective_system_prompt = Some(profile.system_prompt);
+            // Layer 1: AgentRole system_prompt
+            if let Some(ref role_name) = profile.agent_role {
+                if let Some(resolved) =
+                    axagent_runtime::agent_roles::AgentRole::resolve(&app_state.sea_db, role_name)
+                        .await
+                {
+                    effective_agent_role =
+                        axagent_runtime::agent_roles::AgentRole::from_str_opt(&resolved.name);
+                    if !resolved.system_prompt.is_empty() {
+                        role_system_prompt = Some(resolved.system_prompt);
+                    }
+                }
             }
-            effective_agent_role = profile
-                .agent_role
-                .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r));
+
+            // Layer 2: Expert domain knowledge
+            if let Some(ref expert_id) = profile.expert_id {
+                if let Ok(Some(expert)) =
+                    axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                        .one(&app_state.sea_db)
+                        .await
+                        .map_err(|e| e.to_string())
+                {
+                    if !expert.system_prompt.is_empty() {
+                        expert_system_prompt = Some(expert.system_prompt);
+                    }
+                }
+            }
+
+            // Layer 3: Profile override / customization
+            if !profile.system_prompt.is_empty() {
+                profile_override_prompt = Some(profile.system_prompt);
+            }
+
             profile_recommended_tools = profile.recommended_tools;
             profile_disallowed_tools = profile.disallowed_tools;
         }
     }
 
-    // Legacy fallback: expert_role_id from agency_experts table
-    if effective_system_prompt.is_none() {
+    // Assemble system prompt: Role → Expert → ProfileOverride (later = higher priority)
+    let mut prompt_parts: Vec<String> = Vec::new();
+    if let Some(ref rp) = role_system_prompt {
+        prompt_parts.push(rp.clone());
+    }
+    if let Some(ref ep) = expert_system_prompt {
+        prompt_parts.push(ep.clone());
+    }
+    if let Some(ref pp) = profile_override_prompt {
+        prompt_parts.push(pp.clone());
+    }
+
+    let effective_system_prompt = if prompt_parts.is_empty() {
+        // Legacy/explicit fallbacks
         if let Some(ref expert_id) = request.expert_role_id {
             if let Ok(Some(expert)) =
                 axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
@@ -560,16 +600,19 @@ pub async fn agent_query(
                     .map_err(|e| e.to_string())
             {
                 if !expert.system_prompt.is_empty() {
-                    effective_system_prompt = Some(expert.system_prompt);
+                    Some(expert.system_prompt)
+                } else {
+                    request.system_prompt.clone()
                 }
+            } else {
+                request.system_prompt.clone()
             }
+        } else {
+            request.system_prompt.clone()
         }
-    }
-
-    // Final fallback: request-level system_prompt
-    if effective_system_prompt.is_none() {
-        effective_system_prompt = request.system_prompt.clone();
-    }
+    } else {
+        Some(prompt_parts.join("\n\n"))
+    };
 
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point

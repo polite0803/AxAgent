@@ -36,6 +36,7 @@ pub struct Model {
     pub recommended_workflows: Option<String>,
     pub sort_order: i32,
     pub is_enabled: i32,
+    pub expert_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

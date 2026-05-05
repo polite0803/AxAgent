@@ -2211,6 +2211,7 @@ pub struct AgentProfile {
     pub recommended_workflows: Vec<String>,
     pub sort_order: i32,
     pub is_enabled: bool,
+    pub expert_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

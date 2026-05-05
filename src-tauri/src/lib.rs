@@ -485,6 +485,7 @@ pub fn run() {
             commands::workflow_template::validate_workflow_template,
             commands::workflow_template::export_workflow_template,
             commands::workflow_template::import_workflow_template,
+            commands::workflow_template::import_n8n_directory,
             commands::workflow_template::seed_preset_templates,
             commands::workflow_template::get_template_versions,
             commands::workflow_template::get_template_by_version,

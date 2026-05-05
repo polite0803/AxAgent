@@ -1,3 +1,4 @@
+import { invoke } from "@/lib/invoke";
 import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import type {
   AgentProfile,
@@ -73,8 +74,24 @@ export function AgentProfileManager() {
   const [editingProfile, setEditingProfile] = useState<AgentProfile | null>(null);
   const [form, setForm] = useState<CreateAgentProfileInput>(emptyProfile());
   const [saving, setSaving] = useState(false);
+  const [roleOptions, setRoleOptions] = useState<{ value: string; label: string }[]>([]);
+  const [expertOptions, setExpertOptions] = useState<{ value: string; label: string }[]>([]);
 
   const store = useAgentProfileStore();
+
+  const loadRoles = async () => {
+    try {
+      const roles: { id: string; name: string }[] = await invoke("list_agent_roles");
+      setRoleOptions(roles.map((r) => ({ value: r.id, label: r.name })));
+    } catch { /* fallback */ }
+  };
+
+  const loadExperts = async () => {
+    try {
+      const experts: { id: string; name: string }[] = await invoke("list_agency_experts");
+      setExpertOptions(experts.map((e) => ({ value: e.id, label: e.name })));
+    } catch { /* fallback */ }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -88,6 +105,8 @@ export function AgentProfileManager() {
 
   useEffect(() => {
     load();
+    loadRoles();
+    loadExperts();
   }, []);
 
   const filtered = useMemo(() => {
@@ -136,6 +155,7 @@ export function AgentProfileManager() {
       recommendedTools: p.recommendedTools,
       disallowedTools: p.disallowedTools,
       recommendedWorkflows: p.recommendedWorkflows,
+      expertId: p.expertId ?? "",
     });
     setEditorOpen(true);
   };
@@ -349,7 +369,21 @@ export function AgentProfileManager() {
               onChange={(v) => setForm({ ...form, agentRole: v || undefined })}
               options={[
                 { value: "", label: t("chat.workflow.agentProfileAutoRole") },
-                ...AGENT_ROLE_OPTIONS,
+                ...roleOptions,
+              ]}
+              allowClear
+            />
+          </div>
+          <div>
+            <Text type="secondary" style={{ fontSize: 11 }}>Expert (领域知识)</Text>
+            <Select
+              size="small"
+              style={{ width: "100%" }}
+              value={form.expertId ?? ""}
+              onChange={(v) => setForm({ ...form, expertId: v || undefined })}
+              options={[
+                { value: "", label: "无" },
+                ...expertOptions,
               ]}
               allowClear
             />
@@ -459,14 +493,3 @@ const CATEGORY_NAMES: Record<string, string> = {
   writing: "chat.workflow.agentProfileWriting",
   business: "chat.workflow.agentProfileBusiness",
 };
-
-const AGENT_ROLE_OPTIONS = [
-  { value: "coordinator", label: "Coordinator" },
-  { value: "researcher", label: "Researcher" },
-  { value: "developer", label: "Developer" },
-  { value: "reviewer", label: "Reviewer" },
-  { value: "browser", label: "Browser" },
-  { value: "synthesizer", label: "Synthesizer" },
-  { value: "planner", label: "Planner" },
-  { value: "executor", label: "Executor" },
-];

@@ -23,6 +23,7 @@ export interface AgentProfile {
   recommendedWorkflows?: string[];
   sortOrder: number;
   isEnabled: boolean;
+  expertId?: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -57,6 +58,7 @@ export interface CreateAgentProfileInput {
   recommendedTools?: string[];
   disallowedTools?: string[];
   recommendedWorkflows?: string[];
+  expertId?: string;
 }
 
 export interface UpdateAgentProfileInput {

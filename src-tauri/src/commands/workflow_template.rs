@@ -1,7 +1,7 @@
 use crate::AppState;
 use axagent_core::repo::workflow_template as db_repo;
 use axagent_core::workflow_types::*;
-use sea_orm::{ActiveModelTrait, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use serde::Deserialize;
 use tauri::State;
 
@@ -485,6 +485,531 @@ pub async fn export_workflow_template(
     serde_json::to_string_pretty(&response).map_err(|e| e.to_string())
 }
 
+/// 检测是否为 n8n 格式（存在 n8n-nodes-base 类型节点）
+fn is_n8n_format(json: &serde_json::Value) -> bool {
+    json.get("nodes")
+        .and_then(|n| n.as_array())
+        .map(|nodes| {
+            nodes.iter().any(|n| {
+                n.get("type")
+                    .and_then(|t| t.as_str())
+                    .map(|t| t.starts_with("n8n-nodes-base."))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
+}
+
+/// n8n 节点类型 → (agent_profile_id, agent_role, expert_id, expert_system_prompt)
+fn infer_agent_from_n8n(
+    node_type: &str,
+    node_name: &str,
+) -> (&'static str, &'static str, &'static str, &'static str) {
+    let t = node_type.to_lowercase();
+    let n = node_name.to_lowercase();
+
+    // Node name takes priority — handles generic n8n types (e.g. "n8n-nodes-base.noOp")
+    if n.contains("review") || n.contains("check") || n.contains("validate") || n.contains("audit")
+    {
+        return (
+            "code-reviewer",
+            "reviewer",
+            "code-reviewer",
+            "代码审查专家: 审查代码的正确性、安全性、性能和可维护性。提供具体的改进建议。",
+        );
+    }
+    if n.contains("debug") || n.contains("fix") || n.contains("troubleshoot") {
+        return (
+            "debug-expert",
+            "developer",
+            "debug-expert",
+            "调试专家: 系统性分析错误日志，定位根因。验证修复方案。",
+        );
+    }
+    if n.contains("test") || n.contains("qa") || n.contains("quality") {
+        return (
+            "debug-expert",
+            "reviewer",
+            "debug-expert",
+            "测试工程师: 编写和执行测试用例，验证功能正确性。",
+        );
+    }
+    if n.contains("doc") || n.contains("report") || n.contains("summary") || n.contains("write") {
+        return (
+            "tech-writer",
+            "synthesizer",
+            "tech-writer",
+            "技术文档专家: 撰写清晰、准确的技术文档和报告。",
+        );
+    }
+    if n.contains("plan") || n.contains("design") || n.contains("architect") {
+        return (
+            "architect",
+            "planner",
+            "architect",
+            "系统架构师: 负责系统设计、技术选型和架构评审。",
+        );
+    }
+    if n.contains("monitor") || n.contains("alert") || n.contains("watch") {
+        return (
+            "devops-engineer",
+            "executor",
+            "devops-engineer",
+            "DevOps工程师: 监控系统状态、处理告警和自动化运维。",
+        );
+    }
+    if n.contains("analyze")
+        || n.contains("analyze")
+        || n.contains("insight")
+        || n.contains("report")
+    {
+        return (
+            "data-analyst",
+            "researcher",
+            "data-analyst",
+            "数据分析师: 数据清洗、统计分析和可视化。",
+        );
+    }
+
+    if t.contains("http")
+        || t.contains("api")
+        || t.contains("rest")
+        || t.contains("webhook")
+        || t.contains("graphql")
+        || t.contains("request")
+    {
+        ("devops-engineer", "executor", "devops-engineer", "DevOps工程师: 负责API集成、CI/CD管道、HTTP请求自动化。确保接口调用的可靠性和错误处理。")
+    } else if t.contains("database")
+        || t.contains("sql")
+        || t.contains("postgres")
+        || t.contains("mysql")
+        || t.contains("mongo")
+        || t.contains("redis")
+    {
+        (
+            "sql-expert",
+            "researcher",
+            "sql-expert",
+            "SQL专家: 精通数据库查询优化、数据建模和SQL编写。考虑索引策略和并发控制。",
+        )
+    } else if t.contains("code")
+        || t.contains("function")
+        || t.contains("python")
+        || t.contains("javascript")
+        || t.contains("typescript")
+    {
+        (
+            "senior-developer",
+            "developer",
+            "senior-developer",
+            "高级开发工程师: 精通多种语言和框架，遵循最佳实践。编写清晰、高效、可维护的代码。",
+        )
+    } else if t.contains("ai")
+        || t.contains("llm")
+        || t.contains("openai")
+        || t.contains("anthropic")
+        || t.contains("chat")
+    {
+        (
+            "general-assistant",
+            "coordinator",
+            "general-assistant",
+            "通用AI助手: 全能型助手，处理各类任务和问题。",
+        )
+    } else if t.contains("email")
+        || t.contains("slack")
+        || t.contains("notify")
+        || t.contains("telegram")
+        || t.contains("discord")
+    {
+        (
+            "product-manager",
+            "coordinator",
+            "product-manager",
+            "产品经理: 沟通协调、需求分析和通知管理。",
+        )
+    } else if t.contains("file")
+        || t.contains("csv")
+        || t.contains("spreadsheet")
+        || t.contains("xml")
+        || t.contains("json")
+        || t.contains("excel")
+    {
+        (
+            "data-analyst",
+            "researcher",
+            "data-analyst",
+            "数据分析师: 数据清洗、统计分析和可视化，擅于从数据中提取洞察。",
+        )
+    } else if t.contains("security") || t.contains("auth") || t.contains("oauth") {
+        (
+            "security-auditor",
+            "reviewer",
+            "security-auditor",
+            "安全审计专家: OWASP Top 10审查、认证授权检查、数据加密和隐私保护。",
+        )
+    } else if t.contains("transform")
+        || t.contains("convert")
+        || t.contains("merge")
+        || t.contains("sort")
+        || t.contains("filter")
+    {
+        (
+            "tech-writer",
+            "synthesizer",
+            "tech-writer",
+            "技术文档专家: 整理、转换和聚合数据，输出结构化结果。",
+        )
+    } else {
+        (
+            "debug-expert",
+            "executor",
+            "debug-expert",
+            "调试专家: 系统性分析、定位问题根因，验证修复方案。",
+        )
+    }
+}
+
+/// 确保 AgentRole 存在，不存在则创建
+async fn ensure_agent_role(db: &DatabaseConnection, role_name: &str) -> Result<(), String> {
+    use axagent_core::entity::agent_roles;
+
+    let exists = agent_roles::Entity::find_by_id(role_name)
+        .one(db)
+        .await
+        .map_err(|e| e.to_string())?
+        .is_some();
+
+    if !exists {
+        let now = chrono::Utc::now().timestamp_millis();
+        let am = agent_roles::ActiveModel {
+            id: Set(role_name.to_string()),
+            name: Set(role_name.to_string()),
+            description: Set(Some(format!("Auto-created from n8n import: {}", role_name))),
+            system_prompt: Set(String::new()),
+            default_tools: Set(None),
+            max_concurrent: Set(3),
+            timeout_seconds: Set(600),
+            source: Set("imported".to_string()),
+            sort_order: Set(0),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        agent_roles::Entity::insert(am)
+            .exec(db)
+            .await
+            .map_err(|e| format!("Failed to create AgentRole {}: {}", role_name, e))?;
+    }
+    Ok(())
+}
+
+/// 确保 AgentProfile 在 DB 中存在，如果不存在则创建并关联 Expert
+async fn ensure_agent_profile(
+    db: &DatabaseConnection,
+    profile_id: &str,
+    profile_name: &str,
+    agent_role: &str,
+    expert_id: &str,
+    expert_prompt: &str,
+) -> Result<(), String> {
+    use axagent_core::entity::agent_profiles;
+
+    let exists = agent_profiles::Entity::find_by_id(profile_id)
+        .one(db)
+        .await
+        .map_err(|e| e.to_string())?
+        .is_some();
+
+    if !exists {
+        let now = chrono::Utc::now().timestamp_millis();
+        let am = agent_profiles::ActiveModel {
+            id: Set(profile_id.to_string()),
+            name: Set(profile_name.to_string()),
+            description: Set(Some(expert_prompt.to_string())),
+            category: Set("general".to_string()),
+            icon: Set("🤖".to_string()),
+            system_prompt: Set(expert_prompt.to_string()),
+            agent_role: Set(Some(agent_role.to_string())),
+            source: Set("imported".to_string()),
+            sort_order: Set(0),
+            is_enabled: Set(1),
+            expert_id: Set(Some(expert_id.to_string())),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        };
+        agent_profiles::Entity::insert(am)
+            .exec(db)
+            .await
+            .map_err(|e| format!("Failed to create AgentProfile {}: {}", profile_id, e))?;
+    }
+    Ok(())
+}
+
+/// 语义重复检查：Jaccard 相似度 ≥ 0.6 视为重复
+async fn check_workflow_duplicate(
+    db: &DatabaseConnection,
+    name: &str,
+) -> Result<Option<String>, String> {
+    use axagent_core::entity::workflow_template;
+
+    let input_tokens: std::collections::HashSet<String> = name
+        .to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|s| s.len() > 1)
+        .map(|s| s.to_string())
+        .collect();
+
+    if input_tokens.is_empty() {
+        return Ok(None);
+    }
+
+    let all = workflow_template::Entity::find()
+        .all(db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    for tmpl in &all {
+        let existing_tokens: std::collections::HashSet<String> = tmpl
+            .name
+            .to_lowercase()
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|s| s.len() > 1)
+            .map(|s| s.to_string())
+            .collect();
+
+        let intersection = input_tokens.intersection(&existing_tokens).count();
+        let union = input_tokens.union(&existing_tokens).count();
+        let similarity = if union > 0 {
+            (intersection as f64) / (union as f64)
+        } else {
+            0.0
+        };
+
+        if similarity >= 0.6 {
+            return Ok(Some(tmpl.name.clone()));
+        }
+    }
+    Ok(None)
+}
+
+/// 从 n8n 节点参数提取有意义的 goal 描述
+fn extract_goal_from_n8n(node: &serde_json::Value) -> String {
+    let node_type = node.get("type").and_then(|v| v.as_str()).unwrap_or("");
+    let params = node.get("parameters");
+
+    if let Some(p) = params {
+        if node_type.contains("http") || node_type.contains("api") {
+            let method = p.get("method").and_then(|v| v.as_str()).unwrap_or("GET");
+            let url = p.get("url").and_then(|v| v.as_str()).unwrap_or("(no URL)");
+            return format!("HTTP {} {}", method, url);
+        }
+        if node_type.contains("database") || node_type.contains("sql") {
+            let op = p
+                .get("operation")
+                .and_then(|v| v.as_str())
+                .unwrap_or("query");
+            let table = p.get("table").and_then(|v| v.as_str()).unwrap_or("");
+            return format!("SQL {} {}", op, table);
+        }
+        if node_type.contains("email") {
+            let subj = p.get("subject").and_then(|v| v.as_str()).unwrap_or("");
+            return format!("Send email: {}", subj);
+        }
+        if node_type.contains("code") || node_type.contains("function") {
+            let lang = node_type.rsplit('.').next().unwrap_or("code");
+            return format!("Execute {} function", lang);
+        }
+    }
+    let name = node
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Unnamed");
+    format!(
+        "{} ({})",
+        name,
+        node_type.rsplit('.').next().unwrap_or(node_type)
+    )
+}
+
+/// 将 n8n JSON 转换为 AxAgent Workflow — 两阶段：先 DB 准备，再组装
+async fn convert_n8n_to_axagent(
+    db: &DatabaseConnection,
+    json: &serde_json::Value,
+) -> Result<axagent_core::workflow_types::WorkflowTemplateData, String> {
+    use axagent_core::workflow_types::*;
+
+    let name = json
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Imported n8n Workflow")
+        .to_string();
+
+    let n8n_nodes = json
+        .get("nodes")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| "Missing 'nodes' array".to_string())?;
+
+    let n8n_connections = json.get("connections").cloned();
+
+    let mut ax_nodes: Vec<WorkflowNode> = Vec::new();
+    let mut ax_edges: Vec<WorkflowEdge> = Vec::new();
+    let mut edge_id_counter = 0u32;
+
+    for n8n_node in n8n_nodes {
+        let node_id = n8n_node
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+
+        let node_name = n8n_node
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Unnamed")
+            .to_string();
+
+        let n8n_type = n8n_node
+            .get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let (agent_profile_id, agent_role, expert_id, expert_prompt) =
+            infer_agent_from_n8n(&n8n_type, &node_name);
+
+        // Ensure AgentRole exists in DB
+        ensure_agent_role(db, agent_role).await?;
+
+        // Ensure AgentProfile exists in DB (create if missing, with Expert link)
+        ensure_agent_profile(
+            db,
+            agent_profile_id,
+            &format!("n8n: {}", &node_name),
+            agent_role,
+            expert_id,
+            expert_prompt,
+        )
+        .await?;
+
+        let goal = extract_goal_from_n8n(n8n_node);
+
+        let position = n8n_node
+            .get("position")
+            .map(|p| Position {
+                x: p.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                y: p.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            })
+            .unwrap_or(Position { x: 0.0, y: 0.0 });
+
+        let base = WorkflowNodeBase {
+            id: node_id.clone(),
+            title: node_name,
+            description: Some(goal),
+            position,
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        };
+
+        let agent_node = WorkflowNode::Agent(AgentNode {
+            base,
+            config: AgentNodeConfig {
+                role: AgentRole::try_from_str(agent_role).unwrap_or(AgentRole::Executor),
+                system_prompt: String::new(),
+                context_sources: Vec::new(),
+                output_var: format!("{}_output", node_id),
+                model: None,
+                temperature: None,
+                max_tokens: None,
+                tools: Vec::new(),
+                output_mode: OutputMode::Text,
+                agent_profile_id: Some(agent_profile_id.to_string()),
+                agent_role_override: None,
+            },
+        });
+
+        ax_nodes.push(agent_node);
+    }
+
+    // Convert n8n connections → edges
+    if let Some(connections) = n8n_connections {
+        if let Some(conn_map) = connections.as_object() {
+            let ax_node_ids: Vec<String> =
+                ax_nodes.iter().map(|n| n.base_id().to_string()).collect();
+
+            for (source_id, conn_val) in conn_map {
+                if !ax_node_ids.contains(source_id) {
+                    continue;
+                }
+                // n8n connections format: { "source_node": { "main": [[{ "node": "target1" }, { "node": "target2" }]] } }
+                if let Some(main_arr) = conn_val.get("main").and_then(|v| v.as_array()) {
+                    for main_group in main_arr {
+                        if let Some(entries) = main_group.as_array() {
+                            for entry in entries {
+                                if let Some(target_id) = entry.get("node").and_then(|v| v.as_str())
+                                {
+                                    if ax_node_ids.contains(&target_id.to_string()) {
+                                        ax_edges.push(WorkflowEdge {
+                                            id: format!("edge_{}", edge_id_counter),
+                                            source: source_id.clone(),
+                                            source_handle: None,
+                                            target: target_id.to_string(),
+                                            target_handle: None,
+                                            edge_type:
+                                                axagent_core::workflow_types::EdgeType::Direct,
+                                            label: None,
+                                        });
+                                        edge_id_counter += 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // If no edges, create sequential flow
+    if ax_edges.is_empty() && ax_nodes.len() > 1 {
+        for i in 1..ax_nodes.len() {
+            ax_edges.push(WorkflowEdge {
+                id: format!("edge_{}", edge_id_counter),
+                source: ax_nodes[i - 1].base_id().to_string(),
+                source_handle: None,
+                target: ax_nodes[i].base_id().to_string(),
+                target_handle: None,
+                edge_type: axagent_core::workflow_types::EdgeType::Direct,
+                label: None,
+            });
+            edge_id_counter += 1;
+        }
+    }
+
+    let now = chrono::Utc::now().timestamp_millis();
+    Ok(WorkflowTemplateData {
+        id: uuid::Uuid::new_v4().to_string(),
+        name,
+        description: Some("Imported from n8n workflow".to_string()),
+        icon: "🔧".to_string(),
+        tags: vec!["n8n".to_string(), "imported".to_string()],
+        version: 1,
+        is_preset: false,
+        is_editable: true,
+        is_public: false,
+        trigger_config: None,
+        nodes: ax_nodes,
+        edges: ax_edges,
+        input_schema: None,
+        output_schema: None,
+        variables: Vec::new(),
+        error_config: None,
+        created_at: now,
+        updated_at: now,
+    })
+}
+
 #[tauri::command]
 pub async fn import_workflow_template(
     state: State<'_, AppState>,
@@ -492,39 +1017,60 @@ pub async fn import_workflow_template(
 ) -> Result<String, String> {
     let db = &state.sea_db;
 
-    let template: WorkflowTemplateResponse =
-        serde_json::from_str(&json_data).map_err(|e| format!("Invalid JSON format: {}", e))?;
+    // Detect n8n format and convert to AxAgent format
+    let raw_json: serde_json::Value =
+        serde_json::from_str(&json_data).map_err(|e| format!("Invalid JSON: {}", e))?;
 
-    // Auto-migrate legacy Tool/Code nodes to Agent nodes on import
-    let mut nodes = template.nodes.clone();
-    let migrated_nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
-        if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
-            axagent_core::workflow_types::WorkflowMigrator::migrate(&mut nodes);
-            nodes
-        } else {
-            nodes
-        };
+    // Check for duplicate workflow name
+    let workflow_name = raw_json
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Imported Workflow")
+        .to_string();
+    if let Some(existing) = check_workflow_duplicate(db, &workflow_name).await? {
+        return Err(format!(
+            "工作流 '{}' 与已存在的 '{}' 语义重复（相似度 ≥ 0.6），请重命名后重试",
+            workflow_name, existing
+        ));
+    }
 
-    let now = chrono::Utc::now().timestamp_millis();
-    let new_template = WorkflowTemplateData {
-        id: uuid::Uuid::new_v4().to_string(),
-        name: template.name,
-        description: template.description,
-        icon: template.icon,
-        tags: template.tags,
-        version: 1,
-        is_preset: false,
-        is_editable: true,
-        is_public: false,
-        trigger_config: template.trigger_config,
-        nodes: migrated_nodes,
-        edges: template.edges,
-        input_schema: template.input_schema,
-        output_schema: template.output_schema,
-        variables: template.variables,
-        error_config: template.error_config,
-        created_at: now,
-        updated_at: now,
+    let new_template = if is_n8n_format(&raw_json) {
+        convert_n8n_to_axagent(db, &raw_json).await?
+    } else {
+        let template: WorkflowTemplateResponse = serde_json::from_value(raw_json)
+            .map_err(|e| format!("Invalid AxAgent format: {}", e))?;
+
+        // Auto-migrate legacy Tool/Code nodes to Agent nodes on import
+        let mut nodes = template.nodes.clone();
+        let migrated_nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
+            if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
+                axagent_core::workflow_types::WorkflowMigrator::migrate(&mut nodes);
+                nodes
+            } else {
+                nodes
+            };
+
+        let now = chrono::Utc::now().timestamp_millis();
+        WorkflowTemplateData {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: template.name,
+            description: template.description,
+            icon: template.icon,
+            tags: template.tags,
+            version: 1,
+            is_preset: false,
+            is_editable: true,
+            is_public: false,
+            trigger_config: template.trigger_config,
+            nodes: migrated_nodes,
+            edges: template.edges,
+            input_schema: template.input_schema,
+            output_schema: template.output_schema,
+            variables: template.variables,
+            error_config: template.error_config,
+            created_at: now,
+            updated_at: now,
+        }
     };
 
     let active_model = model_to_active_model(&new_template);
@@ -533,4 +1079,84 @@ pub async fn import_workflow_template(
         .map_err(|e| e.to_string())?;
 
     Ok(new_template.id)
+}
+
+/// 批量导入 n8n 目录中的所有工作流 JSON 文件
+#[tauri::command]
+pub async fn import_n8n_directory(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<serde_json::Value, String> {
+    use std::fs;
+    use std::path::Path;
+
+    let db = &state.sea_db;
+    let dir = Path::new(&path);
+    if !dir.is_dir() {
+        return Err(format!("路径不存在或不是目录: {}", path));
+    }
+
+    let mut imported = Vec::new();
+    let mut skipped = Vec::new();
+    let mut errors = Vec::new();
+
+    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let file_path = entry.path();
+
+        if file_path.extension().is_none_or(|e| e != "json") {
+            continue;
+        }
+
+        let content = fs::read_to_string(&file_path)
+            .map_err(|e| format!("{}: {}", file_path.display(), e))?;
+        let raw_json: serde_json::Value = match serde_json::from_str(&content) {
+            Ok(v) => v,
+            Err(e) => {
+                errors.push(format!("{}: JSON parse error: {}", file_path.display(), e));
+                continue;
+            },
+        };
+
+        if !is_n8n_format(&raw_json) {
+            skipped.push(file_path.display().to_string());
+            continue;
+        }
+
+        let workflow_name = raw_json
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Imported n8n Workflow")
+            .to_string();
+
+        if let Ok(Some(existing)) = check_workflow_duplicate(db, &workflow_name).await {
+            skipped.push(format!(
+                "{} (semantically similar to '{}')",
+                file_path.display(),
+                existing
+            ));
+            continue;
+        }
+
+        match convert_n8n_to_axagent(db, &raw_json).await {
+            Ok(template) => {
+                let am = model_to_active_model(&template);
+                if let Err(e) = db_repo::insert_workflow_template(db, am).await {
+                    errors.push(format!("{}: save error: {}", file_path.display(), e));
+                } else {
+                    imported.push(template.name);
+                }
+            },
+            Err(e) => errors.push(format!("{}: conversion error: {}", file_path.display(), e)),
+        }
+    }
+
+    Ok(serde_json::json!({
+        "imported": imported.len(),
+        "imported_names": imported,
+        "skipped": skipped.len(),
+        "skipped_reasons": skipped,
+        "errors": errors.len(),
+        "error_details": errors,
+    }))
 }

@@ -34,6 +34,7 @@ fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
         recommended_workflows: parse_json_arr(&m.recommended_workflows),
         sort_order: m.sort_order,
         is_enabled: m.is_enabled != 0,
+        expert_id: m.expert_id,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -108,6 +109,7 @@ pub async fn create_agent_profile(
         }),
         sort_order: Set(0),
         is_enabled: Set(1),
+        expert_id: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
         ..Default::default()
@@ -178,6 +180,7 @@ pub async fn upsert_agent_profile(
         }),
         sort_order: Set(0),
         is_enabled: Set(1),
+        expert_id: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };

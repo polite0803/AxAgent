@@ -1,7 +1,75 @@
-import { Button, Divider, Input, message, Modal, Tabs, Upload } from "antd";
+import { invoke } from "@/lib/invoke";
+import { Alert, Button, Divider, Input, message, Modal, Tabs, Upload } from "antd";
 import type { UploadProps } from "antd";
-import { Check, Copy, Download, Upload as UploadIcon } from "lucide-react";
+import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-react";
 import React, { useState } from "react";
+
+function BatchImportN8n() {
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<
+    {
+      imported: number;
+      skipped: number;
+      errors: string[];
+    } | null
+  >(null);
+
+  const handleBatchImport = async () => {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({ directory: true, multiple: false });
+      if (!selected) { return; }
+
+      setImporting(true);
+      setResult(null);
+      const res = await invoke<{
+        imported: number;
+        imported_names: string[];
+        skipped: number;
+        skipped_reasons: string[];
+        errors: number;
+        error_details: string[];
+      }>("import_n8n_directory", { path: selected });
+      setResult({
+        imported: res.imported,
+        skipped: res.skipped,
+        errors: res.error_details.slice(0, 5),
+      });
+      if (res.imported > 0) {
+        message.success(`成功导入 ${res.imported} 个工作流`);
+      }
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div>
+      <Button
+        icon={<FolderOpen size={14} />}
+        onClick={handleBatchImport}
+        loading={importing}
+        style={{ width: "100%" }}
+      >
+        选择 n8n 工作流目录导入
+      </Button>
+      {result && (
+        <Alert
+          style={{ marginTop: 8 }}
+          type={result.errors.length > 0 ? "warning" : "success"}
+          message={
+            <span style={{ fontSize: 12 }}>
+              导入 {result.imported} 个 · 跳过 {result.skipped} 个
+              {result.errors.length > 0 && ` · 错误 ${result.errors.length} 个`}
+            </span>
+          }
+        />
+      )}
+    </div>
+  );
+}
 
 interface ImportExportModalProps {
   open: boolean;
@@ -226,6 +294,10 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           <p style={{ color: "#666", fontSize: 11, marginTop: 12 }}>
             导入将创建一个新的模板副本。导入的模板默认是自定义模板（非预设）。
           </p>
+
+          <Divider style={{ margin: "12px 0", fontSize: 11 }}>n8n 批量导入</Divider>
+
+          <BatchImportN8n />
         </div>
       ),
     },

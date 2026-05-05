@@ -487,6 +487,28 @@ pub enum WorkflowNode {
     Code(CodeNode),
 }
 
+impl WorkflowNode {
+    pub fn base_id(&self) -> &str {
+        match self {
+            WorkflowNode::Trigger(n) => &n.base.id,
+            WorkflowNode::Agent(n) => &n.base.id,
+            WorkflowNode::Llm(n) => &n.base.id,
+            WorkflowNode::Condition(n) => &n.base.id,
+            WorkflowNode::Parallel(n) => &n.base.id,
+            WorkflowNode::Loop(n) => &n.base.id,
+            WorkflowNode::Merge(n) => &n.base.id,
+            WorkflowNode::Delay(n) => &n.base.id,
+            WorkflowNode::Tool(n) => &n.base.id,
+            WorkflowNode::Code(n) => &n.base.id,
+            WorkflowNode::SubWorkflow(n) => &n.base.id,
+            WorkflowNode::DocumentParser(n) => &n.base.id,
+            WorkflowNode::VectorRetrieve(n) => &n.base.id,
+            WorkflowNode::Validation(n) => &n.base.id,
+            WorkflowNode::End(n) => &n.base.id,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TriggerNode {
     #[serde(flatten)]
