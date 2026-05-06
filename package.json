@@ -74,7 +74,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@dprint/json": "^0.19.4",
+    "@dprint/json": "^0.21.3",
     "@dprint/typescript": "^0.93.3",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.4",
