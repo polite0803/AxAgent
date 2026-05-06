@@ -1,8 +1,8 @@
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS } from "@/types/platform";
-import { Card, Empty, Tag, Typography } from "antd";
+import { Card, Empty, Spin, Tag, Typography } from "antd";
 import { CheckCircle, Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -11,14 +11,23 @@ export function PlatformStatusCard() {
   const { t } = useTranslation();
   const statuses = usePlatformStore((s) => s.statuses);
   const loadStatuses = usePlatformStore((s) => s.loadStatuses);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    loadStatuses();
+    loadStatuses().finally(() => setInitialLoading(false));
     const interval = setInterval(loadStatuses, 30000);
     return () => clearInterval(interval);
   }, [loadStatuses]);
 
   const metaMap = new Map(ALL_PLATFORMS.map(p => [p.name, p]));
+
+  if (initialLoading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+        <Spin />
+      </div>
+    );
+  }
 
   if (statuses.length === 0) {
     return (

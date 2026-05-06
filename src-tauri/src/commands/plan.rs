@@ -811,9 +811,10 @@ pub async fn plan_execute(
     let steps_to_run: Vec<&PlanStep> = if let Some(ref step_ids) = request.step_ids {
         steps.iter().filter(|s| step_ids.contains(&s.id)).collect()
     } else {
+        // Only execute explicitly approved steps — pending steps need user approval first
         steps
             .iter()
-            .filter(|s| s.status == PlanStepStatus::Approved || s.status == PlanStepStatus::Pending)
+            .filter(|s| s.status == PlanStepStatus::Approved)
             .collect()
     };
 

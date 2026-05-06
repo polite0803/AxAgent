@@ -788,6 +788,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       return;
     }
 
+    // Hoisted variables used by both try and catch blocks
+    let finalContent = content;
+    let kbIds: string[] = [];
+    let memIds: string[] = [];
+    let mcpIds: string[] = [];
+    let thinkingBudget: number | undefined;
+
     // Optimistically add user message BEFORE backend call
     const optimisticUserMsg: Message = {
       id: `temp-user-${Date.now()}`,
@@ -859,11 +866,6 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       setStreamUiFlushTimer(null);
     }
 
-    let finalContent = content;
-    let mcpIds: string[] = [];
-    let thinkingBudget: number | undefined;
-    let kbIds: string[] = [];
-    let memIds: string[] = [];
     try {
       // If web search is enabled, execute search before sending to backend
       if (searchProviderId) {

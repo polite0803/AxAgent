@@ -114,6 +114,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     error,
     undo,
     redo,
+    canUndo,
+    canRedo,
     addNode,
   } = useWorkflowEditorStore();
 
@@ -418,19 +420,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
       if (isCtrlOrCmd && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        undo();
+        if (canUndo()) { undo(); } else { message.info("没有可撤销的操作"); }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "z" && e.shiftKey) {
         e.preventDefault();
-        redo();
+        if (canRedo()) { redo(); } else { message.info("没有可重做的操作"); }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "y") {
         e.preventDefault();
-        redo();
+        if (canRedo()) { redo(); } else { message.info("没有可重做的操作"); }
         return;
       }
 

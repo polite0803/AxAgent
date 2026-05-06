@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Card, Popconfirm, Statistic, Table, Tag } from "antd";
+import { Button, Card, Popconfirm, Spin, Statistic, Table, Tag } from "antd";
 import { Activity, BarChart3, Clock, Server } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -29,9 +29,11 @@ export function GatewayMonitor() {
   const [metrics, setMetrics] = useState<GatewayMetrics | null>(null);
   const [logs, setLogs] = useState<RequestLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [m, l] = await Promise.all([
         invoke<GatewayMetrics>("get_gateway_metrics").catch(() => null),
@@ -40,7 +42,9 @@ export function GatewayMonitor() {
       setMetrics(m);
       setLogs(l);
     } catch (e) {
-      console.warn("Gateway metrics load failed:", e);
+      const msg = `加载网关指标失败: ${String(e)}`;
+      console.warn(msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -108,7 +112,11 @@ export function GatewayMonitor() {
       </div>
 
       {/* 指标卡片 */}
-      {metrics && (
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 40 }}><Spin /></div>
+      ) : error ? (
+        <Card><div style={{ textAlign: "center", padding: 12, color: "var(--color-text-secondary)" }}>{error}</div></Card>
+      ) : metrics && (
         <div
           style={{
             display: "grid",
