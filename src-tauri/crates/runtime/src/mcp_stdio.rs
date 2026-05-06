@@ -289,10 +289,7 @@ impl std::fmt::Display for McpServerManagerError {
                 server_name,
                 method,
                 source,
-            } => write!(
-                f,
-                "MCP server `{server_name}` transport failed during {method}: {source}"
-            ),
+            } => write!(f, "MCP server `{server_name}` transport failed during {method}: {source}"),
             Self::JsonRpc {
                 server_name,
                 method,
@@ -360,10 +357,8 @@ impl McpServerManagerError {
     }
 
     fn recoverable(&self) -> bool {
-        !matches!(
-            self.lifecycle_phase(),
-            McpLifecyclePhase::InitializeHandshake
-        ) && matches!(self, Self::Transport { .. } | Self::Timeout { .. })
+        !matches!(self.lifecycle_phase(), McpLifecyclePhase::InitializeHandshake)
+            && matches!(self, Self::Transport { .. } | Self::Timeout { .. })
     }
 
     fn discovery_failure(&self, server_name: &str) -> McpDiscoveryFailure {
@@ -1811,18 +1806,10 @@ mod tests {
 
     fn cleanup_script(script_path: &Path) {
         if let Err(error) = fs::remove_file(script_path) {
-            assert_eq!(
-                error.kind(),
-                std::io::ErrorKind::NotFound,
-                "cleanup script: {error}"
-            );
+            assert_eq!(error.kind(), std::io::ErrorKind::NotFound, "cleanup script: {error}");
         }
         if let Err(error) = fs::remove_dir_all(script_path.parent().expect("script parent")) {
-            assert_eq!(
-                error.kind(),
-                std::io::ErrorKind::NotFound,
-                "cleanup dir: {error}"
-            );
+            assert_eq!(error.kind(), std::io::ErrorKind::NotFound, "cleanup dir: {error}");
         }
     }
 
@@ -1842,10 +1829,7 @@ mod tests {
     ) -> ScopedMcpServerConfig {
         let mut env = BTreeMap::from([
             ("MCP_SERVER_LABEL".to_string(), label.to_string()),
-            (
-                "MCP_LOG_PATH".to_string(),
-                log_path.to_string_lossy().into_owned(),
-            ),
+            ("MCP_LOG_PATH".to_string(), log_path.to_string_lossy().into_owned()),
         ]);
         env.extend(extra_env);
         ScopedMcpServerConfig {
@@ -2134,16 +2118,10 @@ mod tests {
             assert_eq!(call.error, None);
             let call_result = call.result.expect("tool result");
             assert_eq!(call_result.is_error, Some(false));
-            assert_eq!(
-                call_result.structured_content,
-                Some(json!({"echoed": "hello"}))
-            );
+            assert_eq!(call_result.structured_content, Some(json!({"echoed": "hello"})));
             assert_eq!(call_result.content.len(), 1);
             assert_eq!(call_result.content[0].kind, "text");
-            assert_eq!(
-                call_result.content[0].data.get("text"),
-                Some(&json!("echo:hello"))
-            );
+            assert_eq!(call_result.content[0].data.get("text"), Some(&json!("echo:hello")));
 
             let resources = process
                 .list_resources(JsonRpcId::Number(3), None)
@@ -2152,10 +2130,7 @@ mod tests {
             let resources_result = resources.result.expect("resources result");
             assert_eq!(resources_result.resources.len(), 1);
             assert_eq!(resources_result.resources[0].uri, "file://guide.txt");
-            assert_eq!(
-                resources_result.resources[0].mime_type.as_deref(),
-                Some("text/plain")
-            );
+            assert_eq!(resources_result.resources[0].mime_type.as_deref(), Some("text/plain"));
 
             let read = process
                 .read_resource(
@@ -2211,10 +2186,7 @@ mod tests {
             assert_eq!(response.id, JsonRpcId::Number(9));
             assert!(response.result.is_none());
             assert_eq!(response.error.as_ref().map(|e| e.code), Some(-32001));
-            assert_eq!(
-                response.error.as_ref().map(|e| e.message.as_str()),
-                Some("tool failed")
-            );
+            assert_eq!(response.error.as_ref().map(|e| e.message.as_str()), Some("tool failed"));
 
             process.terminate().await.expect("terminate child");
             let _ = process.wait().await.expect("wait after kill");
@@ -2264,14 +2236,8 @@ mod tests {
             let alpha_log = root.join("alpha.log");
             let beta_log = root.join("beta.log");
             let servers = BTreeMap::from([
-                (
-                    "alpha".to_string(),
-                    manager_server_config(&script_path, "alpha", &alpha_log),
-                ),
-                (
-                    "beta".to_string(),
-                    manager_server_config(&script_path, "beta", &beta_log),
-                ),
+                ("alpha".to_string(), manager_server_config(&script_path, "alpha", &alpha_log)),
+                ("beta".to_string(), manager_server_config(&script_path, "beta", &beta_log)),
             ]);
             let mut manager = McpServerManager::from_servers(&servers);
 
@@ -2279,17 +2245,11 @@ mod tests {
             assert_eq!(tools.len(), 2);
 
             let alpha = manager
-                .call_tool(
-                    &mcp_tool_name("alpha", "echo"),
-                    Some(json!({"text": "hello"})),
-                )
+                .call_tool(&mcp_tool_name("alpha", "echo"), Some(json!({"text": "hello"})))
                 .await
                 .expect("call alpha tool");
             let beta = manager
-                .call_tool(
-                    &mcp_tool_name("beta", "echo"),
-                    Some(json!({"text": "world"})),
-                )
+                .call_tool(&mcp_tool_name("beta", "echo"), Some(json!({"text": "world"})))
                 .await
                 .expect("call beta tool");
 
@@ -2343,10 +2303,7 @@ mod tests {
 
             manager.discover_tools().await.expect("discover tools");
             let error = manager
-                .call_tool(
-                    &mcp_tool_name("slow", "echo"),
-                    Some(json!({"text": "slow"})),
-                )
+                .call_tool(&mcp_tool_name("slow", "echo"), Some(json!({"text": "slow"})))
                 .await
                 .expect_err("slow tool call should time out");
 
@@ -2396,10 +2353,7 @@ mod tests {
 
             manager.discover_tools().await.expect("discover tools");
             let error = manager
-                .call_tool(
-                    &mcp_tool_name("broken", "echo"),
-                    Some(json!({"text": "invalid-json"})),
-                )
+                .call_tool(&mcp_tool_name("broken", "echo"), Some(json!({"text": "invalid-json"})))
                 .await
                 .expect_err("invalid json should fail");
 
@@ -2447,10 +2401,7 @@ mod tests {
 
             manager.discover_tools().await.expect("discover tools");
             let first_error = manager
-                .call_tool(
-                    &mcp_tool_name("alpha", "echo"),
-                    Some(json!({"text": "reconnect"})),
-                )
+                .call_tool(&mcp_tool_name("alpha", "echo"), Some(json!({"text": "reconnect"})))
                 .await
                 .expect_err("first call should fail after transport drops");
 
@@ -2468,10 +2419,7 @@ mod tests {
             }
 
             let response = manager
-                .call_tool(
-                    &mcp_tool_name("alpha", "echo"),
-                    Some(json!({"text": "reconnect"})),
-                )
+                .call_tool(&mcp_tool_name("alpha", "echo"), Some(json!({"text": "reconnect"})))
                 .await
                 .expect("second tool call should succeed after reset");
 
@@ -2512,10 +2460,7 @@ mod tests {
                     "alpha",
                     &log_path,
                     BTreeMap::from([
-                        (
-                            "MCP_FAIL_ONCE_MODE".to_string(),
-                            "initialize_hang".to_string(),
-                        ),
+                        ("MCP_FAIL_ONCE_MODE".to_string(), "initialize_hang".to_string()),
                         (
                             "MCP_FAIL_ONCE_MARKER".to_string(),
                             marker_path.to_string_lossy().into_owned(),
@@ -2562,10 +2507,7 @@ mod tests {
                     "alpha",
                     &log_path,
                     BTreeMap::from([
-                        (
-                            "MCP_FAIL_ONCE_MODE".to_string(),
-                            "tool_call_disconnect".to_string(),
-                        ),
+                        ("MCP_FAIL_ONCE_MODE".to_string(), "tool_call_disconnect".to_string()),
                         (
                             "MCP_FAIL_ONCE_MARKER".to_string(),
                             marker_path.to_string_lossy().into_owned(),
@@ -2577,10 +2519,7 @@ mod tests {
 
             manager.discover_tools().await.expect("discover tools");
             let first_error = manager
-                .call_tool(
-                    &mcp_tool_name("alpha", "echo"),
-                    Some(json!({"text": "first"})),
-                )
+                .call_tool(&mcp_tool_name("alpha", "echo"), Some(json!({"text": "first"})))
                 .await
                 .expect_err("first tool call should fail when transport drops");
 
@@ -2598,10 +2537,7 @@ mod tests {
             }
 
             let response = manager
-                .call_tool(
-                    &mcp_tool_name("alpha", "echo"),
-                    Some(json!({"text": "second"})),
-                )
+                .call_tool(&mcp_tool_name("alpha", "echo"), Some(json!({"text": "second"})))
                 .await
                 .expect("second tool call should succeed after reset");
 
@@ -2659,10 +2595,7 @@ mod tests {
                 .await
                 .expect("read resource");
             assert_eq!(read.contents.len(), 1);
-            assert_eq!(
-                read.contents[0].text.as_deref(),
-                Some("contents for file://guide.txt")
-            );
+            assert_eq!(read.contents[0].text.as_deref(), Some("contents for file://guide.txt"));
 
             manager.shutdown().await.expect("shutdown");
             cleanup_script(&script_path);
@@ -2715,10 +2648,7 @@ mod tests {
             let alpha_log = root.join("alpha.log");
             let broken_script_path = write_initialize_disconnect_script();
             let servers = BTreeMap::from([
-                (
-                    "alpha".to_string(),
-                    manager_server_config(&script_path, "alpha", &alpha_log),
-                ),
+                ("alpha".to_string(), manager_server_config(&script_path, "alpha", &alpha_log)),
                 (
                     "broken".to_string(),
                     ScopedMcpServerConfig {
@@ -2737,16 +2667,10 @@ mod tests {
             let report = manager.discover_tools_best_effort().await;
 
             assert_eq!(report.tools.len(), 1);
-            assert_eq!(
-                report.tools[0].qualified_name,
-                mcp_tool_name("alpha", "echo")
-            );
+            assert_eq!(report.tools[0].qualified_name, mcp_tool_name("alpha", "echo"));
             assert_eq!(report.failed_servers.len(), 1);
             assert_eq!(report.failed_servers[0].server_name, "broken");
-            assert_eq!(
-                report.failed_servers[0].phase,
-                McpLifecyclePhase::InitializeHandshake
-            );
+            assert_eq!(report.failed_servers[0].phase, McpLifecyclePhase::InitializeHandshake);
             assert!(!report.failed_servers[0].recoverable);
             assert_eq!(
                 report.failed_servers[0]
@@ -2763,14 +2687,8 @@ mod tests {
             assert_eq!(degraded.working_servers, vec!["alpha".to_string()]);
             assert_eq!(degraded.failed_servers.len(), 1);
             assert_eq!(degraded.failed_servers[0].server_name, "broken");
-            assert_eq!(
-                degraded.failed_servers[0].phase,
-                McpLifecyclePhase::InitializeHandshake
-            );
-            assert_eq!(
-                degraded.available_tools,
-                vec![mcp_tool_name("alpha", "echo")]
-            );
+            assert_eq!(degraded.failed_servers[0].phase, McpLifecyclePhase::InitializeHandshake);
+            assert_eq!(degraded.available_tools, vec![mcp_tool_name("alpha", "echo")]);
             assert!(degraded.missing_tools.is_empty());
 
             let response = manager
@@ -2884,10 +2802,7 @@ mod tests {
 
             manager.discover_tools().await.expect("discover tools");
             let response = manager
-                .call_tool(
-                    &mcp_tool_name("alpha", "echo"),
-                    Some(json!({"text": "reuse"})),
-                )
+                .call_tool(&mcp_tool_name("alpha", "echo"), Some(json!({"text": "reuse"})))
                 .await
                 .expect("call tool");
 
@@ -2929,10 +2844,7 @@ mod tests {
             let mut manager = McpServerManager::from_servers(&servers);
 
             let error = manager
-                .call_tool(
-                    &mcp_tool_name("alpha", "missing"),
-                    Some(json!({"text": "nope"})),
-                )
+                .call_tool(&mcp_tool_name("alpha", "missing"), Some(json!({"text": "nope"})))
                 .await
                 .expect_err("unknown qualified tool should fail");
 

@@ -337,10 +337,7 @@ mod tests {
         let engine = PolicyEngine::new(vec![PolicyRule::new(
             "lane-closeout",
             PolicyCondition::LaneCompleted,
-            PolicyAction::Chain(vec![
-                PolicyAction::CloseoutLane,
-                PolicyAction::CleanupSession,
-            ]),
+            PolicyAction::Chain(vec![PolicyAction::CloseoutLane, PolicyAction::CleanupSession]),
             30,
         )]);
         let context = LaneContext::new(
@@ -357,10 +354,7 @@ mod tests {
         let actions = engine.evaluate(&context);
 
         // then
-        assert_eq!(
-            actions,
-            vec![PolicyAction::CloseoutLane, PolicyAction::CleanupSession]
-        );
+        assert_eq!(actions, vec![PolicyAction::CloseoutLane, PolicyAction::CleanupSession]);
     }
 
     #[test]
@@ -389,12 +383,7 @@ mod tests {
                 },
                 10,
             ),
-            PolicyRule::new(
-                "merge",
-                PolicyCondition::And(vec![]),
-                PolicyAction::MergeToDev,
-                20,
-            ),
+            PolicyRule::new("merge", PolicyCondition::And(vec![]), PolicyAction::MergeToDev, 20),
         ]);
         let context = default_context();
 

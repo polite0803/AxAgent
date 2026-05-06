@@ -182,7 +182,7 @@ impl QueryEngine {
 
         if search_result.pages.is_empty() {
             return Ok(
-                "No relevant information found in this wiki to answer your question.".to_string(),
+                "No relevant information found in this wiki to answer your question.".to_string()
             );
         }
 

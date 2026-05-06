@@ -202,18 +202,12 @@ impl MetricsCollector {
 
         let counters = self.counters.read().await;
         for (name, value) in counters.iter() {
-            result.insert(
-                name.clone(),
-                MetricValue::new(name, *value, MetricType::Counter),
-            );
+            result.insert(name.clone(), MetricValue::new(name, *value, MetricType::Counter));
         }
 
         let gauges = self.gauges.read().await;
         for (name, value) in gauges.iter() {
-            result.insert(
-                name.clone(),
-                MetricValue::new(name, *value, MetricType::Gauge),
-            );
+            result.insert(name.clone(), MetricValue::new(name, *value, MetricType::Gauge));
         }
 
         let timings = self.timings.read().await;

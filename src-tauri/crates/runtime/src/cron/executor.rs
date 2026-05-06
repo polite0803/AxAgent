@@ -30,11 +30,7 @@ impl CronExecutor {
         if let Some(ref handler) = self.on_execute {
             handler(&job);
         } else {
-            tracing::warn!(
-                "Cron: no handler set for job '{}'. Prompt: {}",
-                job.name,
-                job.prompt
-            );
+            tracing::warn!("Cron: no handler set for job '{}'. Prompt: {}", job.name, job.prompt);
         }
     }
 }

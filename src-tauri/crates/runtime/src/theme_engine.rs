@@ -409,10 +409,7 @@ impl ThemeEngine {
     }
 
     pub fn save_theme(&self, theme: &Theme) -> Result<(), String> {
-        let file_name = format!(
-            "{}.json",
-            theme.metadata.name.to_lowercase().replace(' ', "-")
-        );
+        let file_name = format!("{}.json", theme.metadata.name.to_lowercase().replace(' ', "-"));
         let file_path = self.themes_dir.join(&file_name);
 
         if let Some(parent) = file_path.parent() {

@@ -178,10 +178,7 @@ impl LoopDetector {
                 } else {
                     LoopWarningLevel::Warning
                 },
-                format!(
-                    "Detected {} consecutive tool failures",
-                    self.consecutive_failures
-                ),
+                format!("Detected {} consecutive tool failures", self.consecutive_failures),
                 self.consecutive_failures,
             ));
         }
@@ -301,13 +298,7 @@ mod tests {
         detector.config.max_consecutive_failures = 3;
 
         for i in 0..3 {
-            detector.record_call(
-                "test_tool",
-                &format!("input_{}", i),
-                "error_output",
-                true,
-                100,
-            );
+            detector.record_call("test_tool", &format!("input_{}", i), "error_output", true, 100);
         }
 
         let warning = detector.detect_loop();
@@ -348,13 +339,7 @@ mod tests {
 
         for i in 0..6 {
             let is_error = i < 5;
-            detector.record_call(
-                "faulty_tool",
-                &format!("input_{}", i),
-                "output",
-                is_error,
-                100,
-            );
+            detector.record_call("faulty_tool", &format!("input_{}", i), "output", is_error, 100);
         }
 
         let warning = detector.detect_loop();

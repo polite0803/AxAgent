@@ -280,14 +280,8 @@ impl Session {
 
     pub fn to_json(&self) -> Result<JsonValue, SessionError> {
         let mut object = BTreeMap::new();
-        object.insert(
-            "version".to_string(),
-            JsonValue::Number(i64::from(self.version)),
-        );
-        object.insert(
-            "session_id".to_string(),
-            JsonValue::String(self.session_id.clone()),
-        );
+        object.insert("version".to_string(), JsonValue::Number(i64::from(self.version)));
+        object.insert("session_id".to_string(), JsonValue::String(self.session_id.clone()));
         object.insert(
             "created_at_ms".to_string(),
             JsonValue::Number(i64_from_u64(self.created_at_ms, "created_at_ms")?),
@@ -466,9 +460,8 @@ impl Session {
                     messages.push(ConversationMessage::from_json(message_value)?);
                 },
                 "compaction" => {
-                    compaction = Some(SessionCompaction::from_json(&JsonValue::Object(
-                        object.clone(),
-                    ))?);
+                    compaction =
+                        Some(SessionCompaction::from_json(&JsonValue::Object(object.clone()))?);
                 },
                 "prompt_history" => {
                     if let Some(entry) =
@@ -575,18 +568,9 @@ impl Session {
 
     fn meta_record(&self) -> Result<JsonValue, SessionError> {
         let mut object = BTreeMap::new();
-        object.insert(
-            "type".to_string(),
-            JsonValue::String("session_meta".to_string()),
-        );
-        object.insert(
-            "version".to_string(),
-            JsonValue::Number(i64::from(self.version)),
-        );
-        object.insert(
-            "session_id".to_string(),
-            JsonValue::String(self.session_id.clone()),
-        );
+        object.insert("type".to_string(), JsonValue::String("session_meta".to_string()));
+        object.insert("version".to_string(), JsonValue::Number(i64::from(self.version)));
+        object.insert("session_id".to_string(), JsonValue::String(self.session_id.clone()));
         object.insert(
             "created_at_ms".to_string(),
             JsonValue::Number(i64_from_u64(self.created_at_ms, "created_at_ms")?),
@@ -707,9 +691,7 @@ impl ConversationMessage {
             "assistant" => MessageRole::Assistant,
             "tool" => MessageRole::Tool,
             other => {
-                return Err(SessionError::Format(format!(
-                    "unsupported message role: {other}"
-                )))
+                return Err(SessionError::Format(format!("unsupported message role: {other}")))
             },
         };
         let blocks = object
@@ -738,10 +720,7 @@ impl ContentBlock {
                 object.insert("text".to_string(), JsonValue::String(text.clone()));
             },
             Self::ToolUse { id, name, input } => {
-                object.insert(
-                    "type".to_string(),
-                    JsonValue::String("tool_use".to_string()),
-                );
+                object.insert("type".to_string(), JsonValue::String("tool_use".to_string()));
                 object.insert("id".to_string(), JsonValue::String(id.clone()));
                 object.insert("name".to_string(), JsonValue::String(name.clone()));
                 object.insert("input".to_string(), JsonValue::String(input.clone()));
@@ -752,18 +731,9 @@ impl ContentBlock {
                 output,
                 is_error,
             } => {
-                object.insert(
-                    "type".to_string(),
-                    JsonValue::String("tool_result".to_string()),
-                );
-                object.insert(
-                    "tool_use_id".to_string(),
-                    JsonValue::String(tool_use_id.clone()),
-                );
-                object.insert(
-                    "tool_name".to_string(),
-                    JsonValue::String(tool_name.clone()),
-                );
+                object.insert("type".to_string(), JsonValue::String("tool_result".to_string()));
+                object.insert("tool_use_id".to_string(), JsonValue::String(tool_use_id.clone()));
+                object.insert("tool_name".to_string(), JsonValue::String(tool_name.clone()));
                 object.insert("output".to_string(), JsonValue::String(output.clone()));
                 object.insert("is_error".to_string(), JsonValue::Bool(*is_error));
             },
@@ -797,9 +767,7 @@ impl ContentBlock {
                     .and_then(JsonValue::as_bool)
                     .ok_or_else(|| SessionError::Format("missing is_error".to_string()))?,
             }),
-            other => Err(SessionError::Format(format!(
-                "unsupported block type: {other}"
-            ))),
+            other => Err(SessionError::Format(format!("unsupported block type: {other}"))),
         }
     }
 }
@@ -807,45 +775,24 @@ impl ContentBlock {
 impl SessionCompaction {
     pub fn to_json(&self) -> Result<JsonValue, SessionError> {
         let mut object = BTreeMap::new();
-        object.insert(
-            "count".to_string(),
-            JsonValue::Number(i64::from(self.count)),
-        );
+        object.insert("count".to_string(), JsonValue::Number(i64::from(self.count)));
         object.insert(
             "removed_message_count".to_string(),
-            JsonValue::Number(i64_from_usize(
-                self.removed_message_count,
-                "removed_message_count",
-            )?),
+            JsonValue::Number(i64_from_usize(self.removed_message_count, "removed_message_count")?),
         );
-        object.insert(
-            "summary".to_string(),
-            JsonValue::String(self.summary.clone()),
-        );
+        object.insert("summary".to_string(), JsonValue::String(self.summary.clone()));
         Ok(JsonValue::Object(object))
     }
 
     pub fn to_jsonl_record(&self) -> Result<JsonValue, SessionError> {
         let mut object = BTreeMap::new();
-        object.insert(
-            "type".to_string(),
-            JsonValue::String("compaction".to_string()),
-        );
-        object.insert(
-            "count".to_string(),
-            JsonValue::Number(i64::from(self.count)),
-        );
+        object.insert("type".to_string(), JsonValue::String("compaction".to_string()));
+        object.insert("count".to_string(), JsonValue::Number(i64::from(self.count)));
         object.insert(
             "removed_message_count".to_string(),
-            JsonValue::Number(i64_from_usize(
-                self.removed_message_count,
-                "removed_message_count",
-            )?),
+            JsonValue::Number(i64_from_usize(self.removed_message_count, "removed_message_count")?),
         );
-        object.insert(
-            "summary".to_string(),
-            JsonValue::String(self.summary.clone()),
-        );
+        object.insert("summary".to_string(), JsonValue::String(self.summary.clone()));
         Ok(JsonValue::Object(object))
     }
 
@@ -870,10 +817,7 @@ impl SessionFork {
             JsonValue::String(self.parent_session_id.clone()),
         );
         if let Some(branch_name) = &self.branch_name {
-            object.insert(
-                "branch_name".to_string(),
-                JsonValue::String(branch_name.clone()),
-            );
+            object.insert("branch_name".to_string(), JsonValue::String(branch_name.clone()));
         }
         JsonValue::Object(object)
     }
@@ -896,10 +840,7 @@ impl SessionPromptEntry {
     #[must_use]
     pub fn to_jsonl_record(&self) -> JsonValue {
         let mut object = BTreeMap::new();
-        object.insert(
-            "type".to_string(),
-            JsonValue::String("prompt_history".to_string()),
-        );
+        object.insert("type".to_string(), JsonValue::String("prompt_history".to_string()));
         object.insert(
             "timestamp_ms".to_string(),
             JsonValue::Number(i64::try_from(self.timestamp_ms).unwrap_or(i64::MAX)),
@@ -928,14 +869,8 @@ fn message_record(message: &ConversationMessage) -> JsonValue {
 
 fn usage_to_json(usage: TokenUsage) -> JsonValue {
     let mut object = BTreeMap::new();
-    object.insert(
-        "input_tokens".to_string(),
-        JsonValue::Number(i64::from(usage.input_tokens)),
-    );
-    object.insert(
-        "output_tokens".to_string(),
-        JsonValue::Number(i64::from(usage.output_tokens)),
-    );
+    object.insert("input_tokens".to_string(), JsonValue::Number(i64::from(usage.input_tokens)));
+    object.insert("output_tokens".to_string(), JsonValue::Number(i64::from(usage.output_tokens)));
     object.insert(
         "cache_creation_input_tokens".to_string(),
         JsonValue::Number(i64::from(usage.cache_creation_input_tokens)),
@@ -1012,10 +947,7 @@ fn i64_from_usize(value: usize, key: &str) -> Result<i64, SessionError> {
 
 fn workspace_root_to_string(path: &Path) -> Result<String, SessionError> {
     path.to_str().map(ToOwned::to_owned).ok_or_else(|| {
-        SessionError::Format(format!(
-            "workspace_root is not valid UTF-8: {}",
-            path.display()
-        ))
+        SessionError::Format(format!("workspace_root is not valid UTF-8: {}", path.display()))
     })
 }
 
@@ -1189,9 +1121,7 @@ mod tests {
             ))
             .expect("assistant message should append");
         session
-            .push_message(ConversationMessage::tool_result(
-                "tool-1", "bash", "hi", false,
-            ))
+            .push_message(ConversationMessage::tool_result("tool-1", "bash", "hi", false))
             .expect("tool result should append");
 
         let path = temp_session_path("jsonl");
@@ -1201,10 +1131,7 @@ mod tests {
 
         assert_eq!(restored, session);
         assert_eq!(restored.messages[2].role, MessageRole::Tool);
-        assert_eq!(
-            restored.messages[1].usage.expect("usage").total_tokens(),
-            17
-        );
+        assert_eq!(restored.messages[1].usage.expect("usage").total_tokens(), 17);
         assert_eq!(restored.session_id, session.session_id);
     }
 
@@ -1228,10 +1155,7 @@ mod tests {
         fs::remove_file(&path).expect("temp file should be removable");
 
         assert_eq!(restored.messages.len(), 1);
-        assert_eq!(
-            restored.messages[0],
-            ConversationMessage::user_text("legacy")
-        );
+        assert_eq!(restored.messages[0], ConversationMessage::user_text("legacy"));
         assert!(!restored.session_id.is_empty());
     }
 
@@ -1318,10 +1242,7 @@ mod tests {
         rotate_session_file_if_needed(&path).expect("rotation should succeed");
 
         // then
-        assert!(
-            !path.exists(),
-            "original path should be rotated away before rewrite"
-        );
+        assert!(!path.exists(), "original path should be rotated away before rewrite");
 
         for _ in 0..5 {
             let rotated = super::rotated_log_path(&path);
@@ -1534,10 +1455,7 @@ mod workspace_sessions_dir_tests {
 
         let dir_a = workspace_sessions_dir(&tmp_a).expect("dir a");
         let dir_b = workspace_sessions_dir(&tmp_b).expect("dir b");
-        assert_ne!(
-            dir_a, dir_b,
-            "different CWDs must produce different session dirs"
-        );
+        assert_ne!(dir_a, dir_b, "different CWDs must produce different session dirs");
 
         fs::remove_dir_all(&tmp_a).ok();
         fs::remove_dir_all(&tmp_b).ok();

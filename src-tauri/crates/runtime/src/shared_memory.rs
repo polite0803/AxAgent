@@ -350,11 +350,7 @@ impl std::fmt::Display for MemoryError {
             Self::PermissionDenied => write!(f, "Permission denied"),
             Self::InvalidKey => write!(f, "Invalid key"),
             Self::VersionConflict { expected, actual } => {
-                write!(
-                    f,
-                    "Version conflict: expected {}, actual {}",
-                    expected, actual
-                )
+                write!(f, "Version conflict: expected {}, actual {}", expected, actual)
             },
         }
     }

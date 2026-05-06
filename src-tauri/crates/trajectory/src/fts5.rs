@@ -243,10 +243,7 @@ impl FTS5Search {
 
     pub fn delete_from_fts(&self, table: &str, id: &str) -> Result<()> {
         let conn = self.conn.read().unwrap();
-        let sql = format!(
-            "INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)",
-            table, table
-        );
+        let sql = format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)", table, table);
         conn.execute(&sql, params![id, ""])?;
         debug!("Deleted {} from FTS5 table {}", id, table);
         Ok(())

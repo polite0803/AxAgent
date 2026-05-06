@@ -50,18 +50,18 @@ impl ActionExecutor {
                 let description = action.llm_prompt.clone().unwrap_or_default();
                 Ok(ActionResult::Validation(description))
             },
-            ActionType::Analyze => Ok(ActionResult::Analysis(
-                action.llm_prompt.clone().unwrap_or_default(),
-            )),
-            ActionType::Plan => Ok(ActionResult::Planning(
-                action.llm_prompt.clone().unwrap_or_default(),
-            )),
-            ActionType::Reflect => Ok(ActionResult::Reflection(
-                action.llm_prompt.clone().unwrap_or_default(),
-            )),
-            ActionType::Synthesize => Ok(ActionResult::Synthesis(
-                action.llm_prompt.clone().unwrap_or_default(),
-            )),
+            ActionType::Analyze => {
+                Ok(ActionResult::Analysis(action.llm_prompt.clone().unwrap_or_default()))
+            },
+            ActionType::Plan => {
+                Ok(ActionResult::Planning(action.llm_prompt.clone().unwrap_or_default()))
+            },
+            ActionType::Reflect => {
+                Ok(ActionResult::Reflection(action.llm_prompt.clone().unwrap_or_default()))
+            },
+            ActionType::Synthesize => {
+                Ok(ActionResult::Synthesis(action.llm_prompt.clone().unwrap_or_default()))
+            },
         }
         .map(|result| result.with_duration(start.elapsed()))
     }
@@ -80,10 +80,9 @@ impl ActionExecutor {
         };
 
         match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await {
-            Ok(mcp_result) => Ok(ActionResult::ToolSuccess(
-                mcp_result.content,
-                tool_name.to_string(),
-            )),
+            Ok(mcp_result) => {
+                Ok(ActionResult::ToolSuccess(mcp_result.content, tool_name.to_string()))
+            },
             Err(e) => Err(ActionError::ToolExecution(e.to_string())),
         }
     }

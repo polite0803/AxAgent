@@ -226,9 +226,7 @@ impl ReportGenerator {
 
     pub async fn validate_report(&self, report: &ResearchReport) -> Result<(), ReportError> {
         if report.outline.title.is_empty() {
-            return Err(ReportError::ValidationError(
-                "Report title is required".to_string(),
-            ));
+            return Err(ReportError::ValidationError("Report title is required".to_string()));
         }
 
         if report.outline.sections.is_empty() {
@@ -238,9 +236,7 @@ impl ReportGenerator {
         }
 
         if report.content.is_empty() {
-            return Err(ReportError::ValidationError(
-                "Report content is empty".to_string(),
-            ));
+            return Err(ReportError::ValidationError("Report content is empty".to_string()));
         }
 
         Ok(())

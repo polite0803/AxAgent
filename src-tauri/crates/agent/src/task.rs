@@ -114,10 +114,7 @@ impl TaskNode {
     }
 
     pub fn is_complete(&self) -> bool {
-        matches!(
-            self.status,
-            TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Skipped
-        )
+        matches!(self.status, TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Skipped)
     }
 }
 

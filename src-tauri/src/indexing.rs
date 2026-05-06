@@ -85,10 +85,7 @@ pub async fn build_embed_context(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: None,
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -195,11 +192,7 @@ async fn embed_with_retry(
                     );
                     tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
                 } else {
-                    tracing::error!(
-                        "Embedding failed after {} attempts: {}",
-                        EMBED_MAX_RETRIES,
-                        e
-                    );
+                    tracing::error!("Embedding failed after {} attempts: {}", EMBED_MAX_RETRIES, e);
                 }
             },
         }
@@ -431,8 +424,9 @@ pub async fn search_memory(
 ///
 /// Returns a `RagContextResult` with formatted context parts and structured results.
 /// RAG query cache: avoids repeated vector searches for the same query
-static RAG_CACHE: std::sync::LazyLock<tokio::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, RagContextResult)>>> =
-    std::sync::LazyLock::new(|| tokio::sync::Mutex::new(std::collections::HashMap::new()));
+static RAG_CACHE: std::sync::LazyLock<
+    tokio::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, RagContextResult)>>,
+> = std::sync::LazyLock::new(|| tokio::sync::Mutex::new(std::collections::HashMap::new()));
 
 const RAG_CACHE_TTL_SECS: u64 = 30;
 
@@ -465,7 +459,14 @@ pub async fn collect_rag_context(
     }
 
     let result = rag::collect_rag_context(
-        db, master_key, vector_store, kb_ids, mem_ids, query, top_k, ProviderEmbedFn,
+        db,
+        master_key,
+        vector_store,
+        kb_ids,
+        mem_ids,
+        query,
+        top_k,
+        ProviderEmbedFn,
     )
     .await;
 

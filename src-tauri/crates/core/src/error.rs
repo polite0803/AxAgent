@@ -218,10 +218,7 @@ pub enum HealthCheckError {
 impl HealthCheckError {
     /// Returns true if the error is transient and may succeed on retry
     pub fn is_transient(&self) -> bool {
-        matches!(
-            self,
-            HealthCheckError::Transient(_) | HealthCheckError::Network(_)
-        )
+        matches!(self, HealthCheckError::Transient(_) | HealthCheckError::Network(_))
     }
 
     /// Creates a HealthCheckError from HTTP status code and response body

@@ -51,9 +51,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     }
 
     let rt = tokio::runtime::Runtime::new().expect("Failed to create init runtime");
-    let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(
-        &sea_db,
-    ));
+    let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(&sea_db));
     rt.block_on(axagent_core::path_vars::migrate_hardcoded_paths(&sea_db));
     rt.block_on(axagent_core::repo::local_tool::migrate_legacy_keys(&sea_db));
 
@@ -77,10 +75,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             db_file_path,
         )
         .unwrap_or_else(|e| {
-            tracing::warn!(
-                "Failed to init trajectory FTS5, falling back to no-FTS: {}",
-                e
-            );
+            tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
             axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
         });
         Arc::new(storage)
@@ -101,13 +96,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let platform_manager =
         Arc::new(axagent_runtime::message_gateway::platform_manager::PlatformManager::new());
 
-    let platform_bridge = Arc::new(
-        axagent_runtime::message_gateway::platform_bridge::PlatformBridge::new(
+    let platform_bridge =
+        Arc::new(axagent_runtime::message_gateway::platform_bridge::PlatformBridge::new(
             sea_db.clone(),
             master_key,
             platform_manager.clone(),
-        ),
-    );
+        ));
 
     rt.block_on(platform_manager.set_message_callback(platform_bridge.clone()));
 
@@ -140,9 +134,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
         )),
         memory_service: memory_service.clone(),
-        nudge_service: Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::NudgeService::new(),
-        )),
+        nudge_service: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),
         trajectory_storage: shared_trajectory_storage.clone(),
         closed_loop_service: Arc::new(axagent_trajectory::ClosedLoopService::new(
             shared_trajectory_storage.clone(),
@@ -183,18 +175,15 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                 tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
             }
             let auto_ms = Arc::new(tokio::sync::RwLock::new(auto_ms));
-            let auto_pl = Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::PatternLearner::new(
+            let auto_pl =
+                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PatternLearner::new(
                     axagent_trajectory::PatternConfig::default(),
-                ),
-            ));
-            Arc::new(TokioRwLock::new(
-                axagent_trajectory::AutoMemoryExtractor::new(
-                    shared_trajectory_storage.clone(),
-                    auto_ms,
-                    auto_pl,
-                ),
-            ))
+                )));
+            Arc::new(TokioRwLock::new(axagent_trajectory::AutoMemoryExtractor::new(
+                shared_trajectory_storage.clone(),
+                auto_ms,
+                auto_pl,
+            )))
         },
         parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::ParallelExecutionService::new(10),

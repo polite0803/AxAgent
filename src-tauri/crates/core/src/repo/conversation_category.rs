@@ -130,10 +130,7 @@ pub async fn delete_conversation_category(db: &DatabaseConnection, id: &str) -> 
     // Unset category_id on conversations that belong to this category
     use crate::entity::conversations;
     conversations::Entity::update_many()
-        .col_expr(
-            conversations::Column::CategoryId,
-            Expr::value(Option::<String>::None),
-        )
+        .col_expr(conversations::Column::CategoryId, Expr::value(Option::<String>::None))
         .filter(conversations::Column::CategoryId.eq(id))
         .exec(db)
         .await?;
@@ -151,10 +148,7 @@ pub async fn reorder_conversation_categories(
     let now = now_ts();
     for (i, id) in category_ids.iter().enumerate() {
         conversation_categories::Entity::update_many()
-            .col_expr(
-                conversation_categories::Column::SortOrder,
-                Expr::value(i as i32),
-            )
+            .col_expr(conversation_categories::Column::SortOrder, Expr::value(i as i32))
             .col_expr(conversation_categories::Column::UpdatedAt, Expr::value(now))
             .filter(conversation_categories::Column::Id.eq(id))
             .exec(db)

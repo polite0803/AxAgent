@@ -65,10 +65,7 @@ impl SubWorkflowExecutor {
                 )
             })
             .join(";");
-        format!(
-            "subworkflow:{}[{}]",
-            node.config.sub_workflow_id, input_vars
-        )
+        format!("subworkflow:{}[{}]", node.config.sub_workflow_id, input_vars)
     }
 
     async fn execute_subworkflow_internal(

@@ -166,10 +166,7 @@ mod tests {
                 .len(),
             1
         );
-        assert_eq!(
-            reg.get_matching(&HookEventType::PreToolUse, "Bash").len(),
-            0
-        );
+        assert_eq!(reg.get_matching(&HookEventType::PreToolUse, "Bash").len(), 0);
     }
 
     #[test]

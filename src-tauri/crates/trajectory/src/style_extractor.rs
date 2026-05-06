@@ -136,14 +136,8 @@ impl StyleExtractor {
             let lines: Vec<&str> = sample.code.lines().collect();
 
             let fn_regexes = [
-                (
-                    r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?",
-                    "rust",
-                ),
-                (
-                    r"function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*(\w+))?",
-                    "typescript",
-                ),
+                (r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?", "rust"),
+                (r"function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*(\w+))?", "typescript"),
                 (r"def\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?:", "python"),
             ];
 

@@ -343,10 +343,7 @@ pub fn to_compaction_result(
 
     CompactionResult {
         summary: sm_result.session_memory_content.clone(),
-        formatted_summary: format!(
-            "Session Memory Summary:\n{}",
-            sm_result.session_memory_content
-        ),
+        formatted_summary: format!("Session Memory Summary:\n{}", sm_result.session_memory_content),
         compacted_session,
         removed_message_count: removed_count,
     }
@@ -393,9 +390,7 @@ mod tests {
                     .unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
-                        text,
-                    }]))
+                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
                     .unwrap();
             }
         }
@@ -471,13 +466,11 @@ mod tests {
         let tool_id = "call_001";
         // Assistant with ToolUse
         session
-            .push_message(ConversationMessage::assistant(vec![
-                ContentBlock::ToolUse {
-                    id: tool_id.to_string(),
-                    name: "read_file".to_string(),
-                    input: "main.rs".to_string(),
-                },
-            ]))
+            .push_message(ConversationMessage::assistant(vec![ContentBlock::ToolUse {
+                id: tool_id.to_string(),
+                name: "read_file".to_string(),
+                input: "main.rs".to_string(),
+            }]))
             .unwrap();
         // Tool result
         session

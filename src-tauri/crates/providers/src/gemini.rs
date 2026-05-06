@@ -450,10 +450,8 @@ impl ProviderAdapter for GeminiAdapter {
         request: ChatRequest,
     ) -> Result<ChatResponse> {
         let base_url = Self::base_url(ctx);
-        let url = format!(
-            "{}/models/{}:generateContent?key={}",
-            base_url, request.model, ctx.api_key
-        );
+        let url =
+            format!("{}/models/{}:generateContent?key={}", base_url, request.model, ctx.api_key);
 
         let (system_instruction, contents) = convert_messages(&request.messages);
         let body = GeminiRequest {
@@ -760,10 +758,8 @@ impl ProviderAdapter for GeminiAdapter {
         request: EmbedRequest,
     ) -> Result<EmbedResponse> {
         let base_url = Self::base_url(ctx);
-        let url = format!(
-            "{}/models/{}:batchEmbedContents?key={}",
-            base_url, request.model, ctx.api_key
-        );
+        let url =
+            format!("{}/models/{}:batchEmbedContents?key={}", base_url, request.model, ctx.api_key);
 
         let requests: Vec<serde_json::Value> = request
             .input
@@ -790,9 +786,7 @@ impl ProviderAdapter for GeminiAdapter {
         if !resp.status().is_success() {
             let s = resp.status();
             let t = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Provider(format!(
-                "Gemini embed API error {s}: {t}"
-            )));
+            return Err(AxAgentError::Provider(format!("Gemini embed API error {s}: {t}")));
         }
 
         #[derive(Deserialize)]

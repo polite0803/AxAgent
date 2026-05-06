@@ -377,10 +377,7 @@ impl SessionManager {
 
         // Perform eviction with consistent lock order: conversation_index → sessions → session_last_access
         if !to_evict.is_empty() {
-            info!(
-                "[SessionManager] Evicting {} stale sessions",
-                to_evict.len()
-            );
+            info!("[SessionManager] Evicting {} stale sessions", to_evict.len());
             let mut conv_index = self.conversation_index.lock().await;
             let mut sessions = self.sessions.lock().await;
             let mut last_access = self.session_last_access.lock().await;
@@ -537,10 +534,7 @@ impl SessionManager {
                     .filter(|c| !c.passed)
                     .map(|c| c.name.as_str())
                     .collect();
-                info!(
-                    "Compression integrity warning: failed checks: {:?}",
-                    failed_checks
-                );
+                info!("Compression integrity warning: failed checks: {:?}", failed_checks);
             } else {
                 info!("Compression integrity verified: all {} checks passed ({} key entities tracked)", integrity.checks.len(), key_entities.len());
             }
@@ -578,10 +572,8 @@ impl SessionManager {
 
         // Add Tauri event reporter for tool progress
         if let Some(handle) = app_handle {
-            let reporter = Box::new(TauriHookProgressReporter::new(
-                handle,
-                conversation_id.clone(),
-            ));
+            let reporter =
+                Box::new(TauriHookProgressReporter::new(handle, conversation_id.clone()));
             runtime = runtime.with_hook_progress_reporter(reporter);
         }
 

@@ -621,11 +621,7 @@ mod tests {
 
         // then
         for (path, actual, expected) in resolved {
-            assert_eq!(
-                actual.as_deref(),
-                Some(expected),
-                "unexpected mapping for {path}"
-            );
+            assert_eq!(actual.as_deref(), Some(expected), "unexpected mapping for {path}");
         }
     }
 

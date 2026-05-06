@@ -361,11 +361,7 @@ pub fn load_agent_memory(
     match std::fs::read_to_string(&path) {
         Ok(content) if !content.trim().is_empty() => {
             tracing::info!("加载 agent 记忆: {} ({:?})", agent_type, scope);
-            Some(format!(
-                "## Agent 持久化记忆 ({})\n\n{}",
-                agent_type,
-                content.trim()
-            ))
+            Some(format!("## Agent 持久化记忆 ({})\n\n{}", agent_type, content.trim()))
         },
         _ => None,
     }
@@ -466,11 +462,7 @@ color: blue
 你是一个代码审查专家。"#;
 
         let fm = parse_frontmatter(content).unwrap();
-        let def = build_definition(
-            &fm,
-            AgentDefSource::User,
-            Path::new("/tmp/agents/reviewer.md"),
-        );
+        let def = build_definition(&fm, AgentDefSource::User, Path::new("/tmp/agents/reviewer.md"));
 
         assert_eq!(def.agent_type, "reviewer");
         assert_eq!(def.description, "代码审查");

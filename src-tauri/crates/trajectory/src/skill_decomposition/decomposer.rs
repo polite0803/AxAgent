@@ -1327,10 +1327,7 @@ impl SkillDecomposer {
             StepType::Atomic | StepType::Generic => {},
         }
 
-        step = step.with_schema(
-            llm_step.input_schema.clone(),
-            llm_step.output_schema.clone(),
-        );
+        step = step.with_schema(llm_step.input_schema.clone(), llm_step.output_schema.clone());
 
         if original.description.is_empty() && !step.description.is_empty() {
             step.description = original.description;

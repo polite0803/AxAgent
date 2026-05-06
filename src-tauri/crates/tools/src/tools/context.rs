@@ -66,9 +66,6 @@ impl Tool for SnipTool {
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let start = input["start_idx"].as_u64().unwrap_or(0);
         let end = input["end_idx"].as_u64().unwrap_or(0);
-        Ok(ToolResult::success(format!(
-            "✂️ 已移除消息 [{}, {}]",
-            start, end
-        )))
+        Ok(ToolResult::success(format!("✂️ 已移除消息 [{}, {}]", start, end)))
     }
 }

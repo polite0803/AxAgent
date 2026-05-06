@@ -41,9 +41,6 @@ pub async fn generate_image(
             let provider = DallEProvider::new(api_key, None);
             provider.generate(request).await.map_err(|e| e.to_string())
         },
-        _ => Err(format!(
-            "Unknown provider: {}. Use 'flux' or 'dall-e'",
-            provider_name
-        )),
+        _ => Err(format!("Unknown provider: {}. Use 'flux' or 'dall-e'", provider_name)),
     }
 }

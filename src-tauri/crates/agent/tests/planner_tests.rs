@@ -103,12 +103,7 @@ fn test_get_next_executable_tasks() {
 #[test]
 fn test_mark_task_lifecycle() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase(
-        "p1",
-        "Phase 1",
-        vec![],
-        vec![make_task("test task", "action_type")],
-    );
+    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("test task", "action_type")]);
     planner.create_plan("Lifecycle Test", vec![phase]);
     planner.start_execution().unwrap();
 

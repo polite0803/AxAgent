@@ -20,12 +20,8 @@ impl FineTuneTrainer {
         base_model: String,
         config: LoRAConfig,
     ) -> TrainingJob {
-        let job = TrainingJob::new(
-            uuid::Uuid::new_v4().to_string(),
-            dataset_id,
-            base_model,
-            config,
-        );
+        let job =
+            TrainingJob::new(uuid::Uuid::new_v4().to_string(), dataset_id, base_model, config);
         self.jobs.push(job.clone());
         job
     }

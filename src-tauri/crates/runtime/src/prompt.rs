@@ -184,14 +184,14 @@ impl SystemPromptBuilder {
     }
 
     fn environment_section(&self) -> String {
-        let cwd = self.project_context.as_ref().map_or_else(
-            || "unknown".to_string(),
-            |context| context.cwd.display().to_string(),
-        );
-        let date = self.project_context.as_ref().map_or_else(
-            || "unknown".to_string(),
-            |context| context.current_date.clone(),
-        );
+        let cwd = self
+            .project_context
+            .as_ref()
+            .map_or_else(|| "unknown".to_string(), |context| context.cwd.display().to_string());
+        let date = self
+            .project_context
+            .as_ref()
+            .map_or_else(|| "unknown".to_string(), |context| context.current_date.clone());
         let mut lines = vec!["# Environment context".to_string()];
         lines.extend(prepend_bullets(vec![
             format!("Model family: {FRONTIER_MODEL_NAME}"),
@@ -396,10 +396,7 @@ fn describe_instruction_file(file: &ContextFile, files: &[ContextFile]) -> Strin
         .iter()
         .filter_map(|candidate| candidate.path.parent())
         .find(|parent| file.path.starts_with(parent))
-        .map_or_else(
-            || "workspace".to_string(),
-            |parent| parent.display().to_string(),
-        );
+        .map_or_else(|| "workspace".to_string(), |parent| parent.display().to_string());
     format!("{path} (scope: {scope})")
 }
 
@@ -420,10 +417,8 @@ fn render_instruction_content(content: &str) -> String {
 }
 
 fn display_context_path(path: &Path) -> String {
-    path.file_name().map_or_else(
-        || path.display().to_string(),
-        |name| name.to_string_lossy().into_owned(),
-    )
+    path.file_name()
+        .map_or_else(|| path.display().to_string(), |name| name.to_string_lossy().into_owned())
 }
 
 fn collapse_blank_lines(content: &str) -> String {
@@ -565,9 +560,7 @@ pub fn load_system_prompt(
 fn render_config_section(config: &RuntimeConfig) -> String {
     let mut lines = vec!["# Runtime config".to_string()];
     if config.loaded_entries().is_empty() {
-        lines.extend(prepend_bullets(vec![
-            "No Claw Code settings files loaded.".to_string()
-        ]));
+        lines.extend(prepend_bullets(vec!["No Claw Code settings files loaded.".to_string()]));
         return lines.join("\n");
     }
 
@@ -684,11 +677,8 @@ mod tests {
         .expect("write apps dot claude instructions");
         fs::write(nested.join(".claw").join("CLAUDE.md"), "nested rules")
             .expect("write nested rules");
-        fs::write(
-            nested.join(".claw").join("instructions.md"),
-            "nested instructions",
-        )
-        .expect("write nested instructions");
+        fs::write(nested.join(".claw").join("instructions.md"), "nested instructions")
+            .expect("write nested instructions");
 
         let context = ProjectContext::discover(&nested, "2026-03-31").expect("context should load");
         let contents = context
@@ -744,10 +734,7 @@ mod tests {
 
     #[test]
     fn displays_context_paths_compactly() {
-        assert_eq!(
-            display_context_path(Path::new("/tmp/project/.claw/CLAUDE.md")),
-            "CLAUDE.md"
-        );
+        assert_eq!(display_context_path(Path::new("/tmp/project/.claw/CLAUDE.md")), "CLAUDE.md");
     }
 
     #[test]
@@ -907,11 +894,8 @@ mod tests {
         let root = temp_dir();
         fs::create_dir_all(root.join(".claw")).expect("claw dir");
         fs::write(root.join("CLAUDE.md"), "Project rules").expect("write instructions");
-        fs::write(
-            root.join(".claw").join("settings.json"),
-            r#"{"permissionMode":"acceptEdits"}"#,
-        )
-        .expect("write settings");
+        fs::write(root.join(".claw").join("settings.json"), r#"{"permissionMode":"acceptEdits"}"#)
+            .expect("write settings");
 
         let _guard = env_lock();
         ensure_valid_cwd();
@@ -950,11 +934,8 @@ mod tests {
         let root = temp_dir();
         fs::create_dir_all(root.join(".claw")).expect("claw dir");
         fs::write(root.join("CLAUDE.md"), "Project rules").expect("write CLAUDE.md");
-        fs::write(
-            root.join(".claw").join("settings.json"),
-            r#"{"permissionMode":"acceptEdits"}"#,
-        )
-        .expect("write settings");
+        fs::write(root.join(".claw").join("settings.json"), r#"{"permissionMode":"acceptEdits"}"#)
+            .expect("write settings");
 
         let project_context =
             ProjectContext::discover(&root, "2026-03-31").expect("context should load");
@@ -991,11 +972,8 @@ mod tests {
         let root = temp_dir();
         let nested = root.join("apps").join("api");
         fs::create_dir_all(nested.join(".claw")).expect("nested claw dir");
-        fs::write(
-            nested.join(".claw").join("instructions.md"),
-            "instruction markdown",
-        )
-        .expect("write instructions.md");
+        fs::write(nested.join(".claw").join("instructions.md"), "instruction markdown")
+            .expect("write instructions.md");
 
         let context = ProjectContext::discover(&nested, "2026-03-31").expect("context should load");
         assert!(context

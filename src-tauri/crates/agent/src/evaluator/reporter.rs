@@ -175,10 +175,8 @@ impl ReportGenerator {
             .filter(|t| t.score < 0.6 && t.success)
             .collect();
         if !low_score_tasks.is_empty() {
-            recommendations.push(format!(
-                "{} 个任务分数偏低(60%以下)，有改进空间",
-                low_score_tasks.len()
-            ));
+            recommendations
+                .push(format!("{} 个任务分数偏低(60%以下)，有改进空间", low_score_tasks.len()));
         }
 
         if summary.avg_task_duration_ms > 30000.0 {
@@ -206,22 +204,10 @@ impl ReportGenerator {
         md.push_str(&format!("| 总任务数 | {} |\n", report.summary.total_tasks));
         md.push_str(&format!("| 通过数 | {} |\n", report.summary.passed_tasks));
         md.push_str(&format!("| 失败数 | {} |\n", report.summary.failed_tasks));
-        md.push_str(&format!(
-            "| 通过率 | {} |\n",
-            format_score(report.summary.pass_rate)
-        ));
-        md.push_str(&format!(
-            "| 总体得分 | {} |\n",
-            format_score(report.summary.overall_score)
-        ));
-        md.push_str(&format!(
-            "| 总耗时 | {}ms |\n",
-            report.summary.total_duration_ms
-        ));
-        md.push_str(&format!(
-            "| 平均耗时 | {:.0}ms |\n",
-            report.summary.avg_task_duration_ms
-        ));
+        md.push_str(&format!("| 通过率 | {} |\n", format_score(report.summary.pass_rate)));
+        md.push_str(&format!("| 总体得分 | {} |\n", format_score(report.summary.overall_score)));
+        md.push_str(&format!("| 总耗时 | {}ms |\n", report.summary.total_duration_ms));
+        md.push_str(&format!("| 平均耗时 | {:.0}ms |\n", report.summary.avg_task_duration_ms));
         md.push_str("\n## 任务详情\n\n");
 
         for task in &report.task_breakdown {

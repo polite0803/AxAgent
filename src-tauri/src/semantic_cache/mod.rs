@@ -76,12 +76,9 @@ impl SemanticCache {
             CREATE INDEX IF NOT EXISTS idx_semantic_cache_created ON semantic_cache(created_at);
         ";
 
-        db.execute_raw(Statement::from_string(
-            DatabaseBackend::Sqlite,
-            create_sql.to_string(),
-        ))
-        .await
-        .map_err(|e| format!("Failed to create cache table: {}", e))?;
+        db.execute_raw(Statement::from_string(DatabaseBackend::Sqlite, create_sql.to_string()))
+            .await
+            .map_err(|e| format!("Failed to create cache table: {}", e))?;
 
         tracing::info!(
             "Semantic cache initialized (max_entries={}, default_ttl={}s)",

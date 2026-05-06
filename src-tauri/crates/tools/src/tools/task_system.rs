@@ -48,10 +48,7 @@ async fn db_spawn_task(
 async fn db_get_task(db: &sea_orm::DatabaseConnection, id: &str) -> Result<String, sea_orm::DbErr> {
     use axagent_core::entity::background_tasks;
     if let Some(t) = background_tasks::Entity::find_by_id(id).one(db).await? {
-        Ok(format!(
-            "**{}** [{}]\nID: {}\n{}",
-            t.title, t.status, t.id, t.description
-        ))
+        Ok(format!("**{}** [{}]\nID: {}\n{}", t.title, t.status, t.id, t.description))
     } else {
         Ok(format!("任务 '{}' 未找到", id))
     }
@@ -71,10 +68,7 @@ async fn db_list_tasks(db: &sea_orm::DatabaseConnection) -> Result<String, sea_o
     let mut out = String::from("## 任务列表\n\n");
     for t in tasks {
         let finished = t.finished_at.map(|_| "").unwrap_or("⏳");
-        out.push_str(&format!(
-            "- {} [{}] **{}**: {}\n",
-            finished, t.status, t.title, t.id
-        ));
+        out.push_str(&format!("- {} [{}] **{}**: {}\n", finished, t.status, t.title, t.id));
     }
     Ok(out)
 }
@@ -183,10 +177,7 @@ impl Tool for TaskCreateTool {
             )));
         }
 
-        Ok(ToolResult::success(format!(
-            "✅ 任务已创建: **{}** (ID: {})",
-            title, id
-        )))
+        Ok(ToolResult::success(format!("✅ 任务已创建: **{}** (ID: {})", title, id)))
     }
 }
 

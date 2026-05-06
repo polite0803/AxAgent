@@ -1011,10 +1011,7 @@ where
         };
 
         let mut attributes = Map::new();
-        attributes.insert(
-            "user_input".to_string(),
-            Value::String(user_input.to_string()),
-        );
+        attributes.insert("user_input".to_string(), Value::String(user_input.to_string()));
         session_tracer.record("turn_started", attributes);
     }
 
@@ -1048,10 +1045,7 @@ where
 
         let mut attributes = Map::new();
         attributes.insert("iteration".to_string(), Value::from(iteration as u64));
-        attributes.insert(
-            "tool_name".to_string(),
-            Value::String(tool_name.to_string()),
-        );
+        attributes.insert("tool_name".to_string(), Value::String(tool_name.to_string()));
         session_tracer.record("tool_execution_started", attributes);
     }
 
@@ -1149,18 +1143,13 @@ where
         };
 
         let mut attributes = Map::new();
-        attributes.insert(
-            "iterations".to_string(),
-            Value::from(summary.iterations as u64),
-        );
+        attributes.insert("iterations".to_string(), Value::from(summary.iterations as u64));
         attributes.insert(
             "assistant_messages".to_string(),
             Value::from(summary.assistant_messages.len() as u64),
         );
-        attributes.insert(
-            "tool_results".to_string(),
-            Value::from(summary.tool_results.len() as u64),
-        );
+        attributes
+            .insert("tool_results".to_string(), Value::from(summary.tool_results.len() as u64));
         attributes.insert(
             "prompt_cache_events".to_string(),
             Value::from(summary.prompt_cache_events.len() as u64),
@@ -1200,15 +1189,8 @@ fn parse_auto_compaction_threshold(value: Option<&str>) -> u32 {
 
 fn build_assistant_message(
     events: Vec<AssistantEvent>,
-) -> Result<
-    (
-        ConversationMessage,
-        Option<TokenUsage>,
-        Vec<PromptCacheEvent>,
-        String,
-    ),
-    RuntimeError,
-> {
+) -> Result<(ConversationMessage, Option<TokenUsage>, Vec<PromptCacheEvent>, String), RuntimeError>
+{
     let mut text = String::new();
     let mut thinking = String::new();
     let mut blocks = Vec::new();
@@ -1493,10 +1475,7 @@ mod tests {
         assert_eq!(runtime.session().messages.len(), 4);
         assert_eq!(summary.usage.output_tokens, 10);
         assert_eq!(summary.auto_compaction, None);
-        assert!(matches!(
-            runtime.session().messages[1].blocks[1],
-            ContentBlock::ToolUse { .. }
-        ));
+        assert!(matches!(runtime.session().messages[1].blocks[1], ContentBlock::ToolUse { .. }));
         assert!(matches!(
             runtime.session().messages[2].blocks[0],
             ContentBlock::ToolResult {
@@ -1622,9 +1601,8 @@ mod tests {
         let mut runtime = ConversationRuntime::new_with_features(
             Session::new(),
             SingleCallApiClient,
-            StaticToolExecutor::new().register("blocked", |_input| {
-                panic!("tool should not execute when hook denies")
-            }),
+            StaticToolExecutor::new()
+                .register("blocked", |_input| panic!("tool should not execute when hook denies")),
             PermissionPolicy::new(PermissionMode::DangerFullAccess),
             vec!["system".to_string()],
             &RuntimeFeatureConfig::default().with_hooks(RuntimeHookConfig::new(
@@ -1645,10 +1623,7 @@ mod tests {
         else {
             panic!("expected tool result block");
         };
-        assert!(
-            *is_error,
-            "hook denial should produce an error result: {output}"
-        );
+        assert!(*is_error, "hook denial should produce an error result: {output}");
         assert!(
             output.contains("denied tool") || output.contains("blocked by hook"),
             "unexpected hook denial output: {output:?}"
@@ -1685,9 +1660,8 @@ mod tests {
         let mut runtime = ConversationRuntime::new_with_features(
             Session::new(),
             SingleCallApiClient,
-            StaticToolExecutor::new().register("blocked", |_input| {
-                panic!("tool should not execute when hook fails")
-            }),
+            StaticToolExecutor::new()
+                .register("blocked", |_input| panic!("tool should not execute when hook fails")),
             PermissionPolicy::new(PermissionMode::DangerFullAccess),
             vec!["system".to_string()],
             &RuntimeFeatureConfig::default().with_hooks(RuntimeHookConfig::new(
@@ -1710,10 +1684,7 @@ mod tests {
         else {
             panic!("expected tool result block");
         };
-        assert!(
-            *is_error,
-            "hook failure should produce an error result: {output}"
-        );
+        assert!(*is_error, "hook failure should produce an error result: {output}");
         assert!(
             output.contains("exited with status 1") || output.contains("broken hook"),
             "unexpected hook failure output: {output:?}"
@@ -1777,14 +1748,8 @@ mod tests {
         else {
             panic!("expected tool result block");
         };
-        assert!(
-            !*is_error,
-            "post hook should preserve non-error result: {output:?}"
-        );
-        assert!(
-            output.contains('4'),
-            "tool output missing value: {output:?}"
-        );
+        assert!(!*is_error, "post hook should preserve non-error result: {output:?}");
+        assert!(output.contains('4'), "tool output missing value: {output:?}");
         assert!(
             output.contains("pre hook ran"),
             "tool output missing pre hook feedback: {output:?}"
@@ -1856,10 +1821,7 @@ mod tests {
         else {
             panic!("expected tool result block");
         };
-        assert!(
-            *is_error,
-            "failure hook path should preserve error result: {output:?}"
-        );
+        assert!(*is_error, "failure hook path should preserve error result: {output:?}");
         assert!(
             output.contains("tool exploded"),
             "tool output missing failure reason: {output:?}"
@@ -1948,14 +1910,8 @@ mod tests {
             ..Default::default()
         });
         assert!(result.summary.contains("Conversation summary"));
-        assert_eq!(
-            result.compacted_session.messages[0].role,
-            MessageRole::System
-        );
-        assert_eq!(
-            result.compacted_session.session_id,
-            runtime.session().session_id
-        );
+        assert_eq!(result.compacted_session.messages[0].role, MessageRole::System);
+        assert_eq!(result.compacted_session.session_id, runtime.session().session_id);
         assert!(result.compacted_session.compaction.is_some());
     }
 
@@ -2192,9 +2148,8 @@ mod tests {
             .push_user_text("previous message")
             .expect("message should append");
 
-        let tool_executor = StaticToolExecutor::new().register("glob_search", |_input| {
-            Err(ToolError::new("transport unavailable"))
-        });
+        let tool_executor = StaticToolExecutor::new()
+            .register("glob_search", |_input| Err(ToolError::new("transport unavailable")));
         let mut runtime = ConversationRuntime::new(
             session,
             SimpleApi,
@@ -2237,9 +2192,7 @@ mod tests {
         session.record_compaction("fresh summary", 2);
 
         let tool_executor = StaticToolExecutor::new().register("glob_search", |_input| {
-            Err(ToolError::new(
-                "glob_search should not run for an empty compacted session",
-            ))
+            Err(ToolError::new("glob_search should not run for an empty compacted session"))
         });
         let mut runtime = ConversationRuntime::new(
             session,
@@ -2276,10 +2229,7 @@ mod tests {
             })
             .unwrap();
         assert!(text.contains("partial"), "should contain original text");
-        assert!(
-            text.contains("Stream was interrupted"),
-            "should contain recovery marker"
-        );
+        assert!(text.contains("Stream was interrupted"), "should contain recovery marker");
     }
 
     #[test]

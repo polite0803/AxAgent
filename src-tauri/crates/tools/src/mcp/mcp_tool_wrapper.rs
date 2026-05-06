@@ -27,8 +27,6 @@ impl Tool for McpToolWrapper {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        Ok(ToolResult::success(
-            "[MCP 工具执行结果将通过上层调度器处理]",
-        ))
+        Ok(ToolResult::success("[MCP 工具执行结果将通过上层调度器处理]"))
     }
 }

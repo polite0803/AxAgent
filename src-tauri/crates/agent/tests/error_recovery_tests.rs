@@ -90,10 +90,7 @@ fn test_recovery_config_default() {
     assert_eq!(config.max_total_attempts, 5);
     assert!(config.enable_fallback);
     assert!(config.enable_adjustments);
-    assert_eq!(
-        config.timeout_per_attempt,
-        std::time::Duration::from_secs(30)
-    );
+    assert_eq!(config.timeout_per_attempt, std::time::Duration::from_secs(30));
 }
 
 #[test]

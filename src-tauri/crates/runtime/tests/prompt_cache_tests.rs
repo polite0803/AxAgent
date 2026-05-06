@@ -97,10 +97,7 @@ async fn test_explicit_invalidation() {
     assert!(!cache.is_cache_valid().await);
 
     let state = cache.get_state().await;
-    assert_eq!(
-        state.last_invalidation_reason,
-        Some("manual test invalidation".to_string())
-    );
+    assert_eq!(state.last_invalidation_reason, Some("manual test invalidation".to_string()));
 }
 
 #[tokio::test]

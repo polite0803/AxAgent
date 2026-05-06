@@ -353,9 +353,7 @@ impl ProviderAdapter for AnthropicAdapter {
         if !resp.status().is_success() {
             let s = resp.status();
             let t = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Provider(format!(
-                "Anthropic API error {s}: {t}"
-            )));
+            return Err(AxAgentError::Provider(format!("Anthropic API error {s}: {t}")));
         }
 
         let ar: AnthropicResponse = resp
@@ -734,9 +732,7 @@ impl ProviderAdapter for AnthropicAdapter {
         if !resp.status().is_success() {
             let s = resp.status();
             let t = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Provider(format!(
-                "Anthropic API error {s}: {t}"
-            )));
+            return Err(AxAgentError::Provider(format!("Anthropic API error {s}: {t}")));
         }
 
         let models: AnthropicModelsResponse = resp

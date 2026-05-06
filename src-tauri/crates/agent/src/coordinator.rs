@@ -241,12 +241,8 @@ mod worker_tests {
             "bash".to_string(),
             "send_message".to_string(),
         ];
-        let def = WorkerDefinition::new(
-            "worker",
-            "For parallel tasks",
-            tools,
-            "You are a worker agent.",
-        );
+        let def =
+            WorkerDefinition::new("worker", "For parallel tasks", tools, "You are a worker agent.");
 
         assert!(!def.tools.contains(&"agent_create".to_string()));
         assert!(!def.tools.contains(&"send_message".to_string()));
@@ -553,10 +549,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     pub async fn pause(&self) -> Result<(), AgentError> {
         let status = self.status.read().await;
         if !matches!(*status, AgentStatus::Running) {
-            return Err(AgentError::InvalidState(format!(
-                "Cannot pause from status {}",
-                status
-            )));
+            return Err(AgentError::InvalidState(format!("Cannot pause from status {}", status)));
         }
         drop(status);
 
@@ -583,10 +576,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     pub async fn resume(&self) -> Result<(), AgentError> {
         let status = self.status.read().await;
         if !matches!(*status, AgentStatus::Paused) {
-            return Err(AgentError::InvalidState(format!(
-                "Cannot resume from status {}",
-                status
-            )));
+            return Err(AgentError::InvalidState(format!("Cannot resume from status {}", status)));
         }
         drop(status);
 

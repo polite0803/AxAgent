@@ -123,11 +123,7 @@ impl MemoryService {
 
         let memory_type = target.to_string();
         let entry = MemoryEntry {
-            id: format!(
-                "mem_{}_{}",
-                chrono::Utc::now().timestamp_millis(),
-                uuid::Uuid::new_v4()
-            ),
+            id: format!("mem_{}_{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4()),
             content: content.to_string(),
             memory_type: memory_type.clone(),
             updated_at: chrono::Utc::now().timestamp(),

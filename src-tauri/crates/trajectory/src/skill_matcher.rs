@@ -60,26 +60,11 @@ impl KeywordPatterns {
         let mut patterns = HashMap::new();
         patterns.insert("pdf", vec!["pdf", "extract", "document", "text extraction"]);
         patterns.insert("docx", vec!["word", "docx", "document", "microsoft word"]);
-        patterns.insert(
-            "spreadsheet",
-            vec!["excel", "spreadsheet", "xlsx", "csv", "table"],
-        );
-        patterns.insert(
-            "browser",
-            vec!["browser", "navigate", "click", "web page", "website"],
-        );
-        patterns.insert(
-            "github",
-            vec!["github", "git", "repository", "pull request", "issue"],
-        );
-        patterns.insert(
-            "terminal",
-            vec!["terminal", "shell", "bash", "command", "cli"],
-        );
-        patterns.insert(
-            "memory",
-            vec!["memory", "remember", "context", "persistent"],
-        );
+        patterns.insert("spreadsheet", vec!["excel", "spreadsheet", "xlsx", "csv", "table"]);
+        patterns.insert("browser", vec!["browser", "navigate", "click", "web page", "website"]);
+        patterns.insert("github", vec!["github", "git", "repository", "pull request", "issue"]);
+        patterns.insert("terminal", vec!["terminal", "shell", "bash", "command", "cli"]);
+        patterns.insert("memory", vec!["memory", "remember", "context", "persistent"]);
         patterns.insert("notion", vec!["notion", "notes", "database"]);
         patterns.insert("slack", vec!["slack", "message", "channel", "team"]);
         patterns.insert("email", vec!["email", "mail", "smtp", "imap"]);
@@ -87,61 +72,26 @@ impl KeywordPatterns {
             "web-search",
             vec!["search", "web search", "google", "bing", "find information"],
         );
-        patterns.insert(
-            "code-review",
-            vec!["code review", "review code", "security check"],
-        );
+        patterns.insert("code-review", vec!["code review", "review code", "security check"]);
         patterns.insert("pptx", vec!["powerpoint", "presentation", "slides", "pptx"]);
         patterns.insert("weather", vec!["weather", "forecast", "temperature"]);
-        patterns.insert(
-            "sql",
-            vec!["sql", "database", "query", "postgresql", "mysql"],
-        );
-        patterns.insert(
-            "image",
-            vec!["image", "resize", "convert", "photo", "picture"],
-        );
-        patterns.insert(
-            "calendar",
-            vec!["calendar", "event", "schedule", "google calendar"],
-        );
+        patterns.insert("sql", vec!["sql", "database", "query", "postgresql", "mysql"]);
+        patterns.insert("image", vec!["image", "resize", "convert", "photo", "picture"]);
+        patterns.insert("calendar", vec!["calendar", "event", "schedule", "google calendar"]);
         patterns.insert("tavily", vec!["tavily", "deep research", "research search"]);
         patterns.insert("brave-search", vec!["brave", "privacy search"]);
-        patterns.insert(
-            "youtube",
-            vec!["youtube", "video", "transcript", "subtitle"],
-        );
+        patterns.insert("youtube", vec!["youtube", "video", "transcript", "subtitle"]);
         patterns.insert("obsidian", vec!["obsidian", "markdown", "vault", "notes"]);
         patterns.insert("news", vec!["news", "headlines", "rss", "article"]);
-        patterns.insert(
-            "api-gateway",
-            vec!["api", "rest", "http", "gateway", "test"],
-        );
-        patterns.insert(
-            "desktop-control",
-            vec!["desktop", "mouse", "keyboard", "automation"],
-        );
-        patterns.insert(
-            "automation-workflows",
-            vec!["automation", "workflow", "trigger", "action"],
-        );
-        patterns.insert(
-            "self-improving",
-            vec!["self-improving", "learning", "improve"],
-        );
-        patterns.insert(
-            "skill-creator",
-            vec!["create skill", "new skill", "skill creator"],
-        );
-        patterns.insert(
-            "stock-analysis",
-            vec!["stock", "finance", "market", "analysis"],
-        );
+        patterns.insert("api-gateway", vec!["api", "rest", "http", "gateway", "test"]);
+        patterns.insert("desktop-control", vec!["desktop", "mouse", "keyboard", "automation"]);
+        patterns
+            .insert("automation-workflows", vec!["automation", "workflow", "trigger", "action"]);
+        patterns.insert("self-improving", vec!["self-improving", "learning", "improve"]);
+        patterns.insert("skill-creator", vec!["create skill", "new skill", "skill creator"]);
+        patterns.insert("stock-analysis", vec!["stock", "finance", "market", "analysis"]);
         patterns.insert("humanizer", vec!["humanize", "ai text", "writing"]);
-        patterns.insert(
-            "data-analysis",
-            vec!["data analysis", "visualization", "insights"],
-        );
+        patterns.insert("data-analysis", vec!["data analysis", "visualization", "insights"]);
         patterns
     }
 }
@@ -451,14 +401,8 @@ mod tests {
             matcher.get_complexity("Analyze the differences between these files"),
             Complexity::High
         );
-        assert_eq!(
-            matcher.get_complexity("Create a new document for me"),
-            Complexity::Medium
-        );
-        assert_eq!(
-            matcher.get_complexity("What is the weather?"),
-            Complexity::Low
-        );
+        assert_eq!(matcher.get_complexity("Create a new document for me"), Complexity::Medium);
+        assert_eq!(matcher.get_complexity("What is the weather?"), Complexity::Low);
     }
 
     #[test]
@@ -467,10 +411,8 @@ mod tests {
 
         let skills = vec![];
 
-        let result = matcher.find_matches(
-            "I need to analyze multiple complex data sets and compare them",
-            &skills,
-        );
+        let result = matcher
+            .find_matches("I need to analyze multiple complex data sets and compare them", &skills);
 
         assert!(result.needs_marketplace_search);
         assert!(!result.suggested_marketplace_skills.is_empty());

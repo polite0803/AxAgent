@@ -459,15 +459,9 @@ async fn test_conversation_update_input() {
     assert!(updated.search_enabled);
     assert_eq!(updated.search_provider_id.as_deref(), Some("search-1"));
     assert_eq!(updated.thinking_budget, Some(4096));
-    assert_eq!(
-        updated.enabled_mcp_server_ids,
-        vec!["mcp-a".to_string(), "mcp-b".to_string()]
-    );
+    assert_eq!(updated.enabled_mcp_server_ids, vec!["mcp-a".to_string(), "mcp-b".to_string()]);
     assert_eq!(updated.enabled_knowledge_base_ids, vec!["kb-a".to_string()]);
-    assert_eq!(
-        updated.enabled_memory_namespace_ids,
-        vec!["mem-a".to_string()]
-    );
+    assert_eq!(updated.enabled_memory_namespace_ids, vec!["mem-a".to_string()]);
 }
 
 // ---------------------------------------------------------------------------
@@ -492,17 +486,10 @@ async fn test_message_crud() {
     assert_eq!(msg.content, "Hello!");
 
     // create assistant reply
-    let reply = message::create_message(
-        db,
-        &conv.id,
-        MessageRole::Assistant,
-        "Hi there!",
-        &[],
-        None,
-        0,
-    )
-    .await
-    .unwrap();
+    let reply =
+        message::create_message(db, &conv.id, MessageRole::Assistant, "Hi there!", &[], None, 0)
+            .await
+            .unwrap();
     assert_eq!(reply.role, MessageRole::Assistant);
 
     // list messages

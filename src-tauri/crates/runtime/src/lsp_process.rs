@@ -104,12 +104,7 @@ impl LspProcess {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| {
-                format!(
-                    "Failed to spawn LSP server '{}': {}",
-                    self.config.command, e
-                )
-            })?;
+            .map_err(|e| format!("Failed to spawn LSP server '{}': {}", self.config.command, e))?;
 
         let stdin = child
             .stdin

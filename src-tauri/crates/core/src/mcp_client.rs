@@ -371,10 +371,7 @@ impl McpConnectionPool {
         }
 
         // No cached connection — spawn a new one
-        info!(
-            "[McpPool] No cached connection for '{}', spawning new process",
-            key.command
-        );
+        info!("[McpPool] No cached connection for '{}', spawning new process", key.command);
         let args: Vec<String> = serde_json::from_str(&key.args_json).unwrap_or_default();
         let env: HashMap<String, String> = serde_json::from_str(&key.env_json).unwrap_or_default();
 
@@ -533,16 +530,10 @@ pub async fn call_tool_stdio_pooled(
                 || err_lower.contains("closed")
                 || err_lower.contains("transport")
             {
-                info!(
-                    "[McpPool] Evicting stale connection for '{}' due to: {}",
-                    command, err_str
-                );
+                info!("[McpPool] Evicting stale connection for '{}' due to: {}", command, err_str);
                 pool.evict(&key).await;
             }
-            Err(AxAgentError::Gateway(format!(
-                "MCP tool call failed: {}",
-                err_str
-            )))
+            Err(AxAgentError::Gateway(format!("MCP tool call failed: {}", err_str)))
         },
     }
 }
@@ -794,10 +785,7 @@ async fn sse_send_request(sse_url: &str, request: Value) -> Result<Value> {
         .map_err(|e| AxAgentError::Gateway(format!("SSE connect failed: {}", e)))?;
 
     if !sse_resp.status().is_success() {
-        return Err(AxAgentError::Gateway(format!(
-            "SSE connect returned {}",
-            sse_resp.status()
-        )));
+        return Err(AxAgentError::Gateway(format!("SSE connect returned {}", sse_resp.status())));
     }
     tracing::info!("SSE: connected, status={}", sse_resp.status());
 
@@ -851,10 +839,7 @@ async fn sse_send_request(sse_url: &str, request: Value) -> Result<Value> {
             init_resp.status()
         )));
     }
-    tracing::info!(
-        "SSE: initialize POST accepted, status={}",
-        init_resp.status()
-    );
+    tracing::info!("SSE: initialize POST accepted, status={}", init_resp.status());
 
     // Read init response from SSE stream
     let _init_result = sse_read_response(&mut byte_stream, &mut buffer).await?;
@@ -879,10 +864,7 @@ async fn sse_send_request(sse_url: &str, request: Value) -> Result<Value> {
         .await
         .map_err(|e| AxAgentError::Gateway(format!("SSE request POST failed: {}", e)))?;
     if !resp.status().is_success() {
-        return Err(AxAgentError::Gateway(format!(
-            "SSE request returned {}",
-            resp.status()
-        )));
+        return Err(AxAgentError::Gateway(format!("SSE request returned {}", resp.status())));
     }
     tracing::info!("SSE: request POST accepted, reading response...");
 
@@ -943,9 +925,7 @@ where
         match tokio::time::timeout(remaining, stream.next()).await {
             Err(_) => return Err(AxAgentError::Gateway("SSE response timed out".into())),
             Ok(None) => {
-                return Err(AxAgentError::Gateway(
-                    "SSE stream ended before response".into(),
-                ))
+                return Err(AxAgentError::Gateway("SSE stream ended before response".into()))
             },
             Ok(Some(Err(e))) => {
                 return Err(AxAgentError::Gateway(format!("SSE read error: {}", e)))
@@ -1029,10 +1009,7 @@ mod tests {
             })
             .collect();
 
-        assert_eq!(
-            env_map.get("TAVILY_API_KEY"),
-            Some(&Some("secret-key".to_string()))
-        );
+        assert_eq!(env_map.get("TAVILY_API_KEY"), Some(&Some("secret-key".to_string())));
         assert_eq!(env_map.get("PATH"), Some(&Some("/custom/bin".to_string())));
     }
 
@@ -1042,20 +1019,11 @@ mod tests {
 
         let result = tokio::time::timeout(
             std::time::Duration::from_millis(500),
-            call_tool_stdio(
-                "python3",
-                &args,
-                &HashMap::new(),
-                "fetch_url",
-                serde_json::json!({}),
-            ),
+            call_tool_stdio("python3", &args, &HashMap::new(), "fetch_url", serde_json::json!({})),
         )
         .await;
 
-        assert!(
-            result.is_ok(),
-            "call_tool_stdio hung after non-JSON initialize output"
-        );
+        assert!(result.is_ok(), "call_tool_stdio hung after non-JSON initialize output");
 
         let err = result.unwrap().unwrap_err().to_string();
         assert!(err.contains("MCP") || err.contains("handshake") || err.contains("spawn"));

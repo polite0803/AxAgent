@@ -299,10 +299,7 @@ impl ContentFormatter {
             } else if let Some(stripped) = trimmed.strip_prefix("- ") {
                 html.push_str(&format!("<li>{}</li>\n", stripped));
             } else if trimmed.starts_with('*') && trimmed.ends_with('*') {
-                html.push_str(&format!(
-                    "<p><em>{}</em></p>\n",
-                    &trimmed[1..trimmed.len() - 1]
-                ));
+                html.push_str(&format!("<p><em>{}</em></p>\n", &trimmed[1..trimmed.len() - 1]));
             } else if !trimmed.is_empty() {
                 html.push_str(&format!("<p>{}</p>\n", trimmed));
             }

@@ -256,10 +256,7 @@ impl Tool for TerminalCaptureTool {
     }
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let lines = i["lines"].as_u64().unwrap_or(50);
-        Ok(ToolResult::success(format!(
-            "📟 终端捕获 (最近 {} 行): 由终端面板提供",
-            lines
-        )))
+        Ok(ToolResult::success(format!("📟 终端捕获 (最近 {} 行): 由终端面板提供", lines)))
     }
 }
 
@@ -284,10 +281,7 @@ impl Tool for SendUserFileTool {
     }
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = i["file_path"].as_str().unwrap_or("?");
-        Ok(ToolResult::success(format!(
-            "📎 文件已发送: {} (bridge 上传)",
-            path
-        )))
+        Ok(ToolResult::success(format!("📎 文件已发送: {} (bridge 上传)", path)))
     }
 }
 
@@ -312,10 +306,7 @@ impl Tool for DiscoverSkillsTool {
     }
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let q = i["query"].as_str().unwrap_or("");
-        Ok(ToolResult::success(format!(
-            "🔎 技能搜索: '{}'\n\n正在索引本地技能...",
-            q
-        )))
+        Ok(ToolResult::success(format!("🔎 技能搜索: '{}'\n\n正在索引本地技能...", q)))
     }
 }
 
@@ -409,10 +400,7 @@ impl Tool for VerifyPlanExecutionTool {
             .as_array()
             .map(|a| a.len())
             .unwrap_or(0);
-        Ok(ToolResult::success(format!(
-            "✅ 计划验证完成: {} ({} 步骤)",
-            summary, steps
-        )))
+        Ok(ToolResult::success(format!("✅ 计划验证完成: {} ({} 步骤)", summary, steps)))
     }
 }
 
@@ -462,9 +450,6 @@ impl Tool for SuggestBackgroundPRTool {
     }
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let branch = i["branch"].as_str().unwrap_or("main");
-        Ok(ToolResult::success(format!(
-            "💡 PR 建议: 分支 '{}' → 运行后台分析...",
-            branch
-        )))
+        Ok(ToolResult::success(format!("💡 PR 建议: 分支 '{}' → 运行后台分析...", branch)))
     }
 }

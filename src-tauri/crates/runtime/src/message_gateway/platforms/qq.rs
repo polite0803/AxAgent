@@ -302,10 +302,7 @@ async fn get_qq_gateway_url(
 }
 
 async fn send_qq_message(bot_token: &str, channel_id: &str, text: &str) -> anyhow::Result<()> {
-    let url = format!(
-        "https://api.sgroup.qq.com/v2/channels/{}/messages",
-        channel_id
-    );
+    let url = format!("https://api.sgroup.qq.com/v2/channels/{}/messages", channel_id);
     let body = serde_json::json!({
         "content": text,
         "msg_type": 0,
@@ -323,11 +320,7 @@ async fn send_qq_message(bot_token: &str, channel_id: &str, text: &str) -> anyho
     let status = resp.status();
     if !status.is_success() {
         let resp_body = resp.text().await.unwrap_or_default();
-        anyhow::bail!(
-            "QQ send message failed ({}): {}",
-            status.as_u16(),
-            resp_body
-        );
+        anyhow::bail!("QQ send message failed ({}): {}", status.as_u16(), resp_body);
     }
     Ok(())
 }
@@ -342,10 +335,7 @@ async fn send_qq_reply(
     let url = if guild_id.is_empty() {
         format!("https://api.sgroup.qq.com/v2/users/{}/messages", user_id)
     } else {
-        format!(
-            "https://api.sgroup.qq.com/v2/channels/{}/messages",
-            channel_id
-        )
+        format!("https://api.sgroup.qq.com/v2/channels/{}/messages", channel_id)
     };
     let body = serde_json::json!({
         "content": text,

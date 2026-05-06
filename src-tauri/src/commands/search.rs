@@ -33,7 +33,10 @@ pub async fn create_search_provider(
     let mut input = input;
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
-            input.api_key = Some(axagent_core::crypto::encrypt_key(key, &state.master_key).map_err(|e| e.to_string())?);
+            input.api_key = Some(
+                axagent_core::crypto::encrypt_key(key, &state.master_key)
+                    .map_err(|e| e.to_string())?,
+            );
         }
     }
     axagent_core::repo::search_provider::create_search_provider(&state.sea_db, input)
@@ -50,7 +53,10 @@ pub async fn update_search_provider(
 ) -> Result<SearchProvider, String> {
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
-            input.api_key = Some(axagent_core::crypto::encrypt_key(key, &state.master_key).map_err(|e| e.to_string())?);
+            input.api_key = Some(
+                axagent_core::crypto::encrypt_key(key, &state.master_key)
+                    .map_err(|e| e.to_string())?,
+            );
         }
     }
     axagent_core::repo::search_provider::update_search_provider(&state.sea_db, &id, input)
@@ -89,7 +95,7 @@ async fn get_search_api_key(
             axagent_core::crypto::decrypt_key(encrypted, master_key)
                 .map(Some)
                 .map_err(|e| e.to_string())
-        }
+        },
         _ => Ok(None),
     }
 }

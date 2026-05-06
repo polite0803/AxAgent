@@ -24,6 +24,9 @@
     "check:types": "node scripts/type-consistency.mjs",
     "docs": "typedoc --out docs src",
     "docs:watch": "typedoc --out docs --watch src",
+    "ci:check": "node scripts/ci-check.mjs",
+    "ci:check:quick": "node scripts/ci-check.mjs --quick",
+    "prepare": "simple-git-hooks",
     "skill:create": "node scripts/create-axagent-skill.mjs",
     "skill:validate": "node scripts/validate-skill.mjs"
   },
@@ -71,9 +74,11 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@dprint/json": "^0.19.4",
+    "@dprint/typescript": "^0.93.3",
     "@playwright/test": "^1.59.1",
-    "@tauri-apps/cli": "^2.10.1",
     "@tailwindcss/vite": "^4.2.4",
+    "@tauri-apps/cli": "^2.10.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -82,16 +87,18 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "6.0.1",
     "dprint": "^0.54.0",
-    "@dprint/typescript": "^0.93.3",
-    "@dprint/json": "^0.19.4",
     "esbuild": "^0.28.0",
     "jsdom": "^29.0.2",
+    "simple-git-hooks": "^2.13.1",
     "tailwindcss": "^4.2.4",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vite-plugin-monaco-editor": "^1.1.0",
     "vitest": "^4.1.4"
+  },
+  "simple-git-hooks": {
+    "pre-push": "npm run ci:check:quick"
   },
   "optionalDependencies": {
     "@antv/infographic": "^0.2.17"

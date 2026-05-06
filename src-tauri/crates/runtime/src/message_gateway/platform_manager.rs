@@ -39,35 +39,17 @@ impl PlatformManager {
     pub fn new() -> Self {
         let mut adapters: HashMap<String, Arc<dyn PlatformAdapter>> = HashMap::new();
 
-        adapters.insert(
-            "telegram".to_string(),
-            Arc::new(platforms::telegram::TelegramAdapter::new()),
-        );
-        adapters.insert(
-            "discord".to_string(),
-            Arc::new(platforms::discord::DiscordAdapter::new()),
-        );
-        adapters.insert(
-            "wechat".to_string(),
-            Arc::new(platforms::wechat::WeChatAdapter::new()),
-        );
-        adapters.insert(
-            "feishu".to_string(),
-            Arc::new(platforms::feishu::FeishuAdapter::new()),
-        );
+        adapters
+            .insert("telegram".to_string(), Arc::new(platforms::telegram::TelegramAdapter::new()));
+        adapters.insert("discord".to_string(), Arc::new(platforms::discord::DiscordAdapter::new()));
+        adapters.insert("wechat".to_string(), Arc::new(platforms::wechat::WeChatAdapter::new()));
+        adapters.insert("feishu".to_string(), Arc::new(platforms::feishu::FeishuAdapter::new()));
         adapters.insert("qq".to_string(), Arc::new(platforms::qq::QQAdapter::new()));
-        adapters.insert(
-            "dingtalk".to_string(),
-            Arc::new(platforms::dingtalk::DingtalkAdapter::new()),
-        );
-        adapters.insert(
-            "slack".to_string(),
-            Arc::new(platforms::slack::SlackAdapter::new()),
-        );
-        adapters.insert(
-            "whatsapp".to_string(),
-            Arc::new(platforms::whatsapp::WhatsAppAdapter::new()),
-        );
+        adapters
+            .insert("dingtalk".to_string(), Arc::new(platforms::dingtalk::DingtalkAdapter::new()));
+        adapters.insert("slack".to_string(), Arc::new(platforms::slack::SlackAdapter::new()));
+        adapters
+            .insert("whatsapp".to_string(), Arc::new(platforms::whatsapp::WhatsAppAdapter::new()));
 
         Self {
             adapters: RwLock::new(adapters),

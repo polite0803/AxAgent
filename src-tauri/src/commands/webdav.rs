@@ -499,10 +499,8 @@ mod tests {
 
     #[test]
     fn restore_cleanup_removes_tracked_safety_key_files() {
-        let temp_root = std::env::temp_dir().join(format!(
-            "axagent-webdav-restore-cleanup-{}",
-            axagent_core::utils::gen_id()
-        ));
+        let temp_root = std::env::temp_dir()
+            .join(format!("axagent-webdav-restore-cleanup-{}", axagent_core::utils::gen_id()));
         std::fs::create_dir_all(&temp_root).expect("create temp root");
         let safety_key = temp_root.join("_pre_webdav_restore_safety.key");
         std::fs::write(&safety_key, b"secret").expect("write safety key");
@@ -524,10 +522,8 @@ mod tests {
     fn restore_cleanup_keeps_safety_key_backup_owner_only() {
         use std::os::unix::fs::PermissionsExt;
 
-        let temp_root = std::env::temp_dir().join(format!(
-            "axagent-webdav-restore-perms-{}",
-            axagent_core::utils::gen_id()
-        ));
+        let temp_root = std::env::temp_dir()
+            .join(format!("axagent-webdav-restore-perms-{}", axagent_core::utils::gen_id()));
         std::fs::create_dir_all(&temp_root).expect("create temp root");
         let safety_key = temp_root.join("_pre_webdav_restore_safety.key");
         std::fs::write(&safety_key, b"secret").expect("write safety key");
@@ -540,10 +536,7 @@ mod tests {
             .mode()
             & 0o777;
 
-        assert_eq!(
-            mode, 0o600,
-            "safety key backups must be owner-readable only"
-        );
+        assert_eq!(mode, 0o600, "safety key backups must be owner-readable only");
         let _ = std::fs::remove_dir_all(&temp_root);
     }
 }

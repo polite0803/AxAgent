@@ -391,10 +391,8 @@ impl UnifiedToolRegistry {
 
         // 加载旧 builtin 工具定义
         for ft in builtin_tools::get_all_builtin_tools_flat() {
-            self.builtin_defs.insert(
-                ft.tool_name.clone(),
-                (ft.server_name.clone(), ft.input_schema.clone()),
-            );
+            self.builtin_defs
+                .insert(ft.tool_name.clone(), (ft.server_name.clone(), ft.input_schema.clone()));
         }
 
         // 配置默认工具级权限要求
@@ -568,10 +566,7 @@ impl UnifiedToolRegistry {
 
         // 简单黑白名单检查（兼容旧逻辑）
         if !self.is_allowed(tool_name) {
-            return Err(ToolError::permission_denied(
-                tool_name,
-                "工具被黑白名单策略阻止",
-            ));
+            return Err(ToolError::permission_denied(tool_name, "工具被黑白名单策略阻止"));
         }
 
         // ── PreToolUse Hooks ──
@@ -655,10 +650,7 @@ impl UnifiedToolRegistry {
             .collect();
         for hook in &post_hooks {
             let exec_input = if let Some(out) = output {
-                format!(
-                    "tool_name={}, input={}, output={}",
-                    tool_name, effective_input, out
-                )
+                format!("tool_name={}, input={}, output={}", tool_name, effective_input, out)
             } else {
                 format!("tool_name={}, input={}", tool_name, effective_input)
             };
@@ -772,10 +764,7 @@ impl UnifiedToolRegistry {
                         })
                         .map_err(|e| ToolError::execution_failed(e.to_string()))
                 },
-                other => Err(ToolError::execution_failed(format!(
-                    "不支持的传输方式: {}",
-                    other
-                ))),
+                other => Err(ToolError::execution_failed(format!("不支持的传输方式: {}", other))),
             }
         })
         .await;
@@ -804,10 +793,7 @@ impl Default for UnifiedToolRegistry {
 impl RuntimeToolExecutor for UnifiedToolRegistry {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, RuntimeToolError> {
         if !self.is_allowed(tool_name) {
-            return Err(RuntimeToolError::new(format!(
-                "Tool '{}' denied",
-                tool_name
-            )));
+            return Err(RuntimeToolError::new(format!("Tool '{}' denied", tool_name)));
         }
 
         let handle = tokio::runtime::Handle::current();

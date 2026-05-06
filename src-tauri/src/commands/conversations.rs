@@ -978,23 +978,37 @@ async fn execute_tool_call(
     // Handle builtin web_search — unified via core search engine
     if tool_call.function.name == "web_search" {
         tracing::info!("[web_search] LLM called");
-        let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
-            .unwrap_or(serde_json::Value::Null);
-        let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let args: serde_json::Value =
+            serde_json::from_str(&tool_call.function.arguments).unwrap_or(serde_json::Value::Null);
+        let query = args
+            .get("query")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
         if query.is_empty() {
             return ("Error: web_search requires a 'query' parameter".to_string(), true);
         }
-        let text = if let Ok(providers) = axagent_core::repo::search_provider::list_search_providers(db).await {
+        let text = if let Ok(providers) =
+            axagent_core::repo::search_provider::list_search_providers(db).await
+        {
             if let Some(p) = providers.iter().find(|p| p.enabled) {
                 let api_key = axagent_core::entity::search_providers::Entity::find_by_id(&p.id)
-                    .one(db).await.ok().flatten()
+                    .one(db)
+                    .await
+                    .ok()
+                    .flatten()
                     .and_then(|e| e.api_key_ref)
                     .and_then(|enc| axagent_core::crypto::decrypt_key(&enc, master_key).ok())
                     .unwrap_or_default();
                 axagent_core::search::execute_search_text(
-                    &p.provider_type, p.endpoint.as_deref(), &api_key,
-                    &query, p.result_limit, p.timeout_ms,
-                ).await
+                    &p.provider_type,
+                    p.endpoint.as_deref(),
+                    &api_key,
+                    &query,
+                    p.result_limit,
+                    p.timeout_ms,
+                )
+                .await
             } else {
                 axagent_core::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
             }
@@ -1174,10 +1188,9 @@ pub async fn generate_ai_title(
     };
 
     // Resolve title summary provider/model: settings override → fallback to conversation model
-    if let (Some(ref pid), Some(ref mid)) = (
-        &settings.title_summary_provider_id,
-        &settings.title_summary_model_id,
-    ) {
+    if let (Some(ref pid), Some(ref mid)) =
+        (&settings.title_summary_provider_id, &settings.title_summary_model_id)
+    {
         // Try to use the configured title summary provider
         let provider = match axagent_core::repo::provider::get_provider(db, pid).await {
             Ok(p) => p,
@@ -1199,10 +1212,7 @@ pub async fn generate_ai_title(
         let key_row = match axagent_core::repo::provider::get_active_key(db, pid).await {
             Ok(k) => k,
             Err(e) => {
-                tracing::warn!(
-                    "Title summary provider has no active key, falling back: {}",
-                    e
-                );
+                tracing::warn!("Title summary provider has no active key, falling back: {}", e);
                 let umc = lookup_umc(&fallback_ctx.provider_id, fallback_model_id, db).await;
                 return generate_ai_title_with(
                     fallback_provider,
@@ -1238,10 +1248,7 @@ pub async fn generate_ai_title(
             api_key: dk,
             key_id: key_row.id.clone(),
             provider_id: provider.id.clone(),
-            base_url: Some(resolve_base_url_for_type(
-                &provider.api_host,
-                &provider.provider_type,
-            )),
+            base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
             api_path: provider.api_path.clone(),
             proxy_config: proxy,
             custom_headers: provider
@@ -1254,16 +1261,8 @@ pub async fn generate_ai_title(
             store_response: None,
         };
         let umc = lookup_umc(pid, mid, db).await;
-        generate_ai_title_with(
-            &provider,
-            &ctx,
-            mid,
-            user_content,
-            assistant_content,
-            settings,
-            umc,
-        )
-        .await
+        generate_ai_title_with(&provider, &ctx, mid, user_content, assistant_content, settings, umc)
+            .await
     } else {
         // No title summary provider configured, use conversation model
         let umc = lookup_umc(&fallback_ctx.provider_id, fallback_model_id, db).await;
@@ -1444,10 +1443,7 @@ pub async fn regenerate_conversation_title(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -1546,10 +1542,7 @@ pub async fn cancel_stream(
     let flags = state.stream_cancel_flags.lock().await;
     if let Some(flag) = flags.get(&conversation_id) {
         flag.store(true, std::sync::atomic::Ordering::SeqCst);
-        tracing::info!(
-            "[cancel_stream] Cancel requested for conversation {}",
-            conversation_id
-        );
+        tracing::info!("[cancel_stream] Cancel requested for conversation {}", conversation_id);
     }
     Ok(())
 }
@@ -1682,10 +1675,7 @@ fn spawn_stream_task(
         loop {
             iteration += 1;
             if iteration > MAX_TOOL_ITERATIONS {
-                tracing::warn!(
-                    "Tool call loop exceeded max iterations ({})",
-                    MAX_TOOL_ITERATIONS
-                );
+                tracing::warn!("Tool call loop exceeded max iterations ({})", MAX_TOOL_ITERATIONS);
                 break;
             }
 
@@ -1865,7 +1855,8 @@ fn spawn_stream_task(
 
                 // Execute the tool
                 let start = std::time::Instant::now();
-                let (result_content, is_error) = execute_tool_call(&db, tc, &mcp_server_ids, &master_key).await;
+                let (result_content, is_error) =
+                    execute_tool_call(&db, tc, &mcp_server_ids, &master_key).await;
                 let _duration_ms = start.elapsed().as_millis() as i64;
 
                 // Update execution record
@@ -2201,10 +2192,7 @@ pub async fn send_message(
             tool_call_id: None,
         });
     } else {
-        tracing::info!(
-            "[send_message] model={} NO system prompt",
-            &conversation.model_id
-        );
+        tracing::info!("[send_message] model={} NO system prompt", &conversation.model_id);
     }
 
     // Inject current date + search hint
@@ -2419,10 +2407,8 @@ pub async fn send_message(
             .await;
 
             // Emit marker to frontend
-            let _ = app.emit(
-                &format!("conversation:compressed:{}", conversation_id),
-                &summary_text,
-            );
+            let _ =
+                app.emit(&format!("conversation:compressed:{}", conversation_id), &summary_text);
 
             // After compression, history is now empty (marker splits it)
             // Context = system + summary + current user message only
@@ -2458,10 +2444,7 @@ pub async fn send_message(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -2826,10 +2809,7 @@ pub async fn regenerate_message(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -3183,10 +3163,7 @@ pub async fn regenerate_with_model(
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -3435,10 +3412,9 @@ async fn do_compress(
     let (comp_provider, comp_key, comp_key_id, comp_proxy, comp_model_id, comp_use_max) = if let (
         Some(ref pid),
         Some(ref mid),
-    ) = (
-        &settings.compression_provider_id,
-        &settings.compression_model_id,
-    ) {
+    ) =
+        (&settings.compression_provider_id, &settings.compression_model_id)
+    {
         match axagent_core::repo::provider::get_provider(db, pid).await {
             Ok(p) => {
                 match p.keys.first() {
@@ -3568,11 +3544,7 @@ async fn do_compress(
     .await
     .map_err(|e| format!("Failed to save summary: {}", e))?;
 
-    tracing::debug!(
-        "Compressed context for {} ({} tokens)",
-        conversation_id,
-        token_count
-    );
+    tracing::debug!("Compressed context for {} ({} tokens)", conversation_id, token_count);
     Ok(response.content)
 }
 
@@ -3705,10 +3677,7 @@ pub async fn compress_context(
     .map_err(|e| e.to_string())?;
 
     // Emit events to frontend
-    let _ = app.emit(
-        &format!("conversation:compressed:{}", conversation_id),
-        &marker_msg,
-    );
+    let _ = app.emit(&format!("conversation:compressed:{}", conversation_id), &marker_msg);
 
     // Return the updated summary
     let summary = axagent_core::repo::conversation::get_summary(&state.sea_db, &conversation_id)
@@ -3786,10 +3755,8 @@ mod tests {
 
     #[test]
     fn build_message_content_turns_images_into_multipart_data_urls() {
-        let temp_dir = std::env::temp_dir().join(format!(
-            "axagent-vision-test-{}",
-            axagent_core::utils::gen_id()
-        ));
+        let temp_dir = std::env::temp_dir()
+            .join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
 
         let result = {
@@ -3849,10 +3816,8 @@ mod tests {
 
     #[test]
     fn build_message_content_uses_inline_attachment_data_when_file_path_is_missing() {
-        let temp_dir = std::env::temp_dir().join(format!(
-            "axagent-vision-test-{}",
-            axagent_core::utils::gen_id()
-        ));
+        let temp_dir = std::env::temp_dir()
+            .join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
 
         let result = {
@@ -3908,10 +3873,8 @@ mod tests {
     #[tokio::test]
     async fn delete_conversation_removes_attached_files_and_records() {
         let db = axagent_core::db::create_test_pool().await.unwrap().conn;
-        let temp_dir = std::env::temp_dir().join(format!(
-            "axagent-conv-delete-test-{}",
-            axagent_core::utils::gen_id()
-        ));
+        let temp_dir = std::env::temp_dir()
+            .join(format!("axagent-conv-delete-test-{}", axagent_core::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
 
         let conversation = axagent_core::repo::conversation::create_conversation(
@@ -3983,10 +3946,8 @@ mod tests {
         use base64::Engine;
 
         let db = axagent_core::db::create_test_pool().await.unwrap().conn;
-        let temp_dir = std::env::temp_dir().join(format!(
-            "axagent-persist-attachments-test-{}",
-            axagent_core::utils::gen_id()
-        ));
+        let temp_dir = std::env::temp_dir()
+            .join(format!("axagent-persist-attachments-test-{}", axagent_core::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
         let conversation = axagent_core::repo::conversation::create_conversation(
             &db,
@@ -4012,9 +3973,8 @@ mod tests {
         let pattern_learner = Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::PatternLearner::new(axagent_trajectory::PatternConfig::default()),
         ));
-        let trajectory_storage = Arc::new(axagent_trajectory::TrajectoryStorage::new(
-            std::sync::Arc::new(db.clone()),
-        ));
+        let trajectory_storage =
+            Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone())));
         let semantic_cache = Arc::new(tokio::sync::Mutex::new(
             crate::semantic_cache::SemanticCache::new(
                 db.clone(),
@@ -4059,9 +4019,7 @@ mod tests {
             closed_loop_service: {
                 let storage =
                     axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
-                Arc::new(axagent_trajectory::ClosedLoopService::new(
-                    std::sync::Arc::new(storage),
-                ))
+                Arc::new(axagent_trajectory::ClosedLoopService::new(std::sync::Arc::new(storage)))
             },
             insight_system: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
@@ -4095,9 +4053,9 @@ mod tests {
             )),
             auto_memory_extractor: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::AutoMemoryExtractor::new(
-                    Arc::new(axagent_trajectory::TrajectoryStorage::new(
-                        std::sync::Arc::new(db.clone()),
-                    )),
+                    Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(
+                        db.clone(),
+                    ))),
                     memory_service.clone(),
                     pattern_learner.clone(),
                 ),
@@ -4120,9 +4078,9 @@ mod tests {
                     ),
                 ),
             ),
-            user_profile: Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::UserProfile::new(),
-            )),
+            user_profile: Arc::new(
+                tokio::sync::RwLock::new(axagent_trajectory::UserProfile::new()),
+            ),
             local_tool_registry: Arc::new(tokio::sync::Mutex::new(
                 axagent_agent::LocalToolRegistry::init_from_registry(),
             )),

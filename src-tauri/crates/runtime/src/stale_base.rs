@@ -155,11 +155,7 @@ mod tests {
             .current_dir(cwd)
             .status()
             .unwrap_or_else(|e| panic!("git {} failed to execute: {e}", args.join(" ")));
-        assert!(
-            status.success(),
-            "git {} exited with {status}",
-            args.join(" ")
-        );
+        assert!(status.success(), "git {} exited with {status}", args.join(" "));
     }
 
     fn commit_file(repo: &std::path::Path, name: &str, msg: &str) {
@@ -304,10 +300,7 @@ mod tests {
         let source = resolve_expected_base(Some("from_flag"), &root);
 
         // then
-        assert_eq!(
-            source,
-            Some(BaseCommitSource::Flag("from_flag".to_string()))
-        );
+        assert_eq!(source, Some(BaseCommitSource::Flag("from_flag".to_string())));
         fs::remove_dir_all(&root).expect("cleanup");
     }
 
@@ -322,10 +315,7 @@ mod tests {
         let source = resolve_expected_base(None, &root);
 
         // then
-        assert_eq!(
-            source,
-            Some(BaseCommitSource::File("from_file".to_string()))
-        );
+        assert_eq!(source, Some(BaseCommitSource::File("from_file".to_string())));
         fs::remove_dir_all(&root).expect("cleanup");
     }
 

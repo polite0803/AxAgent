@@ -131,10 +131,7 @@ mod tests {
     fn test_render_missing_variable() {
         let renderer = PromptTemplateRenderer::new("Hello, {name}!");
         let vars = json!({});
-        assert!(matches!(
-            renderer.render(&vars),
-            Err(TemplateError::MissingVariable(_))
-        ));
+        assert!(matches!(renderer.render(&vars), Err(TemplateError::MissingVariable(_))));
     }
 
     #[test]

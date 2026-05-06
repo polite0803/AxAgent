@@ -65,10 +65,7 @@ impl Tool for FileReadTool {
             .ok_or_else(|| ToolError::invalid_input_for("FileRead", "缺少 file_path 参数"))?;
 
         if !Path::new(path).is_absolute() {
-            return Err(ToolError::invalid_input_for(
-                "FileRead",
-                "file_path 必须是绝对路径",
-            ));
+            return Err(ToolError::invalid_input_for("FileRead", "file_path 必须是绝对路径"));
         }
 
         // 设备文件检查
@@ -97,10 +94,7 @@ impl Tool for FileReadTool {
 
         // 检查文件存在
         if !path.exists() {
-            return Err(ToolError::invalid_input(format!(
-                "文件不存在: {}",
-                file_path
-            )));
+            return Err(ToolError::invalid_input(format!("文件不存在: {}", file_path)));
         }
 
         if !path.is_file() {

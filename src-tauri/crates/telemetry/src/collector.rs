@@ -47,10 +47,7 @@ impl MetricsCollector {
         .expect("Failed to create workflow_execution_duration histogram");
 
         let workflow_node_executions_total = IntCounterVec::new(
-            Opts::new(
-                "workflow_node_executions_total",
-                "Total workflow node executions",
-            ),
+            Opts::new("workflow_node_executions_total", "Total workflow node executions"),
             &["node_type", "status"],
         )
         .expect("Failed to create workflow_node_executions_total counter");

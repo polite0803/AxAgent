@@ -89,13 +89,10 @@ impl WebDavClient {
                 self.mkdir().await?;
                 Ok(true)
             },
-            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Err(AxAgentError::Gateway(
-                "WebDAV authentication failed".to_string(),
-            )),
-            status => Err(AxAgentError::Gateway(format!(
-                "WebDAV error: HTTP {}",
-                status
-            ))),
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
+                Err(AxAgentError::Gateway("WebDAV authentication failed".to_string()))
+            },
+            status => Err(AxAgentError::Gateway(format!("WebDAV error: HTTP {}", status))),
         }
     }
 
@@ -211,10 +208,9 @@ impl WebDavClient {
 
                 match response.status() {
                     StatusCode::CREATED | StatusCode::OK | StatusCode::NO_CONTENT => Ok(()),
-                    status => Err(AxAgentError::Gateway(format!(
-                        "WebDAV upload failed: HTTP {}",
-                        status
-                    ))),
+                    status => {
+                        Err(AxAgentError::Gateway(format!("WebDAV upload failed: HTTP {}", status)))
+                    },
                 }
             },
         )
@@ -264,10 +260,7 @@ impl WebDavClient {
 
         match response.status() {
             StatusCode::OK | StatusCode::NO_CONTENT | StatusCode::NOT_FOUND => Ok(()),
-            status => Err(AxAgentError::Gateway(format!(
-                "WebDAV delete failed: HTTP {}",
-                status
-            ))),
+            status => Err(AxAgentError::Gateway(format!("WebDAV delete failed: HTTP {}", status))),
         }
     }
 }
@@ -713,10 +706,7 @@ mod tests {
 
     #[test]
     fn documents_sync_root_matches_documents_root() {
-        assert_eq!(
-            documents_sync_root(),
-            crate::storage_paths::documents_root()
-        );
+        assert_eq!(documents_sync_root(), crate::storage_paths::documents_root());
     }
 
     #[test]

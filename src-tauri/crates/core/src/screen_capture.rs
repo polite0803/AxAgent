@@ -56,13 +56,8 @@ impl ScreenCapture {
         {
             let full = self.capture_full(None).await?;
             let mut full_image = self.base64_to_image(&full.image_base64)?;
-            let cropped = crop_image(
-                &mut full_image,
-                region.x,
-                region.y,
-                region.width,
-                region.height,
-            )?;
+            let cropped =
+                crop_image(&mut full_image, region.x, region.y, region.width, region.height)?;
             let base64 = self.image_to_base64(&cropped)?;
             Ok(ScreenCaptureResult {
                 image_base64: base64,
@@ -113,13 +108,7 @@ impl ScreenCapture {
     async fn capture_windows_region(&self, region: CaptureRegion) -> Result<ScreenCaptureResult> {
         let full = self.capture_windows_full(0).await?;
         let mut full_image = self.base64_to_image(&full.image_base64)?;
-        let cropped = crop_image(
-            &mut full_image,
-            region.x,
-            region.y,
-            region.width,
-            region.height,
-        )?;
+        let cropped = crop_image(&mut full_image, region.x, region.y, region.width, region.height)?;
         let base64 = self.image_to_base64(&cropped)?;
 
         Ok(ScreenCaptureResult {

@@ -247,10 +247,7 @@ $wshell.SendKeys('{}')
             .await?;
 
         if !output.status.success() {
-            anyhow::bail!(
-                "Type text failed: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
+            anyhow::bail!("Type text failed: {}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(())
     }
@@ -282,10 +279,7 @@ $wshell.SendKeys('{}')
             .await?;
 
         if !output.status.success() {
-            anyhow::bail!(
-                "Key press failed: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
+            anyhow::bail!("Key press failed: {}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(())
     }
@@ -350,10 +344,7 @@ Add-Type -AssemblyName System.Windows.Forms
             .await?;
 
         if !output.status.success() {
-            anyhow::bail!(
-                "Move mouse failed: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
+            anyhow::bail!("Move mouse failed: {}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(())
     }

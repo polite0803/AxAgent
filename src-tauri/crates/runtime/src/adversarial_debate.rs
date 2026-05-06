@@ -318,12 +318,7 @@ mod tests {
         let debate_id = manager.start_debate(topic);
 
         manager
-            .add_argument(
-                &debate_id,
-                DebateSide::Pro,
-                "This is good because data",
-                0.8,
-            )
+            .add_argument(&debate_id, DebateSide::Pro, "This is good because data", 0.8)
             .unwrap();
 
         let result = manager.get_result(&debate_id).unwrap();
@@ -345,12 +340,7 @@ mod tests {
         let debate_id = manager.start_debate(topic);
 
         manager
-            .add_argument(
-                &debate_id,
-                DebateSide::Pro,
-                "A is better due to performance",
-                0.9,
-            )
+            .add_argument(&debate_id, DebateSide::Pro, "A is better due to performance", 0.9)
             .unwrap();
         manager
             .add_argument(&debate_id, DebateSide::Con, "B has lower cost", 0.7)

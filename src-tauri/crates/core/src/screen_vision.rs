@@ -192,10 +192,7 @@ Return the analysis in this JSON format:
         let client = reqwest::Client::new();
         let response = client
             .post("https://api.anthropic.com/v1/messages")
-            .header(
-                "x-api-key",
-                std::env::var("ANTHROPIC_API_KEY").unwrap_or_default(),
-            )
+            .header("x-api-key", std::env::var("ANTHROPIC_API_KEY").unwrap_or_default())
             .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
             .json(&request_body)
@@ -239,10 +236,7 @@ Return the analysis in this JSON format:
             .post("https://api.openai.com/v1/chat/completions")
             .header(
                 "authorization",
-                format!(
-                    "Bearer {}",
-                    std::env::var("OPENAI_API_KEY").unwrap_or_default()
-                ),
+                format!("Bearer {}", std::env::var("OPENAI_API_KEY").unwrap_or_default()),
             )
             .header("content-type", "application/json")
             .json(&request_body)

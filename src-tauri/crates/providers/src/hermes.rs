@@ -185,9 +185,7 @@ impl HermesAdapter {
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Provider(format!(
-                "Hermes API error {status}: {text}"
-            )));
+            return Err(AxAgentError::Provider(format!("Hermes API error {status}: {text}")));
         }
 
         resp.text()
@@ -271,13 +269,7 @@ impl ProviderAdapter for HermesAdapter {
         job_id: &str,
         job_data: &str,
     ) -> Result<String> {
-        Self::hermes_request(
-            ctx,
-            "PATCH",
-            &format!("/api/jobs/{}", job_id),
-            Some(job_data),
-        )
-        .await
+        Self::hermes_request(ctx, "PATCH", &format!("/api/jobs/{}", job_id), Some(job_data)).await
     }
 
     async fn delete_job(&self, ctx: &ProviderRequestContext, job_id: &str) -> Result<()> {
@@ -310,13 +302,8 @@ impl ProviderAdapter for HermesAdapter {
         job_id: &str,
         run_id: &str,
     ) -> Result<String> {
-        Self::hermes_request(
-            ctx,
-            "GET",
-            &format!("/api/jobs/{}/runs/{}", job_id, run_id),
-            None,
-        )
-        .await
+        Self::hermes_request(ctx, "GET", &format!("/api/jobs/{}/runs/{}", job_id, run_id), None)
+            .await
     }
 
     async fn cancel_run(
@@ -384,13 +371,8 @@ impl ProviderAdapter for HermesAdapter {
         job_id: &str,
         schedule: &str,
     ) -> Result<String> {
-        Self::hermes_request(
-            ctx,
-            "PUT",
-            &format!("/api/jobs/{}/schedule", job_id),
-            Some(schedule),
-        )
-        .await
+        Self::hermes_request(ctx, "PUT", &format!("/api/jobs/{}/schedule", job_id), Some(schedule))
+            .await
     }
 
     async fn enable_job(&self, ctx: &ProviderRequestContext, job_id: &str) -> Result<()> {

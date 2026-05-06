@@ -61,14 +61,10 @@ pub enum ProfileError {
 
 pub fn validate_profile_name(name: &str) -> Result<(), ProfileError> {
     if name.is_empty() {
-        return Err(ProfileError::InvalidName(
-            "Name cannot be empty".to_string(),
-        ));
+        return Err(ProfileError::InvalidName("Name cannot be empty".to_string()));
     }
     if name.len() > 64 {
-        return Err(ProfileError::InvalidName(
-            "Name too long (max 64 chars)".to_string(),
-        ));
+        return Err(ProfileError::InvalidName("Name too long (max 64 chars)".to_string()));
     }
     if !name
         .chars()

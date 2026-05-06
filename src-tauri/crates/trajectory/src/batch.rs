@@ -89,11 +89,7 @@ impl BatchProcessor {
             match storage.get_session_trajectories(session_id.as_ref()) {
                 Ok(trajs) => trajectories.extend(trajs),
                 Err(e) => {
-                    warn!(
-                        "Failed to get trajectories for session {}: {}",
-                        session_id.as_ref(),
-                        e
-                    );
+                    warn!("Failed to get trajectories for session {}: {}", session_id.as_ref(), e);
                     errors.push(e);
                 },
             }

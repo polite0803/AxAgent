@@ -248,13 +248,7 @@ pub async fn search<S: RAGSource + ?Sized>(
     let cid = collection_id(source.collection_prefix(), container_id);
 
     let embed_response = embed_fn
-        .generate(
-            db,
-            master_key,
-            &embedding_provider,
-            vec![query.to_string()],
-            dimensions,
-        )
+        .generate(db, master_key, &embedding_provider, vec![query.to_string()], dimensions)
         .await?;
 
     let query_embedding = embed_response
@@ -739,10 +733,7 @@ async fn get_oldest_item_timestamp(
     let result = db
         .query_one_raw(Statement::from_string(
             DbBackend::Sqlite,
-            format!(
-                "SELECT created_at FROM \"{}\" ORDER BY created_at ASC LIMIT 1",
-                table_name
-            ),
+            format!("SELECT created_at FROM \"{}\" ORDER BY created_at ASC LIMIT 1", table_name),
         ))
         .await?;
 

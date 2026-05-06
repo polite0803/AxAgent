@@ -256,10 +256,7 @@ mod tests {
             if self.valid_config {
                 Ok(())
             } else {
-                Err(format!(
-                    "plugin `{}` failed configuration validation",
-                    self.plugin_name
-                ))
+                Err(format!("plugin `{}` failed configuration validation", self.plugin_name))
             }
         }
 
@@ -412,24 +409,15 @@ mod tests {
                 healthy_servers,
                 failed_servers,
             } => {
-                assert_eq!(
-                    healthy_servers,
-                    vec!["alpha".to_string(), "gamma".to_string()]
-                );
+                assert_eq!(healthy_servers, vec!["alpha".to_string(), "gamma".to_string()]);
                 assert_eq!(failed_servers.len(), 1);
                 assert_eq!(failed_servers[0].server_name, "beta");
-                assert_eq!(
-                    failed_servers[0].last_error.as_deref(),
-                    Some("connection refused")
-                );
+                assert_eq!(failed_servers[0].last_error.as_deref(), Some("connection refused"));
             },
             other => panic!("expected degraded state, got {other:?}"),
         }
         assert!(discovery.partial);
-        assert_eq!(
-            degraded_mode.available_tools,
-            vec!["search".to_string(), "read".to_string()]
-        );
+        assert_eq!(degraded_mode.available_tools, vec!["search".to_string(), "read".to_string()]);
         assert_eq!(degraded_mode.unavailable_tools, vec!["write".to_string()]);
         assert_eq!(degraded_mode.reason, "2 servers healthy, 1 servers failed");
     }
@@ -461,10 +449,7 @@ mod tests {
                 healthy_servers,
                 failed_servers,
             } => {
-                assert_eq!(
-                    healthy_servers,
-                    vec!["alpha".to_string(), "beta".to_string()]
-                );
+                assert_eq!(healthy_servers, vec!["alpha".to_string(), "beta".to_string()]);
                 assert!(failed_servers.is_empty());
             },
             other => panic!("expected degraded state, got {other:?}"),

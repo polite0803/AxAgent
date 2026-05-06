@@ -280,11 +280,8 @@ mod tests {
         fi.upsert("/src/lib.rs", "rs", 2048, 2000).unwrap();
         fi.upsert("/app.ts", "ts", 512, 500).unwrap();
 
-        ai.index_file(
-            "/src/main.rs",
-            "fn calculate() -> u32 { 42 }\nfn render() {}",
-        )
-        .unwrap();
+        ai.index_file("/src/main.rs", "fn calculate() -> u32 { 42 }\nfn render() {}")
+            .unwrap();
         ai.index_file("/src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }")
             .unwrap();
         ai.index_file("/app.ts", "function hello() { console.log('hi'); }")

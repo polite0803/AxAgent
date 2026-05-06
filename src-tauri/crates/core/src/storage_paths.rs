@@ -137,19 +137,11 @@ mod tests {
     #[test]
     fn documents_root_ends_with_axagent() {
         let root = default_documents_root();
-        assert!(
-            root.ends_with("axagent"),
-            "Expected path ending with 'axagent', got {:?}",
-            root
-        );
+        assert!(root.ends_with("axagent"), "Expected path ending with 'axagent', got {:?}", root);
         // Should be under the platform Documents directory
         let parent = root.parent().unwrap();
         let parent_name = parent.file_name().unwrap().to_str().unwrap();
-        assert_eq!(
-            parent_name, "Documents",
-            "Expected parent 'Documents', got {}",
-            parent_name
-        );
+        assert_eq!(parent_name, "Documents", "Expected parent 'Documents', got {}", parent_name);
     }
 
     #[test]
@@ -309,17 +301,10 @@ mod tests {
         // Since ensure_documents_dirs uses documents_root(), we test it indirectly:
         // just verify it doesn't error and the root exists afterward.
         let result = ensure_documents_dirs();
-        assert!(
-            result.is_ok(),
-            "ensure_documents_dirs failed: {:?}",
-            result.err()
-        );
+        assert!(result.is_ok(), "ensure_documents_dirs failed: {:?}", result.err());
 
         let root = documents_root();
-        assert!(
-            root.exists(),
-            "documents root should exist after ensure_documents_dirs"
-        );
+        assert!(root.exists(), "documents root should exist after ensure_documents_dirs");
         assert!(root.join("images").exists(), "images/ should exist");
         assert!(root.join("files").exists(), "files/ should exist");
         assert!(root.join("backups").exists(), "backups/ should exist");

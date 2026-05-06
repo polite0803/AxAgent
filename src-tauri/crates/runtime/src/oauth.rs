@@ -152,10 +152,7 @@ impl OAuthAuthorizationRequest {
             ("scope", self.scopes.join(" ")),
             ("state", self.state.clone()),
             ("code_challenge", self.code_challenge.clone()),
-            (
-                "code_challenge_method",
-                self.code_challenge_method.as_str().to_string(),
-            ),
+            ("code_challenge_method", self.code_challenge_method.as_str().to_string()),
         ];
         params.extend(
             self.extra_params
@@ -567,10 +564,7 @@ mod tests {
             scopes: vec!["scope:a".to_string()],
         };
         save_oauth_credentials(&token_set).expect("save credentials");
-        assert_eq!(
-            load_oauth_credentials().expect("load credentials"),
-            Some(token_set)
-        );
+        assert_eq!(load_oauth_credentials().expect("load credentials"), Some(token_set));
         let saved = std::fs::read_to_string(&path).expect("read saved file");
         assert!(saved.contains("\"other\": \"value\""));
         assert!(saved.contains("\"oauth\""));

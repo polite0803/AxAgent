@@ -64,9 +64,7 @@ fn extract_docx(file_path: &Path) -> Result<String> {
             .read_to_string(&mut xml_content)
             .map_err(|e| AxAgentError::Provider(format!("Failed to read document.xml: {e}")))?;
     } else {
-        return Err(AxAgentError::Provider(
-            "DOCX: word/document.xml not found".into(),
-        ));
+        return Err(AxAgentError::Provider("DOCX: word/document.xml not found".into()));
     }
 
     // Simple XML text extraction: find all <w:t> tag contents
@@ -273,9 +271,7 @@ fn extract_pptx(file_path: &Path) -> Result<String> {
     }
 
     if result.is_empty() {
-        return Err(AxAgentError::Provider(
-            "No slides found in PPTX file".into(),
-        ));
+        return Err(AxAgentError::Provider("No slides found in PPTX file".into()));
     }
 
     Ok(result)

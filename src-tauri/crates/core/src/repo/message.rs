@@ -280,10 +280,7 @@ pub async fn update_message_thinking(
     thinking: Option<&str>,
 ) -> Result<()> {
     let update = messages::Entity::update_many()
-        .col_expr(
-            messages::Column::Thinking,
-            Expr::value(thinking.map(|s| s.to_string())),
-        )
+        .col_expr(messages::Column::Thinking, Expr::value(thinking.map(|s| s.to_string())))
         .filter(messages::Column::Id.eq(id));
 
     let result = update.exec(db).await?;
@@ -301,10 +298,7 @@ pub async fn update_message_parts(
     parts: Option<&str>,
 ) -> Result<()> {
     let update = messages::Entity::update_many()
-        .col_expr(
-            messages::Column::Parts,
-            Expr::value(parts.map(|s| s.to_string())),
-        )
+        .col_expr(messages::Column::Parts, Expr::value(parts.map(|s| s.to_string())))
         .filter(messages::Column::Id.eq(id));
 
     let result = update.exec(db).await?;

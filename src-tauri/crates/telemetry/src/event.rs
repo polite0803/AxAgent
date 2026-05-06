@@ -14,10 +14,7 @@ mod tests {
     #[test]
     fn test_span_event_with_attribute() {
         let event = SpanEvent::new("test_event").with_attribute("key", serde_json::json!("value"));
-        assert_eq!(
-            event.attributes.get("key").unwrap(),
-            &serde_json::json!("value")
-        );
+        assert_eq!(event.attributes.get("key").unwrap(), &serde_json::json!("value"));
     }
 
     #[test]

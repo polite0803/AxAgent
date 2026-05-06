@@ -220,10 +220,7 @@ pub async fn reorder_providers(db: &DatabaseConnection, provider_ids: &[String])
     for (i, id) in provider_ids.iter().enumerate() {
         providers::Entity::update_many()
             .col_expr(providers::Column::SortOrder, Expr::value(i as i32))
-            .col_expr(
-                providers::Column::UpdatedAt,
-                Expr::value(crate::utils::now_ts()),
-            )
+            .col_expr(providers::Column::UpdatedAt, Expr::value(crate::utils::now_ts()))
             .filter(providers::Column::Id.eq(id))
             .exec(db)
             .await?;

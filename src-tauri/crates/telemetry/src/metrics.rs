@@ -149,10 +149,7 @@ impl Usage {
     pub fn to_metrics(&self, model: &str) -> CostMetrics {
         let mut metrics = CostMetrics::new(model);
         metrics.add_tokens(self.input_tokens, self.output_tokens);
-        metrics.add_cache_tokens(
-            self.cache_creation_input_tokens,
-            self.cache_read_input_tokens,
-        );
+        metrics.add_cache_tokens(self.cache_creation_input_tokens, self.cache_read_input_tokens);
         metrics
     }
 }

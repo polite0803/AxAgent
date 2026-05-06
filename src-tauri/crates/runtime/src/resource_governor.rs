@@ -144,10 +144,8 @@ impl ResourceGovernor {
             return;
         }
 
-        let should_freeze = matches!(
-            self.current_state,
-            ResourceState::High | ResourceState::Critical
-        );
+        let should_freeze =
+            matches!(self.current_state, ResourceState::High | ResourceState::Critical);
         self.background_tasks_frozen
             .store(should_freeze, Ordering::Relaxed);
 
@@ -194,10 +192,7 @@ impl ResourceGovernor {
     /// reconstructed later. Callers should react by clearing their L1/L2
     /// caches.
     pub fn trim_memory(&self) {
-        tracing::warn!(
-            "Resource governor: Memory trim requested (state={:?})",
-            self.current_state
-        );
+        tracing::warn!("Resource governor: Memory trim requested (state={:?})", self.current_state);
     }
 
     /// Whether the last monitoring check succeeded.

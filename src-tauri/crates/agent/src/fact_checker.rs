@@ -170,14 +170,11 @@ impl FactChecker {
             .filter(|w| w.len() > 3)
             .collect();
 
-        let source_words: std::collections::HashSet<String> = format!(
-            "{} {}",
-            source.title.to_lowercase(),
-            source.snippet.to_lowercase()
-        )
-        .split_whitespace()
-        .map(|w| w.to_lowercase())
-        .collect();
+        let source_words: std::collections::HashSet<String> =
+            format!("{} {}", source.title.to_lowercase(), source.snippet.to_lowercase())
+                .split_whitespace()
+                .map(|w| w.to_lowercase())
+                .collect();
 
         if claim_words.is_empty() || source_words.is_empty() {
             return 0.0;
@@ -266,10 +263,9 @@ impl FactChecker {
         status: &FactCheckStatus,
     ) -> String {
         match status {
-            FactCheckStatus::Verified => format!(
-                "Verified by {} high-credibility source(s)",
-                supporting.len()
-            ),
+            FactCheckStatus::Verified => {
+                format!("Verified by {} high-credibility source(s)", supporting.len())
+            },
             FactCheckStatus::LikelyTrue => format!(
                 "Supported by {} source(s) with average credibility {:.2}",
                 supporting.len(),
@@ -431,9 +427,6 @@ mod tests {
     fn test_claim_with_source() {
         let claim = Claim::new("Test claim").with_source("https://example.com");
 
-        assert_eq!(
-            claim.extracted_from,
-            Some("https://example.com".to_string())
-        );
+        assert_eq!(claim.extracted_from, Some("https://example.com".to_string()));
     }
 }

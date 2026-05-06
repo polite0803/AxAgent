@@ -71,10 +71,7 @@ impl Tool for BashTool {
         }
 
         if cmd.len() > 10_000 {
-            return Err(ToolError::invalid_input_for(
-                "Bash",
-                "命令过长（最大 10000 字符）",
-            ));
+            return Err(ToolError::invalid_input_for("Bash", "命令过长（最大 10000 字符）"));
         }
 
         let timeout = input
@@ -89,19 +86,13 @@ impl Tool for BashTool {
         }
 
         if !ctx.allow_execute {
-            return Err(ToolError::permission_denied(
-                "Bash",
-                "当前上下文不允许执行 shell 命令",
-            ));
+            return Err(ToolError::permission_denied("Bash", "当前上下文不允许执行 shell 命令"));
         }
 
         // 安全分类
         let classifier_result = HeuristicClassifier::classify_bash(cmd);
         if classifier_result.suggest_deny {
-            return Err(ToolError::permission_denied(
-                "Bash",
-                &classifier_result.reason,
-            ));
+            return Err(ToolError::permission_denied("Bash", &classifier_result.reason));
         }
 
         Ok(())
@@ -139,10 +130,7 @@ impl Tool for BashTool {
             if let crate::bash::security::SecurityResult::Blocked(reason) =
                 analyzer.analyze(&parsed)
             {
-                return Err(ToolError::permission_denied(
-                    "Bash",
-                    &format!("安全阻止: {}", reason),
-                ));
+                return Err(ToolError::permission_denied("Bash", &format!("安全阻止: {}", reason)));
             }
         }
         let timeout_secs = input
@@ -223,10 +211,7 @@ impl Tool for BashTool {
                     let stderr_display = if stderr.is_empty() {
                         String::new()
                     } else if stderr.len() > MAX_OUTPUT_BYTES / 2 {
-                        format!(
-                            "\n\n## stderr\n{}\n[已截断]",
-                            &stderr[..MAX_OUTPUT_BYTES / 2]
-                        )
+                        format!("\n\n## stderr\n{}\n[已截断]", &stderr[..MAX_OUTPUT_BYTES / 2])
                     } else {
                         format!("\n\n## stderr\n{}", stderr)
                     };

@@ -174,10 +174,7 @@ mod tests {
     #[test]
     fn test_classify_chat_task() {
         let engine = GeneralEngine::new(GeneralEngineConfig::default());
-        assert_eq!(
-            engine.classify_task("Hello, how are you?"),
-            GeneralTaskCategory::DailyChat
-        );
+        assert_eq!(engine.classify_task("Hello, how are you?"), GeneralTaskCategory::DailyChat);
     }
 
     #[test]

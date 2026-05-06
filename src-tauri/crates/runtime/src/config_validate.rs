@@ -461,13 +461,7 @@ pub fn validate_config_file(
 
     // Validate known nested objects.
     if let Some(hooks) = object.get("hooks").and_then(JsonValue::as_object) {
-        result.merge(validate_object_keys(
-            hooks,
-            HOOKS_FIELDS,
-            "hooks",
-            source,
-            &path_display,
-        ));
+        result.merge(validate_object_keys(hooks, HOOKS_FIELDS, "hooks", source, &path_display));
     }
     if let Some(permissions) = object.get("permissions").and_then(JsonValue::as_object) {
         result.merge(validate_object_keys(
@@ -497,13 +491,7 @@ pub fn validate_config_file(
         ));
     }
     if let Some(oauth) = object.get("oauth").and_then(JsonValue::as_object) {
-        result.merge(validate_object_keys(
-            oauth,
-            OAUTH_FIELDS,
-            "oauth",
-            source,
-            &path_display,
-        ));
+        result.merge(validate_object_keys(oauth, OAUTH_FIELDS, "oauth", source, &path_display));
     }
 
     result
@@ -557,10 +545,7 @@ mod tests {
         // then
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].field, "unknownField");
-        assert!(matches!(
-            result.errors[0].kind,
-            DiagnosticKind::UnknownKey { .. }
-        ));
+        assert!(matches!(result.errors[0].kind, DiagnosticKind::UnknownKey { .. }));
     }
 
     #[test]
@@ -852,10 +837,7 @@ mod tests {
         let output = diag.to_string();
 
         // then
-        assert_eq!(
-            output,
-            r#"/test/settings.json: unknown key "badKey" (line 5)"#
-        );
+        assert_eq!(output, r#"/test/settings.json: unknown key "badKey" (line 5)"#);
     }
 
     #[test]

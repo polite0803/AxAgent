@@ -729,10 +729,7 @@ impl TimeRange {
     }
 
     pub fn to_minutes(&self) -> (u32, u32) {
-        (
-            self.start_hour * 60 + self.start_minute,
-            self.end_hour * 60 + self.end_minute,
-        )
+        (self.start_hour * 60 + self.start_minute, self.end_hour * 60 + self.end_minute)
     }
 
     pub fn contains_time(&self, hour: u32, minute: u32) -> bool {

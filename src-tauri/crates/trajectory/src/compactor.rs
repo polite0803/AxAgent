@@ -504,11 +504,7 @@ pub fn verify_compression_integrity(
     checks.push(IntegrityCheck {
         name: "minimum_message_count".to_string(),
         passed: count_ok,
-        detail: format!(
-            "Compressed has {} messages (minimum: {})",
-            compressed.len(),
-            min_count
-        ),
+        detail: format!("Compressed has {} messages (minimum: {})", compressed.len(), min_count),
     });
 
     let is_valid = checks.iter().all(|c| c.passed);

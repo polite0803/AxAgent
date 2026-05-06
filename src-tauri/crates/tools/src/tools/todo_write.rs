@@ -287,12 +287,7 @@ impl Tool for NotebookEditTool {
                     cells.retain(|c| c["id"].as_str() != Some(cid));
                 }
             },
-            _ => {
-                return Err(ToolError::invalid_input(format!(
-                    "未知编辑模式: {}",
-                    edit_mode
-                )))
-            },
+            _ => return Err(ToolError::invalid_input(format!("未知编辑模式: {}", edit_mode))),
         }
 
         let new_content = serde_json::to_string_pretty(&nb)

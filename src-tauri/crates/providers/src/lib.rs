@@ -174,9 +174,7 @@ pub trait ProviderAdapter: Send + Sync {
     }
 
     async fn get_job(&self, _ctx: &ProviderRequestContext, _job_id: &str) -> Result<String> {
-        Err(AxAgentError::Provider(
-            "get_job is not supported by this provider".to_string(),
-        ))
+        Err(AxAgentError::Provider("get_job is not supported by this provider".to_string()))
     }
 
     async fn update_job(
@@ -226,9 +224,7 @@ pub trait ProviderAdapter: Send + Sync {
         _job_id: &str,
         _run_id: &str,
     ) -> Result<String> {
-        Err(AxAgentError::Provider(
-            "get_run is not supported by this provider".to_string(),
-        ))
+        Err(AxAgentError::Provider("get_run is not supported by this provider".to_string()))
     }
 
     async fn cancel_run(

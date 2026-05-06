@@ -32,7 +32,7 @@ jobs:
   # ── Dependabot 跳过标记 ──
   should-run-heavy:
     name: Check if heavy jobs should run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       skip: ${{ steps.check.outputs.skip }}
     steps:
@@ -48,16 +48,20 @@ jobs:
   # ── Frontend linting and type checking ────────────────
   frontend-check:
     name: Frontend Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: 'npm'
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Check frontend formatting (dprint)
+        run: npm run format:check
 
       - name: TypeScript type check
         run: npm run typecheck
@@ -70,7 +74,7 @@ jobs:
     name: Rust Check
     needs: [should-run-heavy]
     if: needs.should-run-heavy.outputs.skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -82,23 +86,24 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 'v1'
-          key: 'ubuntu-latest-rust-check'
+          prefix-key: 'v2'
+          key: 'ubuntu-2404-rust-check'
           workspaces: src-tauri -> target
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev libgtk-3-dev libsoup-3.0-dev \
-            libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev protobuf-compiler
+          sudo apt-get install -y libglib2.0-dev libgtk-3-dev libpipewire-0.3-dev \
+            libwayland-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev protobuf-compiler
 
       - name: Check formatting
         run: |
           cargo fmt --check --manifest-path src-tauri/Cargo.toml
 
-      - name: Clippy
+      - name: Clippy (deny warnings)
         run: |
-          cargo clippy --all-targets --all-features --manifest-path src-tauri/Cargo.toml
+          cargo clippy --all-targets --all-features --manifest-path src-tauri/Cargo.toml -- -D warnings
 
       - name: Check build
         run: cargo check --workspace --manifest-path src-tauri/Cargo.toml
@@ -108,7 +113,7 @@ jobs:
     name: Unit Tests
     needs: [should-run-heavy]
     if: needs.should-run-heavy.outputs.skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -118,8 +123,8 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 'v1'
-          key: 'ubuntu-latest-unit-tests'
+          prefix-key: 'v2'
+          key: 'ubuntu-2404-unit-tests'
           workspaces: src-tauri -> target
 
       - name: Install system dependencies
@@ -131,11 +136,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-
-      # 使用npm包替代本地构建的依赖
+          cache: 'npm'
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run frontend tests
         run: npm run test:run
@@ -169,11 +173,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-
-      # 使用npm包替代本地构建的依赖
+          cache: 'npm'
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Playwright browsers
         run: npx playwright install chromium

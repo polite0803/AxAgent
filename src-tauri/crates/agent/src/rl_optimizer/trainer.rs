@@ -21,9 +21,7 @@ impl RLtrainer {
         let experiences = self.optimizer.experience_pool.sample(batch_size);
 
         if experiences.is_empty() {
-            return Err(RLError::TrainingError(
-                "No experiences to train on".to_string(),
-            ));
+            return Err(RLError::TrainingError("No experiences to train on".to_string()));
         }
 
         let mut total_reward = 0.0f32;

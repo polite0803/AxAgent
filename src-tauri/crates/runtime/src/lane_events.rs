@@ -132,12 +132,8 @@ impl LaneEvent {
 
     #[must_use]
     pub fn finished(emitted_at: impl Into<String>, detail: Option<String>) -> Self {
-        Self::new(
-            LaneEventName::Finished,
-            LaneEventStatus::Completed,
-            emitted_at,
-        )
-        .with_optional_detail(detail)
+        Self::new(LaneEventName::Finished, LaneEventStatus::Completed, emitted_at)
+            .with_optional_detail(detail)
     }
 
     #[must_use]
@@ -146,13 +142,11 @@ impl LaneEvent {
         detail: Option<String>,
         provenance: LaneCommitProvenance,
     ) -> Self {
-        Self::new(
-            LaneEventName::CommitCreated,
-            LaneEventStatus::Completed,
-            emitted_at,
-        )
-        .with_optional_detail(detail)
-        .with_data(serde_json::to_value(provenance).expect("commit provenance should serialize"))
+        Self::new(LaneEventName::CommitCreated, LaneEventStatus::Completed, emitted_at)
+            .with_optional_detail(detail)
+            .with_data(
+                serde_json::to_value(provenance).expect("commit provenance should serialize"),
+            )
     }
 
     #[must_use]
@@ -161,13 +155,11 @@ impl LaneEvent {
         detail: Option<String>,
         provenance: LaneCommitProvenance,
     ) -> Self {
-        Self::new(
-            LaneEventName::Superseded,
-            LaneEventStatus::Superseded,
-            emitted_at,
-        )
-        .with_optional_detail(detail)
-        .with_data(serde_json::to_value(provenance).expect("commit provenance should serialize"))
+        Self::new(LaneEventName::Superseded, LaneEventStatus::Superseded, emitted_at)
+            .with_optional_detail(detail)
+            .with_data(
+                serde_json::to_value(provenance).expect("commit provenance should serialize"),
+            )
     }
 
     #[must_use]
@@ -276,21 +268,12 @@ mod tests {
             (LaneEventName::Merged, "lane.merged"),
             (LaneEventName::Superseded, "lane.superseded"),
             (LaneEventName::Closed, "lane.closed"),
-            (
-                LaneEventName::BranchStaleAgainstMain,
-                "branch.stale_against_main",
-            ),
-            (
-                LaneEventName::BranchWorkspaceMismatch,
-                "branch.workspace_mismatch",
-            ),
+            (LaneEventName::BranchStaleAgainstMain, "branch.stale_against_main"),
+            (LaneEventName::BranchWorkspaceMismatch, "branch.workspace_mismatch"),
         ];
 
         for (event, expected) in cases {
-            assert_eq!(
-                serde_json::to_value(event).expect("serialize event"),
-                json!(expected)
-            );
+            assert_eq!(serde_json::to_value(event).expect("serialize event"), json!(expected));
         }
     }
 
@@ -355,18 +338,12 @@ mod tests {
         let mismatch_json = serde_json::to_value(&mismatch).expect("lane event should serialize");
         assert_eq!(mismatch_json["event"], "branch.workspace_mismatch");
         assert_eq!(mismatch_json["failureClass"], "workspace_mismatch");
-        assert_eq!(
-            mismatch_json["data"]["expectedWorkspaceRoot"],
-            "/tmp/repo-a"
-        );
+        assert_eq!(mismatch_json["data"]["expectedWorkspaceRoot"], "/tmp/repo-a");
 
         let round_trip: LaneEvent =
             serde_json::from_value(mismatch_json).expect("lane event should deserialize");
         assert_eq!(round_trip.event, LaneEventName::BranchWorkspaceMismatch);
-        assert_eq!(
-            round_trip.failure_class,
-            Some(LaneFailureClass::WorkspaceMismatch)
-        );
+        assert_eq!(round_trip.failure_class, Some(LaneFailureClass::WorkspaceMismatch));
     }
 
     #[test]

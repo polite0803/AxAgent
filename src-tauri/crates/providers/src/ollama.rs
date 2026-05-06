@@ -130,9 +130,7 @@ impl ProviderAdapter for OllamaAdapter {
             if s.as_u16() == 404 {
                 return self.inner.list_models(ctx).await;
             }
-            return Err(AxAgentError::Provider(super::diagnose_http_status(
-                "Ollama", s, &t,
-            )));
+            return Err(AxAgentError::Provider(super::diagnose_http_status("Ollama", s, &t)));
         }
 
         let body = resp
@@ -214,9 +212,7 @@ impl ProviderAdapter for OllamaAdapter {
         } else {
             let s = resp.status();
             let t = resp.text().await.unwrap_or_default();
-            Err(AxAgentError::Provider(format!(
-                "Ollama server returned error {s}: {t}"
-            )))
+            Err(AxAgentError::Provider(format!("Ollama server returned error {s}: {t}")))
         }
     }
 

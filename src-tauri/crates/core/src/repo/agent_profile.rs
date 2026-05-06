@@ -287,9 +287,5 @@ pub async fn resolve_profile_tools(
     // agent_role 字符串
     // recommended_tools 额外工具
     // disallowed_tools 禁止工具
-    Ok((
-        profile.agent_role,
-        profile.recommended_tools,
-        profile.disallowed_tools,
-    ))
+    Ok((profile.agent_role, profile.recommended_tools, profile.disallowed_tools))
 }

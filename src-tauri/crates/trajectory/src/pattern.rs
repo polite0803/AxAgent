@@ -315,11 +315,7 @@ impl PatternLearner {
             return Some(updated);
         }
 
-        let description = format!(
-            "Tool sequence: {} ({} steps)",
-            sequence_key,
-            tool_names.len()
-        );
+        let description = format!("Tool sequence: {} ({} steps)", sequence_key, tool_names.len());
 
         let mut pattern = TrajectoryPattern::new(
             format!("tool-{}", tool_names[0]),
@@ -361,10 +357,7 @@ impl PatternLearner {
         );
 
         let mut pattern = TrajectoryPattern::new(
-            format!(
-                "reasoning-chain-{}",
-                trajectory.id.chars().take(8).collect::<String>()
-            ),
+            format!("reasoning-chain-{}", trajectory.id.chars().take(8).collect::<String>()),
             description,
             PatternType::ReasoningChain.as_str().to_string(),
         );

@@ -126,10 +126,7 @@ impl ImageGenProvider for FluxProvider {
 
         let mut replicate_resp: ReplicateResponse = resp.json().await?;
 
-        let poll_url = format!(
-            "https://api.replicate.com/v1/predictions/{}",
-            replicate_resp.id
-        );
+        let poll_url = format!("https://api.replicate.com/v1/predictions/{}", replicate_resp.id);
         for _ in 0..60 {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             let poll_resp = self
@@ -190,11 +187,7 @@ impl ImageGenProvider for DallEProvider {
     async fn generate(&self, request: ImageGenRequest) -> Result<ImageGenResponse> {
         let start = std::time::Instant::now();
 
-        let size = format!(
-            "{}x{}",
-            request.width.unwrap_or(1024),
-            request.height.unwrap_or(1024)
-        );
+        let size = format!("{}x{}", request.width.unwrap_or(1024), request.height.unwrap_or(1024));
 
         let body = serde_json::json!({
             "model": request.model.as_deref().unwrap_or("dall-e-3"),

@@ -245,9 +245,7 @@ impl TaskExecutor {
             }
 
             if graph.has_failures() && !self.config.continue_on_failure {
-                self.emit(ExecutionEvent::Failed(
-                    graph.get_failed_task_ids().join(", "),
-                ));
+                self.emit(ExecutionEvent::Failed(graph.get_failed_task_ids().join(", ")));
                 *self.graph.write().await = Some(graph.clone());
                 return Err(ExecutionError::TaskFailed(graph.get_failed_task_ids()));
             }
@@ -256,9 +254,7 @@ impl TaskExecutor {
         *self.graph.write().await = Some(graph.clone());
 
         if graph.has_failures() {
-            self.emit(ExecutionEvent::Failed(
-                graph.get_failed_task_ids().join(", "),
-            ));
+            self.emit(ExecutionEvent::Failed(graph.get_failed_task_ids().join(", ")));
         } else {
             self.emit(ExecutionEvent::Completed);
         }
@@ -325,11 +321,8 @@ impl TaskExecutor {
         tokio::spawn(async move {
             let start = Instant::now();
 
-            let result = timeout(
-                Duration::from_millis(timeout_ms),
-                executor.execute_task(&context),
-            )
-            .await;
+            let result =
+                timeout(Duration::from_millis(timeout_ms), executor.execute_task(&context)).await;
 
             let duration_ms = start.elapsed().as_millis() as u64;
 

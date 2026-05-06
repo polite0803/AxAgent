@@ -314,14 +314,8 @@ mod tests {
 
     #[test]
     fn test_warning_format() {
-        let warning = CompactWarning::new(
-            WarningLevel::Warning,
-            "上下文即将用尽",
-            85,
-            170000,
-            200000,
-            17000,
-        );
+        let warning =
+            CompactWarning::new(WarningLevel::Warning, "上下文即将用尽", 85, 170000, 200000, 17000);
         let formatted = warning.format();
         assert!(formatted.contains("⚠"));
         assert!(formatted.contains("85%"));

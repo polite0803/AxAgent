@@ -257,10 +257,7 @@ async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::pa
             return;
         }
         if !file_path.exists() {
-            let _ = send_msg(
-                stream,
-                &LanMessage::TransferRejected("File not found".into()),
-            );
+            let _ = send_msg(stream, &LanMessage::TransferRejected("File not found".into()));
             return;
         }
 
@@ -316,11 +313,7 @@ impl LanFileClient {
         file_name: &str,
         save_path: &std::path::Path,
     ) -> anyhow::Result<()> {
-        let addr = format!(
-            "{}:{}",
-            peer.addresses.first().cloned().unwrap_or_default(),
-            peer.port
-        );
+        let addr = format!("{}:{}", peer.addresses.first().cloned().unwrap_or_default(), peer.port);
         let mut stream = TcpStream::connect(&addr)?;
         let _ = stream.set_read_timeout(Some(Duration::from_secs(120)));
 
@@ -367,11 +360,7 @@ impl LanFileClient {
 
     /// Request a file list from a LAN peer
     pub async fn list_files(peer: &LanPeer) -> anyhow::Result<Vec<String>> {
-        let addr = format!(
-            "{}:{}",
-            peer.addresses.first().cloned().unwrap_or_default(),
-            peer.port
-        );
+        let addr = format!("{}:{}", peer.addresses.first().cloned().unwrap_or_default(), peer.port);
         let mut stream = TcpStream::connect(&addr)?;
         let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
 

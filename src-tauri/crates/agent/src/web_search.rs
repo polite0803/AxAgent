@@ -72,10 +72,8 @@ impl WebSearchProvider {
         &self,
         query: &SearchQuery,
     ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
-        let ddg_url = format!(
-            "https://html.duckduckgo.com/html/?q={}",
-            urlencoding::encode(&query.query)
-        );
+        let ddg_url =
+            format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(&query.query));
 
         let response = self
             .http_client

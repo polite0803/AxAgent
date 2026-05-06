@@ -94,10 +94,7 @@ impl HookEvent {
     /// 是否为工具相关事件
     #[must_use]
     pub fn is_tool_event(self) -> bool {
-        matches!(
-            self,
-            Self::PreToolUse | Self::PostToolUse | Self::PostToolUseFailure
-        )
+        matches!(self, Self::PreToolUse | Self::PostToolUse | Self::PostToolUseFailure)
     }
 
     /// 是否为会话生命周期事件
@@ -419,9 +416,7 @@ impl HookRunner {
             return HookRunResult::allow(Vec::new());
         }
 
-        Self::run_commands(
-            event, commands, "", event_data, None, false, None, None, None,
-        )
+        Self::run_commands(event, commands, "", event_data, None, false, None, None, None)
     }
 
     #[must_use]
@@ -937,10 +932,7 @@ mod tests {
 
         let result = runner.run_pre_tool_use("bash", r#"{"command":"pwd"}"#);
 
-        assert_eq!(
-            result.permission_override(),
-            Some(PermissionOverride::Allow)
-        );
+        assert_eq!(result.permission_override(), Some(PermissionOverride::Allow));
         assert_eq!(result.permission_reason(), Some("hook ok"));
         assert_eq!(result.updated_input(), Some(r#"{"command":"git status"}"#));
         assert!(result.messages().iter().any(|message| message == "updated"));
@@ -1015,10 +1007,7 @@ mod tests {
         );
 
         // then
-        assert_eq!(
-            result,
-            HookRunResult::allow(vec!["first".to_string(), "second".to_string()])
-        );
+        assert_eq!(result, HookRunResult::allow(vec!["first".to_string(), "second".to_string()]));
         assert_eq!(reporter.events.len(), 4);
         assert!(matches!(
             &reporter.events[0],

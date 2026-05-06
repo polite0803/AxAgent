@@ -2,8 +2,8 @@ use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
-use tokio::sync::Mutex;
 use tauri::command;
+use tokio::sync::Mutex;
 
 static BENCHMARK_SUITE: std::sync::OnceLock<Mutex<BenchmarkSuite>> = std::sync::OnceLock::new();
 static DATASET_REGISTRY: std::sync::OnceLock<Mutex<DatasetRegistry>> = std::sync::OnceLock::new();

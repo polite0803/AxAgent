@@ -175,30 +175,20 @@ pub async fn update_user_profile(
             "indentation_style".to_string(),
             coding_style.indentation_style.clone(),
         );
-        profile.set_preference(
-            "comment_style".to_string(),
-            coding_style.comment_style.clone(),
-        );
+        profile.set_preference("comment_style".to_string(), coding_style.comment_style.clone());
     }
 
     if let Some(ref communication) = updates.communication {
-        profile.set_preference(
-            "detail_level".to_string(),
-            communication.detail_level.clone(),
-        );
+        profile.set_preference("detail_level".to_string(), communication.detail_level.clone());
         profile.set_preference("tone".to_string(), communication.tone.clone());
         profile.set_preference("language".to_string(), communication.language.clone());
     }
 
     if let Some(ref work_habits) = updates.work_habits {
-        profile.set_preference(
-            "session_length".to_string(),
-            work_habits.session_length.to_string(),
-        );
-        profile.set_preference(
-            "break_frequency".to_string(),
-            work_habits.break_frequency.to_string(),
-        );
+        profile
+            .set_preference("session_length".to_string(), work_habits.session_length.to_string());
+        profile
+            .set_preference("break_frequency".to_string(), work_habits.break_frequency.to_string());
     }
 
     drop(profile);

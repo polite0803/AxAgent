@@ -61,10 +61,7 @@ async fn execute_shell_hook(
             if !output.status.success() {
                 let mut r = HookResult::allowed();
                 r.is_error = true;
-                r.reason = Some(format!(
-                    "Hook 执行失败 (exit={}): {}",
-                    output.status, stderr
-                ));
+                r.reason = Some(format!("Hook 执行失败 (exit={}): {}", output.status, stderr));
                 return r;
             }
 

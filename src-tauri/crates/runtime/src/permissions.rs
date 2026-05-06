@@ -242,10 +242,8 @@ impl PermissionPolicy {
         }
 
         if let Some(rule) = ask_rule {
-            let reason = format!(
-                "tool '{tool_name}' requires approval due to ask rule '{}'",
-                rule.raw
-            );
+            let reason =
+                format!("tool '{tool_name}' requires approval due to ask rule '{}'", rule.raw);
             return Self::prompt_or_deny(
                 tool_name,
                 input,
@@ -528,14 +526,8 @@ mod tests {
             .with_tool_requirement("read_file", PermissionMode::ReadOnly)
             .with_tool_requirement("write_file", PermissionMode::WorkspaceWrite);
 
-        assert_eq!(
-            policy.authorize("read_file", "{}", None),
-            PermissionOutcome::Allow
-        );
-        assert_eq!(
-            policy.authorize("write_file", "{}", None),
-            PermissionOutcome::Allow
-        );
+        assert_eq!(policy.authorize("read_file", "{}", None), PermissionOutcome::Allow);
+        assert_eq!(policy.authorize("write_file", "{}", None), PermissionOutcome::Allow);
     }
 
     #[test]
@@ -568,14 +560,8 @@ mod tests {
         assert_eq!(outcome, PermissionOutcome::Allow);
         assert_eq!(prompter.seen.len(), 1);
         assert_eq!(prompter.seen[0].tool_name, "bash");
-        assert_eq!(
-            prompter.seen[0].current_mode,
-            PermissionMode::WorkspaceWrite
-        );
-        assert_eq!(
-            prompter.seen[0].required_mode,
-            PermissionMode::DangerFullAccess
-        );
+        assert_eq!(prompter.seen[0].current_mode, PermissionMode::WorkspaceWrite);
+        assert_eq!(prompter.seen[0].required_mode, PermissionMode::DangerFullAccess);
     }
 
     #[test]
@@ -703,9 +689,6 @@ mod tests {
 
         assert_eq!(outcome, PermissionOutcome::Allow);
         assert_eq!(prompter.seen.len(), 1);
-        assert_eq!(
-            prompter.seen[0].reason.as_deref(),
-            Some("hook requested confirmation")
-        );
+        assert_eq!(prompter.seen[0].reason.as_deref(), Some("hook requested confirmation"));
     }
 }

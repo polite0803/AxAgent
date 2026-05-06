@@ -221,10 +221,7 @@ pub async fn rebuild_knowledge_index(
         .map_err(|e| e.to_string())?;
 
     if docs.is_empty() {
-        let _ = app.emit(
-            "knowledge-rebuild-complete",
-            serde_json::json!({ "baseId": base_id }),
-        );
+        let _ = app.emit("knowledge-rebuild-complete", serde_json::json!({ "baseId": base_id }));
         return Ok(());
     }
 
@@ -361,10 +358,7 @@ pub async fn rebuild_knowledge_index(
             }
         }
 
-        let _ = app.emit(
-            "knowledge-rebuild-complete",
-            serde_json::json!({ "baseId": base_id }),
-        );
+        let _ = app.emit("knowledge-rebuild-complete", serde_json::json!({ "baseId": base_id }));
     });
 
     Ok(())
@@ -796,11 +790,7 @@ pub async fn rebuild_knowledge_document(
                     .await
                 {
                     let err_msg = e.to_string();
-                    tracing::error!(
-                        "Failed to upsert embeddings for doc {}: {}",
-                        doc_id,
-                        err_msg
-                    );
+                    tracing::error!("Failed to upsert embeddings for doc {}: {}", doc_id, err_msg);
                     let _ = axagent_core::repo::knowledge::update_document_status_with_error(
                         &db,
                         &doc_id,

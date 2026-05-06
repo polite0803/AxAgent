@@ -21,10 +21,8 @@ struct TempHome {
 impl TempHome {
     fn new() -> Self {
         let nonce = TEMP_HOME_COUNTER.fetch_add(1, Ordering::Relaxed);
-        let root = std::env::temp_dir().join(format!(
-            "axagent-cli-config-test-{}-{nonce}",
-            std::process::id()
-        ));
+        let root = std::env::temp_dir()
+            .join(format!("axagent-cli-config-test-{}-{nonce}", std::process::id()));
         let home = root.join("home");
         let appdata = root.join("appdata");
 
@@ -183,24 +181,12 @@ fn harness_restores_environment_after_run() {
         ));
         *temp_root.lock().expect("lock temp_root") = Some(temp_home.root().to_path_buf());
 
-        assert_eq!(
-            std::env::var_os("HOME").as_deref(),
-            Some(temp_home.home().as_os_str())
-        );
-        assert_eq!(
-            std::env::var_os("USERPROFILE").as_deref(),
-            Some(temp_home.home().as_os_str())
-        );
-        assert_eq!(
-            std::env::var_os("APPDATA").as_deref(),
-            Some(temp_home.appdata().as_os_str())
-        );
+        assert_eq!(std::env::var_os("HOME").as_deref(), Some(temp_home.home().as_os_str()));
+        assert_eq!(std::env::var_os("USERPROFILE").as_deref(), Some(temp_home.home().as_os_str()));
+        assert_eq!(std::env::var_os("APPDATA").as_deref(), Some(temp_home.appdata().as_os_str()));
 
         let opencode_path = opencode_config_path(temp_home.home());
-        write_json(
-            &opencode_path,
-            &json!({ "provider": { "axagent": { "enabled": true } } }),
-        );
+        write_json(&opencode_path, &json!({ "provider": { "axagent": { "enabled": true } } }));
         assert_eq!(
             read_json(&opencode_path),
             json!({ "provider": { "axagent": { "enabled": true } } })
@@ -209,10 +195,7 @@ fn harness_restores_environment_after_run() {
         panic!("intentional panic to verify Drop cleanup");
     }));
 
-    assert!(
-        result.is_err(),
-        "test harness should preserve cleanup during panic"
-    );
+    assert!(result.is_err(), "test harness should preserve cleanup during panic");
     let Some((restored_home, restored_userprofile, restored_appdata)) = restored_env
         .lock()
         .expect("lock restored_env after panic")
@@ -258,40 +241,24 @@ fn gemini_connect_writes_both_env_and_settings() {
         let settings_path = gemini_settings_path(temp_home.home());
 
         assert!(env_path.exists(), "expected Gemini .env at {env_path:?}");
-        assert!(
-            settings_path.exists(),
-            "expected Gemini settings.json at {settings_path:?}"
-        );
+        assert!(settings_path.exists(), "expected Gemini settings.json at {settings_path:?}");
     });
 }
 
 #[test]
 fn claude_connect_writes_anthropic_env_settings_and_config() {
     with_temp_home(|temp_home| {
-        connect(
-            CliTool::ClaudeCode,
-            "http://localhost:1234/v1",
-            "test-api-key",
-        )
-        .expect("connect(ClaudeCode) should succeed before contract assertions");
+        connect(CliTool::ClaudeCode, "http://localhost:1234/v1", "test-api-key")
+            .expect("connect(ClaudeCode) should succeed before contract assertions");
 
         let settings_path = claude_settings_path(temp_home.home());
         let config_path = claude_config_path(temp_home.home());
 
-        assert!(
-            settings_path.exists(),
-            "expected Claude settings.json at {settings_path:?}"
-        );
+        assert!(settings_path.exists(), "expected Claude settings.json at {settings_path:?}");
         let settings = read_json(&settings_path);
-        assert_eq!(
-            settings["env"]["ANTHROPIC_BASE_URL"],
-            "http://localhost:1234/v1"
-        );
+        assert_eq!(settings["env"]["ANTHROPIC_BASE_URL"], "http://localhost:1234/v1");
         assert_eq!(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "test-api-key");
-        assert!(
-            config_path.exists(),
-            "expected Claude config.json at {config_path:?}"
-        );
+        assert!(config_path.exists(), "expected Claude config.json at {config_path:?}");
         let config = read_json(&config_path);
         assert_eq!(config["primaryApiKey"], "any");
     });
@@ -318,18 +285,11 @@ fn claude_connect_overwrites_existing_anthropic_env_settings() {
         );
         write_json(&config_path, &json!({ "primaryApiKey": "old-value" }));
 
-        connect(
-            CliTool::ClaudeCode,
-            "https://127.1.0.0:8443/v1",
-            "new-token",
-        )
-        .expect("connect should succeed");
+        connect(CliTool::ClaudeCode, "https://127.1.0.0:8443/v1", "new-token")
+            .expect("connect should succeed");
 
         let settings = read_json(&settings_path);
-        assert_eq!(
-            settings["env"]["ANTHROPIC_BASE_URL"],
-            "https://127.1.0.0:8443/v1"
-        );
+        assert_eq!(settings["env"]["ANTHROPIC_BASE_URL"], "https://127.1.0.0:8443/v1");
         assert_eq!(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "new-token");
         assert_eq!(settings["env"]["ANTHROPIC_MODEL"], "claude-opus-4-6");
         assert_eq!(settings["permissions"]["allow"][0], "mcp__pencil");
@@ -505,10 +465,7 @@ fn gemini_validation_drift_rejects_wrong_selected_type() {
             .expect("connect should succeed");
 
         // Verify initially connected
-        assert_eq!(
-            validate_connection(CliTool::Gemini, "http://localhost:1234/v1").unwrap(),
-            true
-        );
+        assert_eq!(validate_connection(CliTool::Gemini, "http://localhost:1234/v1").unwrap(), true);
 
         // User manually changes selectedType
         let settings_path = gemini_settings_path(temp_home.home());
@@ -603,12 +560,8 @@ fn claude_validation_drift_rejects_wrong_primary_api_key() {
     use axagent_core::repo::cli_config::validate_connection;
 
     with_temp_home(|temp_home| {
-        connect(
-            CliTool::ClaudeCode,
-            "http://localhost:1234/v1",
-            "test-api-key",
-        )
-        .expect("connect should succeed");
+        connect(CliTool::ClaudeCode, "http://localhost:1234/v1", "test-api-key")
+            .expect("connect should succeed");
 
         // Verify initially connected
         assert_eq!(
@@ -618,10 +571,7 @@ fn claude_validation_drift_rejects_wrong_primary_api_key() {
 
         // User manually changes primaryApiKey
         let config_path = claude_config_path(temp_home.home());
-        write_json(
-            &config_path,
-            &json!({ "primaryApiKey": "some-other-value" }),
-        );
+        write_json(&config_path, &json!({ "primaryApiKey": "some-other-value" }));
 
         // Should now be disconnected
         assert_eq!(
@@ -661,10 +611,7 @@ fn gemini_disconnect_restore_backup_restores_both_files() {
 
         // Verify files were modified
         let settings = read_json(&settings_path);
-        assert_eq!(
-            settings["security"]["auth"]["selectedType"],
-            "gemini-api-key"
-        );
+        assert_eq!(settings["security"]["auth"]["selectedType"], "gemini-api-key");
 
         // Disconnect with restore
         disconnect(CliTool::Gemini, true, "http://localhost:1234/v1")
@@ -672,14 +619,8 @@ fn gemini_disconnect_restore_backup_restores_both_files() {
 
         // Verify original files were restored
         let restored_settings = read_json(&settings_path);
-        assert_eq!(
-            restored_settings["security"]["auth"]["selectedType"],
-            "oauth"
-        );
-        assert_eq!(
-            restored_settings["security"]["auth"]["oauthToken"],
-            "original-token"
-        );
+        assert_eq!(restored_settings["security"]["auth"]["selectedType"], "oauth");
+        assert_eq!(restored_settings["security"]["auth"]["oauthToken"], "original-token");
 
         let restored_env = std::fs::read_to_string(&env_path).unwrap();
         assert!(restored_env.contains("ORIGINAL_VAR=original-value"));
@@ -706,12 +647,8 @@ fn claude_disconnect_restore_backup_restores_both_files() {
         write_json(&config_path, &json!({ "primaryApiKey": "user-key-123" }));
 
         // Connect (this creates backups)
-        connect(
-            CliTool::ClaudeCode,
-            "http://localhost:1234/v1",
-            "test-api-key",
-        )
-        .expect("connect should succeed");
+        connect(CliTool::ClaudeCode, "http://localhost:1234/v1", "test-api-key")
+            .expect("connect should succeed");
 
         // Verify files were modified
         let settings = read_json(&settings_path);
@@ -779,10 +716,7 @@ fn gemini_disconnect_minimal_cleanup_removes_only_axagent_keys() {
             .as_object()
             .unwrap()
             .contains_key("selectedType"));
-        assert_eq!(
-            settings["security"]["auth"]["oauthToken"],
-            "keep-this-token"
-        );
+        assert_eq!(settings["security"]["auth"]["oauthToken"], "keep-this-token");
         assert_eq!(settings["otherSetting"], "keep-this");
     });
 }
@@ -993,12 +927,8 @@ fn claude_connect_rollback_on_post_write_validation_failure() {
         write_json(&settings_path, &json!({ "original": "settings" }));
         std::fs::write(&config_path, "[]").unwrap();
 
-        let err = connect(
-            CliTool::ClaudeCode,
-            "http://localhost:1234/v1",
-            "test-api-key",
-        )
-        .expect_err("connect should fail and roll back when config.json is not an object");
+        let err = connect(CliTool::ClaudeCode, "http://localhost:1234/v1", "test-api-key")
+            .expect_err("connect should fail and roll back when config.json is not an object");
 
         let err_text = err.to_string();
         assert!(
@@ -1052,12 +982,8 @@ fn opencode_connect_preserves_existing_non_axagent_providers() {
             }),
         );
 
-        connect(
-            CliTool::OpenCode,
-            "http://localhost:1234/v1",
-            "test-api-key",
-        )
-        .expect("connect should succeed");
+        connect(CliTool::OpenCode, "http://localhost:1234/v1", "test-api-key")
+            .expect("connect should succeed");
 
         let config = read_json(&config_path);
 
@@ -1183,12 +1109,8 @@ fn opencode_disconnect_with_restore_restores_original_config() {
         write_json(&config_path, &original_config);
 
         // Connect (this should create a backup)
-        connect(
-            CliTool::OpenCode,
-            "http://localhost:1234/v1",
-            "test-api-key",
-        )
-        .expect("connect should succeed");
+        connect(CliTool::OpenCode, "http://localhost:1234/v1", "test-api-key")
+            .expect("connect should succeed");
 
         // Verify connected state has axagent
         let connected_config = read_json(&config_path);
@@ -1206,10 +1128,7 @@ fn opencode_disconnect_with_restore_restores_original_config() {
 
         // Verify original config is restored
         let restored_config = read_json(&config_path);
-        assert_eq!(
-            restored_config, original_config,
-            "config should be restored to original state"
-        );
+        assert_eq!(restored_config, original_config, "config should be restored to original state");
     });
 }
 
@@ -1295,12 +1214,8 @@ fn opencode_validation_requires_axagent_provider_with_correct_fields() {
         );
 
         // Test 6: Valid configuration
-        connect(
-            CliTool::OpenCode,
-            "http://localhost:1234/v1",
-            "test-api-key",
-        )
-        .expect("connect should succeed");
+        connect(CliTool::OpenCode, "http://localhost:1234/v1", "test-api-key")
+            .expect("connect should succeed");
         assert_eq!(
             validate_connection(CliTool::OpenCode, "http://localhost:1234/v1").unwrap(),
             true,
@@ -1427,10 +1342,7 @@ fn cursor_disconnect_without_restore_removes_only_gateway_fields() {
             settings.get("openai.apiBaseUrl").is_none(),
             "openai.apiBaseUrl should be removed"
         );
-        assert!(
-            settings.get("openai.apiKey").is_none(),
-            "openai.apiKey should be removed"
-        );
+        assert!(settings.get("openai.apiKey").is_none(), "openai.apiKey should be removed");
 
         // Verify other settings are preserved
         assert_eq!(

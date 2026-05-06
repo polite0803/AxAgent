@@ -68,9 +68,7 @@ impl SandboxRunner {
     }
 
     async fn execute_python(&self, _code: &str) -> Result<ExecutionResult> {
-        Err(anyhow::anyhow!(
-            "Python execution handled by frontend Pyodide"
-        ))
+        Err(anyhow::anyhow!("Python execution handled by frontend Pyodide"))
     }
 }
 

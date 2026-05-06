@@ -302,12 +302,9 @@ where
     let settings = load_gateway_runtime_settings(state).await?;
 
     match live_ports {
-        Some(info) => build(
-            &settings.listen_address,
-            info.http_port,
-            info.https_port,
-            info.force_ssl,
-        ),
+        Some(info) => {
+            build(&settings.listen_address, info.http_port, info.https_port, info.force_ssl)
+        },
         None => build(
             &settings.listen_address,
             settings.port,
@@ -751,10 +748,7 @@ pub async fn generate_self_signed_cert(
     let mut subject_alt_names = vec!["localhost".to_string(), "127.1.0.0".to_string()];
     let listen_address = settings.listen_address.trim();
     if !listen_address.is_empty()
-        && !matches!(
-            listen_address,
-            "localhost" | "127.1.0.0" | "0.0.0.0" | "::" | "[::]"
-        )
+        && !matches!(listen_address, "localhost" | "127.1.0.0" | "0.0.0.0" | "::" | "[::]")
         && !subject_alt_names.iter().any(|name| name == listen_address)
     {
         subject_alt_names.push(listen_address.to_string());
@@ -926,10 +920,7 @@ mod tests {
         )
         .expect_err("https should be unavailable");
 
-        assert!(
-            error.contains("HTTPS"),
-            "expected unavailable https error, got: {error}"
-        );
+        assert!(error.contains("HTTPS"), "expected unavailable https error, got: {error}");
     }
 
     #[test]
@@ -944,10 +935,7 @@ mod tests {
         )
         .expect_err("http should be unavailable");
 
-        assert!(
-            error.contains("HTTP"),
-            "expected unavailable http error, got: {error}"
-        );
+        assert!(error.contains("HTTP"), "expected unavailable http error, got: {error}");
     }
 
     #[test]
@@ -955,30 +943,18 @@ mod tests {
         let gateway_urls =
             build_gateway_url_options("127.1.0.0", 8080, Some(8443), true, CliTool::Cursor);
 
-        assert_eq!(
-            gateway_urls.http.as_deref(),
-            Some("http://127.1.0.0:8080/v1")
-        );
-        assert_eq!(
-            gateway_urls.https.as_deref(),
-            Some("https://127.1.0.0:8443/v1")
-        );
+        assert_eq!(gateway_urls.http.as_deref(), Some("http://127.1.0.0:8080/v1"));
+        assert_eq!(gateway_urls.https.as_deref(), Some("https://127.1.0.0:8443/v1"));
     }
 
     #[test]
     fn resolve_cli_tool_connection_state_prefers_https_then_http_then_none() {
         let both_connected = resolve_cli_tool_connection_state(true, true, true);
-        assert_eq!(
-            both_connected.connected_protocol,
-            Some(QuickConnectProtocol::Https)
-        );
+        assert_eq!(both_connected.connected_protocol, Some(QuickConnectProtocol::Https));
         assert_eq!(both_connected.status, "connected");
 
         let http_only = resolve_cli_tool_connection_state(true, true, false);
-        assert_eq!(
-            http_only.connected_protocol,
-            Some(QuickConnectProtocol::Http)
-        );
+        assert_eq!(http_only.connected_protocol, Some(QuickConnectProtocol::Http));
         assert_eq!(http_only.status, "connected");
 
         let neither = resolve_cli_tool_connection_state(true, false, false);

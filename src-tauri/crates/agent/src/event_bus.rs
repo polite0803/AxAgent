@@ -246,10 +246,8 @@ mod tests {
     async fn test_event_bus_multiple_subscribers() {
         let bus = AgentEventBus::new("test");
         let _receiver1 = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);
-        let _receiver2 = bus.subscribe(
-            "sub2",
-            vec![AgentEventType::TurnStarted, AgentEventType::Error],
-        );
+        let _receiver2 =
+            bus.subscribe("sub2", vec![AgentEventType::TurnStarted, AgentEventType::Error]);
 
         let event =
             UnifiedAgentEvent::new("source", AgentEventType::TurnStarted, serde_json::json!({}));

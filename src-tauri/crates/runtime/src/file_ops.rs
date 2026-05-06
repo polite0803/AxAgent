@@ -184,28 +184,20 @@ pub fn read_file(
     if metadata.len() > MAX_READ_SIZE {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!(
-                "file is too large ({} bytes, max {} bytes)",
-                metadata.len(),
-                MAX_READ_SIZE
-            ),
+            format!("file is too large ({} bytes, max {} bytes)", metadata.len(), MAX_READ_SIZE),
         ));
     }
 
     // Detect binary files
     if is_binary_file(&absolute_path)? {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "file appears to be binary",
-        ));
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "file appears to be binary"));
     }
 
     let content = fs::read_to_string(&absolute_path)?;
     let lines: Vec<&str> = content.lines().collect();
     let start_index = offset.unwrap_or(0).min(lines.len());
-    let end_index = limit.map_or(lines.len(), |limit| {
-        start_index.saturating_add(limit).min(lines.len())
-    });
+    let end_index =
+        limit.map_or(lines.len(), |limit| start_index.saturating_add(limit).min(lines.len()));
     let selected = lines[start_index..end_index].join("\n");
 
     Ok(ReadFileOutput {
@@ -225,11 +217,7 @@ pub fn write_file(path: &str, content: &str) -> io::Result<WriteFileOutput> {
     if content.len() > MAX_WRITE_SIZE {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!(
-                "content is too large ({} bytes, max {} bytes)",
-                content.len(),
-                MAX_WRITE_SIZE
-            ),
+            format!("content is too large ({} bytes, max {} bytes)", content.len(), MAX_WRITE_SIZE),
         ));
     }
 
@@ -270,10 +258,7 @@ pub fn edit_file(
         ));
     }
     if !original_file.contains(old_string) {
-        return Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            "old_string not found in file",
-        ));
+        return Err(io::Error::new(io::ErrorKind::NotFound, "old_string not found in file"));
     }
 
     let updated = if replace_all {
@@ -760,11 +745,8 @@ mod tests {
         let dir = temp_path("search-dir");
         std::fs::create_dir_all(&dir).expect("directory should be created");
         let file = dir.join("demo.rs");
-        write_file(
-            file.to_string_lossy().as_ref(),
-            "fn main() {\n println!(\"hello\");\n}\n",
-        )
-        .expect("file write should succeed");
+        write_file(file.to_string_lossy().as_ref(), "fn main() {\n println!(\"hello\");\n}\n")
+            .expect("file write should succeed");
 
         let globbed = glob_search("**/*.rs", Some(dir.to_string_lossy().as_ref()))
             .expect("glob should succeed");
@@ -799,20 +781,14 @@ mod tests {
     fn expand_braces_single_group() {
         let mut result = expand_braces("Assets/**/*.{cs,uxml,uss}");
         result.sort();
-        assert_eq!(
-            result,
-            vec!["Assets/**/*.cs", "Assets/**/*.uss", "Assets/**/*.uxml",]
-        );
+        assert_eq!(result, vec!["Assets/**/*.cs", "Assets/**/*.uss", "Assets/**/*.uxml",]);
     }
 
     #[test]
     fn expand_braces_nested() {
         let mut result = expand_braces("src/{a,b}.{rs,toml}");
         result.sort();
-        assert_eq!(
-            result,
-            vec!["src/a.rs", "src/a.toml", "src/b.rs", "src/b.toml"]
-        );
+        assert_eq!(result, vec!["src/a.rs", "src/a.toml", "src/b.rs", "src/b.toml"]);
     }
 
     #[test]
@@ -830,10 +806,7 @@ mod tests {
 
         let result =
             glob_search("*.{rs,toml}", Some(dir.to_str().unwrap())).expect("glob should succeed");
-        assert_eq!(
-            result.num_files, 2,
-            "should match .rs and .toml but not .txt"
-        );
+        assert_eq!(result.num_files, 2, "should match .rs and .toml but not .txt");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

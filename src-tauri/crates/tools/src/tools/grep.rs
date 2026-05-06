@@ -126,10 +126,7 @@ impl Tool for GrepTool {
 
         // grep 退出码 1 表示无匹配（不算错误）
         if !output.status.success() && output.status.code() != Some(1) {
-            return Err(ToolError::execution_failed(format!(
-                "grep 错误: {}",
-                stderr
-            )));
+            return Err(ToolError::execution_failed(format!("grep 错误: {}", stderr)));
         }
 
         if stdout.trim().is_empty() {
@@ -142,10 +139,7 @@ impl Tool for GrepTool {
         if total > head_limit {
             let selected = &lines[..head_limit];
             let mut result = String::new();
-            result.push_str(&format!(
-                "找到 {} 个匹配（显示前 {} 个）:\n\n",
-                total, head_limit
-            ));
+            result.push_str(&format!("找到 {} 个匹配（显示前 {} 个）:\n\n", total, head_limit));
             for line in selected {
                 result.push_str(line);
                 result.push('\n');

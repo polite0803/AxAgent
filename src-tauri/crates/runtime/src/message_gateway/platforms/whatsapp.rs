@@ -126,10 +126,8 @@ impl PlatformAdapter for WhatsAppAdapter {
         let access_token = config.whatsapp_access_token.clone().unwrap_or_default();
         let api_version = resolve_api_version(config);
 
-        let url = format!(
-            "https://graph.facebook.com/{}/{}/messages",
-            api_version, phone_number_id
-        );
+        let url =
+            format!("https://graph.facebook.com/{}/{}/messages", api_version, phone_number_id);
         let body = serde_json::json!({
             "messaging_product": "whatsapp",
             "to": recipient,
@@ -152,11 +150,7 @@ impl PlatformAdapter for WhatsAppAdapter {
         let status = resp.status();
         if !status.is_success() {
             let err_body = resp.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!(
-                "WhatsApp API error ({}): {}",
-                status.as_u16(),
-                err_body
-            ));
+            return Err(anyhow::anyhow!("WhatsApp API error ({}): {}", status.as_u16(), err_body));
         }
         Ok(())
     }
@@ -289,10 +283,7 @@ async fn verify_whatsapp(
     access_token: &str,
     api_version: &str,
 ) -> anyhow::Result<()> {
-    let url = format!(
-        "https://graph.facebook.com/{}/{}",
-        api_version, phone_number_id
-    );
+    let url = format!("https://graph.facebook.com/{}/{}", api_version, phone_number_id);
 
     let resp = client
         .get(&url)

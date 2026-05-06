@@ -70,38 +70,17 @@ impl UserProfile {
         md.push_str(&format!("- Updated: {}\n\n", self.updated_at));
 
         md.push_str("## Coding Style\n");
-        md.push_str(&format!(
-            "- Naming Convention: {:?}\n",
-            self.coding_style.naming_convention
-        ));
-        md.push_str(&format!(
-            "- Indentation: {:?}\n",
-            self.coding_style.indentation_style
-        ));
-        md.push_str(&format!(
-            "- Comment Style: {:?}\n",
-            self.coding_style.comment_style
-        ));
-        md.push_str(&format!(
-            "- Module Org: {:?}\n",
-            self.coding_style.module_organization
-        ));
-        md.push_str(&format!(
-            "- Confidence: {:.2}\n\n",
-            self.coding_style.confidence
-        ));
+        md.push_str(&format!("- Naming Convention: {:?}\n", self.coding_style.naming_convention));
+        md.push_str(&format!("- Indentation: {:?}\n", self.coding_style.indentation_style));
+        md.push_str(&format!("- Comment Style: {:?}\n", self.coding_style.comment_style));
+        md.push_str(&format!("- Module Org: {:?}\n", self.coding_style.module_organization));
+        md.push_str(&format!("- Confidence: {:.2}\n\n", self.coding_style.confidence));
 
         md.push_str("## Communication\n");
-        md.push_str(&format!(
-            "- Detail Level: {:?}\n",
-            self.communication.detail_level
-        ));
+        md.push_str(&format!("- Detail Level: {:?}\n", self.communication.detail_level));
         md.push_str(&format!("- Tone: {:?}\n", self.communication.tone));
         md.push_str(&format!("- Language: {}\n", self.communication.language));
-        md.push_str(&format!(
-            "- Confidence: {:.2}\n\n",
-            self.communication.confidence
-        ));
+        md.push_str(&format!("- Confidence: {:.2}\n\n", self.communication.confidence));
 
         md.push_str("## Preferences\n");
         for pref in &self.preferences {
@@ -176,25 +155,13 @@ impl UserProfile {
         md.push_str("## User Profile\n\n");
 
         md.push_str("### Coding Style:\n");
-        md.push_str(&format!(
-            "- Naming: {:?}\n",
-            self.coding_style.naming_convention
-        ));
-        md.push_str(&format!(
-            "- Indentation: {:?}\n",
-            self.coding_style.indentation_style
-        ));
-        md.push_str(&format!(
-            "- Comments: {:?}\n",
-            self.coding_style.comment_style
-        ));
+        md.push_str(&format!("- Naming: {:?}\n", self.coding_style.naming_convention));
+        md.push_str(&format!("- Indentation: {:?}\n", self.coding_style.indentation_style));
+        md.push_str(&format!("- Comments: {:?}\n", self.coding_style.comment_style));
         md.push('\n');
 
         md.push_str("### Communication:\n");
-        md.push_str(&format!(
-            "- Detail Level: {:?}\n",
-            self.communication.detail_level
-        ));
+        md.push_str(&format!("- Detail Level: {:?}\n", self.communication.detail_level));
         md.push_str(&format!("- Tone: {:?}\n", self.communication.tone));
         md.push_str(&format!("- Language: {}\n", self.communication.language));
         md.push('\n');

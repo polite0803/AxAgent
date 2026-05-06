@@ -198,11 +198,7 @@ impl LearningInsightSystem {
         let recommendations = self.generate_recommendations(&insights);
 
         let report = InsightReport {
-            id: format!(
-                "report_{}_{}",
-                session_id,
-                chrono::Utc::now().timestamp_millis()
-            ),
+            id: format!("report_{}_{}", session_id, chrono::Utc::now().timestamp_millis()),
             report_type: ReportType::Session,
             timestamp: chrono::Utc::now().timestamp_millis(),
             summary,

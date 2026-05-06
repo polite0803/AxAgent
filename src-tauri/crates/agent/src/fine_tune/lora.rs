@@ -137,10 +137,7 @@ impl TrainingJob {
     }
 
     pub fn is_running(&self) -> bool {
-        matches!(
-            self.status,
-            JobStatus::Training | JobStatus::Preparing | JobStatus::Validating
-        )
+        matches!(self.status, JobStatus::Training | JobStatus::Preparing | JobStatus::Validating)
     }
 }
 

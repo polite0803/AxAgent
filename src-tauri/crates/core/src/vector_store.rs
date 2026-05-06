@@ -104,10 +104,7 @@ impl VectorStore {
         if !Self::is_valid_collection_id(collection_id) {
             return Err(AxAgentError::Validation("Invalid collection_id: must contain only alphanumeric characters, hyphens, and underscores".to_string()));
         }
-        Ok(format!(
-            "vec_{}",
-            Self::sanitize_collection_id(collection_id)
-        ))
+        Ok(format!("vec_{}", Self::sanitize_collection_id(collection_id)))
     }
 
     /// Ensure both the metadata and vec0 tables exist for a collection.
@@ -973,14 +970,8 @@ mod tests {
         let embedding = vec![0.5_f32, -1.25_f32, 3.14159_f32];
         let json = VectorStore::embedding_to_json(&embedding);
         // 不应包含逗号作为小数点（非英文 locale 的问题）
-        assert!(
-            !json.contains(",5"),
-            "should not use comma as decimal: {json}"
-        );
-        assert!(
-            !json.contains(",25"),
-            "should not use comma as decimal: {json}"
-        );
+        assert!(!json.contains(",5"), "should not use comma as decimal: {json}");
+        assert!(!json.contains(",25"), "should not use comma as decimal: {json}");
         assert!(json.contains("0.5"), "should use dot: {json}");
         assert!(json.contains("-1.25"), "should use dot: {json}");
     }

@@ -318,10 +318,7 @@ mod tests {
     fn convenience_methods_match_is_enabled() {
         let flags = FeatureFlags::defaults();
         assert_eq!(flags.fork_subagent(), flags.is_enabled("FORK_SUBAGENT"));
-        assert_eq!(
-            flags.tool_concurrency(),
-            flags.is_enabled("TOOL_CONCURRENCY")
-        );
+        assert_eq!(flags.tool_concurrency(), flags.is_enabled("TOOL_CONCURRENCY"));
     }
 
     #[test]

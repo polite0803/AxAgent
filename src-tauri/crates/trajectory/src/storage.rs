@@ -157,11 +157,9 @@ impl TrajectoryStorage {
                     trajectory_id: Set(t.id.clone()),
                     reward_type: Set(format!("{:?}", r.reward_type)),
                     value: Set(r.value),
-                    created_at: Set(
-                        chrono::DateTime::from_timestamp_millis(r.timestamp_ms as i64)
-                            .unwrap_or_else(Utc::now)
-                            .to_rfc3339(),
-                    ),
+                    created_at: Set(chrono::DateTime::from_timestamp_millis(r.timestamp_ms as i64)
+                        .unwrap_or_else(Utc::now)
+                        .to_rfc3339()),
                 }
                 .insert(self.db.as_ref())
                 .await?;

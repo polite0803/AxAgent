@@ -148,10 +148,7 @@ pub fn get_compact_continuation_message(
     suppress_follow_up_questions: bool,
     recent_messages_preserved: bool,
 ) -> String {
-    let mut base = format!(
-        "{COMPACT_CONTINUATION_PREAMBLE}{}",
-        format_compact_summary(summary)
-    );
+    let mut base = format!("{COMPACT_CONTINUATION_PREAMBLE}{}", format_compact_summary(summary));
 
     if recent_messages_preserved {
         base.push_str("\n\n");
@@ -301,10 +298,8 @@ pub fn compact_session(session: &Session, config: CompactionConfig) -> Compactio
         actual_removed = session.messages[compacted_prefix_len..keep_from].to_vec();
         preserved = session.messages[keep_from..].to_vec();
     }
-    let summary = merge_compact_summaries(
-        existing_summary.as_deref(),
-        &summarize_messages(&actual_removed),
-    );
+    let summary =
+        merge_compact_summaries(existing_summary.as_deref(), &summarize_messages(&actual_removed));
     let formatted_summary = format_compact_summary(&summary);
     let continuation = get_compact_continuation_message(&summary, true, !preserved.is_empty());
 
@@ -481,10 +476,7 @@ fn summarize_block(block: &ContentBlock) -> String {
             output,
             is_error,
             ..
-        } => format!(
-            "tool_result {tool_name}: {}{output}",
-            if *is_error { "error " } else { "" }
-        ),
+        } => format!("tool_result {tool_name}: {}{output}", if *is_error { "error " } else { "" }),
     };
     // Truncate to 500 chars (up from 160) to preserve more useful context
     // such as file paths, error messages, and key results.
@@ -945,10 +937,7 @@ mod tests {
             "expected at most 2 removed, got {}",
             result.removed_message_count
         );
-        assert_eq!(
-            result.compacted_session.messages[0].role,
-            MessageRole::System
-        );
+        assert_eq!(result.compacted_session.messages[0].role, MessageRole::System);
         assert!(matches!(
             &result.compacted_session.messages[0].blocks[0],
             ContentBlock::Text { text } if text.contains("Summary:")
@@ -967,10 +956,7 @@ mod tests {
         // may preserve one extra message at the boundary, so token reduction is
         // not guaranteed for small sessions. The invariant that matters is that
         // the removed_message_count is non-zero (something was compacted).
-        assert!(
-            result.removed_message_count > 0,
-            "compaction must remove at least one message"
-        );
+        assert!(result.removed_message_count > 0, "compaction must remove at least one message");
     }
 
     #[test]
@@ -1091,13 +1077,11 @@ mod tests {
             .unwrap();
         // Turn 2: assistant calls a tool
         session
-            .push_message(ConversationMessage::assistant(vec![
-                ContentBlock::ToolUse {
-                    id: tool_id.to_string(),
-                    name: "search".to_string(),
-                    input: "{\"q\":\"*.rs\"}".to_string(),
-                },
-            ]))
+            .push_message(ConversationMessage::assistant(vec![ContentBlock::ToolUse {
+                id: tool_id.to_string(),
+                name: "search".to_string(),
+                input: "{\"q\":\"*.rs\"}".to_string(),
+            }]))
             .unwrap();
         // Turn 3: tool result
         session

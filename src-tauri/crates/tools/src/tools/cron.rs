@@ -95,10 +95,7 @@ impl Tool for CronCreateTool {
         let mut store = CRON_STORE.write().unwrap();
         load_from_disk(); // 确保加载最新持久化数据
         if store.len() >= MAX_TASKS {
-            return Err(ToolError::invalid_input(format!(
-                "已达最大任务数 {}",
-                MAX_TASKS
-            )));
+            return Err(ToolError::invalid_input(format!("已达最大任务数 {}", MAX_TASKS)));
         }
 
         let schedule = cron

@@ -1806,10 +1806,7 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .from(
-                                KnowledgeDocuments::Table,
-                                KnowledgeDocuments::KnowledgeBaseId,
-                            )
+                            .from(KnowledgeDocuments::Table, KnowledgeDocuments::KnowledgeBaseId)
                             .to(KnowledgeBases::Table, KnowledgeBases::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -2282,10 +2279,7 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .from(
-                                ConversationBranches::Table,
-                                ConversationBranches::ConversationId,
-                            )
+                            .from(ConversationBranches::Table, ConversationBranches::ConversationId)
                             .to(Conversations::Table, Conversations::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )

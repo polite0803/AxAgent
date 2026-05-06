@@ -62,10 +62,7 @@ impl Tool for FileEditTool {
             .ok_or_else(|| ToolError::invalid_input_for("FileEdit", "缺少 file_path"))?;
 
         if !Path::new(path).is_absolute() {
-            return Err(ToolError::invalid_input_for(
-                "FileEdit",
-                "file_path 必须是绝对路径",
-            ));
+            return Err(ToolError::invalid_input_for("FileEdit", "file_path 必须是绝对路径"));
         }
 
         let old = input["old_string"]
@@ -76,16 +73,11 @@ impl Tool for FileEditTool {
             .ok_or_else(|| ToolError::invalid_input_for("FileEdit", "缺少 new_string"))?;
 
         if old.is_empty() {
-            return Err(ToolError::invalid_input_for(
-                "FileEdit",
-                "old_string 不能为空",
-            ));
+            return Err(ToolError::invalid_input_for("FileEdit", "old_string 不能为空"));
         }
 
         if old == new {
-            return Err(ToolError::invalid_input(
-                "old_string 和 new_string 相同，无需编辑",
-            ));
+            return Err(ToolError::invalid_input("old_string 和 new_string 相同，无需编辑"));
         }
 
         let file_size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
@@ -101,10 +93,7 @@ impl Tool for FileEditTool {
         }
 
         if !ctx.allow_write {
-            return Err(ToolError::permission_denied(
-                "FileEdit",
-                "当前上下文不允许写入操作",
-            ));
+            return Err(ToolError::permission_denied("FileEdit", "当前上下文不允许写入操作"));
         }
 
         Ok(())

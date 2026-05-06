@@ -223,10 +223,7 @@ pub fn create_skill_from_proposal(proposal: &SkillProposal) -> SkillCreationPara
         description: proposal.task_description.clone(),
         content: proposal.suggested_content.clone(),
         category: Some("auto-generated".to_string()),
-        tags: Some(vec![
-            proposal.trigger_event.clone(),
-            "auto-evolved".to_string(),
-        ]),
+        tags: Some(vec![proposal.trigger_event.clone(), "auto-evolved".to_string()]),
         platforms: None,
     }
 }

@@ -104,9 +104,7 @@ pub async fn skill_upgrade_propose(
             trigger_event: "manual_proposal".to_string(),
         };
 
-        return Ok(Some(
-            serde_json::to_value(upgrade_proposal).map_err(|e| e.to_string())?,
-        ));
+        return Ok(Some(serde_json::to_value(upgrade_proposal).map_err(|e| e.to_string())?));
     }
     Ok(None)
 }

@@ -116,20 +116,14 @@ impl PlaywrightClient {
     }
 
     pub async fn fill(&mut self, selector: &str, value: &str) -> Result<()> {
-        self.call(
-            "fill",
-            serde_json::json!({ "selector": selector, "value": value }),
-        )
-        .await?;
+        self.call("fill", serde_json::json!({ "selector": selector, "value": value }))
+            .await?;
         Ok(())
     }
 
     pub async fn type_text(&mut self, selector: &str, text: &str) -> Result<()> {
-        self.call(
-            "type",
-            serde_json::json!({ "selector": selector, "text": text }),
-        )
-        .await?;
+        self.call("type", serde_json::json!({ "selector": selector, "text": text }))
+            .await?;
         Ok(())
     }
 
@@ -177,11 +171,8 @@ impl PlaywrightClient {
     }
 
     pub async fn select_option(&mut self, selector: &str, value: &str) -> Result<()> {
-        self.call(
-            "select",
-            serde_json::json!({ "selector": selector, "value": value }),
-        )
-        .await?;
+        self.call("select", serde_json::json!({ "selector": selector, "value": value }))
+            .await?;
         Ok(())
     }
 

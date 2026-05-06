@@ -50,10 +50,7 @@ impl Tool for PushNotificationTool {
         {
             let _ = std::process::Command::new("osascript")
                 .arg("-e")
-                .arg(format!(
-                    r#"display notification "{}" with title "{}""#,
-                    body, title
-                ))
+                .arg(format!(r#"display notification "{}" with title "{}""#, body, title))
                 .output();
         }
 

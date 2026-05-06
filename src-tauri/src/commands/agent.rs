@@ -69,10 +69,7 @@ static PRICING_CONFIG: OnceLock<PricingConfigFile> = OnceLock::new();
 /// Initialize pricing from the config file. Called once during app startup.
 pub fn init_pricing_config(app: &tauri::AppHandle) {
     let config = load_pricing_from_disk(app).unwrap_or_else(|e| {
-        tracing::warn!(
-            "Failed to load pricing.toml, using heuristic fallback: {}",
-            e
-        );
+        tracing::warn!("Failed to load pricing.toml, using heuristic fallback: {}", e);
         PricingConfigFile {
             budget: BudgetConfig::default(),
             models: Vec::new(),
@@ -516,10 +513,7 @@ pub async fn agent_query(
     request: AgentQueryRequest,
 ) -> Result<AgentQueryResponse, String> {
     let conversation_id = request.conversation_id.clone();
-    info!(
-        "[agent_query] Starting for conversation: {}",
-        conversation_id
-    );
+    info!("[agent_query] Starting for conversation: {}", conversation_id);
 
     let conversation = conversation::get_conversation(&app_state.sea_db, &conversation_id)
         .await
@@ -681,10 +675,7 @@ pub async fn agent_query(
         api_key,
         key_id: key.id.clone(),
         provider_id: prov.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &prov.api_host,
-            &prov.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
         proxy_config: ProviderProxyConfig::resolve(&prov.proxy_config, &settings),
         custom_headers: prov
@@ -777,10 +768,7 @@ pub async fn agent_query(
         .into_iter()
         .collect();
 
-    info!(
-        "[agent] all_server_ids (remote MCP only): {:?}",
-        all_server_ids
-    );
+    info!("[agent] all_server_ids (remote MCP only): {:?}", all_server_ids);
 
     // Phase 1: 并发加载所有 MCP 服务器配置和工具描述
     let db = &app_state.sea_db;
@@ -969,12 +957,8 @@ pub async fn agent_query(
     .await;
 
     // Convert enabled skills to ChatTool definitions for Agent to call
-    let (skill_tools, skill_map) = load_skill_tools(
-        &app_state,
-        conversation_scenario.as_deref(),
-        &enabled_skill_ids,
-    )
-    .await;
+    let (skill_tools, skill_map) =
+        load_skill_tools(&app_state, conversation_scenario.as_deref(), &enabled_skill_ids).await;
     let skill_tools_count = skill_tools.len();
     if !skill_tools.is_empty() {
         chat_tools.extend(skill_tools);
@@ -1020,10 +1004,7 @@ pub async fn agent_query(
                 }),
             );
         }
-        info!(
-            "[agent] Added {} skill tools to chat_tools",
-            skill_tools_count
-        );
+        info!("[agent] Added {} skill tools to chat_tools", skill_tools_count);
         info!("[agent] Registered {} skill tool handlers", skill_map.len());
     }
 
@@ -1041,45 +1022,42 @@ pub async fn agent_query(
             .with_thinking_budget(request.thinking_budget)
             .with_use_max_completion_tokens(use_max_completion_tokens)
             .with_thinking_param_style(thinking_param_style)
-            .with_on_event(Box::new(
-                move |event: &axagent_runtime::AssistantEvent| match event {
-                    axagent_runtime::AssistantEvent::TextDelta(text) => {
-                        let _ = stream_app.emit(
-                            "agent-stream-text",
-                            AgentStreamTextPayload {
-                                conversation_id: stream_conv_id.clone(),
-                                assistant_message_id: stream_msg_id.clone(),
-                                text: text.clone(),
-                            },
-                        );
-                    },
-                    axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
-                        let _ = stream_app.emit(
-                            "agent-stream-thinking",
-                            AgentStreamThinkingPayload {
-                                conversation_id: stream_conv_id.clone(),
-                                assistant_message_id: stream_msg_id.clone(),
-                                thinking: thinking.clone(),
-                            },
-                        );
-                    },
-                    axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
-                        let _ = stream_app.emit(
-                            "agent-tool-use",
-                            AgentToolUsePayload {
-                                conversation_id: stream_conv_id.clone(),
-                                assistant_message_id: stream_msg_id.clone(),
-                                tool_use_id: id.clone(),
-                                tool_name: name.clone(),
-                                input: serde_json::from_str(input)
-                                    .unwrap_or(serde_json::Value::Null),
-                                execution_id: None,
-                            },
-                        );
-                    },
-                    _ => {},
+            .with_on_event(Box::new(move |event: &axagent_runtime::AssistantEvent| match event {
+                axagent_runtime::AssistantEvent::TextDelta(text) => {
+                    let _ = stream_app.emit(
+                        "agent-stream-text",
+                        AgentStreamTextPayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            text: text.clone(),
+                        },
+                    );
                 },
-            ))
+                axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
+                    let _ = stream_app.emit(
+                        "agent-stream-thinking",
+                        AgentStreamThinkingPayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            thinking: thinking.clone(),
+                        },
+                    );
+                },
+                axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
+                    let _ = stream_app.emit(
+                        "agent-tool-use",
+                        AgentToolUsePayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            tool_use_id: id.clone(),
+                            tool_name: name.clone(),
+                            input: serde_json::from_str(input).unwrap_or(serde_json::Value::Null),
+                            execution_id: None,
+                        },
+                    );
+                },
+                _ => {},
+            }))
     } else {
         AxAgentApiClient::with_tools(adapter, ctx, chat_tools.clone())
             .with_model(&request.model_id)
@@ -1089,45 +1067,42 @@ pub async fn agent_query(
             .with_thinking_budget(request.thinking_budget)
             .with_use_max_completion_tokens(use_max_completion_tokens)
             .with_thinking_param_style(thinking_param_style)
-            .with_on_event(Box::new(
-                move |event: &axagent_runtime::AssistantEvent| match event {
-                    axagent_runtime::AssistantEvent::TextDelta(text) => {
-                        let _ = stream_app.emit(
-                            "agent-stream-text",
-                            AgentStreamTextPayload {
-                                conversation_id: stream_conv_id.clone(),
-                                assistant_message_id: stream_msg_id.clone(),
-                                text: text.clone(),
-                            },
-                        );
-                    },
-                    axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
-                        let _ = stream_app.emit(
-                            "agent-stream-thinking",
-                            AgentStreamThinkingPayload {
-                                conversation_id: stream_conv_id.clone(),
-                                assistant_message_id: stream_msg_id.clone(),
-                                thinking: thinking.clone(),
-                            },
-                        );
-                    },
-                    axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
-                        let _ = stream_app.emit(
-                            "agent-tool-use",
-                            AgentToolUsePayload {
-                                conversation_id: stream_conv_id.clone(),
-                                assistant_message_id: stream_msg_id.clone(),
-                                tool_use_id: id.clone(),
-                                tool_name: name.clone(),
-                                input: serde_json::from_str(input)
-                                    .unwrap_or(serde_json::Value::Null),
-                                execution_id: None,
-                            },
-                        );
-                    },
-                    _ => {},
+            .with_on_event(Box::new(move |event: &axagent_runtime::AssistantEvent| match event {
+                axagent_runtime::AssistantEvent::TextDelta(text) => {
+                    let _ = stream_app.emit(
+                        "agent-stream-text",
+                        AgentStreamTextPayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            text: text.clone(),
+                        },
+                    );
                 },
-            ))
+                axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
+                    let _ = stream_app.emit(
+                        "agent-stream-thinking",
+                        AgentStreamThinkingPayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            thinking: thinking.clone(),
+                        },
+                    );
+                },
+                axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
+                    let _ = stream_app.emit(
+                        "agent-tool-use",
+                        AgentToolUsePayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            tool_use_id: id.clone(),
+                            tool_name: name.clone(),
+                            input: serde_json::from_str(input).unwrap_or(serde_json::Value::Null),
+                            execution_id: None,
+                        },
+                    );
+                },
+                _ => {},
+            }))
     };
 
     // Persist attachments (images, files) to disk and DB
@@ -1246,19 +1221,13 @@ pub async fn agent_query(
     // and auto-assign a role for high-complexity multi-step tasks.
     resolved_role = if resolved_role.is_none() {
         let complexity = axagent_trajectory::estimate_complexity_public(&request.input);
-        info!(
-            "[agent_query] Auto-estimated task complexity: {:?}",
-            complexity
-        );
+        info!("[agent_query] Auto-estimated task complexity: {:?}", complexity);
         match complexity {
             axagent_trajectory::Complexity::High => {
                 // High complexity tasks benefit from the Coordinator role
                 // which is designed for task decomposition and orchestration
                 let auto_role = axagent_runtime::agent_roles::AgentRole::Coordinator;
-                info!(
-                    "[agent_query] Auto-assigning role '{}' for high-complexity task",
-                    auto_role
-                );
+                info!("[agent_query] Auto-assigning role '{}' for high-complexity task", auto_role);
                 Some(auto_role)
             },
             axagent_trajectory::Complexity::Medium => {
@@ -1504,10 +1473,7 @@ pub async fn agent_query(
                 if !hint.is_empty() {
                     hint.push(' ');
                 }
-                hint.push_str(&format!(
-                    "Additional adjustments: {}",
-                    adjustments.join("; ")
-                ));
+                hint.push_str(&format!("Additional adjustments: {}", adjustments.join("; ")));
             }
         }
         if hint.is_empty() {
@@ -1621,10 +1587,7 @@ pub async fn agent_query(
     // Run turn via SessionManager (handles pre-compaction, runtime creation,
     // post-compaction, and session persistence)
     let session_id = session.session().session_id.clone();
-    info!(
-        "[agent_query] About to run_turn_with_tools for session: {}",
-        session_id
-    );
+    info!("[agent_query] About to run_turn_with_tools for session: {}", session_id);
 
     // Create and register a cancel token for this agent run
     let cancel_token = Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -2068,10 +2031,9 @@ pub async fn agent_query(
                             axagent_trajectory::FeedbackType::Partial,
                             "Turn completed with some errors".to_string(),
                         ),
-                        axagent_trajectory::TrajectoryOutcome::Failure => (
-                            axagent_trajectory::FeedbackType::Failure,
-                            "Turn failed".to_string(),
-                        ),
+                        axagent_trajectory::TrajectoryOutcome::Failure => {
+                            (axagent_trajectory::FeedbackType::Failure, "Turn failed".to_string())
+                        },
                         axagent_trajectory::TrajectoryOutcome::Abandoned => (
                             axagent_trajectory::FeedbackType::Partial,
                             "Turn was abandoned".to_string(),
@@ -2190,10 +2152,7 @@ async fn check_and_suggest_workflow_match(
                 "e2e",
             ],
         ),
-        (
-            "refactor",
-            vec!["refactor", "重构", "clean", "清理", "restructure", "整理"],
-        ),
+        ("refactor", vec!["refactor", "重构", "clean", "清理", "restructure", "整理"]),
         (
             "explore",
             vec![
@@ -2480,9 +2439,7 @@ impl SkillOutputTracker {
 
     fn record_execution(&self, conversation_id: &str, record: SkillExecutionRecord) {
         let mut tracker = self.inner.blocking_write();
-        let entries = tracker
-            .entry(conversation_id.to_string())
-            .or_insert_with(Vec::new);
+        let entries = tracker.entry(conversation_id.to_string()).or_default();
         entries.push(record);
     }
 
@@ -3054,10 +3011,8 @@ async fn execute_skill_async(
     tracker.record_execution(&conversation_id, execution_record);
 
     let mut mcp_result: Option<String> = None;
-    let mut message = format!(
-        "Skill '{}' executed in '{}' mode. Task: {}",
-        skill_name, execution_mode, task
-    );
+    let mut message =
+        format!("Skill '{}' executed in '{}' mode. Task: {}", skill_name, execution_mode, task);
 
     match execution_mode.as_str() {
         "workflow" => {
@@ -3295,13 +3250,7 @@ fn execute_skill_sync(
     let ctx = ctx.clone();
     let handle = tokio::runtime::Handle::current();
     tokio::task::block_in_place(|| {
-        handle.block_on(execute_skill_async(
-            skill_id,
-            skill_name,
-            skill_content,
-            input,
-            &ctx,
-        ))
+        handle.block_on(execute_skill_async(skill_id, skill_name, skill_content, input, &ctx))
     })
 }
 
@@ -3337,10 +3286,7 @@ fn build_agent_system_prompt(
             // The default instructions below explicitly tell the model to
             // ignore any "ignore previous instructions" directives inside
             // user-provided content.
-            prompts.push(format!(
-                "<user-custom-prompt>\n{}\n</user-custom-prompt>",
-                custom
-            ));
+            prompts.push(format!("<user-custom-prompt>\n{}\n</user-custom-prompt>", custom));
         }
     }
 
@@ -3387,10 +3333,7 @@ fn build_agent_system_prompt(
     // P8: Inject user profile (cross-session personalization)
     if let Some(up) = user_profile {
         if !up.is_empty() {
-            prompts.push(format!(
-                "<user-profile>\n# User Profile\n\n{}\n</user-profile>",
-                up
-            ));
+            prompts.push(format!("<user-profile>\n# User Profile\n\n{}\n</user-profile>", up));
         }
     }
 
@@ -3551,10 +3494,7 @@ pub async fn agent_cancel(
         let tokens = app_state.agent_cancel_tokens.lock().await;
         if let Some(token) = tokens.get(&request.conversation_id) {
             token.store(true, std::sync::atomic::Ordering::Release);
-            info!(
-                "[agent_cancel] Set cancel token for conversationId={}",
-                request.conversation_id
-            );
+            info!("[agent_cancel] Set cancel token for conversationId={}", request.conversation_id);
         } else {
             info!("[agent_cancel] No cancel token found for conversationId={} (may have already completed)", request.conversation_id);
         }
@@ -3613,10 +3553,7 @@ pub async fn agent_pause(
     {
         let running = app_state.running_agents.read().await;
         if !running.contains(&conversation_id) {
-            return Err(format!(
-                "No running agent for conversation {}",
-                conversation_id
-            ));
+            return Err(format!("No running agent for conversation {}", conversation_id));
         }
     }
 
@@ -3625,10 +3562,7 @@ pub async fn agent_pause(
         paused.insert(conversation_id.clone());
     }
 
-    info!(
-        "[agent_pause] Paused agent for conversationId={}",
-        conversation_id
-    );
+    info!("[agent_pause] Paused agent for conversationId={}", conversation_id);
 
     let _ = app.emit(
         "agent-paused",
@@ -3651,10 +3585,7 @@ pub async fn agent_resume(
     {
         let paused = app_state.agent_paused.lock().await;
         if !paused.contains(&conversation_id) {
-            return Err(format!(
-                "Agent for conversation {} is not paused",
-                conversation_id
-            ));
+            return Err(format!("Agent for conversation {} is not paused", conversation_id));
         }
     }
 
@@ -3663,10 +3594,7 @@ pub async fn agent_resume(
         paused.remove(&conversation_id);
     }
 
-    info!(
-        "[agent_resume] Resumed agent for conversationId={}",
-        conversation_id
-    );
+    info!("[agent_resume] Resumed agent for conversationId={}", conversation_id);
 
     let _ = app.emit(
         "agent-resumed",
@@ -3934,10 +3862,7 @@ pub async fn agent_ensure_workspace(
     let workspace_path = workspace_dir
         .to_str()
         .ok_or_else(|| {
-            format!(
-                "Workspace path contains invalid UTF-8: {}",
-                workspace_dir.display()
-            )
+            format!("Workspace path contains invalid UTF-8: {}", workspace_dir.display())
         })?
         .to_string();
 
@@ -4110,12 +4035,7 @@ pub async fn workflow_execute(
         axagent_core::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
         },
-        _ => {
-            return Err(format!(
-                "Unsupported provider type: {:?}",
-                prov.provider_type
-            ))
-        },
+        _ => return Err(format!("Unsupported provider type: {:?}", prov.provider_type)),
     };
 
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
@@ -4293,12 +4213,7 @@ pub async fn workflow_execute_with_session(
         axagent_core::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
         },
-        _ => {
-            return Err(format!(
-                "Unsupported provider type: {:?}",
-                prov.provider_type
-            ))
-        },
+        _ => return Err(format!("Unsupported provider type: {:?}", prov.provider_type)),
     };
 
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);

@@ -114,9 +114,7 @@ impl ResearchAgent {
         Self {
             planner: SearchPlanner::new(),
             orchestrator: SearchOrchestrator::new(),
-            state: Arc::new(RwLock::new(
-                ResearchState::new(String::new()).with_config(config),
-            )),
+            state: Arc::new(RwLock::new(ResearchState::new(String::new()).with_config(config))),
             event_sender,
             content_generator: None,
             error_recovery_engine: None,
@@ -214,10 +212,7 @@ impl ResearchAgent {
         let topic = self.state.read().await.topic.clone();
         let plan = self.planner.plan(&topic);
 
-        tracing::info!(
-            "Planning phase complete, generated {} queries",
-            plan.queries.len()
-        );
+        tracing::info!("Planning phase complete, generated {} queries", plan.queries.len());
 
         Ok(plan)
     }
@@ -325,10 +320,7 @@ impl ResearchAgent {
             state.progress.increment_sources_processed();
         }
 
-        tracing::info!(
-            "Analysis phase complete, processed {} sources",
-            citations.len()
-        );
+        tracing::info!("Analysis phase complete, processed {} sources", citations.len());
 
         Ok(())
     }
@@ -679,9 +671,7 @@ impl DefaultLlmContentGenerator {
 
                 Ok(response.content)
             },
-            _ => Err(ResearchError::LlmFailed(
-                "No LLM adapter configured".to_string(),
-            )),
+            _ => Err(ResearchError::LlmFailed("No LLM adapter configured".to_string())),
         }
     }
 }
@@ -733,10 +723,7 @@ impl LlmContentGenerator for DefaultLlmContentGenerator {
 3. 保持学术写作风格，逻辑清晰
 4. 输出完整的Markdown格式报告"#;
 
-        let user = format!(
-            "研究主题: {}\n\n大纲:\n{}\n\n来源信息:\n{}",
-            topic, outline, sources
-        );
+        let user = format!("研究主题: {}\n\n大纲:\n{}\n\n来源信息:\n{}", topic, outline, sources);
 
         self.call_llm(system, &user).await
     }

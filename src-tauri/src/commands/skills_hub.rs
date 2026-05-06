@@ -61,12 +61,7 @@ pub async fn skills_hub_search(
 ) -> Result<SkillsHubSearchResponse, String> {
     let client = SkillsHubClient::new(SkillsHubConfig::default());
     let result = client
-        .search(
-            &query,
-            category.as_deref(),
-            page as usize,
-            page_size as usize,
-        )
+        .search(&query, category.as_deref(), page as usize, page_size as usize)
         .await?;
     Ok(result.into())
 }

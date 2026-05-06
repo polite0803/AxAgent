@@ -42,26 +42,24 @@ pub fn wrap_executor_with_callback(
     executor: StepExecutor,
     callback: Arc<dyn SessionCallback>,
 ) -> StepExecutor {
-    Arc::new(
-        move |step: WorkflowStep, deps_results: HashMap<String, String>| {
-            let callback = Arc::clone(&callback);
-            let executor = Arc::clone(&executor);
-            let step_clone = step.clone();
+    Arc::new(move |step: WorkflowStep, deps_results: HashMap<String, String>| {
+        let callback = Arc::clone(&callback);
+        let executor = Arc::clone(&executor);
+        let step_clone = step.clone();
 
-            Box::pin(async move {
-                callback.on_step_start(&step_clone);
+        Box::pin(async move {
+            callback.on_step_start(&step_clone);
 
-                let result = executor(step_clone.clone(), deps_results).await;
+            let result = executor(step_clone.clone(), deps_results).await;
 
-                match &result {
-                    Ok(text) => callback.on_step_result(&step_clone, Ok(text.as_str())),
-                    Err(e) => callback.on_step_error(&step_clone, e),
-                }
+            match &result {
+                Ok(text) => callback.on_step_result(&step_clone, Ok(text.as_str())),
+                Err(e) => callback.on_step_error(&step_clone, e),
+            }
 
-                result
-            })
-        },
-    )
+            result
+        })
+    })
 }
 
 /// No-op session callback for when no session binding is needed.
@@ -504,10 +502,7 @@ impl WorkflowEngine {
 
         // Determine workflow terminal status
         let all_done = workflow.steps.iter().all(|s| {
-            matches!(
-                s.status,
-                StepStatus::Completed | StepStatus::Skipped | StepStatus::Failed
-            )
+            matches!(s.status, StepStatus::Completed | StepStatus::Skipped | StepStatus::Failed)
         });
         let any_failed = workflow
             .steps
@@ -687,11 +682,7 @@ impl std::fmt::Display for WorkflowError {
         match self {
             Self::DuplicateStepId(id) => write!(f, "Duplicate step id: {}", id),
             Self::InvalidDependency { step, missing_dep } => {
-                write!(
-                    f,
-                    "Step '{}' depends on non-existent '{}'",
-                    step, missing_dep
-                )
+                write!(f, "Step '{}' depends on non-existent '{}'", step, missing_dep)
             },
             Self::WorkflowNotFound => write!(f, "Workflow not found"),
             Self::StepNotFound => write!(f, "Step not found"),
@@ -1117,18 +1108,8 @@ mod tests {
     fn test_workflow_creation() {
         let engine = WorkflowEngine::new();
         let steps = vec![
-            make_step(
-                "research",
-                "Research the API",
-                AgentRole::Researcher,
-                vec![],
-            ),
-            make_step(
-                "backend",
-                "Implement backend",
-                AgentRole::Developer,
-                vec!["research"],
-            ),
+            make_step("research", "Research the API", AgentRole::Researcher, vec![]),
+            make_step("backend", "Implement backend", AgentRole::Developer, vec!["research"]),
         ];
 
         let workflow = engine.create_workflow("Test Workflow", steps).unwrap();

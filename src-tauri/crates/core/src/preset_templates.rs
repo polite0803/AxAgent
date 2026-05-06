@@ -596,10 +596,7 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
             base: WorkflowNodeBase {
                 id: format!("parallel_{}", group[0].id),
                 title: "Parallel Execution".to_string(),
-                description: Some(format!(
-                    "Executes {} branches in parallel",
-                    branch_ids.len()
-                )),
+                description: Some(format!("Executes {} branches in parallel", branch_ids.len())),
                 position: Position { x: 400.0, y },
                 retry: RetryConfig::default(),
                 timeout: Some(600),

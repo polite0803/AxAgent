@@ -141,10 +141,7 @@ pub async fn migrate_legacy_keys(db: &DatabaseConnection) {
                 // No legacy key exists, nothing to migrate
             },
             Err(e) => {
-                warn!(
-                    "Failed to read legacy key '{}' during migration: {}",
-                    old_key, e
-                );
+                warn!("Failed to read legacy key '{}' during migration: {}", old_key, e);
             },
         }
     }

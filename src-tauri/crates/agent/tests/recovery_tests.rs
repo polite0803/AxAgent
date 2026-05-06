@@ -73,11 +73,7 @@ fn test_all_error_types_have_strategy() {
                 | RecoveryStrategy::SkipTask
                 | RecoveryStrategy::Fail
         );
-        assert!(
-            is_valid,
-            "ErrorType {:?} should map to a valid recovery strategy",
-            error_type
-        );
+        assert!(is_valid, "ErrorType {:?} should map to a valid recovery strategy", error_type);
     }
 }
 

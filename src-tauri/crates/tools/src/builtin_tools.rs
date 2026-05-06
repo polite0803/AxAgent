@@ -49,8 +49,7 @@ static BUILTIN_HANDLERS: LazyLock<RwLock<HashMap<(String, String), BoxedToolHand
 
 /// Global database path for builtin tools that need DB access (session_search, memory_flush).
 /// Set once at startup via `set_global_db_path()`.
-static GLOBAL_DB_PATH: LazyLock<RwLock<Option<String>>> =
-    LazyLock::new(|| RwLock::new(None));
+static GLOBAL_DB_PATH: LazyLock<RwLock<Option<String>>> = LazyLock::new(|| RwLock::new(None));
 
 /// Set the global database path for builtin tools. Called once at startup.
 pub fn set_global_db_path(path: &str) {
@@ -146,11 +145,7 @@ pub fn store_pending_sub_agent_card(
     let mut m = PENDING_SUB_AGENT_CARDS.blocking_write();
     m.insert(
         parent_id.to_string(),
-        (
-            child_id.to_string(),
-            agent_type.to_string(),
-            description.to_string(),
-        ),
+        (child_id.to_string(), agent_type.to_string(), description.to_string()),
     );
 }
 
@@ -173,9 +168,7 @@ pub fn store_fork_context(parent_id: &str, description: &str, prompt: &str) {
         created_at: chrono::Utc::now().to_rfc3339(),
         parent_system_prompt: Vec::new(),
         parent_messages_json: String::new(),
-        child_system_prompt: Some(axagent_runtime::fork_bridge::build_fork_child_prompt(
-            prompt,
-        )),
+        child_system_prompt: Some(axagent_runtime::fork_bridge::build_fork_child_prompt(prompt)),
     };
     axagent_runtime::fork_bridge::store_fork_session(data);
 }

@@ -40,9 +40,7 @@ impl Tool for SendMessageTool {
         let msg = input["message"].as_str().unwrap_or("");
         let msg_type = input["msg_type"].as_str().unwrap_or("text");
         let from = ctx.conversation_id.as_deref().unwrap_or("unknown");
-        Ok(ToolResult::success(format!(
-            "📨 [{from}→{to}] ({msg_type}): {msg}"
-        )))
+        Ok(ToolResult::success(format!("📨 [{from}→{to}] ({msg_type}): {msg}")))
     }
 }
 

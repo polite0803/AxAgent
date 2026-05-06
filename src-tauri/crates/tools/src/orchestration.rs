@@ -285,10 +285,8 @@ async fn run_single(
     let mut last_error = None;
     for attempt in 0..=max_retries {
         if attempt > 0 {
-            tokio::time::sleep(std::time::Duration::from_millis(
-                retry_delay_ms * attempt as u64,
-            ))
-            .await;
+            tokio::time::sleep(std::time::Duration::from_millis(retry_delay_ms * attempt as u64))
+                .await;
         }
 
         let future = tool.call(input.clone(), ctx);

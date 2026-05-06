@@ -1,11 +1,11 @@
 use std::sync::LazyLock;
-use tokio::sync::RwLock;
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     AppHandle, Manager,
 };
+use tokio::sync::RwLock;
 
 const TRAY_ID: &str = "axagent-tray";
 

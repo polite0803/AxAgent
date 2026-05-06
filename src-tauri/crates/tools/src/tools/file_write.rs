@@ -51,10 +51,7 @@ impl Tool for FileWriteTool {
             .ok_or_else(|| ToolError::invalid_input_for("FileWrite", "缺少 file_path 参数"))?;
 
         if !Path::new(path).is_absolute() {
-            return Err(ToolError::invalid_input_for(
-                "FileWrite",
-                "file_path 必须是绝对路径",
-            ));
+            return Err(ToolError::invalid_input_for("FileWrite", "file_path 必须是绝对路径"));
         }
 
         let content = input["content"]
@@ -70,10 +67,7 @@ impl Tool for FileWriteTool {
         }
 
         if !ctx.allow_write {
-            return Err(ToolError::permission_denied(
-                "FileWrite",
-                "当前上下文不允许写入操作",
-            ));
+            return Err(ToolError::permission_denied("FileWrite", "当前上下文不允许写入操作"));
         }
 
         Ok(())

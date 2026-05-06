@@ -171,11 +171,7 @@ impl HealthChecker {
 
         let throughput = self.calculate_throughput().await;
         let throughput_healthy = throughput >= self.thresholds.min_throughput_per_sec;
-        metrics.push(HealthMetric::new(
-            "throughput_per_sec",
-            throughput,
-            throughput_healthy,
-        ));
+        metrics.push(HealthMetric::new("throughput_per_sec", throughput, throughput_healthy));
         if !throughput_healthy {
             issues.push(format!(
                 "Low throughput: {:.2} ops/sec (min: {:.2})",
@@ -185,11 +181,7 @@ impl HealthChecker {
 
         let error_rate = self.calculate_error_rate().await;
         let error_rate_healthy = error_rate <= self.thresholds.max_error_rate;
-        metrics.push(HealthMetric::new(
-            "error_rate",
-            error_rate,
-            error_rate_healthy,
-        ));
+        metrics.push(HealthMetric::new("error_rate", error_rate, error_rate_healthy));
         if !error_rate_healthy {
             issues.push(format!(
                 "High error rate: {:.1}% (max: {:.1}%)",
@@ -200,11 +192,7 @@ impl HealthChecker {
 
         let avg_latency = self.calculate_avg_latency().await;
         let latency_healthy = avg_latency <= self.thresholds.max_iteration_time_ms as f64;
-        metrics.push(HealthMetric::new(
-            "avg_latency_ms",
-            avg_latency,
-            latency_healthy,
-        ));
+        metrics.push(HealthMetric::new("avg_latency_ms", avg_latency, latency_healthy));
         if !latency_healthy {
             issues.push(format!(
                 "High latency: {:.0}ms (max: {}ms)",
@@ -463,10 +451,7 @@ mod tests {
         }
 
         let result = checker.check().await;
-        assert!(matches!(
-            result.status,
-            HealthStatus::Unhealthy | HealthStatus::Degraded
-        ));
+        assert!(matches!(result.status, HealthStatus::Unhealthy | HealthStatus::Degraded));
     }
 
     #[tokio::test]

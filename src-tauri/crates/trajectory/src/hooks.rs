@@ -373,12 +373,7 @@ mod tests {
     fn test_get_hook_commands_filters_disabled() {
         let mut service = HooksService::new();
 
-        service.add_hook_command(
-            HookEvent::PreToolUse,
-            "enabled_command".to_string(),
-            None,
-            None,
-        );
+        service.add_hook_command(HookEvent::PreToolUse, "enabled_command".to_string(), None, None);
 
         let disabled_hook = service.add_hook_command(
             HookEvent::PreToolUse,
@@ -426,19 +421,9 @@ mod tests {
     fn test_get_hooks_by_event() {
         let mut service = HooksService::new();
 
-        service.add_hook_command(
-            HookEvent::PreToolUse,
-            "pre_tool_cmd".to_string(),
-            None,
-            None,
-        );
+        service.add_hook_command(HookEvent::PreToolUse, "pre_tool_cmd".to_string(), None, None);
 
-        service.add_hook_command(
-            HookEvent::PostToolUse,
-            "post_tool_cmd".to_string(),
-            None,
-            None,
-        );
+        service.add_hook_command(HookEvent::PostToolUse, "post_tool_cmd".to_string(), None, None);
 
         let pre_hooks = service.get_hooks_by_event(HookEvent::PreToolUse);
         let post_hooks = service.get_hooks_by_event(HookEvent::PostToolUse);

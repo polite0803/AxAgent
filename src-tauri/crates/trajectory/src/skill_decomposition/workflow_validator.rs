@@ -193,10 +193,7 @@ impl WorkflowValidator {
                 corrected_value: Some(default_title.clone()),
             });
             if let Some(map) = node.as_object_mut() {
-                map.insert(
-                    "title".to_string(),
-                    serde_json::Value::String(default_title),
-                );
+                map.insert("title".to_string(), serde_json::Value::String(default_title));
             }
         }
 
@@ -450,10 +447,7 @@ impl WorkflowValidator {
         workflow_json: serde_json::Value,
     ) -> (serde_json::Value, Vec<ValidationIssue>) {
         let result = Self::validate(&workflow_json);
-        (
-            result.corrected_workflow.unwrap_or(workflow_json),
-            result.issues,
-        )
+        (result.corrected_workflow.unwrap_or(workflow_json), result.issues)
     }
 }
 

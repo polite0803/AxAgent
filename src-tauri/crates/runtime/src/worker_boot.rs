@@ -437,10 +437,7 @@ impl WorkerRegistry {
             worker,
             WorkerEventKind::Running,
             WorkerStatus::Running,
-            Some(format!(
-                "prompt dispatched to worker: {}",
-                prompt_preview(&next_prompt)
-            )),
+            Some(format!("prompt dispatched to worker: {}", prompt_preview(&next_prompt))),
             None,
         );
         Ok(worker.clone())
@@ -455,10 +452,7 @@ impl WorkerRegistry {
             worker_id: worker.worker_id.clone(),
             status: worker.status,
             ready: worker.status == WorkerStatus::ReadyForPrompt,
-            blocked: matches!(
-                worker.status,
-                WorkerStatus::TrustRequired | WorkerStatus::Failed
-            ),
+            blocked: matches!(worker.status, WorkerStatus::TrustRequired | WorkerStatus::Failed),
             replay_prompt_ready: worker.replay_prompt.is_some(),
             last_error: worker.last_error.clone(),
         })
@@ -883,11 +877,8 @@ mod tests {
     #[test]
     fn allowlisted_trust_prompt_auto_resolves_then_reaches_ready_state() {
         let registry = WorkerRegistry::new();
-        let worker = registry.create(
-            "/tmp/worktrees/repo-a",
-            &["/tmp/worktrees".to_string()],
-            true,
-        );
+        let worker =
+            registry.create("/tmp/worktrees/repo-a", &["/tmp/worktrees".to_string()], true);
 
         let after_trust = registry
             .observe(
@@ -1006,10 +997,7 @@ mod tests {
                 .kind,
             WorkerFailureKind::PromptDelivery
         );
-        assert_eq!(
-            recovered.replay_prompt.as_deref(),
-            Some("Implement worker handshake")
-        );
+        assert_eq!(recovered.replay_prompt.as_deref(), Some("Implement worker handshake"));
         let misdelivery = recovered
             .events
             .iter()
@@ -1061,11 +1049,7 @@ mod tests {
             .observe(&worker.worker_id, "Ready for input\n>")
             .expect("ready observe should succeed");
         registry
-            .send_prompt(
-                &worker.worker_id,
-                Some("Run the worker bootstrap tests"),
-                None,
-            )
+            .send_prompt(&worker.worker_id, Some("Run the worker bootstrap tests"), None)
             .expect("prompt send should succeed");
 
         let recovered = registry
@@ -1076,10 +1060,7 @@ mod tests {
             .expect("wrong target should be detected");
 
         assert_eq!(recovered.status, WorkerStatus::ReadyForPrompt);
-        assert_eq!(
-            recovered.replay_prompt.as_deref(),
-            Some("Run the worker bootstrap tests")
-        );
+        assert_eq!(recovered.replay_prompt.as_deref(), Some("Run the worker bootstrap tests"));
         assert!(recovered
             .last_error
             .expect("wrong target error should exist")
@@ -1279,19 +1260,12 @@ mod tests {
 
         // After create the worker is Spawning — state file should exist
         let state_path = cwd_path.join(".claw").join("worker-state.json");
-        assert!(
-            state_path.exists(),
-            "state file should exist after worker creation"
-        );
+        assert!(state_path.exists(), "state file should exist after worker creation");
 
         let raw = std::fs::read_to_string(&state_path).expect("state file should be readable");
         let value: serde_json::Value =
             serde_json::from_str(&raw).expect("state file should be valid JSON");
-        assert_eq!(
-            value["status"].as_str(),
-            Some("spawning"),
-            "initial status should be spawning"
-        );
+        assert_eq!(value["status"].as_str(), Some("spawning"), "initial status should be spawning");
         assert_eq!(value["is_ready"].as_bool(), Some(false));
 
         // Transition to ReadyForPrompt by observing trust-cleared text

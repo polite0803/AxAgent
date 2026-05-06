@@ -176,9 +176,7 @@ impl<'a> Parser<'a> {
     fn parse_literal(&mut self, expected: &str, value: JsonValue) -> Result<JsonValue, JsonError> {
         for expected_char in expected.chars() {
             if self.next() != Some(expected_char) {
-                return Err(JsonError::new(format!(
-                    "invalid literal: expected {expected}"
-                )));
+                return Err(JsonError::new(format!("invalid literal: expected {expected}")));
             }
         }
         Ok(value)
@@ -289,12 +287,8 @@ impl<'a> Parser<'a> {
     fn expect(&mut self, expected: char) -> Result<(), JsonError> {
         match self.next() {
             Some(actual) if actual == expected => Ok(()),
-            Some(actual) => Err(JsonError::new(format!(
-                "expected '{expected}', found '{actual}'"
-            ))),
-            None => Err(JsonError::new(format!(
-                "expected '{expected}', found end of input"
-            ))),
+            Some(actual) => Err(JsonError::new(format!("expected '{expected}', found '{actual}'"))),
+            None => Err(JsonError::new(format!("expected '{expected}', found end of input"))),
         }
     }
 
@@ -339,10 +333,7 @@ mod tests {
         object.insert("flag".to_string(), JsonValue::Bool(true));
         object.insert(
             "items".to_string(),
-            JsonValue::Array(vec![
-                JsonValue::Number(4),
-                JsonValue::String("ok".to_string()),
-            ]),
+            JsonValue::Array(vec![JsonValue::Number(4), JsonValue::String("ok".to_string())]),
         );
 
         let rendered = JsonValue::Object(object).render();

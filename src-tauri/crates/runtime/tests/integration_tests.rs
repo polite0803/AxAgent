@@ -224,10 +224,7 @@ fn end_to_end_stale_lane_gets_merge_forward_action() {
         // Priority 5: Check if stale first
         PolicyRule::new(
             "auto-merge-forward-if-stale-and-approved",
-            PolicyCondition::And(vec![
-                PolicyCondition::StaleBranch,
-                PolicyCondition::ReviewPassed,
-            ]),
+            PolicyCondition::And(vec![PolicyCondition::StaleBranch, PolicyCondition::ReviewPassed]),
             PolicyAction::MergeForward,
             5,
         ),
@@ -374,10 +371,7 @@ fn worker_provider_failure_flows_through_recovery_to_policy() {
     ]);
 
     // Recovery success is a pre-condition; policy evaluates post-recovery context
-    assert!(
-        recovery_success,
-        "recovery must succeed for lane to proceed"
-    );
+    assert!(recovery_success, "recovery must succeed for lane to proceed");
     let actions = policy_engine.evaluate(&post_recovery_context);
     assert_eq!(
         actions,

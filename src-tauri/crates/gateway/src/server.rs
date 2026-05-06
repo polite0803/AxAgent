@@ -86,16 +86,9 @@ async fn ssl_redirect_handler(
         .map(|pq| pq.as_str())
         .unwrap_or("/");
 
-    let location = format!(
-        "https://{}:{}{}",
-        bare_host, state.https_port, path_and_query
-    );
+    let location = format!("https://{}:{}{}", bare_host, state.https_port, path_and_query);
     // 307 preserves the request method (POST stays POST), unlike 302.
-    (
-        StatusCode::TEMPORARY_REDIRECT,
-        [(header::LOCATION, location)],
-    )
-        .into_response()
+    (StatusCode::TEMPORARY_REDIRECT, [(header::LOCATION, location)]).into_response()
 }
 
 fn create_redirect_router(https_port: u16) -> Router {

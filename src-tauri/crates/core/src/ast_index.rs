@@ -147,31 +147,16 @@ impl AstIndex {
             .unchecked_transaction()
             .map_err(|e| format!("tx: {e}"))?;
 
-        tx.execute(
-            "DELETE FROM ast_functions WHERE file_path = ?1",
-            params![file_path],
-        )
-        .map_err(|e| format!("delete fn: {e}"))?;
-        tx.execute(
-            "DELETE FROM ast_classes WHERE file_path = ?1",
-            params![file_path],
-        )
-        .map_err(|e| format!("delete cls: {e}"))?;
-        tx.execute(
-            "DELETE FROM ast_interfaces WHERE file_path = ?1",
-            params![file_path],
-        )
-        .map_err(|e| format!("delete iface: {e}"))?;
-        tx.execute(
-            "DELETE FROM ast_variables WHERE file_path = ?1",
-            params![file_path],
-        )
-        .map_err(|e| format!("delete var: {e}"))?;
-        tx.execute(
-            "DELETE FROM ast_call_edges WHERE caller_file = ?1",
-            params![file_path],
-        )
-        .map_err(|e| format!("delete edge: {e}"))?;
+        tx.execute("DELETE FROM ast_functions WHERE file_path = ?1", params![file_path])
+            .map_err(|e| format!("delete fn: {e}"))?;
+        tx.execute("DELETE FROM ast_classes WHERE file_path = ?1", params![file_path])
+            .map_err(|e| format!("delete cls: {e}"))?;
+        tx.execute("DELETE FROM ast_interfaces WHERE file_path = ?1", params![file_path])
+            .map_err(|e| format!("delete iface: {e}"))?;
+        tx.execute("DELETE FROM ast_variables WHERE file_path = ?1", params![file_path])
+            .map_err(|e| format!("delete var: {e}"))?;
+        tx.execute("DELETE FROM ast_call_edges WHERE caller_file = ?1", params![file_path])
+            .map_err(|e| format!("delete edge: {e}"))?;
 
         let mut total = 0;
 

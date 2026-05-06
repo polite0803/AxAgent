@@ -91,10 +91,7 @@ fn test_serialize_deserialize_config() {
     let deserialized: PlatformConfig = serde_json::from_str(&json).unwrap();
 
     assert!(deserialized.telegram_enabled);
-    assert_eq!(
-        deserialized.telegram_bot_token,
-        Some("test_bot_token".to_string())
-    );
+    assert_eq!(deserialized.telegram_bot_token, Some("test_bot_token".to_string()));
     assert!(deserialized.api_server_enabled);
     assert_eq!(deserialized.api_server_port, Some(9090));
     assert_eq!(deserialized.max_history_per_session, 50);

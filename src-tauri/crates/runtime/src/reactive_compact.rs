@@ -161,9 +161,7 @@ mod tests {
                     .unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
-                        text,
-                    }]))
+                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
                     .unwrap();
             }
         }
@@ -197,9 +195,7 @@ mod tests {
 
     #[test]
     fn test_context_overflow_detection() {
-        assert!(is_context_overflow_error(
-            "prompt_too_long: input exceeds maximum length"
-        ));
+        assert!(is_context_overflow_error("prompt_too_long: input exceeds maximum length"));
         assert!(is_context_overflow_error("context_length_exceeded error"));
         assert!(is_context_overflow_error("exceeded maximum context length"));
         assert!(!is_context_overflow_error("network timeout"));
@@ -214,14 +210,8 @@ mod tests {
 
     #[test]
     fn test_classify_trigger() {
-        assert_eq!(
-            classify_trigger("prompt_too_long"),
-            Some(ReactiveTrigger::PromptTooLong)
-        );
-        assert_eq!(
-            classify_trigger("image_too_large"),
-            Some(ReactiveTrigger::MediaSizeError)
-        );
+        assert_eq!(classify_trigger("prompt_too_long"), Some(ReactiveTrigger::PromptTooLong));
+        assert_eq!(classify_trigger("image_too_large"), Some(ReactiveTrigger::MediaSizeError));
         assert_eq!(classify_trigger("unknown error"), None);
     }
 }

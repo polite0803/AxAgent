@@ -49,10 +49,7 @@ impl MemoryProvider for HonchoProvider {
             .write()
             .await
             .insert(cache_key.clone(), entries);
-        tracing::debug!(
-            "Synced memory entries for session {} via Honcho",
-            session_id
-        );
+        tracing::debug!("Synced memory entries for session {} via Honcho", session_id);
         Ok(())
     }
 

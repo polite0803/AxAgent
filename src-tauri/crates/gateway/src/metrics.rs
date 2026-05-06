@@ -8,22 +8,14 @@ pub async fn metrics_handler() -> impl IntoResponse {
 
     if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
         tracing::error!("Failed to encode metrics: {}", e);
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to encode metrics",
-        )
-            .into_response();
+        return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to encode metrics").into_response();
     }
 
     match String::from_utf8(buffer) {
         Ok(output) => (StatusCode::OK, axum::response::Html(output)).into_response(),
         Err(e) => {
             tracing::error!("Failed to convert metrics to string: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to convert metrics",
-            )
-                .into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, "Failed to convert metrics").into_response()
         },
     }
 }

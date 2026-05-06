@@ -310,10 +310,7 @@ impl MessageBus {
         if mbs.contains_key(agent_id) {
             return false;
         }
-        mbs.insert(
-            agent_id.to_string(),
-            AgentMailbox::new(agent_id.to_string(), capacity),
-        );
+        mbs.insert(agent_id.to_string(), AgentMailbox::new(agent_id.to_string(), capacity));
         true
     }
 
@@ -653,12 +650,8 @@ impl SubAgentRegistry {
         self.task_deduplicator.register_task(&task);
 
         // Send TaskAssign message FIRST — if mailbox is full, don't update child state
-        let msg = AgentMessage::new(
-            parent_id,
-            child_id,
-            AgentMessageKind::TaskAssign,
-            task.clone(),
-        );
+        let msg =
+            AgentMessage::new(parent_id, child_id, AgentMessageKind::TaskAssign, task.clone());
         self.message_bus.send(msg)?;
 
         // Only update child agent state after successful message delivery
@@ -818,12 +811,8 @@ impl SubAgentRegistry {
             self.dirty = true;
         }
 
-        let msg = AgentMessage::new(
-            parent_id,
-            child_id,
-            AgentMessageKind::TaskCancel,
-            String::new(),
-        );
+        let msg =
+            AgentMessage::new(parent_id, child_id, AgentMessageKind::TaskCancel, String::new());
         self.message_bus.send(msg)
     }
 }
@@ -944,12 +933,8 @@ mod tests {
         bus.register("parent");
         bus.register("child");
 
-        let msg = AgentMessage::new(
-            "parent",
-            "child",
-            AgentMessageKind::TaskAssign,
-            "Do X".to_string(),
-        );
+        let msg =
+            AgentMessage::new("parent", "child", AgentMessageKind::TaskAssign, "Do X".to_string());
         assert!(bus.send(msg).is_ok());
 
         let received = bus.receive("child");
@@ -975,31 +960,17 @@ mod tests {
 
         // Create parent and children
         let parent = registry.create("coordinator".to_string(), "Parent agent".to_string(), None);
-        let child1 = registry.create(
-            "worker1".to_string(),
-            "Worker 1".to_string(),
-            Some(parent.id.clone()),
-        );
-        let child2 = registry.create(
-            "worker2".to_string(),
-            "Worker 2".to_string(),
-            Some(parent.id.clone()),
-        );
+        let child1 =
+            registry.create("worker1".to_string(), "Worker 1".to_string(), Some(parent.id.clone()));
+        let child2 =
+            registry.create("worker2".to_string(), "Worker 2".to_string(), Some(parent.id.clone()));
 
         // Dispatch tasks (use distinct descriptions to avoid dedup)
         registry
-            .dispatch_task(
-                &parent.id,
-                &child1.id,
-                "Analyze the codebase structure".to_string(),
-            )
+            .dispatch_task(&parent.id, &child1.id, "Analyze the codebase structure".to_string())
             .unwrap();
         registry
-            .dispatch_task(
-                &parent.id,
-                &child2.id,
-                "Write unit tests for module".to_string(),
-            )
+            .dispatch_task(&parent.id, &child2.id, "Write unit tests for module".to_string())
             .unwrap();
 
         // Verify tasks assigned
@@ -1016,10 +987,7 @@ mod tests {
         registry
             .report_completion(&child1.id, "Result A".to_string())
             .unwrap();
-        assert_eq!(
-            registry.get(&child1.id).unwrap().status,
-            SubAgentStatus::Completed
-        );
+        assert_eq!(registry.get(&child1.id).unwrap().status, SubAgentStatus::Completed);
 
         // Collect results — child1 done, child2 pending
         let (results, pending) = registry.collect_results(&parent.id);
@@ -1049,11 +1017,8 @@ mod tests {
                 .unwrap();
 
         let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None);
-        let child = registry.create(
-            "worker".to_string(),
-            "Worker".to_string(),
-            Some(parent.id.clone()),
-        );
+        let child =
+            registry.create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()));
 
         // Report progress
         registry.report_progress(&child.id, 0.5).unwrap();
@@ -1078,19 +1043,13 @@ mod tests {
                 .unwrap();
 
         let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None);
-        let child = registry.create(
-            "worker".to_string(),
-            "Worker".to_string(),
-            Some(parent.id.clone()),
-        );
+        let child =
+            registry.create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()));
 
         registry
             .report_error(&child.id, "Something went wrong".to_string())
             .unwrap();
-        assert_eq!(
-            registry.get(&child.id).unwrap().status,
-            SubAgentStatus::Failed
-        );
+        assert_eq!(registry.get(&child.id).unwrap().status, SubAgentStatus::Failed);
 
         let msgs = registry
             .message_bus()

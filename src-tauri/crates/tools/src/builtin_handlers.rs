@@ -1170,10 +1170,7 @@ pub fn init_builtin_handlers() {
                             "elapsed_ms": 0
                         }))
                     },
-                    _ => Err(AxAgentError::Gateway(format!(
-                        "Unknown provider: {}",
-                        provider_name
-                    ))),
+                    _ => Err(AxAgentError::Gateway(format!("Unknown provider: {}", provider_name))),
                 };
 
                 match result {
@@ -2294,13 +2291,7 @@ async fn search_files(
     let mut results = Vec::new();
 
     let pattern_lower = pattern.to_lowercase();
-    walk_dir_search(
-        std::path::Path::new(path),
-        &pattern_lower,
-        &mut results,
-        max,
-    )
-    .await;
+    walk_dir_search(std::path::Path::new(path), &pattern_lower, &mut results, max).await;
 
     let content = if results.is_empty() {
         format!("No files matching '{}' found in '{}'", pattern, path)
@@ -2585,11 +2576,7 @@ fn truncate_text(text: &str, max: usize) -> String {
         let boundary = trunc_at.min(text.len());
         // Use floor_char_boundary to avoid splitting multi-byte UTF-8 characters
         let safe_boundary = text.floor_char_boundary(boundary);
-        format!(
-            "{}...[truncated {} chars]",
-            &text[..safe_boundary],
-            text.len() - max + 50
-        )
+        format!("{}...[truncated {} chars]", &text[..safe_boundary], text.len() - max + 50)
     }
 }
 
@@ -2762,9 +2749,7 @@ fn sanitize_fts5_query(query: &str) -> Result<String> {
         return Err(AxAgentError::Validation("query must not be empty".into()));
     }
     if trimmed.len() > 1000 {
-        return Err(AxAgentError::Validation(
-            "query too long (max 1000 chars)".into(),
-        ));
+        return Err(AxAgentError::Validation("query too long (max 1000 chars)".into()));
     }
     let mut sanitized = String::with_capacity(trimmed.len() * 2);
     let mut in_phrase = false;
@@ -2790,9 +2775,7 @@ fn sanitize_fts5_query(query: &str) -> Result<String> {
         return Err(AxAgentError::Validation("unmatched quote in query".into()));
     }
     if sanitized.contains("..") || sanitized.contains('\'') {
-        return Err(AxAgentError::Validation(
-            "invalid characters in query".into(),
-        ));
+        return Err(AxAgentError::Validation("invalid characters in query".into()));
     }
     Ok(sanitized)
 }
@@ -3002,10 +2985,7 @@ fn get_storage_info() -> Result<McpToolResult> {
         0
     };
     Ok(McpToolResult {
-        content: format!(
-            "Storage Info:\n  Root: documents/\n  Total files: {}",
-            total
-        ),
+        content: format!("Storage Info:\n  Root: documents/\n  Total files: {}", total),
         is_error: false,
     })
 }
@@ -3060,11 +3040,7 @@ fn upload_storage_file(
     std::fs::write(&bucket_path, decoded).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     Ok(McpToolResult {
-        content: format!(
-            "File '{}' uploaded to '{}'",
-            filename,
-            bucket_path.display()
-        ),
+        content: format!("File '{}' uploaded to '{}'", filename, bucket_path.display()),
         is_error: false,
     })
 }
@@ -3189,11 +3165,7 @@ async fn write_file(path: &str, content: &str) -> Result<McpToolResult> {
         .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
 
     Ok(McpToolResult {
-        content: format!(
-            "File '{}' written successfully ({} bytes)",
-            path,
-            content.len()
-        ),
+        content: format!("File '{}' written successfully ({} bytes)", path, content.len()),
         is_error: false,
     })
 }
@@ -3502,11 +3474,7 @@ async fn file_exists(path: &str) -> Result<McpToolResult> {
     let path_str = resolved_path.to_string_lossy();
     let exists = std::path::Path::new(&*path_str).exists();
     Ok(McpToolResult {
-        content: format!(
-            "{}: {}",
-            path,
-            if exists { "exists" } else { "does not exist" }
-        ),
+        content: format!("{}: {}", path, if exists { "exists" } else { "does not exist" }),
         is_error: false,
     })
 }
@@ -4594,10 +4562,7 @@ fn parse_brave_local_results(json: &str) -> String {
     let parsed: serde_json::Value = match serde_json::from_str(json) {
         Ok(v) => v,
         Err(_) => {
-            return format!(
-                "Unable to parse results. Raw response: {}",
-                truncate_text(json, 1000)
-            )
+            return format!("Unable to parse results. Raw response: {}", truncate_text(json, 1000))
         },
     };
 
@@ -4684,10 +4649,7 @@ async fn sequential_thinking(
         }
     } else if let Some(branch_from) = branch_from_thought {
         if let Some(b_id) = branch_id {
-            format!(
-                "Thought #{} (Branch {} from #{})",
-                thought_number, b_id, branch_from
-            )
+            format!("Thought #{} (Branch {} from #{})", thought_number, b_id, branch_from)
         } else {
             format!("Thought #{} (Branch from #{})", thought_number, branch_from)
         }
@@ -4701,10 +4663,7 @@ async fn sequential_thinking(
 
     // Add progress indicator
     let progress = if thought_number >= total_thoughts && !is_revision.unwrap_or(false) {
-        format!(
-            "\n\n[Thinking complete: {}/{} thoughts]",
-            thought_number, total_thoughts
-        )
+        format!("\n\n[Thinking complete: {}/{} thoughts]", thought_number, total_thoughts)
     } else {
         let remaining = total_thoughts.saturating_sub(thought_number);
         format!(
@@ -4775,10 +4734,8 @@ async fn python_execute(script: &str, timeout_secs: u64) -> Result<McpToolResult
             }
 
             if !output.status.success() {
-                result.push_str(&format!(
-                    "\n\n[Exit code: {}]",
-                    output.status.code().unwrap_or(-1)
-                ));
+                result
+                    .push_str(&format!("\n\n[Exit code: {}]", output.status.code().unwrap_or(-1)));
             }
 
             Ok(McpToolResult {
@@ -4787,10 +4744,7 @@ async fn python_execute(script: &str, timeout_secs: u64) -> Result<McpToolResult
             })
         },
         Ok(Err(e)) => Ok(McpToolResult {
-            content: format!(
-                "Failed to execute Python: {}. Is Python installed and in PATH?",
-                e
-            ),
+            content: format!("Failed to execute Python: {}. Is Python installed and in PATH?", e),
             is_error: true,
         }),
         Err(_) => Ok(McpToolResult {
@@ -4872,11 +4826,7 @@ async fn dify_search(
         });
     }
 
-    let url = format!(
-        "{}/datasets/{}/retrieve",
-        api_base.trim_end_matches('/'),
-        dataset_id
-    );
+    let url = format!("{}/datasets/{}/retrieve", api_base.trim_end_matches('/'), dataset_id);
     let body = serde_json::json!({
         "query": query,
         "retrieval_model": {
@@ -4930,10 +4880,7 @@ fn parse_dify_datasets(json_str: &str) -> String {
     let parsed: serde_json::Value = match serde_json::from_str(json_str) {
         Ok(v) => v,
         Err(_) => {
-            return format!(
-                "Unable to parse Dify response. Raw: {}",
-                truncate_text(json_str, 1000)
-            )
+            return format!("Unable to parse Dify response. Raw: {}", truncate_text(json_str, 1000))
         },
     };
 
@@ -5372,11 +5319,9 @@ async fn cache_info_tool() -> Result<McpToolResult> {
         let temp_path = std::path::Path::new(&temp).join("axagent");
         if temp_path.exists() {
             match calculate_dir_size(&temp_path) {
-                Ok((size, files)) => lines.push(format!(
-                    "  Temp cache: {} ({} files)",
-                    format_size(size),
-                    files
-                )),
+                Ok((size, files)) => {
+                    lines.push(format!("  Temp cache: {} ({} files)", format_size(size), files))
+                },
                 Err(_) => lines.push("  Temp cache: (unable to calculate)".to_string()),
             }
         }
@@ -5665,13 +5610,7 @@ fn obsidian_get_vaults_tool(search_path: Option<&str>) -> Result<McpToolResult> 
 
     let mut lines = vec![format!("Found {} Obsidian vault(s):", vaults.len())];
     for (i, (name, path, file_count)) in vaults.iter().enumerate() {
-        lines.push(format!(
-            "\n{}. {} ({} files)\n   Path: {}",
-            i + 1,
-            name,
-            file_count,
-            path
-        ));
+        lines.push(format!("\n{}. {} ({} files)\n   Path: {}", i + 1, name, file_count, path));
     }
     Ok(McpToolResult {
         content: lines.join("\n"),
@@ -5959,10 +5898,7 @@ async fn remotefile_upload_tool(
         "openai" => upload_to_openai(&client, api_key, &data, fp, purpose).await,
         "mistral" => upload_to_mistral(&client, api_key, &data, fp).await,
         _ => Ok(McpToolResult {
-            content: format!(
-                "Unknown provider: {}. Use gemini, openai, or mistral.",
-                provider
-            ),
+            content: format!("Unknown provider: {}. Use gemini, openai, or mistral.", provider),
             is_error: true,
         }),
     }
@@ -6021,10 +5957,8 @@ async fn upload_to_gemini(
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
-    let url = format!(
-        "https://generativelanguage.googleapis.com/upload/v1beta/files?key={}",
-        api_key
-    );
+    let url =
+        format!("https://generativelanguage.googleapis.com/upload/v1beta/files?key={}", api_key);
 
     // Gemini uses a two-step: start upload, then actually upload
     let metadata = serde_json::json!({
@@ -6079,10 +6013,7 @@ async fn upload_to_gemini(
 }
 
 async fn list_gemini_files(client: &reqwest::Client, api_key: &str) -> Result<McpToolResult> {
-    let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/files?key={}",
-        api_key
-    );
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/files?key={}", api_key);
     match client.get(&url).send().await {
         Ok(resp) => {
             let text = resp.text().await.unwrap_or_default();
@@ -6129,10 +6060,8 @@ async fn delete_gemini_file(
     api_key: &str,
     file_id: &str,
 ) -> Result<McpToolResult> {
-    let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/{}?key={}",
-        file_id, api_key
-    );
+    let url =
+        format!("https://generativelanguage.googleapis.com/v1beta/{}?key={}", file_id, api_key);
     match client.delete(&url).send().await {
         Ok(resp) => {
             if resp.status().is_success() {

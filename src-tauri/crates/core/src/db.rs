@@ -30,36 +30,18 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
 
     let conn = Database::connect(opt).await?;
 
-    conn.execute_raw(Statement::from_string(
-        DbBackend::Sqlite,
-        "PRAGMA journal_mode=WAL;",
-    ))
-    .await?;
-    conn.execute_raw(Statement::from_string(
-        DbBackend::Sqlite,
-        "PRAGMA foreign_keys=ON;",
-    ))
-    .await?;
-    conn.execute_raw(Statement::from_string(
-        DbBackend::Sqlite,
-        "PRAGMA busy_timeout=5000;",
-    ))
-    .await?;
-    conn.execute_raw(Statement::from_string(
-        DbBackend::Sqlite,
-        "PRAGMA synchronous=NORMAL;",
-    ))
-    .await?;
-    conn.execute_raw(Statement::from_string(
-        DbBackend::Sqlite,
-        "PRAGMA cache_size=-64000;",
-    ))
-    .await?;
-    conn.execute_raw(Statement::from_string(
-        DbBackend::Sqlite,
-        "PRAGMA temp_store=MEMORY;",
-    ))
-    .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA journal_mode=WAL;"))
+        .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
+        .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA busy_timeout=5000;"))
+        .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA synchronous=NORMAL;"))
+        .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA cache_size=-64000;"))
+        .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA temp_store=MEMORY;"))
+        .await?;
 
     // Run SeaORM migrations
     axagent_migration::Migrator::up(&conn, None).await?;
@@ -108,12 +90,7 @@ pub struct BuiltinProvider {
     pub name: &'static str,
     pub provider_type: ProviderType,
     pub api_host: &'static str,
-    pub models: Vec<(
-        &'static str,
-        &'static str,
-        Vec<ModelCapability>,
-        Option<u32>,
-    )>,
+    pub models: Vec<(&'static str, &'static str, Vec<ModelCapability>, Option<u32>)>,
 }
 
 pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
@@ -126,30 +103,15 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAI,
             api_host: "https://api.openai.com",
             models: vec![
-                (
-                    "gpt-4o",
-                    "GPT-4o",
-                    vec![TextChat, Vision, FunctionCalling],
-                    Some(128000),
-                ),
+                ("gpt-4o", "GPT-4o", vec![TextChat, Vision, FunctionCalling], Some(128000)),
                 (
                     "gpt-4o-mini",
                     "GPT-4o Mini",
                     vec![TextChat, Vision, FunctionCalling],
                     Some(128000),
                 ),
-                (
-                    "o3-mini",
-                    "o3-mini",
-                    vec![TextChat, Reasoning, FunctionCalling],
-                    Some(200000),
-                ),
-                (
-                    "gpt-4.1",
-                    "GPT-4.1",
-                    vec![TextChat, Vision, FunctionCalling],
-                    Some(1047576),
-                ),
+                ("o3-mini", "o3-mini", vec![TextChat, Reasoning, FunctionCalling], Some(200000)),
+                ("gpt-4.1", "GPT-4.1", vec![TextChat, Vision, FunctionCalling], Some(1047576)),
             ],
         },
         BuiltinProvider {
@@ -158,24 +120,14 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAIResponses,
             api_host: "https://api.openai.com",
             models: vec![
-                (
-                    "gpt-4o",
-                    "GPT-4o",
-                    vec![TextChat, Vision, FunctionCalling],
-                    Some(128000),
-                ),
+                ("gpt-4o", "GPT-4o", vec![TextChat, Vision, FunctionCalling], Some(128000)),
                 (
                     "gpt-4o-mini",
                     "GPT-4o Mini",
                     vec![TextChat, Vision, FunctionCalling],
                     Some(128000),
                 ),
-                (
-                    "o3-mini",
-                    "o3-mini",
-                    vec![TextChat, Reasoning, FunctionCalling],
-                    Some(200000),
-                ),
+                ("o3-mini", "o3-mini", vec![TextChat, Reasoning, FunctionCalling], Some(200000)),
             ],
         },
         BuiltinProvider {
@@ -236,18 +188,8 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAI,
             api_host: "https://api.deepseek.com",
             models: vec![
-                (
-                    "deepseek-chat",
-                    "DeepSeek Chat",
-                    vec![TextChat, FunctionCalling],
-                    Some(65536),
-                ),
-                (
-                    "deepseek-reasoner",
-                    "DeepSeek Reasoner",
-                    vec![TextChat, Reasoning],
-                    Some(65536),
-                ),
+                ("deepseek-chat", "DeepSeek Chat", vec![TextChat, FunctionCalling], Some(65536)),
+                ("deepseek-reasoner", "DeepSeek Reasoner", vec![TextChat, Reasoning], Some(65536)),
             ],
         },
         BuiltinProvider {
@@ -256,12 +198,7 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAI,
             api_host: "https://api.x.ai",
             models: vec![
-                (
-                    "grok-3",
-                    "Grok 3",
-                    vec![TextChat, FunctionCalling],
-                    Some(131072),
-                ),
+                ("grok-3", "Grok 3", vec![TextChat, FunctionCalling], Some(131072)),
                 (
                     "grok-3-mini",
                     "Grok 3 Mini",
@@ -276,24 +213,9 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAI,
             api_host: "https://open.bigmodel.cn/api/paas",
             models: vec![
-                (
-                    "glm-4-plus",
-                    "GLM-4 Plus",
-                    vec![TextChat, FunctionCalling],
-                    Some(128000),
-                ),
-                (
-                    "glm-4-flash",
-                    "GLM-4 Flash",
-                    vec![TextChat, FunctionCalling],
-                    Some(128000),
-                ),
-                (
-                    "glm-4.7",
-                    "GLM-4.7",
-                    vec![TextChat, Reasoning, FunctionCalling],
-                    Some(128000),
-                ),
+                ("glm-4-plus", "GLM-4 Plus", vec![TextChat, FunctionCalling], Some(128000)),
+                ("glm-4-flash", "GLM-4 Flash", vec![TextChat, FunctionCalling], Some(128000)),
+                ("glm-4.7", "GLM-4.7", vec![TextChat, Reasoning, FunctionCalling], Some(128000)),
             ],
         },
         BuiltinProvider {
@@ -308,12 +230,7 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
                     vec![TextChat, Reasoning, FunctionCalling],
                     Some(1000000),
                 ),
-                (
-                    "MiniMax-S1",
-                    "MiniMax-S1",
-                    vec![TextChat, FunctionCalling],
-                    Some(1000000),
-                ),
+                ("MiniMax-S1", "MiniMax-S1", vec![TextChat, FunctionCalling], Some(1000000)),
                 (
                     "minimaxai/minimax-m2.7",
                     "MiniMax-M2.7",

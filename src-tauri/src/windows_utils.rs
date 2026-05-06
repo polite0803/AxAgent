@@ -15,12 +15,7 @@ pub fn show_error_dialog(title: &str, message: &str) {
     let wide_title = to_wide(title);
     let wide_msg = to_wide(message);
     unsafe {
-        MessageBoxW(
-            0 as HWND,
-            wide_msg.as_ptr(),
-            wide_title.as_ptr(),
-            MB_OK | MB_ICONERROR,
-        );
+        MessageBoxW(0 as HWND, wide_msg.as_ptr(), wide_title.as_ptr(), MB_OK | MB_ICONERROR);
     }
 }
 
@@ -30,12 +25,7 @@ pub fn show_warning_ok_cancel(title: &str, message: &str) -> bool {
     let wide_title = to_wide(title);
     let wide_msg = to_wide(message);
     let result = unsafe {
-        MessageBoxW(
-            0 as HWND,
-            wide_msg.as_ptr(),
-            wide_title.as_ptr(),
-            MB_OKCANCEL | MB_ICONWARNING,
-        )
+        MessageBoxW(0 as HWND, wide_msg.as_ptr(), wide_title.as_ptr(), MB_OKCANCEL | MB_ICONWARNING)
     };
     result == IDOK
 }

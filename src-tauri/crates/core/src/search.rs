@@ -16,7 +16,7 @@ pub fn is_safe_url(url_str: &str) -> bool {
 
     // Only allow http/https
     match parsed.scheme() {
-        "http" | "https" => {}
+        "http" | "https" => {},
         _ => return false,
     }
 
@@ -140,7 +140,11 @@ pub async fn execute_search(
 
     match result {
         Ok(results) if !results.is_empty() => Ok(SearchResponse {
-            ok: true, query: query.to_string(), results, latency_ms: latency, error: None,
+            ok: true,
+            query: query.to_string(),
+            results,
+            latency_ms: latency,
+            error: None,
         }),
         _ => {
             // 2. DuckDuckGo fallback
@@ -148,13 +152,21 @@ pub async fn execute_search(
             let latency = start.elapsed().as_millis() as u64;
             match ddg {
                 Ok(results) => Ok(SearchResponse {
-                    ok: true, query: query.to_string(), results, latency_ms: latency, error: None,
+                    ok: true,
+                    query: query.to_string(),
+                    results,
+                    latency_ms: latency,
+                    error: None,
                 }),
                 Err(e) => Ok(SearchResponse {
-                    ok: false, query: query.to_string(), results: vec![], latency_ms: latency, error: Some(e.to_string()),
+                    ok: false,
+                    query: query.to_string(),
+                    results: vec![],
+                    latency_ms: latency,
+                    error: Some(e.to_string()),
                 }),
             }
-        }
+        },
     }
 }
 
@@ -169,11 +181,14 @@ pub async fn execute_search_text(
 ) -> String {
     match execute_search(provider_type, endpoint, api_key, query, max_results, timeout_ms).await {
         Ok(resp) if resp.ok => {
-            let lines: Vec<String> = resp.results.iter().enumerate()
+            let lines: Vec<String> = resp
+                .results
+                .iter()
+                .enumerate()
                 .map(|(i, r)| format!("{}. {}\n   {}\n   {}", i + 1, r.title, r.content, r.url))
                 .collect();
             format!("Web search results for '{}':\n{}", query, lines.join("\n"))
-        }
+        },
         Ok(resp) => format!("Search failed: {}", resp.error.unwrap_or_default()),
         Err(e) => format!("Search error: {}", e),
     }
@@ -263,9 +278,7 @@ async fn search_tavily(
     if !resp.status().is_success() {
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        return Err(AxAgentError::Provider(format!(
-            "Tavily API error {status}: {text}"
-        )));
+        return Err(AxAgentError::Provider(format!("Tavily API error {status}: {text}")));
     }
 
     let data: TavilyResponse = resp
@@ -340,9 +353,7 @@ async fn search_zhipu(
     if !resp.status().is_success() {
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        return Err(AxAgentError::Provider(format!(
-            "Zhipu API error {status}: {text}"
-        )));
+        return Err(AxAgentError::Provider(format!("Zhipu API error {status}: {text}")));
     }
 
     let data: ZhipuResponse = resp
@@ -435,9 +446,7 @@ async fn search_bocha(
     if !resp.status().is_success() {
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        return Err(AxAgentError::Provider(format!(
-            "Bocha API error {status}: {text}"
-        )));
+        return Err(AxAgentError::Provider(format!("Bocha API error {status}: {text}")));
     }
 
     let data: BochaResponse = resp
@@ -489,9 +498,14 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
         if let Ok(json) = resp.json::<serde_json::Value>().await {
             if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str()) {
                 if !abs.is_empty() {
-                    let url = json.get("AbstractURL").and_then(|v| v.as_str()).unwrap_or("");
+                    let url = json
+                        .get("AbstractURL")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
                     results.push(SearchResult {
-                        title: "摘要".to_string(), content: abs.to_string(), url: url.to_string(),
+                        title: "摘要".to_string(),
+                        content: abs.to_string(),
+                        url: url.to_string(),
                     });
                 }
             }
@@ -512,13 +526,18 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
 
     // HTML fallback if API returned nothing
     if results.is_empty() {
-        let html_url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
+        let html_url =
+            format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
         if let Ok(resp) = client.get(&html_url).send().await {
             if let Ok(html) = resp.text().await {
-                for part in html.split("result__snippet").skip(1).take(max_results as usize) {
+                for part in html
+                    .split("result__snippet")
+                    .skip(1)
+                    .take(max_results as usize)
+                {
                     if let Some(start) = part.find('>') {
-                        if let Some(end) = part[start+1..].find("</") {
-                            let text = part[start+1..start+1+end].trim();
+                        if let Some(end) = part[start + 1..].find("</") {
+                            let text = part[start + 1..start + 1 + end].trim();
                             if !text.is_empty() {
                                 results.push(SearchResult {
                                     title: text.chars().take(80).collect(),
@@ -564,21 +583,36 @@ async fn search_serpapi(
         .build()
         .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
 
-    let full_url = format!("{}?q={}&api_key={}&num={}", url, urlencoding::encode(query), urlencoding::encode(api_key), max_results);
-    let resp = client.get(&full_url).send().await
+    let full_url = format!(
+        "{}?q={}&api_key={}&num={}",
+        url,
+        urlencoding::encode(query),
+        urlencoding::encode(api_key),
+        max_results
+    );
+    let resp = client
+        .get(&full_url)
+        .send()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("SerpAPI request: {e}")))?;
 
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("SerpAPI HTTP {}", resp.status())));
     }
-    let data: SerpApiResponse = resp.json().await
+    let data: SerpApiResponse = resp
+        .json()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("SerpAPI parse: {e}")))?;
     let organic = data.organic_results.unwrap_or_default();
-    Ok(organic.into_iter().take(max_results as usize).map(|r| SearchResult {
-        title: r.title.unwrap_or_default(),
-        content: r.snippet.unwrap_or_default(),
-        url: r.link.unwrap_or_default(),
-    }).collect())
+    Ok(organic
+        .into_iter()
+        .take(max_results as usize)
+        .map(|r| SearchResult {
+            title: r.title.unwrap_or_default(),
+            content: r.snippet.unwrap_or_default(),
+            url: r.link.unwrap_or_default(),
+        })
+        .collect())
 }
 
 // ── Brave Search ────────────────────────────────────────────
@@ -616,23 +650,31 @@ async fn search_brave(
         .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
 
     let full_url = format!("{}?q={}&count={}", url, urlencoding::encode(query), max_results);
-    let resp = client.get(&full_url)
+    let resp = client
+        .get(&full_url)
         .header("X-Subscription-Token", api_key)
         .header("Accept", "application/json")
-        .send().await
+        .send()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("Brave request: {e}")))?;
 
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("Brave HTTP {}", resp.status())));
     }
-    let data: BraveResponse = resp.json().await
+    let data: BraveResponse = resp
+        .json()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("Brave parse: {e}")))?;
     let web = data.web.and_then(|w| w.results).unwrap_or_default();
-    Ok(web.into_iter().take(max_results as usize).map(|r| SearchResult {
-        title: r.title.unwrap_or_default(),
-        content: r.description.unwrap_or_default(),
-        url: r.url.unwrap_or_default(),
-    }).collect())
+    Ok(web
+        .into_iter()
+        .take(max_results as usize)
+        .map(|r| SearchResult {
+            title: r.title.unwrap_or_default(),
+            content: r.description.unwrap_or_default(),
+            url: r.url.unwrap_or_default(),
+        })
+        .collect())
 }
 
 // ── Bing Search ─────────────────────────────────────────────
@@ -671,22 +713,30 @@ async fn search_bing(
         .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
 
     let full_url = format!("{}?q={}&count={}", url, urlencoding::encode(query), max_results);
-    let resp = client.get(&full_url)
+    let resp = client
+        .get(&full_url)
         .header("Ocp-Apim-Subscription-Key", api_key)
-        .send().await
+        .send()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("Bing request: {e}")))?;
 
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("Bing HTTP {}", resp.status())));
     }
-    let data: BingResponse = resp.json().await
+    let data: BingResponse = resp
+        .json()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("Bing parse: {e}")))?;
     let web = data.web_pages.and_then(|w| w.value).unwrap_or_default();
-    Ok(web.into_iter().take(max_results as usize).map(|r| SearchResult {
-        title: r.name.unwrap_or_default(),
-        content: r.snippet.unwrap_or_default(),
-        url: r.url.unwrap_or_default(),
-    }).collect())
+    Ok(web
+        .into_iter()
+        .take(max_results as usize)
+        .map(|r| SearchResult {
+            title: r.name.unwrap_or_default(),
+            content: r.snippet.unwrap_or_default(),
+            url: r.url.unwrap_or_default(),
+        })
+        .collect())
 }
 
 // ── Google PSE (Programmable Search Engine) ─────────────────
@@ -717,19 +767,34 @@ async fn search_google_pse(
         .build()
         .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
 
-    let full_url = format!("{}?q={}&key={}&num={}", url, urlencoding::encode(query), urlencoding::encode(api_key), max_results);
-    let resp = client.get(&full_url).send().await
+    let full_url = format!(
+        "{}?q={}&key={}&num={}",
+        url,
+        urlencoding::encode(query),
+        urlencoding::encode(api_key),
+        max_results
+    );
+    let resp = client
+        .get(&full_url)
+        .send()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("Google PSE request: {e}")))?;
 
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("Google PSE HTTP {}", resp.status())));
     }
-    let data: GooglePseResponse = resp.json().await
+    let data: GooglePseResponse = resp
+        .json()
+        .await
         .map_err(|e| AxAgentError::Provider(format!("Google PSE parse: {e}")))?;
     let items = data.items.unwrap_or_default();
-    Ok(items.into_iter().take(max_results as usize).map(|r| SearchResult {
-        title: r.title.unwrap_or_default(),
-        content: r.snippet.unwrap_or_default(),
-        url: r.link.unwrap_or_default(),
-    }).collect())
+    Ok(items
+        .into_iter()
+        .take(max_results as usize)
+        .map(|r| SearchResult {
+            title: r.title.unwrap_or_default(),
+            content: r.snippet.unwrap_or_default(),
+            url: r.link.unwrap_or_default(),
+        })
+        .collect())
 }

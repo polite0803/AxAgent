@@ -120,11 +120,7 @@ pub async fn process_platform_message(
     platform: String,
     payload: serde_json::Value,
 ) -> Result<Option<OutgoingMessage>, String> {
-    tracing::info!(
-        "process_platform_message: platform={}, payload={}",
-        platform,
-        payload
-    );
+    tracing::info!("process_platform_message: platform={}, payload={}", platform, payload);
     Ok(None)
 }
 

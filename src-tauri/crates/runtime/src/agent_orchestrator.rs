@@ -769,11 +769,7 @@ impl AgentOrchestrator {
                         "task": task_desc,
                         "status": "dispatched"
                     });
-                    (
-                        wid.clone(),
-                        tid.clone(),
-                        Ok::<serde_json::Value, String>(result),
-                    )
+                    (wid.clone(), tid.clone(), Ok::<serde_json::Value, String>(result))
                 });
 
                 handles.push((agent_id, task_id, handle));

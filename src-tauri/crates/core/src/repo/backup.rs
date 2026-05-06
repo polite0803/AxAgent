@@ -81,9 +81,7 @@ pub async fn create_backup(
         checksum: Set(checksum),
         object_counts_json: Set(object_counts),
         source_app_version: Set(env!("CARGO_PKG_VERSION").to_string()),
-        file_path: Set(Some(crate::path_vars::encode_path(
-            &file_path.to_string_lossy(),
-        ))),
+        file_path: Set(Some(crate::path_vars::encode_path(&file_path.to_string_lossy()))),
         file_size: Set(file_size),
         ..Default::default()
     };
@@ -214,10 +212,7 @@ pub async fn batch_delete_backups(db: &DatabaseConnection, ids: &[String]) -> Re
 pub async fn restore_sqlite_backup(backup_path: &str, current_db_path: &str) -> Result<()> {
     let src = Path::new(backup_path);
     if !src.exists() {
-        return Err(AxAgentError::NotFound(format!(
-            "Backup file not found: {}",
-            backup_path
-        )));
+        return Err(AxAgentError::NotFound(format!("Backup file not found: {}", backup_path)));
     }
     std::fs::copy(src, current_db_path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to restore backup: {}", e)))?;
@@ -267,10 +262,7 @@ pub async fn restore_json_backup(
 
     let path = Path::new(backup_path);
     if !path.exists() {
-        return Err(AxAgentError::NotFound(format!(
-            "备份文件未找到: {}",
-            backup_path
-        )));
+        return Err(AxAgentError::NotFound(format!("备份文件未找到: {}", backup_path)));
     }
 
     let data = std::fs::read_to_string(path)
@@ -386,11 +378,7 @@ pub async fn restore_json_backup(
                 .collect();
 
             match txn
-                .execute_raw(Statement::from_sql_and_values(
-                    DatabaseBackend::Sqlite,
-                    &sql,
-                    values,
-                ))
+                .execute_raw(Statement::from_sql_and_values(DatabaseBackend::Sqlite, &sql, values))
                 .await
             {
                 Ok(_) => imported += 1,
@@ -445,14 +433,8 @@ mod tests {
     fn resolve_backup_dir_defaults_to_axagent_backups_subdir() {
         let axagent_home = PathBuf::from("/Users/test/.axagent");
 
-        assert_eq!(
-            resolve_backup_dir(None, &axagent_home),
-            axagent_home.join("backups")
-        );
-        assert_eq!(
-            resolve_backup_dir(Some(""), &axagent_home),
-            axagent_home.join("backups")
-        );
+        assert_eq!(resolve_backup_dir(None, &axagent_home), axagent_home.join("backups"));
+        assert_eq!(resolve_backup_dir(Some(""), &axagent_home), axagent_home.join("backups"));
     }
 
     #[test]

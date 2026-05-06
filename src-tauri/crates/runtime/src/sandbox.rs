@@ -245,10 +245,7 @@ pub fn build_linux_sandbox_command(
             "CLAWD_SANDBOX_FILESYSTEM_MODE".to_string(),
             status.filesystem_mode.as_str().to_string(),
         ),
-        (
-            "CLAWD_SANDBOX_ALLOWED_MOUNTS".to_string(),
-            status.allowed_mounts.join(":"),
-        ),
+        ("CLAWD_SANDBOX_ALLOWED_MOUNTS".to_string(), status.allowed_mounts.join(":")),
     ];
     if let Ok(path) = env::var("PATH") {
         env.push(("PATH".to_string(), path));

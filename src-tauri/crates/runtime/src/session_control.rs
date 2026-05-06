@@ -102,9 +102,7 @@ impl SessionStore {
         let path = if candidate.exists() {
             candidate
         } else if looks_like_path {
-            return Err(SessionControlError::Format(
-                format_missing_session_reference(reference),
-            ));
+            return Err(SessionControlError::Format(format_missing_session_reference(reference)));
         } else {
             self.resolve_managed_path(reference)?
         };
@@ -133,9 +131,7 @@ impl SessionStore {
                 return Ok(path);
             }
         }
-        Err(SessionControlError::Format(
-            format_missing_session_reference(session_id),
-        ))
+        Err(SessionControlError::Format(format_missing_session_reference(session_id)))
     }
 
     pub fn list_sessions(&self) -> Result<Vec<ManagedSessionSummary>, SessionControlError> {
@@ -211,9 +207,10 @@ impl SessionStore {
             if path_is_within_workspace(session_path, &self.workspace_root) {
                 return Ok(());
             }
-            return Err(SessionControlError::Format(
-                format_legacy_session_missing_workspace_root(session_path, &self.workspace_root),
-            ));
+            return Err(SessionControlError::Format(format_legacy_session_missing_workspace_root(
+                session_path,
+                &self.workspace_root,
+            )));
         };
         if workspace_roots_match(actual, &self.workspace_root) {
             return Ok(());
@@ -695,15 +692,9 @@ mod tests {
         // then
         assert_eq!(forked.parent_session_id, source.session_id);
         assert_eq!(forked.branch_name.as_deref(), Some("incident-review"));
-        assert_eq!(
-            summary.parent_session_id.as_deref(),
-            Some(source.session_id.as_str())
-        );
+        assert_eq!(summary.parent_session_id.as_deref(), Some(source.session_id.as_str()));
         assert_eq!(summary.branch_name.as_deref(), Some("incident-review"));
-        assert_eq!(
-            forked.session.persistence_path(),
-            Some(forked.handle.path.as_path())
-        );
+        assert_eq!(forked.session.persistence_path(), Some(forked.handle.path.as_path()));
         fs::remove_dir_all(root).expect("temp dir should clean up");
     }
 
@@ -737,10 +728,7 @@ mod tests {
 
         // then
         assert_eq!(fp_a1, fp_a2, "same path must produce the same fingerprint");
-        assert_ne!(
-            fp_a1, fp_b,
-            "different paths must produce different fingerprints"
-        );
+        assert_ne!(fp_a1, fp_b, "different paths must produce different fingerprints");
         assert_eq!(fp_a1.len(), 16, "fingerprint must be a 16-char hex string");
     }
 
@@ -950,11 +938,7 @@ mod tests {
         let sessions = store.list_sessions().expect("list sessions");
 
         // then
-        assert_eq!(
-            sessions.len(),
-            2,
-            "forked session must land in the same namespace"
-        );
+        assert_eq!(sessions.len(), 2, "forked session must land in the same namespace");
         assert_eq!(forked.parent_session_id, source.session_id);
         assert_eq!(forked.branch_name.as_deref(), Some("bugfix"));
         assert!(

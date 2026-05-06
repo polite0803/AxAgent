@@ -95,10 +95,7 @@ impl TaskDecomposer {
             let rt = tokio::runtime::Handle::current();
             rt.block_on(async { client.complete(prompt).await })
         } else {
-            Ok(format!(
-                "Task decomposition for: {}",
-                truncate_string(prompt, 100)
-            ))
+            Ok(format!("Task decomposition for: {}", truncate_string(prompt, 100)))
         }
     }
 
@@ -195,9 +192,7 @@ impl TaskDecomposer {
         let lines: Vec<&str> = response.lines().filter(|l| !l.trim().is_empty()).collect();
 
         if lines.len() <= 1 {
-            return Err(DecompositionError::ParseError(
-                "Response too short to parse".to_string(),
-            ));
+            return Err(DecompositionError::ParseError("Response too short to parse".to_string()));
         }
 
         let tasks: Vec<TaskNode> = lines
@@ -252,9 +247,7 @@ impl TaskDecomposer {
         result: DecompositionResult,
     ) -> Result<TaskGraph, DecompositionError> {
         if result.tasks.is_empty() {
-            return Err(DecompositionError::InvalidStructure(
-                "No tasks provided".to_string(),
-            ));
+            return Err(DecompositionError::InvalidStructure("No tasks provided".to_string()));
         }
 
         let mut graph = TaskGraph::new();

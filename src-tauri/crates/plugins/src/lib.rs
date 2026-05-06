@@ -255,10 +255,7 @@ struct RawPluginToolManifest {
     pub command: String,
     #[serde(default)]
     pub args: Vec<String>,
-    #[serde(
-        rename = "requiredPermission",
-        default = "default_tool_permission_label"
-    )]
+    #[serde(rename = "requiredPermission", default = "default_tool_permission_label")]
     pub required_permission: String,
 }
 
@@ -484,12 +481,7 @@ impl Plugin for BundledPlugin {
     }
 
     fn initialize(&self) -> Result<(), PluginError> {
-        run_lifecycle_commands(
-            self.metadata(),
-            self.lifecycle(),
-            "init",
-            &self.lifecycle.init,
-        )
+        run_lifecycle_commands(self.metadata(), self.lifecycle(), "init", &self.lifecycle.init)
     }
 
     fn shutdown(&self) -> Result<(), PluginError> {
@@ -526,12 +518,7 @@ impl Plugin for ExternalPlugin {
     }
 
     fn initialize(&self) -> Result<(), PluginError> {
-        run_lifecycle_commands(
-            self.metadata(),
-            self.lifecycle(),
-            "init",
-            &self.lifecycle.init,
-        )
+        run_lifecycle_commands(self.metadata(), self.lifecycle(), "init", &self.lifecycle.init)
     }
 
     fn shutdown(&self) -> Result<(), PluginError> {
@@ -1641,10 +1628,7 @@ fn load_manifest_from_skill_md(
     manifest_path: &Path,
 ) -> Result<PluginManifest, PluginError> {
     let contents = fs::read_to_string(manifest_path).map_err(|error| {
-        PluginError::NotFound(format!(
-            "SKILL.md not found at {}: {error}",
-            manifest_path.display()
-        ))
+        PluginError::NotFound(format!("SKILL.md not found at {}: {error}", manifest_path.display()))
     })?;
 
     // 解析 YAML 前导元数据 (--- ... ---)
@@ -1771,10 +1755,7 @@ fn detect_claude_code_manifest_contract_gaps(
 
     if let Some(hooks) = root.get("hooks").and_then(Value::as_object) {
         for hook_name in hooks.keys() {
-            if !matches!(
-                hook_name.as_str(),
-                "PreToolUse" | "PostToolUse" | "PostToolUseFailure"
-            ) {
+            if !matches!(hook_name.as_str(), "PreToolUse" | "PostToolUse" | "PostToolUseFailure") {
                 errors.push(PluginManifestValidationError::UnsupportedManifestContract {
                     detail: format!(
                         "plugin hook `{hook_name}` uses the Claude Code lifecycle contract; `claw` plugins currently support only PreToolUse, PostToolUse, and PostToolUseFailure."
@@ -1824,24 +1805,9 @@ fn build_plugin_manifest(
     let permissions = build_manifest_permissions(&raw.permissions, &mut errors);
     validate_command_entries(root, raw.hooks.pre_tool_use.iter(), "hook", &mut errors);
     validate_command_entries(root, raw.hooks.post_tool_use.iter(), "hook", &mut errors);
-    validate_command_entries(
-        root,
-        raw.hooks.post_tool_use_failure.iter(),
-        "hook",
-        &mut errors,
-    );
-    validate_command_entries(
-        root,
-        raw.lifecycle.init.iter(),
-        "lifecycle command",
-        &mut errors,
-    );
-    validate_command_entries(
-        root,
-        raw.lifecycle.shutdown.iter(),
-        "lifecycle command",
-        &mut errors,
-    );
+    validate_command_entries(root, raw.hooks.post_tool_use_failure.iter(), "hook", &mut errors);
+    validate_command_entries(root, raw.lifecycle.init.iter(), "lifecycle command", &mut errors);
+    validate_command_entries(root, raw.lifecycle.shutdown.iter(), "lifecycle command", &mut errors);
     let tools = build_manifest_tools(root, raw.tools, &mut errors);
     let commands = build_manifest_commands(root, raw.commands, &mut errors);
 
@@ -1953,12 +1919,10 @@ fn build_manifest_tools(
         let Some(required_permission) =
             PluginToolPermission::parse(tool.required_permission.trim())
         else {
-            errors.push(
-                PluginManifestValidationError::InvalidToolRequiredPermission {
-                    tool_name: name.clone(),
-                    permission: tool.required_permission.trim().to_string(),
-                },
-            );
+            errors.push(PluginManifestValidationError::InvalidToolRequiredPermission {
+                tool_name: name.clone(),
+                permission: tool.required_permission.trim().to_string(),
+            });
             continue;
         };
 
@@ -2257,9 +2221,7 @@ fn resolve_local_source(source: &str) -> Result<PathBuf, PluginError> {
     if path.exists() {
         Ok(path)
     } else {
-        Err(PluginError::NotFound(format!(
-            "plugin source `{source}` was not found"
-        )))
+        Err(PluginError::NotFound(format!("plugin source `{source}` was not found")))
     }
 }
 
@@ -2454,18 +2416,9 @@ mod tests {
     }
 
     fn write_loader_plugin(root: &Path) {
-        write_file(
-            root.join("hooks").join("pre.sh").as_path(),
-            "#!/bin/sh\nprintf 'pre'\n",
-        );
-        write_file(
-            root.join("tools").join("echo-tool.sh").as_path(),
-            "#!/bin/sh\ncat\n",
-        );
-        write_file(
-            root.join("commands").join("sync.sh").as_path(),
-            "#!/bin/sh\nprintf 'sync'\n",
-        );
+        write_file(root.join("hooks").join("pre.sh").as_path(), "#!/bin/sh\nprintf 'pre'\n");
+        write_file(root.join("tools").join("echo-tool.sh").as_path(), "#!/bin/sh\ncat\n");
+        write_file(root.join("commands").join("sync.sh").as_path(), "#!/bin/sh\nprintf 'sync'\n");
         write_file(
             root.join(MANIFEST_FILE_NAME).as_path(),
             r#"{
@@ -2499,14 +2452,8 @@ mod tests {
     }
 
     fn write_external_plugin(root: &Path, name: &str, version: &str) {
-        write_file(
-            root.join("hooks").join("pre.sh").as_path(),
-            "#!/bin/sh\nprintf 'pre'\n",
-        );
-        write_file(
-            root.join("hooks").join("post.sh").as_path(),
-            "#!/bin/sh\nprintf 'post'\n",
-        );
+        write_file(root.join("hooks").join("pre.sh").as_path(), "#!/bin/sh\nprintf 'pre'\n");
+        write_file(root.join("hooks").join("post.sh").as_path(), "#!/bin/sh\nprintf 'post'\n");
         write_file(
             root.join(MANIFEST_RELATIVE_PATH).as_path(),
             format!(
@@ -2617,10 +2564,7 @@ mod tests {
                 enabled_plugins
                     .iter()
                     .map(|(plugin_id, value)| {
-                        (
-                            plugin_id.clone(),
-                            value.as_bool().expect("plugin state should be a bool"),
-                        )
+                        (plugin_id.clone(), value.as_bool().expect("plugin state should be a bool"))
                     })
                     .collect()
             })
@@ -2662,10 +2606,7 @@ mod tests {
         assert_eq!(manifest.hooks.pre_tool_use, vec!["./hooks/pre.sh"]);
         assert_eq!(manifest.tools.len(), 1);
         assert_eq!(manifest.tools[0].name, "echo_tool");
-        assert_eq!(
-            manifest.tools[0].required_permission,
-            PluginToolPermission::WorkspaceWrite
-        );
+        assert_eq!(manifest.tools[0].required_permission, PluginToolPermission::WorkspaceWrite);
         assert_eq!(manifest.commands.len(), 1);
         assert_eq!(manifest.commands[0].name, "sync");
 
@@ -2712,10 +2653,7 @@ mod tests {
     fn load_plugin_from_directory_rejects_duplicate_permissions_and_commands() {
         let _guard = env_guard();
         let root = temp_dir("manifest-duplicates");
-        write_file(
-            root.join("commands").join("sync.sh").as_path(),
-            "#!/bin/sh\nprintf 'sync'\n",
-        );
+        write_file(root.join("commands").join("sync.sh").as_path(), "#!/bin/sh\nprintf 'sync'\n");
         write_file(
             root.join(MANIFEST_FILE_NAME).as_path(),
             r#"{
@@ -2922,10 +2860,7 @@ mod tests {
     #[test]
     fn load_plugin_from_directory_rejects_invalid_tool_required_permission() {
         let root = temp_dir("manifest-invalid-tool-permission");
-        write_file(
-            root.join("tools").join("echo.sh").as_path(),
-            "#!/bin/sh\ncat\n",
-        );
+        write_file(root.join("tools").join("echo.sh").as_path(), "#!/bin/sh\ncat\n");
         write_file(
             root.join(MANIFEST_FILE_NAME).as_path(),
             r#"{
@@ -3768,14 +3703,8 @@ mod tests {
         let successes = success_count.load(AtomicOrdering::Relaxed);
         let errors = error_count.load(AtomicOrdering::Relaxed);
 
-        assert_eq!(
-            successes, 5,
-            "all 5 parallel plugin installations should succeed"
-        );
-        assert_eq!(
-            errors, 0,
-            "no errors should occur during parallel execution"
-        );
+        assert_eq!(successes, 5, "all 5 parallel plugin installations should succeed");
+        assert_eq!(errors, 0, "no errors should occur during parallel execution");
 
         // Cleanup
         let _ = fs::remove_dir_all(base_dir);

@@ -172,10 +172,7 @@ impl Reranker {
             .collect();
 
         if matches.is_empty() {
-            format!(
-                "No exact term matches, semantic score {:.3}",
-                result.combined_score
-            )
+            format!("No exact term matches, semantic score {:.3}", result.combined_score)
         } else if matches.len() == query_terms.len() {
             format!("All query terms matched, score {:.3}", rerank_score)
         } else {

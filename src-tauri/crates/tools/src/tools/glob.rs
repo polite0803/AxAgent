@@ -69,10 +69,7 @@ impl Tool for GlobTool {
         let mut paths: Vec<PathBuf> = match glob::glob(&full_pattern) {
             Ok(iter) => iter.filter_map(|r| r.ok()).collect(),
             Err(e) => {
-                return Err(ToolError::invalid_input_for(
-                    "Glob",
-                    format!("Glob 模式无效: {}", e),
-                ))
+                return Err(ToolError::invalid_input_for("Glob", format!("Glob 模式无效: {}", e)))
             },
         };
 

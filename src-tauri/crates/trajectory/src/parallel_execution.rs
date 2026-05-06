@@ -188,22 +188,13 @@ impl ParallelExecution {
         let mut lines = vec![
             format!("# {} - 执行汇总\n", self.name),
             format!("总任务数: {}\n", self.tasks.len()),
-            format!(
-                "成功: {}, 失败: {}\n",
-                self.completed_count(),
-                self.failed_count()
-            ),
+            format!("成功: {}, 失败: {}\n", self.completed_count(), self.failed_count()),
             format!("执行时间: {} ms\n", self.duration_ms().unwrap_or(0)),
             "\n## 任务结果:\n".to_string(),
         ];
 
         for (i, task) in self.tasks.iter().enumerate() {
-            lines.push(format!(
-                "\n### {}. {} [{}]",
-                i + 1,
-                task.name,
-                format_status(&task.status)
-            ));
+            lines.push(format!("\n### {}. {} [{}]", i + 1, task.name, format_status(&task.status)));
 
             if let Some(ref result) = task.result {
                 lines.push(format!("\n结果:\n{}\n", result));

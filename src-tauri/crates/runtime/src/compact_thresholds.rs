@@ -237,9 +237,7 @@ mod tests {
                     .unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
-                        text,
-                    }]))
+                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
                     .unwrap();
             }
         }

@@ -107,10 +107,7 @@ impl AnthropicRequestProfile {
     #[must_use]
     pub fn header_pairs(&self) -> Vec<(String, String)> {
         let mut headers = vec![
-            (
-                "anthropic-version".to_string(),
-                self.anthropic_version.clone(),
-            ),
+            ("anthropic-version".to_string(), self.anthropic_version.clone()),
             ("user-agent".to_string(), self.client_identity.user_agent()),
         ];
         if !self.betas.is_empty() {
@@ -348,10 +345,7 @@ impl SessionTracer {
             path: path.clone(),
             attributes: attributes.clone(),
         });
-        self.record(
-            "http_request_started",
-            merge_trace_fields(method, path, attempt, attributes),
-        );
+        self.record("http_request_started", merge_trace_fields(method, path, attempt, attributes));
     }
 
     pub fn record_http_request_succeeded(
@@ -411,10 +405,7 @@ impl SessionTracer {
 
     pub fn record_analytics(&self, event: AnalyticsEvent) {
         let mut attributes = event.properties.clone();
-        attributes.insert(
-            "namespace".to_string(),
-            Value::String(event.namespace.clone()),
-        );
+        attributes.insert("namespace".to_string(), Value::String(event.namespace.clone()));
         attributes.insert("action".to_string(), Value::String(event.action.clone()));
         self.sink.record(TelemetryEvent::Analytics(event));
         self.record("analytics", attributes);
@@ -457,10 +448,7 @@ mod tests {
         assert_eq!(
             profile.header_pairs(),
             vec![
-                (
-                    "anthropic-version".to_string(),
-                    DEFAULT_ANTHROPIC_VERSION.to_string()
-                ),
+                ("anthropic-version".to_string(), DEFAULT_ANTHROPIC_VERSION.to_string()),
                 ("user-agent".to_string(), "claude-code/1.2.3".to_string()),
                 (
                     "anthropic-beta".to_string(),
@@ -473,10 +461,7 @@ mod tests {
         let body = profile
             .render_json_body(&serde_json::json!({"model": "claude-sonnet"}))
             .expect("body should serialize");
-        assert_eq!(
-            body["metadata"]["source"],
-            Value::String("test".to_string())
-        );
+        assert_eq!(body["metadata"]["source"], Value::String("test".to_string()));
         assert_eq!(
             body["betas"],
             serde_json::json!([

@@ -262,10 +262,7 @@ pub async fn connect_gateway_link(
         .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
 
     if link.enabled == 0 {
-        return Err(AxAgentError::Gateway(format!(
-            "Gateway link {} is disabled",
-            link_id
-        )));
+        return Err(AxAgentError::Gateway(format!("Gateway link {} is disabled", link_id)));
     }
 
     // Attempt to reach the remote gateway's health endpoint
@@ -289,13 +286,8 @@ pub async fn connect_gateway_link(
             am.updated_at = Set(now);
             am.update(db).await?;
 
-            add_activity(
-                db,
-                link_id,
-                "connect",
-                Some(&format!("Connected ({}ms)", latency_ms)),
-            )
-            .await?;
+            add_activity(db, link_id, "connect", Some(&format!("Connected ({}ms)", latency_ms)))
+                .await?;
 
             let updated = gateway_links::Entity::find_by_id(link_id)
                 .one(db)
@@ -311,13 +303,8 @@ pub async fn connect_gateway_link(
             am.updated_at = Set(now);
             am.update(db).await?;
 
-            add_activity(
-                db,
-                link_id,
-                "connect_failed",
-                Some(&format!("Connection failed: {}", e)),
-            )
-            .await?;
+            add_activity(db, link_id, "connect_failed", Some(&format!("Connection failed: {}", e)))
+                .await?;
 
             let updated = gateway_links::Entity::find_by_id(link_id)
                 .one(db)
@@ -405,10 +392,7 @@ pub async fn push_gateway_link_models(
         .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
 
     if link.status != "connected" {
-        return Err(AxAgentError::Gateway(format!(
-            "Gateway link {} is not connected",
-            link_id
-        )));
+        return Err(AxAgentError::Gateway(format!("Gateway link {} is not connected", link_id)));
     }
 
     // Build the model payload from local providers
@@ -446,10 +430,7 @@ pub async fn push_gateway_link_models(
         db,
         link_id,
         "push_models",
-        Some(&format!(
-            "Pushed {} models to gateway",
-            models_to_push.len()
-        )),
+        Some(&format!("Pushed {} models to gateway", models_to_push.len())),
     )
     .await?;
     Ok(())
@@ -467,10 +448,7 @@ pub async fn sync_all_gateway_link_models(
         .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
 
     if link.status != "connected" {
-        return Err(AxAgentError::Gateway(format!(
-            "Gateway link {} is not connected",
-            link_id
-        )));
+        return Err(AxAgentError::Gateway(format!("Gateway link {} is not connected", link_id)));
     }
 
     // Build the full model payload
@@ -506,10 +484,7 @@ pub async fn sync_all_gateway_link_models(
         db,
         link_id,
         "sync_models",
-        Some(&format!(
-            "Synced all {} models to gateway",
-            all_models.len()
-        )),
+        Some(&format!("Synced all {} models to gateway", all_models.len())),
     )
     .await?;
     Ok(())
@@ -573,10 +548,7 @@ pub async fn push_gateway_link_skills(
         .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
 
     if link.status != "connected" {
-        return Err(AxAgentError::Gateway(format!(
-            "Gateway link {} is not connected",
-            link_id
-        )));
+        return Err(AxAgentError::Gateway(format!("Gateway link {} is not connected", link_id)));
     }
 
     let body = serde_json::json!({ "skills": skill_names });
@@ -610,10 +582,7 @@ pub async fn sync_all_gateway_link_skills(
         .ok_or_else(|| AxAgentError::NotFound(format!("GatewayLink {}", link_id)))?;
 
     if link.status != "connected" {
-        return Err(AxAgentError::Gateway(format!(
-            "Gateway link {} is not connected",
-            link_id
-        )));
+        return Err(AxAgentError::Gateway(format!("Gateway link {} is not connected", link_id)));
     }
 
     let body = serde_json::json!({ "sync_all": true });
@@ -625,13 +594,7 @@ pub async fn sync_all_gateway_link_skills(
     am.updated_at = Set(now);
     am.update(db).await?;
 
-    add_activity(
-        db,
-        link_id,
-        "sync_skills",
-        Some("All skills synced to gateway"),
-    )
-    .await?;
+    add_activity(db, link_id, "sync_skills", Some("All skills synced to gateway")).await?;
     Ok(())
 }
 
@@ -805,10 +768,7 @@ pub async fn check_gateway_health(
     let link = match link {
         Some(l) => l,
         None => {
-            return Err(HealthCheckError::Permanent(format!(
-                "GatewayLink {} not found",
-                link_id
-            )))
+            return Err(HealthCheckError::Permanent(format!("GatewayLink {} not found", link_id)))
         },
     };
     let timeouts = GatewayLinkTimeouts::default();

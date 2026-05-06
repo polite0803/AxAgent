@@ -188,14 +188,7 @@ impl IngestPipeline {
         let metadata = self.extract_metadata(&parsed).await?;
         let raw_path = self.save_to_raw(wiki_id, &source, &parsed).await?;
         let source_record = self
-            .save_source_record(
-                wiki_id,
-                &raw_path,
-                &source,
-                &metadata,
-                &parsed,
-                &content_hash,
-            )
+            .save_source_record(wiki_id, &raw_path, &source, &metadata, &parsed, &content_hash)
             .await?;
 
         let mut pages_generated = 0usize;
@@ -468,14 +461,7 @@ Output ONLY valid JSON inside a ```json fenced code block."#
             .iter()
             .enumerate()
             .map(|(i, s)| {
-                format!(
-                    "{}. [{}/{}] {}: {}",
-                    i + 1,
-                    s.page_type,
-                    s.title,
-                    s.title,
-                    s.summary
-                )
+                format!("{}. [{}/{}] {}: {}", i + 1, s.page_type, s.title, s.title, s.summary)
             })
             .collect();
 
@@ -727,12 +713,9 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         fs::create_dir_all(&cache_dir)
             .await
             .map_err(|e| e.to_string())?;
-        fs::write(
-            &path,
-            serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+        fs::write(&path, serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(())
     }

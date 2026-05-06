@@ -101,9 +101,7 @@ impl SelfVerifier {
         };
 
         if self.strict_mode && verification.confidence < 0.8 {
-            return Ok(VerificationResult::invalid(
-                "Confidence below threshold in strict mode",
-            ));
+            return Ok(VerificationResult::invalid("Confidence below threshold in strict mode"));
         }
 
         Ok(verification)
@@ -134,20 +132,14 @@ impl SelfVerifier {
             "execute_command" | "bash" | "shell" => self.verify_command_result(result, input).await,
             "web_search" | "search" => self.verify_web_search(result, input).await,
             "edit_file" | "apply_diff" => self.verify_file_edit(result, input).await,
-            _ => Ok(VerificationResult::valid(
-                "No specific validation available",
-            )),
+            _ => Ok(VerificationResult::valid("No specific validation available")),
         }?;
 
         if let Some(ref validator) = self.semantic_validator {
             let semantic_result = validator
                 .validate_semantically(tool_name, input, result)
                 .await?;
-            Ok(Self::combine_results(
-                base_verification,
-                specific_check,
-                semantic_result,
-            ))
+            Ok(Self::combine_results(base_verification, specific_check, semantic_result))
         } else {
             Ok(specific_check)
         }
@@ -273,10 +265,8 @@ impl SelfVerifier {
         input: &str,
     ) -> Result<VerificationResult, VerificationError> {
         if result.is_empty() {
-            return Ok(
-                VerificationResult::invalid("Web search returned no results")
-                    .with_correction("Try different search terms"),
-            );
+            return Ok(VerificationResult::invalid("Web search returned no results")
+                .with_correction("Try different search terms"));
         }
 
         let query = input
@@ -329,10 +319,7 @@ impl SelfVerifier {
         }
 
         if result.is_empty() {
-            return Ok(VerificationResult::uncertain(
-                0.7,
-                "Edit completed but output is empty",
-            ));
+            return Ok(VerificationResult::uncertain(0.7, "Edit completed but output is empty"));
         }
 
         Ok(VerificationResult::valid("File edit verification passed"))
@@ -367,10 +354,7 @@ impl SelfVerifier {
             )));
         }
 
-        Ok(VerificationResult::valid(format!(
-            "Tool '{}' executed successfully",
-            tool_name
-        )))
+        Ok(VerificationResult::valid(format!("Tool '{}' executed successfully", tool_name)))
     }
 
     async fn verify_llm_result(
@@ -380,16 +364,11 @@ impl SelfVerifier {
         let response = step.result.as_deref().unwrap_or("");
 
         if response.is_empty() {
-            return Ok(VerificationResult::invalid(
-                "LLM returned empty response".to_string(),
-            ));
+            return Ok(VerificationResult::invalid("LLM returned empty response".to_string()));
         }
 
         if response.len() < 10 {
-            return Ok(VerificationResult::uncertain(
-                0.6,
-                "LLM response is unusually short",
-            ));
+            return Ok(VerificationResult::uncertain(0.6, "LLM response is unusually short"));
         }
 
         Ok(VerificationResult::valid("LLM response received"))

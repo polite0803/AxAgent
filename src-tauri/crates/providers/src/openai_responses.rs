@@ -216,10 +216,8 @@ fn convert_content_to_value(content: &ChatContent) -> serde_json::Value {
                 .iter()
                 .map(|part| {
                     let mut value = serde_json::Map::new();
-                    value.insert(
-                        "type".to_string(),
-                        serde_json::Value::String(part.r#type.clone()),
-                    );
+                    value
+                        .insert("type".to_string(), serde_json::Value::String(part.r#type.clone()));
                     if let Some(text) = &part.text {
                         value.insert("text".to_string(), serde_json::Value::String(text.clone()));
                     }
@@ -299,14 +297,8 @@ fn build_responses_input(
             },
             "user" => {
                 let mut item = serde_json::Map::new();
-                item.insert(
-                    "role".to_string(),
-                    serde_json::Value::String("user".to_string()),
-                );
-                item.insert(
-                    "content".to_string(),
-                    convert_content_to_value(&msg.content),
-                );
+                item.insert("role".to_string(), serde_json::Value::String("user".to_string()));
+                item.insert("content".to_string(), convert_content_to_value(&msg.content));
                 input_items.push(serde_json::Value::Object(item));
             },
             "assistant" => {
@@ -387,14 +379,8 @@ fn build_responses_input(
             },
             _ => {
                 let mut item = serde_json::Map::new();
-                item.insert(
-                    "role".to_string(),
-                    serde_json::Value::String(msg.role.clone()),
-                );
-                item.insert(
-                    "content".to_string(),
-                    convert_content_to_value(&msg.content),
-                );
+                item.insert("role".to_string(), serde_json::Value::String(msg.role.clone()));
+                item.insert("content".to_string(), convert_content_to_value(&msg.content));
                 input_items.push(serde_json::Value::Object(item));
             },
         }
@@ -1099,9 +1085,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Provider(format!(
-                "Failed to get response {status}: {text}"
-            )));
+            return Err(AxAgentError::Provider(format!("Failed to get response {status}: {text}")));
         }
 
         resp.text()

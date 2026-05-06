@@ -323,12 +323,9 @@ impl IngestQueue {
         fs::create_dir_all(&dir).await.map_err(|e| e.to_string())?;
 
         let path = self.snapshot_path();
-        fs::write(
-            &path,
-            serde_json::to_string_pretty(&snapshot).map_err(|e| e.to_string())?,
-        )
-        .await
-        .map_err(|e| e.to_string())
+        fs::write(&path, serde_json::to_string_pretty(&snapshot).map_err(|e| e.to_string())?)
+            .await
+            .map_err(|e| e.to_string())
     }
 
     pub async fn import_folder(

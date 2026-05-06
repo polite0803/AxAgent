@@ -840,10 +840,8 @@ impl ClosedLoopService {
     ) -> String {
         let mut improvements = String::new();
 
-        improvements.push_str(&format!(
-            "# Improvement suggestions for skill {}\n\n",
-            existing_skill.name
-        ));
+        improvements
+            .push_str(&format!("# Improvement suggestions for skill {}\n\n", existing_skill.name));
 
         if existing_skill.success_rate < 0.5 {
             improvements.push_str("## Success Rate Issues\n");
@@ -909,10 +907,7 @@ impl ClosedLoopService {
         trajectory: &crate::trajectory::Trajectory,
     ) -> String {
         let mut content = format!("# {}\n\n", trajectory.topic);
-        content += &format!(
-            "slug: {}\n\n",
-            self.generate_skill_name_from_topic(&trajectory.topic)
-        );
+        content += &format!("slug: {}\n\n", self.generate_skill_name_from_topic(&trajectory.topic));
 
         content += "## Overview\n";
         content += &format!("This skill handles: {}. ", trajectory.topic);
@@ -952,14 +947,10 @@ impl ClosedLoopService {
         }
 
         content += "## Quality\n";
-        content += &format!(
-            "- Task completion: {:.1}%\n",
-            trajectory.quality.task_completion * 100.0
-        );
-        content += &format!(
-            "- Tool efficiency: {:.1}%\n",
-            trajectory.quality.tool_efficiency * 100.0
-        );
+        content +=
+            &format!("- Task completion: {:.1}%\n", trajectory.quality.task_completion * 100.0);
+        content +=
+            &format!("- Tool efficiency: {:.1}%\n", trajectory.quality.tool_efficiency * 100.0);
 
         content
     }

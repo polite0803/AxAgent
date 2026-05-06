@@ -293,16 +293,8 @@ mod tests {
     async fn already_migrated_paths_are_skipped() {
         let db = test_db().await;
         let dirs = test_dirs();
-        insert_stored_file(
-            &db,
-            "f1",
-            "aaa",
-            "pic.png",
-            "image/png",
-            "images/aaa_pic.png",
-            None,
-        )
-        .await;
+        insert_stored_file(&db, "f1", "aaa", "pic.png", "image/png", "images/aaa_pic.png", None)
+            .await;
         insert_stored_file(
             &db,
             "f2",
@@ -501,9 +493,6 @@ mod tests {
             .unwrap()
             .unwrap();
         let atts: Vec<serde_json::Value> = serde_json::from_str(&m.attachments).unwrap();
-        assert_eq!(
-            atts[0]["file_path"].as_str().unwrap(),
-            "images/abcdef123456_photo.png"
-        );
+        assert_eq!(atts[0]["file_path"].as_str().unwrap(), "images/abcdef123456_photo.png");
     }
 }

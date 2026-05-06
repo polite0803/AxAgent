@@ -60,11 +60,7 @@ impl S3Client {
     #[allow(dead_code)]
     fn base_url(&self) -> String {
         if self.config.use_path_style {
-            format!(
-                "{}/{}",
-                self.config.endpoint.trim_end_matches('/'),
-                self.config.bucket
-            )
+            format!("{}/{}", self.config.endpoint.trim_end_matches('/'), self.config.bucket)
         } else {
             let endpoint = self.config.endpoint.trim_start_matches("https://");
             if self.config.endpoint.starts_with("http://") {
@@ -164,10 +160,7 @@ impl S3Client {
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Gateway(format!(
-                "S3 download error: {}",
-                body
-            )));
+            return Err(AxAgentError::Gateway(format!("S3 download error: {}", body)));
         }
 
         resp.bytes()
@@ -307,14 +300,8 @@ impl S3Client {
         };
 
         let mut header_map = reqwest::header::HeaderMap::new();
-        header_map.insert(
-            "Host",
-            reqwest::header::HeaderValue::from_str(&host).unwrap(),
-        );
-        header_map.insert(
-            "X-Amz-Date",
-            reqwest::header::HeaderValue::from_str(&amz_date).unwrap(),
-        );
+        header_map.insert("Host", reqwest::header::HeaderValue::from_str(&host).unwrap());
+        header_map.insert("X-Amz-Date", reqwest::header::HeaderValue::from_str(&amz_date).unwrap());
         header_map.insert(
             "X-Amz-Content-Sha256",
             reqwest::header::HeaderValue::from_str(&payload_hash).unwrap(),

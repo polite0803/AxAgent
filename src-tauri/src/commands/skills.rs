@@ -528,13 +528,7 @@ async fn install_from_github_zipball(
     }
 
     copy_dir_recursive(&extracted, &skill_target)?;
-    save_skill_manifest(
-        &skill_target,
-        "github",
-        &format!("{}/{}", owner, repo),
-        "main",
-        &commit,
-    )?;
+    save_skill_manifest(&skill_target, "github", &format!("{}/{}", owner, repo), "main", &commit)?;
 
     Ok((repo.to_string(), commit))
 }
@@ -592,11 +586,8 @@ fn save_skill_manifest(
         manifest["versions"] = serde_json::json!([version_entry]);
     }
 
-    std::fs::write(
-        &manifest_path,
-        serde_json::to_string_pretty(&manifest).unwrap(),
-    )
-    .map_err(|e| e.to_string())
+    std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -682,10 +673,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
         .map_err(|e| format!("Failed to execute git: {}", e))?;
 
     if !output.status.success() {
-        return Err(format!(
-            "Git clone failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
+        return Err(format!("Git clone failed: {}", String::from_utf8_lossy(&output.stderr)));
     }
 
     let checkout_output = std::process::Command::new("git")
@@ -703,10 +691,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
 
     save_skill_manifest(&skill_dir, source_kind, source_ref, branch, &target_version)?;
 
-    Ok(format!(
-        "Rolled back {} to version {}",
-        skill_name, target_version
-    ))
+    Ok(format!("Rolled back {} to version {}", skill_name, target_version))
 }
 
 async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, String), String> {
@@ -738,11 +723,8 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
         "installed_via": "local"
     });
     let manifest_path = skill_target.join("skill-manifest.json");
-    std::fs::write(
-        &manifest_path,
-        serde_json::to_string_pretty(&manifest).unwrap(),
-    )
-    .map_err(|e| e.to_string())?;
+    std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
+        .map_err(|e| e.to_string())?;
 
     Ok((name, "local".to_string()))
 }
@@ -915,10 +897,7 @@ async fn check_github_update(
     repo: &str,
     current_commit: &str,
 ) -> Option<(String, String)> {
-    let url = format!(
-        "https://api.github.com/repos/{}/{}/commits?per_page=1",
-        owner, repo
-    );
+    let url = format!("https://api.github.com/repos/{}/{}/commits?per_page=1", owner, repo);
 
     let client = reqwest::Client::new();
     let response = client
@@ -944,10 +923,7 @@ async fn check_github_update(
         return None;
     }
 
-    Some((
-        latest_sha[..7.min(latest_sha.len())].to_string(),
-        latest_sha.to_string(),
-    ))
+    Some((latest_sha[..7.min(latest_sha.len())].to_string(), latest_sha.to_string()))
 }
 
 #[tauri::command]
@@ -1251,10 +1227,8 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
             continue;
         }
 
-        let url = format!(
-            "https://api.github.com/repos/{}/{}/commits?per_page=1",
-            parts[0], parts[1]
-        );
+        let url =
+            format!("https://api.github.com/repos/{}/{}/commits?per_page=1", parts[0], parts[1]);
 
         let client = reqwest::Client::new();
         let response = client
@@ -1372,14 +1346,9 @@ pub async fn create_skill_from_proposal(
     description: String,
     content: String,
 ) -> Result<String, String> {
-    let result = skill_create(
-        state.clone(),
-        name.clone(),
-        description.clone(),
-        content,
-        Some(false),
-    )
-    .await?;
+    let result =
+        skill_create(state.clone(), name.clone(), description.clone(), content, Some(false))
+            .await?;
     if result.can_create {
         let mut service = state.skill_proposal_service.write().await;
         service.clear_proposal(&name);
@@ -1584,11 +1553,8 @@ pub async fn skill_set_frontend(
 
     manifest["frontend"] = serde_json::to_value(&frontend).map_err(|e| e.to_string())?;
 
-    std::fs::write(
-        &manifest_path,
-        serde_json::to_string_pretty(&manifest).unwrap(),
-    )
-    .map_err(|e| e.to_string())?;
+    std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
+        .map_err(|e| e.to_string())?;
 
     Ok(format!("Frontend config set for skill '{}'", name))
 }
@@ -1816,11 +1782,7 @@ pub async fn skill_analyze_frontend(
     .trim();
 
     let frontend: SkillFrontendExtension = serde_json::from_str(json_str).map_err(|e| {
-        format!(
-            "解析 LLM 响应失败: {}。原始响应: {}",
-            e,
-            &content[..content.len().min(500)]
-        )
+        format!("解析 LLM 响应失败: {}。原始响应: {}", e, &content[..content.len().min(500)])
     })?;
 
     Ok(frontend)
@@ -1844,10 +1806,7 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Strin
     }
 
     if !canonical_requested.is_file() {
-        return Err(format!(
-            "File '{}' not found in skill '{}'",
-            file_name, name
-        ));
+        return Err(format!("File '{}' not found in skill '{}'", file_name, name));
     }
 
     // 只允许文本类文件
@@ -1860,10 +1819,7 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Strin
         "html", "htm", "md", "txt", "css", "js", "json", "svg", "xml",
     ];
     if !allowed.contains(&ext.as_str()) {
-        return Err(format!(
-            "File type '{}' is not allowed for direct reading",
-            ext
-        ));
+        return Err(format!("File type '{}' is not allowed for direct reading", ext));
     }
 
     std::fs::read_to_string(&canonical_requested).map_err(|e| e.to_string())

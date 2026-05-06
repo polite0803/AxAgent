@@ -45,22 +45,17 @@ impl Tool for WebFetchTool {
             .ok_or_else(|| ToolError::invalid_input_for("WebFetch", "缺少 url 参数"))?;
 
         if !url.starts_with("http://") && !url.starts_with("https://") {
-            return Err(ToolError::invalid_input(
-                "url 必须以 http:// 或 https:// 开头",
-            ));
+            return Err(ToolError::invalid_input("url 必须以 http:// 或 https:// 开头"));
         }
 
         // SSRF 保护：禁止内网地址
         // SSRF protection: block private/internal IPs
-        if !axagent_core::search::is_safe_url(&url) {
+        if !axagent_core::search::is_safe_url(url) {
             return Err(ToolError::permission_denied("WebFetch", "禁止访问内网地址"));
         }
 
         if !ctx.allow_network {
-            return Err(ToolError::permission_denied(
-                "WebFetch",
-                "当前上下文不允许网络请求",
-            ));
+            return Err(ToolError::permission_denied("WebFetch", "当前上下文不允许网络请求"));
         }
 
         Ok(())

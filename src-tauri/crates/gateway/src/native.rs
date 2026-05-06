@@ -392,10 +392,7 @@ fn should_forward_request_header(name: &HeaderName) -> bool {
 }
 
 fn should_copy_response_header(name: &HeaderName) -> bool {
-    !matches!(
-        name.as_str(),
-        "content-length" | "connection" | "transfer-encoding"
-    )
+    !matches!(name.as_str(), "content-length" | "connection" | "transfer-encoding")
 }
 
 fn extract_model_from_body(
@@ -459,10 +456,7 @@ fn build_passthrough_response(
         }
     }
     response.body(body).unwrap_or_else(|_| {
-        error_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to build proxied response",
-        )
+        error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build proxied response")
     })
 }
 
@@ -493,10 +487,7 @@ async fn resolve_native_context(
     if candidates.is_empty() {
         return Err(error_response(
             StatusCode::BAD_GATEWAY,
-            &format!(
-                "No enabled {} provider is configured",
-                protocol.provider_family()
-            ),
+            &format!("No enabled {} provider is configured", protocol.provider_family()),
         ));
     }
 
@@ -534,10 +525,7 @@ async fn resolve_native_context(
                     break;
                 }
             }
-            (
-                preferred_provider.unwrap_or_else(|| (*fallback).clone()),
-                Some(parsed.model_id),
-            )
+            (preferred_provider.unwrap_or_else(|| (*fallback).clone()), Some(parsed.model_id))
         }
     } else {
         (candidates[0].clone(), None)
@@ -567,10 +555,7 @@ async fn resolve_native_context(
             api_key,
             key_id: provider_key.id.clone(),
             provider_id: provider.id.clone(),
-            base_url: Some(resolve_base_url_for_type(
-                &provider.api_host,
-                &provider.provider_type,
-            )),
+            base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
             api_path: provider.api_path.clone(),
             proxy_config: resolved_proxy,
             custom_headers: provider
@@ -975,14 +960,7 @@ pub async fn openai_responses(
     request: Request,
 ) -> impl IntoResponse {
     let AuthenticatedKey(gateway_key) = auth;
-    handle_native_request(
-        NativeProtocol::OpenAiResponses,
-        state,
-        gateway_key,
-        request,
-        None,
-    )
-    .await
+    handle_native_request(NativeProtocol::OpenAiResponses, state, gateway_key, request, None).await
 }
 
 pub async fn anthropic_messages(
@@ -991,14 +969,8 @@ pub async fn anthropic_messages(
     request: Request,
 ) -> impl IntoResponse {
     let AuthenticatedKey(gateway_key) = auth;
-    handle_native_request(
-        NativeProtocol::AnthropicMessages,
-        state,
-        gateway_key,
-        request,
-        None,
-    )
-    .await
+    handle_native_request(NativeProtocol::AnthropicMessages, state, gateway_key, request, None)
+        .await
 }
 
 pub async fn anthropic_count_tokens(
@@ -1007,14 +979,8 @@ pub async fn anthropic_count_tokens(
     request: Request,
 ) -> impl IntoResponse {
     let AuthenticatedKey(gateway_key) = auth;
-    handle_native_request(
-        NativeProtocol::AnthropicCountTokens,
-        state,
-        gateway_key,
-        request,
-        None,
-    )
-    .await
+    handle_native_request(NativeProtocol::AnthropicCountTokens, state, gateway_key, request, None)
+        .await
 }
 
 pub async fn gemini_list_models(
@@ -1023,14 +989,7 @@ pub async fn gemini_list_models(
     request: Request,
 ) -> impl IntoResponse {
     let AuthenticatedKey(gateway_key) = auth;
-    handle_native_request(
-        NativeProtocol::GeminiModels,
-        state,
-        gateway_key,
-        request,
-        None,
-    )
-    .await
+    handle_native_request(NativeProtocol::GeminiModels, state, gateway_key, request, None).await
 }
 
 pub async fn gemini_model_operation(
@@ -1143,11 +1102,7 @@ mod tests {
         status: StatusCode,
         headers: HeaderMap,
         body: String,
-    ) -> (
-        String,
-        Arc<Mutex<Vec<CapturedUpstreamRequest>>>,
-        tokio::task::JoinHandle<()>,
-    ) {
+    ) -> (String, Arc<Mutex<Vec<CapturedUpstreamRequest>>>, tokio::task::JoinHandle<()>) {
         let captures = Arc::new(Mutex::new(Vec::new()));
         let state = MockUpstreamState {
             captures: captures.clone(),
@@ -1222,12 +1177,7 @@ mod tests {
             db: handle.conn.clone(),
             master_key,
         };
-        (
-            create_router(state.clone()),
-            handle,
-            gateway_key.plain_key,
-            state,
-        )
+        (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
 
     async fn insert_provider_with_optional_key(
@@ -1378,12 +1328,7 @@ mod tests {
             123,
         );
 
-        assert_usage(
-            extract_gemini_count_tokens_usage(&json!({ "totalTokens": 27 })),
-            27,
-            0,
-            27,
-        );
+        assert_usage(extract_gemini_count_tokens_usage(&json!({ "totalTokens": 27 })), 27, 0, 27);
     }
 
     #[tokio::test]
@@ -1435,10 +1380,7 @@ mod tests {
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].method, "POST");
         assert_eq!(captured[0].path_and_query, "/v1/responses");
-        assert_eq!(
-            captured[0].authorization.as_deref(),
-            Some("Bearer upstream-secret")
-        );
+        assert_eq!(captured[0].authorization.as_deref(), Some("Bearer upstream-secret"));
         assert_eq!(captured[0].body["model"], "gpt-5");
         drop(captured);
 
@@ -1475,12 +1417,9 @@ mod tests {
         .to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body.clone()).await;
-        let (app, handle, gateway_key, _) = seed_native_router(
-            ProviderType::Anthropic,
-            &upstream_base,
-            "claude-sonnet-4-20250514",
-        )
-        .await;
+        let (app, handle, gateway_key, _) =
+            seed_native_router(ProviderType::Anthropic, &upstream_base, "claude-sonnet-4-20250514")
+                .await;
 
         let response = app
             .oneshot(
@@ -1507,11 +1446,7 @@ mod tests {
         let content_type = response.headers().get(header::CONTENT_TYPE).cloned();
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_text = String::from_utf8(body.to_vec()).unwrap();
-        assert_eq!(
-            status,
-            StatusCode::OK,
-            "unexpected anthropic body: {body_text}"
-        );
+        assert_eq!(status, StatusCode::OK, "unexpected anthropic body: {body_text}");
         assert_eq!(content_type.unwrap(), "text/event-stream");
         assert_eq!(body_text, upstream_body);
 
@@ -1571,11 +1506,7 @@ mod tests {
         let status = response.status();
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_text = String::from_utf8(body.to_vec()).unwrap();
-        assert_eq!(
-            status,
-            StatusCode::OK,
-            "unexpected gemini body: {body_text}"
-        );
+        assert_eq!(status, StatusCode::OK, "unexpected gemini body: {body_text}");
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&body_text).unwrap(),
             serde_json::from_str::<serde_json::Value>(&upstream_body).unwrap()
@@ -1657,10 +1588,7 @@ mod tests {
                 Request::builder()
                     .method(Method::POST)
                     .uri("/v1/responses")
-                    .header(
-                        header::AUTHORIZATION,
-                        format!("Bearer {}", gateway_key.plain_key),
-                    )
+                    .header(header::AUTHORIZATION, format!("Bearer {}", gateway_key.plain_key))
                     .header(header::CONTENT_TYPE, "application/json")
                     .body(Body::from(
                         json!({
@@ -1698,12 +1626,9 @@ mod tests {
         .to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body).await;
-        let (app, _handle, gateway_key, _) = seed_native_router(
-            ProviderType::OpenAI,
-            &format!("{}/v1", upstream_base),
-            "gpt-4o",
-        )
-        .await;
+        let (app, _handle, gateway_key, _) =
+            seed_native_router(ProviderType::OpenAI, &format!("{}/v1", upstream_base), "gpt-4o")
+                .await;
 
         let response = app
             .oneshot(

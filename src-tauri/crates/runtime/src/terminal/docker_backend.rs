@@ -167,11 +167,7 @@ impl TerminalBackend for DockerBackend {
         });
 
         let exec_resp = self
-            .docker_api_request(
-                "POST",
-                &format!("/containers/{}/exec", container_id),
-                Some(body),
-            )
+            .docker_api_request("POST", &format!("/containers/{}/exec", container_id), Some(body))
             .await?;
 
         let exec_id = exec_resp["Id"]

@@ -349,10 +349,7 @@ impl SkillEvolutionEngine {
         let successes: usize = relevant
             .iter()
             .filter(|t| {
-                matches!(
-                    t.outcome,
-                    TrajectoryOutcome::Success | TrajectoryOutcome::Partial
-                )
+                matches!(t.outcome, TrajectoryOutcome::Success | TrajectoryOutcome::Partial)
             })
             .count();
 

@@ -48,10 +48,7 @@ impl ErrorKind {
 
     /// 判断该错误类型是否可以重试
     pub fn is_retryable(self) -> bool {
-        matches!(
-            self,
-            Self::RateLimit | Self::ServerError | Self::NetworkError
-        )
+        matches!(self, Self::RateLimit | Self::ServerError | Self::NetworkError)
     }
 }
 
@@ -278,38 +275,20 @@ mod tests {
 
     #[test]
     fn classify_rate_limit_from_message() {
-        assert_eq!(
-            ErrorKind::classify("HTTP 429 Too Many Requests"),
-            ErrorKind::RateLimit
-        );
-        assert_eq!(
-            ErrorKind::classify("rate limit exceeded"),
-            ErrorKind::RateLimit
-        );
+        assert_eq!(ErrorKind::classify("HTTP 429 Too Many Requests"), ErrorKind::RateLimit);
+        assert_eq!(ErrorKind::classify("rate limit exceeded"), ErrorKind::RateLimit);
     }
 
     #[test]
     fn classify_server_error_from_message() {
-        assert_eq!(
-            ErrorKind::classify("HTTP 500 Internal Server Error"),
-            ErrorKind::ServerError
-        );
-        assert_eq!(
-            ErrorKind::classify("502 Bad Gateway"),
-            ErrorKind::ServerError
-        );
+        assert_eq!(ErrorKind::classify("HTTP 500 Internal Server Error"), ErrorKind::ServerError);
+        assert_eq!(ErrorKind::classify("502 Bad Gateway"), ErrorKind::ServerError);
     }
 
     #[test]
     fn classify_network_error_from_message() {
-        assert_eq!(
-            ErrorKind::classify("connection reset by peer"),
-            ErrorKind::NetworkError
-        );
-        assert_eq!(
-            ErrorKind::classify("request timeout"),
-            ErrorKind::NetworkError
-        );
+        assert_eq!(ErrorKind::classify("connection reset by peer"), ErrorKind::NetworkError);
+        assert_eq!(ErrorKind::classify("request timeout"), ErrorKind::NetworkError);
     }
 
     #[test]

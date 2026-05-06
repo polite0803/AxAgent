@@ -384,14 +384,8 @@ mod tests {
     fn test_extract_domain() {
         let validator = SourceValidator::new();
 
-        assert_eq!(
-            validator.extract_domain("https://arxiv.org/abs/2103.00001"),
-            "arxiv.org"
-        );
-        assert_eq!(
-            validator.extract_domain("https://github.com/user/repo"),
-            "github.com"
-        );
+        assert_eq!(validator.extract_domain("https://arxiv.org/abs/2103.00001"), "arxiv.org");
+        assert_eq!(validator.extract_domain("https://github.com/user/repo"), "github.com");
         assert_eq!(validator.extract_domain("invalid"), "");
     }
 

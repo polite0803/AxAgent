@@ -263,10 +263,7 @@ impl Reflector {
         };
 
         analysis.push_str(&format!("Total duration: {}ms. ", record.duration_ms));
-        analysis.push_str(&format!(
-            "Duration per iteration: {}ms. ",
-            duration_per_iteration
-        ));
+        analysis.push_str(&format!("Duration per iteration: {}ms. ", duration_per_iteration));
 
         if record.duration_ms > 60000 {
             analysis.push_str("Execution time exceeds 1 minute. Consider optimization. ");
@@ -305,17 +302,11 @@ impl Reflector {
         }
 
         if record.success {
-            reusable_patterns.push(format!(
-                "Successfully completed: {}",
-                record.task_description
-            ));
+            reusable_patterns.push(format!("Successfully completed: {}", record.task_description));
         }
 
         if !record.tools_used.is_empty() {
-            reusable_patterns.push(format!(
-                "Tool combination: {}",
-                record.tools_used.join(" -> ")
-            ));
+            reusable_patterns.push(format!("Tool combination: {}", record.tools_used.join(" -> ")));
         }
 
         (error_patterns, reusable_patterns)

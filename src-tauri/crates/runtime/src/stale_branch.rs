@@ -196,11 +196,7 @@ mod tests {
             .current_dir(cwd)
             .status()
             .unwrap_or_else(|e| panic!("git {} failed to execute: {e}", args.join(" ")));
-        assert!(
-            status.success(),
-            "git {} exited with {status}",
-            args.join(" ")
-        );
+        assert!(status.success(), "git {} exited with {status}", args.join(" "));
     }
 
     fn commit_file(repo: &Path, name: &str, msg: &str) {

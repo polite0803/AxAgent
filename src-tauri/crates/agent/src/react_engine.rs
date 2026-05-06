@@ -285,9 +285,7 @@ impl ReActEngine {
                 context.set_goal(reasoning);
                 self.extract_sub_goals(user_input, context);
 
-                self.emit(ThoughtEvent::StepCompleted(
-                    chain.latest_step().unwrap().clone(),
-                ));
+                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
 
                 Ok((ReasoningState::Thinking, true))
             },
@@ -297,9 +295,7 @@ impl ReActEngine {
                 let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
                 chain.add_step(step);
 
-                self.emit(ThoughtEvent::StepCompleted(
-                    chain.latest_step().unwrap().clone(),
-                ));
+                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
 
                 Ok((ReasoningState::Planning, true))
             },
@@ -317,9 +313,7 @@ impl ReActEngine {
                 let step = ThoughtStep::with_action(ReasoningState::Planning, reasoning, action);
                 chain.add_step(step);
 
-                self.emit(ThoughtEvent::StepCompleted(
-                    chain.latest_step().unwrap().clone(),
-                ));
+                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
 
                 Ok((ReasoningState::Acting, true))
             },
@@ -386,9 +380,7 @@ impl ReActEngine {
                 let step = ThoughtStep::new(ReasoningState::Reflecting, reflection);
                 chain.add_step(step);
 
-                self.emit(ThoughtEvent::StepCompleted(
-                    chain.latest_step().unwrap().clone(),
-                ));
+                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
 
                 self.adjust_strategy(context);
 

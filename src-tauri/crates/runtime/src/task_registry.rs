@@ -85,11 +85,7 @@ impl TaskRegistry {
         packet: TaskPacket,
     ) -> Result<Task, TaskPacketValidationError> {
         let packet = validate_packet(packet)?.into_inner();
-        Ok(self.create_task(
-            packet.objective.clone(),
-            Some(packet.scope.clone()),
-            Some(packet),
-        ))
+        Ok(self.create_task(packet.objective.clone(), Some(packet.scope.clone()), Some(packet)))
     }
 
     fn create_task(

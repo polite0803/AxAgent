@@ -120,10 +120,6 @@ fn summarize(content: &str, max_len: usize) -> String {
         content.to_string()
     } else {
         let half = max_len / 2;
-        format!(
-            "{}...{}",
-            &content[..half],
-            &content[content.len() - half..]
-        )
+        format!("{}...{}", &content[..half], &content[content.len() - half..])
     }
 }

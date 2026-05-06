@@ -50,10 +50,7 @@ pub async fn create_review(
 
     match MarketplaceService::create_review(&state.db, req).await {
         Ok(review) => Ok((StatusCode::CREATED, Json(review))),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        )),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
 }
 
@@ -63,10 +60,7 @@ pub async fn get_reviews(
 ) -> impl IntoResponse {
     match MarketplaceService::get_reviews(&state.db, &marketplace_id).await {
         Ok(reviews) => Ok(Json(reviews)),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        )),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
 }
 
@@ -78,10 +72,7 @@ pub async fn get_my_review(
     let user_id = auth.0.id.clone();
     match MarketplaceService::get_user_review(&state.db, &marketplace_id, &user_id).await {
         Ok(review) => Ok(Json(review)),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        )),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
 }
 
@@ -134,10 +125,7 @@ pub async fn update_review(
 
     match MarketplaceService::update_review(&state.db, &review_id, req).await {
         Ok(review) => Ok(Json(review)),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        )),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
 }
 
@@ -178,10 +166,7 @@ pub async fn delete_review(
 
     match MarketplaceService::delete_review(&state.db, &review_id).await {
         Ok(()) => Ok(Json(serde_json::json!({ "success": true }))),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        )),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
 }
 
@@ -191,10 +176,7 @@ pub async fn get_marketplace_stats(
 ) -> impl IntoResponse {
     match MarketplaceService::get_stats(&state.db, &marketplace_id).await {
         Ok(stats) => Ok(Json(stats)),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        )),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
 }
 

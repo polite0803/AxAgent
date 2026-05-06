@@ -104,10 +104,7 @@ impl ValidationExecutor {
                         if re.is_match(actual_str) {
                             Ok(())
                         } else {
-                            Err(format!(
-                                "'{}' does not match pattern '{}'",
-                                actual_str, pattern
-                            ))
+                            Err(format!("'{}' does not match pattern '{}'", actual_str, pattern))
                         }
                     },
                     Err(_) => Err(format!("Invalid regex pattern: {}", pattern)),

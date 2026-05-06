@@ -50,12 +50,7 @@ pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
     let tags = params.tags.unwrap_or_default();
     let platforms = params.platforms.unwrap_or_else(|| vec![detect_os()]);
 
-    let mut skill = Skill::new(
-        params.name,
-        params.description,
-        params.content,
-        category.clone(),
-    );
+    let mut skill = Skill::new(params.name, params.description, params.content, category.clone());
 
     skill.tags = tags.clone();
     skill.platforms = platforms.clone();
@@ -265,9 +260,7 @@ impl SkillManager {
             0 => Some(SkillContentResult::List(self.list_skills(None))),
             1 => {
                 let skill = self.get_skill(id)?;
-                Some(SkillContentResult::Formatted(
-                    self.format_skill_content(skill),
-                ))
+                Some(SkillContentResult::Formatted(self.format_skill_content(skill)))
             },
             2 => {
                 let skill = self.get_skill(id)?;

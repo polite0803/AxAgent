@@ -155,18 +155,12 @@ mod tests {
         let bootstrap = McpClientBootstrap::from_scoped_config("stdio-server", &config);
         assert_eq!(bootstrap.normalized_name, "stdio-server");
         assert_eq!(bootstrap.tool_prefix, "mcp__stdio-server__");
-        assert_eq!(
-            bootstrap.signature.as_deref(),
-            Some("stdio:[uvx|mcp-server]")
-        );
+        assert_eq!(bootstrap.signature.as_deref(), Some("stdio:[uvx|mcp-server]"));
         match bootstrap.transport {
             McpClientTransport::Stdio(transport) => {
                 assert_eq!(transport.command, "uvx");
                 assert_eq!(transport.args, vec!["mcp-server"]);
-                assert_eq!(
-                    transport.env.get("TOKEN").map(String::as_str),
-                    Some("secret")
-                );
+                assert_eq!(transport.env.get("TOKEN").map(String::as_str), Some("secret"));
                 assert_eq!(transport.tool_call_timeout_ms, Some(15_000));
             },
             other => panic!("expected stdio transport, got {other:?}"),

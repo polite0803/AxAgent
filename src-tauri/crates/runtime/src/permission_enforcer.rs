@@ -368,14 +368,8 @@ mod tests {
     #[test]
     fn read_only_allows_read_commands() {
         let enforcer = make_enforcer(PermissionMode::ReadOnly);
-        assert_eq!(
-            enforcer.check_bash("cat src/main.rs"),
-            EnforcementResult::Allowed
-        );
-        assert_eq!(
-            enforcer.check_bash("grep -r 'pattern' ."),
-            EnforcementResult::Allowed
-        );
+        assert_eq!(enforcer.check_bash("cat src/main.rs"), EnforcementResult::Allowed);
+        assert_eq!(enforcer.check_bash("grep -r 'pattern' ."), EnforcementResult::Allowed);
         assert_eq!(enforcer.check_bash("ls -la"), EnforcementResult::Allowed);
     }
 

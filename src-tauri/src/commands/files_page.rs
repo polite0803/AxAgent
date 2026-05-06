@@ -473,10 +473,7 @@ mod tests {
         let entries = build_image_entries(&files);
         // Both rows must be present even though the backing files are gone
         assert_eq!(entries.len(), 2);
-        assert!(
-            entries.iter().all(|e| e.missing),
-            "all missing-path rows must be flagged"
-        );
+        assert!(entries.iter().all(|e| e.missing), "all missing-path rows must be flagged");
     }
 
     #[test]
@@ -494,10 +491,7 @@ mod tests {
         )];
         let entries = build_file_entries(&files);
         assert_eq!(entries.len(), 1);
-        assert!(
-            !entries[0].missing,
-            "existing file must not be flagged missing"
-        );
+        assert!(!entries[0].missing, "existing file must not be flagged missing");
     }
 
     #[test]
@@ -566,10 +560,7 @@ mod tests {
     #[test]
     fn test_open_attachment_rejects_empty_path() {
         // open_attachment_file's first guard: empty string → Err
-        assert_eq!(
-            open_attachment_file_validate(""),
-            Err("file_path is empty".to_string()),
-        );
+        assert_eq!(open_attachment_file_validate(""), Err("file_path is empty".to_string()),);
     }
 
     #[test]
@@ -631,10 +622,7 @@ mod tests {
             .save_file(b"hello world", "photo.png", "image/png")
             .unwrap();
         let physical_path = app_data_dir.join(&saved.storage_path);
-        assert!(
-            physical_path.exists(),
-            "test fixture file must exist before cleanup"
-        );
+        assert!(physical_path.exists(), "test fixture file must exist before cleanup");
 
         axagent_core::repo::stored_file::create_stored_file(
             &db,
@@ -680,10 +668,7 @@ mod tests {
             .save_file(b"same-bytes", "shared.png", "image/png")
             .unwrap();
         let physical_path = app_data_dir.join(&saved.storage_path);
-        assert!(
-            physical_path.exists(),
-            "shared fixture file must exist before cleanup"
-        );
+        assert!(physical_path.exists(), "shared fixture file must exist before cleanup");
 
         for file_id in ["file-1", "file-2"] {
             axagent_core::repo::stored_file::create_stored_file(
@@ -792,10 +777,7 @@ mod tests {
     fn test_sort_by_name() {
         let sorted = apply_sort(sample_entries(), Some("name"));
         let names: Vec<&str> = sorted.iter().map(|e| e.display_name.as_str()).collect();
-        assert_eq!(
-            names,
-            ["Important Document.pdf", "archive.zip", "photo.jpg"]
-        );
+        assert_eq!(names, ["Important Document.pdf", "archive.zip", "photo.jpg"]);
     }
 
     #[test]
@@ -831,10 +813,7 @@ mod tests {
             preview.starts_with("file://"),
             "preview_url must be a file:// URI, got: {preview}"
         );
-        assert!(
-            preview.contains(&existing),
-            "preview_url must embed the storage path"
-        );
+        assert!(preview.contains(&existing), "preview_url must embed the storage path");
     }
 
     #[test]
@@ -847,10 +826,7 @@ mod tests {
         )];
         let entries = build_image_entries(&files);
         assert_eq!(entries.len(), 1);
-        assert!(
-            entries[0].preview_url.is_none(),
-            "missing image must not have a preview_url"
-        );
+        assert!(entries[0].preview_url.is_none(), "missing image must not have a preview_url");
     }
 
     #[test]
@@ -874,10 +850,7 @@ mod tests {
         let manifests = vec![make_backup_manifest("bk1", Some("/tmp/backup.db"))];
         let entries = build_backup_entries(&manifests);
         assert_eq!(entries.len(), 1);
-        assert!(
-            entries[0].preview_url.is_none(),
-            "backup entries must not have a preview_url"
-        );
+        assert!(entries[0].preview_url.is_none(), "backup entries must not have a preview_url");
     }
 
     // ── save_avatar_file tests ──────────────────────────────────────────

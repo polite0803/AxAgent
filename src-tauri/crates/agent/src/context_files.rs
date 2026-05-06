@@ -52,14 +52,7 @@ impl ContextFileResolver {
 
         let combined_content = files
             .iter()
-            .map(|f| {
-                format!(
-                    "## Context: {} ({})\n\n{}\n",
-                    f.name,
-                    f.path.display(),
-                    f.content
-                )
-            })
+            .map(|f| format!("## Context: {} ({})\n\n{}\n", f.name, f.path.display(), f.content))
             .collect::<Vec<_>>()
             .join("\n---\n\n");
 

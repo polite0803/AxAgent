@@ -242,19 +242,12 @@ impl TrajectoryRecorder {
         let tool_count = steps.iter().filter(|s| s.tool_calls.is_some()).count();
         let total_steps = steps.len();
 
-        format!(
-            "Executed {} steps with {} tool calls",
-            total_steps, tool_count
-        )
+        format!("Executed {} steps with {} tool calls", total_steps, tool_count)
     }
 }
 
 impl Default for TrajectoryRecorder {
     fn default() -> Self {
-        Self::new(
-            uuid::Uuid::new_v4().to_string(),
-            "default".to_string(),
-            "unknown".to_string(),
-        )
+        Self::new(uuid::Uuid::new_v4().to_string(), "default".to_string(), "unknown".to_string())
     }
 }

@@ -181,24 +181,17 @@ fn config_paths(tool: CliTool) -> Result<Vec<PathBuf>> {
             home.join(".gemini").join(".env"),
             home.join(".gemini").join("settings.json"),
         ]),
-        CliTool::OpenCode => Ok(vec![home
-            .join(".config")
-            .join("opencode")
-            .join("opencode.json")]),
+        CliTool::OpenCode => Ok(vec![home.join(".config").join("opencode").join("opencode.json")]),
         CliTool::Cursor => {
             #[cfg(target_os = "macos")]
             {
-                Ok(vec![home.join(
-                    "Library/Application Support/Cursor/User/settings.json",
-                )])
+                Ok(vec![home.join("Library/Application Support/Cursor/User/settings.json")])
             }
             #[cfg(target_os = "windows")]
             {
                 let appdata = std::env::var("APPDATA")
                     .map_err(|_| AxAgentError::NotFound("APPDATA not set".into()))?;
-                Ok(vec![
-                    PathBuf::from(appdata).join("Cursor/User/settings.json")
-                ])
+                Ok(vec![PathBuf::from(appdata).join("Cursor/User/settings.json")])
             }
             #[cfg(target_os = "linux")]
             {
@@ -541,10 +534,7 @@ fn connect_claude_code(
     let obj = settings
         .as_object_mut()
         .ok_or_else(|| AxAgentError::Gateway("Claude Code settings is not a JSON object".into()))?;
-    obj.insert(
-        "apiBaseUrl".into(),
-        serde_json::Value::String(gateway_url.into()),
-    );
+    obj.insert("apiBaseUrl".into(), serde_json::Value::String(gateway_url.into()));
     obj.insert("apiKey".into(), serde_json::Value::String(api_key.into()));
     if !obj.contains_key("env") {
         obj.insert("env".into(), serde_json::json!({}));
@@ -555,14 +545,8 @@ fn connect_claude_code(
         .ok_or_else(|| {
             AxAgentError::Gateway("Claude Code settings.env is not a JSON object".into())
         })?;
-    env.insert(
-        "ANTHROPIC_BASE_URL".into(),
-        serde_json::Value::String(gateway_url.into()),
-    );
-    env.insert(
-        "ANTHROPIC_AUTH_TOKEN".into(),
-        serde_json::Value::String(api_key.into()),
-    );
+    env.insert("ANTHROPIC_BASE_URL".into(), serde_json::Value::String(gateway_url.into()));
+    env.insert("ANTHROPIC_AUTH_TOKEN".into(), serde_json::Value::String(api_key.into()));
     let content = serde_json::to_string_pretty(&settings)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to serialize JSON: {}", e)))?;
     atomic_write(settings_path, &content)?;
@@ -572,10 +556,7 @@ fn connect_claude_code(
     let config_obj = config
         .as_object_mut()
         .ok_or_else(|| AxAgentError::Gateway("Claude Code config is not a JSON object".into()))?;
-    config_obj.insert(
-        "primaryApiKey".into(),
-        serde_json::Value::String("any".into()),
-    );
+    config_obj.insert("primaryApiKey".into(), serde_json::Value::String("any".into()));
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to serialize config JSON: {}", e)))?;
     atomic_write(config_path, &config_content)
@@ -704,10 +685,7 @@ fn connect_gemini(
         .as_object_mut()
         .ok_or_else(|| AxAgentError::Gateway("security.auth is not a JSON object".into()))?;
 
-    auth.insert(
-        "selectedType".into(),
-        serde_json::Value::String("gemini-api-key".into()),
-    );
+    auth.insert("selectedType".into(), serde_json::Value::String("gemini-api-key".into()));
 
     let settings_content = serde_json::to_string_pretty(&settings)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to serialize settings JSON: {}", e)))?;
@@ -761,14 +739,8 @@ fn connect_cursor(settings_path: &Path, gateway_url: &str, api_key: &str) -> Res
     let obj = json
         .as_object_mut()
         .ok_or_else(|| AxAgentError::Gateway("Cursor settings is not a JSON object".into()))?;
-    obj.insert(
-        "openai.apiBaseUrl".into(),
-        serde_json::Value::String(gateway_url.into()),
-    );
-    obj.insert(
-        "openai.apiKey".into(),
-        serde_json::Value::String(api_key.into()),
-    );
+    obj.insert("openai.apiBaseUrl".into(), serde_json::Value::String(gateway_url.into()));
+    obj.insert("openai.apiKey".into(), serde_json::Value::String(api_key.into()));
     let content = serde_json::to_string_pretty(&json)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to serialize JSON: {}", e)))?;
     atomic_write(settings_path, &content)

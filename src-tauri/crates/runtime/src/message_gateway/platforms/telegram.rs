@@ -289,10 +289,7 @@ async fn fetch_updates(
 }
 
 async fn set_telegram_webhook(bot_token: &str, webhook_url: &str) {
-    let url = format!(
-        "https://api.telegram.org/bot{}/setWebhook?url={}",
-        bot_token, webhook_url
-    );
+    let url = format!("https://api.telegram.org/bot{}/setWebhook?url={}", bot_token, webhook_url);
     if let Ok(resp) = reqwest::Client::new().get(&url).send().await {
         tracing::info!("Telegram webhook set: {}", resp.status());
     }

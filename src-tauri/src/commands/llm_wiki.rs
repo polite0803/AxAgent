@@ -79,10 +79,7 @@ impl From<axagent_core::entity::wiki_operations::Model> for WikiOperationOutput 
 #[tauri::command]
 pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>, String> {
     let wikis = axagent_core::entity::wikis::Entity::find()
-        .order_by(
-            axagent_core::entity::wikis::Column::CreatedAt,
-            sea_orm::Order::Desc,
-        )
+        .order_by(axagent_core::entity::wikis::Column::CreatedAt, sea_orm::Order::Desc)
         .all(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?;
@@ -144,10 +141,7 @@ pub async fn llm_wiki_operations_list(
 ) -> Result<Vec<WikiOperationOutput>, String> {
     let operations = axagent_core::entity::wiki_operations::Entity::find()
         .filter(axagent_core::entity::wiki_operations::Column::WikiId.eq(&wiki_id))
-        .order_by(
-            axagent_core::entity::wiki_operations::Column::CreatedAt,
-            sea_orm::Order::Desc,
-        )
+        .order_by(axagent_core::entity::wiki_operations::Column::CreatedAt, sea_orm::Order::Desc)
         .limit(100)
         .all(&state.sea_db)
         .await
@@ -236,12 +230,12 @@ fn resolve_provider_adapter(
 ) -> Result<Arc<dyn ProviderAdapter>, String> {
     match provider_type {
         ProviderType::OpenAI => Ok(Arc::new(axagent_providers::openai::OpenAIAdapter::new())),
-        ProviderType::OpenAIResponses => Ok(Arc::new(
-            axagent_providers::openai_responses::OpenAIResponsesAdapter::new(),
-        )),
-        ProviderType::Anthropic => Ok(Arc::new(
-            axagent_providers::anthropic::AnthropicAdapter::new(),
-        )),
+        ProviderType::OpenAIResponses => {
+            Ok(Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new()))
+        },
+        ProviderType::Anthropic => {
+            Ok(Arc::new(axagent_providers::anthropic::AnthropicAdapter::new()))
+        },
         ProviderType::Gemini => Ok(Arc::new(axagent_providers::gemini::GeminiAdapter::new())),
         ProviderType::OpenClaw => Ok(Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())),
         ProviderType::Hermes => Ok(Arc::new(axagent_providers::hermes::HermesAdapter::new())),
@@ -286,10 +280,7 @@ async fn build_llm_adapter(
         api_key,
         key_id: key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path,
         proxy_config: ProviderProxyConfig::resolve(&provider.proxy_config, &settings),
         custom_headers: provider
@@ -777,11 +768,7 @@ async fn process_sync_event(
             Ok(())
         },
         "source_ingested" => {
-            tracing::info!(
-                "Sync: source {} ingested for wiki {}",
-                model.target_id,
-                model.wiki_id
-            );
+            tracing::info!("Sync: source {} ingested for wiki {}", model.target_id, model.wiki_id);
             Ok(())
         },
         "schema_updated" => {

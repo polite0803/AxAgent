@@ -385,10 +385,8 @@ pub async fn rebuild_memory_index(
             );
         }
 
-        let _ = app.emit(
-            "memory-rebuild-complete",
-            serde_json::json!({ "namespaceId": namespace_id }),
-        );
+        let _ =
+            app.emit("memory-rebuild-complete", serde_json::json!({ "namespaceId": namespace_id }));
     });
 
     Ok(())

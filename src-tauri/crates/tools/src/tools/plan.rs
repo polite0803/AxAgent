@@ -78,8 +78,6 @@ impl Tool for ExitPlanModeTool {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        Ok(ToolResult::success(
-            "📤 计划已提交审批。等待用户确认后进入实施阶段。",
-        ))
+        Ok(ToolResult::success("📤 计划已提交审批。等待用户确认后进入实施阶段。"))
     }
 }

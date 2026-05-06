@@ -191,19 +191,13 @@ impl Clone for DatasetError {
 
 pub fn validate_task(task: &BenchmarkTask) -> Result<(), DatasetError> {
     if task.id.is_empty() {
-        return Err(DatasetError::ValidationError(
-            "Task ID cannot be empty".to_string(),
-        ));
+        return Err(DatasetError::ValidationError("Task ID cannot be empty".to_string()));
     }
     if task.name.is_empty() {
-        return Err(DatasetError::ValidationError(
-            "Task name cannot be empty".to_string(),
-        ));
+        return Err(DatasetError::ValidationError("Task name cannot be empty".to_string()));
     }
     if task.input.query.is_empty() {
-        return Err(DatasetError::ValidationError(
-            "Task query cannot be empty".to_string(),
-        ));
+        return Err(DatasetError::ValidationError("Task query cannot be empty".to_string()));
     }
     if task.evaluation_criteria.is_empty() {
         return Err(DatasetError::ValidationError(
@@ -222,9 +216,7 @@ pub fn validate_task(task: &BenchmarkTask) -> Result<(), DatasetError> {
 
 pub fn validate_benchmark(benchmark: &Benchmark) -> Result<(), DatasetError> {
     if benchmark.id.is_empty() {
-        return Err(DatasetError::ValidationError(
-            "Benchmark ID cannot be empty".to_string(),
-        ));
+        return Err(DatasetError::ValidationError("Benchmark ID cannot be empty".to_string()));
     }
     if benchmark.tasks.is_empty() {
         return Err(DatasetError::ValidationError(

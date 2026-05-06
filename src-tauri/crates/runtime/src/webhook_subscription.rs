@@ -167,11 +167,7 @@ impl WebhookSubscriptionManager {
     pub async fn set_enabled(&self, id: &str, enabled: bool) -> Result<(), String> {
         if let Some(sub) = self.subscriptions.write().await.get_mut(id) {
             sub.enabled = enabled;
-            tracing::info!(
-                "Webhook {} {}",
-                id,
-                if enabled { "enabled" } else { "disabled" }
-            );
+            tracing::info!("Webhook {} {}", id, if enabled { "enabled" } else { "disabled" });
             Ok(())
         } else {
             Err(format!("Subscription '{}' not found", id))

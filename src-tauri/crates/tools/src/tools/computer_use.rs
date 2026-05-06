@@ -120,10 +120,7 @@ async fn capture_screenshot() -> Result<String, ToolError> {
                 width, height, b64
             ))
         } else {
-            Err(ToolError::execution_failed_for(
-                "ComputerUse",
-                "未找到显示器",
-            ))
+            Err(ToolError::execution_failed_for("ComputerUse", "未找到显示器"))
         }
     }
 
@@ -155,15 +152,9 @@ async fn capture_screenshot() -> Result<String, ToolError> {
                 use base64::Engine;
                 let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
                 let _ = std::fs::remove_file(&tmp_str);
-                Ok(format!(
-                    "## 屏幕截图\n\n![screenshot](data:image/png;base64,{})",
-                    b64
-                ))
+                Ok(format!("## 屏幕截图\n\n![screenshot](data:image/png;base64,{})", b64))
             },
-            _ => Err(ToolError::execution_failed_for(
-                "ComputerUse",
-                "截图命令执行失败",
-            )),
+            _ => Err(ToolError::execution_failed_for("ComputerUse", "截图命令执行失败")),
         }
     }
 }

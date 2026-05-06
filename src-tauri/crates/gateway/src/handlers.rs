@@ -91,10 +91,7 @@ pub async fn get_response(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Responses API provider configured",
-            );
+            return error_response(StatusCode::BAD_GATEWAY, "No Responses API provider configured");
         },
     };
 
@@ -126,10 +123,7 @@ pub async fn get_response(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -143,10 +137,7 @@ pub async fn get_response(
     let adapter = match registry.get("openai_responses") {
         Some(a) => a,
         None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Responses API adapter available",
-            );
+            return error_response(StatusCode::BAD_GATEWAY, "No Responses API adapter available");
         },
     };
 
@@ -174,10 +165,7 @@ pub async fn get_response(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -198,10 +186,7 @@ pub async fn get_response(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to get response: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get response: {}", e))
         },
     }
 }
@@ -237,10 +222,7 @@ pub async fn delete_response(
     let provider = match providers.first() {
         Some(p) => p,
         None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Responses API provider configured",
-            );
+            return error_response(StatusCode::BAD_GATEWAY, "No Responses API provider configured");
         },
     };
 
@@ -272,10 +254,7 @@ pub async fn delete_response(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -289,10 +268,7 @@ pub async fn delete_response(
     let adapter = match registry.get("openai_responses") {
         Some(a) => a,
         None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Responses API adapter available",
-            );
+            return error_response(StatusCode::BAD_GATEWAY, "No Responses API adapter available");
         },
     };
 
@@ -335,10 +311,7 @@ pub async fn delete_response(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to delete response: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete response: {}", e))
         },
     }
 }
@@ -356,10 +329,7 @@ pub async fn list_jobs(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -405,10 +375,7 @@ pub async fn list_jobs(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -450,10 +417,7 @@ pub async fn list_jobs(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -474,10 +438,7 @@ pub async fn list_jobs(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to list jobs: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list jobs: {}", e))
         },
     }
 }
@@ -496,10 +457,7 @@ pub async fn create_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -545,10 +503,7 @@ pub async fn create_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -592,10 +547,7 @@ pub async fn create_job(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -616,10 +568,7 @@ pub async fn create_job(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to create job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to create job: {}", e))
         },
     }
 }
@@ -638,10 +587,7 @@ pub async fn get_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -687,10 +633,7 @@ pub async fn get_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -732,10 +675,7 @@ pub async fn get_job(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -756,10 +696,7 @@ pub async fn get_job(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to get job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job: {}", e))
         },
     }
 }
@@ -779,10 +716,7 @@ pub async fn update_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -828,10 +762,7 @@ pub async fn update_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -875,10 +806,7 @@ pub async fn update_job(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -899,10 +827,7 @@ pub async fn update_job(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to update job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to update job: {}", e))
         },
     }
 }
@@ -921,10 +846,7 @@ pub async fn delete_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -970,10 +892,7 @@ pub async fn delete_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1030,10 +949,7 @@ pub async fn delete_job(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to delete job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete job: {}", e))
         },
     }
 }
@@ -1052,10 +968,7 @@ pub async fn pause_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -1101,10 +1014,7 @@ pub async fn pause_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1161,10 +1071,7 @@ pub async fn pause_job(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to pause job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to pause job: {}", e))
         },
     }
 }
@@ -1183,10 +1090,7 @@ pub async fn resume_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -1232,10 +1136,7 @@ pub async fn resume_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1292,10 +1193,7 @@ pub async fn resume_job(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to resume job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to resume job: {}", e))
         },
     }
 }
@@ -1314,10 +1212,7 @@ pub async fn trigger_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -1363,10 +1258,7 @@ pub async fn trigger_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1423,10 +1315,7 @@ pub async fn trigger_job(
             )
             .await;
 
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to trigger job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger job: {}", e))
         },
     }
 }
@@ -1445,10 +1334,7 @@ pub async fn list_runs(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -1494,10 +1380,7 @@ pub async fn list_runs(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1539,10 +1422,7 @@ pub async fn list_runs(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -1562,10 +1442,7 @@ pub async fn list_runs(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to list runs: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list runs: {}", e))
         },
     }
 }
@@ -1585,10 +1462,7 @@ pub async fn trigger_run(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -1634,10 +1508,7 @@ pub async fn trigger_run(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1681,10 +1552,7 @@ pub async fn trigger_run(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -1704,10 +1572,7 @@ pub async fn trigger_run(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to trigger run: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger run: {}", e))
         },
     }
 }
@@ -1726,10 +1591,7 @@ pub async fn get_run(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -1775,10 +1637,7 @@ pub async fn get_run(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1820,10 +1679,7 @@ pub async fn get_run(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -1843,10 +1699,7 @@ pub async fn get_run(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to get run: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run: {}", e))
         },
     }
 }
@@ -1865,10 +1718,7 @@ pub async fn cancel_run(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -1914,10 +1764,7 @@ pub async fn cancel_run(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -1972,10 +1819,7 @@ pub async fn cancel_run(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to cancel run: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to cancel run: {}", e))
         },
     }
 }
@@ -1994,10 +1838,7 @@ pub async fn get_run_logs(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -2043,10 +1884,7 @@ pub async fn get_run_logs(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2088,10 +1926,7 @@ pub async fn get_run_logs(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -2111,10 +1946,7 @@ pub async fn get_run_logs(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to get run logs: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run logs: {}", e))
         },
     }
 }
@@ -2133,10 +1965,7 @@ pub async fn retry_run(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -2182,10 +2011,7 @@ pub async fn retry_run(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2227,10 +2053,7 @@ pub async fn retry_run(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -2250,10 +2073,7 @@ pub async fn retry_run(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to retry run: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to retry run: {}", e))
         },
     }
 }
@@ -2272,10 +2092,7 @@ pub async fn get_job_schedule(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -2321,10 +2138,7 @@ pub async fn get_job_schedule(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2366,10 +2180,7 @@ pub async fn get_job_schedule(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -2389,10 +2200,7 @@ pub async fn get_job_schedule(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to get job schedule: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job schedule: {}", e))
         },
     }
 }
@@ -2412,10 +2220,7 @@ pub async fn update_job_schedule(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -2461,10 +2266,7 @@ pub async fn update_job_schedule(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2511,10 +2313,7 @@ pub async fn update_job_schedule(
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
                 .unwrap_or_else(|_| {
-                    error_response(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build response",
-                    )
+                    error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
                 })
         },
         Err(e) => {
@@ -2556,10 +2355,7 @@ pub async fn enable_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -2605,10 +2401,7 @@ pub async fn enable_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2663,10 +2456,7 @@ pub async fn enable_job(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to enable job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to enable job: {}", e))
         },
     }
 }
@@ -2685,10 +2475,7 @@ pub async fn disable_job(
             Ok(p) => p
                 .into_iter()
                 .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenClaw | ProviderType::Hermes
-                    )
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
                 })
                 .collect(),
             Err(e) => {
@@ -2734,10 +2521,7 @@ pub async fn disable_job(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: None,
@@ -2792,10 +2576,7 @@ pub async fn disable_job(
                 None,
             )
             .await;
-            error_response(
-                StatusCode::BAD_GATEWAY,
-                &format!("Failed to disable job: {}", e),
-            )
+            error_response(StatusCode::BAD_GATEWAY, &format!("Failed to disable job: {}", e))
         },
     }
 }
@@ -2931,10 +2712,7 @@ pub async fn chat_completions(
         api_key,
         key_id: provider_key.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
         custom_headers: provider
@@ -3387,10 +3165,7 @@ pub(crate) fn resolve_provider_for_model(
                 .find(|p| public_id_map.get(&p.id) == Some(hint));
 
             let provider = provider_opt.ok_or_else(|| {
-                error_response(
-                    StatusCode::NOT_FOUND,
-                    &format!("Provider '{}' not found", hint),
-                )
+                error_response(StatusCode::NOT_FOUND, &format!("Provider '{}' not found", hint))
             })?;
 
             if !provider
@@ -3400,10 +3175,7 @@ pub(crate) fn resolve_provider_for_model(
             {
                 return Err(error_response(
                     StatusCode::NOT_FOUND,
-                    &format!(
-                        "Model '{}' not found on provider '{}'",
-                        parsed.model_id, hint
-                    ),
+                    &format!("Model '{}' not found on provider '{}'", parsed.model_id, hint),
                 ));
             }
 
@@ -3613,14 +3385,8 @@ mod tests {
         ];
         let map = build_model_display_map(&providers);
         // shared-model is on both → namespaced with deduplicated public IDs
-        assert_eq!(
-            map[&("p1".to_string(), "shared-model".to_string())],
-            "open-ai/shared-model"
-        );
-        assert_eq!(
-            map[&("p2".to_string(), "shared-model".to_string())],
-            "open-ai-2/shared-model"
-        );
+        assert_eq!(map[&("p1".to_string(), "shared-model".to_string())], "open-ai/shared-model");
+        assert_eq!(map[&("p2".to_string(), "shared-model".to_string())], "open-ai-2/shared-model");
         // unique models stay bare
         assert_eq!(map[&("p1".to_string(), "gpt-4o".to_string())], "gpt-4o");
         assert_eq!(map[&("p2".to_string(), "gpt-4".to_string())], "gpt-4");
@@ -3634,14 +3400,8 @@ mod tests {
         ];
         let map = build_model_display_map(&providers);
         assert_eq!(map[&("p1".to_string(), "gpt-4o".to_string())], "gpt-4o");
-        assert_eq!(
-            map[&("p1".to_string(), "gpt-3.5-turbo".to_string())],
-            "gpt-3.5-turbo"
-        );
-        assert_eq!(
-            map[&("p2".to_string(), "claude-3-opus".to_string())],
-            "claude-3-opus"
-        );
+        assert_eq!(map[&("p1".to_string(), "gpt-3.5-turbo".to_string())], "gpt-3.5-turbo");
+        assert_eq!(map[&("p2".to_string(), "claude-3-opus".to_string())], "claude-3-opus");
     }
 
     #[test]
@@ -3654,10 +3414,7 @@ mod tests {
         // gpt-4o is unique → bare
         assert_eq!(map[&("p1".to_string(), "gpt-4o".to_string())], "gpt-4o");
         // custom-model appears on both → namespaced
-        assert_eq!(
-            map[&("p1".to_string(), "custom-model".to_string())],
-            "openai/custom-model"
-        );
+        assert_eq!(map[&("p1".to_string(), "custom-model".to_string())], "openai/custom-model");
         assert_eq!(
             map[&("p2".to_string(), "custom-model".to_string())],
             "my-provider/custom-model"
@@ -3715,9 +3472,6 @@ mod tests {
         )
         .expect("chunk payload");
 
-        assert_eq!(
-            payload["choices"][0]["delta"]["reasoning_content"],
-            json!("step-by-step")
-        );
+        assert_eq!(payload["choices"][0]["delta"]["reasoning_content"], json!("step-by-step"));
     }
 }

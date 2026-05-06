@@ -25,18 +25,14 @@ pub fn encode_path(absolute_path: &str) -> String {
 
     // Try the most specific prefix first so that e.g. ~/.axagent/… is not
     // encoded as {{HOME}}/.axagent/… when {{AxAgent_HOME}}/… is more precise.
-    if let Some(encoded) = try_encode(
-        absolute_path,
-        &axagent_home.to_string_lossy(),
-        VAR_AX_AGENT_HOME,
-    ) {
+    if let Some(encoded) =
+        try_encode(absolute_path, &axagent_home.to_string_lossy(), VAR_AX_AGENT_HOME)
+    {
         return encoded;
     }
-    if let Some(encoded) = try_encode(
-        absolute_path,
-        &documents_root.to_string_lossy(),
-        VAR_DOCUMENTS,
-    ) {
+    if let Some(encoded) =
+        try_encode(absolute_path, &documents_root.to_string_lossy(), VAR_DOCUMENTS)
+    {
         return encoded;
     }
     if let Some(encoded) = try_encode(absolute_path, &home.to_string_lossy(), VAR_HOME) {
@@ -229,11 +225,7 @@ mod tests {
             .to_string_lossy()
             .to_string();
         let encoded = encode_path(&original);
-        assert!(
-            encoded.starts_with(VAR_HOME),
-            "expected HOME prefix, got: {}",
-            encoded
-        );
+        assert!(encoded.starts_with(VAR_HOME), "expected HOME prefix, got: {}", encoded);
         assert_eq!(decode_path(&encoded), original);
     }
 

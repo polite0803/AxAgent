@@ -96,11 +96,7 @@ impl McpErrorSurface {
 
 impl std::fmt::Display for McpErrorSurface {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "MCP lifecycle error during {}: {}",
-            self.phase, self.message
-        )?;
+        write!(f, "MCP lifecycle error during {}: {}", self.phase, self.message)?;
         if let Some(server_name) = &self.server_name {
             write!(f, " (server: {server_name})")?;
         }
@@ -363,10 +359,7 @@ impl McpLifecycleValidator {
         let error = McpErrorSurface::new(
             phase,
             server_name,
-            format!(
-                "MCP lifecycle phase {phase} timed out after {} ms",
-                waited.as_millis()
-            ),
+            format!("MCP lifecycle phase {phase} timed out after {} ms", waited.as_millis()),
             context,
             true,
         );
@@ -402,12 +395,7 @@ mod tests {
         // when
         let serialized = phases
             .into_iter()
-            .map(|phase| {
-                (
-                    phase.to_string(),
-                    serde_json::to_value(phase).expect("serialize phase"),
-                )
-            })
+            .map(|phase| (phase.to_string(), serde_json::to_value(phase).expect("serialize phase")))
             .collect::<Vec<_>>();
 
         // then
@@ -444,10 +432,7 @@ mod tests {
         assert!(results
             .iter()
             .all(|result| matches!(result, McpPhaseResult::Success { .. })));
-        assert_eq!(
-            validator.state().current_phase(),
-            Some(McpLifecyclePhase::Cleanup)
-        );
+        assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Cleanup));
         for phase in [
             McpLifecyclePhase::ConfigLoad,
             McpLifecyclePhase::ServerRegistration,
@@ -484,52 +469,25 @@ mod tests {
 
         // then
         assert!(matches!(result, McpPhaseResult::Success { .. }));
-        assert_eq!(
-            validator.state().current_phase(),
-            Some(McpLifecyclePhase::Ready)
-        );
+        assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Ready));
     }
 
     #[test]
     fn validates_expected_phase_transitions() {
         // given
         let valid_transitions = [
-            (
-                McpLifecyclePhase::ConfigLoad,
-                McpLifecyclePhase::ServerRegistration,
-            ),
-            (
-                McpLifecyclePhase::ServerRegistration,
-                McpLifecyclePhase::SpawnConnect,
-            ),
-            (
-                McpLifecyclePhase::SpawnConnect,
-                McpLifecyclePhase::InitializeHandshake,
-            ),
-            (
-                McpLifecyclePhase::InitializeHandshake,
-                McpLifecyclePhase::ToolDiscovery,
-            ),
-            (
-                McpLifecyclePhase::ToolDiscovery,
-                McpLifecyclePhase::ResourceDiscovery,
-            ),
+            (McpLifecyclePhase::ConfigLoad, McpLifecyclePhase::ServerRegistration),
+            (McpLifecyclePhase::ServerRegistration, McpLifecyclePhase::SpawnConnect),
+            (McpLifecyclePhase::SpawnConnect, McpLifecyclePhase::InitializeHandshake),
+            (McpLifecyclePhase::InitializeHandshake, McpLifecyclePhase::ToolDiscovery),
+            (McpLifecyclePhase::ToolDiscovery, McpLifecyclePhase::ResourceDiscovery),
             (McpLifecyclePhase::ToolDiscovery, McpLifecyclePhase::Ready),
-            (
-                McpLifecyclePhase::ResourceDiscovery,
-                McpLifecyclePhase::Ready,
-            ),
+            (McpLifecyclePhase::ResourceDiscovery, McpLifecyclePhase::Ready),
             (McpLifecyclePhase::Ready, McpLifecyclePhase::Invocation),
             (McpLifecyclePhase::Invocation, McpLifecyclePhase::Ready),
             (McpLifecyclePhase::Ready, McpLifecyclePhase::Shutdown),
-            (
-                McpLifecyclePhase::Invocation,
-                McpLifecyclePhase::ErrorSurfacing,
-            ),
-            (
-                McpLifecyclePhase::ErrorSurfacing,
-                McpLifecyclePhase::Shutdown,
-            ),
+            (McpLifecyclePhase::Invocation, McpLifecyclePhase::ErrorSurfacing),
+            (McpLifecyclePhase::ErrorSurfacing, McpLifecyclePhase::Shutdown),
             (McpLifecyclePhase::Shutdown, McpLifecyclePhase::Cleanup),
         ];
 
@@ -571,10 +529,7 @@ mod tests {
             },
             other => panic!("expected failure result, got {other:?}"),
         }
-        assert_eq!(
-            validator.state().current_phase(),
-            Some(McpLifecyclePhase::ErrorSurfacing)
-        );
+        assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::ErrorSurfacing));
         assert_eq!(
             validator
                 .state()
@@ -606,10 +561,7 @@ mod tests {
                 } => {
                     assert_eq!(failed_phase, phase);
                     assert_eq!(error.phase, phase);
-                    assert_eq!(
-                        error.recoverable,
-                        phase == McpLifecyclePhase::ResourceDiscovery
-                    );
+                    assert_eq!(error.recoverable, phase == McpLifecyclePhase::ResourceDiscovery);
                 },
                 other => panic!("expected failure result, got {other:?}"),
             }
@@ -649,14 +601,8 @@ mod tests {
             .state()
             .errors_for_phase(McpLifecyclePhase::SpawnConnect);
         assert_eq!(errors.len(), 1);
-        assert_eq!(
-            errors[0].context.get("waited_ms").map(String::as_str),
-            Some("250")
-        );
-        assert_eq!(
-            validator.state().current_phase(),
-            Some(McpLifecyclePhase::ErrorSurfacing)
-        );
+        assert_eq!(errors[0].context.get("waited_ms").map(String::as_str), Some("250"));
+        assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::ErrorSurfacing));
     }
 
     #[test]
@@ -691,10 +637,7 @@ mod tests {
         );
 
         // then
-        assert_eq!(
-            report.working_servers,
-            vec!["alpha".to_string(), "beta".to_string()]
-        );
+        assert_eq!(report.working_servers, vec!["alpha".to_string(), "beta".to_string()]);
         assert_eq!(report.failed_servers.len(), 1);
         assert_eq!(report.failed_servers[0].server_name, "broken");
         assert_eq!(
@@ -733,10 +676,7 @@ mod tests {
         // then
         assert!(matches!(shutdown, McpPhaseResult::Success { .. }));
         assert!(matches!(cleanup, McpPhaseResult::Success { .. }));
-        assert_eq!(
-            validator.state().current_phase(),
-            Some(McpLifecyclePhase::Cleanup)
-        );
+        assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Cleanup));
         assert!(validator
             .state()
             .phase_timestamp(McpLifecyclePhase::ErrorSurfacing)
@@ -801,10 +741,7 @@ mod tests {
             },
             other => panic!("expected failure result, got {other:?}"),
         }
-        assert_eq!(
-            validator.state().current_phase(),
-            Some(McpLifecyclePhase::ErrorSurfacing)
-        );
+        assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::ErrorSurfacing));
     }
 
     #[test]
@@ -835,9 +772,6 @@ mod tests {
 
         // then
         assert!(matches!(result, McpPhaseResult::Success { .. }));
-        assert_eq!(
-            validator.state().current_phase(),
-            Some(McpLifecyclePhase::Ready)
-        );
+        assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Ready));
     }
 }

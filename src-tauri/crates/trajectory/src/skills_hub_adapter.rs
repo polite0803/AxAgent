@@ -84,11 +84,7 @@ impl SkillsHubAdapter {
         let triggers_str = manifest.triggers.join("\n");
         let instruction = Self::generate_instruction(manifest);
         Ok(Skill {
-            id: format!(
-                "{}-{}",
-                manifest.name.to_lowercase().replace(' ', "-"),
-                manifest.version
-            ),
+            id: format!("{}-{}", manifest.name.to_lowercase().replace(' ', "-"), manifest.version),
             name: manifest.name.clone(),
             description: manifest.description.clone(),
             version: manifest.version.clone(),
@@ -123,10 +119,8 @@ impl SkillsHubAdapter {
     }
 
     fn generate_instruction(manifest: &HermesSkillManifest) -> String {
-        let mut instruction = format!(
-            "# {}\n\n{}\n\n## Commands\n\n",
-            manifest.name, manifest.description
-        );
+        let mut instruction =
+            format!("# {}\n\n{}\n\n## Commands\n\n", manifest.name, manifest.description);
         for cmd in &manifest.commands {
             instruction.push_str(&format!("### /{}\n\n{}\n\n", cmd.name, cmd.description));
             if !cmd.parameters.is_empty() {

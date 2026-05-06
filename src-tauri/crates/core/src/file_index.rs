@@ -309,10 +309,7 @@ impl FileIndex {
     pub fn remove_by_prefix(&self, prefix: &str) -> Result<usize, String> {
         let count = self
             .conn
-            .execute(
-                "DELETE FROM file_index WHERE path LIKE ?1",
-                params![format!("{prefix}%")],
-            )
+            .execute("DELETE FROM file_index WHERE path LIKE ?1", params![format!("{prefix}%")])
             .map_err(|e| format!("remove prefix {prefix}: {e}"))?;
         Ok(count)
     }
@@ -320,18 +317,14 @@ impl FileIndex {
     /// Get the last modification timestamp in the index.
     pub fn latest_modified(&self) -> Result<Option<u64>, String> {
         self.conn
-            .query_row("SELECT MAX(modified_at) FROM file_index", [], |row| {
-                row.get(0)
-            })
+            .query_row("SELECT MAX(modified_at) FROM file_index", [], |row| row.get(0))
             .map_err(|e| format!("latest_modified: {e}"))
     }
 
     /// Get total file count.
     pub fn count(&self) -> Result<usize, String> {
         self.conn
-            .query_row("SELECT COUNT(*) FROM file_index", [], |row| {
-                row.get::<_, i64>(0)
-            })
+            .query_row("SELECT COUNT(*) FROM file_index", [], |row| row.get::<_, i64>(0))
             .map(|c| c as usize)
             .map_err(|e| format!("count: {e}"))
     }

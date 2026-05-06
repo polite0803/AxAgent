@@ -109,10 +109,7 @@ pub struct Plan {
     pub status: PlanStatus,
     #[serde(rename = "isActive")]
     pub is_active: bool,
-    #[serde(
-        rename = "createdUnderStrategy",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "createdUnderStrategy", skip_serializing_if = "Option::is_none")]
     pub created_under_strategy: Option<String>,
     #[serde(rename = "createdAt")]
     pub created_at: i64,
@@ -296,10 +293,7 @@ async fn generate_plan_via_llm(
     // Parse JSON from response
     let plan_json = extract_json_from_text(&response.content).map_err(|e| {
         let preview = &response.content[..200.min(response.content.len())];
-        format!(
-            "Failed to parse plan JSON: {}. Raw response: {}",
-            e, preview
-        )
+        format!("Failed to parse plan JSON: {}. Raw response: {}", e, preview)
     })?;
 
     // Validate and build Plan
@@ -435,10 +429,7 @@ async fn build_agent_context(
         api_key,
         key_id: key.id.clone(),
         provider_id: prov.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &prov.api_host,
-            &prov.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
         proxy_config: ProviderProxyConfig::resolve(&prov.proxy_config, &settings),
         custom_headers: prov
@@ -549,9 +540,8 @@ async fn build_step_tools(
     chat_tools.extend(local_tools.get_enabled_chat_tools());
     tool_registry = tool_registry.with_local_tools(local_tools);
 
-    tool_registry = tool_registry.with_recorder(axagent_agent::ToolExecutionRecorder::new(
-        Arc::new(db.clone()),
-    ));
+    tool_registry = tool_registry
+        .with_recorder(axagent_agent::ToolExecutionRecorder::new(Arc::new(db.clone())));
 
     let api_client = if chat_tools.is_empty() {
         axagent_agent::AxAgentApiClient::new(agent_ctx.adapter.clone(), agent_ctx.ctx.clone())
@@ -613,10 +603,7 @@ async fn execute_step_with_agent(
     let result = session_manager
         .run_turn_with_tools(
             &session_id,
-            format!(
-                "Execute this plan step: {}\n\nContext: {}",
-                step.title, step.description
-            ),
+            format!("Execute this plan step: {}\n\nContext: {}", step.title, step.description),
             api_client,
             tool_registry,
             system_prompt,
@@ -653,10 +640,9 @@ async fn execute_step_with_agent(
                         text_blocks
                     }
                 },
-                None => format!(
-                    "Step '{}' completed ({} iterations)",
-                    step.title, summary.iterations
-                ),
+                None => {
+                    format!("Step '{}' completed ({} iterations)", step.title, summary.iterations)
+                },
             };
 
             let _ = app.emit(

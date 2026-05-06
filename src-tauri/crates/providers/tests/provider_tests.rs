@@ -4,42 +4,27 @@ use axagent_providers::*;
 
 #[test]
 fn test_resolve_base_url_appends_default_version() {
-    assert_eq!(
-        resolve_base_url("https://api.openai.com"),
-        "https://api.openai.com/v1"
-    );
+    assert_eq!(resolve_base_url("https://api.openai.com"), "https://api.openai.com/v1");
 }
 
 #[test]
 fn test_resolve_base_url_already_has_version() {
-    assert_eq!(
-        resolve_base_url("https://api.openai.com/v1"),
-        "https://api.openai.com/v1"
-    );
+    assert_eq!(resolve_base_url("https://api.openai.com/v1"), "https://api.openai.com/v1");
 }
 
 #[test]
 fn test_resolve_base_url_with_trailing_slash() {
-    assert_eq!(
-        resolve_base_url("https://api.openai.com/"),
-        "https://api.openai.com/v1"
-    );
+    assert_eq!(resolve_base_url("https://api.openai.com/"), "https://api.openai.com/v1");
 }
 
 #[test]
 fn test_resolve_base_url_force_mode_strips_bang() {
-    assert_eq!(
-        resolve_base_url("https://api.openai.com!"),
-        "https://api.openai.com"
-    );
+    assert_eq!(resolve_base_url("https://api.openai.com!"), "https://api.openai.com");
 }
 
 #[test]
 fn test_resolve_base_url_force_mode_with_path() {
-    assert_eq!(
-        resolve_base_url("https://api.openai.com/v2!"),
-        "https://api.openai.com/v2"
-    );
+    assert_eq!(resolve_base_url("https://api.openai.com/v2!"), "https://api.openai.com/v2");
 }
 
 #[test]
@@ -62,10 +47,7 @@ fn test_resolve_base_url_for_type_openai() {
 
 #[test]
 fn test_resolve_base_url_v2_version() {
-    assert_eq!(
-        resolve_base_url("https://api.example.com/v2"),
-        "https://api.example.com/v2"
-    );
+    assert_eq!(resolve_base_url("https://api.example.com/v2"), "https://api.example.com/v2");
 }
 
 #[test]
@@ -101,11 +83,7 @@ fn test_resolve_chat_url_with_api_path() {
 #[test]
 fn test_resolve_chat_url_force_mode_with_bang() {
     assert_eq!(
-        resolve_chat_url(
-            "https://api.openai.com",
-            Some("/v1/messages!"),
-            "/chat/completions"
-        ),
+        resolve_chat_url("https://api.openai.com", Some("/v1/messages!"), "/chat/completions"),
         "https://api.openai.com/v1/messages"
     );
 }
@@ -114,11 +92,7 @@ fn test_resolve_chat_url_force_mode_with_bang() {
 fn test_resolve_chat_url_auto_dedup() {
     // When base ends with /v1 and path starts with /v1, strip duplicate
     assert_eq!(
-        resolve_chat_url(
-            "https://api.openai.com/v1",
-            Some("/v1/messages"),
-            "/chat/completions"
-        ),
+        resolve_chat_url("https://api.openai.com/v1", Some("/v1/messages"), "/chat/completions"),
         "https://api.openai.com/v1/messages"
     );
 }
@@ -134,11 +108,7 @@ fn test_resolve_chat_url_empty_path() {
 #[test]
 fn test_resolve_chat_url_path_without_slash() {
     assert_eq!(
-        resolve_chat_url(
-            "https://api.openai.com/v1",
-            Some("messages"),
-            "/chat/completions"
-        ),
+        resolve_chat_url("https://api.openai.com/v1", Some("messages"), "/chat/completions"),
         "https://api.openai.com/v1/messages"
     );
 }
@@ -194,11 +164,7 @@ fn test_diagnose_reqwest_error_basic() {
 
 #[test]
 fn test_diagnose_401_authentication_error() {
-    let msg = diagnose_http_status(
-        "OpenAI",
-        reqwest::StatusCode::UNAUTHORIZED,
-        "Invalid API key",
-    );
+    let msg = diagnose_http_status("OpenAI", reqwest::StatusCode::UNAUTHORIZED, "Invalid API key");
     assert!(msg.contains("401"));
     assert!(msg.contains("Authentication failed"));
     assert!(msg.contains("Invalid API key"));
@@ -228,11 +194,7 @@ fn test_diagnose_500_internal_error() {
 
 #[test]
 fn test_diagnose_400_bad_request() {
-    let msg = diagnose_http_status(
-        "Ollama",
-        reqwest::StatusCode::BAD_REQUEST,
-        "Bad request body",
-    );
+    let msg = diagnose_http_status("Ollama", reqwest::StatusCode::BAD_REQUEST, "Bad request body");
     assert!(msg.contains("400"));
     assert!(msg.contains("Bad request"));
 }
@@ -246,11 +208,8 @@ fn test_diagnose_404_not_found() {
 
 #[test]
 fn test_diagnose_unknown_status_code() {
-    let msg = diagnose_http_status(
-        "test-provider",
-        reqwest::StatusCode::IM_A_TEAPOT,
-        "I'm a teapot",
-    );
+    let msg =
+        diagnose_http_status("test-provider", reqwest::StatusCode::IM_A_TEAPOT, "I'm a teapot");
     assert!(msg.contains("418"));
     assert!(msg.contains("I'm a teapot"));
 }

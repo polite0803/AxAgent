@@ -114,10 +114,7 @@ impl PlatformAdapter for DiscordAdapter {
         let client = reqwest::Client::new();
         let resp = client.post(webhook_url).json(&body).send().await?;
         if !resp.status().is_success() {
-            anyhow::bail!(
-                "Discord webhook failed: {}",
-                resp.text().await.unwrap_or_default()
-            );
+            anyhow::bail!("Discord webhook failed: {}", resp.text().await.unwrap_or_default());
         }
         Ok(())
     }

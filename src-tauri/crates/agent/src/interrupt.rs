@@ -115,26 +115,17 @@ impl InterruptManager {
     }
 
     pub async fn soft_stop(&self) {
-        self.request(
-            InterruptLevel::Soft,
-            Some("User requested soft stop".to_string()),
-        )
-        .await;
+        self.request(InterruptLevel::Soft, Some("User requested soft stop".to_string()))
+            .await;
     }
 
     pub async fn hard_stop(&self) {
-        self.request(
-            InterruptLevel::Hard,
-            Some("User requested hard stop".to_string()),
-        )
-        .await;
+        self.request(InterruptLevel::Hard, Some("User requested hard stop".to_string()))
+            .await;
     }
 
     pub async fn graceful_stop(&self) {
-        self.request(
-            InterruptLevel::Graceful,
-            Some("User requested graceful stop".to_string()),
-        )
-        .await;
+        self.request(InterruptLevel::Graceful, Some("User requested graceful stop".to_string()))
+            .await;
     }
 }

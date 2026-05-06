@@ -197,10 +197,7 @@ impl WikiCompiler {
                         continue;
                     }
                 }
-                results.push((
-                    source.clone(),
-                    format!("[File not found: {}]", source.source_path),
-                ));
+                results.push((source.clone(), format!("[File not found: {}]", source.source_path)));
             }
         }
         Ok(results)
@@ -605,9 +602,7 @@ impl WikiCompiler {
             note_id: Set(note.id.clone()),
             page_type: Set(page.page_type.clone()),
             title: Set(page.title.clone()),
-            source_ids: Set(Some(
-                serde_json::to_value(&page.source_ids).unwrap_or_default(),
-            )),
+            source_ids: Set(Some(serde_json::to_value(&page.source_ids).unwrap_or_default())),
             quality_score: Set(None),
             last_linted_at: Set(None),
             last_compiled_at: Set(chrono::Utc::now().timestamp()),
@@ -815,14 +810,8 @@ impl WikiCompiler {
             .await
             .map_err(|e| e.to_string())?;
 
-        self.upsert_system_note(
-            wiki_id,
-            "Overview",
-            "overview",
-            &overview,
-            "notes/overview.md",
-        )
-        .await
+        self.upsert_system_note(wiki_id, "Overview", "overview", &overview, "notes/overview.md")
+            .await
     }
 
     async fn upsert_system_note(

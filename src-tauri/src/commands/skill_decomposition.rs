@@ -702,10 +702,7 @@ Only output the JSON, no other text."#,
     };
 
     let suggestion: ToolUpgradeSuggestion = serde_json::from_str(json_str).map_err(|e| {
-        format!(
-            "Failed to parse LLM response as JSON: {}. Content: {}",
-            e, content
-        )
+        format!("Failed to parse LLM response as JSON: {}. Content: {}", e, content)
     })?;
 
     Ok(ToolUpgradeResponse { suggestion })
@@ -727,10 +724,7 @@ pub async fn get_marketplace_skill_content(
 ) -> Result<MarketplaceSkillContent, String> {
     let parts: Vec<&str> = repo.split('/').collect();
     if parts.len() != 2 {
-        return Err(format!(
-            "Invalid repo format: '{}'. Expected 'owner/repo'",
-            repo
-        ));
+        return Err(format!("Invalid repo format: '{}'. Expected 'owner/repo'", repo));
     }
     let owner = parts[0];
     let repo_name = parts[1];
@@ -778,10 +772,7 @@ pub async fn get_marketplace_skill_content(
         .map_err(|e| format!("Failed to fetch contents: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!(
-            "GitHub Contents API returned {}",
-            response.status()
-        ));
+        return Err(format!("GitHub Contents API returned {}", response.status()));
     }
 
     let contents: Vec<serde_json::Value> = response

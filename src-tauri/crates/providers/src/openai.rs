@@ -35,11 +35,7 @@ impl OpenAIAdapter {
     }
 
     fn chat_url(ctx: &ProviderRequestContext) -> String {
-        resolve_chat_url(
-            &Self::base_url(ctx),
-            ctx.api_path.as_deref(),
-            "/chat/completions",
-        )
+        resolve_chat_url(&Self::base_url(ctx), ctx.api_path.as_deref(), "/chat/completions")
     }
 
     pub fn get_client(&self, ctx: &ProviderRequestContext) -> Result<reqwest::Client> {
@@ -619,9 +615,7 @@ impl ProviderAdapter for OpenAIAdapter {
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Provider(format!(
-                "OpenAI API error {status}: {text}"
-            )));
+            return Err(AxAgentError::Provider(format!("OpenAI API error {status}: {text}")));
         }
 
         let oai: OpenAIResponse = resp
@@ -1087,9 +1081,7 @@ impl ProviderAdapter for OpenAIAdapter {
         if !resp.status().is_success() {
             let s = resp.status();
             let t = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Provider(format!(
-                "OpenAI embed API error {s}: {t}"
-            )));
+            return Err(AxAgentError::Provider(format!("OpenAI embed API error {s}: {t}")));
         }
 
         let result: OpenAIEmbedResponse = resp

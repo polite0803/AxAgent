@@ -405,10 +405,7 @@ mod tests {
                 assert_eq!(recovered.len(), 1, "one step should have succeeded");
                 assert_eq!(remaining.len(), 1, "one step should remain");
                 assert!(matches!(recovered[0], RecoveryStep::RestartPlugin { .. }));
-                assert!(matches!(
-                    remaining[0],
-                    RecoveryStep::RetryMcpHandshake { .. }
-                ));
+                assert!(matches!(remaining[0], RecoveryStep::RetryMcpHandshake { .. }));
             },
             other => panic!("expected PartialRecovery, got {other:?}"),
         }
@@ -513,14 +510,8 @@ mod tests {
 
         // then
         assert_eq!(recipe.steps.len(), 2);
-        assert!(matches!(
-            recipe.steps[0],
-            RecoveryStep::RestartPlugin { .. }
-        ));
-        assert!(matches!(
-            recipe.steps[1],
-            RecoveryStep::RetryMcpHandshake { timeout: 3000 }
-        ));
+        assert!(matches!(recipe.steps[0], RecoveryStep::RestartPlugin { .. }));
+        assert!(matches!(recipe.steps[1], RecoveryStep::RetryMcpHandshake { timeout: 3000 }));
         assert_eq!(recipe.escalation_policy, EscalationPolicy::LogAndContinue);
     }
 
@@ -528,24 +519,12 @@ mod tests {
     fn failure_scenario_display_all_variants() {
         // given
         let cases = [
-            (
-                FailureScenario::TrustPromptUnresolved,
-                "trust_prompt_unresolved",
-            ),
+            (FailureScenario::TrustPromptUnresolved, "trust_prompt_unresolved"),
             (FailureScenario::PromptMisdelivery, "prompt_misdelivery"),
             (FailureScenario::StaleBranch, "stale_branch"),
-            (
-                FailureScenario::CompileRedCrossCrate,
-                "compile_red_cross_crate",
-            ),
-            (
-                FailureScenario::McpHandshakeFailure,
-                "mcp_handshake_failure",
-            ),
-            (
-                FailureScenario::PartialPluginStartup,
-                "partial_plugin_startup",
-            ),
+            (FailureScenario::CompileRedCrossCrate, "compile_red_cross_crate"),
+            (FailureScenario::McpHandshakeFailure, "mcp_handshake_failure"),
+            (FailureScenario::PartialPluginStartup, "partial_plugin_startup"),
         ];
 
         // when / then

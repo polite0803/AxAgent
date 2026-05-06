@@ -404,27 +404,18 @@ mod tests {
         fs::create_dir_all(root.join("hooks")).expect("hooks dir");
 
         let pre_path = root.join("hooks").join("pre.sh");
-        fs::write(
-            &pre_path,
-            format!("#!/bin/sh\nprintf '%s\\n' '{pre_message}'\n"),
-        )
-        .expect("write pre hook");
+        fs::write(&pre_path, format!("#!/bin/sh\nprintf '%s\\n' '{pre_message}'\n"))
+            .expect("write pre hook");
         make_executable(&pre_path);
 
         let post_path = root.join("hooks").join("post.sh");
-        fs::write(
-            &post_path,
-            format!("#!/bin/sh\nprintf '%s\\n' '{post_message}'\n"),
-        )
-        .expect("write post hook");
+        fs::write(&post_path, format!("#!/bin/sh\nprintf '%s\\n' '{post_message}'\n"))
+            .expect("write post hook");
         make_executable(&post_path);
 
         let failure_path = root.join("hooks").join("failure.sh");
-        fs::write(
-            &failure_path,
-            format!("#!/bin/sh\nprintf '%s\\n' '{failure_message}'\n"),
-        )
-        .expect("write failure hook");
+        fs::write(&failure_path, format!("#!/bin/sh\nprintf '%s\\n' '{failure_message}'\n"))
+            .expect("write failure hook");
         make_executable(&failure_path);
         fs::write(
             root.join(".claude-plugin").join("plugin.json"),
@@ -471,10 +462,7 @@ mod tests {
         // then
         assert_eq!(
             runner.run_pre_tool_use("Read", r#"{"path":"README.md"}"#),
-            HookRunResult::allow(vec![
-                "plugin pre one".to_string(),
-                "plugin pre two".to_string(),
-            ])
+            HookRunResult::allow(vec!["plugin pre one".to_string(), "plugin pre two".to_string(),])
         );
         assert_eq!(
             runner.run_post_tool_use("Read", r#"{"path":"README.md"}"#, "ok", false),

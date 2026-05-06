@@ -31,10 +31,7 @@ pub async fn set_skill_enabled(db: &DatabaseConnection, name: &str, enabled: boo
 
     if existing.is_some() {
         skill_states::Entity::update_many()
-            .col_expr(
-                skill_states::Column::Enabled,
-                Expr::value(if enabled { 1 } else { 0 }),
-            )
+            .col_expr(skill_states::Column::Enabled, Expr::value(if enabled { 1 } else { 0 }))
             .col_expr(skill_states::Column::UpdatedAt, Expr::value(now))
             .filter(skill_states::Column::Name.eq(name))
             .exec(db)

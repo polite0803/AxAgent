@@ -31,10 +31,7 @@ impl NodeExecutorTrait for LlmExecutor {
     ) -> Result<NodeOutput, NodeError> {
         match node {
             WorkflowNode::Llm(llm_node) => Self::execute_llm(llm_node, context).await,
-            _ => Err(NodeError::UnsupportedNodeType(format!(
-                "Expected LLM node, got {:?}",
-                node
-            ))),
+            _ => Err(NodeError::UnsupportedNodeType(format!("Expected LLM node, got {:?}", node))),
         }
     }
 }

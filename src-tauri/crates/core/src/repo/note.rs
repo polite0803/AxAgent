@@ -206,9 +206,7 @@ pub async fn update_note(
     }
 
     if let Some(related_pages) = input.related_pages {
-        am.related_pages = Set(Some(
-            serde_json::to_value(related_pages).unwrap_or_default(),
-        ));
+        am.related_pages = Set(Some(serde_json::to_value(related_pages).unwrap_or_default()));
     }
 
     am.updated_at = Set(chrono::Utc::now().timestamp());

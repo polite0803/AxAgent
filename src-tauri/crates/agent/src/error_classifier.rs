@@ -173,51 +173,24 @@ mod tests {
     #[test]
     fn test_transient_errors() {
         let classifier = ErrorClassifier::new();
-        assert_eq!(
-            classifier.classify("connection timeout"),
-            ErrorType::Transient
-        );
-        assert_eq!(
-            classifier.classify("network error: 503"),
-            ErrorType::Transient
-        );
-        assert_eq!(
-            classifier.classify("rate limit exceeded"),
-            ErrorType::Transient
-        );
+        assert_eq!(classifier.classify("connection timeout"), ErrorType::Transient);
+        assert_eq!(classifier.classify("network error: 503"), ErrorType::Transient);
+        assert_eq!(classifier.classify("rate limit exceeded"), ErrorType::Transient);
     }
 
     #[test]
     fn test_recoverable_errors() {
         let classifier = ErrorClassifier::new();
-        assert_eq!(
-            classifier.classify("permission denied"),
-            ErrorType::Recoverable
-        );
-        assert_eq!(
-            classifier.classify("resource exhausted"),
-            ErrorType::Recoverable
-        );
-        assert_eq!(
-            classifier.classify("401 unauthorized"),
-            ErrorType::Recoverable
-        );
+        assert_eq!(classifier.classify("permission denied"), ErrorType::Recoverable);
+        assert_eq!(classifier.classify("resource exhausted"), ErrorType::Recoverable);
+        assert_eq!(classifier.classify("401 unauthorized"), ErrorType::Recoverable);
     }
 
     #[test]
     fn test_unrecoverable_errors() {
         let classifier = ErrorClassifier::new();
-        assert_eq!(
-            classifier.classify("syntax error"),
-            ErrorType::Unrecoverable
-        );
-        assert_eq!(
-            classifier.classify("invalid format"),
-            ErrorType::Unrecoverable
-        );
-        assert_eq!(
-            classifier.classify("internal server error: 500"),
-            ErrorType::Unrecoverable
-        );
+        assert_eq!(classifier.classify("syntax error"), ErrorType::Unrecoverable);
+        assert_eq!(classifier.classify("invalid format"), ErrorType::Unrecoverable);
+        assert_eq!(classifier.classify("internal server error: 500"), ErrorType::Unrecoverable);
     }
 }

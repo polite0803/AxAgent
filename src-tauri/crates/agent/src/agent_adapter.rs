@@ -76,10 +76,7 @@ impl AgentImpl for AgentImplAdapter {
         )
         .await;
 
-        let result = Ok(CoordinatorOutput::success(
-            format!("Processed: {}", input.content),
-            1,
-        ));
+        let result = Ok(CoordinatorOutput::success(format!("Processed: {}", input.content), 1));
 
         let mut status = self.status.write().await;
         *status = AgentStatus::Completed;
@@ -98,10 +95,7 @@ impl AgentImpl for AgentImplAdapter {
     async fn pause(&mut self) -> Result<(), AgentError> {
         let mut status = self.status.write().await;
         if !matches!(*status, AgentStatus::Running) {
-            return Err(AgentError::InvalidState(format!(
-                "Cannot pause from status {}",
-                status
-            )));
+            return Err(AgentError::InvalidState(format!("Cannot pause from status {}", status)));
         }
         *status = AgentStatus::Paused;
         Ok(())
@@ -110,10 +104,7 @@ impl AgentImpl for AgentImplAdapter {
     async fn resume(&mut self) -> Result<(), AgentError> {
         let mut status = self.status.write().await;
         if !matches!(*status, AgentStatus::Paused) {
-            return Err(AgentError::InvalidState(format!(
-                "Cannot resume from status {}",
-                status
-            )));
+            return Err(AgentError::InvalidState(format!("Cannot resume from status {}", status)));
         }
         *status = AgentStatus::Running;
         Ok(())
@@ -270,10 +261,7 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
     async fn pause(&mut self) -> Result<(), AgentError> {
         let mut status = self.status.write().await;
         if !matches!(*status, AgentStatus::Running) {
-            return Err(AgentError::InvalidState(format!(
-                "Cannot pause from status {}",
-                status
-            )));
+            return Err(AgentError::InvalidState(format!("Cannot pause from status {}", status)));
         }
         *status = AgentStatus::Paused;
 
@@ -292,10 +280,7 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
     async fn resume(&mut self) -> Result<(), AgentError> {
         let mut status = self.status.write().await;
         if !matches!(*status, AgentStatus::Paused) {
-            return Err(AgentError::InvalidState(format!(
-                "Cannot resume from status {}",
-                status
-            )));
+            return Err(AgentError::InvalidState(format!("Cannot resume from status {}", status)));
         }
         *status = AgentStatus::Running;
 

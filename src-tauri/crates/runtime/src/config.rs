@@ -262,10 +262,10 @@ impl ConfigLoader {
 
     #[must_use]
     pub fn discover(&self) -> Vec<ConfigEntry> {
-        let user_legacy_path = self.config_home.parent().map_or_else(
-            || PathBuf::from(".claw.json"),
-            |parent| parent.join(".claw.json"),
-        );
+        let user_legacy_path = self
+            .config_home
+            .parent()
+            .map_or_else(|| PathBuf::from(".claw.json"), |parent| parent.join(".claw.json"));
         vec![
             ConfigEntry {
                 source: ConfigSource::User,
@@ -649,10 +649,7 @@ impl RuntimeHookConfig {
     pub fn extend(&mut self, other: &Self) {
         extend_unique(&mut self.pre_tool_use, other.pre_tool_use());
         extend_unique(&mut self.post_tool_use, other.post_tool_use());
-        extend_unique(
-            &mut self.post_tool_use_failure,
-            other.post_tool_use_failure(),
-        );
+        extend_unique(&mut self.post_tool_use_failure, other.post_tool_use_failure());
         extend_unique(&mut self.subagent_start, other.subagent_start());
         extend_unique(&mut self.subagent_stop, other.subagent_stop());
         extend_unique(&mut self.pre_compact, other.pre_compact());
@@ -1031,9 +1028,7 @@ fn parse_permission_mode_label(
         "default" | "plan" | "read-only" => Ok(ResolvedPermissionMode::ReadOnly),
         "acceptEdits" | "auto" | "workspace-write" => Ok(ResolvedPermissionMode::WorkspaceWrite),
         "dontAsk" | "danger-full-access" => Ok(ResolvedPermissionMode::DangerFullAccess),
-        other => Err(ConfigError::Parse(format!(
-            "{context}: unsupported permission mode {other}"
-        ))),
+        other => Err(ConfigError::Parse(format!("{context}: unsupported permission mode {other}"))),
     }
 }
 
@@ -1083,10 +1078,8 @@ fn parse_optional_trusted_roots(root: &JsonValue) -> Result<Vec<String>, ConfigE
     let Some(object) = root.as_object() else {
         return Ok(Vec::new());
     };
-    Ok(
-        optional_string_array(object, "trustedRoots", "merged settings.trustedRoots")?
-            .unwrap_or_default(),
-    )
+    Ok(optional_string_array(object, "trustedRoots", "merged settings.trustedRoots")?
+        .unwrap_or_default())
 }
 
 fn parse_filesystem_mode_label(value: &str) -> Result<FilesystemIsolationMode, ConfigError> {
@@ -1140,12 +1133,8 @@ fn parse_mcp_server_config(
             env: optional_string_map(object, "env", context)?.unwrap_or_default(),
             tool_call_timeout_ms: optional_u64(object, "toolCallTimeoutMs", context)?,
         })),
-        "sse" => Ok(McpServerConfig::Sse(parse_mcp_remote_server_config(
-            object, context,
-        )?)),
-        "http" => Ok(McpServerConfig::Http(parse_mcp_remote_server_config(
-            object, context,
-        )?)),
+        "sse" => Ok(McpServerConfig::Sse(parse_mcp_remote_server_config(object, context)?)),
+        "http" => Ok(McpServerConfig::Http(parse_mcp_remote_server_config(object, context)?)),
         "ws" => Ok(McpServerConfig::Ws(McpWebSocketServerConfig {
             url: expect_string(object, "url", context)?.to_string(),
             headers: optional_string_map(object, "headers", context)?.unwrap_or_default(),
@@ -1314,9 +1303,7 @@ fn optional_u64(
 
 fn parse_bool_map(value: &JsonValue, context: &str) -> Result<BTreeMap<String, bool>, ConfigError> {
     let Some(map) = value.as_object() else {
-        return Err(ConfigError::Parse(format!(
-            "{context}: expected JSON object"
-        )));
+        return Err(ConfigError::Parse(format!("{context}: expected JSON object")));
     };
     map.iter()
         .map(|(key, value)| {
@@ -1338,9 +1325,7 @@ fn optional_string_array(
     match object.get(key) {
         Some(value) => {
             let Some(array) = value.as_array() else {
-                return Err(ConfigError::Parse(format!(
-                    "{context}: field {key} must be an array"
-                )));
+                return Err(ConfigError::Parse(format!("{context}: field {key} must be an array")));
             };
             array
                 .iter()
@@ -1475,11 +1460,8 @@ mod tests {
             r#"{"model":"sonnet","env":{"A2":"1"},"hooks":{"PreToolUse":["base"]},"permissions":{"defaultMode":"plan","allow":["Read"],"deny":["Bash(rm -rf)"]}}"#,
         )
         .expect("write user settings");
-        fs::write(
-            cwd.join(".claw.json"),
-            r#"{"model":"project-compat","env":{"B":"2"}}"#,
-        )
-        .expect("write project compat config");
+        fs::write(cwd.join(".claw.json"), r#"{"model":"project-compat","env":{"B":"2"}}"#)
+            .expect("write project compat config");
         fs::write(
             cwd.join(".claw").join("settings.json"),
             r#"{"env":{"C":"3"},"hooks":{"PostToolUse":["project"],"PostToolUseFailure":["project-failure"]},"permissions":{"ask":["Edit"]},"mcpServers":{"project":{"command":"uvx","args":["project"]}}}"#,
@@ -1498,15 +1480,9 @@ mod tests {
         assert_eq!(CLAW_SETTINGS_SCHEMA_NAME, "SettingsSchema");
         assert_eq!(loaded.loaded_entries().len(), 5);
         assert_eq!(loaded.loaded_entries()[0].source, ConfigSource::User);
-        assert_eq!(
-            loaded.get("model"),
-            Some(&JsonValue::String("opus".to_string()))
-        );
+        assert_eq!(loaded.get("model"), Some(&JsonValue::String("opus".to_string())));
         assert_eq!(loaded.model(), Some("opus"));
-        assert_eq!(
-            loaded.permission_mode(),
-            Some(ResolvedPermissionMode::WorkspaceWrite)
-        );
+        assert_eq!(loaded.permission_mode(), Some(ResolvedPermissionMode::WorkspaceWrite));
         assert_eq!(
             loaded
                 .get("env")
@@ -1527,15 +1503,9 @@ mod tests {
             .contains_key("PostToolUse"));
         assert_eq!(loaded.hooks().pre_tool_use(), &["base".to_string()]);
         assert_eq!(loaded.hooks().post_tool_use(), &["project".to_string()]);
-        assert_eq!(
-            loaded.hooks().post_tool_use_failure(),
-            &["project-failure".to_string()]
-        );
+        assert_eq!(loaded.hooks().post_tool_use_failure(), &["project-failure".to_string()]);
         assert_eq!(loaded.permission_rules().allow(), &["Read".to_string()]);
-        assert_eq!(
-            loaded.permission_rules().deny(),
-            &["Bash(rm -rf)".to_string()]
-        );
+        assert_eq!(loaded.permission_rules().deny(), &["Bash(rm -rf)".to_string()]);
         assert_eq!(loaded.permission_rules().ask(), &["Edit".to_string()]);
         assert!(loaded.mcp().get("home").is_some());
         assert!(loaded.mcp().get("project").is_some());
@@ -1572,10 +1542,7 @@ mod tests {
         assert_eq!(loaded.sandbox().enabled, Some(true));
         assert_eq!(loaded.sandbox().namespace_restrictions, Some(false));
         assert_eq!(loaded.sandbox().network_isolation, Some(true));
-        assert_eq!(
-            loaded.sandbox().filesystem_mode,
-            Some(FilesystemIsolationMode::AllowList)
-        );
+        assert_eq!(loaded.sandbox().filesystem_mode, Some(FilesystemIsolationMode::AllowList));
         assert_eq!(loaded.sandbox().allowed_mounts, vec!["logs", "tmp/cache"]);
 
         fs::remove_dir_all(root).expect("cleanup temp dir");
@@ -1608,10 +1575,7 @@ mod tests {
         // then
         let chain = loaded.provider_fallbacks();
         assert_eq!(chain.primary(), Some("claude-opus-4-6"));
-        assert_eq!(
-            chain.fallbacks(),
-            &["grok-3".to_string(), "grok-3-mini".to_string()]
-        );
+        assert_eq!(chain.fallbacks(), &["grok-3".to_string(), "grok-3-mini".to_string()]);
         assert!(!chain.is_empty());
 
         fs::remove_dir_all(root).expect("cleanup temp dir");
@@ -1763,10 +1727,7 @@ mod tests {
         match &remote_server.config {
             McpServerConfig::Ws(config) => {
                 assert_eq!(config.url, "wss://override.test/mcp");
-                assert_eq!(
-                    config.headers.get("X-Env").map(String::as_str),
-                    Some("local")
-                );
+                assert_eq!(config.headers.get("X-Env").map(String::as_str), Some("local"));
             },
             other => panic!("expected ws config, got {other:?}"),
         }
@@ -1840,10 +1801,7 @@ mod tests {
             .load()
             .expect("config should load");
 
-        assert_eq!(
-            loaded.plugins().enabled_plugins().get("tool-guard@builtin"),
-            Some(&true)
-        );
+        assert_eq!(loaded.plugins().enabled_plugins().get("tool-guard@builtin"), Some(&true));
         assert_eq!(
             loaded
                 .plugins()
@@ -1890,18 +1848,9 @@ mod tests {
                 .get("core-helpers@builtin"),
             Some(&true)
         );
-        assert_eq!(
-            loaded.plugins().external_directories(),
-            &["./external-plugins".to_string()]
-        );
-        assert_eq!(
-            loaded.plugins().install_root(),
-            Some("plugin-cache/installed")
-        );
-        assert_eq!(
-            loaded.plugins().registry_path(),
-            Some("plugin-cache/installed.json")
-        );
+        assert_eq!(loaded.plugins().external_directories(), &["./external-plugins".to_string()]);
+        assert_eq!(loaded.plugins().install_root(), Some("plugin-cache/installed"));
+        assert_eq!(loaded.plugins().registry_path(), Some("plugin-cache/installed.json"));
         assert_eq!(loaded.plugins().bundled_root(), Some("./bundled-plugins"));
 
         fs::remove_dir_all(root).expect("cleanup temp dir");
@@ -1961,18 +1910,9 @@ mod tests {
 
         // then
         let aliases = loaded.aliases();
-        assert_eq!(
-            aliases.get("fast").map(String::as_str),
-            Some("claude-haiku-4-5-20251213")
-        );
-        assert_eq!(
-            aliases.get("smart").map(String::as_str),
-            Some("claude-sonnet-4-6")
-        );
-        assert_eq!(
-            aliases.get("cheap").map(String::as_str),
-            Some("grok-3-mini")
-        );
+        assert_eq!(aliases.get("fast").map(String::as_str), Some("claude-haiku-4-5-20251213"));
+        assert_eq!(aliases.get("smart").map(String::as_str), Some("claude-sonnet-4-6"));
+        assert_eq!(aliases.get("cheap").map(String::as_str), Some("grok-3-mini"));
 
         fs::remove_dir_all(root).expect("cleanup temp dir");
     }
@@ -2024,10 +1964,7 @@ mod tests {
             .and_then(JsonValue::as_object)
             .expect("env should remain an object");
         assert_eq!(env.get("A"), Some(&JsonValue::String("1".to_string())));
-        assert_eq!(
-            env.get("B"),
-            Some(&JsonValue::String("override".to_string()))
-        );
+        assert_eq!(env.get("B"), Some(&JsonValue::String("override".to_string())));
         assert_eq!(env.get("C"), Some(&JsonValue::String("3".to_string())));
         assert!(target.contains_key("sandbox"));
     }
@@ -2042,16 +1979,10 @@ mod tests {
         fs::create_dir_all(cwd.join(".claw")).expect("project config dir");
         fs::create_dir_all(&home).expect("home config dir");
 
-        fs::write(
-            home.join("settings.json"),
-            r#"{"hooks":{"PreToolUse":["base"]}}"#,
-        )
-        .expect("write user settings");
-        fs::write(
-            &project_settings,
-            r#"{"hooks":{"PreToolUse":["project",42]}}"#,
-        )
-        .expect("write invalid project settings");
+        fs::write(home.join("settings.json"), r#"{"hooks":{"PreToolUse":["base"]}}"#)
+            .expect("write user settings");
+        fs::write(&project_settings, r#"{"hooks":{"PreToolUse":["project",42]}}"#)
+            .expect("write invalid project settings");
 
         // when
         let error = ConfigLoader::new(&cwd, &home)
@@ -2105,14 +2036,8 @@ mod tests {
         let merged = base.merged(&overlay);
 
         // then
-        assert_eq!(
-            merged.pre_tool_use(),
-            &["pre-a".to_string(), "pre-b".to_string()]
-        );
-        assert_eq!(
-            merged.post_tool_use(),
-            &["post-a".to_string(), "post-b".to_string()]
-        );
+        assert_eq!(merged.pre_tool_use(), &["pre-a".to_string(), "pre-b".to_string()]);
+        assert_eq!(merged.post_tool_use(), &["post-a".to_string(), "post-b".to_string()]);
         assert_eq!(
             merged.post_tool_use_failure(),
             &["failure-a".to_string(), "failure-b".to_string()]
@@ -2140,11 +2065,8 @@ mod tests {
         let user_settings = home.join("settings.json");
         fs::create_dir_all(&home).expect("home config dir");
         fs::create_dir_all(&cwd).expect("project dir");
-        fs::write(
-            &user_settings,
-            "{\n  \"model\": \"opus\",\n  \"telemetry\": true\n}\n",
-        )
-        .expect("write user settings");
+        fs::write(&user_settings, "{\n  \"model\": \"opus\",\n  \"telemetry\": true\n}\n")
+            .expect("write user settings");
 
         // when
         let error = ConfigLoader::new(&cwd, &home)
@@ -2157,10 +2079,7 @@ mod tests {
             rendered.contains(&user_settings.display().to_string()),
             "error should include file path, got: {rendered}"
         );
-        assert!(
-            rendered.contains("line 3"),
-            "error should include line number, got: {rendered}"
-        );
+        assert!(rendered.contains("line 3"), "error should include line number, got: {rendered}");
         assert!(
             rendered.contains("telemetry"),
             "error should name the offending field, got: {rendered}"
@@ -2178,11 +2097,8 @@ mod tests {
         let user_settings = home.join("settings.json");
         fs::create_dir_all(&home).expect("home config dir");
         fs::create_dir_all(&cwd).expect("project dir");
-        fs::write(
-            &user_settings,
-            "{\n  \"model\": \"opus\",\n  \"allowedTools\": [\"Read\"]\n}\n",
-        )
-        .expect("write user settings");
+        fs::write(&user_settings, "{\n  \"model\": \"opus\",\n  \"allowedTools\": [\"Read\"]\n}\n")
+            .expect("write user settings");
 
         // when
         let error = ConfigLoader::new(&cwd, &home)
@@ -2195,10 +2111,7 @@ mod tests {
             rendered.contains(&user_settings.display().to_string()),
             "error should include file path, got: {rendered}"
         );
-        assert!(
-            rendered.contains("line 3"),
-            "error should include line number, got: {rendered}"
-        );
+        assert!(rendered.contains("line 3"), "error should include line number, got: {rendered}");
         assert!(
             rendered.contains("allowedTools"),
             "error should call out the unknown field, got: {rendered}"

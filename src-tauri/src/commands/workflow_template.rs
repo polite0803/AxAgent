@@ -15,9 +15,7 @@ fn model_to_active_model(
         name: Set(template.name.clone()),
         description: Set(template.description.clone()),
         icon: Set(template.icon.clone()),
-        tags: Set(Some(
-            serde_json::to_string(&template.tags).unwrap_or_default(),
-        )),
+        tags: Set(Some(serde_json::to_string(&template.tags).unwrap_or_default())),
         version: Set(template.version),
         is_preset: Set(template.is_preset),
         is_editable: Set(template.is_editable),
@@ -36,9 +34,7 @@ fn model_to_active_model(
             .output_schema
             .as_ref()
             .and_then(|s| serde_json::to_string(s).ok())),
-        variables: Set(Some(
-            serde_json::to_string(&template.variables).unwrap_or_default(),
-        )),
+        variables: Set(Some(serde_json::to_string(&template.variables).unwrap_or_default())),
         error_config: Set(template
             .error_config
             .as_ref()
@@ -826,11 +822,7 @@ fn extract_goal_from_n8n(node: &serde_json::Value) -> String {
         .get("name")
         .and_then(|v| v.as_str())
         .unwrap_or("Unnamed");
-    format!(
-        "{} ({})",
-        name,
-        node_type.rsplit('.').next().unwrap_or(node_type)
-    )
+    format!("{} ({})", name, node_type.rsplit('.').next().unwrap_or(node_type))
 }
 
 /// 将 n8n JSON 转换为 AxAgent Workflow — 两阶段：先 DB 准备，再组装

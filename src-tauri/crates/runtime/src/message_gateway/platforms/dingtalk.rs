@@ -189,10 +189,8 @@ pub async fn fetch_dingtalk_token(
     app_key: &str,
     app_secret: &str,
 ) -> anyhow::Result<String> {
-    let url = format!(
-        "https://oapi.dingtalk.com/gettoken?appkey={}&appsecret={}",
-        app_key, app_secret
-    );
+    let url =
+        format!("https://oapi.dingtalk.com/gettoken?appkey={}&appsecret={}", app_key, app_secret);
     let resp = client.get(&url).send().await?;
     let body: serde_json::Value = resp.json().await?;
 
@@ -202,11 +200,7 @@ pub async fn fetch_dingtalk_token(
                 .get("errmsg")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown");
-            anyhow::bail!(
-                "Dingtalk token error: errcode={}, errmsg={}",
-                errcode,
-                errmsg
-            );
+            anyhow::bail!("Dingtalk token error: errcode={}, errmsg={}", errcode, errmsg);
         }
     }
 
@@ -222,10 +216,8 @@ async fn poll_dingtalk_robot_msgs(
     robot_code: &str,
     after_ms: i64,
 ) -> anyhow::Result<Vec<(String, String, String)>> {
-    let url = format!(
-        "https://api.dingtalk.com/v1.0/robot/groupMessages/query?access_token={}",
-        token
-    );
+    let url =
+        format!("https://api.dingtalk.com/v1.0/robot/groupMessages/query?access_token={}", token);
     let body = serde_json::json!({
         "robotCode": robot_code,
         "processQueryKeys": ["senderId", "text", "openConversationId"]
@@ -293,11 +285,7 @@ async fn send_dingtalk_message(
                 .get("errmsg")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown");
-            anyhow::bail!(
-                "Dingtalk send failed: errcode={}, errmsg={}",
-                errcode,
-                errmsg
-            );
+            anyhow::bail!("Dingtalk send failed: errcode={}, errmsg={}", errcode, errmsg);
         }
     }
     Ok(())

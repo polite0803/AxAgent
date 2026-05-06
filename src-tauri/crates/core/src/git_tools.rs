@@ -105,10 +105,8 @@ impl GitTools {
     }
 
     pub fn get_branch_diff(repo_path: &str, base_branch: &str) -> Result<GitDiffSummary, String> {
-        let stat_output = run_git(
-            repo_path,
-            &["diff", &format!("{}...HEAD", base_branch), "--numstat"],
-        )?;
+        let stat_output =
+            run_git(repo_path, &["diff", &format!("{}...HEAD", base_branch), "--numstat"])?;
 
         let mut file_diffs = Vec::new();
         let mut total_insertions = 0usize;
@@ -267,10 +265,8 @@ impl GitTools {
     }
 
     pub fn get_log(repo_path: &str, max_count: usize) -> Result<Vec<GitLogEntry>, String> {
-        let output = run_git(
-            repo_path,
-            &["log", &format!("-n{}", max_count), "--format=%H|%an|%ai|%s"],
-        )?;
+        let output =
+            run_git(repo_path, &["log", &format!("-n{}", max_count), "--format=%H|%an|%ai|%s"])?;
 
         Ok(output
             .lines()
@@ -319,10 +315,7 @@ impl GitTools {
                 } else {
                     "[unstaged]"
                 };
-                context.push_str(&format!(
-                    "  {} {} {}\n",
-                    staged_marker, entry.status, entry.path
-                ));
+                context.push_str(&format!("  {} {} {}\n", staged_marker, entry.status, entry.path));
             }
             context.push('\n');
         }
@@ -330,10 +323,8 @@ impl GitTools {
         if !diff.file_diffs.is_empty() {
             context.push_str("Changed files:\n");
             for fd in &diff.file_diffs {
-                context.push_str(&format!(
-                    "  {} (+{} -{})\n",
-                    fd.path, fd.insertions, fd.deletions
-                ));
+                context
+                    .push_str(&format!("  {} (+{} -{})\n", fd.path, fd.insertions, fd.deletions));
             }
         }
 
@@ -349,11 +340,7 @@ impl GitTools {
         if !commits.is_empty() {
             context.push_str("Commits in this branch:\n");
             for c in &commits {
-                context.push_str(&format!(
-                    "  {} {}\n",
-                    &c.hash[..7.min(c.hash.len())],
-                    c.subject
-                ));
+                context.push_str(&format!("  {} {}\n", &c.hash[..7.min(c.hash.len())], c.subject));
             }
             context.push('\n');
         }
@@ -366,10 +353,8 @@ impl GitTools {
         if !diff.file_diffs.is_empty() {
             context.push_str("Changed files:\n");
             for fd in &diff.file_diffs {
-                context.push_str(&format!(
-                    "  {} (+{} -{})\n",
-                    fd.path, fd.insertions, fd.deletions
-                ));
+                context
+                    .push_str(&format!("  {} (+{} -{})\n", fd.path, fd.insertions, fd.deletions));
             }
         }
 

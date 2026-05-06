@@ -62,18 +62,12 @@ pub fn validate_packet(packet: TaskPacket) -> Result<ValidatedPacket, TaskPacket
     validate_required("repo", &packet.repo, &mut errors);
     validate_required("branch_policy", &packet.branch_policy, &mut errors);
     validate_required("commit_policy", &packet.commit_policy, &mut errors);
-    validate_required(
-        "reporting_contract",
-        &packet.reporting_contract,
-        &mut errors,
-    );
+    validate_required("reporting_contract", &packet.reporting_contract, &mut errors);
     validate_required("escalation_policy", &packet.escalation_policy, &mut errors);
 
     for (index, test) in packet.acceptance_tests.iter().enumerate() {
         if test.trim().is_empty() {
-            errors.push(format!(
-                "acceptance_tests contains an empty value at index {index}"
-            ));
+            errors.push(format!("acceptance_tests contains an empty value at index {index}"));
         }
     }
 

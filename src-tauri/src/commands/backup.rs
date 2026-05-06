@@ -75,10 +75,7 @@ pub async fn restore_backup(
 
             Ok(serde_json::to_value(&report).map_err(|e| e.to_string())?)
         },
-        other => Err(format!(
-            "不支持的备份格式: {}。仅支持 sqlite 和 json 格式。",
-            other
-        )),
+        other => Err(format!("不支持的备份格式: {}。仅支持 sqlite 和 json 格式。", other)),
     }
 }
 
