@@ -17,7 +17,6 @@
     "prompts": "Prompts",
     "devTools": "DevTools",
     "workflow": "Workflow",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "Infrastructure",
     "sectionPlugins": "Plugins"
   },
-
   "knowledge": {
     "commonPanel": "Common Panel",
     "commonPanelDesc": "Common operations for Knowledge Base and Wiki",
@@ -384,7 +382,54 @@
       "upgradedName": "Upgraded Name",
       "inputSchema": "Input Schema",
       "outputSchema": "Output Schema",
-      "upgradeReasoning": "Upgrade Reasoning"
+      "upgradeReasoning": "Upgrade Reasoning",
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "agentTaskList": {
       "title": "Agent Tasks",
@@ -635,7 +680,25 @@
     },
     "selectExpert": "Select Expert Role",
     "exportHtml": "Export HTML",
-    "exportHtmlNoThinking": "Export HTML (No Thinking)"
+    "exportHtmlNoThinking": "Export HTML (No Thinking)",
+    "timeline": {
+      "empty": "暂无执行记录",
+      "title": "执行时间线",
+      "plan": "计划",
+      "tool": "工具",
+      "agent": "智能体",
+      "status": "状态",
+      "completed": "完成",
+      "failed": "失败",
+      "running": "运行中",
+      "cancelled": "已取消",
+      "pending": "等待中"
+    },
+    "agent": {
+      "acceptEdits": "Accept Edits",
+      "fullAccess": "Full Access"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "Gateway",
@@ -2049,7 +2112,8 @@
       "pattern_match": "Pattern Match",
       "error_recovery": "Error Recovery",
       "user_feedback": "User Feedback"
-    }
+    },
+    "default": "Default"
   },
   "plan": {
     "defaultTitle": "Execution Plan",
@@ -2938,7 +3002,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "通过",
+    "failed": "失败",
+    "taskId": "任务ID",
+    "traceId": "追踪ID",
+    "error": "错误",
+    "scoreDetails": "分数详情"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
     "includeConv": "Include conversation",
     "includeFiles": "Include files",
     "includeSelection": "Include selection"
+  },
+  "computerControl": {
+    "capture": "截屏",
+    "findElement": "查找元素",
+    "auto": "自动",
+    "manual": "手动",
+    "autoModeTooltip": "自动模式下，AI 将自主控制计算机",
+    "resolution": "分辨率",
+    "coordOps": "坐标操作",
+    "coordinates": "坐标",
+    "executeClick": "执行点击",
+    "typePlaceholder": "输入文本",
+    "typeComplete": "输入完成",
+    "scrollUp": "向上滚",
+    "scrollDown": "向下滚",
+    "up": "上",
+    "down": "下",
+    "foundElements": "发现 {{count}} 个元素",
+    "unnamed": "(未命名)",
+    "shortcuts": "快捷键",
+    "clickSuccess": "点击 ({{x}}, {{y}})",
+    "keyPressed": "按键 {{key}} 已按下",
+    "scrolled": "滚动 {{direction}}"
   }
 }

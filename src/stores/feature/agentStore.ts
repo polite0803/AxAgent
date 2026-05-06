@@ -20,8 +20,8 @@ import type {
   ToolStartEvent,
   ToolUseEvent,
   WorkerMessage,
-} from "@/types/agent";
-import type { ToolExecution } from "@/types/mcp";
+} from "@/types";
+import type { ToolExecution } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
 

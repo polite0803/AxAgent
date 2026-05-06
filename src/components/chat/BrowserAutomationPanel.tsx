@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 import { Button, Card, Input, message, Space, Table, Typography } from "antd";
 import { Globe, Image, Keyboard, MousePointer, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";

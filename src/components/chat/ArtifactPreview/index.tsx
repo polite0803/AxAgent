@@ -1,5 +1,5 @@
 import { ArtifactRenderer } from "@/lib/artifactRenderer";
-import type { ArtifactFormat } from "@/types/artifact";
+import type { ArtifactFormat } from "@/types";
 import { useCallback, useEffect, useRef } from "react";
 
 interface ArtifactPreviewProps {

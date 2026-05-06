@@ -1,5 +1,5 @@
 import { useAgentStore } from "@/stores";
-import type { AgentPoolItem, AgentPoolSummary, WorkerMessage } from "@/types/agent";
+import type { AgentPoolItem, AgentPoolSummary, WorkerMessage } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
 
 const _EMPTY: never[] = [];

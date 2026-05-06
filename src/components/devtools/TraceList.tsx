@@ -1,5 +1,5 @@
 import { useTracerStore } from "@/stores/devtools/tracerStore";
-import type { TraceSummary } from "@/types/tracer";
+import type { TraceSummary } from "@/types";
 import { Card, DatePicker, Input, List, Space, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect } from "react";

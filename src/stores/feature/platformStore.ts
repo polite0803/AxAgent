@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { PlatformConfig, PlatformReconcileReport, PlatformSession, PlatformStatus } from "@/types/platform";
+import type { PlatformConfig, PlatformReconcileReport, PlatformSession, PlatformStatus } from "@/types";
 import { create } from "zustand";
 
 interface PlatformState {

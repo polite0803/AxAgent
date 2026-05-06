@@ -1,4 +1,4 @@
-import type { PrefetchResult, PrefetchType } from "@/types/proactive";
+import type { PrefetchResult, PrefetchType } from "@/types";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 

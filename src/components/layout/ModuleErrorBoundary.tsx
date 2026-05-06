@@ -120,6 +120,6 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
   );
 }
 
-export default ModuleErrorBoundary;
+export { ModuleErrorBoundary };
 export { DefaultModuleFallback };
 export type { ModuleErrorBoundaryProps };

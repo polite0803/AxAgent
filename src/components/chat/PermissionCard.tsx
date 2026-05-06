@@ -398,4 +398,4 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
   );
 };
 
-export default PermissionCard;
+export { PermissionCard };

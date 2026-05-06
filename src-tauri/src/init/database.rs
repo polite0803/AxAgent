@@ -10,7 +10,7 @@ pub struct DatabaseInitResult {
     pub app_dir: PathBuf,
 }
 
-pub fn init_database() -> Result<DatabaseInitResult, String> {
+pub async fn init_database() -> Result<DatabaseInitResult, String> {
     let app_dir = crate::paths::axagent_home();
     std::fs::create_dir_all(&app_dir)
         .map_err(|e| format!("failed to create AxAgent home dir: {}", e))?;
@@ -26,9 +26,9 @@ pub fn init_database() -> Result<DatabaseInitResult, String> {
     axagent_core::vector_store::register_sqlite_vec_extension();
     axagent_tools::builtin_tools::set_global_db_path(&db_path);
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let db_handle = rt
-        .block_on(axagent_core::db::create_pool(&db_path))
+    // 直接使用当前 tokio runtime，不再创建嵌套 Runtime
+    let db_handle = axagent_core::db::create_pool(&db_path)
+        .await
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
     // 注册 SeaORM 连接供 builtin_tools 使用

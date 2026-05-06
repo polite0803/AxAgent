@@ -267,4 +267,4 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
   );
 };
 
-export default AskUserCard;
+export { AskUserCard };

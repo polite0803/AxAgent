@@ -1,6 +1,6 @@
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import type { BenchmarkReport } from "@/types/evaluator";
-import { formatDuration, formatScore, getDifficultyLabel } from "@/types/evaluator";
+import type { BenchmarkReport } from "@/types";
+import { formatDuration, formatScore, getDifficultyLabel } from "@/types";
 import { Button, Card, Col, Row, Statistic, Table, Tabs, Tag } from "antd";
 
 interface BenchmarkReportViewProps {

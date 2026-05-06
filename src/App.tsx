@@ -1,9 +1,9 @@
 import { BuddyWidget } from "@/components/chat/BuddyWidget";
 import { AppHeader } from "@/components/layout/AppHeader";
-import CommandPalette from "@/components/layout/CommandPalette";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
 import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
-import GlobalErrorBoundary from "@/components/layout/GlobalErrorBoundary";
+import { GlobalErrorBoundary } from "@/components/layout/GlobalErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { SkillPanels } from "@/components/skill/SkillPanels";
@@ -360,4 +360,4 @@ function AppRoot() {
   );
 }
 
-export default AppRoot;
+export { AppRoot };

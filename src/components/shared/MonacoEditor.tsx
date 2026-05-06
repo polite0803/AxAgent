@@ -1,4 +1,4 @@
-import type { ArtifactLanguage } from "@/types/artifact";
+import type { ArtifactLanguage } from "@/types";
 import { useEffect, useRef } from "react";
 
 declare global {

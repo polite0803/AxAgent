@@ -1,4 +1,4 @@
-import type { TraceMetrics } from "@/types/tracer";
+import type { TraceMetrics } from "@/types";
 import { Card, Col, Row, Statistic } from "antd";
 import { useTranslation } from "react-i18next";
 

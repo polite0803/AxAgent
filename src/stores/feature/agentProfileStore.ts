@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput } from "@/types/agentProfile";
+import type { AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput } from "@/types";
 import { create } from "zustand";
 
 interface AgentProfileState {

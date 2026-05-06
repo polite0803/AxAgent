@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import AppRoot from "./App";
+import { AppRoot } from "./App";
 import "./index.css";
 
 // Native context menu prevention is handled by GlobalCopyMenu component.

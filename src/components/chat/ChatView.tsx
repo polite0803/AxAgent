@@ -1,5 +1,5 @@
 import { getConvIcon } from "@/lib/convIcon";
-import { CloseCircleFilled, SyncOutlined } from "@ant-design/icons";
+import { SyncOutlined } from "@ant-design/icons";
 import Actions from "@ant-design/x/es/actions";
 import Bubble from "@ant-design/x/es/bubble";
 import type { BubbleItemType, BubbleListRef, RoleType } from "@ant-design/x/es/bubble/interface";
@@ -11,7 +11,6 @@ import {
   Avatar,
   Button,
   Dropdown,
-  Image,
   Input,
   Modal,
   Popconfirm,
@@ -24,7 +23,6 @@ import {
 } from "antd";
 import type { InputRef } from "antd";
 import {
-  AlertCircle,
   ArrowDown,
   ArrowDownRight,
   ArrowLeftRight,
@@ -34,8 +32,6 @@ import {
   ChartNoAxesColumn,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   Code,
   Coins,
@@ -49,7 +45,6 @@ import {
   Languages,
   Lightbulb,
   MessageSquare,
-  Paperclip,
   Pencil,
   RotateCcw,
   Scissors,
@@ -89,9 +84,10 @@ import {
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
-import ProactiveSuggestionBar from "../proactive/ProactiveSuggestionBar";
+import { ProactiveSuggestionBar } from "../proactive/ProactiveSuggestionBar";
 import { AgentProgressBar } from "./AgentProgressBar";
-import AskUserCard from "./AskUserCard";
+import { AskUserCard } from "./AskUserCard";
+import { AttachmentPreview } from "./AttachmentPreview";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import {
@@ -109,24 +105,27 @@ import { getStreamingLoadingState, shouldRenderAssistantMarkdownFromContent } fr
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
+import { DeleteLastVersionPopover } from "./DeleteLastVersionPopover";
 import { ExecutionTimeline } from "./ExecutionTimeline";
 import { ExpertBadge } from "./ExpertBadge";
 import { ExpertSelector } from "./ExpertSelector";
 import { InputArea } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
+import { ModelTags } from "./ModelTags";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
-import PermissionCard from "./PermissionCard";
+import { PermissionCard } from "./PermissionCard";
 import { PermissionModal } from "./PermissionModal";
 import { QuickCommandBar } from "./QuickCommandBar";
 import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
+import { VersionPagination } from "./VersionPagination";
 import { WorkflowBadge } from "./WorkflowBadge";
 import { WorkflowEndMarker } from "./WorkflowEndMarker";
 import { WorkflowSuggestionCard } from "./WorkflowSuggestionCard";
 
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { invoke } from "@/lib/invoke";
-import type { Attachment, ConversationStats, Message } from "@/types";
+import type { ConversationStats, Message } from "@/types";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { registerHighlight } from "stream-markdown";
 import {
@@ -137,435 +136,6 @@ import {
   setMermaidOpenModalHandler,
   THINKING_LOADING_MARKER,
 } from "./ChatMarkdownNodes";
-
-// ── Attachment preview component ────────────────────────────────────────
-
-const ATTACHMENT_IMG_STYLE: React.CSSProperties = {
-  maxWidth: 200,
-  maxHeight: 160,
-  borderRadius: 8,
-  objectFit: "cover" as const,
-};
-
-function AttachmentPreview({ att, themeColor }: { att: Attachment; themeColor: string }) {
-  const { t } = useTranslation();
-  const { modal } = App.useApp();
-  const isImage = att.file_type?.startsWith("image/");
-  const [src, setSrc] = React.useState<string | null>(() => {
-    if (!isImage) { return null; }
-    if (att.data) { return `data:${att.file_type};base64,${att.data}`; }
-    return null;
-  });
-  const [failed, setFailed] = React.useState(false);
-  const [fileExists, setFileExists] = React.useState<boolean | null>(null);
-
-  // Check file existence for all attachments
-  React.useEffect(() => {
-    if (!att.file_path) {
-      setFileExists(false);
-      return;
-    }
-    let cancelled = false;
-    invoke<boolean>("check_attachment_exists", { filePath: att.file_path })
-      .then((exists) => {
-        if (!cancelled) { setFileExists(exists); }
-      })
-      .catch(() => {
-        if (!cancelled) { setFileExists(false); }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [att.file_path]);
-
-  // Load image preview (only if file exists)
-  React.useEffect(() => {
-    if (!isImage || src || failed) { return; }
-    if (!att.file_path || fileExists === false) {
-      setFailed(true);
-      return;
-    }
-    if (fileExists === null) { return; // still checking
-     }
-    let cancelled = false;
-    invoke<string>("read_attachment_preview", { filePath: att.file_path })
-      .then((dataUrl) => {
-        if (!cancelled) { setSrc(dataUrl); }
-      })
-      .catch(() => {
-        if (!cancelled) { setFailed(true); }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isImage, att.file_path, src, failed, fileExists]);
-
-  // Deleted/missing file — show red error tag, click to show location modal
-  if (fileExists === false) {
-    const showMissingModal = () => {
-      invoke<string>("resolve_attachment_path", { filePath: att.file_path })
-        .then((absPath) => {
-          modal.confirm({
-            icon: <CloseCircleFilled style={{ color: "#ff4d4f" }} />,
-            title: t("chat.attachmentNotFound"),
-            content: absPath,
-            okText: t("chat.attachmentOk"),
-            cancelText: t("chat.attachmentRevealLocation"),
-            onCancel: () => {
-              invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => {
-                console.warn("[IPC]", e);
-              });
-            },
-          });
-        })
-        .catch(() => {
-          modal.error({
-            title: t("chat.attachmentNotFound"),
-            content: att.file_path || att.file_name,
-            okText: t("chat.attachmentOk"),
-          });
-        });
-    };
-    return (
-      <Tag
-        icon={<AlertCircle size={12} />}
-        color="error"
-        style={{ margin: 0, cursor: "pointer" }}
-        onClick={showMissingModal}
-      >
-        {att.file_name}
-      </Tag>
-    );
-  }
-
-  // Still checking existence — show neutral loading tag
-  if (fileExists === null && !src) {
-    return (
-      <Tag
-        icon={isImage ? <FileImage size={12} /> : <Paperclip size={12} />}
-        style={{ margin: 0, cursor: "default", opacity: 0.5 }}
-      >
-        {att.file_name}
-      </Tag>
-    );
-  }
-
-  if (isImage && src) {
-    return (
-      <Image
-        src={src}
-        alt={att.file_name}
-        style={ATTACHMENT_IMG_STYLE}
-        preview={{ mask: { blur: true }, scaleStep: 0.5 }}
-      />
-    );
-  }
-
-  const handleOpen = () => {
-    if (att.file_path) {
-      invoke("open_attachment_file", { filePath: att.file_path }).catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
-    }
-  };
-
-  const handleReveal = () => {
-    if (att.file_path) {
-      invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
-    }
-  };
-
-  const contextMenuItems = att.file_path
-    ? [
-      { key: "open", label: t("chat.attachmentOpen"), onClick: handleOpen },
-      { key: "reveal", label: t("chat.attachmentRevealInFinder"), onClick: handleReveal },
-    ]
-    : [];
-
-  const tag = (
-    <Tag
-      icon={isImage ? <FileImage size={12} /> : <Paperclip size={12} />}
-      color={themeColor}
-      style={{ margin: 0, cursor: att.file_path ? "pointer" : "default" }}
-      onClick={att.file_path ? handleOpen : undefined}
-    >
-      {att.file_name}
-    </Tag>
-  );
-
-  if (!att.file_path) { return tag; }
-
-  return (
-    <Dropdown menu={{ items: contextMenuItems }} trigger={["contextMenu"]}>
-      {tag}
-    </Dropdown>
-  );
-}
-
-// ── Version pagination component for multi-version AI replies ──────────
-
-function VersionPagination({
-  msg,
-  conversationId,
-  allVersions,
-}: {
-  msg: Message;
-  conversationId: string;
-  allVersions: Message[];
-}) {
-  const { token } = theme.useToken();
-  const switchMessageVersion = useConversationStore((s) => s.switchMessageVersion);
-
-  // Scope to current model's versions
-  const currentModelId = msg.model_id;
-  const modelVersions = allVersions.filter((v) => v.model_id === currentModelId);
-
-  if (modelVersions.length <= 1) { return null; }
-
-  const sorted = [...modelVersions].sort((a, b) => a.version_index - b.version_index);
-  const currentIdx = sorted.findIndex((v) => v.id === msg.id);
-  const current = currentIdx >= 0 ? currentIdx : sorted.findIndex((v) => v.is_active);
-
-  const handlePrev = () => {
-    if (current > 0 && msg.parent_message_id) {
-      switchMessageVersion(conversationId, msg.parent_message_id, sorted[current - 1].id);
-    }
-  };
-  const handleNext = () => {
-    if (current < sorted.length - 1 && msg.parent_message_id) {
-      switchMessageVersion(conversationId, msg.parent_message_id, sorted[current + 1].id);
-    }
-  };
-
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, marginRight: 8 }}>
-      <Button
-        type="text"
-        size="small"
-        icon={<ChevronLeft size={14} />}
-        disabled={current <= 0}
-        onClick={handlePrev}
-        style={{ minWidth: 20, padding: "0 2px" }}
-      />
-      <Typography.Text style={{ fontSize: 11, color: token.colorTextSecondary }}>
-        {current + 1}/{sorted.length}
-      </Typography.Text>
-      <Button
-        type="text"
-        size="small"
-        icon={<ChevronRight size={14} />}
-        disabled={current >= sorted.length - 1}
-        onClick={handleNext}
-        style={{ minWidth: 20, padding: "0 2px" }}
-      />
-    </span>
-  );
-}
-
-function ModelTags({
-  msg,
-  conversationId,
-  allVersions,
-  getModelDisplayInfo,
-}: {
-  msg: Message;
-  conversationId: string;
-  allVersions: Message[];
-  getModelDisplayInfo: (
-    model_id?: string | null,
-    providerId?: string | null,
-  ) => { modelName: string; providerName: string };
-}) {
-  const { t } = useTranslation();
-  const { token } = theme.useToken();
-  const switchMessageVersion = useConversationStore((s) => s.switchMessageVersion);
-  const pendingCompanionModels = useConversationStore((s) => s.pendingCompanionModels);
-  const multiModelParentId = useConversationStore((s) => s.multiModelParentId);
-  const multiModelDoneMessageIds = useConversationStore((s) => s.multiModelDoneMessageIds);
-
-  // Only show pending/streaming indicators for the specific multi-model target message
-  const isMultiModelTarget = msg.parent_message_id === multiModelParentId;
-
-  const modelGroups = useMemo(() => {
-    const groups = new Map<string, Message[]>();
-    for (const v of allVersions) {
-      const key = v.model_id ?? "__unknown__";
-      if (!groups.has(key)) { groups.set(key, []); }
-      groups.get(key)!.push(v);
-    }
-    return groups;
-  }, [allVersions]);
-
-  // Pending companions that haven't generated a version yet
-  const pendingModels = useMemo(() => {
-    if (!isMultiModelTarget || !pendingCompanionModels.length) { return []; }
-    return pendingCompanionModels.filter((cm) => !modelGroups.has(cm.model_id));
-  }, [isMultiModelTarget, pendingCompanionModels, modelGroups]);
-
-  // Check if a model is currently streaming (has a version but not yet completed)
-  const streamingModelIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (!isMultiModelTarget) { return ids; }
-    for (const cm of pendingCompanionModels) {
-      if (modelGroups.has(cm.model_id)) {
-        // Check if this model's version has completed (per-model tracking)
-        const versions = modelGroups.get(cm.model_id)!;
-        const isDone = versions.some((v) => multiModelDoneMessageIds.includes(v.id));
-        if (!isDone) { ids.add(cm.model_id); }
-      }
-    }
-    return ids;
-  }, [isMultiModelTarget, pendingCompanionModels, modelGroups, multiModelDoneMessageIds]);
-
-  if (modelGroups.size <= 1 && pendingModels.length === 0) { return null; }
-
-  const currentModelId = msg.model_id ?? "__unknown__";
-
-  const handleTagClick = (model_id: string) => {
-    if (model_id === currentModelId || !msg.parent_message_id) { return; }
-    const versions = modelGroups.get(model_id);
-    if (!versions || versions.length === 0) { return; }
-    const sorted = [...versions].sort((a, b) => b.version_index - a.version_index);
-    switchMessageVersion(conversationId, msg.parent_message_id, sorted[0].id);
-  };
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-      {Array.from(modelGroups.keys()).map((model_id) => {
-        const isActive = model_id === currentModelId;
-        const isStreaming = streamingModelIds.has(model_id);
-        const { modelName } = getModelDisplayInfo(model_id, modelGroups.get(model_id)?.[0]?.provider_id);
-        return (
-          <Tooltip key={model_id} title={modelName} mouseEnterDelay={0.3}>
-            <div
-              onClick={() => handleTagClick(model_id)}
-              className={isStreaming ? "model-tag-streaming" : undefined}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 26,
-                height: 26,
-                borderRadius: "50%",
-                border: `1.5px solid ${isActive ? token.colorPrimary : "transparent"}`,
-                cursor: isActive ? "default" : "pointer",
-                transition: "border-color 0.2s",
-                flexShrink: 0,
-              }}
-            >
-              <ModelIcon model={model_id} size={20} type="avatar" />
-            </div>
-          </Tooltip>
-        );
-      })}
-      {/* Pending companion models waiting to stream */}
-      {pendingModels.map((cm) => {
-        const { modelName } = getModelDisplayInfo(cm.model_id, cm.providerId);
-        return (
-          <Tooltip key={`pending-${cm.model_id}`} title={`${modelName} (${t("chat.waiting")})`} mouseEnterDelay={0.3}>
-            <div
-              className="model-tag-pending"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 26,
-                height: 26,
-                borderRadius: "50%",
-                border: `1.5px dashed ${token.colorTextQuaternary}`,
-                opacity: 0.5,
-                flexShrink: 0,
-              }}
-            >
-              <ModelIcon model={cm.model_id} size={20} type="avatar" />
-            </div>
-          </Tooltip>
-        );
-      })}
-    </div>
-  );
-}
-
-// 3-button delete popover for last AI version
-function DeleteLastVersionPopover({
-  msg,
-  conversationId,
-  deleteMessage,
-  deleteMessageGroup,
-  messageApi,
-  token,
-}: {
-  msg: Message;
-  conversationId: string;
-  deleteMessage: (messageId: string) => Promise<void>;
-  deleteMessageGroup: (convId: string, parentMsgId: string) => Promise<void>;
-  messageApi: ReturnType<typeof App.useApp>["message"];
-  token: ReturnType<typeof theme.useToken>["token"];
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-
-  const handleDeleteThisOnly = async () => {
-    setOpen(false);
-    try {
-      await deleteMessage(msg.id);
-    } catch (e) {
-      messageApi.error(String(e));
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    setOpen(false);
-    try {
-      if (msg.parent_message_id) {
-        await deleteMessageGroup(conversationId, msg.parent_message_id);
-      } else if (msg.id.startsWith("temp-")) {
-        // No parent link (e.g. error before backend persisted) — remove locally
-        useConversationStore.setState((s) => ({
-          messages: s.messages.filter((m) => m.id !== msg.id),
-        }));
-      }
-    } catch (e) {
-      messageApi.error(String(e));
-    }
-  };
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={setOpen}
-      trigger="click"
-      placement="top"
-      content={
-        <div style={{ maxWidth: 280 }}>
-          <div style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <AlertCircle size={16} style={{ color: token.colorWarning, marginTop: 2, flexShrink: 0 }} />
-            <span>{t("chat.deleteLastVersionHint")}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Button size="small" onClick={() => setOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button size="small" onClick={handleDeleteThisOnly}>
-              {t("chat.deleteThisOnly")}
-            </Button>
-            <Button size="small" danger type="primary" onClick={handleDeleteAll}>
-              {t("chat.deleteAll")}
-            </Button>
-          </div>
-        </div>
-      }
-    >
-      <Tooltip title={t("chat.delete")}>
-        <span className="axagent-action-item" style={{ color: token.colorError }}>
-          <Trash2 size={14} />
-        </span>
-      </Tooltip>
-    </Popover>
-  );
-}
 
 function AssistantFooter({
   msg,
@@ -817,8 +387,6 @@ function AssistantFooter({
                         conversationId={conversationId}
                         deleteMessage={deleteMessage}
                         deleteMessageGroup={deleteMessageGroup}
-                        messageApi={messageApi}
-                        token={token}
                       />
                     );
                   }
@@ -3492,7 +3060,7 @@ function ChatViewInner() {
 }
 
 // Wrap with ModuleErrorBoundary for error isolation
-import ModuleErrorBoundary from "@/components/layout/ModuleErrorBoundary";
+import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 
 export function ChatView() {
   return (

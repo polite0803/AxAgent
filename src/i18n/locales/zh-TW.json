@@ -17,7 +17,6 @@
     "link": "連接",
     "devTools": "開發工具",
     "workflow": "工作流",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "基礎設施",
     "sectionPlugins": "插件"
   },
-
   "chat": {
     "newConversation": "新建對話",
     "searchPlaceholder": "搜尋對話...",
@@ -268,118 +266,165 @@
     "modelRouting": "模型路由",
     "workflowTemplates": "工作流程範本",
     "workflow": {
-      "title": "Agent 工作流程範本",
-      "searchPlaceholder": "搜尋模板...",
+      "title": "Agent Workflow Templates",
+      "searchPlaceholder": "Search templates...",
       "codeReview": {
-        "name": "程式碼審查",
-        "description": "審查程式碼中的 Bug、安全問題、效能問題和最佳實踐。"
+        "name": "Code Review",
+        "description": "Review code for bugs, security issues, performance problems, and best practices."
       },
       "bugFix": {
-        "name": "Bug 修復工作流",
-        "description": "系統化診斷和修復 Bug，包含根因分析。"
+        "name": "Bug Fix Workflow",
+        "description": "Systematically diagnose and fix bugs with root cause analysis."
       },
       "docGen": {
-        "name": "文件生成器",
-        "description": "為程式碼、API 和專案生成全面的文件。"
+        "name": "Documentation Generator",
+        "description": "Generate comprehensive documentation for code, APIs, and projects."
       },
       "testGen": {
-        "name": "測試生成器",
-        "description": "生成包含單元測試、整合測試和邊界測試的完整測試套件。"
+        "name": "Test Generator",
+        "description": "Generate comprehensive test suites with unit, integration, and edge case tests."
       },
       "refactor": {
-        "name": "重構助手",
-        "description": "安全地重構程式碼，保持行為不變的轉換。"
+        "name": "Refactoring Assistant",
+        "description": "Safely refactor code with behavior-preserving transformations."
       },
       "explore": {
-        "name": "程式碼探索器",
-        "description": "系統化地探索和理解不熟悉的程式碼庫。"
+        "name": "Code Explorer",
+        "description": "Explore and understand an unfamiliar codebase systematically."
       },
       "status": {
-        "pending": "待執行",
-        "running": "執行中",
-        "completed": "已完成",
-        "failed": "失敗",
-        "skipped": "已跳過"
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
       },
       "workflowStatus": {
-        "created": "已建立",
-        "running": "執行中",
-        "completed": "已完成",
-        "partiallyCompleted": "部分完成",
-        "failed": "失敗",
-        "cancelled": "已得消"
+        "created": "Created",
+        "running": "Running",
+        "completed": "Completed",
+        "partiallyCompleted": "Partially Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
       },
-      "dagVisualization": "DAG 視覺化",
-      "dagHint": "將此 Mermaid 程式碼貼上到 Mermaid 渲染器中以視覺化 DAG。",
-      "listView": "列表",
-      "dagView": "DAG 視圖",
-      "stepStatus": "狀態：",
-      "dependsOn": "依賴於：",
-      "retries": "重試：",
-      "result": "結果：",
-      "error": "錯誤：",
-      "attempts": "{{count}} 次嘗試",
+      "dagVisualization": "DAG Visualization",
+      "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
+      "listView": "List",
+      "dagView": "DAG",
+      "stepStatus": "Status:",
+      "dependsOn": "Depends on:",
+      "retries": "Retries:",
+      "result": "Result:",
+      "error": "Error:",
+      "attempts": "{{count}} attempts",
       "performance": {
-        "name": "效能最佳化",
-        "description": "分析程式碼效能瓶頸並實施最佳化方案。"
+        "name": "Performance Optimization",
+        "description": "Analyze code performance bottlenecks and implement optimizations."
       },
       "security": {
-        "name": "安全稽核",
-        "description": "執行全面的安全漏洞掃描和風險評估。"
+        "name": "Security Audit",
+        "description": "Perform comprehensive security vulnerability scan and risk assessment."
       },
       "migration": {
-        "name": "遷移升級",
-        "description": "協助程式碼庫遷移到新版本或新框架。"
+        "name": "Migration & Upgrade",
+        "description": "Help migrate codebase to new versions or frameworks."
       },
       "apiDesign": {
-        "name": "API 設計",
-        "description": "設計和實作符合最佳實踐的 API 介面。"
+        "name": "API Design",
+        "description": "Design and implement APIs following best practices."
       },
       "debugEnv": {
-        "name": "環境除錯",
-        "description": "診斷和修復環境設定相關問題。"
+        "name": "Environment Debug",
+        "description": "Diagnose and fix environment configuration issues."
       },
       "feature": {
-        "name": "功能開發",
-        "description": "系統化地實作新功能，包含設計、開發、測試。"
+        "name": "Feature Development",
+        "description": "Systematically implement new features with design, development, and testing."
       },
       "knowledgeExtract": {
-        "name": "業務知識提得",
-        "description": "從程式碼中提得語言無關的業務知識庫，支援跨語言重構。"
+        "name": "Business Knowledge Extraction",
+        "description": "Extract language-agnostic business knowledge from code for cross-language refactoring."
       },
       "knowledgeToCode": {
-        "name": "知識庫到程式碼",
-        "description": "從業務知識庫生成目標語言的完整程式碼實作，支援跨語言遷移。"
+        "name": "Knowledge to Code",
+        "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
       "collectInputs": {
-        "name": "收集使用者輸入",
-        "description": "收集目標語言、框架、知識庫ID、輸出目錄等專案資訊。"
+        "name": "Collect User Inputs",
+        "description": "Collect target language, framework, knowledge base ID, output directory and other project information."
       },
-      "decompositionSaved": "分解工作流程儲存成功",
-      "semanticCheckTitle": "發現相似技能",
-      "semanticCheckDescription": "以下生成的原子技能與現有技能具有高語義相似度。您可以選擇使用現有技能或保留生成的技能。",
-      "semanticCheckApplied": "技能替換已套用",
-      "skipSemanticCheck": "跳過",
-      "applySemanticCheck": "套用",
-      "replaceWithExisting": "使用現有",
-      "keepGeneratedSkill": "保留生成",
-      "upgradeExisting": "升級現有",
-      "existingSkill": "現有技能",
-      "matchReasons": "比對原因",
-      "generatedSkill": "生成的技能",
-      "upgradeSkillTitle": "升級技能",
-      "upgradeSuggestion": "LLM 升級建議",
-      "generatingUpgrade": "正在生成升級建議...",
-      "applyUpgrade": "套用升級",
-      "upgradeError": "得得升級建議失敗",
-      "upgradedName": "升級後名稱",
-      "inputSchema": "輸入Schema",
-      "outputSchema": "輸出Schema",
-      "upgradeReasoning": "升級理由",
+      "decompositionSaved": "Decomposition workflow saved successfully",
+      "semanticCheckTitle": "Similar Skills Found",
+      "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
+      "semanticCheckApplied": "Skill replacement applied",
+      "skipSemanticCheck": "Skip",
+      "applySemanticCheck": "Apply",
+      "replaceWithExisting": "Use Existing",
+      "keepGeneratedSkill": "Keep Generated",
+      "upgradeExisting": "Upgrade Existing",
+      "existingSkill": "Existing Skill",
+      "matchReasons": "Match Reasons",
+      "generatedSkill": "Generated Skill",
+      "upgradeSkillTitle": "Upgrade Skill",
+      "upgradeSuggestion": "LLM Upgrade Suggestion",
+      "generatingUpgrade": "Generating upgrade suggestion...",
+      "applyUpgrade": "Apply Upgrade",
+      "upgradeError": "Failed to get upgrade suggestion",
+      "upgradedName": "Upgraded Name",
+      "inputSchema": "Input Schema",
+      "outputSchema": "Output Schema",
+      "upgradeReasoning": "Upgrade Reasoning",
       "multiExpertCollab": {
-        "name": "多专家协作",
-        "description": "启动多个领域专家智能体并行或串行协作，分而治之完成复杂任务。"
-      }
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "modelRoutingConfig": {
       "title": "模型路由配置",
@@ -609,7 +654,25 @@
     },
     "selectExpert": "选择专家角色",
     "exportHtml": "导出 HTML",
-    "exportHtmlNoThinking": "导出 HTML（不含思考）"
+    "exportHtmlNoThinking": "导出 HTML（不含思考）",
+    "timeline": {
+      "empty": "暫無執行記錄",
+      "title": "執行時間線",
+      "plan": "計畫",
+      "tool": "工具",
+      "agent": "智能體",
+      "status": "狀態",
+      "completed": "完成",
+      "failed": "失敗",
+      "running": "執行中",
+      "cancelled": "已取消",
+      "pending": "等待中"
+    },
+    "agent": {
+      "acceptEdits": "接受編輯",
+      "fullAccess": "完全存取"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "閘道",
@@ -1935,7 +1998,8 @@
     "error": "操作失败",
     "createSuccess": "创建成功",
     "deleteSuccess": "删除成功",
-    "retry": "重试"
+    "retry": "重试",
+    "default": "預設"
   },
   "multiAgent": {
     "title": "多智能體狀態",
@@ -2888,7 +2952,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "通過",
+    "failed": "失敗",
+    "taskId": "任務ID",
+    "traceId": "追蹤ID",
+    "error": "錯誤",
+    "scoreDetails": "分數詳情"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
       "show": "显示主窗口",
       "quit": "退出"
     }
+  },
+  "computerControl": {
+    "capture": "截圖",
+    "findElement": "尋找元素",
+    "auto": "自動",
+    "manual": "手動",
+    "autoModeTooltip": "自動模式下，AI 將自主控制電腦",
+    "resolution": "解析度",
+    "coordOps": "座標操作",
+    "coordinates": "座標",
+    "executeClick": "執行點擊",
+    "typePlaceholder": "輸入文字",
+    "typeComplete": "輸入完成",
+    "scrollUp": "向上捲動",
+    "scrollDown": "向下捲動",
+    "up": "上",
+    "down": "下",
+    "foundElements": "發現 {{count}} 個元素",
+    "unnamed": "(未命名)",
+    "shortcuts": "快捷鍵",
+    "clickSuccess": "已點擊 ({{x}}, {{y}})",
+    "keyPressed": "已按下 {{key}} 鍵",
+    "scrolled": "已捲動 {{direction}}"
   }
 }

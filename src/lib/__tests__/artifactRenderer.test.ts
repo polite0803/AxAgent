@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ArtifactFormat } from "@/types/artifact";
+import type { ArtifactFormat } from "@/types";
 import { ArtifactRenderer } from "../artifactRenderer";
 
 describe("ArtifactRenderer", () => {

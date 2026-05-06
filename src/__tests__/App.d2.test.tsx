@@ -93,7 +93,7 @@ vi.mock("@/components/layout/ContentArea", () => ({
 }));
 
 vi.mock("@/components/layout/CommandPalette", () => ({
-  default: () => null,
+  CommandPalette: () => null,
 }));
 
 vi.mock("@/hooks/useCommandPalette", () => ({
@@ -168,7 +168,7 @@ describe("AppRoot D2 setup", () => {
   });
 
   it("enables the markstream D2 loader during startup", async () => {
-    const { default: AppRoot } = await import("../App");
+    const { AppRoot } = await import("../App");
 
     render(<AppRoot />);
 

@@ -1,4 +1,4 @@
-import type { ToolCallState } from "@/types/agent";
+import type { ToolCallState } from "@/types";
 import { ThoughtChain, type ThoughtChainItemType } from "@ant-design/x";
 import { Alert, Tag, theme, Typography } from "antd";
 import { FileEdit, Search, Terminal, Wrench } from "lucide-react";

@@ -17,7 +17,6 @@
     "link": "Связь",
     "devTools": "Инструменты разработчика",
     "workflow": "Рабочий процесс",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "Инфраструктура",
     "sectionPlugins": "Плагины"
   },
-
   "chat": {
     "newConversation": "Новый чат",
     "searchPlaceholder": "Поиск чатов...",
@@ -265,118 +263,165 @@
     "modelRouting": "Маршрутизация моделей",
     "workflowTemplates": "Шаблоны рабочих процессов",
     "workflow": {
-      "title": "Шаблоны рабочих процессов Agent",
-      "searchPlaceholder": "Поиск шаблонов...",
+      "title": "Agent Workflow Templates",
+      "searchPlaceholder": "Search templates...",
       "codeReview": {
-        "name": "Ревью кода",
-        "description": "Проверка кода на баги, проблемы безопасности, производительности и лучшие практики."
+        "name": "Code Review",
+        "description": "Review code for bugs, security issues, performance problems, and best practices."
       },
       "bugFix": {
-        "name": "Рабочий процесс исправления багов",
-        "description": "Систематическая диагностика и исправление багов с анализом первопричин."
+        "name": "Bug Fix Workflow",
+        "description": "Systematically diagnose and fix bugs with root cause analysis."
       },
       "docGen": {
-        "name": "Генератор документации",
-        "description": "Генерация полной документации для кода, API и проектов."
+        "name": "Documentation Generator",
+        "description": "Generate comprehensive documentation for code, APIs, and projects."
       },
       "testGen": {
-        "name": "Генератор тестов",
-        "description": "Генерация полных тестовых наборов с модульными, интеграционными и краевыми тестами."
+        "name": "Test Generator",
+        "description": "Generate comprehensive test suites with unit, integration, and edge case tests."
       },
       "refactor": {
-        "name": "Помощник рефакторинга",
-        "description": "Безопасный рефакторинг кода с сохранением поведения."
+        "name": "Refactoring Assistant",
+        "description": "Safely refactor code with behavior-preserving transformations."
       },
       "explore": {
-        "name": "Исследователь кода",
-        "description": "Систематическое исследование и понимание незнакомой кодовой базы."
+        "name": "Code Explorer",
+        "description": "Explore and understand an unfamiliar codebase systematically."
       },
       "status": {
-        "pending": "Ожидание",
-        "running": "Выполнение",
-        "completed": "Завершено",
-        "failed": "Ошибка",
-        "skipped": "Пропущено"
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
       },
       "workflowStatus": {
-        "created": "Создано",
-        "running": "Выполнение",
-        "completed": "Завершено",
-        "partiallyCompleted": "Частично завершено",
-        "failed": "Ошибка",
-        "cancelled": "Отменено"
+        "created": "Created",
+        "running": "Running",
+        "completed": "Completed",
+        "partiallyCompleted": "Partially Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
       },
-      "dagVisualization": "Визуализация DAG",
-      "dagHint": "Вставьте этот код Mermaid в рендерер Mermaid для визуализации DAG.",
-      "listView": "Список",
+      "dagVisualization": "DAG Visualization",
+      "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
+      "listView": "List",
       "dagView": "DAG",
-      "stepStatus": "Статус:",
-      "dependsOn": "Зависит от:",
-      "retries": "Повторные попытки:",
-      "result": "Результат:",
-      "error": "Ошибка:",
-      "attempts": "{{count}} попыток",
+      "stepStatus": "Status:",
+      "dependsOn": "Depends on:",
+      "retries": "Retries:",
+      "result": "Result:",
+      "error": "Error:",
+      "attempts": "{{count}} attempts",
       "performance": {
-        "name": "Оптимизация производительности",
-        "description": "Анализ узких мест и реализация оптимизаций."
+        "name": "Performance Optimization",
+        "description": "Analyze code performance bottlenecks and implement optimizations."
       },
       "security": {
-        "name": "Аудит безопасности",
-        "description": "Провести комплексный анализ уязвимостей безопасности."
+        "name": "Security Audit",
+        "description": "Perform comprehensive security vulnerability scan and risk assessment."
       },
       "migration": {
-        "name": "Миграция",
-        "description": "Помочь мигрировать код на новые версии или фреймворки."
+        "name": "Migration & Upgrade",
+        "description": "Help migrate codebase to new versions or frameworks."
       },
       "apiDesign": {
-        "name": "Проектирование API",
-        "description": "Проектировать и реализовывать API по лучшим практикам."
+        "name": "API Design",
+        "description": "Design and implement APIs following best practices."
       },
       "debugEnv": {
-        "name": "Отладка окружения",
-        "description": "Диагностировать и исправить проблемы конфигурации."
+        "name": "Environment Debug",
+        "description": "Diagnose and fix environment configuration issues."
       },
       "feature": {
-        "name": "Разработка функционала",
-        "description": "Систематически реализовывать новые функции."
+        "name": "Feature Development",
+        "description": "Systematically implement new features with design, development, and testing."
       },
       "knowledgeExtract": {
-        "name": "Извлечение бизнес-знаний",
-        "description": "Извлечение языконезависимых бизнес-знаний из кода для кросс-языкового рефакторинга."
+        "name": "Business Knowledge Extraction",
+        "description": "Extract language-agnostic business knowledge from code for cross-language refactoring."
       },
       "knowledgeToCode": {
-        "name": "Знания в код",
-        "description": "Генерация полной реализации кода на целевом языке из базы бизнес-знаний с поддержкой кросс-языковой миграции."
+        "name": "Knowledge to Code",
+        "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
       "collectInputs": {
-        "name": "Сбор пользовательского ввода",
-        "description": "Сбор информации о целевом языке, фреймворке, ID базы знаний, выходной директории и других данных проекта."
+        "name": "Collect User Inputs",
+        "description": "Collect target language, framework, knowledge base ID, output directory and other project information."
       },
-      "decompositionSaved": "Рабочий процесс декомпозиции сохранён",
-      "semanticCheckTitle": "Найдены похожие навыки",
-      "semanticCheckDescription": "Сгенерированные атомарные навыки имеют высокое семантическое сходство с существующими. Вы можете использовать существующий навык или сохранить сгенерированный.",
-      "semanticCheckApplied": "Замена навыка применена",
-      "skipSemanticCheck": "Пропустить",
-      "applySemanticCheck": "Применить",
-      "replaceWithExisting": "Использовать существующий",
-      "keepGeneratedSkill": "Сохранить сгенерированный",
-      "upgradeExisting": "Улучшить существующий",
-      "existingSkill": "Существующий навык",
-      "matchReasons": "Причины совпадения",
-      "generatedSkill": "Сгенерированный навык",
-      "upgradeSkillTitle": "Улучшить навык",
-      "upgradeSuggestion": "Предложение улучшения от LLM",
-      "generatingUpgrade": "Генерация предложения улучшения...",
-      "applyUpgrade": "Применить улучшение",
-      "upgradeError": "Не удалось получить предложение улучшения",
-      "upgradedName": "Улучшенное имя",
-      "inputSchema": "Входная схема",
-      "outputSchema": "Выходная схема",
-      "upgradeReasoning": "Обоснование улучшения",
+      "decompositionSaved": "Decomposition workflow saved successfully",
+      "semanticCheckTitle": "Similar Skills Found",
+      "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
+      "semanticCheckApplied": "Skill replacement applied",
+      "skipSemanticCheck": "Skip",
+      "applySemanticCheck": "Apply",
+      "replaceWithExisting": "Use Existing",
+      "keepGeneratedSkill": "Keep Generated",
+      "upgradeExisting": "Upgrade Existing",
+      "existingSkill": "Existing Skill",
+      "matchReasons": "Match Reasons",
+      "generatedSkill": "Generated Skill",
+      "upgradeSkillTitle": "Upgrade Skill",
+      "upgradeSuggestion": "LLM Upgrade Suggestion",
+      "generatingUpgrade": "Generating upgrade suggestion...",
+      "applyUpgrade": "Apply Upgrade",
+      "upgradeError": "Failed to get upgrade suggestion",
+      "upgradedName": "Upgraded Name",
+      "inputSchema": "Input Schema",
+      "outputSchema": "Output Schema",
+      "upgradeReasoning": "Upgrade Reasoning",
       "multiExpertCollab": {
-        "name": "Мульти-экспертное сотрудничество",
-        "description": "Запустите несколько экспертных агентов в параллельном или последовательном режиме для решения сложных задач путём разбиения."
-      }
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "modelRoutingConfig": {
       "title": "Конфигурация маршрутизации моделей",
@@ -609,7 +654,25 @@
     },
     "selectExpert": "Выберите эксперта",
     "exportHtml": "Экспорт HTML",
-    "exportHtmlNoThinking": "Экспорт HTML (без размышлений)"
+    "exportHtmlNoThinking": "Экспорт HTML (без размышлений)",
+    "timeline": {
+      "empty": "Нет записей выполнения",
+      "title": "Хронология выполнения",
+      "plan": "План",
+      "tool": "Инструмент",
+      "agent": "Агент",
+      "status": "Статус",
+      "completed": "Завершено",
+      "failed": "Ошибка",
+      "running": "Выполняется",
+      "cancelled": "Отменено",
+      "pending": "Ожидание"
+    },
+    "agent": {
+      "acceptEdits": "Принять правки",
+      "fullAccess": "Полный доступ"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "Шлюз",
@@ -1935,7 +1998,8 @@
       "pattern_match": "Сопоставление шаблонов",
       "error_recovery": "Восстановление ошибок",
       "user_feedback": "Обратная связь пользователя"
-    }
+    },
+    "default": "По умолчанию"
   },
   "image": {
     "loadError": "Ошибка загрузки изображения",
@@ -2888,7 +2952,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "Пройдено",
+    "failed": "Ошибка",
+    "taskId": "ID задачи",
+    "traceId": "ID трассировки",
+    "error": "Ошибка",
+    "scoreDetails": "Детали оценки"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
       "show": "Показать главное окно",
       "quit": "Выйти"
     }
+  },
+  "computerControl": {
+    "capture": "Скриншот",
+    "findElement": "Найти элемент",
+    "auto": "Авто",
+    "manual": "Вручную",
+    "autoModeTooltip": "В автоматическом режиме ИИ будет управлять компьютером автономно",
+    "resolution": "Разрешение",
+    "coordOps": "Операции с координатами",
+    "coordinates": "Координаты",
+    "executeClick": "Выполнить клик",
+    "typePlaceholder": "Введите текст",
+    "typeComplete": "Ввод завершен",
+    "scrollUp": "Прокрутить вверх",
+    "scrollDown": "Прокрутить вниз",
+    "up": "Вверх",
+    "down": "Вниз",
+    "foundElements": "Найдено {{count}} элементов",
+    "unnamed": "(без имени)",
+    "shortcuts": "Сочетания клавиш",
+    "clickSuccess": "Нажато ({{x}}, {{y}})",
+    "keyPressed": "Клавиша {{key}} нажата",
+    "scrolled": "Прокручено {{direction}}"
   }
 }

@@ -1,5 +1,5 @@
 import { usePlatformStore } from "@/stores";
-import { ALL_PLATFORMS } from "@/types/platform";
+import { ALL_PLATFORMS } from "@/types";
 import { Card, Empty, Spin, Tag, Typography } from "antd";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";

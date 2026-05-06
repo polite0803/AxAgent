@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { Benchmark, BenchmarkReport, BenchmarkResult, Dataset, RunnerConfig } from "@/types/evaluator";
+import type { Benchmark, BenchmarkReport, BenchmarkResult, Dataset, RunnerConfig } from "@/types";
 import { create } from "zustand";
 
 interface EvaluatorState {

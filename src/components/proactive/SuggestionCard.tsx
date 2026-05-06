@@ -1,5 +1,5 @@
 import { useProactiveStore } from "@/stores/feature/proactiveStore";
-import type { ProactiveSuggestion } from "@/types/proactive";
+import type { ProactiveSuggestion } from "@/types";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,7 +8,7 @@ interface SuggestionCardProps {
   compact?: boolean;
 }
 
-export default function SuggestionCard({ suggestion, compact = false }: SuggestionCardProps) {
+export function SuggestionCard({ suggestion, compact = false }: SuggestionCardProps) {
   const { t } = useTranslation();
   const { acceptSuggestion, dismissSuggestion, snoozeSuggestion } = useProactiveStore();
   const [isExpanded, setIsExpanded] = useState(false);

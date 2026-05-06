@@ -6,7 +6,7 @@ import type {
   ExpertCategory,
   PermissionMode,
   UpdateAgentProfileInput,
-} from "@/types/agentProfile";
+} from "@/types";
 import {
   Button,
   Card,

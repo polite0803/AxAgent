@@ -2,8 +2,8 @@ import { invoke } from "@/lib/invoke";
 import { findModelByIds, supportsReasoning } from "@/lib/modelCapabilities";
 import type { Conversation, UpdateConversationInput } from "@/types";
 import { create } from "zustand";
-import { useProviderStore } from "../feature/providerStore";
 import { useMcpStore } from "../feature/mcpStore";
+import { useProviderStore } from "../feature/providerStore";
 import { useConversationStore } from "./conversationStore";
 
 // Sequence counter to prevent stale preference saves

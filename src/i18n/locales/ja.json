@@ -17,7 +17,6 @@
     "link": "リンク",
     "devTools": "開発ツール",
     "workflow": "ワークフロー",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "インフラ",
     "sectionPlugins": "プラグイン"
   },
-
   "chat": {
     "newConversation": "新しい会話",
     "searchPlaceholder": "会話を検索...",
@@ -265,118 +263,165 @@
     "modelRouting": "モデルルーティング",
     "workflowTemplates": "ワークフローテンプレート",
     "workflow": {
-      "title": "Agent ワークフローテンプレート",
-      "searchPlaceholder": "テンプレートを検索...",
+      "title": "Agent Workflow Templates",
+      "searchPlaceholder": "Search templates...",
       "codeReview": {
-        "name": "コードレビュー",
-        "description": "バグ、セキュリティ問題、パフォーマンス問題、ベストプラクティスのコードをレビュー。"
+        "name": "Code Review",
+        "description": "Review code for bugs, security issues, performance problems, and best practices."
       },
       "bugFix": {
-        "name": "バグ修正ワークフロー",
-        "description": "根本原因分析により体系的にバグを診断・修正。"
+        "name": "Bug Fix Workflow",
+        "description": "Systematically diagnose and fix bugs with root cause analysis."
       },
       "docGen": {
-        "name": "ドキュメント生成",
-        "description": "コード、API、プロジェクトの包括的なドキュメントを生成。"
+        "name": "Documentation Generator",
+        "description": "Generate comprehensive documentation for code, APIs, and projects."
       },
       "testGen": {
-        "name": "テスト生成",
-        "description": "単体、統合、エッジケーステストを含む包括的なテストスイートを生成。"
+        "name": "Test Generator",
+        "description": "Generate comprehensive test suites with unit, integration, and edge case tests."
       },
       "refactor": {
-        "name": "リファクタリングアシスタント",
-        "description": "動作を保持する変換でコードを安全にリファクタリング。"
+        "name": "Refactoring Assistant",
+        "description": "Safely refactor code with behavior-preserving transformations."
       },
       "explore": {
-        "name": "コードエクスプローラー",
-        "description": "未知のコードベースを体系的に探索・理解。"
+        "name": "Code Explorer",
+        "description": "Explore and understand an unfamiliar codebase systematically."
       },
       "status": {
-        "pending": "待機中",
-        "running": "実行中",
-        "completed": "完了",
-        "failed": "失敗",
-        "skipped": "スキップ"
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
       },
       "workflowStatus": {
-        "created": "作成済み",
-        "running": "実行中",
-        "completed": "完了",
-        "partiallyCompleted": "部分完了",
-        "failed": "失敗",
-        "cancelled": "キャンセル"
+        "created": "Created",
+        "running": "Running",
+        "completed": "Completed",
+        "partiallyCompleted": "Partially Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
       },
-      "dagVisualization": "DAG 可視化",
-      "dagHint": "この Mermaid コードを Mermaid レンダラーに貼り付けて DAG を可視化。",
-      "listView": "リスト",
+      "dagVisualization": "DAG Visualization",
+      "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
+      "listView": "List",
       "dagView": "DAG",
-      "stepStatus": "ステータス：",
-      "dependsOn": "依存：",
-      "retries": "リトライ：",
-      "result": "結果：",
-      "error": "エラー：",
-      "attempts": "{{count}} 回試行",
+      "stepStatus": "Status:",
+      "dependsOn": "Depends on:",
+      "retries": "Retries:",
+      "result": "Result:",
+      "error": "Error:",
+      "attempts": "{{count}} attempts",
       "performance": {
-        "name": "パフォーマンス最適化",
-        "description": "コードのパフォーマンスボトルネックを分析し、最適化を実施。"
+        "name": "Performance Optimization",
+        "description": "Analyze code performance bottlenecks and implement optimizations."
       },
       "security": {
-        "name": "セキュリティ監査",
-        "description": "包括的なセキュリティ脆弱性スキャンとリスク評価を実施。"
+        "name": "Security Audit",
+        "description": "Perform comprehensive security vulnerability scan and risk assessment."
       },
       "migration": {
-        "name": "マイグレーション",
-        "description": "コードベースを新バージョンやフレームワークに移行。"
+        "name": "Migration & Upgrade",
+        "description": "Help migrate codebase to new versions or frameworks."
       },
       "apiDesign": {
-        "name": "API設計",
-        "description": "ベストプラクティスに従ったAPIを設計・実装。"
+        "name": "API Design",
+        "description": "Design and implement APIs following best practices."
       },
       "debugEnv": {
-        "name": "環境デバッグ",
-        "description": "環境設定の問題を診断・修正。"
+        "name": "Environment Debug",
+        "description": "Diagnose and fix environment configuration issues."
       },
       "feature": {
-        "name": "機能開発",
-        "description": "設計、開発、テストを含む体系的な新機能実装。"
+        "name": "Feature Development",
+        "description": "Systematically implement new features with design, development, and testing."
       },
       "knowledgeExtract": {
-        "name": "ビジネス知識抽出",
-        "description": "コードから言語非依存のビジネス知識を抽出し、クロスランゲージリファクタリングをサポートします。"
+        "name": "Business Knowledge Extraction",
+        "description": "Extract language-agnostic business knowledge from code for cross-language refactoring."
       },
       "knowledgeToCode": {
-        "name": "知識からコードへ",
-        "description": "ビジネス知識ベースからターゲット言語の完全なコード実装を生成し、クロスランゲージ移行をサポートします。"
+        "name": "Knowledge to Code",
+        "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
       "collectInputs": {
-        "name": "ユーザー入力を収集",
-        "description": "ターゲット言語、フレームワーク、知識ベースID、出力ディレクトリなどのプロジェクト情報を収集します。"
+        "name": "Collect User Inputs",
+        "description": "Collect target language, framework, knowledge base ID, output directory and other project information."
       },
-      "decompositionSaved": "分解ワークフローが正常に保存されました",
-      "semanticCheckTitle": "類似スキルが見つかりました",
-      "semanticCheckDescription": "以下の生成された原子スキルは既存のスキルと高い意味的類似性があります。既存のスキルを使用するか、生成されたものを保持するかを選択できます。",
-      "semanticCheckApplied": "スキル置換が適用されました",
-      "skipSemanticCheck": "スキップ",
-      "applySemanticCheck": "適用",
-      "replaceWithExisting": "既存を使用",
-      "keepGeneratedSkill": "生成を保持",
-      "upgradeExisting": "既存をアップグレード",
-      "existingSkill": "既存スキル",
-      "matchReasons": "一致理由",
-      "generatedSkill": "生成されたスキル",
-      "upgradeSkillTitle": "スキルをアップグレード",
-      "upgradeSuggestion": "LLMアップグレード提案",
-      "generatingUpgrade": "アップグレード提案を生成中...",
-      "applyUpgrade": "アップグレードを適用",
-      "upgradeError": "アップグレード提案の取得に失敗しました",
-      "upgradedName": "アップグレード後の名前",
-      "inputSchema": "入力スキーマ",
-      "outputSchema": "出力スキーマ",
-      "upgradeReasoning": "アップグレード理由",
+      "decompositionSaved": "Decomposition workflow saved successfully",
+      "semanticCheckTitle": "Similar Skills Found",
+      "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
+      "semanticCheckApplied": "Skill replacement applied",
+      "skipSemanticCheck": "Skip",
+      "applySemanticCheck": "Apply",
+      "replaceWithExisting": "Use Existing",
+      "keepGeneratedSkill": "Keep Generated",
+      "upgradeExisting": "Upgrade Existing",
+      "existingSkill": "Existing Skill",
+      "matchReasons": "Match Reasons",
+      "generatedSkill": "Generated Skill",
+      "upgradeSkillTitle": "Upgrade Skill",
+      "upgradeSuggestion": "LLM Upgrade Suggestion",
+      "generatingUpgrade": "Generating upgrade suggestion...",
+      "applyUpgrade": "Apply Upgrade",
+      "upgradeError": "Failed to get upgrade suggestion",
+      "upgradedName": "Upgraded Name",
+      "inputSchema": "Input Schema",
+      "outputSchema": "Output Schema",
+      "upgradeReasoning": "Upgrade Reasoning",
       "multiExpertCollab": {
-        "name": "マルチエキスパートコラボレーション",
-        "description": "複雑なタスクを分割して征服するために、複数のドメイン専門エージェントを並列または直列で起動します。"
-      }
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "modelRoutingConfig": {
       "title": "モデルルーティング設定",
@@ -609,7 +654,25 @@
     },
     "selectExpert": "选择专家角色",
     "exportHtml": "导出 HTML",
-    "exportHtmlNoThinking": "导出 HTML（不含思考）"
+    "exportHtmlNoThinking": "导出 HTML（不含思考）",
+    "timeline": {
+      "empty": "実行記録なし",
+      "title": "実行タイムライン",
+      "plan": "計画",
+      "tool": "ツール",
+      "agent": "エージェント",
+      "status": "状態",
+      "completed": "完了",
+      "failed": "失敗",
+      "running": "実行中",
+      "cancelled": "キャンセル",
+      "pending": "保留中"
+    },
+    "agent": {
+      "acceptEdits": "編集を許可",
+      "fullAccess": "フルアクセス"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "ゲートウェイ",
@@ -1935,7 +1998,8 @@
     "error": "操作失败",
     "createSuccess": "创建成功",
     "deleteSuccess": "删除成功",
-    "retry": "重试"
+    "retry": "重试",
+    "default": "デフォルト"
   },
   "multiAgent": {
     "title": "マルチエージェント状態",
@@ -2888,7 +2952,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "合格",
+    "failed": "不合格",
+    "taskId": "タスクID",
+    "traceId": "トレースID",
+    "error": "エラー",
+    "scoreDetails": "スコア詳細"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
       "show": "メインウィンドウを表示",
       "quit": "終了"
     }
+  },
+  "computerControl": {
+    "capture": "スクリーンショット",
+    "findElement": "要素を検索",
+    "auto": "自動",
+    "manual": "手動",
+    "autoModeTooltip": "自動モードでは、AIが自律的にコンピュータを制御します",
+    "resolution": "解像度",
+    "coordOps": "座標操作",
+    "coordinates": "座標",
+    "executeClick": "クリック実行",
+    "typePlaceholder": "テキストを入力",
+    "typeComplete": "入力完了",
+    "scrollUp": "上にスクロール",
+    "scrollDown": "下にスクロール",
+    "up": "上",
+    "down": "下",
+    "foundElements": "{{count}}個の要素が見つかりました",
+    "unnamed": "(名前なし)",
+    "shortcuts": "ショートカット",
+    "clickSuccess": "クリックしました ({{x}}, {{y}})",
+    "keyPressed": "キー {{key}} が押されました",
+    "scrolled": "{{direction}}にスクロールしました"
   }
 }

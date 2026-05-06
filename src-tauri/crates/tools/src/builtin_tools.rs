@@ -7,7 +7,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::LazyLock;
-use std::sync::RwLock;
+use tokio::sync::RwLock;
 
 pub type BoxedToolHandlerInner =
     dyn Fn(Value) -> Pin<Box<dyn Future<Output = Result<McpToolResult>> + Send>> + Send + Sync;
@@ -44,23 +44,23 @@ pub struct FlatBuiltinTool {
     pub timeout_secs: Option<i32>,
 }
 
-static BUILTIN_HANDLERS: LazyLock<std::sync::RwLock<HashMap<(String, String), BoxedToolHandler>>> =
-    LazyLock::new(|| std::sync::RwLock::new(HashMap::new()));
+static BUILTIN_HANDLERS: LazyLock<RwLock<HashMap<(String, String), BoxedToolHandler>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
 
 /// Global database path for builtin tools that need DB access (session_search, memory_flush).
 /// Set once at startup via `set_global_db_path()`.
-static GLOBAL_DB_PATH: LazyLock<std::sync::RwLock<Option<String>>> =
-    LazyLock::new(|| std::sync::RwLock::new(None));
+static GLOBAL_DB_PATH: LazyLock<RwLock<Option<String>>> =
+    LazyLock::new(|| RwLock::new(None));
 
 /// Set the global database path for builtin tools. Called once at startup.
 pub fn set_global_db_path(path: &str) {
-    let mut db_path = GLOBAL_DB_PATH.write().unwrap();
+    let mut db_path = GLOBAL_DB_PATH.blocking_write();
     *db_path = Some(path.to_string());
 }
 
 /// Get the global database path for builtin tools.
 pub fn get_global_db_path() -> Option<String> {
-    let db_path = GLOBAL_DB_PATH.read().unwrap();
+    let db_path = GLOBAL_DB_PATH.blocking_read();
     db_path.clone()
 }
 
@@ -71,13 +71,13 @@ static GLOBAL_SEA_DB: LazyLock<RwLock<Option<Arc<DatabaseConnection>>>> =
 
 /// 设置全局 SeaORM 连接（应用启动时由 Tauri setup 调用）
 pub fn set_global_sea_db(db: Arc<DatabaseConnection>) {
-    let mut sea_db = GLOBAL_SEA_DB.write().unwrap();
+    let mut sea_db = GLOBAL_SEA_DB.blocking_write();
     *sea_db = Some(db);
 }
 
 /// 获取全局 SeaORM 连接供 builtin_tools 使用
 pub fn get_global_sea_db() -> Option<Arc<DatabaseConnection>> {
-    let sea_db = GLOBAL_SEA_DB.read().unwrap();
+    let sea_db = GLOBAL_SEA_DB.blocking_read();
     sea_db.clone()
 }
 
@@ -98,34 +98,34 @@ pub type SubAgentRunner = Arc<
 >;
 
 /// Global sub-agent runner. Set once at startup by agent.rs.
-static GLOBAL_SUB_AGENT_RUNNER: LazyLock<std::sync::RwLock<Option<SubAgentRunner>>> =
-    LazyLock::new(|| std::sync::RwLock::new(None));
+static GLOBAL_SUB_AGENT_RUNNER: LazyLock<RwLock<Option<SubAgentRunner>>> =
+    LazyLock::new(|| RwLock::new(None));
 
 /// Set the global sub-agent runner. Called once at startup.
 pub fn set_global_sub_agent_runner(runner: SubAgentRunner) {
-    let mut r = GLOBAL_SUB_AGENT_RUNNER.write().unwrap();
+    let mut r = GLOBAL_SUB_AGENT_RUNNER.blocking_write();
     *r = Some(runner);
 }
 
 /// Get the global sub-agent runner.
 pub fn get_global_sub_agent_runner() -> Option<SubAgentRunner> {
-    let r = GLOBAL_SUB_AGENT_RUNNER.read().unwrap();
+    let r = GLOBAL_SUB_AGENT_RUNNER.blocking_read();
     r.clone()
 }
 
 /// Global current conversation ID for tools that need parent context.
-static GLOBAL_CURRENT_CONVERSATION_ID: LazyLock<std::sync::RwLock<Option<String>>> =
-    LazyLock::new(|| std::sync::RwLock::new(None));
+static GLOBAL_CURRENT_CONVERSATION_ID: LazyLock<RwLock<Option<String>>> =
+    LazyLock::new(|| RwLock::new(None));
 
 /// Set the current conversation ID, called before each agent turn.
 pub fn set_current_conversation_id(id: &str) {
-    let mut cid = GLOBAL_CURRENT_CONVERSATION_ID.write().unwrap();
+    let mut cid = GLOBAL_CURRENT_CONVERSATION_ID.blocking_write();
     *cid = Some(id.to_string());
 }
 
 /// Get the current conversation ID.
 pub fn get_current_conversation_id() -> Option<String> {
-    let cid = GLOBAL_CURRENT_CONVERSATION_ID.read().unwrap();
+    let cid = GLOBAL_CURRENT_CONVERSATION_ID.blocking_read();
     cid.clone()
 }
 
@@ -133,8 +133,8 @@ pub fn get_current_conversation_id() -> Option<String> {
 /// Value is (child_conversation_id, agent_type, description).
 pub type PendingSubAgentCard = (String, String, String); // (child_id, agent_type, description)
 
-static PENDING_SUB_AGENT_CARDS: LazyLock<std::sync::RwLock<HashMap<String, PendingSubAgentCard>>> =
-    LazyLock::new(|| std::sync::RwLock::new(HashMap::new()));
+static PENDING_SUB_AGENT_CARDS: LazyLock<RwLock<HashMap<String, PendingSubAgentCard>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
 
 /// Store a pending sub-agent card. Called by the task tool handler.
 pub fn store_pending_sub_agent_card(
@@ -143,7 +143,7 @@ pub fn store_pending_sub_agent_card(
     agent_type: &str,
     description: &str,
 ) {
-    let mut m = PENDING_SUB_AGENT_CARDS.write().unwrap();
+    let mut m = PENDING_SUB_AGENT_CARDS.blocking_write();
     m.insert(
         parent_id.to_string(),
         (
@@ -156,7 +156,7 @@ pub fn store_pending_sub_agent_card(
 
 /// Take and remove a pending sub-agent card for the given parent conversation.
 pub fn take_pending_sub_agent_card(parent_id: &str) -> Option<PendingSubAgentCard> {
-    let mut m = PENDING_SUB_AGENT_CARDS.write().unwrap();
+    let mut m = PENDING_SUB_AGENT_CARDS.blocking_write();
     m.remove(parent_id)
 }
 
@@ -186,19 +186,19 @@ pub fn has_fork_context(parent_id: &str) -> bool {
 }
 
 pub fn register_builtin_handler(server_name: &str, tool_name: &str, handler: BoxedToolHandler) {
-    let mut handlers = BUILTIN_HANDLERS.write().unwrap();
+    let mut handlers = BUILTIN_HANDLERS.blocking_write();
     handlers.insert((server_name.to_string(), tool_name.to_string()), handler);
 }
 
 pub fn get_handler(server_name: &str, tool_name: &str) -> Option<BoxedToolHandler> {
-    let handlers = BUILTIN_HANDLERS.read().unwrap();
+    let handlers = BUILTIN_HANDLERS.blocking_read();
     handlers
         .get(&(server_name.to_string(), tool_name.to_string()))
         .cloned()
 }
 
 pub fn list_all_builtin_handlers() -> Vec<(String, String)> {
-    let handlers = BUILTIN_HANDLERS.read().unwrap();
+    let handlers = BUILTIN_HANDLERS.blocking_read();
     handlers.keys().cloned().collect()
 }
 

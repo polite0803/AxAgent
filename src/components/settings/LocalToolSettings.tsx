@@ -1,5 +1,5 @@
 import { useLocalToolStore } from "@/stores";
-import type { LocalToolGroupInfo } from "@/types/localTool";
+import type { LocalToolGroupInfo } from "@/types";
 import { Spin, Switch, Tag, Typography } from "antd";
 import {
   BookOpen,

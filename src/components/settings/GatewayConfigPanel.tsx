@@ -1,5 +1,5 @@
 import { usePlatformStore } from "@/stores";
-import { ALL_PLATFORMS, type PlatformConfig } from "@/types/platform";
+import { ALL_PLATFORMS, type PlatformConfig } from "@/types";
 import { App, Card, Input, Select, Switch, Typography } from "antd";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";

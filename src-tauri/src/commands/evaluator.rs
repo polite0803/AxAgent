@@ -2,7 +2,7 @@ use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 use tauri::command;
 
 static BENCHMARK_SUITE: std::sync::OnceLock<Mutex<BenchmarkSuite>> = std::sync::OnceLock::new();
@@ -17,13 +17,13 @@ fn registry() -> &'static Mutex<DatasetRegistry> {
 
 #[command]
 pub fn evaluator_list_benchmarks() -> Result<Vec<Benchmark>, String> {
-    let s = suite().lock().map_err(|e| e.to_string())?;
+    let s = suite().blocking_lock();
     Ok(s.all().into_iter().cloned().collect())
 }
 
 #[command]
 pub fn evaluator_get_benchmark(benchmark_id: String) -> Result<Option<Benchmark>, String> {
-    let s = suite().lock().map_err(|e| e.to_string())?;
+    let s = suite().blocking_lock();
     Ok(s.get(&benchmark_id).cloned())
 }
 
@@ -33,7 +33,7 @@ pub async fn evaluator_run_benchmark(
     config: RunnerConfig,
 ) -> Result<BenchmarkResult, String> {
     let benchmark = {
-        let s = suite().lock().map_err(|e| e.to_string())?;
+        let s = suite().blocking_lock();
         s.get(&benchmark_id)
             .cloned()
             .ok_or_else(|| format!("Benchmark not found: {}", benchmark_id))?
@@ -50,7 +50,7 @@ pub fn evaluator_generate_report(result: BenchmarkResult) -> Result<BenchmarkRep
 
 #[command]
 pub fn evaluator_list_datasets() -> Result<Vec<Dataset>, String> {
-    let r = registry().lock().map_err(|e| e.to_string())?;
+    let r = registry().blocking_lock();
     Ok(r.all_datasets().into_iter().cloned().collect())
 }
 
@@ -61,7 +61,7 @@ pub fn evaluator_import_dataset(path: String) -> Result<Dataset, String> {
         .load_from_file(&path)
         .map_err(|e| format!("Failed to import dataset: {}", e))?;
 
-    let mut s = suite().lock().map_err(|e| e.to_string())?;
+    let mut s = suite().blocking_lock();
     let dataset = Dataset {
         id: benchmark.id.clone(),
         name: benchmark.name.clone(),

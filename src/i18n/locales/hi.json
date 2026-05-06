@@ -17,7 +17,6 @@
     "link": "लिंक",
     "devTools": "डेव टूल्स",
     "workflow": "वर्कफ़्लो",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "बुनियादी ढांचा",
     "sectionPlugins": "प्लगइन"
   },
-
   "chat": {
     "newConversation": "नई बातचीत",
     "searchPlaceholder": "बातचीत खोजें...",
@@ -265,118 +263,165 @@
     "modelRouting": "मॉडल रूटिंग",
     "workflowTemplates": "वर्कफ़्लो टेम्पलेट्स",
     "workflow": {
-      "title": "Agent वर्कफ़्लो टेम्पलेट्स",
-      "searchPlaceholder": "टेम्पलेट खोजें...",
+      "title": "Agent Workflow Templates",
+      "searchPlaceholder": "Search templates...",
       "codeReview": {
-        "name": "कोड समीक्षा",
-        "description": "बग, सुरक्षा समस्याओं, प्रदर्शन समस्याओं और सर्वोत्तम प्रथाओं के लिए कोड की समीक्षा करें।"
+        "name": "Code Review",
+        "description": "Review code for bugs, security issues, performance problems, and best practices."
       },
       "bugFix": {
-        "name": "बग फिक्स वर्कफ़्लो",
-        "description": "रूट कॉज विश्लेषण के साथ बग का व्यवस्थित निदान और सुधार।"
+        "name": "Bug Fix Workflow",
+        "description": "Systematically diagnose and fix bugs with root cause analysis."
       },
       "docGen": {
-        "name": "दस्तावेज़ जनरेटर",
-        "description": "कोड, API और प्रोजेक्ट के लिए व्यापक दस्तावेज़ जनरेट करें।"
+        "name": "Documentation Generator",
+        "description": "Generate comprehensive documentation for code, APIs, and projects."
       },
       "testGen": {
-        "name": "टेस्ट जनरेटर",
-        "description": "यूनिट, इंटीग्रेशन और एज केस टेस्ट के साथ व्यापक टेस्ट सूट जनरेट करें।"
+        "name": "Test Generator",
+        "description": "Generate comprehensive test suites with unit, integration, and edge case tests."
       },
       "refactor": {
-        "name": "रिफैक्टरिंग असिस्टेंट",
-        "description": "व्यवहार-संरक्षण परिवर्तनों के साथ सुरक्षित रूप से कोड रिफैक्टर करें।"
+        "name": "Refactoring Assistant",
+        "description": "Safely refactor code with behavior-preserving transformations."
       },
       "explore": {
-        "name": "कोड एक्सप्लोरर",
-        "description": "अपरिचित कोडबेस का व्यवस्थित अन्वेषण और समझ।"
+        "name": "Code Explorer",
+        "description": "Explore and understand an unfamiliar codebase systematically."
       },
       "status": {
-        "pending": "लंबित",
-        "running": "चल रहा है",
-        "completed": "पूर्ण",
-        "failed": "विफल",
-        "skipped": "छोड़ा गया"
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
       },
       "workflowStatus": {
-        "created": "बनाया गया",
-        "running": "चल रहा है",
-        "completed": "पूर्ण",
-        "partiallyCompleted": "आंशिक रूप से पूर्ण",
-        "failed": "विफल",
-        "cancelled": "रद्द"
+        "created": "Created",
+        "running": "Running",
+        "completed": "Completed",
+        "partiallyCompleted": "Partially Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
       },
-      "dagVisualization": "DAG विज़ुअलाइज़ेशन",
-      "dagHint": "DAG को विज़ुअलाइज़ करने के लिए इस Mermaid कोड को Mermaid रेंडरर में पेस्ट करें।",
-      "listView": "सूची",
+      "dagVisualization": "DAG Visualization",
+      "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
+      "listView": "List",
       "dagView": "DAG",
-      "stepStatus": "स्थिति：",
-      "dependsOn": "निर्भर：",
-      "retries": "पुनः प्रयास：",
-      "result": "परिणाम：",
-      "error": "त्रुटि：",
-      "attempts": "{{count}} प्रयास",
+      "stepStatus": "Status:",
+      "dependsOn": "Depends on:",
+      "retries": "Retries:",
+      "result": "Result:",
+      "error": "Error:",
+      "attempts": "{{count}} attempts",
       "performance": {
-        "name": "प्रदर्शन अनुकूलन",
-        "description": "कोड प्रदर्शन बाधाओं का विश्लेषण और अनुकूलन लागू करें।"
+        "name": "Performance Optimization",
+        "description": "Analyze code performance bottlenecks and implement optimizations."
       },
       "security": {
-        "name": "सुरक्षा ऑडिट",
-        "description": "व्यापक सुरक्षा भेद्यता स्कैन और जोखिम मूल्यांकन करें।"
+        "name": "Security Audit",
+        "description": "Perform comprehensive security vulnerability scan and risk assessment."
       },
       "migration": {
-        "name": "माइग्रेशन",
-        "description": "नए संस्करणों या फ्रेमवर्क में कोड माइग्रेट करने में मदद करें।"
+        "name": "Migration & Upgrade",
+        "description": "Help migrate codebase to new versions or frameworks."
       },
       "apiDesign": {
-        "name": "API डिज़ाइन",
-        "description": "सर्वोत्तम प्रथाओं के अनुसार API डिज़ाइन और लागू करें।"
+        "name": "API Design",
+        "description": "Design and implement APIs following best practices."
       },
       "debugEnv": {
-        "name": "पर्यावरण डिबग",
-        "description": "पर्यावरण कॉन्फ़िगरेशन समस्याओं का निदान और समाधान करें।"
+        "name": "Environment Debug",
+        "description": "Diagnose and fix environment configuration issues."
       },
       "feature": {
-        "name": "फीचर विकास",
-        "description": "व्यवस्थित रूप से नए फीचर लागू करें।"
+        "name": "Feature Development",
+        "description": "Systematically implement new features with design, development, and testing."
       },
       "knowledgeExtract": {
-        "name": "व्यावसायिक ज्ञान निष्कर्षण",
-        "description": "क्रॉस-भाषा रिफैक्टरिंग के लिए कोड से भाषा-निरपेक्ष व्यावसायिक ज्ञान निकालें।"
+        "name": "Business Knowledge Extraction",
+        "description": "Extract language-agnostic business knowledge from code for cross-language refactoring."
       },
       "knowledgeToCode": {
-        "name": "ज्ञान से कोड",
-        "description": "व्यावसायिक ज्ञानकोष से लक्ष्य भाषा में पूर्ण कोड कार्यान्वयन उत्पन्न करें।"
+        "name": "Knowledge to Code",
+        "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
       "collectInputs": {
-        "name": "उपयोगकर्ता इनपुट एकत्र करें",
-        "description": "लक्ष्य भाषा, फ्रेमवर्क, ज्ञानकोष ID, आउटपुट निर्देशिका आदि एकत्र करें।"
+        "name": "Collect User Inputs",
+        "description": "Collect target language, framework, knowledge base ID, output directory and other project information."
       },
-      "decompositionSaved": "विघटन वर्कफ़्लो सफलतापूर्वक सहेजा गया",
-      "semanticCheckTitle": "समान कौशल मिले",
-      "semanticCheckDescription": "निम्नलिखित उत्पन्न परमाणु कौशल मौजूदा कौशल से उच्च अर्थगत समानता रखते हैं।",
-      "semanticCheckApplied": "कौशल प्रतिस्थापन लागू",
-      "skipSemanticCheck": "छोड़ें",
-      "applySemanticCheck": "लागू करें",
-      "replaceWithExisting": "मौजूदा उपयोग करें",
-      "keepGeneratedSkill": "उत्पन्न रखें",
-      "upgradeExisting": "मौजूदा उन्नत करें",
-      "existingSkill": "मौजूदा कौशल",
-      "matchReasons": "मिलान कारण",
-      "generatedSkill": "उत्पन्न कौशल",
-      "upgradeSkillTitle": "कौशल उन्नत करें",
-      "upgradeSuggestion": "LLM उन्नयन सुझाव",
-      "generatingUpgrade": "उन्नयन सुझाव उत्पन्न हो रहा है...",
-      "applyUpgrade": "उन्नयन लागू करें",
-      "upgradeError": "उन्नयन सुझाव प्राप्त करने में विफल",
-      "upgradedName": "उन्नत नाम",
-      "inputSchema": "इनपुट स्कीमा",
-      "outputSchema": "आउटपुट स्कीमा",
-      "upgradeReasoning": "उन्नयन तर्क",
+      "decompositionSaved": "Decomposition workflow saved successfully",
+      "semanticCheckTitle": "Similar Skills Found",
+      "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
+      "semanticCheckApplied": "Skill replacement applied",
+      "skipSemanticCheck": "Skip",
+      "applySemanticCheck": "Apply",
+      "replaceWithExisting": "Use Existing",
+      "keepGeneratedSkill": "Keep Generated",
+      "upgradeExisting": "Upgrade Existing",
+      "existingSkill": "Existing Skill",
+      "matchReasons": "Match Reasons",
+      "generatedSkill": "Generated Skill",
+      "upgradeSkillTitle": "Upgrade Skill",
+      "upgradeSuggestion": "LLM Upgrade Suggestion",
+      "generatingUpgrade": "Generating upgrade suggestion...",
+      "applyUpgrade": "Apply Upgrade",
+      "upgradeError": "Failed to get upgrade suggestion",
+      "upgradedName": "Upgraded Name",
+      "inputSchema": "Input Schema",
+      "outputSchema": "Output Schema",
+      "upgradeReasoning": "Upgrade Reasoning",
       "multiExpertCollab": {
-        "name": "मल्टी-एक्सपर्ट सहयोग",
-        "description": "जटिल कार्यों को विभाजित और जीतने के लिए कई डोमेन विशेषज्ञ एजेंटों को समानांतर या क्रमिक सहयोग में लॉन्च करें।"
-      }
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "modelRoutingConfig": {
       "title": "मॉडल रूटिंग कॉन्फ़िगरेशन",
@@ -609,7 +654,25 @@
     },
     "selectExpert": "विशेषज्ञ चुनें",
     "exportHtml": "HTML निर्यात करें",
-    "exportHtmlNoThinking": "HTML निर्यात करें (बिना सोच के)"
+    "exportHtmlNoThinking": "HTML निर्यात करें (बिना सोच के)",
+    "timeline": {
+      "empty": "कोई निष्पादन रिकॉर्ड नहीं",
+      "title": "निष्पादन समयरेखा",
+      "plan": "योजना",
+      "tool": "उपकरण",
+      "agent": "एजेंट",
+      "status": "स्थिति",
+      "completed": "पूर्ण",
+      "failed": "विफल",
+      "running": "चल रहा है",
+      "cancelled": "रद्द",
+      "pending": "लंबित"
+    },
+    "agent": {
+      "acceptEdits": "संपादन स्वीकार करें",
+      "fullAccess": "पूर्ण पहुँच"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "गेटवे",
@@ -1935,7 +1998,8 @@
       "pattern_match": "पैटर्न मिलान",
       "error_recovery": "त्रुटि पुनर्प्राप्ति",
       "user_feedback": "उपयोगकर्ता प्रतिक्रिया"
-    }
+    },
+    "default": "डिफ़ॉल्ट"
   },
   "image": {
     "loadError": "छवि लोड करने में विफल",
@@ -3175,7 +3239,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "उत्तीर्ण",
+    "failed": "विफल",
+    "taskId": "कार्य आईडी",
+    "traceId": "ट्रेस आईडी",
+    "error": "त्रुटि",
+    "scoreDetails": "स्कोर विवरण"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
       "show": "मुख्य विंडो दिखाएँ",
       "quit": "बाहर निकलें"
     }
+  },
+  "computerControl": {
+    "capture": "स्क्रीनशॉट",
+    "findElement": "तत्व खोजें",
+    "auto": "स्वतः",
+    "manual": "मैनुअल",
+    "autoModeTooltip": "स्वचालित मोड में, AI कंप्यूटर को स्वायत्त रूप से नियंत्रित करेगा",
+    "resolution": "रिज़ॉल्यूशन",
+    "coordOps": "निर्देशांक संचालन",
+    "coordinates": "निर्देशांक",
+    "executeClick": "क्लिक करें",
+    "typePlaceholder": "टेक्स्ट दर्ज करें",
+    "typeComplete": "इनपुट पूर्ण",
+    "scrollUp": "ऊपर स्क्रॉल करें",
+    "scrollDown": "नीचे स्क्रॉल करें",
+    "up": "ऊपर",
+    "down": "नीचे",
+    "foundElements": "{{count}} तत्व मिले",
+    "unnamed": "(अनाम)",
+    "shortcuts": "शॉर्टकट",
+    "clickSuccess": "क्लिक किया ({{x}}, {{y}})",
+    "keyPressed": "कुंजी {{key}} दबाई गई",
+    "scrolled": "{{direction}} स्क्रॉल किया"
   }
 }

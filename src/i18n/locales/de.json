@@ -17,7 +17,6 @@
     "link": "Verknüpfung",
     "devTools": "Entwicklerwerkzeuge",
     "workflow": "Workflow",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "Infrastruktur",
     "sectionPlugins": "Plugins"
   },
-
   "chat": {
     "newConversation": "Neues Gespräch",
     "searchPlaceholder": "Gespräche suchen…",
@@ -265,118 +263,165 @@
     "modelRouting": "Modell-Routing",
     "workflowTemplates": "Workflow-Vorlagen",
     "workflow": {
-      "title": "Agent Workflow-Vorlagen",
-      "searchPlaceholder": "Vorlagen suchen...",
+      "title": "Agent Workflow Templates",
+      "searchPlaceholder": "Search templates...",
       "codeReview": {
-        "name": "Code-Review",
-        "description": "Code auf Bugs, Sicherheitsprobleme, Leistungsprobleme und Best Practices überprüfen."
+        "name": "Code Review",
+        "description": "Review code for bugs, security issues, performance problems, and best practices."
       },
       "bugFix": {
-        "name": "Bug-Fix-Workflow",
-        "description": "Systematische Diagnose und Behebung von Bugs mit Ursachenanalyse."
+        "name": "Bug Fix Workflow",
+        "description": "Systematically diagnose and fix bugs with root cause analysis."
       },
       "docGen": {
-        "name": "Dokumentationsgenerator",
-        "description": "Umfassende Dokumentation für Code, APIs und Projekte generieren."
+        "name": "Documentation Generator",
+        "description": "Generate comprehensive documentation for code, APIs, and projects."
       },
       "testGen": {
-        "name": "Test-Generator",
-        "description": "Umfassende Test-Suiten mit Unit-, Integrations- und Edge-Case-Tests generieren."
+        "name": "Test Generator",
+        "description": "Generate comprehensive test suites with unit, integration, and edge case tests."
       },
       "refactor": {
-        "name": "Refactoring-Assistent",
-        "description": "Code sicher refaktorieren mit verhaltenserhaltenden Transformationen."
+        "name": "Refactoring Assistant",
+        "description": "Safely refactor code with behavior-preserving transformations."
       },
       "explore": {
-        "name": "Code-Explorer",
-        "description": "Eine unbekannte Codebasis systematisch erkunden und verstehen."
+        "name": "Code Explorer",
+        "description": "Explore and understand an unfamiliar codebase systematically."
       },
       "status": {
-        "pending": "Ausstehend",
-        "running": "Läuft",
-        "completed": "Abgeschlossen",
-        "failed": "Fehlgeschlagen",
-        "skipped": "Übersprungen"
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
       },
       "workflowStatus": {
-        "created": "Erstellt",
-        "running": "Läuft",
-        "completed": "Abgeschlossen",
-        "partiallyCompleted": "Teilweise abgeschlossen",
-        "failed": "Fehlgeschlagen",
-        "cancelled": "Abgebrochen"
+        "created": "Created",
+        "running": "Running",
+        "completed": "Completed",
+        "partiallyCompleted": "Partially Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
       },
-      "dagVisualization": "DAG-Visualisierung",
-      "dagHint": "Diesen Mermaid-Code in einen Mermaid-Renderer einfügen, um das DAG zu visualisieren.",
-      "listView": "Liste",
+      "dagVisualization": "DAG Visualization",
+      "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
+      "listView": "List",
       "dagView": "DAG",
       "stepStatus": "Status:",
-      "dependsOn": "Abhängig von:",
-      "retries": "Wiederholungen:",
-      "result": "Ergebnis:",
-      "error": "Fehler:",
-      "attempts": "{{count}} Versuche",
+      "dependsOn": "Depends on:",
+      "retries": "Retries:",
+      "result": "Result:",
+      "error": "Error:",
+      "attempts": "{{count}} attempts",
       "performance": {
-        "name": "Leistungsoptimierung",
-        "description": "Code-Engpässe analysieren und Optimierungen implementieren."
+        "name": "Performance Optimization",
+        "description": "Analyze code performance bottlenecks and implement optimizations."
       },
       "security": {
-        "name": "Sicherheitsaudit",
-        "description": "Umfassende Sicherheitslücken-Scan und Risikobewertung durchführen."
+        "name": "Security Audit",
+        "description": "Perform comprehensive security vulnerability scan and risk assessment."
       },
       "migration": {
-        "name": "Migration",
-        "description": "Codebasis zu neuen Versionen oder Frameworks migrieren."
+        "name": "Migration & Upgrade",
+        "description": "Help migrate codebase to new versions or frameworks."
       },
       "apiDesign": {
-        "name": "API-Design",
-        "description": "APIs nach Best Practices entwerfen und implementieren."
+        "name": "API Design",
+        "description": "Design and implement APIs following best practices."
       },
       "debugEnv": {
-        "name": "Umgebungs-Debug",
-        "description": "Umgebungskonfigurationsprobleme diagnostizieren und beheben."
+        "name": "Environment Debug",
+        "description": "Diagnose and fix environment configuration issues."
       },
       "feature": {
-        "name": "Feature-Entwicklung",
-        "description": "Systematisch neue Features implementieren."
+        "name": "Feature Development",
+        "description": "Systematically implement new features with design, development, and testing."
       },
       "knowledgeExtract": {
-        "name": "Geschäftswissensextraktion",
-        "description": "Sprachunabhängiges Geschäftswissen aus Code für sprachübergreifende Refaktorierung extrahieren."
+        "name": "Business Knowledge Extraction",
+        "description": "Extract language-agnostic business knowledge from code for cross-language refactoring."
       },
       "knowledgeToCode": {
-        "name": "Wissen zu Code",
-        "description": "Vollständige Code-Implementierung in der Zielsprache aus der Geschäftswissensbasis generieren, unterstützt sprachübergreifende Migration."
+        "name": "Knowledge to Code",
+        "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
       "collectInputs": {
-        "name": "Benutzereingaben Sammeln",
-        "description": "Zielsprache, Framework, Wissensdatenbank-ID, Ausgabeverzeichnis und andere Projektinformationen sammeln."
+        "name": "Collect User Inputs",
+        "description": "Collect target language, framework, knowledge base ID, output directory and other project information."
       },
-      "decompositionSaved": "Zerlegungs-Workflow erfolgreich gespeichert",
-      "semanticCheckTitle": "Ähnliche Fähigkeiten Gefunden",
-      "semanticCheckDescription": "Die folgenden generierten atomaren Fähigkeiten haben eine hohe semantische Ähnlichkeit mit bestehenden Fähigkeiten. Sie können die bestehende verwenden oder die generierte behalten.",
-      "semanticCheckApplied": "Fähigkeitsersetzung angewendet",
-      "skipSemanticCheck": "Überspringen",
-      "applySemanticCheck": "Anwenden",
-      "replaceWithExisting": "Bestehende Verwenden",
-      "keepGeneratedSkill": "Generierte Behalten",
-      "upgradeExisting": "Bestehende Aktualisieren",
-      "existingSkill": "Bestehende Fähigkeit",
-      "matchReasons": "Übereinstimmungsgründe",
-      "generatedSkill": "Generierte Fähigkeit",
-      "upgradeSkillTitle": "Fähigkeit Aktualisieren",
-      "upgradeSuggestion": "LLM-Aktualisierungsvorschlag",
-      "generatingUpgrade": "Aktualisierungsvorschlag wird generiert...",
-      "applyUpgrade": "Aktualisierung Anwenden",
-      "upgradeError": "Aktualisierungsvorschlag konnte nicht abgerufen werden",
-      "upgradedName": "Aktualisierter Name",
-      "inputSchema": "Eingabeschema",
-      "outputSchema": "Ausgabeschema",
-      "upgradeReasoning": "Aktualisierungsbegründung",
+      "decompositionSaved": "Decomposition workflow saved successfully",
+      "semanticCheckTitle": "Similar Skills Found",
+      "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
+      "semanticCheckApplied": "Skill replacement applied",
+      "skipSemanticCheck": "Skip",
+      "applySemanticCheck": "Apply",
+      "replaceWithExisting": "Use Existing",
+      "keepGeneratedSkill": "Keep Generated",
+      "upgradeExisting": "Upgrade Existing",
+      "existingSkill": "Existing Skill",
+      "matchReasons": "Match Reasons",
+      "generatedSkill": "Generated Skill",
+      "upgradeSkillTitle": "Upgrade Skill",
+      "upgradeSuggestion": "LLM Upgrade Suggestion",
+      "generatingUpgrade": "Generating upgrade suggestion...",
+      "applyUpgrade": "Apply Upgrade",
+      "upgradeError": "Failed to get upgrade suggestion",
+      "upgradedName": "Upgraded Name",
+      "inputSchema": "Input Schema",
+      "outputSchema": "Output Schema",
+      "upgradeReasoning": "Upgrade Reasoning",
       "multiExpertCollab": {
-        "name": "Multi-Experten-Zusammenarbeit",
-        "description": "Starten Sie mehrere Expertenagenten für parallele oder sequenzielle Zusammenarbeit, um komplexe Aufgaben zu bewältigen."
-      }
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "modelRoutingConfig": {
       "title": "Modell-Routing-Konfiguration",
@@ -609,7 +654,25 @@
     },
     "selectExpert": "Experte auswählen",
     "exportHtml": "HTML exportieren",
-    "exportHtmlNoThinking": "HTML exportieren (ohne Denken)"
+    "exportHtmlNoThinking": "HTML exportieren (ohne Denken)",
+    "timeline": {
+      "empty": "Keine Ausführungsaufzeichnungen",
+      "title": "Ausführungszeitplan",
+      "plan": "Plan",
+      "tool": "Werkzeug",
+      "agent": "Agent",
+      "status": "Status",
+      "completed": "Abgeschlossen",
+      "failed": "Fehlgeschlagen",
+      "running": "Läuft",
+      "cancelled": "Abgebrochen",
+      "pending": "Ausstehend"
+    },
+    "agent": {
+      "acceptEdits": "Änderungen akzeptieren",
+      "fullAccess": "Vollzugriff"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "Gateway",
@@ -1935,7 +1998,8 @@
     "error": "Vorgang fehlgeschlagen",
     "createSuccess": "Erfolgreich erstellt",
     "deleteSuccess": "Erfolgreich gelöscht",
-    "retry": "Wiederholen"
+    "retry": "Wiederholen",
+    "default": "Standard"
   },
   "multiAgent": {
     "title": "Multi-Agent-Status",
@@ -3175,7 +3239,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "Bestanden",
+    "failed": "Fehlgeschlagen",
+    "taskId": "Aufgaben-ID",
+    "traceId": "Trace-ID",
+    "error": "Fehler",
+    "scoreDetails": "Punktedetails"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
       "show": "Hauptfenster anzeigen",
       "quit": "AxAgent beenden"
     }
+  },
+  "computerControl": {
+    "capture": "Screenshot",
+    "findElement": "Element suchen",
+    "auto": "Auto",
+    "manual": "Manuell",
+    "autoModeTooltip": "Im Automatikmodus steuert die KI den Computer autonom",
+    "resolution": "Auflösung",
+    "coordOps": "Koordinatenoperationen",
+    "coordinates": "Koordinaten",
+    "executeClick": "Klick ausführen",
+    "typePlaceholder": "Text eingeben",
+    "typeComplete": "Eingabe abgeschlossen",
+    "scrollUp": "Nach oben scrollen",
+    "scrollDown": "Nach unten scrollen",
+    "up": "Oben",
+    "down": "Unten",
+    "foundElements": "{{count}} Elemente gefunden",
+    "unnamed": "(unbenannt)",
+    "shortcuts": "Tastenkürzel",
+    "clickSuccess": "Geklickt ({{x}}, {{y}})",
+    "keyPressed": "Taste {{key}} gedrückt",
+    "scrolled": "{{direction}} gescrollt"
   }
 }

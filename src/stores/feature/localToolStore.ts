@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { LocalToolGroupInfo } from "@/types/localTool";
+import type { LocalToolGroupInfo } from "@/types";
 import { create } from "zustand";
 
 interface LocalToolState {

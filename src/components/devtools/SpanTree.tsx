@@ -1,5 +1,5 @@
 import { useTracerStore } from "@/stores/devtools/tracerStore";
-import type { SpanTreeNode, SpanType } from "@/types/tracer";
+import type { SpanTreeNode, SpanType } from "@/types";
 import { Tag, Tooltip, Typography } from "antd";
 import { useState } from "react";
 

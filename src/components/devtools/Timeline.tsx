@@ -1,4 +1,4 @@
-import type { Span, SpanType } from "@/types/tracer";
+import type { Span, SpanType } from "@/types";
 import { Tag, Tooltip } from "antd";
 import dayjs from "dayjs";
 

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 import { Button, Image, Input, message, Select, Slider, Space, Typography } from "antd";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";

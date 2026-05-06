@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { CreateSearchProviderInput, SearchProvider, UpdateSearchProviderInput } from "@/types/search";
+import type { CreateSearchProviderInput, SearchProvider, UpdateSearchProviderInput } from "@/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 

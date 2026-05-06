@@ -1,4 +1,4 @@
-import type { ArtifactFormat } from "@/types/artifact";
+import type { ArtifactFormat } from "@/types";
 
 export type PreviewType = "react" | "diagram" | "html" | "code";
 

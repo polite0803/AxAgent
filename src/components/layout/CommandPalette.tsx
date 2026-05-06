@@ -71,7 +71,7 @@ function fuzzyScore(text: string, query: string): number {
   return qi === q.length ? score : 0;
 }
 
-export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [query, setQuery] = useState("");

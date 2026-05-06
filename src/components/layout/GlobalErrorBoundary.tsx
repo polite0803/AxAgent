@@ -170,6 +170,6 @@ class GlobalErrorBoundary extends React.Component<
   }
 }
 
-export default GlobalErrorBoundary;
+export { GlobalErrorBoundary };
 export { ErrorFallback };
 export type { ErrorFallbackProps, GlobalErrorBoundaryProps };

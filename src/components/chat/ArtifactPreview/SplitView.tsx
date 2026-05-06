@@ -1,4 +1,4 @@
-import type { ArtifactLanguage } from "@/types/artifact";
+import type { ArtifactLanguage } from "@/types";
 import { Segmented } from "antd";
 import { memo, useState } from "react";
 import { CodePreview } from "./CodePreview";

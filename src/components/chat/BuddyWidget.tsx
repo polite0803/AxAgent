@@ -58,7 +58,10 @@ export function BuddyWidget() {
   const currentDragPos = useRef<{ x: number; y: number } | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setDragPos(savedPosition); currentDragPos.current = savedPosition; }, [savedPosition]);
+  useEffect(() => {
+    setDragPos(savedPosition);
+    currentDragPos.current = savedPosition;
+  }, [savedPosition]);
 
   const lastMessage = useMemo(() => {
     if (messages.length === 0) { return null; }
@@ -68,7 +71,7 @@ export function BuddyWidget() {
   // 拖动开始 (pointer 事件 + capture 阶段，在 Button 之前捕获)
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     // 只在鼠标左键时拖动
-    if (e.button !== 0) return;
+    if (e.button !== 0) { return; }
     dragging.current = true;
     hasDragged.current = false;
     const currentPos = currentDragPos.current ?? { x: window.innerWidth - 76, y: window.innerHeight - 76 };
@@ -79,11 +82,11 @@ export function BuddyWidget() {
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current) return;
+    if (!dragging.current) { return; }
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) hasDragged.current = true;
-    if (!hasDragged.current) return;
+    if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) { hasDragged.current = true; }
+    if (!hasDragged.current) { return; }
     const newX = Math.max(0, Math.min(window.innerWidth - 60, dragStart.current.posX + dx));
     const newY = Math.max(0, Math.min(window.innerHeight - 60, dragStart.current.posY + dy));
     currentDragPos.current = { x: newX, y: newY };
@@ -91,7 +94,7 @@ export function BuddyWidget() {
   }, []);
 
   const handlePointerUp = useCallback(() => {
-    if (!dragging.current) return;
+    if (!dragging.current) { return; }
     dragging.current = false;
     if (hasDragged.current && currentDragPos.current) {
       setPosition(currentDragPos.current.x, currentDragPos.current.y);
@@ -99,7 +102,9 @@ export function BuddyWidget() {
   }, [setPosition]);
 
   const wrapClick = useCallback((fn: () => void) => {
-    return () => { if (!hasDragged.current) fn(); };
+    return () => {
+      if (!hasDragged.current) { fn(); }
+    };
   }, []);
 
   // 隐藏时显示微型恢复按钮
@@ -303,7 +308,15 @@ export function BuddyWidget() {
 
       {/* 浮动按钮 + 隐藏按钮 */}
       <div
-        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "grab", touchAction: "none", userSelect: "none" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+          cursor: "grab",
+          touchAction: "none",
+          userSelect: "none",
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

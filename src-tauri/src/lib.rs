@@ -684,7 +684,7 @@ pub fn run() {
                 }
             }
 
-            let db_result = match init::init_database() {
+            let db_result = match tokio::runtime::Handle::current().block_on(init::init_database()) {
                 Ok(result) => result,
                 Err(e) => {
                     tracing::error!("Database initialization failed: {}", e);

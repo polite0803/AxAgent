@@ -1,5 +1,5 @@
 import { useProactiveStore } from "@/stores/feature/proactiveStore";
-import type { ContextPrediction } from "@/types/proactive";
+import type { ContextPrediction } from "@/types";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 

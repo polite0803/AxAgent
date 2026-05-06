@@ -1,4 +1,4 @@
-import type { Span } from "@/types/tracer";
+import type { Span } from "@/types";
 import { Card, Descriptions, Table, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 

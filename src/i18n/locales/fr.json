@@ -17,7 +17,6 @@
     "link": "Lien",
     "devTools": "Outils de développement",
     "workflow": "Workflow",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "Infrastructure",
     "sectionPlugins": "Plugins"
   },
-
   "chat": {
     "newConversation": "Nouvelle conversation",
     "searchPlaceholder": "Rechercher des conversations…",
@@ -265,118 +263,165 @@
     "modelRouting": "Routage de modèle",
     "workflowTemplates": "Modèles de workflow",
     "workflow": {
-      "title": "Modèles de workflow Agent",
-      "searchPlaceholder": "Rechercher des modèles...",
+      "title": "Agent Workflow Templates",
+      "searchPlaceholder": "Search templates...",
       "codeReview": {
-        "name": "Revue de code",
-        "description": "Examiner le code pour les bugs, problèmes de sécurité, de performance et bonnes pratiques."
+        "name": "Code Review",
+        "description": "Review code for bugs, security issues, performance problems, and best practices."
       },
       "bugFix": {
-        "name": "Workflow de correction de bug",
-        "description": "Diagnostiquer et corriger systématiquement les bugs avec analyse de cause racine."
+        "name": "Bug Fix Workflow",
+        "description": "Systematically diagnose and fix bugs with root cause analysis."
       },
       "docGen": {
-        "name": "Générateur de documentation",
-        "description": "Générer une documentation complète pour le code, les API et les projets."
+        "name": "Documentation Generator",
+        "description": "Generate comprehensive documentation for code, APIs, and projects."
       },
       "testGen": {
-        "name": "Générateur de tests",
-        "description": "Générer des suites de tests complètes avec tests unitaires, d'intégration et de cas limites."
+        "name": "Test Generator",
+        "description": "Generate comprehensive test suites with unit, integration, and edge case tests."
       },
       "refactor": {
-        "name": "Assistant de refactorisation",
-        "description": "Refactoriser le code en toute sécurité avec des transformations préservant le comportement."
+        "name": "Refactoring Assistant",
+        "description": "Safely refactor code with behavior-preserving transformations."
       },
       "explore": {
-        "name": "Explorateur de code",
-        "description": "Explorer et comprendre systématiquement une base de code inconnue."
+        "name": "Code Explorer",
+        "description": "Explore and understand an unfamiliar codebase systematically."
       },
       "status": {
-        "pending": "En attente",
-        "running": "En cours",
-        "completed": "Terminé",
-        "failed": "Échoué",
-        "skipped": "Ignoré"
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
       },
       "workflowStatus": {
-        "created": "Créé",
-        "running": "En cours",
-        "completed": "Terminé",
-        "partiallyCompleted": "Partiellement terminé",
-        "failed": "Échoué",
-        "cancelled": "Annulé"
+        "created": "Created",
+        "running": "Running",
+        "completed": "Completed",
+        "partiallyCompleted": "Partially Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
       },
-      "dagVisualization": "Visualisation DAG",
-      "dagHint": "Collez ce code Mermaid dans un rendu Mermaid pour visualiser le DAG.",
-      "listView": "Liste",
+      "dagVisualization": "DAG Visualization",
+      "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
+      "listView": "List",
       "dagView": "DAG",
-      "stepStatus": "Statut:",
-      "dependsOn": "Dépend de :",
-      "retries": "Tentatives :",
-      "result": "Résultat:",
-      "error": "Erreur:",
-      "attempts": "{{count}} tentatives",
+      "stepStatus": "Status:",
+      "dependsOn": "Depends on:",
+      "retries": "Retries:",
+      "result": "Result:",
+      "error": "Error:",
+      "attempts": "{{count}} attempts",
       "performance": {
-        "name": "Optimisation des performances",
-        "description": "Analyser les goulots d'étranglement et implémenter des optimisations."
+        "name": "Performance Optimization",
+        "description": "Analyze code performance bottlenecks and implement optimizations."
       },
       "security": {
-        "name": "Audit de sécurité",
-        "description": "Effectuer une analyse complète des vulnérabilités de sécurité."
+        "name": "Security Audit",
+        "description": "Perform comprehensive security vulnerability scan and risk assessment."
       },
       "migration": {
-        "name": "Migration",
-        "description": "Aider à migrer le code vers de nouvelles versions ou frameworks."
+        "name": "Migration & Upgrade",
+        "description": "Help migrate codebase to new versions or frameworks."
       },
       "apiDesign": {
-        "name": "Conception d'API",
-        "description": "Concevoir et implémenter des API suivant les bonnes pratiques."
+        "name": "API Design",
+        "description": "Design and implement APIs following best practices."
       },
       "debugEnv": {
-        "name": "Débogage environnement",
-        "description": "Diagnostiquer et corriger les problèmes de configuration."
+        "name": "Environment Debug",
+        "description": "Diagnose and fix environment configuration issues."
       },
       "feature": {
-        "name": "Développement de fonctionnalité",
-        "description": "Implémenter systématiquement de nouvelles fonctionnalités."
+        "name": "Feature Development",
+        "description": "Systematically implement new features with design, development, and testing."
       },
       "knowledgeExtract": {
-        "name": "Extraction de Connaissances Métier",
-        "description": "Extraire des connaissances métier indépendantes du langage à partir du code pour la refactorisation inter-langages."
+        "name": "Business Knowledge Extraction",
+        "description": "Extract language-agnostic business knowledge from code for cross-language refactoring."
       },
       "knowledgeToCode": {
-        "name": "De la Connaissance au Code",
-        "description": "Générer une implémentation de code complète dans le langage cible à partir de la base de connaissances métier, prenant en charge la migration inter-langages."
+        "name": "Knowledge to Code",
+        "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
       "collectInputs": {
-        "name": "Collecter les Entrées Utilisateur",
-        "description": "Collecter le langage cible, le framework, l'ID de la base de connaissances, le répertoire de sortie et d'autres informations du projet."
+        "name": "Collect User Inputs",
+        "description": "Collect target language, framework, knowledge base ID, output directory and other project information."
       },
-      "decompositionSaved": "Workflow de décomposition enregistré avec succès",
-      "semanticCheckTitle": "Compétences Similaires Trouvées",
-      "semanticCheckDescription": "Les compétences atomiques générées suivantes ont une forte similarité sémantique avec des compétences existantes. Vous pouvez utiliser la compétence existante ou conserver celle générée.",
-      "semanticCheckApplied": "Remplacement de compétence appliqué",
-      "skipSemanticCheck": "Ignorer",
-      "applySemanticCheck": "Appliquer",
-      "replaceWithExisting": "Utiliser l'Existante",
-      "keepGeneratedSkill": "Conserver la Générée",
-      "upgradeExisting": "Mettre à Niveau l'Existante",
-      "existingSkill": "Compétence Existante",
-      "matchReasons": "Raisons de Correspondance",
-      "generatedSkill": "Compétence Générée",
-      "upgradeSkillTitle": "Mettre à Niveau la Compétence",
-      "upgradeSuggestion": "Suggestion de Mise à Niveau LLM",
-      "generatingUpgrade": "Génération de la suggestion de mise à niveau...",
-      "applyUpgrade": "Appliquer la Mise à Niveau",
-      "upgradeError": "Échec de l'obtention de la suggestion de mise à niveau",
-      "upgradedName": "Nom Mis à Niveau",
-      "inputSchema": "Schéma d'Entrée",
-      "outputSchema": "Schéma de Sortie",
-      "upgradeReasoning": "Raisonnement de Mise à Niveau",
+      "decompositionSaved": "Decomposition workflow saved successfully",
+      "semanticCheckTitle": "Similar Skills Found",
+      "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
+      "semanticCheckApplied": "Skill replacement applied",
+      "skipSemanticCheck": "Skip",
+      "applySemanticCheck": "Apply",
+      "replaceWithExisting": "Use Existing",
+      "keepGeneratedSkill": "Keep Generated",
+      "upgradeExisting": "Upgrade Existing",
+      "existingSkill": "Existing Skill",
+      "matchReasons": "Match Reasons",
+      "generatedSkill": "Generated Skill",
+      "upgradeSkillTitle": "Upgrade Skill",
+      "upgradeSuggestion": "LLM Upgrade Suggestion",
+      "generatingUpgrade": "Generating upgrade suggestion...",
+      "applyUpgrade": "Apply Upgrade",
+      "upgradeError": "Failed to get upgrade suggestion",
+      "upgradedName": "Upgraded Name",
+      "inputSchema": "Input Schema",
+      "outputSchema": "Output Schema",
+      "upgradeReasoning": "Upgrade Reasoning",
       "multiExpertCollab": {
-        "name": "Collaboration Multi-Expert",
-        "description": "Lancez plusieurs agents experts en domaines spécifiques pour une collaboration parallèle ou série afin de diviser et conquérir les tâches complexes."
-      }
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "modelRoutingConfig": {
       "title": "Configuration du routage de modèle",
@@ -609,7 +654,25 @@
     },
     "selectExpert": "Sélectionner un expert",
     "exportHtml": "Exporter en HTML",
-    "exportHtmlNoThinking": "Exporter en HTML (sans réflexion)"
+    "exportHtmlNoThinking": "Exporter en HTML (sans réflexion)",
+    "timeline": {
+      "empty": "Aucun enregistrement",
+      "title": "Chronologie",
+      "plan": "Plan",
+      "tool": "Outil",
+      "agent": "Agent",
+      "status": "Statut",
+      "completed": "Terminé",
+      "failed": "Échoué",
+      "running": "En cours",
+      "cancelled": "Annulé",
+      "pending": "En attente"
+    },
+    "agent": {
+      "acceptEdits": "Accepter les modifications",
+      "fullAccess": "Accès complet"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "Passerelle",
@@ -1935,7 +1998,8 @@
     "error": "L'opération a échoué",
     "createSuccess": "Créé avec succès",
     "deleteSuccess": "Supprimé avec succès",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "default": "Défaut"
   },
   "multiAgent": {
     "title": "État Multi-Agent",
@@ -3175,7 +3239,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "Réussi",
+    "failed": "Échoué",
+    "taskId": "ID de tâche",
+    "traceId": "ID de trace",
+    "error": "Erreur",
+    "scoreDetails": "Détails du score"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
       "show": "Afficher la fenêtre principale",
       "quit": "Quitter AxAgent"
     }
+  },
+  "computerControl": {
+    "capture": "Capture",
+    "findElement": "Rechercher élément",
+    "auto": "Auto",
+    "manual": "Manuel",
+    "autoModeTooltip": "En mode automatique, l'IA contrôlera l'ordinateur de manière autonome",
+    "resolution": "Résolution",
+    "coordOps": "Opérations de coordonnées",
+    "coordinates": "Coordonnées",
+    "executeClick": "Exécuter le clic",
+    "typePlaceholder": "Saisir du texte",
+    "typeComplete": "Saisie terminée",
+    "scrollUp": "Défiler vers le haut",
+    "scrollDown": "Défiler vers le bas",
+    "up": "Haut",
+    "down": "Bas",
+    "foundElements": "{{count}} éléments trouvés",
+    "unnamed": "(sans nom)",
+    "shortcuts": "Raccourcis",
+    "clickSuccess": "Cliqué ({{x}}, {{y}})",
+    "keyPressed": "Touche {{key}} enfoncée",
+    "scrolled": "Défilé {{direction}}"
   }
 }

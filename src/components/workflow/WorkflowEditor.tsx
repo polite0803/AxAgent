@@ -420,19 +420,22 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
       if (isCtrlOrCmd && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        if (canUndo()) { undo(); } else { message.info("没有可撤销的操作"); }
+        if (canUndo()) { undo(); }
+        else { message.info("没有可撤销的操作"); }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "z" && e.shiftKey) {
         e.preventDefault();
-        if (canRedo()) { redo(); } else { message.info("没有可重做的操作"); }
+        if (canRedo()) { redo(); }
+        else { message.info("没有可重做的操作"); }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "y") {
         e.preventDefault();
-        if (canRedo()) { redo(); } else { message.info("没有可重做的操作"); }
+        if (canRedo()) { redo(); }
+        else { message.info("没有可重做的操作"); }
         return;
       }
 

@@ -19,7 +19,7 @@ import {
 import type { AvatarType } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { Conversation, ConversationCategory, Message } from "@/types";
-import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
+import { EXPERT_CATEGORY_LABELS } from "@/types";
 import Conversations from "@ant-design/x/es/conversations";
 import type { ConversationItemType } from "@ant-design/x/es/conversations/interface";
 import {

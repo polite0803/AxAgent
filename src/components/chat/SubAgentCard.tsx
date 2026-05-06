@@ -1,4 +1,4 @@
-import type { SubAgentCardData } from "@/types/agent";
+import type { SubAgentCardData } from "@/types";
 import {
   BranchesOutlined,
   CheckCircleOutlined,

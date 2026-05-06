@@ -1,7 +1,7 @@
 import { BUILTIN_EXPERT_PRESETS } from "@/data/expertPresets";
 import { invoke } from "@/lib/invoke";
-import type { ExpertRole } from "@/types/expert";
-import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
+import type { ExpertRole } from "@/types";
+import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
 

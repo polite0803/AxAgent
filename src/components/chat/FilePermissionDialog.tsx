@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 import { Alert, Button, Descriptions, Input, Modal, Radio, Space, Tag, Typography } from "antd";
 import { AlertTriangle, Clock, FileText, Shield } from "lucide-react";
 import { useState } from "react";

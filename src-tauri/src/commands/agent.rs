@@ -2456,7 +2456,7 @@ struct SkillTaskContext {
     constraints: Option<Vec<String>>,
 }
 
-use std::sync::RwLock;
+use tokio::sync::RwLock;
 
 static SKILL_MCP_REGISTRY: std::sync::OnceLock<axagent_tools::registry::McpRegistry> =
     std::sync::OnceLock::new();
@@ -2479,38 +2479,35 @@ impl SkillOutputTracker {
     }
 
     fn record_execution(&self, conversation_id: &str, record: SkillExecutionRecord) {
-        if let Ok(mut tracker) = self.inner.write() {
-            let entries = tracker
-                .entry(conversation_id.to_string())
-                .or_insert_with(Vec::new);
-            entries.push(record);
-        }
+        let mut tracker = self.inner.blocking_write();
+        let entries = tracker
+            .entry(conversation_id.to_string())
+            .or_insert_with(Vec::new);
+        entries.push(record);
     }
 
     fn get_recent_skills(&self, conversation_id: &str, limit: usize) -> Vec<SkillExecutionRecord> {
-        if let Ok(tracker) = self.inner.read() {
-            if let Some(entries) = tracker.get(conversation_id) {
-                let start = if entries.len() > limit {
-                    entries.len() - limit
-                } else {
-                    0
-                };
-                return entries[start..].to_vec();
-            }
+        let tracker = self.inner.blocking_read();
+        if let Some(entries) = tracker.get(conversation_id) {
+            let start = if entries.len() > limit {
+                entries.len() - limit
+            } else {
+                0
+            };
+            return entries[start..].to_vec();
         }
         Vec::new()
     }
 
     fn update_output(&self, conversation_id: &str, skill_name: &str, output: String) {
-        if let Ok(mut tracker) = self.inner.write() {
-            if let Some(entries) = tracker.get_mut(conversation_id) {
-                if let Some(last) = entries
-                    .iter_mut()
-                    .rev()
-                    .find(|r| r.skill_name == skill_name)
-                {
-                    last.output = Some(output);
-                }
+        let mut tracker = self.inner.blocking_write();
+        if let Some(entries) = tracker.get_mut(conversation_id) {
+            if let Some(last) = entries
+                .iter_mut()
+                .rev()
+                .find(|r| r.skill_name == skill_name)
+            {
+                last.output = Some(output);
             }
         }
     }

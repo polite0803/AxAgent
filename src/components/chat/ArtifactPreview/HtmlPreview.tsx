@@ -1,5 +1,5 @@
 import { composeHtml, parseHtmlContent } from "@/lib/htmlParser";
-import type { ArtifactLanguage } from "@/types/artifact";
+import type { ArtifactLanguage } from "@/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 interface HtmlPreviewProps {

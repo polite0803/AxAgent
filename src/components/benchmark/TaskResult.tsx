@@ -1,5 +1,5 @@
-import type { TaskResult as TaskResultType } from "@/types/evaluator";
-import { formatDuration, formatScore, getDifficultyLabel } from "@/types/evaluator";
+import type { TaskResult as TaskResultType } from "@/types";
+import { formatDuration, formatScore, getDifficultyLabel } from "@/types";
 import { Badge, Card, Descriptions, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 

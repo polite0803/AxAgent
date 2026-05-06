@@ -1,5 +1,5 @@
-import type { BenchmarkTask, TaskResult } from "@/types/evaluator";
-import { formatDuration, formatScore, getDifficultyLabel } from "@/types/evaluator";
+import type { BenchmarkTask, TaskResult } from "@/types";
+import { formatDuration, formatScore, getDifficultyLabel } from "@/types";
 import { Button, Table, Tag } from "antd";
 import { TaskResultCard } from "./TaskResult";
 

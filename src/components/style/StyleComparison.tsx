@@ -1,4 +1,4 @@
-import type { StyleDimensionKey, StyleVector } from "@/types/style";
+import type { StyleDimensionKey, StyleVector } from "@/types";
 import { useTranslation } from "react-i18next";
 
 interface StyleComparisonProps {

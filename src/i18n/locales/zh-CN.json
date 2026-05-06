@@ -166,7 +166,13 @@
     "runner": "基准测试运行器",
     "running": "运行中...",
     "selectBenchmarkFirst": "请先选择基准测试",
-    "selection": "基准测试选择"
+    "selection": "基准测试选择",
+    "passed": "通过",
+    "failed": "失败",
+    "taskId": "任务ID",
+    "traceId": "追踪ID",
+    "error": "错误",
+    "scoreDetails": "分数详情"
   },
   "browser": {
     "clickBody": "点击页面主体",
@@ -819,7 +825,24 @@
     "workflowTemplates": "工作流模板",
     "workspaceLocked": "会话开始后工作区目录不可修改",
     "yesterday": "昨天",
-    "you": "你"
+    "you": "你",
+    "timeline": {
+      "empty": "暂无执行记录",
+      "title": "执行时间线",
+      "plan": "计划",
+      "tool": "工具",
+      "agent": "智能体",
+      "status": "状态",
+      "completed": "完成",
+      "failed": "失败",
+      "running": "运行中",
+      "cancelled": "已取消",
+      "pending": "等待中"
+    },
+    "agent": {
+      "acceptEdits": "接受编辑",
+      "fullAccess": "完全访问"
+    }
   },
   "commandPalette": {
     "actions": "操作",
@@ -966,7 +989,8 @@
     "workingDirectory": "工作目录",
     "yes": "是",
     "zoomIn": "放大",
-    "zoomOut": "缩小"
+    "zoomOut": "缩小",
+    "default": "默认"
   },
   "desktop": {
     "alwaysOnTop": "窗口置顶",
@@ -3506,5 +3530,28 @@
     "view": "查看",
     "workflowSavedAsNew": "工作流已另存为新",
     "workflowUpdated": "工作流已更新"
+  },
+  "computerControl": {
+    "capture": "截屏",
+    "findElement": "查找元素",
+    "auto": "自动",
+    "manual": "手动",
+    "autoModeTooltip": "自动模式下，AI 将自主控制计算机",
+    "resolution": "分辨率",
+    "coordOps": "坐标操作",
+    "coordinates": "坐标",
+    "executeClick": "执行点击",
+    "typePlaceholder": "输入文本",
+    "typeComplete": "输入完成",
+    "scrollUp": "向上滚",
+    "scrollDown": "向下滚",
+    "up": "上",
+    "down": "下",
+    "foundElements": "发现 {{count}} 个元素",
+    "unnamed": "(未命名)",
+    "shortcuts": "快捷键",
+    "clickSuccess": "点击 ({{x}}, {{y}})",
+    "keyPressed": "按键 {{key}} 已按下",
+    "scrolled": "滚动 {{direction}}"
   }
 }

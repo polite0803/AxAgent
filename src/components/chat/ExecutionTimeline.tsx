@@ -1,6 +1,6 @@
 import { useAgentStore, usePlanStore } from "@/stores";
 import type { PlanStep } from "@/types";
-import type { AgentPoolItem, ToolCallState } from "@/types/agent";
+import type { AgentPoolItem, ToolCallState } from "@/types";
 
 const _EMPTY: never[] = [];
 import { SyncOutlined } from "@ant-design/icons";

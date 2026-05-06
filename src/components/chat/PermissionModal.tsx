@@ -1,5 +1,5 @@
 import { useAgentStore } from "@/stores";
-import type { PermissionRequestEvent } from "@/types/agent";
+import type { PermissionRequestEvent } from "@/types";
 import { Button, Modal, Space, Tag, Typography } from "antd";
 import { CheckCircle, Eye, Info, Pencil, Shield, ShieldCheck, ShieldX, Terminal } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";

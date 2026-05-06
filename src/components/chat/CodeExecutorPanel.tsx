@@ -1,6 +1,6 @@
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import { codeExecutor, type ExecutionResult } from "@/lib/codeExecutor";
-import type { ArtifactLanguage } from "@/types/artifact";
+import type { ArtifactLanguage } from "@/types";
 import { Button, Select, Spin } from "antd";
 import { Play, Square } from "lucide-react";
 import { useState } from "react";

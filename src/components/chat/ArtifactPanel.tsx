@@ -1,4 +1,4 @@
-import type { ArtifactFormat, ArtifactPreviewMode } from "@/types/artifact";
+import type { ArtifactFormat, ArtifactPreviewMode } from "@/types";
 import {
   CheckOutlined,
   CodeOutlined,

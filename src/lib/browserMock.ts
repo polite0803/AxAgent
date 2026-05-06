@@ -20,10 +20,10 @@ import type {
   SaveProgramPolicyInput,
   SearchProvider,
 } from "@/types";
-import type { Artifact } from "@/types/artifact";
-import type { BackupManifest } from "@/types/backup";
-import type { CreateKnowledgeBaseInput } from "@/types/knowledge";
-import type { CreateMemoryItemInput, CreateMemoryNamespaceInput } from "@/types/memory";
+import type { Artifact } from "@/types";
+import type { BackupManifest } from "@/types";
+import type { CreateKnowledgeBaseInput } from "@/types";
+import type { CreateMemoryItemInput, CreateMemoryNamespaceInput } from "@/types";
 
 interface WorkflowTemplate {
   id: string;

@@ -20,7 +20,7 @@ pub async fn find_ui_elements(query: UIElementQuery) -> Result<Vec<serde_json::V
         .map(|elems| {
             elems
                 .iter()
-                .map(|e| serde_json::to_value(e).unwrap())
+                .filter_map(|e| serde_json::to_value(e).ok())
                 .collect()
         })
         .map_err(|e| e.to_string())

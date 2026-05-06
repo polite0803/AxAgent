@@ -1,5 +1,5 @@
 import type { ToolUpgradeSuggestion } from "@/components/workflow/types/workflow.types";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 import { Button, Card, Divider, Input, List, message, Modal, Typography } from "antd";
 import { ArrowRight, CheckCircle, RefreshCw, Search, Zap } from "lucide-react";
 import { useCallback, useState } from "react";

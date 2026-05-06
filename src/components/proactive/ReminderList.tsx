@@ -1,5 +1,5 @@
 import { type ReminderInput, useProactiveStore } from "@/stores/feature/proactiveStore";
-import type { Reminder } from "@/types/proactive";
+import type { Reminder } from "@/types";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 

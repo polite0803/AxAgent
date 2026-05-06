@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { Span, SpanTreeNode, TraceDetail, TraceFilter, TraceMetrics, TraceSummary } from "@/types/tracer";
+import type { Span, SpanTreeNode, TraceDetail, TraceFilter, TraceMetrics, TraceSummary } from "@/types";
 import { create } from "zustand";
 
 interface TracerState {

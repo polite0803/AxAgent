@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
-import type { FeedbackSource, FeedbackType, LearningInsight, Nudge, NudgeStats, PeriodicNudge } from "@/types/nudge";
-import type { ProactiveSuggestion } from "@/types/proactive";
+import type { FeedbackSource, FeedbackType, LearningInsight, Nudge, NudgeStats, PeriodicNudge } from "@/types";
+import type { ProactiveSuggestion } from "@/types";
 import { create } from "zustand";
 import { useProactiveStore } from "./proactiveStore";
 

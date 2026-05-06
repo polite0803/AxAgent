@@ -1,5 +1,5 @@
 import { useConversationStore, useNudgeStore } from "@/stores";
-import type { Nudge, PeriodicNudge } from "@/types/nudge";
+import type { Nudge, PeriodicNudge } from "@/types";
 import { Bell, Check, Clock, Lightbulb, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

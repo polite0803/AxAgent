@@ -1,8 +1,8 @@
 import { useProactiveStore } from "@/stores/feature/proactiveStore";
 import { useTranslation } from "react-i18next";
-import SuggestionCard from "./SuggestionCard";
+import { SuggestionCard } from "./SuggestionCard";
 
-export default function ProactiveSuggestionBar() {
+export function ProactiveSuggestionBar() {
   const { t } = useTranslation();
   const { suggestions, isEnabled, setEnabled, isLoading } = useProactiveStore();
 
@@ -11,7 +11,7 @@ export default function ProactiveSuggestionBar() {
   }
 
   return (
-    <div className="border-b border-border bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+    <div className="border-b border-border bg-linear-to-r from-primary/5 via-primary/10 to-primary/5">
       <div className="px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">

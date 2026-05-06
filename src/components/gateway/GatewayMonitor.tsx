@@ -112,43 +112,51 @@ export function GatewayMonitor() {
       </div>
 
       {/* 指标卡片 */}
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 40 }}><Spin /></div>
-      ) : error ? (
-        <Card><div style={{ textAlign: "center", padding: 12, color: "var(--color-text-secondary)" }}>{error}</div></Card>
-      ) : metrics && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 12,
-            marginBottom: 20,
-          }}
-        >
-          <Card size="small">
-            <Statistic title="总请求" value={metrics.total_requests} prefix={<Activity size={16} />} />
+      {loading
+        ? (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <Spin />
+          </div>
+        )
+        : error
+        ? (
+          <Card>
+            <div style={{ textAlign: "center", padding: 12, color: "var(--color-text-secondary)" }}>{error}</div>
           </Card>
-          <Card size="small">
-            <Statistic title="总 Token" value={metrics.total_tokens} prefix={<BarChart3 size={16} />} />
-          </Card>
-          <Card size="small">
-            <Statistic title="活跃连接" value={metrics.active_connections} prefix={<Server size={16} />} />
-          </Card>
-          <Card size="small">
-            <Statistic title="平均延迟" value={metrics.avg_latency_ms} suffix="ms" precision={0} />
-          </Card>
-          <Card size="small">
-            <Statistic
-              title="错误数"
-              value={metrics.error_count}
-              valueStyle={{ color: metrics.error_count > 0 ? "#ff4d4f" : undefined }}
-            />
-          </Card>
-          <Card size="small">
-            <Statistic title="运行时间" value={formatUptime(metrics.uptime_seconds)} prefix={<Clock size={16} />} />
-          </Card>
-        </div>
-      )}
+        )
+        : metrics && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 12,
+              marginBottom: 20,
+            }}
+          >
+            <Card size="small">
+              <Statistic title="总请求" value={metrics.total_requests} prefix={<Activity size={16} />} />
+            </Card>
+            <Card size="small">
+              <Statistic title="总 Token" value={metrics.total_tokens} prefix={<BarChart3 size={16} />} />
+            </Card>
+            <Card size="small">
+              <Statistic title="活跃连接" value={metrics.active_connections} prefix={<Server size={16} />} />
+            </Card>
+            <Card size="small">
+              <Statistic title="平均延迟" value={metrics.avg_latency_ms} suffix="ms" precision={0} />
+            </Card>
+            <Card size="small">
+              <Statistic
+                title="错误数"
+                value={metrics.error_count}
+                valueStyle={{ color: metrics.error_count > 0 ? "#ff4d4f" : undefined }}
+              />
+            </Card>
+            <Card size="small">
+              <Statistic title="运行时间" value={formatUptime(metrics.uptime_seconds)} prefix={<Clock size={16} />} />
+            </Card>
+          </div>
+        )}
 
       {/* 请求日志 */}
       <Card

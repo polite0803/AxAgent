@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { CapacityInfo, SyncQueueItem } from "@/types/llmWiki";
+import type { CapacityInfo, SyncQueueItem } from "@/types";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,

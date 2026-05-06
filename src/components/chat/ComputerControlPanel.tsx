@@ -1,7 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 import { Button, Card, Input, message, Space, Switch, Tooltip, Typography } from "antd";
 import { Scissors, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface CaptureResult {
   image_base64: string;
@@ -17,6 +18,7 @@ interface UIElement {
 }
 
 export function ComputerControlPanel() {
+  const { t } = useTranslation();
   const mountedRef = useRef(true);
   useEffect(() => () => {
     mountedRef.current = false;
@@ -66,7 +68,7 @@ export function ComputerControlPanel() {
   const executeClick = async (x: number, y: number) => {
     try {
       await invoke("mouse_click", { x, y, button: "left" });
-      message.success(`点击 (${x}, ${y})`);
+      message.success(t("computerControl.clickSuccess", { x, y }));
       setTimeout(() => {
         if (mountedRef.current) { handleCapture(); }
       }, 500);
@@ -78,7 +80,7 @@ export function ComputerControlPanel() {
   const handleTypeText = async (text: string, x?: number, y?: number) => {
     try {
       await invoke("type_text", { text, x, y });
-      message.success("输入完成");
+      message.success(t("computerControl.typeComplete"));
     } catch (e) {
       message.error(String(e));
     }
@@ -87,7 +89,7 @@ export function ComputerControlPanel() {
   const handlePressKey = async (key: string, modifiers?: string[]) => {
     try {
       await invoke("press_key", { key, modifiers: modifiers || [] });
-      message.success(`按键 ${key} 已按下`);
+      message.success(t("computerControl.keyPressed", { key }));
     } catch (e) {
       message.error(String(e));
     }
@@ -96,7 +98,9 @@ export function ComputerControlPanel() {
   const handleScroll = async (x: number, y: number, delta: number) => {
     try {
       await invoke("mouse_scroll", { x, y, delta });
-      message.success(`滚动 (${delta} > 0 ? "上" : "下"})`);
+      message.success(
+        t("computerControl.scrolled", { direction: delta > 0 ? t("computerControl.down") : t("computerControl.up") }),
+      );
     } catch (e) {
       message.error(String(e));
     }
@@ -110,24 +114,24 @@ export function ComputerControlPanel() {
           onClick={handleCapture}
           loading={loading}
         >
-          截屏
+          {t("computerControl.capture")}
         </Button>
         <Button
           icon={<Search size={14} />}
           onClick={() => handleFindElements()}
         >
-          查找元素
+          {t("computerControl.findElement")}
         </Button>
-        <Tooltip title="自动模式下，AI 将自主控制计算机">
+        <Tooltip title={t("computerControl.autoModeTooltip")}>
           <Switch
             checked={autoMode}
             onChange={setAutoMode}
-            checkedChildren="自动"
-            unCheckedChildren="手动"
+            checkedChildren={t("computerControl.auto")}
+            unCheckedChildren={t("computerControl.manual")}
           />
         </Tooltip>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          分辨率: {nativeResolution.width}x{nativeResolution.height}
+          {t("computerControl.resolution")}: {nativeResolution.width}x{nativeResolution.height}
         </Typography.Text>
       </Space>
 
@@ -185,25 +189,25 @@ export function ComputerControlPanel() {
       )}
 
       {clickCoords && (
-        <Card size="small" title="坐标操作">
+        <Card size="small" title={t("computerControl.coordOps")}>
           <Space direction="vertical">
             <Typography.Text>
-              坐标: ({clickCoords.x}, {clickCoords.y})
+              {t("computerControl.coordinates")}: ({clickCoords.x}, {clickCoords.y})
             </Typography.Text>
             <Space>
               <Button size="small" type="primary" onClick={() => executeClick(clickCoords.x, clickCoords.y)}>
-                执行点击
+                {t("computerControl.executeClick")}
               </Button>
               <Input
-                placeholder="输入文本"
+                placeholder={t("computerControl.typePlaceholder")}
                 style={{ width: 200 }}
                 onPressEnter={(e) => handleTypeText(e.currentTarget.value, clickCoords.x, clickCoords.y)}
               />
               <Button size="small" onClick={() => handleScroll(clickCoords.x, clickCoords.y, -3)}>
-                向上滚
+                {t("computerControl.scrollUp")}
               </Button>
               <Button size="small" onClick={() => handleScroll(clickCoords.x, clickCoords.y, 3)}>
-                向下滚
+                {t("computerControl.scrollDown")}
               </Button>
             </Space>
           </Space>
@@ -211,7 +215,7 @@ export function ComputerControlPanel() {
       )}
 
       {elements.length > 0 && (
-        <Card size="small" title={`发现 ${elements.length} 个元素`}>
+        <Card size="small" title={t("computerControl.foundElements", { count: elements.length })}>
           <div style={{ maxHeight: 200, overflow: "auto" }}>
             {elements.slice(0, 20).map((el, i) => (
               <div
@@ -230,14 +234,14 @@ export function ComputerControlPanel() {
                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                   {el.role}
                 </Typography.Text>{" "}
-                <Typography.Text>{el.name || "(unnamed)"}</Typography.Text>
+                <Typography.Text>{el.name || t("computerControl.unnamed")}</Typography.Text>
               </div>
             ))}
           </div>
         </Card>
       )}
 
-      <Card size="small" title="快捷键">
+      <Card size="small" title={t("computerControl.shortcuts")}>
         <Space wrap>
           <Button size="small" onClick={() => handlePressKey("Enter")}>Enter</Button>
           <Button size="small" onClick={() => handlePressKey("Tab")}>Tab</Button>

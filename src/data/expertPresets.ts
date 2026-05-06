@@ -1,4 +1,4 @@
-import type { ExpertRole } from "@/types/expert";
+import type { ExpertRole } from "@/types";
 
 export const BUILTIN_EXPERT_PRESETS: ExpertRole[] = [
   {

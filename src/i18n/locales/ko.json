@@ -17,7 +17,6 @@
     "link": "링크",
     "devTools": "개발 도구",
     "workflow": "워크플로우",
-
     "wiki": "Wiki"
   },
   "sidebar": {
@@ -26,7 +25,6 @@
     "sectionInfrastructure": "인프라",
     "sectionPlugins": "플러그인"
   },
-
   "chat": {
     "newConversation": "새 대화",
     "searchPlaceholder": "대화 검색...",
@@ -265,118 +263,165 @@
     "modelRouting": "모델 라우팅",
     "workflowTemplates": "워크플로 템플릿",
     "workflow": {
-      "title": "Agent 워크플로 템플릿",
-      "searchPlaceholder": "템플릿 검색...",
+      "title": "Agent Workflow Templates",
+      "searchPlaceholder": "Search templates...",
       "codeReview": {
-        "name": "코드 리뷰",
-        "description": "버그, 보안 문제, 성능 문제 및 모범 사례에 대한 코드를 리뷰합니다."
+        "name": "Code Review",
+        "description": "Review code for bugs, security issues, performance problems, and best practices."
       },
       "bugFix": {
-        "name": "버그 수정 워크플로",
-        "description": "근본 원인 분석과 함께 체계적으로 버그를 진단하고 수정합니다."
+        "name": "Bug Fix Workflow",
+        "description": "Systematically diagnose and fix bugs with root cause analysis."
       },
       "docGen": {
-        "name": "문서 생성기",
-        "description": "코드, API 및 프로젝트에 대한 포괄적인 문서를 생성합니다."
+        "name": "Documentation Generator",
+        "description": "Generate comprehensive documentation for code, APIs, and projects."
       },
       "testGen": {
-        "name": "테스트 생성기",
-        "description": "단위, 통합 및 엣지 케이스 테스트를 포함한 포괄적인 테스트 스위트를 생성합니다."
+        "name": "Test Generator",
+        "description": "Generate comprehensive test suites with unit, integration, and edge case tests."
       },
       "refactor": {
-        "name": "리팩토링 어시스턴트",
-        "description": "동작을 보존하는 변환으로 코드를 안전하게 리팩토링합니다."
+        "name": "Refactoring Assistant",
+        "description": "Safely refactor code with behavior-preserving transformations."
       },
       "explore": {
-        "name": "코드 탐색기",
-        "description": "익숙하지 않은 코드베이스를 체계적으로 탐색하고 이해합니다."
+        "name": "Code Explorer",
+        "description": "Explore and understand an unfamiliar codebase systematically."
       },
       "status": {
-        "pending": "대기 중",
-        "running": "실행 중",
-        "completed": "완료",
-        "failed": "실패",
-        "skipped": "건너뜀"
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
       },
       "workflowStatus": {
-        "created": "생성됨",
-        "running": "실행 중",
-        "completed": "완료",
-        "partiallyCompleted": "부분 완료",
-        "failed": "실패",
-        "cancelled": "취소됨"
+        "created": "Created",
+        "running": "Running",
+        "completed": "Completed",
+        "partiallyCompleted": "Partially Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
       },
-      "dagVisualization": "DAG 시각화",
-      "dagHint": "이 Mermaid 코드를 Mermaid 렌더러에 붙여넣어 DAG를 시각화하세요.",
-      "listView": "목록",
+      "dagVisualization": "DAG Visualization",
+      "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
+      "listView": "List",
       "dagView": "DAG",
-      "stepStatus": "상태：",
-      "dependsOn": "의존：",
-      "retries": "재시도：",
-      "result": "결과：",
-      "error": "오류：",
-      "attempts": "{{count}}회 시도",
+      "stepStatus": "Status:",
+      "dependsOn": "Depends on:",
+      "retries": "Retries:",
+      "result": "Result:",
+      "error": "Error:",
+      "attempts": "{{count}} attempts",
       "performance": {
-        "name": "성능 최적화",
-        "description": "코드 성능 병목 현상을 분석하고 최적화를 구현합니다."
+        "name": "Performance Optimization",
+        "description": "Analyze code performance bottlenecks and implement optimizations."
       },
       "security": {
-        "name": "보안 감사",
-        "description": "포괄적인 보안 취약점 스캔 및 위험 평가를 수행합니다."
+        "name": "Security Audit",
+        "description": "Perform comprehensive security vulnerability scan and risk assessment."
       },
       "migration": {
-        "name": "마이그레이션",
-        "description": "코드베이스를 새 버전이나 프레임워크로 마이그레이션합니다."
+        "name": "Migration & Upgrade",
+        "description": "Help migrate codebase to new versions or frameworks."
       },
       "apiDesign": {
-        "name": "API 설계",
-        "description": "모범 사례에 따른 API를 설계하고 구현합니다."
+        "name": "API Design",
+        "description": "Design and implement APIs following best practices."
       },
       "debugEnv": {
-        "name": "환경 디버그",
-        "description": "환경 설정 문제를 진단하고 수정합니다."
+        "name": "Environment Debug",
+        "description": "Diagnose and fix environment configuration issues."
       },
       "feature": {
-        "name": "기능 개발",
-        "description": "설계, 개발, 테스트를 포함한 체계적인 새 기능 구현."
+        "name": "Feature Development",
+        "description": "Systematically implement new features with design, development, and testing."
       },
       "knowledgeExtract": {
-        "name": "비즈니스 지식 추출",
-        "description": "코드에서 언어에 구애받지 않는 비즈니스 지식을 추출하여 언어 간 리팩토링을 지원합니다."
+        "name": "Business Knowledge Extraction",
+        "description": "Extract language-agnostic business knowledge from code for cross-language refactoring."
       },
       "knowledgeToCode": {
-        "name": "지식에서 코드로",
-        "description": "비즈니스 지식 베이스에서 대상 언어의 완전한 코드 구현을 생성하여 언어 간 마이그레이션을 지원합니다."
+        "name": "Knowledge to Code",
+        "description": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
       },
       "collectInputs": {
-        "name": "사용자 입력 수집",
-        "description": "대상 언어, 프레임워크, 지식 베이스 ID, 출력 디렉토리 등 프로젝트 정보를 수집합니다."
+        "name": "Collect User Inputs",
+        "description": "Collect target language, framework, knowledge base ID, output directory and other project information."
       },
-      "decompositionSaved": "분해 워크플로가 성공적으로 저장되었습니다",
-      "semanticCheckTitle": "유사한 스킬 발견",
-      "semanticCheckDescription": "생성된 다음 원자 스킬이 기존 스킬과 높은 의미적 유사성을 가집니다. 기존 스킬을 사용하거나 생성된 것을 유지할 수 있습니다.",
-      "semanticCheckApplied": "스킬 대체가 적용되었습니다",
-      "skipSemanticCheck": "건너뛰기",
-      "applySemanticCheck": "적용",
-      "replaceWithExisting": "기존 사용",
-      "keepGeneratedSkill": "생성 유지",
-      "upgradeExisting": "기존 업그레이드",
-      "existingSkill": "기존 스킬",
-      "matchReasons": "일치 이유",
-      "generatedSkill": "생성된 스킬",
-      "upgradeSkillTitle": "스킬 업그레이드",
-      "upgradeSuggestion": "LLM 업그레이드 제안",
-      "generatingUpgrade": "업그레이드 제안 생성 중...",
-      "applyUpgrade": "업그레이드 적용",
-      "upgradeError": "업그레이드 제안을 가져오지 못했습니다",
-      "upgradedName": "업그레이드된 이름",
-      "inputSchema": "입력 스키마",
-      "outputSchema": "출력 스키마",
-      "upgradeReasoning": "업그레이드 이유",
+      "decompositionSaved": "Decomposition workflow saved successfully",
+      "semanticCheckTitle": "Similar Skills Found",
+      "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
+      "semanticCheckApplied": "Skill replacement applied",
+      "skipSemanticCheck": "Skip",
+      "applySemanticCheck": "Apply",
+      "replaceWithExisting": "Use Existing",
+      "keepGeneratedSkill": "Keep Generated",
+      "upgradeExisting": "Upgrade Existing",
+      "existingSkill": "Existing Skill",
+      "matchReasons": "Match Reasons",
+      "generatedSkill": "Generated Skill",
+      "upgradeSkillTitle": "Upgrade Skill",
+      "upgradeSuggestion": "LLM Upgrade Suggestion",
+      "generatingUpgrade": "Generating upgrade suggestion...",
+      "applyUpgrade": "Apply Upgrade",
+      "upgradeError": "Failed to get upgrade suggestion",
+      "upgradedName": "Upgraded Name",
+      "inputSchema": "Input Schema",
+      "outputSchema": "Output Schema",
+      "upgradeReasoning": "Upgrade Reasoning",
       "multiExpertCollab": {
-        "name": "멀티-전문가 협업",
-        "description": "복잡한 작업을 나누고 정복하기 위해 여러 도메인 전문가 에이전트를 병렬 또는 직렬로 실행합니다."
-      }
+        "name": "Multi-Expert Collaboration",
+        "description": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+      },
+      "agentProfileAdvanced": "Advanced",
+      "agentProfileAgency": "Agency",
+      "agentProfileAutoRole": "Auto Detect",
+      "agentProfileBuiltin": "Built-in",
+      "agentProfileBusiness": "Business",
+      "agentProfileCategory": "Category",
+      "agentProfileCreate": "Create Profile",
+      "agentProfileCustom": "Custom",
+      "agentProfileData": "Data",
+      "agentProfileDelete": "Delete this profile?",
+      "agentProfileDesc": "Description",
+      "agentProfileDesign": "Design",
+      "agentProfileDevelopment": "Development",
+      "agentProfileDevops": "DevOps",
+      "agentProfileDisallowedTools": "Disallowed Tools",
+      "agentProfileEdit": "Edit Profile",
+      "agentProfileEmpty": "No matching profiles",
+      "agentProfileGeneral": "General",
+      "agentProfileIcon": "Icon",
+      "agentProfileName": "Name",
+      "agentProfileNoDesc": "No description",
+      "agentProfilePermission": "Permission Mode",
+      "agentProfileRecommendedTools": "Recommended Tools",
+      "agentProfileRole": "Agent Role",
+      "agentProfileSearch": "Search...",
+      "agentProfileSecurity": "Security",
+      "agentProfileSystemPrompt": "System Prompt",
+      "agentProfileTags": "Tags",
+      "agentProfileTitle": "Agent Profiles",
+      "agentProfileWriting": "Writing",
+      "archiveConfirmDesc": "Archive this execution result as a case record in the template?",
+      "archiveConfirmTitle": "Archive Workflow Session",
+      "archiveSession": "Archive Session",
+      "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
+      "completedTitle": "Workflow Completed",
+      "conversationMode": "Conversation Mode",
+      "conversationModeDesc": "Free conversation, no fixed workflow",
+      "dismiss": "Dismiss",
+      "duration": "Duration",
+      "selectHint": "Select Workflow",
+      "sessionCompletedHint": "This workflow is completed",
+      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
+      "suggestionHint": "Hint",
+      "suggestionReason": "Using a workflow provides more structured multi-step execution",
+      "switchToWorkflow": "Switch to Workflow",
+      "unnamed": "Workflow",
+      "viewDetails": "View Details"
     },
     "modelRoutingConfig": {
       "title": "모델 라우팅 설정",
@@ -609,7 +654,25 @@
     },
     "selectExpert": "전문가 선택",
     "exportHtml": "HTML 내보내기",
-    "exportHtmlNoThinking": "HTML 내보내기 (思考 없음)"
+    "exportHtmlNoThinking": "HTML 내보내기 (思考 없음)",
+    "timeline": {
+      "empty": "실행 기록 없음",
+      "title": "실행 타임라인",
+      "plan": "계획",
+      "tool": "도구",
+      "agent": "에이전트",
+      "status": "상태",
+      "completed": "완료",
+      "failed": "실패",
+      "running": "실행 중",
+      "cancelled": "취소됨",
+      "pending": "대기 중"
+    },
+    "agent": {
+      "acceptEdits": "편집 허용",
+      "fullAccess": "전체 접근"
+    },
+    "messageArea": "Message Area"
   },
   "gateway": {
     "title": "게이트웨이",
@@ -1935,7 +1998,8 @@
     "error": "작업 실패",
     "createSuccess": "생성 성공",
     "deleteSuccess": "삭제 성공",
-    "retry": "재시도"
+    "retry": "재시도",
+    "default": "기본값"
   },
   "multiAgent": {
     "title": "멀티 에이전트 상태",
@@ -2888,7 +2952,13 @@
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
-    "emptyHint": "Select a benchmark and click run to start testing"
+    "emptyHint": "Select a benchmark and click run to start testing",
+    "passed": "통과",
+    "failed": "실패",
+    "taskId": "작업 ID",
+    "traceId": "추적 ID",
+    "error": "오류",
+    "scoreDetails": "점수 세부정보"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3460,5 +3530,28 @@
       "show": "메인 창 표시",
       "quit": "종료"
     }
+  },
+  "computerControl": {
+    "capture": "스크린샷",
+    "findElement": "요소 찾기",
+    "auto": "자동",
+    "manual": "수동",
+    "autoModeTooltip": "자동 모드에서는 AI가 컴퓨터를 자율적으로 제어합니다",
+    "resolution": "해상도",
+    "coordOps": "좌표 작업",
+    "coordinates": "좌표",
+    "executeClick": "클릭 실행",
+    "typePlaceholder": "텍스트 입력",
+    "typeComplete": "입력 완료",
+    "scrollUp": "위로 스크롤",
+    "scrollDown": "아래로 스크롤",
+    "up": "위",
+    "down": "아래",
+    "foundElements": "{{count}}개 요소 발견",
+    "unnamed": "(이름 없음)",
+    "shortcuts": "단축키",
+    "clickSuccess": "클릭됨 ({{x}}, {{y}})",
+    "keyPressed": "키 {{key}} 눌림",
+    "scrolled": "{{direction}} 스크롤됨"
   }
 }

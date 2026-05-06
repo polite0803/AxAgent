@@ -1,5 +1,5 @@
 import { useNudgeStore } from "@/stores";
-import type { InsightCategory } from "@/types/nudge";
+import type { InsightCategory } from "@/types";
 import { Lightbulb } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

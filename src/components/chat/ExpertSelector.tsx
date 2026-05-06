@@ -1,7 +1,6 @@
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
-import type { ExpertCategory } from "@/types/expert";
-import type { ExpertRole } from "@/types/expert";
+import { EXPERT_CATEGORY_LABELS } from "@/types";
+import type { ExpertCategory, ExpertRole } from "@/types";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { App, Button, Card, Input, Modal, Popconfirm, Popover, Select, Space, Tag, Typography } from "antd";
 import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Info, Pencil, Plus, Trash2 } from "lucide-react";

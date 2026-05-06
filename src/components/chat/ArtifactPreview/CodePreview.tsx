@@ -1,5 +1,5 @@
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
-import type { ArtifactLanguage } from "@/types/artifact";
+import type { ArtifactLanguage } from "@/types";
 import { memo } from "react";
 
 interface CodePreviewProps {

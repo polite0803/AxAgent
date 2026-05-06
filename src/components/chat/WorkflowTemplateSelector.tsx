@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 import { Card, Input, Modal, Tag } from "antd";
 import {
   ArrowRight,

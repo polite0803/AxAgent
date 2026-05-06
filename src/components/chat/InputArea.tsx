@@ -25,7 +25,7 @@ import {
 import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
-import { EXPERT_CATEGORY_LABELS } from "@/types/expert";
+import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Select, Tag, theme, Tooltip } from "antd";
@@ -485,8 +485,16 @@ export function InputArea() {
           <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
             {t("chat.mcp.noServers")}
           </div>
-          <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }}
-            onClick={() => { setMcpPopoverOpen(false); setSettingsSection("mcpServers"); navigate("/settings"); }}>
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, fontSize: 12 }}
+            onClick={() => {
+              setMcpPopoverOpen(false);
+              setSettingsSection("mcpServers");
+              navigate("/settings");
+            }}
+          >
             {t("chat.mcp.goConfig")}
           </Button>
         </div>
@@ -512,12 +520,16 @@ export function InputArea() {
                 <span>
                   <span style={{ fontWeight: 500 }}>{server.alias || server.name}</span>
                   {server.description && (
-                    <span style={{ display: "block", fontSize: 11, color: token.colorTextSecondary, lineHeight: "16px" }}>
+                    <span
+                      style={{ display: "block", fontSize: 11, color: token.colorTextSecondary, lineHeight: "16px" }}
+                    >
                       {server.description}
                     </span>
                   )}
                   {server.alias && (
-                    <span style={{ display: "block", fontSize: 10, color: token.colorTextQuaternary, lineHeight: "14px" }}>
+                    <span
+                      style={{ display: "block", fontSize: 10, color: token.colorTextQuaternary, lineHeight: "14px" }}
+                    >
                       {server.name}
                     </span>
                   )}
@@ -548,7 +560,11 @@ export function InputArea() {
             ))}
           </div>
           <div style={{ fontSize: 10, color: token.colorTextQuaternary, marginTop: 4 }}>
-            {mcpMode === "auto" ? "自动启用所有内置 MCP 工具" : mcpMode === "manual" ? "手动选择需要启用的 MCP 服务器" : "禁用所有 MCP 工具调用"}
+            {mcpMode === "auto"
+              ? "自动启用所有内置 MCP 工具"
+              : mcpMode === "manual"
+              ? "手动选择需要启用的 MCP 服务器"
+              : "禁用所有 MCP 工具调用"}
           </div>
         </div>
         {builtinServers.length > 0 && renderGroup(t("settings.mcp.builtin"), builtinServers)}

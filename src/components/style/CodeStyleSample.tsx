@@ -1,4 +1,4 @@
-import type { CodeStyleTemplate, LearnedPattern } from "@/types/style";
+import type { CodeStyleTemplate, LearnedPattern } from "@/types";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 

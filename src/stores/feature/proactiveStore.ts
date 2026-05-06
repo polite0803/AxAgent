@@ -6,7 +6,7 @@ import type {
   ProactiveConfig,
   ProactiveSuggestion,
   Reminder,
-} from "@/types/proactive";
+} from "@/types";
 import { create } from "zustand";
 
 // ─── Prefetch state: tracks what's been prefetched to avoid duplicates ───

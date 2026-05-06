@@ -1,4 +1,4 @@
-import type { StyleDimensionKey } from "@/types/style";
+import type { StyleDimensionKey } from "@/types";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 

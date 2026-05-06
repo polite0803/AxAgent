@@ -1,5 +1,5 @@
 use std::sync::LazyLock;
-use std::sync::RwLock;
+use tokio::sync::RwLock;
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
@@ -16,13 +16,13 @@ static TRAY_LABELS: LazyLock<RwLock<(String, String)>> =
 /// 前端调用：设置托盘菜单标签文本
 #[tauri::command]
 pub fn set_tray_labels(app: AppHandle, show_label: String, quit_label: String) {
-    *TRAY_LABELS.write().unwrap() = (show_label.clone(), quit_label.clone());
+    *TRAY_LABELS.blocking_write() = (show_label.clone(), quit_label.clone());
     // 同步更新已存在的托盘菜单
     let _ = sync_tray_menu(&app);
 }
 
 fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::Error>> {
-    let (show_label, quit_label) = TRAY_LABELS.read().unwrap().clone();
+    let (show_label, quit_label) = TRAY_LABELS.blocking_read().clone();
     let show = MenuItem::with_id(app, "show", &show_label, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", &quit_label, true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &quit])?;
@@ -48,7 +48,7 @@ fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> 
     let menu = build_menu(app)?;
     let icon = Image::from_path("icons/icon.png").unwrap_or_else(|_| {
         Image::from_bytes(include_bytes!("../icons/32x32.png"))
-            .expect("failed to load fallback tray icon")
+            .unwrap_or_else(|_| Image::from_bytes(include_bytes!("../icons/32x32.png")).unwrap())
     });
 
     TrayIconBuilder::with_id(TRAY_ID)

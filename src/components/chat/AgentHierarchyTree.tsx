@@ -3,7 +3,7 @@
 import { useAgentStore } from "@/stores";
 
 const _EMPTY: never[] = [];
-import type { AgentPoolItem } from "@/types/agent";
+import type { AgentPoolItem } from "@/types";
 import { BranchesOutlined, CaretRightOutlined, RobotOutlined } from "@ant-design/icons";
 import { Tag, Tree, Typography } from "antd";
 import type { DataNode } from "antd/es/tree";
