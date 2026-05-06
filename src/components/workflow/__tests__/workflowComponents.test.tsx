@@ -40,8 +40,8 @@ vi.mock("react-i18next", () => ({
 // ─── Shared mutable mock state for useWorkflowEditorStore ───
 const {
   mockStoreState,
-  subscribeMock,
-  setStateMock,
+  subscribeMock: _subscribeMock,
+  setStateMock: _setStateMock,
   storeMockRef,
 } = vi.hoisted(() => {
   const state: Record<string, any> = {

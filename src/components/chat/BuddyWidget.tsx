@@ -53,81 +53,54 @@ export function BuddyWidget() {
   // 拖动状态
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(savedPosition);
   const dragging = useRef(false);
-  const hasDragged = useRef(false); // 区分拖动和点击: >= 5px 视为拖动
+  const hasDragged = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
-  const currentDragPos = useRef<{ x: number; y: number } | null>(null); // 用 ref 避免 useEffect 依赖变化
+  const currentDragPos = useRef<{ x: number; y: number } | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
 
-  // 同步 store position 到本地 state
-  useEffect(() => {
-    setDragPos(savedPosition);
-    currentDragPos.current = savedPosition;
-  }, [savedPosition]);
+  useEffect(() => { setDragPos(savedPosition); currentDragPos.current = savedPosition; }, [savedPosition]);
 
   const lastMessage = useMemo(() => {
     if (messages.length === 0) { return null; }
     return messages[messages.length - 1];
   }, [messages]);
 
-  // 拖动开始
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dragging.current = true;
-      hasDragged.current = false;
-      const currentPos = currentDragPos.current ?? {
-        x: window.innerWidth - 76,
-        y: window.innerHeight - 76,
-      };
-      currentDragPos.current = currentPos;
-      dragStart.current = {
-        x: e.clientX,
-        y: e.clientY,
-        posX: currentPos.x,
-        posY: currentPos.y,
-      };
-    },
-    [], // 空依赖 — 只用 ref
-  );
-
-  // 包裹 onClick: 拖动超过 5px 时忽略点击
-  const wrapClick = useCallback((fn: () => void) => {
-    return () => {
-      if (!hasDragged.current) { fn(); }
-    };
+  // 拖动开始 (pointer 事件 + capture 阶段，在 Button 之前捕获)
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // 只在鼠标左键时拖动
+    if (e.button !== 0) return;
+    dragging.current = true;
+    hasDragged.current = false;
+    const currentPos = currentDragPos.current ?? { x: window.innerWidth - 76, y: window.innerHeight - 76 };
+    currentDragPos.current = currentPos;
+    dragStart.current = { x: e.clientX, y: e.clientY, posX: currentPos.x, posY: currentPos.y };
+    // 捕获指针，确保后续事件都发给我们
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
-  // 拖动中 — 只在挂载时注册一次，用 ref 避免依赖变化
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragging.current) { return; }
-      const dx = e.clientX - dragStart.current.x;
-      const dy = e.clientY - dragStart.current.y;
-      if (Math.abs(dx) >= 5 || Math.abs(dy) >= 5) {
-        hasDragged.current = true;
-      }
-      const newX = Math.max(0, Math.min(window.innerWidth - 60, dragStart.current.posX + dx));
-      const newY = Math.max(0, Math.min(window.innerHeight - 60, dragStart.current.posY + dy));
-      currentDragPos.current = { x: newX, y: newY };
-      setDragPos({ x: newX, y: newY });
-    };
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) hasDragged.current = true;
+    if (!hasDragged.current) return;
+    const newX = Math.max(0, Math.min(window.innerWidth - 60, dragStart.current.posX + dx));
+    const newY = Math.max(0, Math.min(window.innerHeight - 60, dragStart.current.posY + dy));
+    currentDragPos.current = { x: newX, y: newY };
+    setDragPos({ x: newX, y: newY });
+  }, []);
 
-    const handleMouseUp = () => {
-      if (!dragging.current) { return; }
-      dragging.current = false;
-      if (hasDragged.current && currentDragPos.current) {
-        setPosition(currentDragPos.current.x, currentDragPos.current.y);
-      }
-    };
+  const handlePointerUp = useCallback(() => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    if (hasDragged.current && currentDragPos.current) {
+      setPosition(currentDragPos.current.x, currentDragPos.current.y);
+    }
+  }, [setPosition]);
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [setPosition]); // 只依赖 setPosition（stable zustand setter）
+  const wrapClick = useCallback((fn: () => void) => {
+    return () => { if (!hasDragged.current) fn(); };
+  }, []);
 
   // 隐藏时显示微型恢复按钮
   if (!visible) {
@@ -174,21 +147,25 @@ export function BuddyWidget() {
           flexDirection: "column",
           alignItems: "center",
           gap: 4,
+          cursor: "grab",
+          touchAction: "none",
+          userSelect: "none",
           ...positionStyle,
         }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       >
         <Button
           type="primary"
           shape="circle"
           size="large"
           icon={<RobotOutlined />}
-          onMouseDown={handleMouseDown}
           onClick={wrapClick(() => summonBuddy())}
           style={{
             width: 52,
             height: 52,
             boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
-            cursor: "grab",
           }}
           title="召唤伙伴（可拖动）"
         />
@@ -325,20 +302,23 @@ export function BuddyWidget() {
       )}
 
       {/* 浮动按钮 + 隐藏按钮 */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+      <div
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "grab", touchAction: "none", userSelect: "none" }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
         <Button
           type="primary"
           shape="circle"
           size="large"
           icon={<Text style={{ fontSize: 22, lineHeight: 1 }}>{buddy.emoji}</Text>}
-          onMouseDown={handleMouseDown}
           onClick={wrapClick(togglePanel)}
           style={{
             width: 52,
             height: 52,
             boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
             position: "relative",
-            cursor: "grab",
           }}
           title="点击展开/折叠（可拖动）"
         >
