@@ -29,6 +29,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Dependabot 跳过标记 ──
+  should-run-heavy:
+    name: Check if heavy jobs should run
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: check
+        run: |
+          if [[ "${{ github.actor }}" == "dependabot[bot]" ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::notice::Skipping heavy CI for dependabot PR"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
   # ── Frontend linting and type checking ────────────────
   frontend-check:
     name: Frontend Check
@@ -52,6 +68,8 @@ jobs:
   # ── Rust formatting and clippy ─────────────────────────
   rust-check:
     name: Rust Check
+    needs: [should-run-heavy]
+    if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +106,8 @@ jobs:
   # ── Unit tests ─────────────────────────────────────────
   test-unit:
     name: Unit Tests
+    needs: [should-run-heavy]
+    if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -123,6 +143,8 @@ jobs:
   # ── E2E tests on macOS ─────────────────────────────────
   test-e2e:
     name: E2E Tests (macOS)
+    needs: [should-run-heavy]
+    if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
