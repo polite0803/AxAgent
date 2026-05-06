@@ -2264,11 +2264,11 @@ pub async fn send_message(
         );
     }
 
-    // Inject current date so the LLM knows what "today" means for search queries
+    // Inject current date + search hint
     {
         let now = chrono::Local::now();
         let date_msg = format!(
-            "Today's date is {} (YYYY-MM-DD format). When searching the web for recent or real-time information, use this date to formulate accurate queries.",
+            "Current date: {}. IMPORTANT: You have access to a `web_search` function that can retrieve real-time information from the internet. You MUST use it whenever the user asks about current events, recent news, today's topics, latest updates, or any information that may have changed since your training cutoff. Do NOT claim you cannot access real-time data — call web_search instead.",
             now.format("%Y-%m-%d")
         );
         chat_messages.push(ChatMessage {
@@ -2556,7 +2556,7 @@ pub async fn send_message(
                 function: ChatToolFunction {
                     name: "web_search".to_string(),
                     description: Some(
-                        "Search the web for real-time information. Use this when you need current news, recent events, or up-to-date facts beyond your training data. Input: a search query string.".to_string()
+                        "MUST use this to search the internet for current, real-time, or recent information. Call this function whenever the user asks about: today's news, current events, latest developments, stock prices, weather, sports scores, or any topic that requires up-to-date information beyond your knowledge cutoff. The search returns relevant web results. Do NOT tell users you cannot access real-time data — use this tool instead.".to_string()
                     ),
                     parameters: Some(serde_json::json!({
                         "type": "object",
