@@ -1197,10 +1197,10 @@ pub async fn import_workflow_directory(
         match import_workflow_template(state.clone(), content).await {
             Ok(id) => {
                 imported.push(id);
-            }
+            },
             Err(e) => {
                 errors.push(format!("{}: {}", file_path.display(), e));
-            }
+            },
         }
     }
 

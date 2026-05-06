@@ -5,8 +5,8 @@ import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { PageKey } from "@/types";
-import { Avatar, theme, Tooltip } from "antd";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
+import { Avatar, theme, Tooltip } from "antd";
 import { Database, MessageSquare, Router, Sparkles, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -313,7 +313,9 @@ export function Sidebar() {
             {section.items.map((item) => (
               <Tooltip
                 key={item.key}
-                title={sidebarCollapsed ? (item.isPlugin ? `${t(item.labelKey)} (${item.pluginName})` : t(item.labelKey)) : ""}
+                title={sidebarCollapsed
+                  ? (item.isPlugin ? `${t(item.labelKey)} (${item.pluginName})` : t(item.labelKey))
+                  : ""}
                 placement="right"
               >
                 {renderNavButton(item)}

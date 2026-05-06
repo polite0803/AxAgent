@@ -4,8 +4,8 @@ import { MemoryPage } from "@/pages/MemoryPage";
 import { Tabs } from "antd";
 import { BookOpen, Brain, Database } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 export function KnowledgeHubPage() {
   const { t } = useTranslation();

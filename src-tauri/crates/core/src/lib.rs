@@ -28,6 +28,7 @@ pub mod markdown_parser;
 pub mod marketplace;
 pub mod marketplace_service;
 pub mod mcp_client;
+pub mod model_knowledge;
 pub mod operation_audit;
 pub mod output_processor;
 pub mod path_vars;

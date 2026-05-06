@@ -9,6 +9,34 @@ vi.mock("@/lib/invoke", () => ({
   isTauri: () => false,
 }));
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback?: string) => {
+      const translations: Record<string, string> = {
+        "workflow.aiPanel.enterWorkflowDesc": "请输入工作流描述",
+        "workflow.aiPanel.enterPromptToOptimize": "请输入要优化的 Prompt",
+        "workflow.aiPanel.enterContext": "请输入上下文描述",
+        "workflow.aiPanel.enterAgentPrompt": "输入 Agent Prompt",
+        "workflow.aiPanel.describeContext": "描述上下文",
+        "workflow.aiPanel.describeWorkflow": "描述工作流",
+        "workflow.aiPanel.generateBtn": "生成工作流",
+        "workflow.aiPanel.generatePlaceholder": "创建一个代码审查工作流",
+        "workflow.aiPanel.aiAssistant": "AI 助手",
+        "workflow.aiPanel.currentCanvasState": "当前画布状态",
+        "workflow.aiPanel.replaceCanvasWarning": "生成新工作流将替换当前画布上的所有内容",
+        "workflow.aiPanel.tabGenerateWorkflow": "生成工作流",
+        "workflow.aiPanel.tabOptimizePrompt": "优化 Prompt",
+        "workflow.aiPanel.tabRecommend": "推荐节点",
+        "workflow.aiPanel.canvasStatus": "节点: 0, 连线: 0",
+        "workflow.aiPanel.getRecommendation": "获取推荐",
+        "workflow.aiPanel.noRecommendations": "暂无推荐节点",
+        "workflow.aiPanel.dragHint": "拖拽节点到画布上",
+      };
+      return translations[key] ?? fallback ?? key;
+    },
+  }),
+}));
+
 // ─── Shared mutable mock state for useWorkflowEditorStore ───
 const mockStoreState: Record<string, any> = {
   nodes: [],

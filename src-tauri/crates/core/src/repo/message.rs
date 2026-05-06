@@ -661,7 +661,8 @@ pub async fn get_conversation_stats(
         total_completion_tokens: total_completion,
         total_tokens: total_prompt + total_completion,
         avg_tokens_per_second: r.and_then(|r| r.try_get("", "avg_tokens_per_second").ok()),
-        avg_first_token_latency_ms: r.and_then(|r| r.try_get("", "avg_first_token_latency_ms").ok()),
+        avg_first_token_latency_ms: r
+            .and_then(|r| r.try_get("", "avg_first_token_latency_ms").ok()),
         avg_response_time_ms: r.and_then(|r| r.try_get("", "avg_response_time_ms").ok()),
     })
 }

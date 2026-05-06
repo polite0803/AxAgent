@@ -62,10 +62,18 @@ pub async fn process_telegram_message(
     username: Option<String>,
     _timestamp: i64,
 ) -> Result<Option<OutgoingMessage>, String> {
-    let user_id = from_user_id.map(|id| id.to_string()).unwrap_or_else(|| chat_id.to_string());
+    let user_id = from_user_id
+        .map(|id| id.to_string())
+        .unwrap_or_else(|| chat_id.to_string());
     let reply = state
         .platform_bridge
-        .route_incoming_message("telegram", &user_id, username.as_deref(), &chat_id.to_string(), &text)
+        .route_incoming_message(
+            "telegram",
+            &user_id,
+            username.as_deref(),
+            &chat_id.to_string(),
+            &text,
+        )
         .await
         .map_err(|e| format!("Telegram message processing failed: {}", e))?;
     Ok(reply.map(|content| OutgoingMessage {
@@ -90,7 +98,13 @@ pub async fn process_discord_message(
 ) -> Result<Option<OutgoingMessage>, String> {
     let reply = state
         .platform_bridge
-        .route_incoming_message("discord", &author_id, Some(&author_username), &channel_id, &content)
+        .route_incoming_message(
+            "discord",
+            &author_id,
+            Some(&author_username),
+            &channel_id,
+            &content,
+        )
         .await
         .map_err(|e| format!("Discord message processing failed: {}", e))?;
     Ok(reply.map(|text| OutgoingMessage {
@@ -106,7 +120,11 @@ pub async fn process_platform_message(
     platform: String,
     payload: serde_json::Value,
 ) -> Result<Option<OutgoingMessage>, String> {
-    tracing::info!("process_platform_message: platform={}, payload={}", platform, payload);
+    tracing::info!(
+        "process_platform_message: platform={}, payload={}",
+        platform,
+        payload
+    );
     Ok(None)
 }
 
@@ -200,8 +218,7 @@ pub async fn create_platform_session(
     let now = chrono::Utc::now().timestamp_millis();
 
     // 持久化会话路由
-    let mut routes =
-        axagent_core::repo::platform_config::load_session_routes(&state.sea_db).await;
+    let mut routes = axagent_core::repo::platform_config::load_session_routes(&state.sea_db).await;
     let key = format!("{}_{}", platform, user_id);
     routes.insert(key.clone(), session_id.clone());
     axagent_core::repo::platform_config::save_session_routes(&state.sea_db, &routes)
@@ -222,8 +239,7 @@ pub async fn create_platform_session(
 pub async fn get_active_sessions(
     state: State<'_, AppState>,
 ) -> Result<Vec<PlatformSession>, String> {
-    let routes =
-        axagent_core::repo::platform_config::load_session_routes(&state.sea_db).await;
+    let routes = axagent_core::repo::platform_config::load_session_routes(&state.sea_db).await;
     let now = chrono::Utc::now().timestamp_millis();
 
     let sessions: Vec<PlatformSession> = routes
@@ -252,8 +268,7 @@ pub async fn deactivate_platform_session(
     session_id: String,
 ) -> Result<(), String> {
     // 从路由表中移除会话
-    let mut routes =
-        axagent_core::repo::platform_config::load_session_routes(&state.sea_db).await;
+    let mut routes = axagent_core::repo::platform_config::load_session_routes(&state.sea_db).await;
     routes.retain(|_, v| v != &session_id);
     axagent_core::repo::platform_config::save_session_routes(&state.sea_db, &routes)
         .await

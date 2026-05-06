@@ -180,7 +180,8 @@ pub async fn get_usage_by_key(db: &DatabaseConnection) -> Result<Vec<UsageByKey>
              FROM gateway_usage gu \
              JOIN gateway_keys gk ON gk.id = gu.key_id \
              GROUP BY gu.key_id \
-             ORDER BY token_count DESC".to_string(),
+             ORDER BY token_count DESC"
+                .to_string(),
         ))
         .await?;
 
@@ -210,7 +211,8 @@ pub async fn get_usage_by_provider(db: &DatabaseConnection) -> Result<Vec<UsageB
              FROM gateway_usage gu \
              LEFT JOIN providers p ON p.id = gu.provider_id \
              GROUP BY gu.provider_id \
-             ORDER BY token_count DESC".to_string(),
+             ORDER BY token_count DESC"
+                .to_string(),
         ))
         .await?;
 

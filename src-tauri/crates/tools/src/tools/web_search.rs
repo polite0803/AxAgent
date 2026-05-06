@@ -12,7 +12,7 @@ impl Tool for WebSearchTool {
         "WebSearch"
     }
     fn description(&self) -> &str {
-        "通过网络搜索引擎搜索信息，返回相关结果及摘要。"
+        "MUST use this to search the internet for current, real-time, or recent information. Call this function whenever the user asks about: today's news, current events, latest developments, stock prices, weather, sports scores, or any topic that requires up-to-date information beyond your knowledge cutoff. Returns relevant web results with titles, snippets, and URLs. Do NOT tell users you cannot access real-time data — use this tool instead."
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({

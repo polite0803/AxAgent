@@ -1,6 +1,13 @@
 import { StylePreviewPanel } from "@/components/style";
 import { useStyleStore } from "@/stores/feature/styleStore";
-import { useUserProfileStore, type NamingConvention, type IndentationStyle, type CommentStyle, type DetailLevel, type Tone } from "@/stores/feature/userProfileStore";
+import {
+  type CommentStyle,
+  type DetailLevel,
+  type IndentationStyle,
+  type NamingConvention,
+  type Tone,
+  useUserProfileStore,
+} from "@/stores/feature/userProfileStore";
 import { Divider, Input, Slider, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

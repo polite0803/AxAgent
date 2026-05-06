@@ -9,7 +9,8 @@ interface MonacoEditorPluginModule {
   [key: string]: unknown;
 }
 
-const monacoEditorPlugin = (monacoEditorPluginModule as MonacoEditorPluginModule).default || monacoEditorPluginModule as Plugin;
+const monacoEditorPlugin = (monacoEditorPluginModule as MonacoEditorPluginModule).default
+  || monacoEditorPluginModule as Plugin;
 
 const host = process.env.TAURI_DEV_HOST;
 

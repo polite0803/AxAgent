@@ -36,7 +36,22 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { ModelIcon } from "@lobehub/icons";
-import { App, Avatar, Button, Checkbox, Dropdown, Empty, Input, Modal, Radio, Space, Tag, theme, Tooltip, type MenuProps } from "antd";
+import {
+  App,
+  Avatar,
+  Button,
+  Checkbox,
+  Dropdown,
+  Empty,
+  Input,
+  type MenuProps,
+  Modal,
+  Radio,
+  Space,
+  Tag,
+  theme,
+  Tooltip,
+} from "antd";
 import {
   Archive,
   ArrowLeft,
@@ -703,7 +718,10 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             <span className="flex items-center gap-1">
               <span className="truncate">{conv.title}</span>
               {conv.mode === "gateway" && (
-                <Tag style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }} color="blue">
+                <Tag
+                  style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }}
+                  color="blue"
+                >
                   {t("settings.messageChannels")}
                 </Tag>
               )}
@@ -715,7 +733,10 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             <span className="flex items-center gap-1">
               <span className="truncate">{conv.title}</span>
               {conv.mode === "gateway" && (
-                <Tag style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }} color="blue">
+                <Tag
+                  style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }}
+                  color="blue"
+                >
                   {t("settings.messageChannels")}
                 </Tag>
               )}

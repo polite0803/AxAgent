@@ -25,7 +25,14 @@ import { useTranslation } from "react-i18next";
 
 function providerSelectOptions(t: (key: string, fallback?: string) => string) {
   return [
-    { value: "tavily", label: <span className="flex items-center gap-2"><Tavily.Color size={16} /> Tavily</span> },
+    {
+      value: "tavily",
+      label: (
+        <span className="flex items-center gap-2">
+          <Tavily.Color size={16} /> Tavily
+        </span>
+      ),
+    },
     { value: "serpapi", label: <span className="flex items-center gap-2">🔍 SerpAPI</span> },
     { value: "brave", label: <span className="flex items-center gap-2">🦁 Brave Search</span> },
     { value: "bing", label: <span className="flex items-center gap-2">🔷 Bing Search</span> },
@@ -34,8 +41,22 @@ function providerSelectOptions(t: (key: string, fallback?: string) => string) {
     { value: "searxng", label: <span className="flex items-center gap-2">🔎 SearXNG</span> },
     { value: "perplexity", label: <span className="flex items-center gap-2">🧠 Perplexity</span> },
     { value: "exa", label: <span className="flex items-center gap-2">⚡ Exa</span> },
-    { value: "zhipu", label: <span className="flex items-center gap-2"><ProviderIcon provider="zhipu" size={16} type="color" /> {t("settings.searchProviders.zhipu")}</span> },
-    { value: "bocha", label: <span className="flex items-center gap-2"><img src="/icons/bocha.ico" alt="" style={{ width: 16, height: 16 }} /> {t("settings.searchProviders.bocha")}</span> },
+    {
+      value: "zhipu",
+      label: (
+        <span className="flex items-center gap-2">
+          <ProviderIcon provider="zhipu" size={16} type="color" /> {t("settings.searchProviders.zhipu")}
+        </span>
+      ),
+    },
+    {
+      value: "bocha",
+      label: (
+        <span className="flex items-center gap-2">
+          <img src="/icons/bocha.ico" alt="" style={{ width: 16, height: 16 }} /> {t("settings.searchProviders.bocha")}
+        </span>
+      ),
+    },
   ];
 }
 

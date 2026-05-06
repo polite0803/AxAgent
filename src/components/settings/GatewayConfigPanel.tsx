@@ -17,13 +17,23 @@ type PlatformFieldDef = {
 const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
   telegram: [
     { key: "telegram_enabled", label: "settings.platform.enable", type: "switch" },
-    { key: "telegram_bot_token", label: "Bot Token", type: "password", placeholder: "settings.platform.placeholder.telegramBotToken" },
+    {
+      key: "telegram_bot_token",
+      label: "Bot Token",
+      type: "password",
+      placeholder: "settings.platform.placeholder.telegramBotToken",
+    },
     { key: "telegram_webhook_url", label: "Webhook URL (Optional)", type: "text" },
     { key: "telegram_webhook_secret", label: "Webhook Secret (Optional)", type: "password" },
   ],
   discord: [
     { key: "discord_enabled", label: "settings.platform.enable", type: "switch" },
-    { key: "discord_bot_token", label: "Bot Token", type: "password", placeholder: "settings.platform.placeholder.discordDevPortal" },
+    {
+      key: "discord_bot_token",
+      label: "Bot Token",
+      type: "password",
+      placeholder: "settings.platform.placeholder.discordDevPortal",
+    },
     { key: "discord_webhook_url", label: "Webhook URL (Optional)", type: "text" },
   ],
   slack: [
@@ -49,7 +59,12 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
       type: "text",
       placeholder: "settings.platform.placeholder.webhookVerify",
     },
-    { key: "whatsapp_api_version", label: "API Version (Optional)", type: "text", placeholder: "settings.platform.placeholder.apiVersion" },
+    {
+      key: "whatsapp_api_version",
+      label: "API Version (Optional)",
+      type: "text",
+      placeholder: "settings.platform.placeholder.apiVersion",
+    },
   ],
   wechat: [
     { key: "wechat_enabled", label: "settings.platform.enable", type: "switch" },
@@ -85,7 +100,12 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
     { key: "dingtalk_enabled", label: "settings.platform.enable", type: "switch" },
     { key: "dingtalk_app_key", label: "App Key", type: "text" },
     { key: "dingtalk_app_secret", label: "App Secret", type: "password" },
-    { key: "dingtalk_agent_id", label: "Agent ID", type: "text", placeholder: "settings.platform.placeholder.dingtalkAgent" },
+    {
+      key: "dingtalk_agent_id",
+      label: "Agent ID",
+      type: "text",
+      placeholder: "settings.platform.placeholder.dingtalkAgent",
+    },
     { key: "dingtalk_robot_code", label: "Robot Code (Optional)", type: "text" },
   ],
 };
@@ -102,7 +122,7 @@ export function GatewayConfigPanel() {
     usePlatformStore.setState((s) => ({ config: { ...s.config, [key]: value } }));
     // Debounce backend save to avoid excessive API calls on rapid input
     (pendingRef.current as Record<string, unknown>)[key] = value;
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    if (debounceTimer.current) { clearTimeout(debounceTimer.current); }
     debounceTimer.current = setTimeout(() => {
       saveConfig(pendingRef.current);
       pendingRef.current = {};

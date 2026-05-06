@@ -3126,29 +3126,32 @@ function ChatViewInner() {
       />
 
       {/* ContextBar：显示当前上下文状态 + Token 用量 */}
-      <ContextBar
-        modelName={activeConversation
+      {(() => {
+        const contextBarModel = activeConversation
           ? (() => {
             const provider = providers.find((p) => p.id === activeConversation.provider_id);
             const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
-            return model?.name ?? activeConversation.model_id;
+            return {
+              name: model?.name ?? activeConversation.model_id,
+              maxTokens: model?.max_tokens ?? activeConversation.max_tokens ?? undefined,
+            };
           })()
-          : undefined}
-        searchEnabled={activeConversation?.search_enabled ?? false}
-        toolCount={activeConversation?.enabled_mcp_server_ids?.length ?? 0}
-        knowledgeCount={activeConversation?.enabled_knowledge_base_ids?.length ?? 0}
-        memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
-        tokenUsed={activeMessages.length > 0
-          ? estimateConversationTokens(activeMessages.map(m => ({ role: m.role, content: m.content })))
-          : undefined}
-        tokenMax={activeConversation
-          ? (() => {
-            const provider = providers.find((p) => p.id === activeConversation.provider_id);
-            const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
-            return model?.max_tokens ?? activeConversation.max_tokens ?? undefined;
-          })()
-          : undefined}
-      />
+          : null;
+
+        return (
+          <ContextBar
+            modelName={contextBarModel?.name}
+            searchEnabled={activeConversation?.search_enabled ?? false}
+            toolCount={activeConversation?.enabled_mcp_server_ids?.length ?? 0}
+            knowledgeCount={activeConversation?.enabled_knowledge_base_ids?.length ?? 0}
+            memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
+            tokenUsed={activeMessages.length > 0
+              ? estimateConversationTokens(activeMessages.map(m => ({ role: m.role, content: m.content })))
+              : undefined}
+            tokenMax={contextBarModel?.maxTokens}
+          />
+        );
+      })()}
 
       {/* Message Area */}
       <div
@@ -3484,7 +3487,6 @@ function ChatViewInner() {
           />
         )}
       </Modal>
-
     </div>
   );
 }

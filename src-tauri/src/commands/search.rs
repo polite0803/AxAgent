@@ -58,7 +58,10 @@ pub async fn delete_search_provider(
 }
 
 /// 获取搜索提供商的 API key
-async fn get_search_api_key(db: &sea_orm::DatabaseConnection, id: &str) -> Result<Option<String>, String> {
+async fn get_search_api_key(
+    db: &sea_orm::DatabaseConnection,
+    id: &str,
+) -> Result<Option<String>, String> {
     use axagent_core::entity::search_providers;
     use sea_orm::EntityTrait;
 
@@ -107,13 +110,11 @@ pub async fn test_search_provider(
                     "error": format!("服务器返回 HTTP {}", status)
                 }))
             }
-        }
-        Err(e) => {
-            Ok(serde_json::json!({
-                "ok": false, "latencyMs": start.elapsed().as_millis() as u64,
-                "error": e.to_string()
-            }))
-        }
+        },
+        Err(e) => Ok(serde_json::json!({
+            "ok": false, "latencyMs": start.elapsed().as_millis() as u64,
+            "error": e.to_string()
+        })),
     }
 }
 
@@ -124,9 +125,10 @@ pub async fn execute_search(
     provider_id: String,
     query: String,
 ) -> Result<serde_json::Value, String> {
-    let provider = axagent_core::repo::search_provider::get_search_provider(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let provider =
+        axagent_core::repo::search_provider::get_search_provider(&state.sea_db, &provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
 
     let api_key = get_search_api_key(&state.sea_db, &provider_id).await?;
 

@@ -1,3 +1,4 @@
+import { formatTokenCount } from "@/components/gateway/tokenFormat";
 import { Space, Tag, theme, Tooltip } from "antd";
 import { BookOpen, Bot, Brain, Lightbulb, Search, Wrench } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -144,6 +145,9 @@ export function ContextBar({
               onClick={onTokenClick}
             >
               <Brain size={14} style={{ color: tokenColor ?? token.colorTextSecondary, flexShrink: 0 }} />
+              <span style={{ color: token.colorTextSecondary, fontSize: 11, flexShrink: 0 }}>
+                {formatTokenCount(tokenMax)}
+              </span>
               {tokenUsed != null && (
                 <span style={{ color: tokenColor, fontWeight: 500 }}>
                   {tokenPercent}%

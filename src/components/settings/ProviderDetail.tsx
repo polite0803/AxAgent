@@ -220,6 +220,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [editNoSystemRole, setEditNoSystemRole] = useState(false);
   const [editForceMaxTokens, setEditForceMaxTokens] = useState(false);
   const [editThinkingParamStyle, setEditThinkingParamStyle] = useState<string>("reasoning_effort");
+  const [editGroupName, setEditGroupName] = useState<string>("");
   const [iconOverrides, setIconOverrides] = useState<Record<string, string>>({});
   const [apiHostLocal, setApiHostLocal] = useState(provider?.api_host ?? "");
   const [apiPathLocal, setApiPathLocal] = useState(provider?.api_path ?? "");
@@ -624,6 +625,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       setEditNoSystemRole(model.param_overrides?.no_system_role ?? false);
       setEditForceMaxTokens(model.param_overrides?.force_max_tokens ?? false);
       setEditThinkingParamStyle(model.param_overrides?.thinking_param_style ?? "reasoning_effort");
+      setEditGroupName(model.group_name ?? "");
       setSettingsModalOpen(true);
     },
     [],
@@ -653,6 +655,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             model_type: editModelType,
             param_overrides: values,
             max_tokens: editMaxTokens,
+            group_name: editGroupName || null,
           }
           : m
       );
@@ -675,6 +678,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     editNoSystemRole,
     editForceMaxTokens,
     editThinkingParamStyle,
+    editGroupName,
     providerId,
     updateModelParams,
     saveModels,
@@ -1879,6 +1883,20 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     className="shrink-0"
                   />
                 </div>
+              </div>
+
+              {/* Group Name */}
+              <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+                <span className="text-sm shrink-0" style={{ color: token.colorText }}>
+                  {t("settings.modelGroup", "分组名称")}
+                </span>
+                <Input
+                  value={editGroupName}
+                  onChange={(e) => setEditGroupName(e.target.value)}
+                  placeholder={t("settings.modelGroupPlaceholder", "输入分组名称")}
+                  size="small"
+                  style={{ width: 200 }}
+                />
               </div>
 
               <Divider className="my-2!" />

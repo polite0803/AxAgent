@@ -40,7 +40,9 @@ pub async fn session_search(
 
     let mut results = Vec::with_capacity(rows.len());
     for row in rows {
-        let conversation_id: String = row.try_get("", "conversation_id").map_err(|e| e.to_string())?;
+        let conversation_id: String = row
+            .try_get("", "conversation_id")
+            .map_err(|e| e.to_string())?;
         let role: String = row.try_get("", "role").map_err(|e| e.to_string())?;
         let snippet: String = row.try_get("", "snippet").map_err(|e| e.to_string())?;
         let rank: f64 = row.try_get("", "rank").map_err(|e| e.to_string())?;

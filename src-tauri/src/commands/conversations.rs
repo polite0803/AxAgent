@@ -977,23 +977,40 @@ async fn execute_tool_call(
     // Handle builtin web_search — try configured search provider first, fallback to DDG
     if tool_call.function.name == "web_search" {
         tracing::info!("[web_search] LLM called web_search function");
-        let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
-            .unwrap_or(serde_json::Value::Null);
-        let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let args: serde_json::Value =
+            serde_json::from_str(&tool_call.function.arguments).unwrap_or(serde_json::Value::Null);
+        let query = args
+            .get("query")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
         if query.is_empty() {
-            return ("Error: web_search requires a 'query' parameter".to_string(), true);
+            return (
+                "Error: web_search requires a 'query' parameter".to_string(),
+                true,
+            );
         }
         let current_year = chrono::Local::now().format("%Y").to_string();
-        let search_query = if query.contains(&current_year) { query } else { format!("{} {}", query, current_year) };
+        let search_query = if query.contains(&current_year) {
+            query
+        } else {
+            format!("{} {}", query, current_year)
+        };
         tracing::info!("[web_search] executing query='{}'", search_query);
 
         // 1. Try configured search provider first (with API key)
-        if let Ok(providers) = axagent_core::repo::search_provider::list_search_providers(db).await {
+        if let Ok(providers) = axagent_core::repo::search_provider::list_search_providers(db).await
+        {
             if let Some(provider) = providers.iter().find(|p| p.enabled) {
                 if let Some(endpoint) = &provider.endpoint {
                     if provider.has_api_key {
-                        let entity = axagent_core::entity::search_providers::Entity::find_by_id(&provider.id)
-                            .one(db).await.ok().flatten();
+                        let entity = axagent_core::entity::search_providers::Entity::find_by_id(
+                            &provider.id,
+                        )
+                        .one(db)
+                        .await
+                        .ok()
+                        .flatten();
                         if let Some(ref entity) = entity {
                             if let Some(ref api_key) = entity.api_key_ref {
                                 let client = reqwest::Client::builder()
@@ -1005,7 +1022,8 @@ async fn execute_tool_call(
                                         "q": search_query,
                                         "max_results": std::cmp::min(provider.result_limit, 10)
                                     });
-                                    match client.post(endpoint)
+                                    match client
+                                        .post(endpoint)
                                         .header("Content-Type", "application/json")
                                         .header("Authorization", format!("Bearer {}", api_key))
                                         .json(&body)
@@ -1015,32 +1033,71 @@ async fn execute_tool_call(
                                         Ok(resp) => {
                                             let resp_status = resp.status();
                                             if resp_status.is_success() {
-                                                if let Ok(json) = resp.json::<serde_json::Value>().await {
-                                                    let results = json.get("results")
+                                                if let Ok(json) =
+                                                    resp.json::<serde_json::Value>().await
+                                                {
+                                                    let results = json
+                                                        .get("results")
                                                         .or_else(|| json.get("organic"))
                                                         .or_else(|| json.get("data"))
                                                         .and_then(|v| v.as_array())
                                                         .map(|arr| {
-                                                            arr.iter().filter_map(|r| {
-                                                                let title = r.get("title").and_then(|v| v.as_str()).unwrap_or("");
-                                                                let u = r.get("url").or(r.get("link")).and_then(|v| v.as_str()).unwrap_or("");
-                                                                let snippet = r.get("snippet").or(r.get("content")).or(r.get("description")).and_then(|v| v.as_str()).unwrap_or("");
-                                                                if title.is_empty() && snippet.is_empty() { None }
-                                                                else {
-                                                                    let url_str = if u.is_empty() { String::new() } else { format!(" ({})", u) };
-                                                                    Some(format!("- {} {}{}", title, snippet, url_str))
-                                                                }
-                                                            }).collect::<Vec<_>>()
-                                                        }).unwrap_or_default();
+                                                            arr.iter()
+                                                                .filter_map(|r| {
+                                                                    let title = r
+                                                                        .get("title")
+                                                                        .and_then(|v| v.as_str())
+                                                                        .unwrap_or("");
+                                                                    let u = r
+                                                                        .get("url")
+                                                                        .or(r.get("link"))
+                                                                        .and_then(|v| v.as_str())
+                                                                        .unwrap_or("");
+                                                                    let snippet = r
+                                                                        .get("snippet")
+                                                                        .or(r.get("content"))
+                                                                        .or(r.get("description"))
+                                                                        .and_then(|v| v.as_str())
+                                                                        .unwrap_or("");
+                                                                    if title.is_empty()
+                                                                        && snippet.is_empty()
+                                                                    {
+                                                                        None
+                                                                    } else {
+                                                                        let url_str =
+                                                                            if u.is_empty() {
+                                                                                String::new()
+                                                                            } else {
+                                                                                format!(" ({})", u)
+                                                                            };
+                                                                        Some(format!(
+                                                                            "- {} {}{}",
+                                                                            title, snippet, url_str
+                                                                        ))
+                                                                    }
+                                                                })
+                                                                .collect::<Vec<_>>()
+                                                        })
+                                                        .unwrap_or_default();
                                                     if !results.is_empty() {
                                                         tracing::info!("[web_search] provider returned {} results", results.len());
-                                                        return (format!("Web search results for '{}':\n{}", search_query, results.join("\n")), false);
+                                                        return (
+                                                            format!(
+                                                                "Web search results for '{}':\n{}",
+                                                                search_query,
+                                                                results.join("\n")
+                                                            ),
+                                                            false,
+                                                        );
                                                     }
                                                 }
                                             }
                                             tracing::warn!("[web_search] provider HTTP {}, falling back to DDG", resp_status.as_u16());
-                                        }
-                                        Err(e) => tracing::warn!("[web_search] provider error: {}, falling back to DDG", e),
+                                        },
+                                        Err(e) => tracing::warn!(
+                                            "[web_search] provider error: {}, falling back to DDG",
+                                            e
+                                        ),
                                     }
                                 }
                             }
@@ -1068,7 +1125,9 @@ async fn execute_tool_call(
                     if !abs.is_empty() {
                         results.push(format!("摘要: {}", abs));
                         if let Some(url) = json.get("AbstractURL").and_then(|v| v.as_str()) {
-                            if !url.is_empty() { results.push(format!("来源: {}", url)); }
+                            if !url.is_empty() {
+                                results.push(format!("来源: {}", url));
+                            }
                         }
                     }
                 }
@@ -1076,7 +1135,11 @@ async fn execute_tool_call(
                     for topic in topics.iter().take(8) {
                         if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
                             let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
-                            let url_part = if url.is_empty() { String::new() } else { format!(" ({})", url) };
+                            let url_part = if url.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" ({})", url)
+                            };
                             results.push(format!("- {}{}", text, url_part));
                         }
                     }
@@ -1085,14 +1148,24 @@ async fn execute_tool_call(
         }
         // DDG HTML fallback
         if results.is_empty() {
-            let html_url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(&search_query));
-            if let Ok(resp) = client.get(&html_url).header("User-Agent", "axagent/1.0").send().await {
+            let html_url = format!(
+                "https://html.duckduckgo.com/html/?q={}",
+                urlencoding::encode(&search_query)
+            );
+            if let Ok(resp) = client
+                .get(&html_url)
+                .header("User-Agent", "axagent/1.0")
+                .send()
+                .await
+            {
                 if let Ok(html) = resp.text().await {
                     for (i, part) in html.split("result__snippet").skip(1).take(5).enumerate() {
                         if let Some(start) = part.find('>') {
-                            if let Some(end) = part[start+1..].find("</") {
-                                let text = part[start+1..start+1+end].trim();
-                                if !text.is_empty() { results.push(format!("{}. {}", i + 1, text)); }
+                            if let Some(end) = part[start + 1..].find("</") {
+                                let text = part[start + 1..start + 1 + end].trim();
+                                if !text.is_empty() {
+                                    results.push(format!("{}. {}", i + 1, text));
+                                }
                             }
                         }
                     }
@@ -1102,8 +1175,19 @@ async fn execute_tool_call(
         if results.is_empty() {
             return (format!("web_search '{}': 未找到结果", search_query), false);
         }
-        tracing::info!("[web_search] '{}' -> {} results", search_query, results.len());
-        return (format!("Web search results for '{}':\n{}", search_query, results.join("\n")), false);
+        tracing::info!(
+            "[web_search] '{}' -> {} results",
+            search_query,
+            results.len()
+        );
+        return (
+            format!(
+                "Web search results for '{}':\n{}",
+                search_query,
+                results.join("\n")
+            ),
+            false,
+        );
     }
 
     let server_and_tool = axagent_core::repo::mcp_server::find_server_for_tool(
@@ -2317,7 +2401,11 @@ pub async fn send_message(
             now.format("%Y-%m-%d")
         );
         chat_messages.push(ChatMessage {
-            role: if no_system_role { "user".to_string() } else { "system".to_string() },
+            role: if no_system_role {
+                "user".to_string()
+            } else {
+                "system".to_string()
+            },
             content: ChatContent::Text(date_msg),
             tool_calls: None,
             tool_call_id: None,
@@ -2575,20 +2663,19 @@ pub async fn send_message(
     // 6. Load MCP tools for enabled servers
     let mcp_ids = enabled_mcp_server_ids.unwrap_or_default();
     // Check if any search provider is configured — auto-include web_search if so
-    let has_search_provider = axagent_core::repo::search_provider::list_search_providers(
-        &state.sea_db,
-    )
-    .await
-    .map(|providers| {
-        let enabled = providers.iter().any(|p| p.enabled);
-        tracing::info!(
-            "[send_message] search providers: total={}, enabled={}",
-            providers.len(),
-            enabled
-        );
-        enabled
-    })
-    .unwrap_or(false);
+    let has_search_provider =
+        axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
+            .await
+            .map(|providers| {
+                let enabled = providers.iter().any(|p| p.enabled);
+                tracing::info!(
+                    "[send_message] search providers: total={}, enabled={}",
+                    providers.len(),
+                    enabled
+                );
+                enabled
+            })
+            .unwrap_or(false);
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
@@ -2943,10 +3030,32 @@ pub async fn regenerate_message(
 
     // Load MCP tools for enabled servers
     let mcp_ids = enabled_mcp_server_ids.unwrap_or_default();
-    let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() {
+    // Check if any search provider is configured — auto-include web_search
+    let has_search_provider =
+        axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
+            .await
+            .map(|providers| providers.iter().any(|p| p.enabled))
+            .unwrap_or(false);
+    let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
         let mut all_tools = Vec::new();
+        if has_search_provider {
+            all_tools.push(ChatTool {
+                r#type: "function".to_string(),
+                function: ChatToolFunction {
+                    name: "web_search".to_string(),
+                    description: Some(
+                        "MUST use this to search the internet for current, real-time, or recent information. Call this function whenever the user asks about: today's news, current events, latest developments, stock prices, weather, sports scores, or any topic that requires up-to-date information beyond your knowledge cutoff. The search returns relevant web results. Do NOT tell users you cannot access real-time data — use this tool instead.".to_string()
+                    ),
+                    parameters: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": { "query": { "type": "string", "description": "The search query" } },
+                        "required": ["query"]
+                    })),
+                },
+            });
+        }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
                 axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
@@ -3277,10 +3386,31 @@ pub async fn regenerate_with_model(
     };
 
     let mcp_ids = enabled_mcp_server_ids.unwrap_or_default();
-    let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() {
+    let has_search_provider =
+        axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
+            .await
+            .map(|providers| providers.iter().any(|p| p.enabled))
+            .unwrap_or(false);
+    let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
         let mut all_tools = Vec::new();
+        if has_search_provider {
+            all_tools.push(ChatTool {
+                r#type: "function".to_string(),
+                function: ChatToolFunction {
+                    name: "web_search".to_string(),
+                    description: Some(
+                        "MUST use this to search the internet for current, real-time, or recent information. Call this function whenever the user asks about: today's news, current events, latest developments, stock prices, weather, sports scores, or any topic that requires up-to-date information beyond your knowledge cutoff. The search returns relevant web results. Do NOT tell users you cannot access real-time data — use this tool instead.".to_string()
+                    ),
+                    parameters: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": { "query": { "type": "string", "description": "The search query" } },
+                        "required": ["query"]
+                    })),
+                },
+            });
+        }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
                 axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)

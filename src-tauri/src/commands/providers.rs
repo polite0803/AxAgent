@@ -295,7 +295,14 @@ pub async fn fetch_remote_models(
         previous_response_id: None,
         store_response: None,
     };
-    adapter.list_models(&ctx).await.map_err(|e| e.to_string())
+    let mut models = adapter.list_models(&ctx).await.map_err(|e| e.to_string())?;
+    for model in &mut models {
+        if model.max_tokens.is_none() {
+            model.max_tokens =
+                axagent_core::model_knowledge::get_model_context_window(&model.model_id);
+        }
+    }
+    Ok(models)
 }
 
 /// Test a single model's availability by sending a minimal chat request.

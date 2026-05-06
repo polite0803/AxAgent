@@ -297,7 +297,9 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
           </Typography.Text>
           {/* Inline source pills when collapsed — compact one-line overview */}
           {collapsed && totalSources > 0 && (
-            <div style={{ display: "flex", gap: 4, marginLeft: 4, flexWrap: "wrap", maxWidth: 260, overflow: "hidden" }}>
+            <div
+              style={{ display: "flex", gap: 4, marginLeft: 4, flexWrap: "wrap", maxWidth: 260, overflow: "hidden" }}
+            >
               {(() => {
                 const pills: { label: string; color: string }[] = [];
                 if (modelName) { pills.push({ label: modelName.slice(0, 12), color: nodeTypeStyles.model.border }); }
@@ -305,23 +307,31 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                   const kb = knowledgeBases.find((k: any) => k.id === kbId);
                   pills.push({ label: (kb?.name || kbId).slice(0, 10), color: nodeTypeStyles.knowledge.border });
                 }
-                if (knowledgeBaseIds.length > 2) { pills.push({ label: `+${knowledgeBaseIds.length - 2}`, color: nodeTypeStyles.knowledge.border }); }
+                if (knowledgeBaseIds.length > 2) {
+                  pills.push({ label: `+${knowledgeBaseIds.length - 2}`, color: nodeTypeStyles.knowledge.border });
+                }
                 for (const nsId of memoryNamespaceIds.slice(0, 1)) {
                   const ns = memoryNamespaces.find((n: any) => n.id === nsId);
                   pills.push({ label: (ns?.name || nsId).slice(0, 10), color: nodeTypeStyles.memory.border });
                 }
-                if (memoryNamespaceIds.length > 1) { pills.push({ label: `+${memoryNamespaceIds.length - 1}`, color: nodeTypeStyles.memory.border }); }
+                if (memoryNamespaceIds.length > 1) {
+                  pills.push({ label: `+${memoryNamespaceIds.length - 1}`, color: nodeTypeStyles.memory.border });
+                }
                 for (const srvId of mcpServerIds.slice(0, 1)) {
                   const srv = mcpServers.find((s: any) => s.id === srvId);
                   pills.push({ label: (srv?.name || srvId).slice(0, 10), color: nodeTypeStyles.mcp.border });
                 }
-                if (mcpServerIds.length > 1) { pills.push({ label: `+${mcpServerIds.length - 1}`, color: nodeTypeStyles.mcp.border }); }
+                if (mcpServerIds.length > 1) {
+                  pills.push({ label: `+${mcpServerIds.length - 1}`, color: nodeTypeStyles.mcp.border });
+                }
                 if (searchEnabled) { pills.push({ label: "搜索", color: nodeTypeStyles.search.border }); }
                 for (const skillId of enabledSkillIds.slice(0, 1)) {
                   const sk = installedSkills.find((s: any) => s.id === skillId);
                   pills.push({ label: (sk?.name || skillId).slice(0, 10), color: nodeTypeStyles.skill.border });
                 }
-                if (enabledSkillIds.length > 1) { pills.push({ label: `+${enabledSkillIds.length - 1}`, color: nodeTypeStyles.skill.border }); }
+                if (enabledSkillIds.length > 1) {
+                  pills.push({ label: `+${enabledSkillIds.length - 1}`, color: nodeTypeStyles.skill.border });
+                }
                 return pills.map((p, i) => (
                   <span
                     key={i}
@@ -370,7 +380,9 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
               ))}
             </div>
           )}
-          {collapsed ? <ChevronDown size={14} style={{ color: token.colorTextSecondary }} /> : <ChevronUp size={14} style={{ color: token.colorTextSecondary }} />}
+          {collapsed
+            ? <ChevronDown size={14} style={{ color: token.colorTextSecondary }} />
+            : <ChevronUp size={14} style={{ color: token.colorTextSecondary }} />}
         </div>
       </div>
 

@@ -149,7 +149,9 @@ const CHAT_INFOGRAPHIC_PROPS = {
   renderModeToggle: (ctx: InfographicBlockActionContext) => (
     <DiagramModeToggle showSource={ctx.showSource} onSwitchMode={ctx.switchMode} />
   ),
-  renderZoomControls: (ctx: InfographicBlockActionContext) => <MermaidZoomControls ctx={ctx as unknown as MermaidBlockActionContext} />,
+  renderZoomControls: (ctx: InfographicBlockActionContext) => (
+    <MermaidZoomControls ctx={ctx as unknown as MermaidBlockActionContext} />
+  ),
 };
 
 function getCustomAttr(attrs: CustomNodeAttrs, name: string): string | undefined {

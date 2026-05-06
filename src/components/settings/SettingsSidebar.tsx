@@ -91,11 +91,13 @@ function useDraggableWidth(initial: number, min: number, max: number) {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!dragging.current) return;
+      if (!dragging.current) { return; }
       const dx = e.clientX - startRef.current.startX;
       setWidth(Math.max(min, Math.min(max, startRef.current.startWidth + dx)));
     };
-    const handleMouseUp = () => { dragging.current = false; };
+    const handleMouseUp = () => {
+      dragging.current = false;
+    };
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
     return () => {

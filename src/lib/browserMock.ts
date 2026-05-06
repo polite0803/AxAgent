@@ -11,19 +11,19 @@ import type {
   GatewayKey,
   KnowledgeBase,
   KnowledgeDocument,
-  Message,
-  MemoryNamespace,
   MemoryItem,
+  MemoryNamespace,
+  Message,
   PlatformConfig,
   PlatformSession,
   ProgramPolicy,
   SaveProgramPolicyInput,
   SearchProvider,
 } from "@/types";
-import type { CreateKnowledgeBaseInput } from "@/types/knowledge";
-import type { CreateMemoryNamespaceInput, CreateMemoryItemInput } from "@/types/memory";
 import type { Artifact } from "@/types/artifact";
 import type { BackupManifest } from "@/types/backup";
+import type { CreateKnowledgeBaseInput } from "@/types/knowledge";
+import type { CreateMemoryItemInput, CreateMemoryNamespaceInput } from "@/types/memory";
 
 interface WorkflowTemplate {
   id: string;
@@ -448,7 +448,9 @@ function initProviders(): Record<string, unknown>[] {
   // Restore missing models for built-in providers (e.g. after a bad fetch_remote_models wipe)
   let dirty = false;
   for (const builtin of BUILT_IN_PROVIDERS) {
-    const stored = existing.find((p) => p.id === builtin.id) as (Provider & { models?: Array<{ model_id: string; name: string }> }) | undefined;
+    const stored = existing.find((p) => p.id === builtin.id) as
+      | (Provider & { models?: Array<{ model_id: string; name: string }> })
+      | undefined;
     if (stored && (!stored.models || stored.models.length === 0)) {
       stored.models = [...builtin.models] as typeof stored.models;
       dirty = true;
@@ -618,7 +620,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "validate_provider_key":
       return true as T;
     case "save_models": {
-      const { providerId, models } = args as { providerId?: string; models?: Array<{ model_id: string; name: string; mode?: string; enabled?: boolean }> };
+      const { providerId, models } = args as {
+        providerId?: string;
+        models?: Array<{ model_id: string; name: string; mode?: string; enabled?: boolean }>;
+      };
       const providers = getStore<Provider[]>("providers", []);
       const idx = providers.findIndex((p) => p.id === providerId);
       if (idx !== -1 && models) {
@@ -642,7 +647,11 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       throw new Error("Model not found");
     }
     case "update_model_params": {
-      const { providerId, modelId, overrides } = args as { providerId?: string; modelId?: string; overrides?: Record<string, unknown> };
+      const { providerId, modelId, overrides } = args as {
+        providerId?: string;
+        modelId?: string;
+        overrides?: Record<string, unknown>;
+      };
       const providers = getStore<Provider[]>("providers", []);
       const pIdx = providers.findIndex((p) => p.id === providerId);
       if (pIdx !== -1) {
@@ -977,7 +986,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return allMsgs.filter((m) => m.parent_message_id === parentMessageId) as T;
     }
     case "switch_message_version": {
-      const { parentMessageId: switchParent, messageId: switchTarget } = args as { parentMessageId?: string; messageId?: string };
+      const { parentMessageId: switchParent, messageId: switchTarget } = args as {
+        parentMessageId?: string;
+        messageId?: string;
+      };
       const switchMsgs = getStore<Message[]>("messages", []);
       for (const m of switchMsgs) {
         if (m.parent_message_id === switchParent && m.role === "assistant") {
@@ -1214,7 +1226,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "add_knowledge_document": {
-      const kbs4 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>("knowledge_bases", []);
+      const kbs4 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>(
+        "knowledge_bases",
+        [],
+      );
       const { baseId, ...docInput } = args as { baseId?: string; title?: string; sourcePath?: string };
       const kbi = kbs4.findIndex(k => k.id === baseId);
       if (kbi >= 0) {
@@ -1236,12 +1251,18 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "list_knowledge_documents": {
-      const kbs5 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>("knowledge_bases", []);
+      const kbs5 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>(
+        "knowledge_bases",
+        [],
+      );
       const target = kbs5.find(k => k.id === (args as { baseId?: string })?.baseId);
       return (target?.documents ?? []) as T;
     }
     case "delete_knowledge_document": {
-      const kbs6 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>("knowledge_bases", []);
+      const kbs6 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>(
+        "knowledge_bases",
+        [],
+      );
       const delDocId = (args as { id?: string })?.id;
       for (const kb of kbs6) {
         const docs = kb.documents || [];
@@ -1475,7 +1496,7 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "batch_delete_backups": {
       const allBkps = getStore<BackupManifest[]>("backups", []);
-      const idsToDelete = ((args as { backupIds?: string[] })?.backupIds || []);
+      const idsToDelete = (args as { backupIds?: string[] })?.backupIds || [];
       setStore("backups", allBkps.filter((b) => !idsToDelete.includes(b.id)));
       return undefined as T;
     }
@@ -1566,12 +1587,24 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "update_program_policy": {
       const pps2 = getStore<ProgramPolicy[]>("program_policies", []);
-      const { id, ...ppInput } = args as { id?: string; programName?: string; allowedProviderIds?: string[]; allowedModelIds?: string[]; defaultProviderId?: string; defaultModelId?: string; rateLimitPerMinute?: number };
+      const { id, ...ppInput } = args as {
+        id?: string;
+        programName?: string;
+        allowedProviderIds?: string[];
+        allowedModelIds?: string[];
+        defaultProviderId?: string;
+        defaultModelId?: string;
+        rateLimitPerMinute?: number;
+      };
       const ppi = pps2.findIndex(p => p.id === id);
       if (ppi >= 0) {
         if (ppInput.programName !== undefined) { pps2[ppi].programName = ppInput.programName; }
-        if (ppInput.allowedProviderIds !== undefined) { pps2[ppi].allowedProviderIdsJson = JSON.stringify(ppInput.allowedProviderIds); }
-        if (ppInput.allowedModelIds !== undefined) { pps2[ppi].allowedModelIdsJson = JSON.stringify(ppInput.allowedModelIds); }
+        if (ppInput.allowedProviderIds !== undefined) {
+          pps2[ppi].allowedProviderIdsJson = JSON.stringify(ppInput.allowedProviderIds);
+        }
+        if (ppInput.allowedModelIds !== undefined) {
+          pps2[ppi].allowedModelIdsJson = JSON.stringify(ppInput.allowedModelIds);
+        }
         if (ppInput.defaultProviderId !== undefined) { pps2[ppi].defaultProviderId = ppInput.defaultProviderId; }
         if (ppInput.defaultModelId !== undefined) { pps2[ppi].defaultModelId = ppInput.defaultModelId; }
         if (ppInput.rateLimitPerMinute !== undefined) { pps2[ppi].rateLimitPerMinute = ppInput.rateLimitPerMinute; }
@@ -2129,16 +2162,51 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     // Platform / Message Channel commands
     case "get_platform_config": {
       return (getStore<PlatformConfig | null>("platform_config", null) ?? {
-        telegram_enabled: false, telegram_bot_token: null, telegram_webhook_url: null, telegram_webhook_secret: null, telegram_allowed_users: null,
-        discord_enabled: false, discord_bot_token: null, discord_webhook_url: null, discord_allowed_channels: null,
-        slack_enabled: false, slack_bot_token: null, slack_signing_secret: null, slack_workspace_id: null, slack_app_token: null,
-        whatsapp_enabled: false, whatsapp_phone_number_id: null, whatsapp_access_token: null, whatsapp_business_account_id: null, whatsapp_webhook_verify_token: null, whatsapp_api_version: null,
-        wechat_enabled: false, wechat_app_id: null, wechat_app_secret: null, wechat_token: null, wechat_encoding_aes_key: null, wechat_original_id: null, wechat_mode: null,
-        feishu_enabled: false, feishu_app_id: null, feishu_app_secret: null, feishu_verification_token: null, feishu_encrypt_key: null,
-        qq_enabled: false, qq_bot_app_id: null, qq_bot_token: null, qq_bot_secret: null,
-        dingtalk_enabled: false, dingtalk_app_key: null, dingtalk_app_secret: null, dingtalk_agent_id: null, dingtalk_robot_code: null,
-        api_server_enabled: false, api_server_port: 8080,
-        auto_sync_messages: false, max_history_per_session: 100,
+        telegram_enabled: false,
+        telegram_bot_token: null,
+        telegram_webhook_url: null,
+        telegram_webhook_secret: null,
+        telegram_allowed_users: null,
+        discord_enabled: false,
+        discord_bot_token: null,
+        discord_webhook_url: null,
+        discord_allowed_channels: null,
+        slack_enabled: false,
+        slack_bot_token: null,
+        slack_signing_secret: null,
+        slack_workspace_id: null,
+        slack_app_token: null,
+        whatsapp_enabled: false,
+        whatsapp_phone_number_id: null,
+        whatsapp_access_token: null,
+        whatsapp_business_account_id: null,
+        whatsapp_webhook_verify_token: null,
+        whatsapp_api_version: null,
+        wechat_enabled: false,
+        wechat_app_id: null,
+        wechat_app_secret: null,
+        wechat_token: null,
+        wechat_encoding_aes_key: null,
+        wechat_original_id: null,
+        wechat_mode: null,
+        feishu_enabled: false,
+        feishu_app_id: null,
+        feishu_app_secret: null,
+        feishu_verification_token: null,
+        feishu_encrypt_key: null,
+        qq_enabled: false,
+        qq_bot_app_id: null,
+        qq_bot_token: null,
+        qq_bot_secret: null,
+        dingtalk_enabled: false,
+        dingtalk_app_key: null,
+        dingtalk_app_secret: null,
+        dingtalk_agent_id: null,
+        dingtalk_robot_code: null,
+        api_server_enabled: false,
+        api_server_port: 8080,
+        auto_sync_messages: false,
+        max_history_per_session: 100,
       }) as T;
     }
     case "update_platform_config": {
@@ -2193,9 +2261,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "deactivate_platform_session": {
       const input = args as { sessionId: string };
       const sessions = getStore<PlatformSession[]>("platform_sessions", []);
-      setStore("platform_sessions", sessions.map((s) =>
-        s.session_id === input.sessionId ? { ...s, is_active: false } : s,
-      ));
+      setStore(
+        "platform_sessions",
+        sessions.map((s) => s.session_id === input.sessionId ? { ...s, is_active: false } : s),
+      );
       return undefined as T;
     }
     case "send_platform_message": {

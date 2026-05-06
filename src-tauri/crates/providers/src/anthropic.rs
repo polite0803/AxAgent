@@ -766,6 +766,12 @@ impl ProviderAdapter for AnthropicAdapter {
                     caps.push(ModelCapability::Reasoning);
                 }
                 let name = m.display_name.unwrap_or_else(|| m.id.clone());
+                let name_lower = name.to_lowercase();
+                if (name_lower.contains("vision") || name_lower.contains("multimodal"))
+                    && !caps.contains(&ModelCapability::Vision)
+                {
+                    caps.push(ModelCapability::Vision);
+                }
                 Model {
                     provider_id: ctx.provider_id.clone(),
                     model_id: m.id,

@@ -3552,10 +3552,7 @@ impl MigrationTrait for Migration {
             let db = manager.get_connection();
 
             for (id, name, desc, cat, icon, prompt, role, src) in &builtin_profiles {
-                let check_sql = format!(
-                    "SELECT id FROM agent_profiles WHERE id = '{}'",
-                    id
-                );
+                let check_sql = format!("SELECT id FROM agent_profiles WHERE id = '{}'", id);
                 let result = db.execute_unprepared(&check_sql).await;
                 let exists = result.map(|r| r.rows_affected() > 0).unwrap_or(false);
 
@@ -3564,8 +3561,7 @@ impl MigrationTrait for Migration {
                         "INSERT INTO agent_profiles (id, name, description, category, icon, system_prompt, agent_role, source, sort_order, is_enabled, created_at, updated_at) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', 0, 1, {}, {})",
                         id, name, desc, cat, icon, prompt, role.unwrap_or(""), src, now, now
                     );
-                    db.execute_unprepared(&insert_sql)
-                        .await.ok();
+                    db.execute_unprepared(&insert_sql).await.ok();
                 }
             }
         }
@@ -3806,10 +3802,7 @@ impl MigrationTrait for Migration {
             let db = manager.get_connection();
 
             for (id, name, desc, tools, mc, to) in &roles {
-                let check_sql = format!(
-                    "SELECT id FROM agent_roles WHERE id = '{}'",
-                    id
-                );
+                let check_sql = format!("SELECT id FROM agent_roles WHERE id = '{}'", id);
                 let result = db.execute_unprepared(&check_sql).await;
                 let exists = result.map(|r| r.rows_affected() > 0).unwrap_or(false);
                 if !exists {
@@ -3818,8 +3811,7 @@ impl MigrationTrait for Migration {
                         "INSERT INTO agent_roles (id, name, description, system_prompt, default_tools, max_concurrent, timeout_seconds, source, sort_order, created_at, updated_at) VALUES ('{}', '{}', '{}', '', '{}', {}, {}, 'builtin', 0, {}, {})",
                         id, name, desc, tools_json, mc, to, now, now
                     );
-                    db.execute_unprepared(&insert_sql)
-                        .await.ok();
+                    db.execute_unprepared(&insert_sql).await.ok();
                 }
             }
         }
