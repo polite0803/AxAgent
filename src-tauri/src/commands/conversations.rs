@@ -974,7 +974,7 @@ async fn execute_tool_call(
     tool_call: &ToolCall,
     mcp_server_ids: &[String],
 ) -> (String, bool) {
-    // Handle builtin web_search — use DuckDuckGo Instant Answer API
+    // Handle builtin web_search — try configured search provider first, fallback to DDG
     if tool_call.function.name == "web_search" {
         tracing::info!("[web_search] LLM called web_search function");
         let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
@@ -983,86 +983,127 @@ async fn execute_tool_call(
         if query.is_empty() {
             return ("Error: web_search requires a 'query' parameter".to_string(), true);
         }
-        // Append current year for recency
         let current_year = chrono::Local::now().format("%Y").to_string();
         let search_query = if query.contains(&current_year) { query } else { format!("{} {}", query, current_year) };
         tracing::info!("[web_search] executing query='{}'", search_query);
 
-        // DuckDuckGo Instant Answer API (JSON, no key needed)
+        // 1. Try configured search provider first (with API key)
+        if let Ok(providers) = axagent_core::repo::search_provider::list_search_providers(db).await {
+            if let Some(provider) = providers.iter().find(|p| p.enabled) {
+                if let Some(endpoint) = &provider.endpoint {
+                    if provider.has_api_key {
+                        let entity = axagent_core::entity::search_providers::Entity::find_by_id(&provider.id)
+                            .one(db).await.ok().flatten();
+                        if let Some(ref entity) = entity {
+                            if let Some(ref api_key) = entity.api_key_ref {
+                                let client = reqwest::Client::builder()
+                                    .timeout(std::time::Duration::from_secs(15))
+                                    .build()
+                                    .map_err(|e| format!("{}", e));
+                                if let Ok(client) = client {
+                                    let body = serde_json::json!({
+                                        "q": search_query,
+                                        "max_results": std::cmp::min(provider.result_limit, 10)
+                                    });
+                                    match client.post(endpoint)
+                                        .header("Content-Type", "application/json")
+                                        .header("Authorization", format!("Bearer {}", api_key))
+                                        .json(&body)
+                                        .send()
+                                        .await
+                                    {
+                                        Ok(resp) => {
+                                            let resp_status = resp.status();
+                                            if resp_status.is_success() {
+                                                if let Ok(json) = resp.json::<serde_json::Value>().await {
+                                                    let results = json.get("results")
+                                                        .or_else(|| json.get("organic"))
+                                                        .or_else(|| json.get("data"))
+                                                        .and_then(|v| v.as_array())
+                                                        .map(|arr| {
+                                                            arr.iter().filter_map(|r| {
+                                                                let title = r.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                                                                let u = r.get("url").or(r.get("link")).and_then(|v| v.as_str()).unwrap_or("");
+                                                                let snippet = r.get("snippet").or(r.get("content")).or(r.get("description")).and_then(|v| v.as_str()).unwrap_or("");
+                                                                if title.is_empty() && snippet.is_empty() { None }
+                                                                else {
+                                                                    let url_str = if u.is_empty() { String::new() } else { format!(" ({})", u) };
+                                                                    Some(format!("- {} {}{}", title, snippet, url_str))
+                                                                }
+                                                            }).collect::<Vec<_>>()
+                                                        }).unwrap_or_default();
+                                                    if !results.is_empty() {
+                                                        tracing::info!("[web_search] provider returned {} results", results.len());
+                                                        return (format!("Web search results for '{}':\n{}", search_query, results.join("\n")), false);
+                                                    }
+                                                }
+                                            }
+                                            tracing::warn!("[web_search] provider HTTP {}, falling back to DDG", resp_status.as_u16());
+                                        }
+                                        Err(e) => tracing::warn!("[web_search] provider error: {}, falling back to DDG", e),
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback: DuckDuckGo Instant Answer API
+        tracing::info!("[web_search] using DuckDuckGo fallback");
         let ddg_url = format!(
             "https://api.duckduckgo.com/?q={}&format=json&no_html=1&skip_disambig=1&t=axagent",
             urlencoding::encode(&search_query)
         );
-        match reqwest::Client::builder()
-            .user_agent("axagent/1.0")
-            .build()
-            .map_err(|e| format!("{}", e))
-        {
-            Ok(client) => {
-                match client.get(&ddg_url).send().await {
-                    Ok(resp) => match resp.json::<serde_json::Value>().await {
-                        Ok(json) => {
-                            let mut results: Vec<String> = Vec::new();
-                            // Abstract (direct answer)
-                            if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str()) {
-                                if !abs.is_empty() {
-                                    results.push(format!("摘要: {}", abs));
-                                    if let Some(url) = json.get("AbstractURL").and_then(|v| v.as_str()) {
-                                        if !url.is_empty() { results.push(format!("来源: {}", url)); }
-                                    }
-                                }
-                            }
-                            // Related topics as search results
-                            if let Some(topics) = json.get("RelatedTopics").and_then(|v| v.as_array()) {
-                                for topic in topics.iter().take(8) {
-                                    if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
-                                        let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
-                                        let url_part = if url.is_empty() { String::new() } else { format!(" ({})", url) };
-                                        results.push(format!("- {}{}", text, url_part));
-                                    }
-                                }
-                            }
-                            if results.is_empty() {
-                                // Fallback to HTML search
-                                let html_url = format!(
-                                    "https://html.duckduckgo.com/html/?q={}",
-                                    urlencoding::encode(&search_query)
-                                );
-                                match client.get(&html_url).header("User-Agent", "axagent/1.0").send().await {
-                                    Ok(html_resp) => match html_resp.text().await {
-                                        Ok(html) => {
-                                            let parts: Vec<&str> = html.split("result__snippet").skip(1).take(5).collect();
-                                            if !parts.is_empty() {
-                                                for (i, part) in parts.iter().enumerate() {
-                                                    if let Some(start) = part.find('>') {
-                                                        if let Some(end) = part[start+1..].find("</") {
-                                                            let text = part[start+1..start+1+end].trim();
-                                                            if !text.is_empty() {
-                                                                results.push(format!("{}. {}", i + 1, text));
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        Err(_) => {}
-                                    }
-                                    Err(_) => {}
-                                }
-                            }
-                            if results.is_empty() {
-                                return (format!("web_search '{}': 未找到结果", search_query), false);
-                            }
-                            tracing::info!("[web_search] '{}' -> {} results", search_query, results.len());
-                            return (format!("Web search results for '{}':\n{}", search_query, results.join("\n")), false);
+        let client = match reqwest::Client::builder().user_agent("axagent/1.0").build() {
+            Ok(c) => c,
+            Err(e) => return (format!("web_search client error: {}", e), true),
+        };
+        let mut results: Vec<String> = Vec::new();
+        // DDG Instant Answer API
+        if let Ok(resp) = client.get(&ddg_url).send().await {
+            if let Ok(json) = resp.json::<serde_json::Value>().await {
+                if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str()) {
+                    if !abs.is_empty() {
+                        results.push(format!("摘要: {}", abs));
+                        if let Some(url) = json.get("AbstractURL").and_then(|v| v.as_str()) {
+                            if !url.is_empty() { results.push(format!("来源: {}", url)); }
                         }
-                        Err(e) => return (format!("web_search JSON parse error: {}", e), true),
-                    },
-                    Err(e) => return (format!("web_search 网络错误: {}", e), true),
+                    }
+                }
+                if let Some(topics) = json.get("RelatedTopics").and_then(|v| v.as_array()) {
+                    for topic in topics.iter().take(8) {
+                        if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
+                            let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
+                            let url_part = if url.is_empty() { String::new() } else { format!(" ({})", url) };
+                            results.push(format!("- {}{}", text, url_part));
+                        }
+                    }
                 }
             }
-            Err(e) => return (format!("web_search client error: {}", e), true),
         }
+        // DDG HTML fallback
+        if results.is_empty() {
+            let html_url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(&search_query));
+            if let Ok(resp) = client.get(&html_url).header("User-Agent", "axagent/1.0").send().await {
+                if let Ok(html) = resp.text().await {
+                    for (i, part) in html.split("result__snippet").skip(1).take(5).enumerate() {
+                        if let Some(start) = part.find('>') {
+                            if let Some(end) = part[start+1..].find("</") {
+                                let text = part[start+1..start+1+end].trim();
+                                if !text.is_empty() { results.push(format!("{}. {}", i + 1, text)); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if results.is_empty() {
+            return (format!("web_search '{}': 未找到结果", search_query), false);
+        }
+        tracing::info!("[web_search] '{}' -> {} results", search_query, results.len());
+        return (format!("Web search results for '{}':\n{}", search_query, results.join("\n")), false);
     }
 
     let server_and_tool = axagent_core::repo::mcp_server::find_server_for_tool(
@@ -1860,15 +1901,19 @@ fn spawn_stream_task(
             // Execute each tool call
             for tc in &tool_calls {
                 // Look up server name for events
-                let server_name = match axagent_core::repo::mcp_server::find_server_for_tool(
-                    &db,
-                    &tc.function.name,
-                    &mcp_server_ids,
-                )
-                .await
-                {
-                    Ok(Some((srv, _))) => srv.name.clone(),
-                    _ => "unknown".to_string(),
+                let server_name = if tc.function.name == "web_search" {
+                    "Web Search".to_string()
+                } else {
+                    match axagent_core::repo::mcp_server::find_server_for_tool(
+                        &db,
+                        &tc.function.name,
+                        &mcp_server_ids,
+                    )
+                    .await
+                    {
+                        Ok(Some((srv, _))) => srv.name.clone(),
+                        _ => "unknown".to_string(),
+                    }
                 };
 
                 // Emit :::mcp opener as stream chunk — frontend shows loading state
