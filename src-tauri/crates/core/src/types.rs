@@ -1202,6 +1202,8 @@ pub struct SearchCitation {
 pub struct McpServer {
     pub id: String,
     pub name: String,
+    pub alias: Option<String>,
+    pub description: Option<String>,
     pub transport: String, // stdio | http | sse
     pub command: Option<String>,
     pub args_json: Option<String>,
@@ -1723,6 +1725,8 @@ pub struct CreateSearchProviderInput {
 #[serde(rename_all = "camelCase", default)]
 pub struct CreateMcpServerInput {
     pub name: String,
+    pub alias: Option<String>,
+    pub description: Option<String>,
     pub transport: String,
     pub command: Option<String>,
     pub args: Option<Vec<String>>,

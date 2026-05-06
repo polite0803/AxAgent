@@ -220,6 +220,8 @@ enum McpServers {
     Table,
     Id,
     Name,
+    Alias,
+    Description,
     Transport,
     Command,
     ArgsJson,
@@ -1455,6 +1457,8 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(McpServers::Name).string().not_null())
+                    .col(ColumnDef::new(McpServers::Alias).string().null())
+                    .col(ColumnDef::new(McpServers::Description).string().null())
                     .col(
                         ColumnDef::new(McpServers::Transport)
                             .string()

@@ -3,6 +3,7 @@ import { findModelByIds, supportsReasoning } from "@/lib/modelCapabilities";
 import type { Conversation, UpdateConversationInput } from "@/types";
 import { create } from "zustand";
 import { useProviderStore } from "../feature/providerStore";
+import { useMcpStore } from "../feature/mcpStore";
 import { useConversationStore } from "./conversationStore";
 
 // Sequence counter to prevent stale preference saves
@@ -13,6 +14,7 @@ type ConversationPreferenceState = Pick<
   | "searchEnabled"
   | "searchProviderId"
   | "thinkingBudget"
+  | "mcpMode"
   | "enabledMcpServerIds"
   | "enabledKnowledgeBaseIds"
   | "enabledMemoryNamespaceIds"
@@ -25,6 +27,7 @@ function conversationPreferenceStateFromConversation(
     searchEnabled: conversation?.search_enabled ?? false,
     searchProviderId: conversation?.search_provider_id ?? null,
     thinkingBudget: conversation?.thinking_budget ?? null,
+    mcpMode: "auto",
     enabledMcpServerIds: [...(conversation?.enabled_mcp_server_ids ?? [])],
     enabledKnowledgeBaseIds: [...(conversation?.enabled_knowledge_base_ids ?? [])],
     enabledMemoryNamespaceIds: [...(conversation?.enabled_memory_namespace_ids ?? [])],
@@ -133,6 +136,7 @@ async function persistConversationPreferences(
         searchEnabled: prefState.searchEnabled,
         searchProviderId: prefState.searchProviderId,
         thinkingBudget: prefState.thinkingBudget,
+        mcpMode: prefState.mcpMode,
         enabledMcpServerIds: prefState.enabledMcpServerIds,
         enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
         enabledMemoryNamespaceIds: prefState.enabledMemoryNamespaceIds,
@@ -203,6 +207,7 @@ interface PreferenceState {
   searchEnabled: boolean;
   searchProviderId: string | null;
   enabledMcpServerIds: string[];
+  mcpMode: "auto" | "manual" | "disabled";
   thinkingBudget: number | null;
   enabledKnowledgeBaseIds: string[];
   enabledMemoryNamespaceIds: string[];
@@ -210,6 +215,7 @@ interface PreferenceState {
   setSearchProviderId: (id: string | null) => void;
   setEnabledMcpServerIds: (ids: string[]) => void;
   toggleMcpServer: (id: string) => void;
+  setMcpMode: (mode: "auto" | "manual" | "disabled") => void;
   setThinkingBudget: (budget: number | null) => void;
   setEnabledKnowledgeBaseIds: (ids: string[]) => void;
   toggleKnowledgeBase: (id: string) => void;
@@ -221,6 +227,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
   searchEnabled: false,
   searchProviderId: null,
   enabledMcpServerIds: [],
+  mcpMode: "auto",
   thinkingBudget: null,
   enabledKnowledgeBaseIds: [],
   enabledMemoryNamespaceIds: [],
@@ -279,6 +286,40 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { enabledMcpServerIds: nextIds },
         { enabledMcpServerIds: previous },
       );
+    }
+  },
+
+  setMcpMode: (mode) => {
+    set({ mcpMode: mode });
+    const conversationId = useConversationStore.getState().activeConversationId;
+    if (conversationId) {
+      const allBuiltinIds = useMcpStore.getState().servers
+        .filter((s) => s.source === "builtin" && s.enabled)
+        .map((s) => s.id);
+      if (mode === "auto") {
+        set({ enabledMcpServerIds: allBuiltinIds });
+        void persistConversationPreferences(
+          conversationId,
+          { enabled_mcp_server_ids: allBuiltinIds },
+          { enabledMcpServerIds: allBuiltinIds, mcpMode: mode },
+          { enabledMcpServerIds: [], mcpMode: "manual" },
+        );
+      } else if (mode === "disabled") {
+        set({ enabledMcpServerIds: [] });
+        void persistConversationPreferences(
+          conversationId,
+          { enabled_mcp_server_ids: [] },
+          { enabledMcpServerIds: [], mcpMode: mode },
+          { enabledMcpServerIds: allBuiltinIds, mcpMode: "auto" },
+        );
+      } else {
+        void persistConversationPreferences(
+          conversationId,
+          {},
+          { mcpMode: mode },
+          { mcpMode: "auto" },
+        );
+      }
     }
   },
   setThinkingBudget: (budget) => {

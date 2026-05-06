@@ -41,154 +41,100 @@ const BUILTIN_CRON_ID: &str = "builtin-cron";
 struct BuiltinDef {
     id: &'static str,
     name: &'static str,
+    alias: &'static str,
+    description: &'static str,
     default_enabled: bool,
 }
 
 const BUILTIN_DEFS: &[BuiltinDef] = &[
-    BuiltinDef {
-        id: BUILTIN_FETCH_ID,
-        name: "@axagent/fetch",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SEARCH_FILE_ID,
-        name: "@axagent/search-file",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SKILLS_ID,
-        name: "@axagent/skills",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SESSION_ID,
-        name: "@axagent/session",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SEARCH_ID,
-        name: "@axagent/search",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_FILESYSTEM_ID,
-        name: "@axagent/filesystem",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SYSTEM_ID,
-        name: "@axagent/system",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_KNOWLEDGE_ID,
-        name: "@axagent/knowledge",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_STORAGE_ID,
-        name: "@axagent/storage",
-        default_enabled: true,
-    },
+    BuiltinDef { id: BUILTIN_FETCH_ID, name: "@axagent/fetch", alias: "网页抓取", description: "抓取网页内容并转换为文本或 Markdown", default_enabled: true },
+    BuiltinDef { id: BUILTIN_SEARCH_FILE_ID, name: "@axagent/search-file", alias: "文件搜索", description: "在项目目录中搜索文件和内容", default_enabled: true },
+    BuiltinDef { id: BUILTIN_SKILLS_ID, name: "@axagent/skills", alias: "技能管理", description: "列出、安装、卸载技能扩展", default_enabled: true },
+    BuiltinDef { id: BUILTIN_SESSION_ID, name: "@axagent/session", alias: "会话管理", description: "管理对话会话、分支和检查点", default_enabled: true },
+    BuiltinDef { id: BUILTIN_SEARCH_ID, name: "@axagent/search", alias: "网页搜索", description: "通过搜索引擎搜索实时网络信息", default_enabled: true },
+    BuiltinDef { id: BUILTIN_FILESYSTEM_ID, name: "@axagent/filesystem", alias: "文件系统", description: "创建、删除、移动文件和目录", default_enabled: true },
+    BuiltinDef { id: BUILTIN_SYSTEM_ID, name: "@axagent/system", alias: "系统信息", description: "获取系统信息和进程列表", default_enabled: true },
+    BuiltinDef { id: BUILTIN_KNOWLEDGE_ID, name: "@axagent/knowledge", alias: "知识库", description: "搜索和管理知识库文档", default_enabled: true },
+    BuiltinDef { id: BUILTIN_STORAGE_ID, name: "@axagent/storage", alias: "云存储", description: "上传、下载和管理云端文件", default_enabled: true },
     BuiltinDef {
         id: BUILTIN_BRAVE_SEARCH_ID,
-        name: "@axagent/brave-search",
-        default_enabled: true,
+        name: "@axagent/brave-search", alias: "Brave 搜索", description: "通过 Brave Search API 搜索网页和本地信息", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_SEQUENTIAL_THINKING_ID,
-        name: "@axagent/sequential-thinking",
-        default_enabled: true,
+        name: "@axagent/sequential-thinking", alias: "深度思考", description: "通过多步推理分析复杂问题", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_PYTHON_ID,
-        name: "@axagent/python",
-        default_enabled: true,
+        name: "@axagent/python", alias: "Python 执行", description: "在沙箱中安全执行 Python 代码", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_DIFY_KNOWLEDGE_ID,
-        name: "@axagent/dify-knowledge",
-        default_enabled: false,
+        name: "@axagent/dify-knowledge", alias: "Dify 知识库", description: "搜索 Dify 平台知识库", default_enabled: false,
     },
     BuiltinDef {
         id: BUILTIN_WORKSPACE_MEMORY_ID,
-        name: "@axagent/workspace-memory",
-        default_enabled: false,
+        name: "@axagent/workspace-memory", alias: "工作区记忆", description: "读写工作区持久化记忆", default_enabled: false,
     },
     BuiltinDef {
         id: BUILTIN_FILEUTILS_ID,
-        name: "@axagent/file-utils",
-        default_enabled: true,
+        name: "@axagent/file-utils", alias: "文件工具", description: "PDF 信息、编码检测、Base64 图片", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_CACHE_ID,
-        name: "@axagent/cache",
-        default_enabled: true,
+        name: "@axagent/cache", alias: "缓存管理", description: "查看和清理系统缓存", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_OCR_ID,
-        name: "@axagent/ocr",
-        default_enabled: true,
+        name: "@axagent/ocr", alias: "OCR 识别", description: "图片文字识别和语言检测", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_OBSIDIAN_ID,
-        name: "@axagent/obsidian",
-        default_enabled: true,
+        name: "@axagent/obsidian", alias: "Obsidian 笔记", description: "读取 Obsidian 笔记库文件", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_EXPORT_ID,
-        name: "@axagent/export",
-        default_enabled: true,
+        name: "@axagent/export", alias: "文档导出", description: "导出为 Word 文档", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_REMOTEFILE_ID,
-        name: "@axagent/remotefile",
-        default_enabled: false,
+        name: "@axagent/remotefile", alias: "远程文件", description: "上传、列出、删除远程文件", default_enabled: false,
     },
     BuiltinDef {
         id: BUILTIN_AGENTCTRL_ID,
-        name: "@axagent/agent-control",
-        default_enabled: true,
+        name: "@axagent/agent-control", alias: "Agent 控制", description: "检查点、状态查询、记忆持久化", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_COMPUTER_ID,
-        name: "@axagent/computer-control",
-        default_enabled: false,
+        name: "@axagent/computer-control", alias: "计算机控制", description: "屏幕截图和鼠标键盘操作", default_enabled: false,
     },
     BuiltinDef {
         id: BUILTIN_BROWSER_ID,
-        name: "@axagent/browser",
-        default_enabled: true,
+        name: "@axagent/browser", alias: "浏览器控制", description: "浏览器导航、截图、点击、填表", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_MEMORY_ID,
-        name: "@axagent/memory",
-        default_enabled: true,
+        name: "@axagent/memory", alias: "记忆刷新", description: "将短期记忆持久化到长期存储", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_IMAGEGEN_ID,
-        name: "@axagent/image-gen",
-        default_enabled: false,
+        name: "@axagent/image-gen", alias: "图片生成", description: "通过 AI 生成图片", default_enabled: false,
     },
     BuiltinDef {
         id: BUILTIN_CHARTGEN_ID,
-        name: "@axagent/chart-gen",
-        default_enabled: true,
+        name: "@axagent/chart-gen", alias: "图表生成", description: "通过 AI 生成图表配置", default_enabled: true,
     },
     BuiltinDef {
         id: BUILTIN_CODEEDIT_ID,
-        name: "@axagent/code-edit",
-        default_enabled: false,
+        name: "@axagent/code-edit", alias: "代码编辑", description: "精确的代码编辑和替换", default_enabled: false,
     },
     BuiltinDef {
         id: BUILTIN_GIT_ID,
-        name: "@axagent/git",
-        default_enabled: false,
+        name: "@axagent/git", alias: "Git 操作", description: "查看状态、差异、提交、日志、分支", default_enabled: false,
     },
     BuiltinDef {
         id: BUILTIN_CRON_ID,
-        name: "@axagent/cron",
-        default_enabled: false,
+        name: "@axagent/cron", alias: "定时任务", description: "添加、列表、删除定时任务", default_enabled: false,
     },
 ];
 
@@ -227,6 +173,8 @@ fn make_preset_server(def: &PresetDef) -> McpServer {
     McpServer {
         id: def.id.to_string(),
         name: def.name.to_string(),
+        alias: None,
+        description: None,
         transport: def.transport.to_string(),
         command: Some("npx".to_string()),
         args_json: Some(serde_json::json!(["-y", def.package]).to_string()),
@@ -262,6 +210,8 @@ fn make_builtin_server(def: &BuiltinDef, enabled: bool) -> McpServer {
     McpServer {
         id: def.id.to_string(),
         name: def.name.to_string(),
+        alias: Some(def.alias.to_string()),
+        description: Some(def.description.to_string()),
         transport: "builtin".to_string(),
         command: None,
         args_json: None,
@@ -335,6 +285,8 @@ fn model_to_mcp_server(m: mcp_servers::Model) -> McpServer {
     McpServer {
         id: m.id,
         name: m.name,
+        alias: m.alias,
+        description: m.description,
         transport: m.transport,
         command: m.command,
         args_json: m.args_json,
@@ -364,6 +316,8 @@ pub async fn ensure_preset_servers(db: &DatabaseConnection) -> Result<()> {
             mcp_servers::ActiveModel {
                 id: Set(server.id.clone()),
                 name: Set(server.name.clone()),
+                alias: Set(server.alias.clone()),
+                description: Set(server.description.clone()),
                 transport: Set(server.transport.clone()),
                 command: Set(server.command.clone()),
                 args_json: Set(server.args_json.clone()),
@@ -441,6 +395,8 @@ pub async fn create_mcp_server(
     mcp_servers::ActiveModel {
         id: Set(id.clone()),
         name: Set(input.name),
+        alias: Set(input.alias),
+        description: Set(input.description),
         transport: Set(input.transport),
         command: Set(input.command),
         args_json: Set(args_json),
@@ -520,8 +476,13 @@ pub async fn update_mcp_server(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("McpServer {}", id)))?;
 
+    let alias = input.alias.or(existing.alias);
+    let description = input.description.or(existing.description);
+
     let mut am: mcp_servers::ActiveModel = model.into();
     am.name = Set(name);
+    am.alias = Set(alias);
+    am.description = Set(description);
     am.transport = Set(transport);
     am.command = Set(command);
     am.args_json = Set(args_json);

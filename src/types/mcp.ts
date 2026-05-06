@@ -7,6 +7,10 @@ export type McpServerSource = "builtin" | "custom";
 export type McpServer = {
   id: string;
   name: string;
+  /** 用户友好别名（如 "网页搜索"、"文件系统"） */
+  alias?: string;
+  /** 功能描述（如 "通过 DuckDuckGo 搜索网页"） */
+  description?: string;
   transport: McpTransport;
   command?: string;
   argsJson?: string;
@@ -21,6 +25,8 @@ export type McpServer = {
   iconType?: string;
   iconValue?: string;
 };
+
+export type McpMode = "auto" | "manual" | "disabled";
 
 export type ToolDescriptor = {
   id: string;

@@ -226,12 +226,14 @@ interface ConversationState {
   searchEnabled: boolean;
   searchProviderId: string | null;
   thinkingBudget: number | null;
+  mcpMode: "auto" | "manual" | "disabled";
   enabledMcpServerIds: string[];
   enabledKnowledgeBaseIds: string[];
   enabledMemoryNamespaceIds: string[];
   setSearchEnabled: (enabled: boolean) => void;
   setSearchProviderId: (id: string | null) => void;
   toggleMcpServer: (id: string) => void;
+  setMcpMode: (mode: "auto" | "manual" | "disabled") => void;
   setThinkingBudget: (budget: number | null) => void;
   toggleKnowledgeBase: (id: string) => void;
   toggleMemoryNamespace: (id: string) => void;
@@ -257,9 +259,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   searchEnabled: usePreferenceStore.getState().searchEnabled,
   searchProviderId: usePreferenceStore.getState().searchProviderId,
   thinkingBudget: usePreferenceStore.getState().thinkingBudget,
+  mcpMode: usePreferenceStore.getState().mcpMode,
   enabledMcpServerIds: usePreferenceStore.getState().enabledMcpServerIds,
   enabledKnowledgeBaseIds: usePreferenceStore.getState().enabledKnowledgeBaseIds,
   enabledMemoryNamespaceIds: usePreferenceStore.getState().enabledMemoryNamespaceIds,
+  setMcpMode: (mode: "auto" | "manual" | "disabled") => {
+    usePreferenceStore.getState().setMcpMode(mode);
+    set({ mcpMode: mode });
+  },
   setSearchEnabled: (enabled) => {
     usePreferenceStore.getState().setSearchEnabled(enabled);
     set({ searchEnabled: enabled });
@@ -464,6 +471,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       searchEnabled: prefState.searchEnabled,
       searchProviderId: prefState.searchProviderId,
       thinkingBudget: prefState.thinkingBudget,
+      mcpMode: prefState.mcpMode,
       enabledMcpServerIds: prefState.enabledMcpServerIds,
       enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
       enabledMemoryNamespaceIds: prefState.enabledMemoryNamespaceIds,

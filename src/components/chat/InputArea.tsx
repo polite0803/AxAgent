@@ -271,6 +271,8 @@ export function InputArea() {
   const loadMcpServers = useMcpStore((s) => s.loadServers);
   const enabledMcpServerIds = useConversationStore((s) => s.enabledMcpServerIds);
   const toggleMcpServer = useConversationStore((s) => s.toggleMcpServer);
+  const mcpMode = useConversationStore((s) => s.mcpMode);
+  const setMcpMode = useConversationStore((s) => s.setMcpMode);
 
   // Thinking state
   const thinkingBudget = useConversationStore((s) => s.thinkingBudget);
@@ -474,25 +476,17 @@ export function InputArea() {
     [setSearchEnabled, setSearchProviderId],
   );
 
-  // MCP popover content — grouped by builtin/custom with checkboxes
+  // MCP popover content — mode selector + checkboxes with alias/description
   const mcpPopoverContent = useMemo(() => {
     const enabledServers = mcpServers.filter((s) => s.enabled);
     if (enabledServers.length === 0) {
       return (
-        <div style={{ padding: "8px 0", minWidth: 180 }}>
+        <div style={{ padding: "8px 0", minWidth: 220 }}>
           <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
             {t("chat.mcp.noServers")}
           </div>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, fontSize: 12 }}
-            onClick={() => {
-              setMcpPopoverOpen(false);
-              setSettingsSection("mcpServers");
-              navigate("/settings");
-            }}
-          >
+          <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }}
+            onClick={() => { setMcpPopoverOpen(false); setSettingsSection("mcpServers"); navigate("/settings"); }}>
             {t("chat.mcp.goConfig")}
           </Button>
         </div>
@@ -501,21 +495,33 @@ export function InputArea() {
 
     const builtinServers = enabledServers.filter((s) => s.source === "builtin");
     const customServers = enabledServers.filter((s) => s.source === "custom");
+    const isManual = mcpMode === "manual";
 
     const renderGroup = (title: string, servers: typeof mcpServers) => (
       <div key={title}>
-        <div style={{ fontSize: 11, color: token.colorTextSecondary, padding: "4px 0", fontWeight: 600 }}>
-          {title}
-        </div>
+        <div style={{ fontSize: 11, color: token.colorTextSecondary, padding: "4px 0", fontWeight: 600 }}>{title}</div>
         {servers.map((server) => (
           <div key={server.id} style={{ padding: "3px 0" }}>
             <Checkbox
               checked={enabledMcpServerIds.includes(server.id)}
+              disabled={!isManual}
               onChange={() => toggleMcpServer(server.id)}
             >
               <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <McpServerIcon server={server} size={18} />
-                {server.name}
+                <span>
+                  <span style={{ fontWeight: 500 }}>{server.alias || server.name}</span>
+                  {server.description && (
+                    <span style={{ display: "block", fontSize: 11, color: token.colorTextSecondary, lineHeight: "16px" }}>
+                      {server.description}
+                    </span>
+                  )}
+                  {server.alias && (
+                    <span style={{ display: "block", fontSize: 10, color: token.colorTextQuaternary, lineHeight: "14px" }}>
+                      {server.name}
+                    </span>
+                  )}
+                </span>
               </span>
             </Checkbox>
           </div>
@@ -524,7 +530,27 @@ export function InputArea() {
     );
 
     return (
-      <div style={{ minWidth: 180, maxHeight: 300, overflowY: "auto" }}>
+      <div style={{ minWidth: 260, maxHeight: 360, overflowY: "auto", padding: "4px 0" }}>
+        {/* Mode selector */}
+        <div style={{ padding: "4px 0 8px", borderBottom: `1px solid ${token.colorBorderSecondary}`, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 6 }}>MCP 模式</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["auto", "manual", "disabled"] as const).map((mode) => (
+              <Button
+                key={mode}
+                size="small"
+                type={mcpMode === mode ? "primary" : "default"}
+                onClick={() => setMcpMode(mode)}
+                style={{ flex: 1, fontSize: 11 }}
+              >
+                {mode === "auto" ? "自动" : mode === "manual" ? "手动" : "禁用"}
+              </Button>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: token.colorTextQuaternary, marginTop: 4 }}>
+            {mcpMode === "auto" ? "自动启用所有内置 MCP 工具" : mcpMode === "manual" ? "手动选择需要启用的 MCP 服务器" : "禁用所有 MCP 工具调用"}
+          </div>
+        </div>
         {builtinServers.length > 0 && renderGroup(t("settings.mcp.builtin"), builtinServers)}
         {builtinServers.length > 0 && customServers.length > 0 && (
           <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, margin: "6px 0" }} />
@@ -532,7 +558,7 @@ export function InputArea() {
         {customServers.length > 0 && renderGroup(t("settings.mcp.custom"), customServers)}
       </div>
     );
-  }, [mcpServers, enabledMcpServerIds, toggleMcpServer, token, t]);
+  }, [mcpServers, enabledMcpServerIds, toggleMcpServer, mcpMode, setMcpMode, token, t]);
 
   const thinkingOptions = useMemo(() => [
     { key: "default", label: t("chat.thinking.default"), value: null },
