@@ -28,7 +28,7 @@ regex = "1"
 fastrand = "2.0"
 urlencoding = "2.1"
 reqwest = { workspace = true }
-scraper = "0.20"
+scraper = "0.22"
 url = "2.4"
 pdf-extract = "0.8"
 docx-rs = "0.4"
