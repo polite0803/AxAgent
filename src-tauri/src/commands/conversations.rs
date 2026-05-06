@@ -976,6 +976,7 @@ async fn execute_tool_call(
 ) -> (String, bool) {
     // Handle builtin web_search — use DuckDuckGo Instant Answer API
     if tool_call.function.name == "web_search" {
+        tracing::info!("[web_search] LLM called web_search function");
         let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
             .unwrap_or(serde_json::Value::Null);
         let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("").to_string();
@@ -985,7 +986,7 @@ async fn execute_tool_call(
         // Append current year for recency
         let current_year = chrono::Local::now().format("%Y").to_string();
         let search_query = if query.contains(&current_year) { query } else { format!("{} {}", query, current_year) };
-        tracing::info!("[web_search] query='{}'", search_query);
+        tracing::info!("[web_search] executing query='{}'", search_query);
 
         // DuckDuckGo Instant Answer API (JSON, no key needed)
         let ddg_url = format!(
@@ -2533,7 +2534,15 @@ pub async fn send_message(
         &state.sea_db,
     )
     .await
-    .map(|providers| providers.iter().any(|p| p.enabled))
+    .map(|providers| {
+        let enabled = providers.iter().any(|p| p.enabled);
+        tracing::info!(
+            "[send_message] search providers: total={}, enabled={}",
+            providers.len(),
+            enabled
+        );
+        enabled
+    })
     .unwrap_or(false);
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
@@ -2541,6 +2550,7 @@ pub async fn send_message(
         let mut all_tools = Vec::new();
         // Auto-include web_search if any search provider is configured
         if has_search_provider {
+            tracing::info!("[send_message] injecting web_search tool into tools list");
             all_tools.push(ChatTool {
                 r#type: "function".to_string(),
                 function: ChatToolFunction {
