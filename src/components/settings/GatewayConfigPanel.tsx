@@ -1,6 +1,6 @@
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS, type PlatformConfig } from "@/types/platform";
-import { Card, Input, Select, Switch, Typography } from "antd";
+import { App, Card, Input, Select, Switch, Typography } from "antd";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -117,14 +117,20 @@ export function GatewayConfigPanel() {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<Partial<PlatformConfig>>({});
 
+  const { message } = App.useApp();
+
   const handleChange = (key: keyof PlatformConfig, value: unknown) => {
     // Immediately update local store state for responsive UI
     usePlatformStore.setState((s) => ({ config: { ...s.config, [key]: value } }));
     // Debounce backend save to avoid excessive API calls on rapid input
     (pendingRef.current as Record<string, unknown>)[key] = value;
     if (debounceTimer.current) { clearTimeout(debounceTimer.current); }
-    debounceTimer.current = setTimeout(() => {
-      saveConfig(pendingRef.current);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        await saveConfig(pendingRef.current);
+      } catch (e) {
+        message.error(`保存配置失败: ${String(e)}`);
+      }
       pendingRef.current = {};
     }, 300);
   };

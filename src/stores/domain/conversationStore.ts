@@ -817,8 +817,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     // Create assistant placeholder upfront (for search status or streaming)
     const tempAssistantId = `temp-assistant-${Date.now()}`;
-    const kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-    const memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+    kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
+    memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
     const hasKnowledgeRag = kbIds.length > 0;
     const hasMemoryRag = memIds.length > 0;
     const hasAnyRag = hasKnowledgeRag || hasMemoryRag;
@@ -859,9 +859,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       setStreamUiFlushTimer(null);
     }
 
+    let finalContent = content;
+    let mcpIds: string[] = [];
+    let thinkingBudget: number | undefined;
+    let kbIds: string[] = [];
+    let memIds: string[] = [];
     try {
       // If web search is enabled, execute search before sending to backend
-      let finalContent = content;
       if (searchProviderId) {
         let searchResultTag = "";
         try {
@@ -889,10 +893,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         setStreamPrefix(kbPart + memPart);
       }
 
-      const mcpIds = usePreferenceStore.getState().enabledMcpServerIds;
-      const thinkingBudget = getEffectiveThinkingBudget(conversationId);
-      const kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-      const memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      mcpIds = usePreferenceStore.getState().enabledMcpServerIds;
+      thinkingBudget = getEffectiveThinkingBudget(conversationId);
+      kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
+      memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
       const userMessage = await invoke<Message>("send_message", {
         conversationId,
         content: finalContent,
@@ -939,7 +943,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         && !errMsg.includes("invalid_api_key") // auth
         && !errMsg.includes("context_length_exceeded"); // context too long
 
-      // Try fallback models before showing error
+      // Try fallback models before showing error (use loop, not recursion)
       if (isRetryable) {
         const conversation = get().conversations.find(c => c.id === conversationId);
         const currentProviderId = conversation?.provider_id;
@@ -947,45 +951,36 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
         if (currentProviderId && currentModelId) {
           const fallbackChain = buildFallbackChain(currentProviderId, currentModelId);
+          let fallbackSucceeded = false;
           for (let i = 0; i < fallbackChain.length; i++) {
             const fb = fallbackChain[i];
             try {
-              // Switch conversation to fallback model
-              await get().updateConversation(conversationId, {
-                provider_id: fb.providerId,
-                model_id: fb.model_id,
-              });
-
-              // Re-check streaming guard
+              await get().updateConversation(conversationId, { provider_id: fb.providerId, model_id: fb.model_id });
               const currentActiveStreams = useStreamStore.getState().activeStreams;
-              if (isConvStreaming(currentActiveStreams, conversationId)) {
-                return; // Another stream started, abort fallback
-              }
-
-              // Reset placeholder for retry
-              const currentStreamingMessageId = getStreamingMessageId(
-                useStreamStore.getState().activeStreams,
-                conversationId,
-              );
-              set((s) => {
-                const filtered = s.messages.filter(m =>
-                  m.id !== currentStreamingMessageId
-                  && !(m.status === "error" && m.role === "assistant" && m.content === errMsg)
-                );
-                return { messages: filtered };
+              if (isConvStreaming(currentActiveStreams, conversationId)) { return; }
+              // Remove error placeholder
+              const currentMsgId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
+              set((s) => ({ messages: s.messages.filter(m => m.id !== currentMsgId && !(m.status === "error" && m.role === "assistant" && m.content === errMsg)) }));
+              // Re-invoke send_message directly (not recursive sendMessage)
+              await invoke("send_message", {
+                conversationId, content: finalContent, attachments,
+                enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
+                thinkingBudget,
+                enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
+                enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
               });
-
-              // Retry sendMessage — uses the conversation's now-updated model
-              await get().sendMessage(content, attachments, searchProviderId);
-              return; // Success! Fallback worked.
-            } catch (fallbackError) {
-              console.warn(
-                `[sendMessage] Fallback ${i + 1}/${fallbackChain.length} (${fb.model_id}) also failed:`,
-                fallbackError,
-              );
-              // Continue to next fallback
-            }
+              // Re-start stream
+              const newTempId = `temp-assistant-${Date.now()}`;
+              useStreamStore.setState((s) => ({
+                ...startConversationStream(s.activeStreams, conversationId, newTempId),
+                streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+                thinkingActiveMessageIds: new Set<string>(),
+              }));
+              fallbackSucceeded = true;
+              break;
+            } catch (_fallbackErr) { /* continue to next */ }
           }
+          if (fallbackSucceeded) { return; }
         }
       }
 
@@ -1083,7 +1078,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       id: currentMsgId,
       conversation_id: conversationId,
       role: "assistant",
-      content: "",
+      content: "🔄 正在思考...",
       provider_id: providerId,
       model_id: model_id,
       token_count: null,

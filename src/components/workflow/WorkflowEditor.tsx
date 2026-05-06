@@ -402,6 +402,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         useWorkflowEditorStore.getState().addNode(workflowNode);
       } catch (error) {
         console.error("Failed to drop node:", error);
+        message.error(`节点放置失败: ${String(error)}`);
       } finally {
         clearDragPayload();
       }

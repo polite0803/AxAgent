@@ -887,10 +887,10 @@ pub async fn plan_execute(
     }
     let steps_json = serde_json::to_string(&updated_steps).unwrap_or_default();
 
-    let _has_errors = updated_steps
+    let has_errors = updated_steps
         .iter()
         .any(|s| s.status == PlanStepStatus::Error);
-    let final_status = "completed";
+    let final_status = if has_errors { "partial" } else { "completed" };
 
     let mut am2: axagent_core::entity::plans::ActiveModel = plan_row.into();
     am2.steps_json = Set(steps_json);
