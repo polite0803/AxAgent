@@ -1,9 +1,67 @@
+use std::net::IpAddr;
 use std::time::Instant;
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{AxAgentError, Result};
+
+/// SSRF protection: check if a URL points to a private/internal address
+pub fn is_safe_url(url_str: &str) -> bool {
+    // Parse URL
+    let parsed = match reqwest::Url::parse(url_str) {
+        Ok(u) => u,
+        Err(_) => return false,
+    };
+
+    // Only allow http/https
+    match parsed.scheme() {
+        "http" | "https" => {}
+        _ => return false,
+    }
+
+    // Extract host
+    let host = match parsed.host_str() {
+        Some(h) => h,
+        None => return false,
+    };
+
+    // Block bare hostnames that resolve to localhost
+    let host_lower = host.to_lowercase();
+    if host_lower == "localhost"
+        || host_lower == "0.0.0.0"
+        || host_lower.starts_with("127.")
+        || host_lower.starts_with("10.")
+        || host_lower.starts_with("192.168.")
+        || host_lower == "[::1]"
+    {
+        return false;
+    }
+
+    // Check 172.16.0.0/12
+    if host_lower.starts_with("172.") {
+        if let Some(second) = host_lower.split('.').nth(1) {
+            if let Ok(n) = second.parse::<u32>() {
+                if (16..=31).contains(&n) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Resolve hostname and check IP
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        let is_private = match ip {
+            IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_unspecified(),
+            IpAddr::V6(v6) => v6.is_loopback() || v6.is_unspecified(),
+        };
+        if is_private {
+            return false;
+        }
+    }
+
+    true
+}
 
 // ── Response types ────────────────────────────────────────
 

@@ -51,8 +51,9 @@ impl Tool for WebFetchTool {
         }
 
         // SSRF 保护：禁止内网地址
-        if url.contains("localhost") || url.contains("127.0.0.1") || url.contains("0.0.0.0") {
-            return Err(ToolError::permission_denied("WebFetch", "禁止访问本地地址"));
+        // SSRF protection: block private/internal IPs
+        if !axagent_core::search::is_safe_url(&url) {
+            return Err(ToolError::permission_denied("WebFetch", "禁止访问内网地址"));
         }
 
         if !ctx.allow_network {
@@ -110,8 +111,15 @@ impl Tool for WebFetchTool {
                 body
             };
 
+        // Use prompt to guide extraction (prepend to output for LLM context)
+        let extraction_hint = if prompt != "提取页面主要内容" {
+            format!("[提取目标: {}]\n\n", prompt)
+        } else {
+            String::new()
+        };
+
         let result = format!(
-            "## URL: {}\n状态: {}\nContent-Type: {}\n\n{}\n\n提示: {}\n",
+            "## URL: {}\n状态: {}\nContent-Type: {}\n\n{}{}",
             url,
             status,
             content_type,
@@ -120,7 +128,7 @@ impl Tool for WebFetchTool {
             } else {
                 extracted
             },
-            prompt
+            extraction_hint
         );
 
         if result.len() > MAX_CONTENT_LENGTH {
