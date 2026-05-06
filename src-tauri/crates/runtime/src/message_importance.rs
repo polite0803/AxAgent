@@ -81,7 +81,7 @@ pub fn select_top_messages(messages: &[ConversationMessage], keep_count: usize) 
         .collect();
 
     // 按分数降序排列（稳定排序保证同分时保持原序）
-    scored.sort_by(|a, b| b.1.cmp(&a.1));
+    scored.sort_by_key(|b| std::cmp::Reverse(b.1));
 
     // 取前 N 条，恢复原始顺序
     let mut indices: Vec<usize> = scored.iter().take(actual_keep).map(|(i, _)| *i).collect();

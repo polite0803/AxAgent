@@ -3940,7 +3940,7 @@ mod tests {
         let _ = fs::remove_dir_all(&temp_dir);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     #[allow(clippy::disallowed_types)]
     async fn persist_attachments_registers_stored_files_for_files_page() {
         use base64::Engine;

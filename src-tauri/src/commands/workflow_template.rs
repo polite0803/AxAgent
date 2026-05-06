@@ -596,18 +596,6 @@ fn infer_agent_from_n8n(
             "senior-developer",
             "高级开发工程师: 精通多种语言和框架，遵循最佳实践。编写清晰、高效、可维护的代码。",
         )
-    } else if t.contains("ai")
-        || t.contains("llm")
-        || t.contains("openai")
-        || t.contains("anthropic")
-        || t.contains("chat")
-    {
-        (
-            "general-assistant",
-            "coordinator",
-            "general-assistant",
-            "通用AI助手: 全能型助手，处理各类任务和问题。",
-        )
     } else if t.contains("email")
         || t.contains("slack")
         || t.contains("notify")
@@ -619,6 +607,18 @@ fn infer_agent_from_n8n(
             "coordinator",
             "product-manager",
             "产品经理: 沟通协调、需求分析和通知管理。",
+        )
+    } else if t.contains("ai")
+        || t.contains("llm")
+        || t.contains("openai")
+        || t.contains("anthropic")
+        || t.contains("chat")
+    {
+        (
+            "general-assistant",
+            "coordinator",
+            "general-assistant",
+            "通用AI助手: 全能型助手，处理各类任务和问题。",
         )
     } else if t.contains("file")
         || t.contains("csv")
@@ -1385,6 +1385,7 @@ mod tests {
     #[test]
     fn test_extract_goal_http_node() {
         let node = json!({
+            "type": "n8n-nodes-base.httpRequest",
             "parameters": {
                 "method": "GET",
                 "url": "https://api.example.com/users"
@@ -1398,6 +1399,7 @@ mod tests {
     #[test]
     fn test_extract_goal_database_node() {
         let node = json!({
+            "type": "n8n-nodes-base.postgres",
             "parameters": {
                 "operation": "SELECT",
                 "table": "orders"
@@ -1411,6 +1413,7 @@ mod tests {
     #[test]
     fn test_extract_goal_email_node() {
         let node = json!({
+            "type": "n8n-nodes-base.emailSend",
             "parameters": {
                 "subject": "Weekly Report"
             }
@@ -1423,6 +1426,8 @@ mod tests {
     fn test_extract_goal_empty_node() {
         let node = json!({});
         let goal = extract_goal_from_n8n(&node);
-        assert!(goal.is_empty());
+        // 无任何字段时返回 "Unnamed ()"
+        assert!(!goal.is_empty());
+        assert!(goal.starts_with("Unnamed"));
     }
 }

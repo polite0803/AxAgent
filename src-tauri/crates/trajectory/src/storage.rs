@@ -63,10 +63,10 @@ impl TrajectoryStorage {
         })
     }
 
-    /// 安全地 block_on：如果已在 tokio runtime 中则复用当前句柄，否则创建新的
+    /// 安全地 block_on：检测当前 runtime 上下文，避免嵌套 runtime panic
     fn block_on<F: std::future::Future>(f: F) -> F::Output {
         match tokio::runtime::Handle::try_current() {
-            Ok(handle) => handle.block_on(f),
+            Ok(handle) => tokio::task::block_in_place(move || handle.block_on(f)),
             Err(_) => tokio::runtime::Runtime::new()
                 .expect("Failed to create Tokio runtime")
                 .block_on(f),
