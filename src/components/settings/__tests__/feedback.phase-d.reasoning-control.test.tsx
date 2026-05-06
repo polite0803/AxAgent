@@ -9,8 +9,9 @@ function readSource(...segments: string[]) {
 describe("Phase D reasoning control regressions", () => {
   it("preserves explicit zero thinking budgets for Gemini requests so the provider sees a disable signal", () => {
     const source = readSource("src-tauri/crates/providers/src/gemini.rs");
+    const normalized = source.replace(/\s+/g, "");
 
-    expect(source).toContain("request.thinking_budget.map(|b| GeminiThinkingConfig { thinking_budget: b })");
+    expect(normalized).toContain("request.thinking_budget.map(|b|GeminiThinkingConfig{thinking_budget:b}");
   });
 
   it("suppresses returned thinking blocks when the user explicitly disables reasoning", () => {

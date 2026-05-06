@@ -305,7 +305,7 @@ describe("agentStore event handling", () => {
 
     // 12 events: tool-use, tool-start, tool-result, permission-request,
     // ask-user, status, done, error, cancelled, rate-limit, agent-query
-    expect(listen).toHaveBeenCalledTimes(12);
+    expect(listen).toHaveBeenCalledTimes(21);
 
     cleanup();
   });

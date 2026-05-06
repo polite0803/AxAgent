@@ -49,8 +49,10 @@ pub fn default_endpoint(provider_type: &str) -> &'static str {
     }
 }
 
-// ── Main search dispatch ──────────────────────────────────
+// ── Main search dispatch (unified entry point) ──────────────
 
+/// Unified search: tries configured provider first, falls back to DDG.
+/// All search paths (Agent, Q&A, MCP) should call this single function.
 pub async fn execute_search(
     provider_type: &str,
     endpoint: Option<&str>,
@@ -61,35 +63,61 @@ pub async fn execute_search(
 ) -> Result<SearchResponse> {
     let start = Instant::now();
 
+    // 1. Try the configured search provider
     let result = match provider_type {
         "tavily" => search_tavily(endpoint, api_key, query, max_results, timeout_ms).await,
         "zhipu" => search_zhipu(endpoint, api_key, query, max_results, timeout_ms).await,
         "bocha" => search_bocha(endpoint, api_key, query, max_results, timeout_ms).await,
+        "serpapi" => search_serpapi(endpoint, api_key, query, max_results, timeout_ms).await,
+        "brave" => search_brave(endpoint, api_key, query, max_results, timeout_ms).await,
+        "bing" => search_bing(endpoint, api_key, query, max_results, timeout_ms).await,
+        "google_pse" => search_google_pse(endpoint, api_key, query, max_results, timeout_ms).await,
         _ => {
-            return Err(AxAgentError::Validation(format!(
-                "Unsupported provider type: {}",
-                provider_type
-            )));
+            // Unknown or DDG — go straight to fallback
+            Err(AxAgentError::Provider("unknown provider type, using fallback".to_string()))
         },
     };
 
     let latency = start.elapsed().as_millis() as u64;
 
     match result {
-        Ok(results) => Ok(SearchResponse {
-            ok: true,
-            query: query.to_string(),
-            results,
-            latency_ms: latency,
-            error: None,
+        Ok(results) if !results.is_empty() => Ok(SearchResponse {
+            ok: true, query: query.to_string(), results, latency_ms: latency, error: None,
         }),
-        Err(e) => Ok(SearchResponse {
-            ok: false,
-            query: query.to_string(),
-            results: vec![],
-            latency_ms: latency,
-            error: Some(e.to_string()),
-        }),
+        _ => {
+            // 2. DuckDuckGo fallback
+            let ddg = search_duckduckgo(query, max_results).await;
+            let latency = start.elapsed().as_millis() as u64;
+            match ddg {
+                Ok(results) => Ok(SearchResponse {
+                    ok: true, query: query.to_string(), results, latency_ms: latency, error: None,
+                }),
+                Err(e) => Ok(SearchResponse {
+                    ok: false, query: query.to_string(), results: vec![], latency_ms: latency, error: Some(e.to_string()),
+                }),
+            }
+        }
+    }
+}
+
+/// Unified search that returns formatted text (for LLM consumption)
+pub async fn execute_search_text(
+    provider_type: &str,
+    endpoint: Option<&str>,
+    api_key: &str,
+    query: &str,
+    max_results: i32,
+    timeout_ms: i32,
+) -> String {
+    match execute_search(provider_type, endpoint, api_key, query, max_results, timeout_ms).await {
+        Ok(resp) if resp.ok => {
+            let lines: Vec<String> = resp.results.iter().enumerate()
+                .map(|(i, r)| format!("{}. {}\n   {}\n   {}", i + 1, r.title, r.content, r.url))
+                .collect();
+            format!("Web search results for '{}':\n{}", query, lines.join("\n"))
+        }
+        Ok(resp) => format!("Search failed: {}", resp.error.unwrap_or_default()),
+        Err(e) => format!("Search error: {}", e),
     }
 }
 
@@ -381,4 +409,269 @@ async fn search_bocha(
             url: r.url.unwrap_or_default(),
         })
         .collect())
+}
+
+// ── DuckDuckGo (fallback, no API key needed) ────────────────
+
+async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchResult>> {
+    // Try Instant Answer API first
+    let api_url = format!(
+        "https://api.duckduckgo.com/?q={}&format=json&no_html=1&skip_disambig=1&t=axagent",
+        urlencoding::encode(query)
+    );
+    let client = Client::builder()
+        .user_agent("axagent/1.0")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| AxAgentError::Provider(format!("DDG client error: {e}")))?;
+
+    let mut results: Vec<SearchResult> = Vec::new();
+
+    if let Ok(resp) = client.get(&api_url).send().await {
+        if let Ok(json) = resp.json::<serde_json::Value>().await {
+            if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str()) {
+                if !abs.is_empty() {
+                    let url = json.get("AbstractURL").and_then(|v| v.as_str()).unwrap_or("");
+                    results.push(SearchResult {
+                        title: "摘要".to_string(), content: abs.to_string(), url: url.to_string(),
+                    });
+                }
+            }
+            if let Some(topics) = json.get("RelatedTopics").and_then(|v| v.as_array()) {
+                for topic in topics.iter().take(max_results as usize) {
+                    if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
+                        let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
+                        results.push(SearchResult {
+                            title: text.chars().take(80).collect(),
+                            content: text.to_string(),
+                            url: url.to_string(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // HTML fallback if API returned nothing
+    if results.is_empty() {
+        let html_url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
+        if let Ok(resp) = client.get(&html_url).send().await {
+            if let Ok(html) = resp.text().await {
+                for part in html.split("result__snippet").skip(1).take(max_results as usize) {
+                    if let Some(start) = part.find('>') {
+                        if let Some(end) = part[start+1..].find("</") {
+                            let text = part[start+1..start+1+end].trim();
+                            if !text.is_empty() {
+                                results.push(SearchResult {
+                                    title: text.chars().take(80).collect(),
+                                    content: text.to_string(),
+                                    url: String::new(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(results)
+}
+
+// ── SerpAPI ─────────────────────────────────────────────────
+// GET https://serpapi.com/search?q=...&api_key=...&num=N
+
+#[derive(Deserialize)]
+struct SerpApiResponse {
+    organic_results: Option<Vec<SerpApiOrganic>>,
+}
+
+#[derive(Deserialize)]
+struct SerpApiOrganic {
+    title: Option<String>,
+    snippet: Option<String>,
+    link: Option<String>,
+}
+
+async fn search_serpapi(
+    endpoint: Option<&str>,
+    api_key: &str,
+    query: &str,
+    max_results: i32,
+    timeout_ms: i32,
+) -> Result<Vec<SearchResult>> {
+    let url = endpoint.unwrap_or("https://serpapi.com/search");
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_millis(timeout_ms as u64))
+        .build()
+        .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
+
+    let full_url = format!("{}?q={}&api_key={}&num={}", url, urlencoding::encode(query), urlencoding::encode(api_key), max_results);
+    let resp = client.get(&full_url).send().await
+        .map_err(|e| AxAgentError::Provider(format!("SerpAPI request: {e}")))?;
+
+    if !resp.status().is_success() {
+        return Err(AxAgentError::Provider(format!("SerpAPI HTTP {}", resp.status())));
+    }
+    let data: SerpApiResponse = resp.json().await
+        .map_err(|e| AxAgentError::Provider(format!("SerpAPI parse: {e}")))?;
+    let organic = data.organic_results.unwrap_or_default();
+    Ok(organic.into_iter().take(max_results as usize).map(|r| SearchResult {
+        title: r.title.unwrap_or_default(),
+        content: r.snippet.unwrap_or_default(),
+        url: r.link.unwrap_or_default(),
+    }).collect())
+}
+
+// ── Brave Search ────────────────────────────────────────────
+// GET https://api.search.brave.com/res/v1/web/search?q=...
+// Header: X-Subscription-Token
+
+#[derive(Deserialize)]
+struct BraveResponse {
+    web: Option<BraveWeb>,
+}
+
+#[derive(Deserialize)]
+struct BraveWeb {
+    results: Option<Vec<BraveWebResult>>,
+}
+
+#[derive(Deserialize)]
+struct BraveWebResult {
+    title: Option<String>,
+    description: Option<String>,
+    url: Option<String>,
+}
+
+async fn search_brave(
+    endpoint: Option<&str>,
+    api_key: &str,
+    query: &str,
+    max_results: i32,
+    timeout_ms: i32,
+) -> Result<Vec<SearchResult>> {
+    let url = endpoint.unwrap_or("https://api.search.brave.com/res/v1/web/search");
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_millis(timeout_ms as u64))
+        .build()
+        .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
+
+    let full_url = format!("{}?q={}&count={}", url, urlencoding::encode(query), max_results);
+    let resp = client.get(&full_url)
+        .header("X-Subscription-Token", api_key)
+        .header("Accept", "application/json")
+        .send().await
+        .map_err(|e| AxAgentError::Provider(format!("Brave request: {e}")))?;
+
+    if !resp.status().is_success() {
+        return Err(AxAgentError::Provider(format!("Brave HTTP {}", resp.status())));
+    }
+    let data: BraveResponse = resp.json().await
+        .map_err(|e| AxAgentError::Provider(format!("Brave parse: {e}")))?;
+    let web = data.web.and_then(|w| w.results).unwrap_or_default();
+    Ok(web.into_iter().take(max_results as usize).map(|r| SearchResult {
+        title: r.title.unwrap_or_default(),
+        content: r.description.unwrap_or_default(),
+        url: r.url.unwrap_or_default(),
+    }).collect())
+}
+
+// ── Bing Search ─────────────────────────────────────────────
+// GET https://api.bing.microsoft.com/v7.0/search?q=...&count=N
+// Header: Ocp-Apim-Subscription-Key
+
+#[derive(Deserialize)]
+struct BingResponse {
+    #[serde(rename = "webPages")]
+    web_pages: Option<BingWebPages>,
+}
+
+#[derive(Deserialize)]
+struct BingWebPages {
+    value: Option<Vec<BingWebResult>>,
+}
+
+#[derive(Deserialize)]
+struct BingWebResult {
+    name: Option<String>,
+    snippet: Option<String>,
+    url: Option<String>,
+}
+
+async fn search_bing(
+    endpoint: Option<&str>,
+    api_key: &str,
+    query: &str,
+    max_results: i32,
+    timeout_ms: i32,
+) -> Result<Vec<SearchResult>> {
+    let url = endpoint.unwrap_or("https://api.bing.microsoft.com/v7.0/search");
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_millis(timeout_ms as u64))
+        .build()
+        .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
+
+    let full_url = format!("{}?q={}&count={}", url, urlencoding::encode(query), max_results);
+    let resp = client.get(&full_url)
+        .header("Ocp-Apim-Subscription-Key", api_key)
+        .send().await
+        .map_err(|e| AxAgentError::Provider(format!("Bing request: {e}")))?;
+
+    if !resp.status().is_success() {
+        return Err(AxAgentError::Provider(format!("Bing HTTP {}", resp.status())));
+    }
+    let data: BingResponse = resp.json().await
+        .map_err(|e| AxAgentError::Provider(format!("Bing parse: {e}")))?;
+    let web = data.web_pages.and_then(|w| w.value).unwrap_or_default();
+    Ok(web.into_iter().take(max_results as usize).map(|r| SearchResult {
+        title: r.name.unwrap_or_default(),
+        content: r.snippet.unwrap_or_default(),
+        url: r.url.unwrap_or_default(),
+    }).collect())
+}
+
+// ── Google PSE (Programmable Search Engine) ─────────────────
+// GET https://www.googleapis.com/customsearch/v1?q=...&key=...&cx=...
+
+#[derive(Deserialize)]
+struct GooglePseResponse {
+    items: Option<Vec<GooglePseItem>>,
+}
+
+#[derive(Deserialize)]
+struct GooglePseItem {
+    title: Option<String>,
+    snippet: Option<String>,
+    link: Option<String>,
+}
+
+async fn search_google_pse(
+    endpoint: Option<&str>,
+    api_key: &str,
+    query: &str,
+    max_results: i32,
+    timeout_ms: i32,
+) -> Result<Vec<SearchResult>> {
+    let url = endpoint.unwrap_or("https://www.googleapis.com/customsearch/v1");
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_millis(timeout_ms as u64))
+        .build()
+        .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
+
+    let full_url = format!("{}?q={}&key={}&num={}", url, urlencoding::encode(query), urlencoding::encode(api_key), max_results);
+    let resp = client.get(&full_url).send().await
+        .map_err(|e| AxAgentError::Provider(format!("Google PSE request: {e}")))?;
+
+    if !resp.status().is_success() {
+        return Err(AxAgentError::Provider(format!("Google PSE HTTP {}", resp.status())));
+    }
+    let data: GooglePseResponse = resp.json().await
+        .map_err(|e| AxAgentError::Provider(format!("Google PSE parse: {e}")))?;
+    let items = data.items.unwrap_or_default();
+    Ok(items.into_iter().take(max_results as usize).map(|r| SearchResult {
+        title: r.title.unwrap_or_default(),
+        content: r.snippet.unwrap_or_default(),
+        url: r.link.unwrap_or_default(),
+    }).collect())
 }

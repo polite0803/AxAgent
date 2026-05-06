@@ -973,221 +973,35 @@ async fn execute_tool_call(
     db: &sea_orm::DatabaseConnection,
     tool_call: &ToolCall,
     mcp_server_ids: &[String],
+    master_key: &[u8; 32],
 ) -> (String, bool) {
-    // Handle builtin web_search — try configured search provider first, fallback to DDG
+    // Handle builtin web_search — unified via core search engine
     if tool_call.function.name == "web_search" {
-        tracing::info!("[web_search] LLM called web_search function");
-        let args: serde_json::Value =
-            serde_json::from_str(&tool_call.function.arguments).unwrap_or(serde_json::Value::Null);
-        let query = args
-            .get("query")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
+        tracing::info!("[web_search] LLM called");
+        let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
+            .unwrap_or(serde_json::Value::Null);
+        let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("").to_string();
         if query.is_empty() {
-            return (
-                "Error: web_search requires a 'query' parameter".to_string(),
-                true,
-            );
+            return ("Error: web_search requires a 'query' parameter".to_string(), true);
         }
-        let current_year = chrono::Local::now().format("%Y").to_string();
-        let search_query = if query.contains(&current_year) {
-            query
+        let text = if let Ok(providers) = axagent_core::repo::search_provider::list_search_providers(db).await {
+            if let Some(p) = providers.iter().find(|p| p.enabled) {
+                let api_key = axagent_core::entity::search_providers::Entity::find_by_id(&p.id)
+                    .one(db).await.ok().flatten()
+                    .and_then(|e| e.api_key_ref)
+                    .and_then(|enc| axagent_core::crypto::decrypt_key(&enc, master_key).ok())
+                    .unwrap_or_default();
+                axagent_core::search::execute_search_text(
+                    &p.provider_type, p.endpoint.as_deref(), &api_key,
+                    &query, p.result_limit, p.timeout_ms,
+                ).await
+            } else {
+                axagent_core::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
+            }
         } else {
-            format!("{} {}", query, current_year)
+            axagent_core::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
         };
-        tracing::info!("[web_search] executing query='{}'", search_query);
-
-        // 1. Try configured search provider first (with API key)
-        if let Ok(providers) = axagent_core::repo::search_provider::list_search_providers(db).await
-        {
-            if let Some(provider) = providers.iter().find(|p| p.enabled) {
-                if let Some(endpoint) = &provider.endpoint {
-                    if provider.has_api_key {
-                        let entity = axagent_core::entity::search_providers::Entity::find_by_id(
-                            &provider.id,
-                        )
-                        .one(db)
-                        .await
-                        .ok()
-                        .flatten();
-                        if let Some(ref entity) = entity {
-                            if let Some(ref api_key) = entity.api_key_ref {
-                                let client = reqwest::Client::builder()
-                                    .timeout(std::time::Duration::from_secs(15))
-                                    .build()
-                                    .map_err(|e| format!("{}", e));
-                                if let Ok(client) = client {
-                                    let body = serde_json::json!({
-                                        "q": search_query,
-                                        "max_results": std::cmp::min(provider.result_limit, 10)
-                                    });
-                                    match client
-                                        .post(endpoint)
-                                        .header("Content-Type", "application/json")
-                                        .header("Authorization", format!("Bearer {}", api_key))
-                                        .json(&body)
-                                        .send()
-                                        .await
-                                    {
-                                        Ok(resp) => {
-                                            let resp_status = resp.status();
-                                            if resp_status.is_success() {
-                                                if let Ok(json) =
-                                                    resp.json::<serde_json::Value>().await
-                                                {
-                                                    let results = json
-                                                        .get("results")
-                                                        .or_else(|| json.get("organic"))
-                                                        .or_else(|| json.get("data"))
-                                                        .and_then(|v| v.as_array())
-                                                        .map(|arr| {
-                                                            arr.iter()
-                                                                .filter_map(|r| {
-                                                                    let title = r
-                                                                        .get("title")
-                                                                        .and_then(|v| v.as_str())
-                                                                        .unwrap_or("");
-                                                                    let u = r
-                                                                        .get("url")
-                                                                        .or(r.get("link"))
-                                                                        .and_then(|v| v.as_str())
-                                                                        .unwrap_or("");
-                                                                    let snippet = r
-                                                                        .get("snippet")
-                                                                        .or(r.get("content"))
-                                                                        .or(r.get("description"))
-                                                                        .and_then(|v| v.as_str())
-                                                                        .unwrap_or("");
-                                                                    if title.is_empty()
-                                                                        && snippet.is_empty()
-                                                                    {
-                                                                        None
-                                                                    } else {
-                                                                        let url_str =
-                                                                            if u.is_empty() {
-                                                                                String::new()
-                                                                            } else {
-                                                                                format!(" ({})", u)
-                                                                            };
-                                                                        Some(format!(
-                                                                            "- {} {}{}",
-                                                                            title, snippet, url_str
-                                                                        ))
-                                                                    }
-                                                                })
-                                                                .collect::<Vec<_>>()
-                                                        })
-                                                        .unwrap_or_default();
-                                                    if !results.is_empty() {
-                                                        tracing::info!("[web_search] provider returned {} results", results.len());
-                                                        return (
-                                                            format!(
-                                                                "Web search results for '{}':\n{}",
-                                                                search_query,
-                                                                results.join("\n")
-                                                            ),
-                                                            false,
-                                                        );
-                                                    }
-                                                }
-                                            }
-                                            tracing::warn!("[web_search] provider HTTP {}, falling back to DDG", resp_status.as_u16());
-                                        },
-                                        Err(e) => tracing::warn!(
-                                            "[web_search] provider error: {}, falling back to DDG",
-                                            e
-                                        ),
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Fallback: DuckDuckGo Instant Answer API
-        tracing::info!("[web_search] using DuckDuckGo fallback");
-        let ddg_url = format!(
-            "https://api.duckduckgo.com/?q={}&format=json&no_html=1&skip_disambig=1&t=axagent",
-            urlencoding::encode(&search_query)
-        );
-        let client = match reqwest::Client::builder().user_agent("axagent/1.0").build() {
-            Ok(c) => c,
-            Err(e) => return (format!("web_search client error: {}", e), true),
-        };
-        let mut results: Vec<String> = Vec::new();
-        // DDG Instant Answer API
-        if let Ok(resp) = client.get(&ddg_url).send().await {
-            if let Ok(json) = resp.json::<serde_json::Value>().await {
-                if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str()) {
-                    if !abs.is_empty() {
-                        results.push(format!("摘要: {}", abs));
-                        if let Some(url) = json.get("AbstractURL").and_then(|v| v.as_str()) {
-                            if !url.is_empty() {
-                                results.push(format!("来源: {}", url));
-                            }
-                        }
-                    }
-                }
-                if let Some(topics) = json.get("RelatedTopics").and_then(|v| v.as_array()) {
-                    for topic in topics.iter().take(8) {
-                        if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
-                            let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
-                            let url_part = if url.is_empty() {
-                                String::new()
-                            } else {
-                                format!(" ({})", url)
-                            };
-                            results.push(format!("- {}{}", text, url_part));
-                        }
-                    }
-                }
-            }
-        }
-        // DDG HTML fallback
-        if results.is_empty() {
-            let html_url = format!(
-                "https://html.duckduckgo.com/html/?q={}",
-                urlencoding::encode(&search_query)
-            );
-            if let Ok(resp) = client
-                .get(&html_url)
-                .header("User-Agent", "axagent/1.0")
-                .send()
-                .await
-            {
-                if let Ok(html) = resp.text().await {
-                    for (i, part) in html.split("result__snippet").skip(1).take(5).enumerate() {
-                        if let Some(start) = part.find('>') {
-                            if let Some(end) = part[start + 1..].find("</") {
-                                let text = part[start + 1..start + 1 + end].trim();
-                                if !text.is_empty() {
-                                    results.push(format!("{}. {}", i + 1, text));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if results.is_empty() {
-            return (format!("web_search '{}': 未找到结果", search_query), false);
-        }
-        tracing::info!(
-            "[web_search] '{}' -> {} results",
-            search_query,
-            results.len()
-        );
-        return (
-            format!(
-                "Web search results for '{}':\n{}",
-                search_query,
-                results.join("\n")
-            ),
-            false,
-        );
+        return (text, false);
     }
 
     let server_and_tool = axagent_core::repo::mcp_server::find_server_for_tool(
@@ -2051,7 +1865,7 @@ fn spawn_stream_task(
 
                 // Execute the tool
                 let start = std::time::Instant::now();
-                let (result_content, is_error) = execute_tool_call(&db, tc, &mcp_server_ids).await;
+                let (result_content, is_error) = execute_tool_call(&db, tc, &mcp_server_ids, &master_key).await;
                 let _duration_ms = start.elapsed().as_millis() as i64;
 
                 // Update execution record

@@ -79,6 +79,16 @@ struct OllamaTagsResponse {
 #[derive(Deserialize)]
 struct OllamaModel {
     name: String,
+    #[allow(dead_code)]
+    details: Option<OllamaModelDetails>,
+}
+
+#[derive(Deserialize)]
+struct OllamaModelDetails {
+    #[allow(dead_code)]
+    family: Option<String>,
+    #[allow(dead_code)]
+    parameter_size: Option<String>,
 }
 
 #[async_trait]
@@ -142,19 +152,34 @@ impl ProviderAdapter for OllamaAdapter {
             .into_iter()
             .map(|m| {
                 let model_type = ModelType::detect(&m.name);
-                let caps = match model_type {
+                let mut caps = match model_type {
                     ModelType::Chat => vec![ModelCapability::TextChat],
                     ModelType::Embedding => vec![],
                     ModelType::Voice => vec![ModelCapability::RealtimeVoice],
                 };
+                // 从 details.family 推断部分能力
+                if let Some(ref details) = m.details {
+                    if let Some(ref family) = details.family {
+                        let fam = family.to_lowercase();
+                        if fam.contains("llava")
+                            || fam.contains("bakllava")
+                            || fam.contains("minicpm")
+                            || fam.contains("moondream")
+                        {
+                            caps.push(ModelCapability::Vision);
+                        }
+                    }
+                }
+                let group_name = m.details.as_ref().and_then(|d| d.family.clone());
+                let max_tokens = axagent_core::model_knowledge::get_model_context_window(&m.name);
                 Model {
                     provider_id: ctx.provider_id.clone(),
                     model_id: m.name.clone(),
                     name: m.name,
-                    group_name: None,
+                    group_name,
                     model_type,
                     capabilities: caps,
-                    max_tokens: None,
+                    max_tokens,
                     enabled: true,
                     param_overrides: None,
                 }

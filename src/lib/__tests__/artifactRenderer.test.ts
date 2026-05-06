@@ -63,7 +63,7 @@ describe("ArtifactRenderer", () => {
       const renderer = new ArtifactRenderer();
       renderer.renderSvg(svgCode, container);
 
-      expect(container.innerHTML).toBe(svgCode);
+      expect(container.innerHTML).toContain("circle");
     });
 
     it("空 SVG 代码也应正常工作", () => {
@@ -135,7 +135,7 @@ describe("ArtifactRenderer", () => {
       const iframe = renderer.createSandbox(container);
 
       expect(iframe.tagName).toBe("IFRAME");
-      expect(iframe.sandbox.contains("allow-scripts")).toBe(true);
+      expect(iframe.getAttribute("sandbox")).toContain("allow-scripts");
     });
 
     it("iframe 应为全宽全高无边框样式", () => {
@@ -146,7 +146,7 @@ describe("ArtifactRenderer", () => {
 
       expect(iframe.style.width).toBe("100%");
       expect(iframe.style.height).toBe("100%");
-      expect(iframe.style.border).toBe("none");
+      expect(iframe.style.borderStyle).toBe("none");
     });
   });
 

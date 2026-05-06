@@ -29,6 +29,13 @@ pub async fn create_search_provider(
     state: tauri::State<'_, AppState>,
     input: CreateSearchProviderInput,
 ) -> Result<SearchProvider, String> {
+    // Encrypt API key before storing
+    let mut input = input;
+    if let Some(ref key) = input.api_key {
+        if !key.is_empty() {
+            input.api_key = Some(axagent_core::crypto::encrypt_key(key, &state.master_key).map_err(|e| e.to_string())?);
+        }
+    }
     axagent_core::repo::search_provider::create_search_provider(&state.sea_db, input)
         .await
         .map_err(|e| e.to_string())
@@ -39,8 +46,13 @@ pub async fn create_search_provider(
 pub async fn update_search_provider(
     state: tauri::State<'_, AppState>,
     id: String,
-    input: CreateSearchProviderInput,
+    mut input: CreateSearchProviderInput,
 ) -> Result<SearchProvider, String> {
+    if let Some(ref key) = input.api_key {
+        if !key.is_empty() {
+            input.api_key = Some(axagent_core::crypto::encrypt_key(key, &state.master_key).map_err(|e| e.to_string())?);
+        }
+    }
     axagent_core::repo::search_provider::update_search_provider(&state.sea_db, &id, input)
         .await
         .map_err(|e| e.to_string())
@@ -61,6 +73,7 @@ pub async fn delete_search_provider(
 async fn get_search_api_key(
     db: &sea_orm::DatabaseConnection,
     id: &str,
+    master_key: &[u8; 32],
 ) -> Result<Option<String>, String> {
     use axagent_core::entity::search_providers;
     use sea_orm::EntityTrait;
@@ -71,7 +84,14 @@ async fn get_search_api_key(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("SearchProvider {} not found", id))?;
 
-    Ok(model.api_key_ref)
+    match model.api_key_ref {
+        Some(ref encrypted) if !encrypted.is_empty() => {
+            axagent_core::crypto::decrypt_key(encrypted, master_key)
+                .map(Some)
+                .map_err(|e| e.to_string())
+        }
+        _ => Ok(None),
+    }
 }
 
 /// 测试搜索提供商网络连通性（仅验证端点可达）
@@ -130,7 +150,7 @@ pub async fn execute_search(
             .await
             .map_err(|e| e.to_string())?;
 
-    let api_key = get_search_api_key(&state.sea_db, &provider_id).await?;
+    let api_key = get_search_api_key(&state.sea_db, &provider_id, &state.master_key).await?;
 
     let Some(endpoint) = &provider.endpoint else {
         return Err("搜索提供商未配置端点".to_string());
@@ -163,12 +183,12 @@ pub async fn execute_search(
         .and_then(|v| v.as_array())
         .map(|arr| {
             arr.iter()
-                .filter_map(|item| {
-                    Some(serde_json::json!({
+                .map(|item| {
+                    serde_json::json!({
                         "title": item.get("title").and_then(|v| v.as_str()).unwrap_or(""),
                         "content": item.get("snippet").or(item.get("content")).or(item.get("description")).and_then(|v| v.as_str()).unwrap_or(""),
                         "url": item.get("url").or(item.get("link")).and_then(|v| v.as_str()).unwrap_or(""),
-                    }))
+                    })
                 })
                 .collect::<Vec<_>>()
         })

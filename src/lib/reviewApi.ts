@@ -28,7 +28,7 @@ export interface UpdateReviewRequest {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
     throw new Error(error.error || `HTTP ${response.status}`);
   }
   return response.json();
@@ -74,7 +74,7 @@ export const reviewApi = {
       method: "DELETE",
     });
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "Unknown error" }));
+      const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
       throw new Error(error.error || `HTTP ${response.status}`);
     }
   },

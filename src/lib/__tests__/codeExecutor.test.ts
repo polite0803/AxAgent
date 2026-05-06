@@ -18,15 +18,17 @@ function createMockPyodide(): { runPythonAsync: ReturnType<typeof vi.fn> } {
 describe("CodeExecutor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
     // 清理 window 上的 Pyodide 残留
     delete (window as any).loadPyodide;
     // 清理之前注入的 script 标签
     document.head.innerHTML = "";
+    // 重置单例的 Pyodide 缓存状态
+    (codeExecutor as any).pyodide = null;
+    (codeExecutor as any).pyodideLoading = null;
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -123,6 +125,7 @@ describe("CodeExecutor", () => {
   // ═══════════════════════════════════════════════════════════════════
   describe("executeJS", () => {
     it("应返回 duration_ms 时间差", async () => {
+      vi.useFakeTimers();
       mockedInvoke.mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -138,6 +141,7 @@ describe("CodeExecutor", () => {
 
       expect(result.duration_ms).toBeGreaterThanOrEqual(0);
       expect(typeof result.duration_ms).toBe("number");
+      vi.useRealTimers();
     });
 
     it("Tauri invoke 异常时应在 stderr 中返回错误信息", async () => {

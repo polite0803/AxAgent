@@ -40,7 +40,7 @@ export class ArtifactRenderer {
 
   createSandbox(_container: HTMLElement): HTMLIFrameElement {
     const iframe = document.createElement("iframe");
-    iframe.sandbox.add("allow-scripts");
+    iframe.setAttribute("sandbox", "allow-scripts");
     iframe.style.width = "100%";
     iframe.style.height = "100%";
     iframe.style.border = "none";

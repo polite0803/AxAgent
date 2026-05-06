@@ -2,8 +2,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ─── Mock 设置 ────────────────────────────────────────────────────
 
-const mockIsTauri = vi.fn();
-const mockInvoke = vi.fn();
+const {
+  mockIsTauri,
+  mockInvoke,
+  mockITranslate,
+  mockMessageInfo,
+  mockSettingsStoreGetState,
+  mockGetCurrentWindow,
+  mockGetAllWindows,
+} = vi.hoisted(() => ({
+  mockIsTauri: vi.fn(),
+  mockInvoke: vi.fn(),
+  mockITranslate: vi.fn(),
+  mockMessageInfo: vi.fn(),
+  mockSettingsStoreGetState: vi.fn(),
+  mockGetCurrentWindow: {
+    isVisible: vi.fn(),
+    show: vi.fn(),
+    hide: vi.fn(),
+    setFocus: vi.fn(),
+    close: vi.fn(),
+  },
+  mockGetAllWindows: vi.fn(),
+}));
 
 vi.mock("@/lib/invoke", () => ({
   isTauri: mockIsTauri,
@@ -17,30 +38,17 @@ vi.mock("@/lib/shortcuts", async () => {
   };
 });
 
-const mockMessageInfo = vi.fn();
 vi.mock("antd", () => ({
   message: { info: mockMessageInfo },
 }));
 
-const mockITranslate = vi.fn();
 vi.mock("@/i18n", () => ({
   default: { t: mockITranslate },
 }));
 
-const mockSettingsStoreGetState = vi.fn();
 vi.mock("@/stores", () => ({
   useSettingsStore: { getState: mockSettingsStoreGetState },
 }));
-
-const mockGetCurrentWindow = {
-  isVisible: vi.fn(),
-  show: vi.fn(),
-  hide: vi.fn(),
-  setFocus: vi.fn(),
-  close: vi.fn(),
-};
-
-const mockGetAllWindows = vi.fn();
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => mockGetCurrentWindow,

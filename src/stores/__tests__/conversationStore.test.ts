@@ -1,14 +1,18 @@
 import type { Message, MessagePage } from "@/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const invokeMock = vi.fn();
-const listenMock = vi.fn();
+const { invokeMock, listenMock } = vi.hoisted(() => ({
+  invokeMock: vi.fn(),
+  listenMock: vi.fn(),
+}));
 
 vi.mock("@/lib/invoke", () => ({
   invoke: invokeMock,
   listen: listenMock,
   isTauri: () => false,
 }));
+
+import { useConversationStore } from "../domain/conversationStore";
 
 function makeMessage(index: number, conversationId = "conv-1"): Message {
   return {
@@ -82,10 +86,8 @@ async function flushPromises() {
 }
 
 describe("conversationStore pagination", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
-    const { useConversationStore } = await import("../domain/conversationStore");
     useConversationStore.setState({
       conversations: [],
       activeConversationId: null,
@@ -109,14 +111,14 @@ describe("conversationStore pagination", () => {
 
   it("loads only the newest 10 messages for the initial conversation page", async () => {
     invokeMock.mockResolvedValueOnce(makePage([makeMessage(11), makeMessage(12)], true));
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
 
     useConversationStore.getState().setActiveConversation("conv-1");
     await flushPromises();
 
     expect(invokeMock).toHaveBeenCalledWith("list_messages_page", {
       conversationId: "conv-1",
-      limit: 10,
+      limit: 50,
       beforeMessageId: null,
     });
     expect(useConversationStore.getState().messages.map((message) => message.id)).toEqual(["msg-11", "msg-12"]);
@@ -135,7 +137,7 @@ describe("conversationStore pagination", () => {
       if (args?.conversationId === "conv-b") { return pageB.promise; }
       throw new Error(`unexpected conversation: ${String(args?.conversationId)}`);
     });
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
 
     useConversationStore.getState().setActiveConversation("conv-a");
     useConversationStore.getState().setActiveConversation("conv-b");
@@ -170,7 +172,7 @@ describe("conversationStore pagination", () => {
       }
       throw new Error(`unexpected command: ${cmd}`);
     });
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
     useConversationStore.setState({
       conversations: [makeConversation("conv-missing")] as never[],
     });
@@ -188,7 +190,7 @@ describe("conversationStore pagination", () => {
     invokeMock
       .mockResolvedValueOnce(makePage([makeMessage(11), makeMessage(12)], true))
       .mockResolvedValueOnce(makePage([makeMessage(9), makeMessage(10)], false));
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
 
     useConversationStore.getState().setActiveConversation("conv-1");
     await flushPromises();
@@ -196,7 +198,7 @@ describe("conversationStore pagination", () => {
 
     expect(invokeMock).toHaveBeenLastCalledWith("list_messages_page", {
       conversationId: "conv-1",
-      limit: 10,
+      limit: 50,
       beforeMessageId: "msg-11",
     });
     expect(useConversationStore.getState().messages.map((message) => message.id)).toEqual([
@@ -211,7 +213,7 @@ describe("conversationStore pagination", () => {
 
   it("hydrates persisted conversation preferences when switching active conversations", async () => {
     invokeMock.mockResolvedValue(makePage([], false));
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
 
     useConversationStore.setState({
       conversations: [
@@ -258,7 +260,7 @@ describe("conversationStore pagination", () => {
   it("persists search preference changes for the active conversation", async () => {
     invokeMock.mockResolvedValue(makePage([], false));
     invokeMock.mockResolvedValueOnce(makeConversation("conv-1"));
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
 
     useConversationStore.setState({
       activeConversationId: "conv-1",
@@ -278,7 +280,7 @@ describe("conversationStore pagination", () => {
 
   it("persists MCP changes asynchronously without blocking UI", async () => {
     invokeMock.mockRejectedValueOnce(new Error("save failed"));
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
 
     useConversationStore.setState({
       activeConversationId: "conv-1",
@@ -298,7 +300,7 @@ describe("conversationStore pagination", () => {
       return () => {};
     });
 
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
     const { useStreamStore } = await import("../domain/streamStore");
 
     useConversationStore.setState({
@@ -346,7 +348,7 @@ describe("conversationStore pagination", () => {
       return () => {};
     });
 
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
     const { useStreamStore } = await import("../domain/streamStore");
 
     useConversationStore.setState({
@@ -444,7 +446,7 @@ describe("conversationStore pagination", () => {
       throw new Error(`unexpected command: ${cmd}`);
     });
 
-    const { useConversationStore } = await import("../domain/conversationStore");
+    // useConversationStore imported at module level
     const { useCategoryStore } = await import("../feature/categoryStore");
 
     useCategoryStore.setState({

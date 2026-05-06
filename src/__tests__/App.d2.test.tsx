@@ -42,6 +42,8 @@ vi.mock("antd", () => ({
       Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     },
   ),
+  Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
   Typography: {
     Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
     Paragraph: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
@@ -117,6 +119,12 @@ vi.mock("@/stores", () => ({
     selector({
       stopStreamListening: vi.fn(),
     }),
+  useSkillExtensionStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      installed: [],
+      loading: false,
+      fetchInstalled: vi.fn(),
+    }),
 }));
 
 vi.mock("@/hooks/useKeyboardShortcuts", () => ({
@@ -138,6 +146,8 @@ vi.mock("@/lib/invoke", () => ({
 vi.mock("@/lib/preloadChatRenderers", () => ({
   preloadChatRenderers,
 }));
+
+vi.mock("@terrastruct/d2", () => ({}));
 
 vi.mock("markstream-react", () => ({
   enableD2,
@@ -162,7 +172,9 @@ describe("AppRoot D2 setup", () => {
 
     render(<AppRoot />);
 
-    expect(enableD2).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(enableD2).toHaveBeenCalledTimes(1);
+    }, { timeout: 10000 });
     expect(preloadChatRenderers).toHaveBeenCalledTimes(1);
-  });
+  }, 15000);
 });

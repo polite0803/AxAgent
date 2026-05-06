@@ -38,30 +38,35 @@ vi.mock("react-i18next", () => ({
 }));
 
 // ─── Shared mutable mock state for useWorkflowEditorStore ───
-const mockStoreState: Record<string, any> = {
-  nodes: [],
-  edges: [],
-  templates: [],
-  isLoading: false,
-  loadTemplates: vi.fn(),
-  deleteTemplate: vi.fn(),
-  duplicateTemplate: vi.fn(),
-};
-const subscribeMock = vi.fn();
-const setStateMock = vi.fn();
+const {
+  mockStoreState,
+  subscribeMock,
+  setStateMock,
+  storeMockRef,
+} = vi.hoisted(() => {
+  const state: Record<string, any> = {
+    nodes: [],
+    edges: [],
+    templates: [],
+    isLoading: false,
+    loadTemplates: vi.fn(),
+    deleteTemplate: vi.fn(),
+    duplicateTemplate: vi.fn(),
+  };
+  const sub = vi.fn();
+  const ss = vi.fn();
 
-// Create a mock that delegates to the mutable `mockStoreState` object.
-// `vi.fn()` returns a function — calling `useWorkflowEditorStore()` returns the current state.
-function createStoreMock() {
-  const fn = vi.fn(() => ({ ...mockStoreState })) as any;
-  fn.getState = vi.fn(() => ({ ...mockStoreState }));
-  fn.setState = setStateMock;
-  fn.subscribe = subscribeMock;
-  return fn;
-}
+  function createStoreMock() {
+    const fn = vi.fn(() => ({ ...state })) as any;
+    fn.getState = vi.fn(() => ({ ...state }));
+    fn.setState = ss;
+    fn.subscribe = sub;
+    return fn;
+  }
 
-// We need to hold a stable reference for 'subscribe' etc.
-const storeMockRef = createStoreMock();
+  const ref = createStoreMock();
+  return { mockStoreState: state, subscribeMock: sub, setStateMock: ss, storeMockRef: ref };
+});
 
 vi.mock("@/stores", () => ({
   useWorkflowEditorStore: storeMockRef,
