@@ -57,7 +57,7 @@
     "html2canvas": "^1.4.1",
     "i18next": "^26.0.8",
     "lucide-react": "^1.11.0",
-    "markstream-react": "^0.0.43",
+    "markstream-react": "^0.0.47",
     "overlayscrollbars": "^2.15.1",
     "playwright": "^1.59.1",
     "react": "^19.2.5",
