@@ -101,6 +101,6 @@
     "pre-push": "npm run ci:check:quick"
   },
   "optionalDependencies": {
-    "@antv/infographic": "^0.2.17"
+    "@antv/infographic": "^0.2.19"
   }
 }
