@@ -430,6 +430,12 @@ pub async fn search_memory(
 /// Collect RAG context from all enabled sources for a conversation query.
 ///
 /// Returns a `RagContextResult` with formatted context parts and structured results.
+/// RAG query cache: avoids repeated vector searches for the same query
+static RAG_CACHE: std::sync::LazyLock<tokio::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, RagContextResult)>>> =
+    std::sync::LazyLock::new(|| tokio::sync::Mutex::new(std::collections::HashMap::new()));
+
+const RAG_CACHE_TTL_SECS: u64 = 30;
+
 pub async fn collect_rag_context(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
@@ -439,15 +445,37 @@ pub async fn collect_rag_context(
     query: &str,
     top_k: usize,
 ) -> RagContextResult {
-    rag::collect_rag_context(
-        db,
-        master_key,
-        vector_store,
-        kb_ids,
-        mem_ids,
-        query,
-        top_k,
-        ProviderEmbedFn,
+    // Skip if no sources configured
+    if kb_ids.is_empty() && mem_ids.is_empty() {
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+        };
+    }
+
+    // Check cache
+    let cache_key = format!("{:?}|{:?}|{}", kb_ids, mem_ids, query);
+    {
+        let cache = RAG_CACHE.lock().await;
+        if let Some((timestamp, result)) = cache.get(&cache_key) {
+            if timestamp.elapsed().as_secs() < RAG_CACHE_TTL_SECS {
+                return result.clone();
+            }
+        }
+    }
+
+    let result = rag::collect_rag_context(
+        db, master_key, vector_store, kb_ids, mem_ids, query, top_k, ProviderEmbedFn,
     )
-    .await
+    .await;
+
+    // Store in cache
+    {
+        let mut cache = RAG_CACHE.lock().await;
+        cache.insert(cache_key, (std::time::Instant::now(), result.clone()));
+        // Prune entries older than 5 minutes
+        cache.retain(|_, (ts, _)| ts.elapsed().as_secs() < 300);
+    }
+
+    result
 }
