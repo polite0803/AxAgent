@@ -684,7 +684,10 @@ pub fn run() {
                 }
             }
 
-            let db_result = match tokio::runtime::Handle::current().block_on(init::init_database()) {
+            let db_result = match std::thread::spawn(|| {
+                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                rt.block_on(init::init_database())
+            }).join().expect("DB init thread panicked") {
                 Ok(result) => result,
                 Err(e) => {
                     tracing::error!("Database initialization failed: {}", e);
