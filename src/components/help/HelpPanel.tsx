@@ -260,7 +260,6 @@ export function HelpPanel() {
                   setActiveLocal(
                     activeSection === section.key ? null : section.key,
                   )}
-                }
               >
                 <span className="help-section__icon">{section.icon}</span>
                 <span className="help-section__title">{section.title}</span>
