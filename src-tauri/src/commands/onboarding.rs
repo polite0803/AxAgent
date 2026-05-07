@@ -1,7 +1,9 @@
 // 新用户引导 — 智能环境检测与快速预设
 
 use crate::AppState;
-use axagent_core::repo::provider::{add_provider_key, create_provider, list_providers, toggle_provider};
+use axagent_core::repo::provider::{
+    add_provider_key, create_provider, list_providers, toggle_provider,
+};
 use axagent_core::types::{CreateProviderInput, ProviderType};
 use serde::Serialize;
 use tauri::State;
@@ -70,11 +72,7 @@ pub async fn detect_ollama_availability() -> Result<OllamaDetection, String> {
         .build()
         .map_err(|e| e.to_string())?;
 
-    match client
-        .get("http://localhost:11434/api/tags")
-        .send()
-        .await
-    {
+    match client.get("http://localhost:11434/api/tags").send().await {
         Ok(resp) if resp.status().is_success() => {
             let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
             let models: Vec<OllamaModelInfo> = body["models"]
@@ -100,7 +98,7 @@ pub async fn detect_ollama_availability() -> Result<OllamaDetection, String> {
                 models,
                 error: None,
             })
-        }
+        },
         Ok(resp) => Ok(OllamaDetection {
             available: false,
             models: vec![],
@@ -120,7 +118,7 @@ pub async fn detect_ollama_availability() -> Result<OllamaDetection, String> {
                     error: Some(format!("检测失败: {}", e)),
                 })
             }
-        }
+        },
     }
 }
 
@@ -180,7 +178,7 @@ pub async fn apply_quick_start_preset(
                 default_model_set: Some(provider_id),
                 message: "Ollama 本地提供者已启用，请到设置中拉取模型列表".into(),
             })
-        }
+        },
 
         "openai" => {
             let key_val = std::env::var("OPENAI_API_KEY").unwrap_or_default();
@@ -232,7 +230,7 @@ pub async fn apply_quick_start_preset(
                     "OpenAI 提供者已启用，API Key 已配置".into()
                 },
             })
-        }
+        },
 
         "minimal" => {
             let providers = list_providers(db).await.map_err(|e| e.to_string())?;
@@ -252,7 +250,7 @@ pub async fn apply_quick_start_preset(
                     "请在设置中添加模型供应商".into()
                 },
             })
-        }
+        },
 
         _ => Err(format!("未知预设: {}", preset)),
     }

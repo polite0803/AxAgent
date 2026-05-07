@@ -260,7 +260,8 @@ impl QueryEngine {
                     .await
                     .map_err(|e| e.to_string())?;
 
-                let link_paths: Vec<String> = links.iter().map(|l| l.target_note_id.clone()).collect();
+                let link_paths: Vec<String> =
+                    links.iter().map(|l| l.target_note_id.clone()).collect();
 
                 let snippet = if note.content.len() > 200 {
                     format!("{}...", &note.content[..200])

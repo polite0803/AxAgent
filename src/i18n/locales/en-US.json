@@ -257,6 +257,10 @@
       "title": "Memory",
       "empty": "Please add a memory namespace in settings first"
     },
+    "wiki": {
+      "title": "Wiki Vault",
+      "empty": "Please add a wiki vault in settings first"
+    },
     "memoryRetrieval": {
       "searching": "Searching memory...",
       "error": "Memory search failed",

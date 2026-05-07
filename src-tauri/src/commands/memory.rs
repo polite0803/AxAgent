@@ -577,10 +577,7 @@ pub async fn extract_conversation_memories(
         api_key,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: proxy,
         custom_headers: provider
@@ -620,10 +617,9 @@ pub async fn extract_conversation_memories(
         };
         match axagent_core::repo::memory::add_item(&state.sea_db, input).await {
             Ok(mem_item) => {
-                let ns =
-                    axagent_core::repo::memory::get_namespace(&state.sea_db, &namespace_id)
-                        .await
-                        .ok();
+                let ns = axagent_core::repo::memory::get_namespace(&state.sea_db, &namespace_id)
+                    .await
+                    .ok();
                 if let Some(ns) = ns {
                     if let Some(ref embedding_provider) = ns.embedding_provider {
                         let _ = axagent_core::repo::memory::update_item_index_status(
@@ -666,10 +662,13 @@ pub async fn extract_conversation_memories(
                                         e
                                     );
                                     ("failed", Some(e.to_string()))
-                                }
+                                },
                             };
                             let _ = axagent_core::repo::memory::update_item_index_status(
-                                &db, &item_id, status, err_msg.as_deref(),
+                                &db,
+                                &item_id,
+                                status,
+                                err_msg.as_deref(),
                             )
                             .await;
 
@@ -703,10 +702,10 @@ pub async fn extract_conversation_memories(
                     index_status: "skipped".to_string(),
                     ..mem_item
                 });
-            }
+            },
             Err(e) => {
                 tracing::warn!("Failed to save extracted memory: {}", e);
-            }
+            },
         }
     }
 

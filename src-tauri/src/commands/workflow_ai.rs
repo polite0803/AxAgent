@@ -502,7 +502,10 @@ Output ONLY the optimized prompt text, without any explanation or meta-commentar
             },
             ChatMessage {
                 role: "user".to_string(),
-                content: ChatContent::Text(format!("Please optimize the following agent prompt:\n\n{}", prompt)),
+                content: ChatContent::Text(format!(
+                    "Please optimize the following agent prompt:\n\n{}",
+                    prompt
+                )),
                 tool_calls: None,
                 tool_call_id: None,
             },
@@ -626,7 +629,10 @@ Rules:
             },
             ChatMessage {
                 role: "user".to_string(),
-                content: ChatContent::Text(format!("Based on this workflow context, recommend suitable node types:\n\n{}", context)),
+                content: ChatContent::Text(format!(
+                    "Based on this workflow context, recommend suitable node types:\n\n{}",
+                    context
+                )),
                 tool_calls: None,
                 tool_call_id: None,
             },
@@ -668,7 +674,7 @@ Rules:
         Some(s) => s,
         None => {
             return Ok(fallback_recommendations(&context));
-        }
+        },
     };
 
     match serde_json::from_str::<Vec<NodeRecommendation>>(json_str) {

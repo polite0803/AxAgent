@@ -94,10 +94,7 @@ pub async fn extract_memories_from_messages(
         transcript = transcript[..8000].to_string();
     }
 
-    let prompt = format!(
-        "Extract reusable knowledge from this conversation:\n\n{}",
-        transcript
-    );
+    let prompt = format!("Extract reusable knowledge from this conversation:\n\n{}", transcript);
 
     let request = ChatRequest {
         model: model.to_string(),
@@ -150,7 +147,7 @@ pub async fn extract_memories_from_messages(
                 content.to_string()
             };
             serde_json::from_str(&json_str).unwrap_or_default()
-        }
+        },
     };
 
     Ok(ExtractionResult {

@@ -848,7 +848,8 @@ async fn convert_n8n_to_axagent(
     let mut ax_nodes: Vec<WorkflowNode> = Vec::new();
     let mut ax_edges: Vec<WorkflowEdge> = Vec::new();
     let mut edge_id_counter = 0u32;
-    let mut name_to_id: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut name_to_id: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
 
     let trigger_node = WorkflowNode::Trigger(TriggerNode {
         base: WorkflowNodeBase {
@@ -986,11 +987,10 @@ async fn convert_n8n_to_axagent(
                         if let Some(entries) = main_group.as_array() {
                             for entry in entries {
                                 let target_name = entry.get("node").and_then(|v| v.as_str());
-                                let target_id =
-                                    match target_name.and_then(|n| name_to_id.get(n)) {
-                                        Some(id) => id.clone(),
-                                        None => continue,
-                                    };
+                                let target_id = match target_name.and_then(|n| name_to_id.get(n)) {
+                                    Some(id) => id.clone(),
+                                    None => continue,
+                                };
                                 ax_edges.push(WorkflowEdge {
                                     id: format!("edge_{}", edge_id_counter),
                                     source: source_id.clone(),
@@ -1172,8 +1172,11 @@ pub async fn import_workflow_template(
         warnings.push("Workflow has no trigger node".to_string());
     }
 
-    let node_ids: std::collections::HashSet<String> =
-        new_template.nodes.iter().map(|n| n.base_id().to_string()).collect();
+    let node_ids: std::collections::HashSet<String> = new_template
+        .nodes
+        .iter()
+        .map(|n| n.base_id().to_string())
+        .collect();
     for edge in &new_template.edges {
         if !node_ids.contains(&edge.source) {
             errors.push(format!(
@@ -1239,7 +1242,6 @@ pub async fn import_n8n_directory(
     collect_json_files(dir, &mut json_files);
 
     for file_path in json_files {
-
         let content = fs::read_to_string(&file_path)
             .map_err(|e| format!("{}: {}", file_path.display(), e))?;
         let raw_json: serde_json::Value = match serde_json::from_str(&content) {
@@ -1314,7 +1316,6 @@ pub async fn import_workflow_directory(
     collect_json_files(dir, &mut json_files);
 
     for file_path in json_files {
-
         let content = fs::read_to_string(&file_path)
             .map_err(|e| format!("{}: {}", file_path.display(), e))?;
         if serde_json::from_str::<serde_json::Value>(&content).is_err() {
@@ -1327,10 +1328,10 @@ pub async fn import_workflow_directory(
                 if let Some(id) = val.get("id").and_then(|v| v.as_str()) {
                     imported.push(id.to_string());
                 }
-            }
+            },
             Err(e) => {
                 errors.push(format!("{}: {}", file_path.display(), e));
-            }
+            },
         }
     }
 
