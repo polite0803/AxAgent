@@ -87,3 +87,77 @@ impl PurposeManager {
         Ok(purpose_path.exists())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_purpose_template_contains_wiki_name_placeholder() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("{wiki_name}"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_contains_date_placeholder() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("{date}"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_has_purpose_section() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("## Purpose"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_has_key_questions_section() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("## Key Questions"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_has_research_scope_section() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("## Research Scope"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_has_thesis_section() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("## Thesis"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_has_evolving_notes_section() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("## Evolving Notes"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_replace_wiki_name() {
+        let content = DEFAULT_PURPOSE_TEMPLATE.replace("{wiki_name}", "My Wiki");
+        assert!(content.contains("# My Wiki"));
+        assert!(!content.contains("{wiki_name}"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_replace_date() {
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        let content = DEFAULT_PURPOSE_TEMPLATE
+            .replace("{wiki_name}", "Test")
+            .replace("{date}", &today);
+        assert!(content.contains(&today));
+        assert!(!content.contains("{date}"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_full_replacement() {
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        let content = DEFAULT_PURPOSE_TEMPLATE
+            .replace("{wiki_name}", "Research Wiki")
+            .replace("{date}", &today);
+        assert!(content.starts_with("# Research Wiki"));
+        assert!(content.contains(&today));
+        assert!(!content.contains("{wiki_name}"));
+        assert!(!content.contains("{date}"));
+    }
+
+    #[test]
+    fn test_default_purpose_template_is_not_empty() {
+        assert!(!DEFAULT_PURPOSE_TEMPLATE.is_empty());
+    }
+}

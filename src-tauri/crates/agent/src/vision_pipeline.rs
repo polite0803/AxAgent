@@ -175,3 +175,122 @@ impl VisionPipeline {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vision_task_system_prompt() {
+        assert!(!VisionTask::ImageDescription.system_prompt().is_empty());
+        assert!(!VisionTask::Ocr.system_prompt().is_empty());
+        assert!(!VisionTask::UiElementDetection.system_prompt().is_empty());
+        assert!(!VisionTask::ChartAnalysis.system_prompt().is_empty());
+        assert!(!VisionTask::CodeScreenshotReading.system_prompt().is_empty());
+    }
+
+    #[test]
+    fn test_vision_task_user_prompt() {
+        assert!(!VisionTask::ImageDescription.user_prompt().is_empty());
+        assert!(!VisionTask::Ocr.user_prompt().is_empty());
+        assert!(!VisionTask::UiElementDetection.user_prompt().is_empty());
+        assert!(!VisionTask::ChartAnalysis.user_prompt().is_empty());
+        assert!(!VisionTask::CodeScreenshotReading.user_prompt().is_empty());
+    }
+
+    #[test]
+    fn test_vision_task_variants() {
+        let tasks = vec![
+            VisionTask::ImageDescription,
+            VisionTask::Ocr,
+            VisionTask::UiElementDetection,
+            VisionTask::ChartAnalysis,
+            VisionTask::CodeScreenshotReading,
+        ];
+        assert_eq!(tasks.len(), 5);
+    }
+
+    #[test]
+    fn test_ui_element_serialization() {
+        let element = UiElement {
+            element_type: "button".to_string(),
+            label: Some("Submit".to_string()),
+            bounding_box: Some(BoundingBox {
+                x: 10.0,
+                y: 20.0,
+                width: 100.0,
+                height: 40.0,
+            }),
+            actionable: true,
+        };
+        let json = serde_json::to_string(&element).unwrap();
+        let deserialized: UiElement = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.element_type, "button");
+        assert_eq!(deserialized.label, Some("Submit".to_string()));
+        assert!(deserialized.actionable);
+    }
+
+    #[test]
+    fn test_bounding_box_serialization() {
+        let bbox = BoundingBox {
+            x: 1.0,
+            y: 2.0,
+            width: 100.0,
+            height: 50.0,
+        };
+        let json = serde_json::to_string(&bbox).unwrap();
+        let deserialized: BoundingBox = serde_json::from_str(&json).unwrap();
+        assert!((deserialized.x - 1.0).abs() < f32::EPSILON);
+        assert!((deserialized.width - 100.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_vision_result_serialization() {
+        let result = VisionResult {
+            task: VisionTask::Ocr,
+            description: "Extracted text".to_string(),
+            elements: vec![],
+            text_content: Some("Extracted text".to_string()),
+            confidence: 0.95,
+            model: "gpt-4o".to_string(),
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let deserialized: VisionResult = serde_json::from_str(&json).unwrap();
+        assert!(matches!(deserialized.task, VisionTask::Ocr));
+        assert_eq!(deserialized.model, "gpt-4o");
+        assert!(deserialized.text_content.is_some());
+    }
+
+    #[test]
+    fn test_vision_result_no_text_content_for_description() {
+        let result = VisionResult {
+            task: VisionTask::ImageDescription,
+            description: "A cat".to_string(),
+            elements: vec![],
+            text_content: None,
+            confidence: 0.8,
+            model: "gpt-4o".to_string(),
+        };
+        assert!(result.text_content.is_none());
+    }
+
+    #[test]
+    fn test_ui_element_no_bounding_box() {
+        let element = UiElement {
+            element_type: "link".to_string(),
+            label: None,
+            bounding_box: None,
+            actionable: true,
+        };
+        assert!(element.bounding_box.is_none());
+        assert!(element.label.is_none());
+    }
+
+    #[test]
+    fn test_vision_task_serialization() {
+        let task = VisionTask::ChartAnalysis;
+        let json = serde_json::to_string(&task).unwrap();
+        let deserialized: VisionTask = serde_json::from_str(&json).unwrap();
+        assert!(matches!(deserialized, VisionTask::ChartAnalysis));
+    }
+}

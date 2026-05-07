@@ -703,12 +703,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const conv = get().conversations.find((c) => c.id === id)
         ?? get().archivedConversations.find((c) => c.id === id);
 
-      // 工作流型会话：调用 archive_workflow_session 更新模板
-      // 对话型会话：调用 toggle_archive_conversation（原有逻辑）
-      const command = conv?.session_type === "workflow"
+      const isAlreadyArchived = conv?.is_archived ?? false;
+      const isWorkflow = conv?.session_type === "workflow";
+
+      const command = isWorkflow && !isAlreadyArchived
         ? "archive_workflow_session"
         : "toggle_archive_conversation";
-      const params = conv?.session_type === "workflow"
+      const params = isWorkflow && !isAlreadyArchived
         ? { conversationId: id, feedback }
         : { id };
 
@@ -784,7 +785,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const archived: Conversation[] = [];
     for (const id of ids) {
       try {
-        const updated = await invoke<Conversation>("toggle_archive_conversation", { id });
+        const conv = get().conversations.find((c) => c.id === id);
+        const command = conv?.session_type === "workflow"
+          ? "archive_workflow_session"
+          : "toggle_archive_conversation";
+        const params = conv?.session_type === "workflow"
+          ? { conversationId: id }
+          : { id };
+        const updated = await invoke<Conversation>(command, params);
         if (updated.is_archived) { archived.push(updated); }
       } catch (_) { /* skip */ }
     }
@@ -1002,9 +1010,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 thinkingBudget,
                 enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
                 enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-                enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
-                  ? usePreferenceStore.getState().enabledWikiIds
-                  : undefined,
+                enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0 ? usePreferenceStore.getState().enabledWikiIds : undefined,
               });
               // Re-start stream
               const newTempId = `temp-assistant-${Date.now()}`;
@@ -2316,7 +2322,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Split sources by type and build separate tags
       const knowledgeSources = sources.filter(s => s.source_type === "knowledge");
       const memorySources = sources.filter(s => s.source_type === "memory");
-      const wikiSources = sources.filter(s => (s.source_type as string) === "wiki");
+      const wikiSources = sources.filter(s => s.source_type === "wiki");
 
       const kbSearching = buildKnowledgeTag("searching");
       const memSearching = buildMemoryTag("searching");

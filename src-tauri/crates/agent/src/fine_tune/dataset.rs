@@ -29,7 +29,7 @@ pub struct SampleMetadata {
     pub tags: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum DataFormat {
     Jsonl,
     Alpaca,
@@ -255,4 +255,200 @@ pub enum FineTuneError {
     ValidationError(String),
     #[error("Dataset not found: {0}")]
     NotFound(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_sample(id: &str, input: &str, output: &str) -> FineTuneSample {
+        FineTuneSample {
+            id: id.to_string(),
+            input: input.to_string(),
+            output: output.to_string(),
+            system_prompt: None,
+            metadata: SampleMetadata {
+                source: "test".to_string(),
+                category: None,
+                difficulty: None,
+                tags: vec![],
+            },
+        }
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_new() {
+        let ds = FineTuneDataset::new("ds1".to_string(), "Test Dataset".to_string());
+        assert_eq!(ds.id, "ds1");
+        assert_eq!(ds.name, "Test Dataset");
+        assert!(ds.samples.is_empty());
+        assert_eq!(ds.format, DataFormat::Jsonl);
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_add_sample() {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        let sample = make_sample("s1", "input", "output");
+        ds.add_sample(sample);
+        assert_eq!(ds.samples.len(), 1);
+        assert_eq!(ds.metadata.num_samples, 1);
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_remove_sample() {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        ds.add_sample(make_sample("s1", "input", "output"));
+        ds.add_sample(make_sample("s2", "input2", "output2"));
+        let removed = ds.remove_sample("s1");
+        assert!(removed.is_some());
+        assert_eq!(ds.samples.len(), 1);
+        assert_eq!(ds.metadata.num_samples, 1);
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_remove_nonexistent() {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        ds.add_sample(make_sample("s1", "input", "output"));
+        let removed = ds.remove_sample("nonexistent");
+        assert!(removed.is_none());
+        assert_eq!(ds.samples.len(), 1);
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_validate_valid() {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        ds.add_sample(make_sample("s1", "input", "output"));
+        let result = ds.validate();
+        assert!(result.valid);
+        assert!(result.errors.is_empty());
+        assert_eq!(result.stats.total_samples, 1);
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_validate_empty_input() {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        ds.add_sample(FineTuneSample {
+            id: "s1".to_string(),
+            input: "".to_string(),
+            output: "output".to_string(),
+            system_prompt: None,
+            metadata: SampleMetadata {
+                source: "test".to_string(),
+                category: None,
+                difficulty: None,
+                tags: vec![],
+            },
+        });
+        let result = ds.validate();
+        assert!(!result.valid);
+        assert!(!result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_validate_empty_output() {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        ds.add_sample(FineTuneSample {
+            id: "s1".to_string(),
+            input: "input".to_string(),
+            output: "".to_string(),
+            system_prompt: None,
+            metadata: SampleMetadata {
+                source: "test".to_string(),
+                category: None,
+                difficulty: None,
+                tags: vec![],
+            },
+        });
+        let result = ds.validate();
+        assert!(!result.valid);
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_validate_empty_dataset() {
+        let ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        let result = ds.validate();
+        assert!(result.valid);
+        assert_eq!(result.stats.total_samples, 0);
+        assert_eq!(result.stats.avg_input_length, 0);
+    }
+
+    #[test]
+    fn test_fine_tune_dataset_validate_avg_lengths() {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        ds.add_sample(make_sample("s1", "hello", "world"));
+        ds.add_sample(make_sample("s2", "hi", "earth"));
+        let result = ds.validate();
+        assert_eq!(result.stats.avg_input_length, 3);
+        assert_eq!(result.stats.avg_output_length, 5);
+    }
+
+    #[test]
+    fn test_data_format_variants() {
+        let formats = vec![DataFormat::Jsonl, DataFormat::Alpaca, DataFormat::ChatML, DataFormat::OpenAI];
+        for fmt in formats {
+            let json = serde_json::to_string(&fmt).unwrap();
+            let de: DataFormat = serde_json::from_str(&json).unwrap();
+            assert_eq!(de, fmt);
+        }
+    }
+
+    #[test]
+    fn test_preprocessing_step_variants() {
+        let steps = vec![
+            PreprocessingStep::FilterLength { min: 1, max: 100 },
+            PreprocessingStep::FilterPattern { pattern: "test".to_string() },
+            PreprocessingStep::Deduplicate,
+            PreprocessingStep::NormalizeWhitespace,
+            PreprocessingStep::Truncate { max_length: 512 },
+        ];
+        for step in steps {
+            let json = serde_json::to_string(&step).unwrap();
+            let _: PreprocessingStep = serde_json::from_str(&json).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_dataset_source_variants() {
+        let sources = vec![DatasetSource::ConversationHistory, DatasetSource::ManualUpload, DatasetSource::Synthetic];
+        for source in sources {
+            let json = serde_json::to_string(&source).unwrap();
+            let _: DatasetSource = serde_json::from_str(&json).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_fine_tune_sample_serialization() {
+        let sample = make_sample("s1", "input text", "output text");
+        let json = serde_json::to_string(&sample).unwrap();
+        let de: FineTuneSample = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.id, "s1");
+        assert_eq!(de.input, "input text");
+    }
+
+    #[test]
+    fn test_validation_result_serialization() {
+        let result = ValidationResult {
+            valid: true,
+            errors: vec![],
+            warnings: vec!["test warning".to_string()],
+            stats: DatasetStats {
+                total_samples: 5,
+                avg_input_length: 10,
+                avg_output_length: 20,
+                format_compliant: true,
+            },
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let de: ValidationResult = serde_json::from_str(&json).unwrap();
+        assert!(de.valid);
+        assert_eq!(de.stats.total_samples, 5);
+    }
+
+    #[test]
+    fn test_fine_tune_error_display() {
+        let err = FineTuneError::IoError("file not found".to_string());
+        assert!(err.to_string().contains("file not found"));
+        let err2 = FineTuneError::NotFound("ds1".to_string());
+        assert!(err2.to_string().contains("ds1"));
+    }
 }

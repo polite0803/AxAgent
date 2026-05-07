@@ -72,7 +72,10 @@ export function InteractiveTutorial() {
   };
 
   const [spotlight, setSpotlight] = useState<DOMRect | null>(null);
+  const [bubblePosition, setBubblePosition] = useState<{ top: number; left: number } | null>(null);
   const rafId = useRef<number>(0);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const prevFocusRef = useRef<HTMLElement | null>(null);
 
   const step = steps[tutorialStep];
   const isLast = tutorialStep >= steps.length - 1;
@@ -85,8 +88,21 @@ export function InteractiveTutorial() {
       if (el) {
         const r = el.getBoundingClientRect();
         setSpotlight(r);
+        const estimatedHeight = 200;
+        let top: number;
+        if (r.bottom + 12 + estimatedHeight > window.innerHeight) {
+          top = r.top - 12 - estimatedHeight;
+        } else {
+          top = r.bottom + 12;
+        }
+        let left = Math.max(12, r.left);
+        if (left + 300 > window.innerWidth) {
+          left = window.innerWidth - 312;
+        }
+        setBubblePosition({ top, left });
       } else {
         setSpotlight(null);
+        setBubblePosition(null);
       }
     };
     updatePos();
@@ -102,6 +118,64 @@ export function InteractiveTutorial() {
     else { nextTutorialStep(); }
   };
 
+  useEffect(() => {
+    if (tutorialStep === 3) {
+      navigate("/knowledge");
+    }
+  }, [tutorialStep, navigate]);
+
+  useEffect(() => {
+    if (!tutorialActive) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleNext();
+      } else if (e.key === "Escape") {
+        skipTutorial();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [tutorialActive, handleNext, skipTutorial]);
+
+  useEffect(() => {
+    if (!tutorialActive) {
+      if (prevFocusRef.current) {
+        prevFocusRef.current.focus();
+        prevFocusRef.current = null;
+      }
+      return;
+    }
+    prevFocusRef.current = document.activeElement as HTMLElement;
+    const timer = setTimeout(() => {
+      bubbleRef.current?.focus();
+    }, 50);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab" || !bubbleRef.current) return;
+      const focusable = bubbleRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [tutorialActive]);
+
   if (!tutorialActive && tutorialCompleted) { return null; }
 
   // 开始按钮（向导完成后显示）
@@ -115,11 +189,11 @@ export function InteractiveTutorial() {
     );
   }
 
-  const bubbleStyle: React.CSSProperties = spotlight
+  const bubbleStyle: React.CSSProperties = bubblePosition
     ? {
       position: "fixed",
-      top: spotlight.bottom + 12,
-      left: Math.max(12, spotlight.left),
+      top: bubblePosition.top,
+      left: bubblePosition.left,
       zIndex: 10001,
       width: 300,
     }
@@ -156,6 +230,8 @@ export function InteractiveTutorial() {
 
       {/* 提示气泡 */}
       <div
+        ref={bubbleRef}
+        tabIndex={-1}
         className="tutorial-bubble"
         style={{
           ...bubbleStyle,

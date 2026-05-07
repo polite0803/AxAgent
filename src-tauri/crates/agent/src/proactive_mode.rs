@@ -155,3 +155,165 @@ impl Default for ProactiveMode {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_proactive_state_equality() {
+        assert_eq!(ProactiveState::Inactive, ProactiveState::Inactive);
+        assert_eq!(ProactiveState::Active, ProactiveState::Active);
+        assert_ne!(ProactiveState::Active, ProactiveState::Inactive);
+    }
+
+    #[test]
+    fn test_proactive_state_paused_equality() {
+        let paused_typing = ProactiveState::Paused { reason: PauseReason::UserTyping };
+        let paused_api = ProactiveState::Paused { reason: PauseReason::ApiError };
+        assert_eq!(paused_typing, ProactiveState::Paused { reason: PauseReason::UserTyping });
+        assert_ne!(paused_typing, paused_api);
+    }
+
+    #[test]
+    fn test_pause_reason_variants() {
+        let reasons = [PauseReason::UserTyping, PauseReason::ApiError, PauseReason::ManualPause, PauseReason::ContextBlocked];
+        assert_eq!(reasons.len(), 4);
+    }
+
+    #[test]
+    fn test_new_proactive_mode() {
+        let mode = ProactiveMode::new();
+        assert_eq!(mode.state(), ProactiveState::Inactive);
+        assert_eq!(mode.tick_count(), 0);
+        assert!(!mode.is_active());
+    }
+
+    #[test]
+    fn test_activate() {
+        let mut mode = ProactiveMode::new();
+        axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        mode.activate();
+        assert_eq!(mode.state(), ProactiveState::Active);
+        assert!(mode.is_active());
+    }
+
+    #[test]
+    fn test_deactivate() {
+        let mut mode = ProactiveMode::new();
+        mode.activate();
+        mode.deactivate();
+        assert_eq!(mode.state(), ProactiveState::Inactive);
+        assert!(!mode.is_active());
+    }
+
+    #[test]
+    fn test_pause_from_active() {
+        let mut mode = ProactiveMode::new();
+        axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        mode.activate();
+        mode.pause(PauseReason::ManualPause);
+        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::ManualPause });
+    }
+
+    #[test]
+    fn test_pause_from_inactive_no_effect() {
+        let mut mode = ProactiveMode::new();
+        mode.pause(PauseReason::ManualPause);
+        assert_eq!(mode.state(), ProactiveState::Inactive);
+    }
+
+    #[test]
+    fn test_resume_from_paused() {
+        let mut mode = ProactiveMode::new();
+        axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        mode.activate();
+        mode.pause(PauseReason::ApiError);
+        mode.resume();
+        assert_eq!(mode.state(), ProactiveState::Active);
+    }
+
+    #[test]
+    fn test_resume_from_inactive_no_effect() {
+        let mut mode = ProactiveMode::new();
+        mode.resume();
+        assert_eq!(mode.state(), ProactiveState::Inactive);
+    }
+
+    #[test]
+    fn test_on_user_input_pauses_active() {
+        let mut mode = ProactiveMode::new();
+        axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        mode.activate();
+        mode.on_user_input();
+        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::UserTyping });
+    }
+
+    #[test]
+    fn test_on_user_input_inactive_no_effect() {
+        let mut mode = ProactiveMode::new();
+        mode.on_user_input();
+        assert_eq!(mode.state(), ProactiveState::Inactive);
+    }
+
+    #[test]
+    fn test_on_api_error_pauses_active() {
+        let mut mode = ProactiveMode::new();
+        axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        mode.activate();
+        mode.on_api_error();
+        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::ApiError });
+    }
+
+    #[test]
+    fn test_on_api_error_inactive_still_pauses() {
+        let mut mode = ProactiveMode::new();
+        mode.on_api_error();
+        assert_eq!(mode.state(), ProactiveState::Inactive);
+    }
+
+    #[test]
+    fn test_should_tick_inactive() {
+        let mode = ProactiveMode::new();
+        assert!(!mode.should_tick());
+    }
+
+    #[test]
+    fn test_should_tick_active() {
+        let mut mode = ProactiveMode::new();
+        mode.activate();
+        assert!(!mode.should_tick());
+    }
+
+    #[test]
+    fn test_should_tick_paused() {
+        let mut mode = ProactiveMode::new();
+        mode.activate();
+        mode.pause(PauseReason::ManualPause);
+        assert!(!mode.should_tick());
+    }
+
+    #[test]
+    fn test_record_tick() {
+        let mut mode = ProactiveMode::new();
+        assert_eq!(mode.tick_count(), 0);
+        mode.record_tick();
+        assert_eq!(mode.tick_count(), 1);
+        mode.record_tick();
+        assert_eq!(mode.tick_count(), 2);
+    }
+
+    #[test]
+    fn test_build_tick_prompt() {
+        let mode = ProactiveMode::new();
+        let prompt = mode.build_tick_prompt();
+        assert!(prompt.starts_with("<tick>"));
+        assert!(prompt.ends_with("</tick>"));
+    }
+
+    #[test]
+    fn test_default() {
+        let mode = ProactiveMode::default();
+        assert_eq!(mode.state(), ProactiveState::Inactive);
+    }
+}

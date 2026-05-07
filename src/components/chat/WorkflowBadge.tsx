@@ -64,36 +64,7 @@ export function WorkflowBadge({
     };
   }, [isRunning, isCompleted, isWorkflow, token]);
 
-  // 对话模式已显式选择：显示 "对话模式" Tag，可关闭回到初始状态
-  if (sessionType === "conversation" && workflowTemplateId === "") {
-    return (
-      <Tag
-        style={{
-          margin: 0,
-          cursor: "pointer",
-          fontSize: 12,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          color: token.colorTextSecondary,
-          borderColor: token.colorBorder,
-          background: "transparent",
-          opacity: disabled ? 0.6 : 1,
-        }}
-        closable
-        onClose={(e) => {
-          e.preventDefault();
-          onRemoveWorkflow();
-        }}
-        icon={<Workflow size={12} />}
-      >
-        {t("chat.workflow.conversationMode", "对话模式")}
-      </Tag>
-    );
-  }
-
-  // 对话型会话（未选择）：显示轻量选择器
-  if (sessionType === "conversation" && !isWorkflow) {
+  if (sessionType !== "workflow" || !workflowTemplateId) {
     return (
       <>
         <Button

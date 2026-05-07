@@ -299,3 +299,205 @@ impl ReportHistory {
         self.reports.is_empty()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::evaluator::benchmark::Difficulty;
+    use crate::evaluator::metrics::AggregateMetrics;
+    use crate::evaluator::runner::{BenchmarkResult, RunnerConfig, ScoreResult, TaskResult};
+
+    fn make_benchmark_result() -> BenchmarkResult {
+        BenchmarkResult {
+            benchmark_id: "test".to_string(),
+            benchmark_name: "Test Benchmark".to_string(),
+            run_at: Utc::now(),
+            config: RunnerConfig::default(),
+            task_results: vec![
+                TaskResult {
+                    task_id: "t1".to_string(),
+                    task_name: "Task 1".to_string(),
+                    difficulty: Difficulty::Easy,
+                    success: true,
+                    duration_ms: 100,
+                    scores: vec![ScoreResult {
+                        criteria_name: "accuracy".to_string(),
+                        metric: crate::evaluator::benchmark::EvaluationMetric::ExactMatch,
+                        raw_score: 1.0,
+                        weighted_score: 1.0,
+                        passed: true,
+                    }],
+                    overall_score: 1.0,
+                    response: Some("response".to_string()),
+                    error: None,
+                    trace_id: None,
+                },
+                TaskResult {
+                    task_id: "t2".to_string(),
+                    task_name: "Task 2".to_string(),
+                    difficulty: Difficulty::Hard,
+                    success: false,
+                    duration_ms: 200,
+                    scores: vec![ScoreResult {
+                        criteria_name: "accuracy".to_string(),
+                        metric: crate::evaluator::benchmark::EvaluationMetric::ExactMatch,
+                        raw_score: 0.3,
+                        weighted_score: 0.3,
+                        passed: false,
+                    }],
+                    overall_score: 0.3,
+                    response: None,
+                    error: Some("error".to_string()),
+                    trace_id: None,
+                },
+            ],
+            aggregate: AggregateMetrics {
+                total_tasks: 2,
+                passed_tasks: 1,
+                failed_tasks: 1,
+                pass_rate: 0.5,
+                avg_duration_ms: 150.0,
+                avg_score: 0.65,
+                score_breakdown: std::collections::HashMap::new(),
+                difficulty_distribution: std::collections::HashMap::new(),
+            },
+            duration_ms: 300,
+        }
+    }
+
+    #[test]
+    fn test_report_generator_new() {
+        let gen = ReportGenerator::new();
+        assert!(gen.include_recommendations);
+    }
+
+    #[test]
+    fn test_report_generator_with_recommendations_false() {
+        let gen = ReportGenerator::new().with_recommendations(false);
+        assert!(!gen.include_recommendations);
+    }
+
+    #[test]
+    fn test_report_generator_generate() {
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        assert_eq!(report.benchmark_id, "test");
+        assert_eq!(report.summary.total_tasks, 2);
+        assert_eq!(report.summary.passed_tasks, 1);
+        assert_eq!(report.summary.failed_tasks, 1);
+        assert!(!report.task_breakdown.is_empty());
+    }
+
+    #[test]
+    fn test_report_generator_generate_without_recommendations() {
+        let gen = ReportGenerator::new().with_recommendations(false);
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        assert!(report.recommendations.is_empty());
+    }
+
+    #[test]
+    fn test_report_generator_generate_with_recommendations() {
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        assert!(!report.recommendations.is_empty());
+    }
+
+    #[test]
+    fn test_report_generator_to_markdown() {
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        let md = gen.to_markdown(&report);
+        assert!(md.contains("基准测试报告"));
+        assert!(md.contains("总体概览"));
+        assert!(md.contains("任务详情"));
+    }
+
+    #[test]
+    fn test_report_generator_to_json() {
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        let json = gen.to_json(&report);
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["benchmark_id"], "test");
+    }
+
+    #[test]
+    fn test_report_history_new() {
+        let history = ReportHistory::new();
+        assert!(history.is_empty());
+        assert_eq!(history.len(), 0);
+    }
+
+    #[test]
+    fn test_report_history_add_and_get() {
+        let mut history = ReportHistory::new();
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        history.add(report.clone());
+        assert_eq!(history.len(), 1);
+        assert!(!history.is_empty());
+        let latest = history.latest();
+        assert!(latest.is_some());
+        assert_eq!(latest.unwrap().benchmark_id, "test");
+    }
+
+    #[test]
+    fn test_report_history_clear() {
+        let mut history = ReportHistory::new();
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        history.add(report);
+        history.clear();
+        assert!(history.is_empty());
+    }
+
+    #[test]
+    fn test_report_history_latest_empty() {
+        let history = ReportHistory::new();
+        assert!(history.latest().is_none());
+    }
+
+    #[test]
+    fn test_report_summary_fields() {
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        assert!((report.summary.pass_rate - 0.5).abs() < 0.001);
+        assert_eq!(report.summary.total_duration_ms, 300);
+    }
+
+    #[test]
+    fn test_task_breakdown_difficulty_labels() {
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        assert_eq!(report.task_breakdown[0].difficulty, "简单");
+        assert_eq!(report.task_breakdown[1].difficulty, "困难");
+    }
+
+    #[test]
+    fn test_report_category_scores() {
+        let gen = ReportGenerator::new();
+        let result = make_benchmark_result();
+        let report = gen.generate(&result);
+        assert!(!report.category_scores.is_empty());
+    }
+
+    #[test]
+    fn test_criteria_score() {
+        let cs = CriteriaScore {
+            name: "test".to_string(),
+            score: 0.9,
+            passed: true,
+        };
+        assert!((cs.score - 0.9).abs() < 0.001);
+        assert!(cs.passed);
+    }
+}

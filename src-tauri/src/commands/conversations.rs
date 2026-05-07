@@ -657,41 +657,37 @@ pub async fn archive_workflow_session(
         return Err("此会话不是工作流类型，请使用普通归档".to_string());
     }
 
+    if conv.is_archived != 0 {
+        return Err(format!("会话 {} 已经归档，请勿重复操作", conversation_id));
+    }
+
     // 如果有绑定的工作流模板，将执行数据写回模板
     if let Some(ref template_id) = conv.workflow_template_id {
-        if let Some(tmpl) = workflow_template::Entity::find_by_id(template_id)
+        if workflow_template::Entity::find_by_id(template_id)
             .one(db)
             .await
             .map_err(|e| e.to_string())?
+            .is_some()
         {
-            // 提取消息作为执行记录
             let messages = axagent_core::repo::message::list_messages(db, &conversation_id)
                 .await
                 .map_err(|e| e.to_string())?;
 
-            let _execution_note = serde_json::json!({
-                "conversation_id": conversation_id,
-                "completed_at": axagent_core::utils::now_ts(),
-                "message_count": messages.len(),
-                "feedback": feedback,
-                "workflow_status": conv.workflow_status,
-            });
-
-            // 追加到模板的描述中（作为案例记录）
-            let mut current_desc = tmpl.description.clone().unwrap_or_default();
-            let case_entry = format!(
-                "\n\n---\n📋 执行案例 ({})\n消息数: {}, 状态: {}, 反馈: {}",
-                chrono::Utc::now().format("%Y-%m-%d %H:%M"),
-                messages.len(),
-                conv.workflow_status.as_deref().unwrap_or("unknown"),
-                feedback.as_deref().unwrap_or("无"),
-            );
-            current_desc.push_str(&case_entry);
-
-            let mut am: workflow_template::ActiveModel = tmpl.into();
-            am.description = Set(Some(current_desc));
-            am.updated_at = Set(axagent_core::utils::now_ts());
-            am.update(db).await.map_err(|e| e.to_string())?;
+            let execution = axagent_core::entity::workflow_executions::ActiveModel {
+                id: Set(uuid::Uuid::new_v4().to_string()),
+                workflow_id: Set(template_id.clone()),
+                status: Set(conv.workflow_status.clone().unwrap_or_else(|| "completed".to_string())),
+                input_params: Set(None),
+                output_result: Set(feedback.clone()),
+                node_executions: Set(Some(serde_json::json!({
+                    "conversation_id": conversation_id,
+                    "message_count": messages.len(),
+                }).to_string())),
+                total_time_ms: Set(None),
+                created_at: Set(axagent_core::utils::now_ts()),
+                updated_at: Set(axagent_core::utils::now_ts()),
+            };
+            execution.insert(db).await.map_err(|e| e.to_string())?;
         }
     }
 
@@ -2213,6 +2209,31 @@ pub async fn send_message(
             tool_calls: None,
             tool_call_id: None,
         });
+    }
+
+    // Inject output language directive from app settings
+    if let Ok(settings) = axagent_core::repo::settings::get_settings(&state.sea_db).await {
+        if !settings.language.is_empty() {
+            let already_present = chat_messages.iter().any(|m| {
+                match &m.content {
+                    ChatContent::Text(t) => axagent_core::utils::has_output_language_directive(t),
+                    _ => false,
+                }
+            });
+            if !already_present {
+                let directive = axagent_core::utils::build_output_language_directive(&settings.language);
+                chat_messages.push(ChatMessage {
+                    role: if no_system_role {
+                        "user".to_string()
+                    } else {
+                        "system".to_string()
+                    },
+                    content: ChatContent::Text(directive),
+                    tool_calls: None,
+                    tool_call_id: None,
+                });
+            }
+        }
     }
 
     // RAG retrieval: search enabled knowledge bases and memory namespaces

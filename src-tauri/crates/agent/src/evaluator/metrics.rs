@@ -262,3 +262,188 @@ pub fn get_difficulty_label(difficulty: Difficulty) -> &'static str {
         Difficulty::Expert => "专家",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_levenshtein_distance_identical() {
+        assert_eq!(levenshtein_distance("hello", "hello"), 0);
+    }
+
+    #[test]
+    fn test_levenshtein_distance_empty() {
+        assert_eq!(levenshtein_distance("", "abc"), 3);
+        assert_eq!(levenshtein_distance("abc", ""), 3);
+        assert_eq!(levenshtein_distance("", ""), 0);
+    }
+
+    #[test]
+    fn test_levenshtein_distance_substitution() {
+        assert_eq!(levenshtein_distance("cat", "bat"), 1);
+    }
+
+    #[test]
+    fn test_levenshtein_distance_insertion_deletion() {
+        assert_eq!(levenshtein_distance("kitten", "sitting"), 3);
+    }
+
+    #[test]
+    fn test_levenshtein_similarity_identical() {
+        let sim = levenshtein_similarity("hello", "hello");
+        assert!((sim - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_levenshtein_similarity_empty() {
+        let sim = levenshtein_similarity("", "");
+        assert!((sim - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_levenshtein_similarity_partial() {
+        let sim = levenshtein_similarity("abc", "axc");
+        assert!(sim > 0.5 && sim < 1.0);
+    }
+
+    #[test]
+    fn test_exact_match_score_same() {
+        assert!((exact_match_score("hello", "hello") - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_exact_match_score_different() {
+        assert!((exact_match_score("hello", "world") - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_exact_match_score_trim() {
+        assert!((exact_match_score("  hello  ", "hello") - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_contains_score_full_match() {
+        let score = contains_score("hello,world", "hello world test");
+        assert!((score - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_contains_score_partial_match() {
+        let score = contains_score("hello,missing", "hello test");
+        assert!((score - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_contains_score_no_match() {
+        let score = contains_score("xyz", "hello world");
+        assert!((score - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_format_score() {
+        assert_eq!(format_score(0.856), "85.60%");
+        assert_eq!(format_score(1.0), "100.00%");
+        assert_eq!(format_score(0.0), "0.00%");
+    }
+
+    #[test]
+    fn test_get_difficulty_label() {
+        assert_eq!(get_difficulty_label(Difficulty::Easy), "简单");
+        assert_eq!(get_difficulty_label(Difficulty::Medium), "中等");
+        assert_eq!(get_difficulty_label(Difficulty::Hard), "困难");
+        assert_eq!(get_difficulty_label(Difficulty::Expert), "专家");
+    }
+
+    #[test]
+    fn test_metrics_calculator_calculate_task_score() {
+        let calc = MetricsCalculator::new();
+        let task = BenchmarkTask {
+            id: "t1".to_string(),
+            name: "Test".to_string(),
+            description: "Test".to_string(),
+            input: crate::evaluator::benchmark::TaskInput {
+                query: "q".to_string(),
+                context: None,
+                constraints: vec![],
+            },
+            expected_output: None,
+            evaluation_criteria: vec![
+                crate::evaluator::benchmark::EvaluationCriteria {
+                    name: "c1".to_string(),
+                    metric: EvaluationMetric::ExactMatch,
+                    weight: 0.6,
+                    threshold: Some(0.5),
+                },
+                crate::evaluator::benchmark::EvaluationCriteria {
+                    name: "c2".to_string(),
+                    metric: EvaluationMetric::Contains,
+                    weight: 0.4,
+                    threshold: Some(0.5),
+                },
+            ],
+            difficulty: Difficulty::Easy,
+            tags: vec![],
+        };
+        let mut scores = std::collections::HashMap::new();
+        scores.insert("c1".to_string(), 0.8);
+        scores.insert("c2".to_string(), 0.6);
+        let result = calc.calculate_task_score(&task, &scores);
+        assert!((result.overall_score - (0.8 * 0.6 + 0.6 * 0.4)).abs() < 0.001);
+        assert!(result.success);
+    }
+
+    #[test]
+    fn test_metrics_calculator_aggregate_empty() {
+        let calc = MetricsCalculator::new();
+        let agg = calc.aggregate_task_metrics(&[]);
+        assert_eq!(agg.total_tasks, 0);
+        assert_eq!(agg.passed_tasks, 0);
+        assert!((agg.pass_rate - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_metrics_calculator_compare_results() {
+        let calc = MetricsCalculator::new();
+        let baseline = AggregateMetrics {
+            total_tasks: 2,
+            passed_tasks: 1,
+            failed_tasks: 1,
+            pass_rate: 0.5,
+            avg_duration_ms: 100.0,
+            avg_score: 0.6,
+            score_breakdown: std::collections::HashMap::new(),
+            difficulty_distribution: std::collections::HashMap::new(),
+        };
+        let current = AggregateMetrics {
+            total_tasks: 2,
+            passed_tasks: 2,
+            failed_tasks: 0,
+            pass_rate: 1.0,
+            avg_duration_ms: 80.0,
+            avg_score: 0.8,
+            score_breakdown: std::collections::HashMap::new(),
+            difficulty_distribution: std::collections::HashMap::new(),
+        };
+        let comparison = calc.compare_results(&baseline, &current);
+        assert!(comparison.score_improved);
+        assert!(comparison.pass_rate_improved);
+        assert!(comparison.duration_improved);
+        assert!((comparison.score_delta - 0.2).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_evaluation_score_serialization() {
+        let score = EvaluationScore {
+            criteria_name: "test".to_string(),
+            metric: EvaluationMetric::ExactMatch,
+            raw_score: 0.9,
+            weighted_score: 0.54,
+            passed: true,
+        };
+        let json = serde_json::to_string(&score).unwrap();
+        let de: EvaluationScore = serde_json::from_str(&json).unwrap();
+        assert!((de.raw_score - 0.9).abs() < 0.001);
+        assert!(de.passed);
+    }
+}

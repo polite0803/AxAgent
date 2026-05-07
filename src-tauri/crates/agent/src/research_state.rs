@@ -567,3 +567,323 @@ impl OutlineSection {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_research_phase_as_str() {
+        assert_eq!(ResearchPhase::Planning.as_str(), "planning");
+        assert_eq!(ResearchPhase::Searching.as_str(), "searching");
+        assert_eq!(ResearchPhase::Extracting.as_str(), "extracting");
+        assert_eq!(ResearchPhase::Analyzing.as_str(), "analyzing");
+        assert_eq!(ResearchPhase::Synthesizing.as_str(), "synthesizing");
+        assert_eq!(ResearchPhase::Reporting.as_str(), "reporting");
+    }
+
+    #[test]
+    fn test_research_phase_display_name() {
+        assert!(!ResearchPhase::Planning.display_name().is_empty());
+        assert!(!ResearchPhase::Searching.display_name().is_empty());
+    }
+
+    #[test]
+    fn test_research_phase_progress_percentage() {
+        assert!(ResearchPhase::Planning.progress_percentage() < ResearchPhase::Searching.progress_percentage());
+        assert!(ResearchPhase::Searching.progress_percentage() < ResearchPhase::Extracting.progress_percentage());
+        assert!(ResearchPhase::Extracting.progress_percentage() < ResearchPhase::Analyzing.progress_percentage());
+        assert!(ResearchPhase::Analyzing.progress_percentage() < ResearchPhase::Synthesizing.progress_percentage());
+        assert!(ResearchPhase::Synthesizing.progress_percentage() < ResearchPhase::Reporting.progress_percentage());
+    }
+
+    #[test]
+    fn test_research_status_as_str() {
+        assert_eq!(ResearchStatus::Pending.as_str(), "pending");
+        assert_eq!(ResearchStatus::InProgress.as_str(), "in_progress");
+        assert_eq!(ResearchStatus::Paused.as_str(), "paused");
+        assert_eq!(ResearchStatus::Completed.as_str(), "completed");
+        assert_eq!(ResearchStatus::Failed.as_str(), "failed");
+    }
+
+    #[test]
+    fn test_research_status_is_terminal() {
+        assert!(!ResearchStatus::Pending.is_terminal());
+        assert!(!ResearchStatus::InProgress.is_terminal());
+        assert!(!ResearchStatus::Paused.is_terminal());
+        assert!(ResearchStatus::Completed.is_terminal());
+        assert!(ResearchStatus::Failed.is_terminal());
+    }
+
+    #[test]
+    fn test_source_type_as_str() {
+        assert_eq!(SourceType::Web.as_str(), "web");
+        assert_eq!(SourceType::Academic.as_str(), "academic");
+        assert_eq!(SourceType::Wikipedia.as_str(), "wikipedia");
+        assert_eq!(SourceType::GitHub.as_str(), "github");
+        assert_eq!(SourceType::Documentation.as_str(), "documentation");
+        assert_eq!(SourceType::News.as_str(), "news");
+        assert_eq!(SourceType::Blog.as_str(), "blog");
+        assert_eq!(SourceType::Forum.as_str(), "forum");
+        assert_eq!(SourceType::Unknown.as_str(), "unknown");
+    }
+
+    #[test]
+    fn test_source_type_default_credibility() {
+        assert!(SourceType::Academic.default_credibility() > SourceType::Web.default_credibility());
+        assert!(SourceType::Documentation.default_credibility() > SourceType::Blog.default_credibility());
+        assert!(SourceType::Forum.default_credibility() < SourceType::News.default_credibility());
+    }
+
+    #[test]
+    fn test_source_type_display_name() {
+        assert!(!SourceType::Web.display_name().is_empty());
+        assert!(!SourceType::Academic.display_name().is_empty());
+    }
+
+    #[test]
+    fn test_search_result_new() {
+        let result = SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Example".to_string(),
+            "A snippet".to_string(),
+        );
+        assert_eq!(result.source_type, SourceType::Web);
+        assert_eq!(result.url, "https://example.com");
+        assert!(result.published_date.is_none());
+        assert!(result.credibility_score.is_none());
+        assert_eq!(result.relevance_score, 0.0);
+    }
+
+    #[test]
+    fn test_search_result_builder() {
+        let result = SearchResult::new(SourceType::Academic, "url".to_string(), "Title".to_string(), "snippet".to_string())
+            .with_published_date("2024-01-01".to_string())
+            .with_credibility(0.9)
+            .with_relevance(0.85);
+        assert_eq!(result.published_date, Some("2024-01-01".to_string()));
+        assert_eq!(result.credibility_score, Some(0.9));
+        assert!((result.relevance_score - 0.85).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_citation_new() {
+        let citation = Citation::new("url".to_string(), "Title".to_string(), SourceType::Wikipedia);
+        assert_eq!(citation.source_type, SourceType::Wikipedia);
+        assert!((citation.credibility - 0.7).abs() < f32::EPSILON);
+        assert!(citation.quoted_text.is_none());
+        assert!(citation.page_number.is_none());
+        assert!(!citation.in_report);
+    }
+
+    #[test]
+    fn test_citation_builder() {
+        let citation = Citation::new("url".to_string(), "Title".to_string(), SourceType::Academic)
+            .with_quoted_text("quoted text".to_string())
+            .with_page(42)
+            .with_credibility(0.95);
+        assert_eq!(citation.quoted_text, Some("quoted text".to_string()));
+        assert_eq!(citation.page_number, Some(42));
+        assert!((citation.credibility - 0.95).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_research_progress_new() {
+        let progress = ResearchProgress::new();
+        assert_eq!(progress.phase, ResearchPhase::Planning);
+        assert_eq!(progress.percentage, 0);
+        assert!(progress.current_query.is_none());
+        assert_eq!(progress.sources_found, 0);
+        assert_eq!(progress.errors.len(), 0);
+    }
+
+    #[test]
+    fn test_research_progress_with_phase() {
+        let progress = ResearchProgress::new().with_phase(ResearchPhase::Analyzing);
+        assert_eq!(progress.phase, ResearchPhase::Analyzing);
+        assert_eq!(progress.percentage, 70);
+    }
+
+    #[test]
+    fn test_research_progress_increment() {
+        let mut progress = ResearchProgress::new();
+        progress.increment_sources_found(5);
+        assert_eq!(progress.sources_found, 5);
+        progress.increment_sources_processed();
+        assert_eq!(progress.sources_processed, 1);
+        progress.increment_citations();
+        assert_eq!(progress.citations_added, 1);
+    }
+
+    #[test]
+    fn test_research_progress_add_error() {
+        let mut progress = ResearchProgress::new();
+        progress.add_error("test error".to_string());
+        assert_eq!(progress.errors.len(), 1);
+        assert_eq!(progress.errors[0], "test error");
+    }
+
+    #[test]
+    fn test_research_config_default() {
+        let config = ResearchConfig::default();
+        assert_eq!(config.max_sources, 50);
+        assert_eq!(config.max_citations, 20);
+        assert_eq!(config.parallel_searches, 5);
+        assert!(config.include_credibility_check);
+        assert_eq!(config.report_format, ReportFormat::Markdown);
+    }
+
+    #[test]
+    fn test_report_format_as_str() {
+        assert_eq!(ReportFormat::Markdown.as_str(), "markdown");
+        assert_eq!(ReportFormat::Html.as_str(), "html");
+        assert_eq!(ReportFormat::Json.as_str(), "json");
+    }
+
+    #[test]
+    fn test_research_state_new() {
+        let state = ResearchState::new("Test topic".to_string());
+        assert_eq!(state.topic, "Test topic");
+        assert_eq!(state.status, ResearchStatus::Pending);
+        assert_eq!(state.current_phase, ResearchPhase::Planning);
+        assert!(state.search_results.is_empty());
+        assert!(state.citations.is_empty());
+        assert!(state.completed_at.is_none());
+    }
+
+    #[test]
+    fn test_research_state_lifecycle() {
+        let mut state = ResearchState::new("Topic".to_string());
+        state.start();
+        assert_eq!(state.status, ResearchStatus::InProgress);
+
+        state.pause();
+        assert_eq!(state.status, ResearchStatus::Paused);
+
+        state.resume();
+        assert_eq!(state.status, ResearchStatus::InProgress);
+
+        state.complete();
+        assert!(state.is_complete());
+        assert!(state.is_terminal());
+        assert!(state.completed_at.is_some());
+    }
+
+    #[test]
+    fn test_research_state_fail() {
+        let mut state = ResearchState::new("Topic".to_string());
+        state.start();
+        state.fail("Something went wrong".to_string());
+        assert!(state.is_failed());
+        assert!(state.is_terminal());
+        assert_eq!(state.progress.errors.len(), 1);
+    }
+
+    #[test]
+    fn test_research_state_set_phase() {
+        let mut state = ResearchState::new("Topic".to_string());
+        state.start();
+        state.set_phase(ResearchPhase::Searching);
+        assert_eq!(state.current_phase, ResearchPhase::Searching);
+        assert_eq!(state.progress.phase, ResearchPhase::Searching);
+    }
+
+    #[test]
+    fn test_research_state_add_search_result() {
+        let mut state = ResearchState::new("Topic".to_string());
+        let result = SearchResult::new(SourceType::Web, "url".to_string(), "Title".to_string(), "snippet".to_string());
+        state.add_search_result(result);
+        assert_eq!(state.search_results.len(), 1);
+        assert_eq!(state.progress.sources_found, 1);
+    }
+
+    #[test]
+    fn test_research_state_add_citation() {
+        let mut state = ResearchState::new("Topic".to_string());
+        let citation = Citation::new("url".to_string(), "Title".to_string(), SourceType::Academic);
+        state.add_citation(citation);
+        assert_eq!(state.citations.len(), 1);
+        assert_eq!(state.progress.citations_added, 1);
+    }
+
+    #[test]
+    fn test_search_query_new() {
+        let query = SearchQuery::new("test query".to_string());
+        assert_eq!(query.query, "test query");
+        assert_eq!(query.source_types, vec![SourceType::Web, SourceType::Wikipedia]);
+        assert_eq!(query.max_results, 10);
+    }
+
+    #[test]
+    fn test_search_query_builder() {
+        let query = SearchQuery::new("test".to_string())
+            .with_sources(vec![SourceType::Academic, SourceType::GitHub])
+            .with_max_results(20);
+        assert_eq!(query.source_types.len(), 2);
+        assert_eq!(query.max_results, 20);
+    }
+
+    #[test]
+    fn test_search_plan_new() {
+        let queries = vec![
+            SearchQuery::new("q1".to_string()),
+            SearchQuery::new("q2".to_string()),
+        ];
+        let plan = SearchPlan::new(queries);
+        assert_eq!(plan.queries.len(), 2);
+        assert_eq!(plan.parallel_groups.len(), 1);
+        assert_eq!(plan.parallel_groups[0].len(), 2);
+    }
+
+    #[test]
+    fn test_research_report_new() {
+        let report = ResearchReport::new("Topic".to_string());
+        assert_eq!(report.topic, "Topic");
+        assert!(report.content.is_empty());
+        assert!(report.citations.is_empty());
+        assert!(report.summary.is_empty());
+    }
+
+    #[test]
+    fn test_research_report_builder() {
+        let report = ResearchReport::new("Topic".to_string())
+            .with_content("Full content".to_string())
+            .with_summary("Summary".to_string());
+        assert_eq!(report.content, "Full content");
+        assert_eq!(report.summary, "Summary");
+    }
+
+    #[test]
+    fn test_report_outline_new() {
+        let outline = ReportOutline::new();
+        assert!(outline.title.is_empty());
+        assert!(outline.sections.is_empty());
+    }
+
+    #[test]
+    fn test_report_outline_builder() {
+        let outline = ReportOutline::new()
+            .with_title("My Report".to_string())
+            .add_section(OutlineSection::new("Introduction".to_string()));
+        assert_eq!(outline.title, "My Report");
+        assert_eq!(outline.sections.len(), 1);
+    }
+
+    #[test]
+    fn test_outline_section_new() {
+        let section = OutlineSection::new("Section Title".to_string());
+        assert_eq!(section.title, "Section Title");
+        assert!(section.description.is_empty());
+        assert!(section.subsections.is_empty());
+    }
+
+    #[test]
+    fn test_outline_section_builder() {
+        let section = OutlineSection::new("Title".to_string())
+            .with_description("Description".to_string())
+            .with_subsections(vec!["Sub1".to_string(), "Sub2".to_string()]);
+        assert_eq!(section.description, "Description");
+        assert_eq!(section.subsections.len(), 2);
+    }
+}

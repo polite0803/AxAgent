@@ -129,3 +129,151 @@ impl InterruptManager {
             .await;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_interrupt_level_as_str() {
+        assert_eq!(InterruptLevel::Soft.as_str(), "soft");
+        assert_eq!(InterruptLevel::Hard.as_str(), "hard");
+        assert_eq!(InterruptLevel::Graceful.as_str(), "graceful");
+    }
+
+    #[test]
+    fn test_interrupt_level_equality() {
+        assert_eq!(InterruptLevel::Soft, InterruptLevel::Soft);
+        assert_ne!(InterruptLevel::Soft, InterruptLevel::Hard);
+        assert_ne!(InterruptLevel::Hard, InterruptLevel::Graceful);
+    }
+
+    #[test]
+    fn test_interrupt_state_equality() {
+        assert_eq!(InterruptState::None, InterruptState::None);
+        assert_eq!(InterruptState::Processing, InterruptState::Processing);
+        assert_eq!(InterruptState::Completed, InterruptState::Completed);
+        assert_eq!(InterruptState::Recovering, InterruptState::Recovering);
+        assert_eq!(
+            InterruptState::Pending(InterruptLevel::Soft),
+            InterruptState::Pending(InterruptLevel::Soft)
+        );
+        assert_ne!(
+            InterruptState::Pending(InterruptLevel::Soft),
+            InterruptState::Pending(InterruptLevel::Hard)
+        );
+    }
+
+    #[test]
+    fn test_interrupt_request_serialization() {
+        let req = InterruptRequest {
+            level: InterruptLevel::Soft,
+            reason: Some("test".to_string()),
+            timestamp: chrono::Utc::now(),
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        let deserialized: InterruptRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.level, InterruptLevel::Soft);
+        assert_eq!(deserialized.reason, Some("test".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_new() {
+        let manager = InterruptManager::new(true);
+        assert_eq!(manager.state().await, InterruptState::None);
+        assert!(manager.check().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_request_soft() {
+        let manager = InterruptManager::new(false);
+        manager.request(InterruptLevel::Soft, Some("test".to_string())).await;
+        assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Soft));
+        let req = manager.check().await.unwrap();
+        assert_eq!(req.level, InterruptLevel::Soft);
+        assert_eq!(req.reason, Some("test".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_request_hard() {
+        let manager = InterruptManager::new(false);
+        manager.hard_stop().await;
+        assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Hard));
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_request_graceful() {
+        let manager = InterruptManager::new(false);
+        manager.graceful_stop().await;
+        assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Graceful));
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_should_stop_current_turn() {
+        let manager = InterruptManager::new(false);
+        assert!(!manager.should_stop_current_turn().await);
+        manager.soft_stop().await;
+        assert!(manager.should_stop_current_turn().await);
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_should_preserve_session() {
+        let manager = InterruptManager::new(false);
+        manager.soft_stop().await;
+        assert!(manager.should_preserve_session().await);
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_should_not_preserve_session_on_hard() {
+        let manager = InterruptManager::new(false);
+        manager.hard_stop().await;
+        assert!(!manager.should_preserve_session().await);
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_begin_processing() {
+        let manager = InterruptManager::new(false);
+        manager.soft_stop().await;
+        manager.begin_processing().await;
+        assert_eq!(manager.state().await, InterruptState::Processing);
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_complete_no_auto_recovery() {
+        let manager = InterruptManager::new(false);
+        manager.soft_stop().await;
+        manager.begin_processing().await;
+        manager.complete().await;
+        assert_eq!(manager.state().await, InterruptState::Completed);
+        assert!(manager.check().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_complete_with_auto_recovery() {
+        let manager = InterruptManager::new(true);
+        manager.soft_stop().await;
+        manager.begin_processing().await;
+        manager.complete().await;
+        assert_eq!(manager.state().await, InterruptState::Recovering);
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_recover() {
+        let manager = InterruptManager::new(true);
+        manager.soft_stop().await;
+        manager.begin_processing().await;
+        manager.complete().await;
+        manager.recover().await;
+        assert_eq!(manager.state().await, InterruptState::None);
+        assert!(manager.check().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_interrupt_manager_soft_stop() {
+        let manager = InterruptManager::new(false);
+        manager.soft_stop().await;
+        let req = manager.check().await.unwrap();
+        assert_eq!(req.level, InterruptLevel::Soft);
+        assert!(req.reason.is_some());
+    }
+}

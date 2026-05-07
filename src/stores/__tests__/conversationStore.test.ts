@@ -104,6 +104,7 @@ describe("conversationStore pagination", () => {
       thinkingBudget: null,
       enabledKnowledgeBaseIds: [],
       enabledMemoryNamespaceIds: [],
+      enabledWikiIds: [],
       archivedConversations: [],
       workspaceSnapshot: null,
     });

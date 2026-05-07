@@ -416,3 +416,145 @@ impl QueryEngine {
         Ok(context)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_query_result_serialization() {
+        let result = QueryResult {
+            pages: vec![],
+            total: 0,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let deserialized: QueryResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.total, 0);
+        assert!(deserialized.pages.is_empty());
+    }
+
+    #[test]
+    fn test_page_result_serialization() {
+        let page = PageResult {
+            note_id: "n1".to_string(),
+            title: "Test Page".to_string(),
+            content_snippet: "snippet...".to_string(),
+            relevance_score: 0.85,
+            link_paths: vec!["link1".to_string(), "link2".to_string()],
+        };
+        let json = serde_json::to_string(&page).unwrap();
+        let deserialized: PageResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.note_id, "n1");
+        assert_eq!(deserialized.title, "Test Page");
+        assert_eq!(deserialized.relevance_score, 0.85);
+        assert_eq!(deserialized.link_paths.len(), 2);
+    }
+
+    #[test]
+    fn test_query_context_serialization() {
+        let ctx = QueryContext {
+            query: "test query".to_string(),
+            wiki_id: "wiki-1".to_string(),
+            limit: 10,
+            offset: 0,
+        };
+        let json = serde_json::to_string(&ctx).unwrap();
+        let deserialized: QueryContext = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.query, "test query");
+        assert_eq!(deserialized.wiki_id, "wiki-1");
+        assert_eq!(deserialized.limit, 10);
+        assert_eq!(deserialized.offset, 0);
+    }
+
+    #[test]
+    fn test_query_result_with_pages() {
+        let result = QueryResult {
+            pages: vec![
+                PageResult {
+                    note_id: "n1".to_string(),
+                    title: "Page 1".to_string(),
+                    content_snippet: "content 1".to_string(),
+                    relevance_score: 0.9,
+                    link_paths: vec![],
+                },
+                PageResult {
+                    note_id: "n2".to_string(),
+                    title: "Page 2".to_string(),
+                    content_snippet: "content 2".to_string(),
+                    relevance_score: 0.5,
+                    link_paths: vec!["n1".to_string()],
+                },
+            ],
+            total: 2,
+        };
+        assert_eq!(result.total, 2);
+        assert_eq!(result.pages.len(), 2);
+    }
+
+    #[test]
+    fn test_page_result_snippet_truncation() {
+        let long_content = "a".repeat(300);
+        let snippet = if long_content.len() > 200 {
+            format!("{}...", &long_content[..200])
+        } else {
+            long_content.clone()
+        };
+        assert_eq!(snippet.len(), 203);
+        assert!(snippet.ends_with("..."));
+
+        let short_content = "short".to_string();
+        let snippet2 = if short_content.len() > 200 {
+            format!("{}...", &short_content[..200])
+        } else {
+            short_content.clone()
+        };
+        assert_eq!(snippet2, "short");
+    }
+
+    #[test]
+    fn test_query_context_pagination() {
+        let ctx = QueryContext {
+            query: "search".to_string(),
+            wiki_id: "w1".to_string(),
+            limit: 20,
+            offset: 40,
+        };
+        assert_eq!(ctx.offset, 40);
+        assert_eq!(ctx.limit, 20);
+    }
+
+    #[test]
+    fn test_page_result_zero_relevance() {
+        let page = PageResult {
+            note_id: "n1".to_string(),
+            title: "Low Relevance".to_string(),
+            content_snippet: "content".to_string(),
+            relevance_score: 0.0,
+            link_paths: vec![],
+        };
+        assert_eq!(page.relevance_score, 0.0);
+    }
+
+    #[test]
+    fn test_query_result_empty() {
+        let result = QueryResult {
+            pages: vec![],
+            total: 0,
+        };
+        assert!(result.pages.is_empty());
+        assert_eq!(result.total, 0);
+    }
+
+    #[test]
+    fn test_page_result_link_paths() {
+        let page = PageResult {
+            note_id: "n1".to_string(),
+            title: "Test".to_string(),
+            content_snippet: "content".to_string(),
+            relevance_score: 1.0,
+            link_paths: vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        };
+        assert_eq!(page.link_paths.len(), 3);
+        assert_eq!(page.link_paths[0], "a");
+    }
+}

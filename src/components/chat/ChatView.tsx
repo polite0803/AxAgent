@@ -2735,19 +2735,18 @@ function ChatViewInner({ onScrollToReady }: {
                   </Typography.Text>
                 )}
 
+              {activeConversation?.mode === "agent" && (
               <WorkflowBadge
                 sessionType={activeConversation?.session_type ?? "conversation"}
                 workflowTemplateId={activeConversation?.workflow_template_id}
                 workflowStatus={activeConversation?.workflow_status}
                 onSelectWorkflow={(templateId) => {
                   if (templateId === "") {
-                    // "对话模式" selected
                     void updateConversation(activeConversation.id, {
                       session_type: "conversation",
-                      workflow_template_id: "",
+                      workflow_template_id: null,
                     });
                   } else {
-                    // Specific workflow template selected
                     void updateConversation(activeConversation.id, {
                       session_type: "workflow",
                       workflow_template_id: templateId,
@@ -2764,8 +2763,9 @@ function ChatViewInner({ onScrollToReady }: {
                 }}
                 disabled={!!streamingMessageId}
               />
-              {activeConversation?.session_type === "conversation"
-                && activeConversation?.workflow_template_id === "" && (
+              )}
+              {activeConversation?.mode === "agent"
+                && activeConversation?.session_type !== "workflow" && (
                 <>
                   <ExpertBadge
                     expertRoleId={activeConversation.expert_role_id ?? null}
@@ -2991,6 +2991,7 @@ function ChatViewInner({ onScrollToReady }: {
                 if (
                   suggestion
                   && suggestion.conversationId === activeConversation?.id
+                  && activeConversation?.mode === "agent"
                 ) {
                   return (
                     <WorkflowSuggestionCard
@@ -3087,14 +3088,13 @@ function ChatViewInner({ onScrollToReady }: {
           const role = expertStore.getRoleById(roleId);
           if (!role) { return; }
 
-          // 更新专家角色 + 系统提示词
           updateConversation(activeConversationId, {
             expert_role_id: roleId,
+            agent_profile_id: null,
             system_prompt: role.systemPrompt || undefined,
           });
           expertStore.recordSwitch(activeConversationId, roleId);
 
-          // 应用推荐的模型和提供者
           if (role.suggestedProviderId && role.suggestedModelId) {
             updateConversation(activeConversationId, {
               provider_id: role.suggestedProviderId,
@@ -3107,7 +3107,6 @@ function ChatViewInner({ onScrollToReady }: {
             });
           }
 
-          // 应用推荐的权限模式
           if (role.recommendPermissionMode) {
             const { updatePermissionMode } = useAgentStore.getState();
             updatePermissionMode(activeConversationId, role.recommendPermissionMode);

@@ -3,11 +3,13 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
 
+pub mod ab_testing;
 pub mod academic_search;
 pub mod action_executor;
 pub mod agent_adapter;
 pub mod agent_config;
 pub mod agent_runtime;
+pub mod blackboard;
 pub mod checkpoint;
 pub mod citation_tracker;
 pub mod content_synthesizer;
@@ -71,6 +73,10 @@ pub mod vision_pipeline;
 pub mod web_search;
 pub mod wiki_compiler;
 
+pub use ab_testing::{
+    ExperimentConfig, ExperimentGroup, ExperimentMetric, ExperimentResult, ExperimentRunner,
+    ExperimentStatus, GroupStats, MetricComparison, TrialResult,
+};
 pub use academic_search::{
     AcademicSearchConfig, AcademicSearchProvider, AcademicSearchProviderBuilder,
 };
@@ -80,6 +86,7 @@ pub use agent_config::{AgentConfig, ConfigManager, ConfigSnapshot, DebugMode};
 pub use agent_runtime::{
     AgentEvent, AgentOutput, AgentRuntime, AgentRuntimeConfig, AgentRuntimeError,
 };
+pub use blackboard::{Blackboard, BlackboardEntry, BlackboardEvent, BlackboardManager, EntryPriority};
 pub use checkpoint::{Checkpoint, CheckpointBuilder, CheckpointManager};
 pub use citation_tracker::{
     CitationContext, CitationQuerier, CitationStats, CitationTracker, CitationUsage,
@@ -229,7 +236,24 @@ impl LocalToolRegistry {
             tool_defs,
         }
     }
-    pub async fn load_enabled_state(&mut self, _db: &sea_orm::DatabaseConnection) {}
+    pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
+        use axagent_core::entity::settings::Entity as SettingsEntity;
+        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+
+        let key = "tool_groups_enabled";
+        let result = SettingsEntity::find()
+            .filter(axagent_core::entity::settings::Column::Key.eq(key))
+            .one(db)
+            .await;
+
+        if let Ok(Some(record)) = result {
+            if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, bool>>(&record.value) {
+                for (gid, is_enabled) in map {
+                    self.enabled.insert(gid, is_enabled);
+                }
+            }
+        }
+    }
     pub fn is_enabled(&self, tool_name: &str) -> bool {
         self.tool_defs.contains_key(tool_name)
     }
@@ -300,10 +324,43 @@ impl LocalToolRegistry {
     }
     pub async fn toggle_group(
         &mut self,
-        _db: &sea_orm::DatabaseConnection,
-        _gid: &str,
+        db: &sea_orm::DatabaseConnection,
+        gid: &str,
     ) -> Result<bool, String> {
-        Ok(true)
+        let current = self.enabled.get(gid).copied().unwrap_or(true);
+        let new_state = !current;
+        self.enabled.insert(gid.to_string(), new_state);
+
+        let key = "tool_groups_enabled";
+        use axagent_core::entity::settings::Entity as SettingsEntity;
+        use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+        use axagent_core::entity::settings as settings_model;
+
+        let existing = SettingsEntity::find()
+            .filter(settings_model::Column::Key.eq(key))
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let serialized = serde_json::to_string(&self.enabled).map_err(|e| e.to_string())?;
+
+        match existing {
+            Some(record) => {
+                let mut active: settings_model::ActiveModel = record.into();
+                active.value = Set(serialized);
+                active.update(db).await.map_err(|e| e.to_string())?;
+            },
+            None => {
+                let active = settings_model::ActiveModel {
+                    key: Set(key.to_string()),
+                    value: Set(serialized),
+                    ..Default::default()
+                };
+                active.insert(db).await.map_err(|e| e.to_string())?;
+            },
+        }
+
+        Ok(new_state)
     }
     pub fn enabled_tool_names(&self) -> Vec<String> {
         self.tool_defs
@@ -412,13 +469,16 @@ pub use metrics::{
 };
 pub use outline_builder::{OutlineBuilder, OutlineStyle, OutlineValidationError};
 pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
-pub use react_engine::{ReActEngine, ReActError, ReActResult};
+pub use react_engine::{
+    DefaultReasoningProvider, LlmDrivenReasoningProvider, LlmReasoningProvider, ReActEngine,
+    ReActError, ReActResult,
+};
 pub use reasoning_state::{ActionType, ReActConfig, ReasoningState};
 pub use recovery_strategies::{
     RecoveryAdjustment, RecoveryAttempt, RecoveryResult, RecoveryStrategy,
 };
 pub use reference_builder::{ReferenceBuilder, ReferenceFormat, ReferenceFormatter};
-pub use reflector::{Reflection, ReflectionConfig, Reflector, TaskExecutionRecord};
+pub use reflector::{QualityMetrics, Reflection, ReflectionConfig, Reflector, TaskExecutionRecord};
 pub use report_generator::{ReportError, ReportExporter, ReportGenerator, ReportStyle};
 pub use research_agent::{ResearchAgent, ResearchError, ResearchEvent};
 pub use research_state::{
@@ -433,7 +493,11 @@ pub use search_provider::{
     SearchProvider, SearchProviderRegistry, SearchProviderType, SearchQueryBuilder,
     SearchResultProcessor,
 };
-pub use self_verifier::{SelfVerifier, SemanticValidator, VerificationError, VerificationResult};
+pub use self_verifier::{
+    detect_state_change, validate_json_output, FieldChange, JsonType, JsonValidationResult,
+    LlmSemanticValidator, OutputFormat, RuleBasedValidator, SelfVerifier, SemanticValidator,
+    StateDiff, VerificationError, VerificationResult,
+};
 pub use session_manager::{
     AgentSession, ChannelPermissionPrompter, SessionManager, TauriHookProgressReporter,
 };
@@ -450,7 +514,10 @@ pub use task_executor::{ExecutionError, ExecutionEvent, ExecutionProgress, TaskE
 pub use thought_chain::{
     Action, ChainSummary, ThoughtChain, ThoughtChainEmitter, ThoughtEvent, ThoughtStep,
 };
-pub use trajectory_recorder::TrajectoryRecorder;
+pub use trajectory_recorder::{
+    ReplayComparison, ReplayResult, ReplayStep, TrajectoryRecorder, TrajectoryReplayer,
+    TrajectoryStore, TrajectorySummary,
+};
 pub use web_search::{WebSearchConfig, WebSearchProvider, WebSearchProviderBuilder};
 
 pub use ingest_pipeline::{
@@ -467,8 +534,9 @@ pub use graph_insights::{
 };
 
 pub use deep_research::{
-    DeepResearchConfig, DeepResearchResult, DeepResearcher, DeepResearcherBuilder, ResearchFinding,
-    ResearchQuery,
+    Contradiction as DeepResearchContradiction, CorroboratedFinding, DeepResearchConfig,
+    DeepResearchResult, DeepResearcher, DeepResearcherBuilder, ResearchFinding,
+    ResearchPhase as DeepResearchPhase, ResearchQuery, ResearchRound,
 };
 
 pub use relevance::{RankedPage, RelevanceConfig, RelevanceEngine};

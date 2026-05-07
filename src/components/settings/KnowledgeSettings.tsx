@@ -20,6 +20,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Select,
   Spin,
   Table,
   Tag,
@@ -29,6 +30,7 @@ import {
 } from "antd";
 import type { MenuProps } from "antd";
 import {
+  BookOpen,
   FileText,
   GripVertical,
   MoreHorizontal,
@@ -298,6 +300,39 @@ function KnowledgeBaseDetail({
   const [reindexingChunkIds, setReindexingChunkIds] = useState<Set<string>>(new Set());
   const [rebuildingDocIds, setRebuildingDocIds] = useState<Set<string>>(new Set());
 
+  const [syncWikiModalOpen, setSyncWikiModalOpen] = useState(false);
+  const [syncWikiDocId, setSyncWikiDocId] = useState<string | null>(null);
+  const [syncWikiDocTitle, setSyncWikiDocTitle] = useState("");
+  const [wikiList, setWikiList] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
+  const [syncingToWiki, setSyncingToWiki] = useState(false);
+
+  const handleOpenSyncWikiModal = useCallback(async (doc: KnowledgeDocument) => {
+    setSyncWikiDocId(doc.id);
+    setSyncWikiDocTitle(doc.title);
+    setSelectedVaultId(null);
+    try {
+      const wikis = await invoke<Array<{ id: string; name: string }>>("llm_wiki_list");
+      setWikiList(wikis);
+    } catch {
+      setWikiList([]);
+    }
+    setSyncWikiModalOpen(true);
+  }, []);
+
+  const handleSyncToWiki = useCallback(async () => {
+    if (!syncWikiDocId || !selectedVaultId) { return; }
+    setSyncingToWiki(true);
+    try {
+      await invoke("sync_knowledge_document_to_wiki", { documentId: syncWikiDocId, vaultId: selectedVaultId });
+      messageApi.success(t("wiki.sync.wikiSuccess", "Synced to Wiki"));
+      setSyncWikiModalOpen(false);
+    } catch (e) {
+      messageApi.error(t("wiki.sync.wikiError", "Sync to Wiki failed") + ": " + String(e));
+    }
+    setSyncingToWiki(false);
+  }, [syncWikiDocId, selectedVaultId, messageApi, t]);
+
   useEffect(() => {
     loadDocuments(base.id);
   }, [base.id, loadDocuments]);
@@ -479,9 +514,17 @@ function KnowledgeBaseDetail({
     },
     {
       key: "actions",
-      width: 120,
+      width: 150,
       render: (_: unknown, record: KnowledgeDocument) => (
         <div className="flex items-center gap-1">
+          <Tooltip title={t("wiki.sync.toWiki", "Sync to Wiki")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<BookOpen size={14} />}
+              onClick={() => handleOpenSyncWikiModal(record)}
+            />
+          </Tooltip>
           <Tooltip title={t("settings.knowledge.viewChunks")}>
             <Button
               size="small"
@@ -1183,6 +1226,35 @@ function KnowledgeBaseDetail({
           autoSize={{ minRows: 8, maxRows: 20 }}
           style={{ fontSize: 13 }}
         />
+      </Modal>
+
+      <Modal
+        title={t("wiki.sync.toWikiTitle", "Sync to Wiki")}
+        open={syncWikiModalOpen}
+        onOk={handleSyncToWiki}
+        onCancel={() => setSyncWikiModalOpen(false)}
+        okButtonProps={{ loading: syncingToWiki, disabled: !selectedVaultId }}
+        okText={t("wiki.sync.toWiki", "Sync to Wiki")}
+        width={420}
+      >
+        <div className="py-4">
+          <div className="text-sm mb-2">
+            <strong>{syncWikiDocTitle}</strong>
+          </div>
+          <div className="text-sm font-medium mb-2">
+            {t("wiki.sync.selectWiki", "Select Wiki")}
+          </div>
+          <Select
+            value={selectedVaultId ?? undefined}
+            onChange={setSelectedVaultId}
+            placeholder={t("wiki.sync.selectWiki", "Select Wiki")}
+            style={{ width: "100%" }}
+            options={wikiList.map((w) => ({
+              value: w.id,
+              label: w.name,
+            }))}
+          />
+        </div>
       </Modal>
     </div>
   );

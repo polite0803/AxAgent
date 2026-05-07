@@ -1,9 +1,11 @@
 import type { GraphData, GraphNode } from "@/components/wiki/GraphView";
+import { invoke } from "@/lib/invoke";
+import { useKnowledgeStore } from "@/stores";
 import { useWikiStore } from "@/stores/feature/wikiStore";
-import type { Note, NoteLink } from "@/types";
+import type { KnowledgeBase, Note, NoteLink } from "@/types";
 import { DeleteOutlined, LinkOutlined, SaveOutlined } from "@ant-design/icons";
-import { Button, Empty, List, message, Popconfirm, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
-import { ArrowLeftRight, GitGraph, Network, PenLine, X } from "lucide-react";
+import { Button, Empty, List, message, Modal, Popconfirm, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
+import { ArrowLeftRight, BookOpen, GitGraph, Network, PenLine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, { Background, Controls, Edge, MiniMap, Node, useEdgesState, useNodesState } from "reactflow";
 import "reactflow/dist/style.css";
@@ -31,6 +33,7 @@ export function WikiDetailPanel({
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const { getNote, updateNote, deleteNote, getNoteLinks, getNoteBacklinks } = useWikiStore();
+  const { bases: knowledgeBases, loadBases } = useKnowledgeStore();
 
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState("");
@@ -43,6 +46,9 @@ export function WikiDetailPanel({
   const [linksLoading, setLinksLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("edit");
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [selectedKbId, setSelectedKbId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (!noteId) {
@@ -129,6 +135,25 @@ export function WikiDetailPanel({
     onNoteUpdated();
     onClose();
   };
+
+  const handleOpenSyncModal = useCallback(() => {
+    loadBases();
+    setSelectedKbId(null);
+    setSyncModalOpen(true);
+  }, [loadBases]);
+
+  const handleSyncToKb = useCallback(async () => {
+    if (!note || !selectedKbId) { return; }
+    setSyncing(true);
+    try {
+      await invoke("sync_note_to_knowledge_base", { noteId: note.id, knowledgeBaseId: selectedKbId });
+      message.success(t("wiki.sync.success", "Synced to knowledge base"));
+      setSyncModalOpen(false);
+    } catch (e) {
+      message.error(t("wiki.sync.error", "Sync failed") + ": " + String(e));
+    }
+    setSyncing(false);
+  }, [note, selectedKbId, t]);
 
   // 局部图谱：当前节点 + 直接邻居
   const localGraphData = useMemo(() => {
@@ -249,6 +274,15 @@ export function WikiDetailPanel({
                       className="opacity-50 hover:opacity-100"
                     />
                   </Popconfirm>
+                  <Tooltip title={t("wiki.sync.toKnowledgeBase", "Sync to Knowledge Base")}>
+                    <Button
+                      icon={<BookOpen size={14} />}
+                      size="small"
+                      type="text"
+                      className="opacity-50 hover:opacity-100"
+                      onClick={handleOpenSyncModal}
+                    />
+                  </Tooltip>
                   {hasChanges && (
                     <span
                       className="text-xs px-1.5 py-0.5 rounded-full animate-pulse"
@@ -373,6 +407,32 @@ export function WikiDetailPanel({
           },
         ]}
       />
+
+      <Modal
+        title={t("wiki.sync.toKnowledgeBaseTitle", "Sync to Knowledge Base")}
+        open={syncModalOpen}
+        onOk={handleSyncToKb}
+        onCancel={() => setSyncModalOpen(false)}
+        okButtonProps={{ loading: syncing, disabled: !selectedKbId }}
+        okText={t("wiki.sync.toKnowledgeBase", "Sync to Knowledge Base")}
+        width={420}
+      >
+        <div className="py-4">
+          <div className="text-sm font-medium mb-2">
+            {t("wiki.sync.selectKnowledgeBase", "Select Knowledge Base")}
+          </div>
+          <Select
+            value={selectedKbId ?? undefined}
+            onChange={setSelectedKbId}
+            placeholder={t("wiki.sync.selectKnowledgeBase", "Select Knowledge Base")}
+            style={{ width: "100%" }}
+            options={knowledgeBases.map((kb: KnowledgeBase) => ({
+              value: kb.id,
+              label: kb.name,
+            }))}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

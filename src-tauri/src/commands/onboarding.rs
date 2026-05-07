@@ -66,13 +66,15 @@ fn detect_single_key(env_var: &str, provider_type: &str) -> Option<DetectedApiKe
 
 /// 检测本地 Ollama 是否可用
 #[tauri::command]
-pub async fn detect_ollama_availability() -> Result<OllamaDetection, String> {
+pub async fn detect_ollama_availability(ollama_host: Option<String>) -> Result<OllamaDetection, String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(3))
         .build()
         .map_err(|e| e.to_string())?;
 
-    match client.get("http://localhost:11434/api/tags").send().await {
+    let base = ollama_host.unwrap_or_else(|| "http://localhost:11434".to_string());
+    let url = format!("{}/api/tags", base.trim_end_matches('/'));
+    match client.get(&url).send().await {
         Ok(resp) if resp.status().is_success() => {
             let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
             let models: Vec<OllamaModelInfo> = body["models"]
@@ -148,6 +150,11 @@ pub async fn apply_quick_start_preset(
                 .into_iter()
                 .find(|p| p.provider_type == ProviderType::Ollama);
 
+            let ollama_host = existing
+                .as_ref()
+                .map(|p| p.api_host.clone())
+                .unwrap_or_else(|| "http://localhost:11434".to_string());
+
             let provider_id = if let Some(ref p) = existing {
                 if !p.enabled {
                     toggle_provider(db, &p.id, true)
@@ -161,7 +168,7 @@ pub async fn apply_quick_start_preset(
                     CreateProviderInput {
                         name: "Ollama (本地)".into(),
                         provider_type: ProviderType::Ollama,
-                        api_host: "http://localhost:11434".into(),
+                        api_host: ollama_host.clone(),
                         api_path: Some("/v1/chat/completions".into()),
                         enabled: true,
                         builtin_id: None,

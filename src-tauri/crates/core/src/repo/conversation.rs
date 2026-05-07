@@ -1,7 +1,10 @@
 use sea_orm::*;
 use serde_json;
 
-use crate::entity::{conversation_summaries, conversations, knowledge_documents, messages};
+use crate::entity::{
+    conversation_summaries, conversations, knowledge_attributes, knowledge_documents,
+    knowledge_entities, knowledge_flows, knowledge_relations, messages,
+};
 use crate::error::{AxAgentError, Result};
 use crate::types::{
     Conversation, ConversationSearchResult, ConversationSummary, KnowledgeDocument,
@@ -26,6 +29,7 @@ pub fn conversation_from_entity(m: conversations::Model) -> Conversation {
         enabled_mcp_server_ids: parse_string_list(&m.enabled_mcp_server_ids),
         enabled_knowledge_base_ids: parse_string_list(&m.enabled_knowledge_base_ids),
         enabled_memory_namespace_ids: parse_string_list(&m.enabled_memory_namespace_ids),
+        enabled_wiki_ids: parse_string_list(&m.enabled_wiki_ids),
         message_count: m.message_count as u32,
         is_pinned: m.is_pinned != 0,
         is_archived: m.is_archived != 0,
@@ -37,6 +41,7 @@ pub fn conversation_from_entity(m: conversations::Model) -> Conversation {
         scenario: m.scenario,
         enabled_skill_ids: parse_string_list(&m.enabled_skill_ids),
         expert_role_id: m.expert_role_id,
+        agent_profile_id: m.agent_profile_id,
         workflow_template_id: m.workflow_template_id,
         session_type: m.session_type,
         workflow_status: m.workflow_status,
@@ -103,6 +108,7 @@ pub async fn create_conversation(
         message_count: Set(0),
         is_pinned: Set(0),
         enabled_skill_ids: Set("[]".to_string()),
+        enabled_wiki_ids: Set("[]".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
         ..Default::default()
@@ -196,8 +202,14 @@ pub async fn update_conversation(
     if let Some(enabled_skill_ids) = input.enabled_skill_ids {
         am.enabled_skill_ids = Set(stringify_string_list(&enabled_skill_ids));
     }
+    if let Some(enabled_wiki_ids) = input.enabled_wiki_ids {
+        am.enabled_wiki_ids = Set(stringify_string_list(&enabled_wiki_ids));
+    }
     if let Some(expert_role_id) = input.expert_role_id {
         am.expert_role_id = Set(expert_role_id);
+    }
+    if let Some(agent_profile_id) = input.agent_profile_id {
+        am.agent_profile_id = Set(agent_profile_id);
     }
     if let Some(workflow_template_id) = input.workflow_template_id {
         am.workflow_template_id = Set(workflow_template_id);
@@ -272,15 +284,39 @@ pub async fn archive_to_knowledge_base(
     conversation_id: &str,
     knowledge_base_id: &str,
 ) -> Result<(Conversation, KnowledgeDocument)> {
-    // 1. Load conversation
     let conv = conversations::Entity::find_by_id(conversation_id)
         .one(db)
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
 
-    let conv_title = conv.title.clone();
+    if conv.is_archived != 0 {
+        return Err(AxAgentError::Validation(format!(
+            "Conversation {} is already archived",
+            conversation_id
+        )));
+    }
 
-    // 2. Load all active messages ordered by created_at
+    let existing_doc = knowledge_documents::Entity::find()
+        .filter(knowledge_documents::Column::KnowledgeBaseId.eq(knowledge_base_id))
+        .filter(knowledge_documents::Column::SourceConversationId.eq(conversation_id))
+        .one(db)
+        .await?;
+    if existing_doc.is_some() {
+        return Err(AxAgentError::Validation(format!(
+            "Conversation {} already archived to knowledge base {}",
+            conversation_id, knowledge_base_id
+        )));
+    }
+
+    let conv_title = conv.title.clone();
+    let conv_mode = conv.mode.clone();
+    let conv_session_type = conv.session_type.clone();
+    let conv_expert_role_id = conv.expert_role_id.clone();
+    let conv_provider_id = conv.provider_id.clone();
+    let conv_model_id = conv.model_id.clone();
+    let conv_message_count = conv.message_count;
+    let conv_created_at = conv.created_at;
+
     let all_msgs = messages::Entity::find()
         .filter(messages::Column::ConversationId.eq(conversation_id))
         .filter(messages::Column::IsActive.eq(1))
@@ -288,30 +324,57 @@ pub async fn archive_to_knowledge_base(
         .all(db)
         .await?;
 
-    // 3. Format messages into structured text
+    let all_msgs_with_scaffold = messages::Entity::find()
+        .filter(messages::Column::ConversationId.eq(conversation_id))
+        .order_by_asc(messages::Column::CreatedAt)
+        .all(db)
+        .await?;
+
     let mut text_parts: Vec<String> = Vec::new();
     text_parts.push(format!("# {}\n", conv_title));
+
+    let mut flow_steps: Vec<serde_json::Value> = Vec::new();
+    let mut step_index: u32 = 0;
+    let mut first_user_content: Option<String> = None;
 
     for msg in &all_msgs {
         let role_label = match msg.role.as_str() {
             "user" => "User",
             "assistant" => "Assistant",
-            "system" => continue, // skip system messages
+            "system" => continue,
             _ => continue,
         };
-        // Truncate very long messages to keep document size manageable
         let content = if msg.content.len() > 8000 {
             format!("{}...(truncated)", &msg.content[..8000])
         } else {
             msg.content.clone()
         };
         text_parts.push(format!("## {}\n\n{}", role_label, content));
+
+        if first_user_content.is_none() && msg.role == "user" {
+            first_user_content = Some(if msg.content.len() > 200 {
+                format!("{}...", &msg.content[..200])
+            } else {
+                msg.content.clone()
+            });
+        }
+
+        let preview = if msg.content.len() > 100 {
+            format!("{}...", &msg.content[..100])
+        } else {
+            msg.content.clone()
+        };
+        flow_steps.push(serde_json::json!({
+            "index": step_index,
+            "role": msg.role,
+            "contentPreview": preview,
+        }));
+        step_index += 1;
     }
 
     let document_content = text_parts.join("\n\n");
     let content_bytes = document_content.len() as i64;
 
-    // 4. Create knowledge document record
     let doc_id = gen_id();
     let now = now_ts();
 
@@ -331,8 +394,265 @@ pub async fn archive_to_knowledge_base(
     };
     doc_am.insert(db).await?;
 
-    // 5. Mark conversation as archived
-    let new_archived = 1; // ensure archived
+    let entity_id = gen_id();
+    let entity_props = serde_json::json!({
+        "mode": conv_mode,
+        "sessionType": conv_session_type,
+        "expertRoleId": conv_expert_role_id,
+        "messageCount": conv_message_count,
+        "providerId": conv_provider_id,
+        "modelId": conv_model_id,
+        "createdAt": conv_created_at,
+    });
+
+    let entity_am = knowledge_entities::ActiveModel {
+        id: Set(entity_id.clone()),
+        knowledge_base_id: Set(knowledge_base_id.to_string()),
+        name: Set(conv_title.clone()),
+        entity_type: Set("conversation".to_string()),
+        description: Set(first_user_content.clone()),
+        source_path: Set(format!("conversation://{}", conversation_id)),
+        source_language: Set(None),
+        properties: Set(entity_props),
+        lifecycle: Set(None),
+        behaviors: Set(None),
+        metadata: Set(Some(serde_json::json!({
+            "archivedAt": now,
+            "documentId": doc_id,
+        }))),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
+    entity_am.insert(db).await?;
+
+    let attr_defs = [
+        ("title", "string", "Conversation title"),
+        ("mode", "string", "Conversation mode (chat/agent/gateway)"),
+        ("sessionType", "string", "Session type (conversation/workflow)"),
+        ("messageCount", "integer", "Number of messages"),
+        ("providerId", "string", "LLM provider ID"),
+        ("modelId", "string", "LLM model ID"),
+    ];
+
+    for (name, data_type, desc) in &attr_defs {
+        let attr_id = gen_id();
+        let attr_am = knowledge_attributes::ActiveModel {
+            id: Set(attr_id),
+            knowledge_base_id: Set(knowledge_base_id.to_string()),
+            entity_id: Set(entity_id.clone()),
+            name: Set((*name).to_owned()),
+            attribute_type: Set("property".to_string()),
+            data_type: Set((*data_type).to_owned()),
+            description: Set(Some((*desc).to_owned())),
+            is_required: Set(false),
+            default_value: Set(None),
+            constraints: Set(None),
+            validation_rules: Set(None),
+            metadata: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        attr_am.insert(db).await?;
+    }
+
+    if !flow_steps.is_empty() {
+        let flow_id = gen_id();
+        let flow_am = knowledge_flows::ActiveModel {
+            id: Set(flow_id),
+            knowledge_base_id: Set(knowledge_base_id.to_string()),
+            name: Set(format!("{} - 对话流程", conv_title)),
+            flow_type: Set("conversation".to_string()),
+            description: Set(first_user_content.clone()),
+            source_path: Set(format!("conversation://{}", conversation_id)),
+            steps: Set(serde_json::json!(flow_steps)),
+            decision_points: Set(None),
+            error_handling: Set(None),
+            preconditions: Set(None),
+            postconditions: Set(None),
+            metadata: Set(Some(serde_json::json!({
+                "messageCount": conv_message_count,
+                "mode": conv_mode,
+                "entityId": entity_id,
+            }))),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        flow_am.insert(db).await?;
+    }
+
+    struct Turn {
+        user_msg: messages::Model,
+        assistant_msgs: Vec<TurnAssistantMsg>,
+        tool_msgs: Vec<messages::Model>,
+    }
+
+    struct TurnAssistantMsg {
+        msg: messages::Model,
+        tool_calls_json: Option<String>,
+    }
+
+    let mut turns: Vec<Turn> = Vec::new();
+    let mut current_turn: Option<Turn> = None;
+
+    for msg in &all_msgs_with_scaffold {
+        match msg.role.as_str() {
+            "user" => {
+                if let Some(prev) = current_turn.take() {
+                    turns.push(prev);
+                }
+                current_turn = Some(Turn {
+                    user_msg: msg.clone(),
+                    assistant_msgs: Vec::new(),
+                    tool_msgs: Vec::new(),
+                });
+            }
+            "assistant" => {
+                if let Some(ref mut t) = current_turn {
+                    let tc_json = msg.tool_calls_json.clone();
+                    t.assistant_msgs.push(TurnAssistantMsg {
+                        msg: msg.clone(),
+                        tool_calls_json: tc_json,
+                    });
+                }
+            }
+            "tool" => {
+                if let Some(ref mut t) = current_turn {
+                    t.tool_msgs.push(msg.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(prev) = current_turn.take() {
+        turns.push(prev);
+    }
+
+    let mut prev_qa_entity_id: Option<String> = None;
+
+    for (turn_idx, turn) in turns.iter().enumerate() {
+        let q_preview = if turn.user_msg.content.len() > 100 {
+            format!("{}...", &turn.user_msg.content[..100])
+        } else {
+            turn.user_msg.content.clone()
+        };
+
+        let final_answer = turn
+            .assistant_msgs
+            .iter()
+            .filter(|a| a.tool_calls_json.is_none() && !a.msg.content.trim().is_empty())
+            .last()
+            .map(|a| a.msg.content.clone())
+            .unwrap_or_else(|| {
+                turn.assistant_msgs
+                    .last()
+                    .map(|a| a.msg.content.clone())
+                    .unwrap_or_default()
+            });
+
+        let a_preview = if final_answer.len() > 200 {
+            format!("{}...", &final_answer[..200])
+        } else {
+            final_answer.clone()
+        };
+
+        let tool_call_summaries: Vec<serde_json::Value> = turn
+            .assistant_msgs
+            .iter()
+            .filter(|a| a.tool_calls_json.is_some())
+            .filter_map(|a| {
+                let tc: Vec<serde_json::Value> = serde_json::from_str(a.tool_calls_json.as_ref()?).ok()?;
+                Some(serde_json::json!({
+                    "toolCalls": tc,
+                    "contentPreview": if a.msg.content.len() > 100 {
+                        format!("{}...", &a.msg.content[..100])
+                    } else {
+                        a.msg.content.clone()
+                    },
+                }))
+            })
+            .collect();
+
+        let tool_result_summaries: Vec<serde_json::Value> = turn
+            .tool_msgs
+            .iter()
+            .map(|m| {
+                let preview = if m.content.len() > 200 {
+                    format!("{}...", &m.content[..200])
+                } else {
+                    m.content.clone()
+                };
+                serde_json::json!({
+                    "toolCallId": m.tool_call_id,
+                    "contentPreview": preview,
+                })
+            })
+            .collect();
+
+        let qa_entity_id = gen_id();
+        let mut qa_props = serde_json::json!({
+            "question": q_preview,
+            "answer": a_preview,
+            "turnIndex": turn_idx,
+        });
+        if !tool_call_summaries.is_empty() {
+            qa_props["toolCalls"] = serde_json::json!(tool_call_summaries);
+        }
+        if !tool_result_summaries.is_empty() {
+            qa_props["toolResults"] = serde_json::json!(tool_result_summaries);
+        }
+
+        let qa_entity_am = knowledge_entities::ActiveModel {
+            id: Set(qa_entity_id.clone()),
+            knowledge_base_id: Set(knowledge_base_id.to_string()),
+            name: Set(q_preview.clone()),
+            entity_type: Set("qa_pair".to_string()),
+            description: Set(Some(a_preview.clone())),
+            source_path: Set(format!("conversation://{}", conversation_id)),
+            source_language: Set(None),
+            properties: Set(qa_props),
+            lifecycle: Set(None),
+            behaviors: Set(None),
+            metadata: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        qa_entity_am.insert(db).await?;
+
+        let rel_id = gen_id();
+        let rel_am = knowledge_relations::ActiveModel {
+            id: Set(rel_id),
+            knowledge_base_id: Set(knowledge_base_id.to_string()),
+            source_entity_id: Set(entity_id.clone()),
+            target_entity_id: Set(qa_entity_id.clone()),
+            relation_type: Set("contains".to_string()),
+            description: Set(Some(format!("Q&A pair #{}", turn_idx + 1))),
+            properties: Set(None),
+            metadata: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        rel_am.insert(db).await?;
+
+        if let Some(prev_id) = &prev_qa_entity_id {
+            let seq_rel_id = gen_id();
+            let seq_rel_am = knowledge_relations::ActiveModel {
+                id: Set(seq_rel_id),
+                knowledge_base_id: Set(knowledge_base_id.to_string()),
+                source_entity_id: Set(prev_id.clone()),
+                target_entity_id: Set(qa_entity_id.clone()),
+                relation_type: Set("follows".to_string()),
+                description: Set(None),
+                properties: Set(None),
+                metadata: Set(None),
+                created_at: Set(now),
+                updated_at: Set(now),
+            };
+            seq_rel_am.insert(db).await?;
+        }
+        prev_qa_entity_id = Some(qa_entity_id);
+    }
+
+    let new_archived = 1;
     let mut am: conversations::ActiveModel = conv.into();
     am.is_archived = Set(new_archived);
     am.updated_at = Set(now);
@@ -340,7 +660,6 @@ pub async fn archive_to_knowledge_base(
 
     let updated_conv = get_conversation(db, conversation_id).await?;
 
-    // 6. Read back the document
     let doc_model = knowledge_documents::Entity::find_by_id(&doc_id)
         .one(db)
         .await?
@@ -377,7 +696,6 @@ pub async fn get_conversation_archive_text(
 
     let all_msgs = messages::Entity::find()
         .filter(messages::Column::ConversationId.eq(conversation_id))
-        .filter(messages::Column::IsActive.eq(1))
         .order_by_asc(messages::Column::CreatedAt)
         .all(db)
         .await?;
@@ -389,6 +707,7 @@ pub async fn get_conversation_archive_text(
         let role_label = match msg.role.as_str() {
             "user" => "User",
             "assistant" => "Assistant",
+            "tool" => "Tool Result",
             "system" => continue,
             _ => continue,
         };
@@ -397,7 +716,15 @@ pub async fn get_conversation_archive_text(
         } else {
             msg.content.clone()
         };
-        text_parts.push(format!("## {}\n\n{}", role_label, content));
+        if msg.role == "assistant" {
+            if let Some(ref tc_json) = msg.tool_calls_json {
+                text_parts.push(format!("## {} (Tool Call)\n\n{}\n\nTool Calls: {}", role_label, content, tc_json));
+            } else {
+                text_parts.push(format!("## {}\n\n{}", role_label, content));
+            }
+        } else {
+            text_parts.push(format!("## {}\n\n{}", role_label, content));
+        }
     }
 
     Ok(text_parts.join("\n\n"))
@@ -496,6 +823,7 @@ pub async fn branch_conversation(
         enabled_mcp_server_ids: Set(source.enabled_mcp_server_ids.clone()),
         enabled_knowledge_base_ids: Set(source.enabled_knowledge_base_ids.clone()),
         enabled_memory_namespace_ids: Set(source.enabled_memory_namespace_ids.clone()),
+        enabled_wiki_ids: Set(source.enabled_wiki_ids.clone()),
         message_count: Set(effective_msgs.len() as i32),
         is_pinned: Set(0),
         is_archived: Set(0),
@@ -505,6 +833,7 @@ pub async fn branch_conversation(
         research_mode: Set(source.research_mode),
         enabled_skill_ids: Set(source.enabled_skill_ids.clone()),
         expert_role_id: Set(source.expert_role_id.clone()),
+        agent_profile_id: Set(source.agent_profile_id.clone()),
         workflow_template_id: Set(source.workflow_template_id.clone()),
         session_type: Set(source.session_type.clone()),
         workflow_status: Set(source.workflow_status.clone()),

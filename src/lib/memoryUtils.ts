@@ -9,7 +9,7 @@ export interface MemoryRetrievedItem {
 }
 
 export interface MemorySourceResult {
-  source_type: "knowledge" | "memory";
+  source_type: "knowledge" | "memory" | "wiki";
   container_id: string;
   items: MemoryRetrievedItem[];
 }

@@ -1,6 +1,6 @@
 // 全局帮助面板 — ? 快捷键打开，右侧 Drawer
 import { useHelpStore } from "@/stores/feature/helpStore";
-import { Bot, Globe, Keyboard, MessageSquare, Search, X } from "lucide-react";
+import { Bot, Globe, Keyboard, MessageSquare, Puzzle, Search, Workflow, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./HelpPanel.css";
@@ -117,6 +117,57 @@ export function HelpPanel() {
           },
         ],
       },
+      {
+        key: "workflow",
+        icon: <Workflow size={16} />,
+        title: t("help.workflow", "Workflow"),
+        items: [
+          {
+            key: "create",
+            question: t("help.workflowCreateQ", "如何创建工作流？"),
+            answer: t("help.workflowCreateA", "进入 Workflow 页面，从侧边栏拖拽节点到画布上，连接节点构建工作流。"),
+          },
+          {
+            key: "run",
+            question: t("help.workflowRunQ", "如何运行工作流？"),
+            answer: t("help.workflowRunA", "点击工作流编辑器右上角的运行按钮，也可以逐步调试。"),
+          },
+        ],
+      },
+      {
+        key: "skills",
+        icon: <Puzzle size={16} />,
+        title: t("help.skills", "Skills"),
+        items: [
+          {
+            key: "install",
+            question: t("help.skillsInstallQ", "如何安装技能？"),
+            answer: t("help.skillsInstallA", "进入 Skills 页面，浏览并安装市场中的技能，或创建自定义技能。"),
+          },
+          {
+            key: "use",
+            question: t("help.skillsUseQ", "如何使用技能？"),
+            answer: t("help.skillsUseA", "已安装的技能以斜杠命令形式出现在聊天输入框中，输入 / 查看可用技能。"),
+          },
+        ],
+      },
+      {
+        key: "gateway",
+        icon: <Globe size={16} />,
+        title: t("help.gateway", "Gateway"),
+        items: [
+          {
+            key: "setup",
+            question: t("help.gatewaySetupQ", "如何设置网关？"),
+            answer: t("help.gatewaySetupA", "进入 Gateway 页面，配置 API Key 和路由规则。网关允许统一访问多个供应商。"),
+          },
+          {
+            key: "monitor",
+            question: t("help.gatewayMonitorQ", "如何监控网关使用情况？"),
+            answer: t("help.gatewayMonitorA", "Gateway 页面显示实时指标，包括请求次数、延迟和 Token 用量。"),
+          },
+        ],
+      },
     ],
     [t],
   );
@@ -191,6 +242,7 @@ export function HelpPanel() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="help-panel__search-input"
+            aria-label={t("help.search", "搜索帮助主题…")}
           />
         </div>
 
@@ -201,17 +253,26 @@ export function HelpPanel() {
               <button
                 type="button"
                 className="help-section__toggle"
+                id={`help-section-toggle-${section.key}`}
+                aria-expanded={activeSection === section.key || search.trim() !== ""}
+                aria-controls={`help-section-${section.key}`}
                 onClick={() =>
                   setActiveLocal(
                     activeSection === section.key ? null : section.key,
                   )}
+                }
               >
                 <span className="help-section__icon">{section.icon}</span>
                 <span className="help-section__title">{section.title}</span>
                 <span className="help-section__count">{section.items.length}</span>
               </button>
               {(activeSection === section.key || search.trim() !== "") && (
-                <div className="help-section__items">
+                <div
+                  className="help-section__items"
+                  id={`help-section-${section.key}`}
+                  role="region"
+                  aria-labelledby={`help-section-toggle-${section.key}`}
+                >
                   {section.items.map((item) => (
                     <div key={item.key} className="help-item">
                       <div className="help-item__q">{item.question}</div>

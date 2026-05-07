@@ -101,6 +101,7 @@ describe("Phase-2 type contracts", () => {
         searchEnabled: false,
         enabledKnowledgeBaseIds: [],
         enabledMcpServerIds: [],
+        enabledWikiIds: [],
         memoryEnabled: false,
         memoryWriteBack: false,
       },

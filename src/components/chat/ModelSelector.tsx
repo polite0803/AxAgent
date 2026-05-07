@@ -26,6 +26,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { ContextHelp } from "@/components/help/ContextHelp";
 
 const PINNED_MODELS_KEY = "axagent_pinned_models";
 
@@ -584,6 +585,7 @@ export function ModelSelector(
             </Tag>
           </Tooltip>
         )}
+      <ContextHelp helpKey="chat" section="chat" />
 
       <Modal
         open={open}

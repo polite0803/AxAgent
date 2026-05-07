@@ -3,6 +3,7 @@ import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { SkillToolbar } from "@/components/skill/SkillToolbar";
+import { ContextHelp } from "@/components/help/ContextHelp";
 import { invoke, isTauri } from "@/lib/invoke";
 import { findModelByIds, modelHasCapability, supportsReasoning } from "@/lib/modelCapabilities";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
@@ -982,7 +983,7 @@ export function InputArea() {
             style={{ padding: 0, fontSize: 12 }}
             onClick={() => {
               setWikiPopoverOpen(false);
-              navigate("/wiki");
+              navigate("/llm-wiki");
             }}
           >
             {t("chat.mcp.goConfig")}
@@ -1244,9 +1245,14 @@ export function InputArea() {
           messageApi.error(t("chat.agentInitFailed", "Failed to initialize agent session"));
         }
       } else {
-        // Switching back to chat mode — clean up agent state
         const { clearConversation } = useAgentStore.getState();
         clearConversation(activeConversation.id);
+        if (activeConversation.session_type === "workflow" || activeConversation.workflow_template_id) {
+          await updateConversation(activeConversation.id, {
+            session_type: "conversation",
+            workflow_template_id: null,
+          });
+        }
       }
     } finally {
       isSwitchingModeRef.current = false;
@@ -2317,6 +2323,7 @@ export function InputArea() {
                 />
               </Tooltip>
             </Dropdown>
+            <ContextHelp helpKey="agent" section="agent" />
             {currentMode === "agent" && (
               <Dropdown
                 menu={{

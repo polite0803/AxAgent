@@ -123,7 +123,8 @@ impl RAGSource for WikiVaultRAG {
 
 /// Knowledge/Memory/Wiki 三个系统的容器共性。
 /// 长期计划（P3）：将 `memory_namespaces` 合并到 `knowledge_bases`，Memory 作为特殊的轻量级知识库。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KnowledgeContainer {
     pub id: String,
     pub name: String,
@@ -141,7 +142,8 @@ pub struct KnowledgeContainer {
     pub enabled: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ContainerType {
     KnowledgeBase,
     Memory,
@@ -403,6 +405,40 @@ pub fn prepare_direct_chunk(item_id: &str, content: &str) -> Vec<(String, String
     vec![(item_id.to_string(), content.to_string(), 0)]
 }
 
+pub async fn collect_knowledge_graph_context(
+    db: &DatabaseConnection,
+    kb_ids: &[String],
+    query: &str,
+    top_k: usize,
+) -> Vec<String> {
+    let mut context_parts = Vec::new();
+
+    for kb_id in kb_ids {
+        let entities = match crate::repo::knowledge_graph::search_entities(db, kb_id, query, top_k).await {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        if entities.is_empty() {
+            continue;
+        }
+
+        let mut section = format!("[Knowledge Graph - {}]\n", kb_id);
+        for entity in &entities {
+            section.push_str(&format!("- {} ({})", entity.name, entity.entity_type));
+            if let Some(ref desc) = entity.description {
+                if !desc.is_empty() {
+                    section.push_str(&format!(" — {}", desc));
+                }
+            }
+            section.push('\n');
+        }
+        context_parts.push(section);
+    }
+
+    context_parts
+}
+
 // ── Context collection ───────────────────────────────────────────────────────
 
 /// A typed RAG source reference for context collection.
@@ -618,6 +654,9 @@ pub async fn collect_rag_context(
             }
         }
     }
+
+    let kg_context = collect_knowledge_graph_context(db, kb_ids, query, top_k).await;
+    context_parts.extend(kg_context);
 
     RagContextResult {
         context_parts,

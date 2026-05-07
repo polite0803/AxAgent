@@ -345,3 +345,457 @@ fn truncate_string(s: &str, max_len: usize) -> String {
         format!("{}...", &s[..max_len.saturating_sub(3)])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::task::{TaskNode, TaskType};
+    use async_trait::async_trait;
+
+    struct MockLlmClient {
+        response: String,
+    }
+
+    #[async_trait]
+    impl LlmClient for MockLlmClient {
+        async fn complete(&self, _prompt: &str) -> Result<String, DecompositionError> {
+            Ok(self.response.clone())
+        }
+    }
+
+    #[test]
+    fn test_task_decomposer_new() {
+        let decomposer = TaskDecomposer::new();
+        assert_eq!(decomposer.max_depth, 10);
+        assert!(decomposer.llm_client.is_none());
+    }
+
+    #[test]
+    fn test_task_decomposer_default() {
+        let decomposer = TaskDecomposer::default();
+        assert_eq!(decomposer.max_depth, 10);
+    }
+
+    #[test]
+    fn test_task_decomposer_with_max_depth() {
+        let decomposer = TaskDecomposer::new().with_max_depth(5);
+        assert_eq!(decomposer.max_depth, 5);
+    }
+
+    #[test]
+    fn test_task_decomposer_with_llm_client() {
+        let mock = MockLlmClient {
+            response: "{}".to_string(),
+        };
+        let decomposer = TaskDecomposer::new().with_llm_client(Arc::new(mock));
+        assert!(decomposer.llm_client.is_some());
+    }
+
+    #[test]
+    fn test_decomposition_error_llm_error() {
+        let err = DecompositionError::LlmError("llm failed".to_string());
+        assert!(err.to_string().contains("llm failed"));
+    }
+
+    #[test]
+    fn test_decomposition_error_parse_error() {
+        let err = DecompositionError::ParseError("parse failed".to_string());
+        assert!(err.to_string().contains("parse failed"));
+    }
+
+    #[test]
+    fn test_decomposition_error_invalid_structure() {
+        let err = DecompositionError::InvalidStructure("invalid".to_string());
+        assert!(err.to_string().contains("invalid"));
+    }
+
+    #[test]
+    fn test_decomposition_result_creation() {
+        let result = DecompositionResult {
+            tasks: vec![TaskNode::new("1", "task 1", TaskType::Query)],
+            parallel_groups: vec![vec!["1".to_string()]],
+            reasoning: "test reasoning".to_string(),
+        };
+        assert_eq!(result.tasks.len(), 1);
+        assert_eq!(result.parallel_groups.len(), 1);
+        assert_eq!(result.reasoning, "test reasoning");
+    }
+
+    #[test]
+    fn test_decomposition_result_empty() {
+        let result = DecompositionResult {
+            tasks: vec![],
+            parallel_groups: vec![],
+            reasoning: String::new(),
+        };
+        assert!(result.tasks.is_empty());
+        assert!(result.parallel_groups.is_empty());
+    }
+
+    #[test]
+    fn test_task_decomposer_build_graph_empty_tasks() {
+        let decomposer = TaskDecomposer::new();
+        let result = DecompositionResult {
+            tasks: vec![],
+            parallel_groups: vec![],
+            reasoning: String::new(),
+        };
+        let graph = decomposer.build_graph(result);
+        assert!(graph.is_err());
+        assert!(matches!(graph.unwrap_err(), DecompositionError::InvalidStructure(_)));
+    }
+
+    #[test]
+    fn test_task_decomposer_build_graph_with_tasks() {
+        let decomposer = TaskDecomposer::new();
+        let result = DecompositionResult {
+            tasks: vec![
+                TaskNode::new("1", "task 1", TaskType::Query),
+                TaskNode::new("2", "task 2", TaskType::Reasoning),
+            ],
+            parallel_groups: vec![vec!["1".to_string(), "2".to_string()]],
+            reasoning: "parallel tasks".to_string(),
+        };
+        let graph = decomposer.build_graph(result).unwrap();
+        assert_eq!(graph.tasks.len(), 2);
+        assert_eq!(graph.parallel_groups.len(), 1);
+    }
+
+    #[test]
+    fn test_task_decomposer_build_graph_max_depth() {
+        let decomposer = TaskDecomposer::new().with_max_depth(2);
+        let tasks: Vec<TaskNode> = (1..=5)
+            .map(|i| TaskNode::new(i.to_string(), format!("task {}", i), TaskType::Query))
+            .collect();
+        let result = DecompositionResult {
+            tasks,
+            parallel_groups: vec![],
+            reasoning: String::new(),
+        };
+        let graph = decomposer.build_graph(result).unwrap();
+        assert_eq!(graph.tasks.len(), 2);
+    }
+
+    #[test]
+    fn test_task_decomposer_build_graph_max_depth_equals_task_count() {
+        let decomposer = TaskDecomposer::new().with_max_depth(3);
+        let tasks: Vec<TaskNode> = (1..=3)
+            .map(|i| TaskNode::new(i.to_string(), format!("task {}", i), TaskType::Query))
+            .collect();
+        let result = DecompositionResult {
+            tasks,
+            parallel_groups: vec![],
+            reasoning: String::new(),
+        };
+        let graph = decomposer.build_graph(result).unwrap();
+        assert_eq!(graph.tasks.len(), 3);
+    }
+
+    #[test]
+    fn test_task_decomposer_validate_graph_valid() {
+        let decomposer = TaskDecomposer::new();
+        let mut graph = TaskGraph::new();
+        let t1 = TaskNode::new("1", "task 1", TaskType::Query);
+        let t2 = TaskNode::new("2", "task 2", TaskType::Query).with_dependencies(vec!["1".to_string()]);
+        graph.add_task(t1);
+        graph.add_task(t2);
+        assert!(decomposer.validate_graph(&graph).is_ok());
+    }
+
+    #[test]
+    fn test_task_decomposer_validate_graph_no_deps() {
+        let decomposer = TaskDecomposer::new();
+        let mut graph = TaskGraph::new();
+        graph.add_task(TaskNode::new("1", "task 1", TaskType::Query));
+        graph.add_task(TaskNode::new("2", "task 2", TaskType::Query));
+        assert!(decomposer.validate_graph(&graph).is_ok());
+    }
+
+    #[test]
+    fn test_task_decomposer_validate_graph_missing_dependency() {
+        let decomposer = TaskDecomposer::new();
+        let mut graph = TaskGraph::new();
+        let t1 = TaskNode::new("1", "task 1", TaskType::Query)
+            .with_dependencies(vec!["nonexistent".to_string()]);
+        graph.add_task(t1);
+        let result = decomposer.validate_graph(&graph);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), DecompositionError::InvalidStructure(_)));
+    }
+
+    #[test]
+    fn test_task_decomposer_validate_graph_cycle() {
+        let decomposer = TaskDecomposer::new();
+        let mut graph = TaskGraph::new();
+        let mut t1 = TaskNode::new("1", "task 1", TaskType::Query);
+        t1.dependencies = vec!["2".to_string()];
+        let mut t2 = TaskNode::new("2", "task 2", TaskType::Query);
+        t2.dependencies = vec!["1".to_string()];
+        graph.add_task(t1);
+        graph.add_task(t2);
+        let result = decomposer.validate_graph(&graph);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_task_decomposer_validate_graph_self_dependency() {
+        let decomposer = TaskDecomposer::new();
+        let mut graph = TaskGraph::new();
+        let mut t1 = TaskNode::new("1", "task 1", TaskType::Query);
+        t1.dependencies = vec!["1".to_string()];
+        graph.add_task(t1);
+        let result = decomposer.validate_graph(&graph);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_task_decomposer_validate_graph_three_node_cycle() {
+        let decomposer = TaskDecomposer::new();
+        let mut graph = TaskGraph::new();
+        let mut t1 = TaskNode::new("1", "task 1", TaskType::Query);
+        t1.dependencies = vec!["3".to_string()];
+        let mut t2 = TaskNode::new("2", "task 2", TaskType::Query);
+        t2.dependencies = vec!["1".to_string()];
+        let mut t3 = TaskNode::new("3", "task 3", TaskType::Query);
+        t3.dependencies = vec!["2".to_string()];
+        graph.add_task(t1);
+        graph.add_task(t2);
+        graph.add_task(t3);
+        let result = decomposer.validate_graph(&graph);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_task_decomposer_infer_parallel_groups_empty() {
+        let decomposer = TaskDecomposer::new();
+        let groups = decomposer.infer_parallel_groups(&[]);
+        assert!(groups.is_empty());
+    }
+
+    #[test]
+    fn test_task_decomposer_infer_parallel_groups_no_deps() {
+        let decomposer = TaskDecomposer::new();
+        let tasks = vec![
+            TaskNode::new("1", "task 1", TaskType::Query),
+            TaskNode::new("2", "task 2", TaskType::Query),
+            TaskNode::new("3", "task 3", TaskType::Query),
+        ];
+        let groups = decomposer.infer_parallel_groups(&tasks);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0], vec!["1", "2", "3"]);
+    }
+
+    #[test]
+    fn test_task_decomposer_infer_parallel_groups_with_deps() {
+        let decomposer = TaskDecomposer::new();
+        let t1 = TaskNode::new("1", "task 1", TaskType::Query);
+        let mut t2 = TaskNode::new("2", "task 2", TaskType::Query);
+        t2.dependencies = vec!["1".to_string()];
+        let tasks = vec![t1, t2];
+        let groups = decomposer.infer_parallel_groups(&tasks);
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups[0], vec!["1"]);
+        assert_eq!(groups[1], vec!["2"]);
+    }
+
+    #[test]
+    fn test_task_decomposer_infer_parallel_groups_mixed() {
+        let decomposer = TaskDecomposer::new();
+        let t1 = TaskNode::new("1", "task 1", TaskType::Query);
+        let t2 = TaskNode::new("2", "task 2", TaskType::Query);
+        let mut t3 = TaskNode::new("3", "task 3", TaskType::Query);
+        t3.dependencies = vec!["1".to_string()];
+        let tasks = vec![t1, t2, t3];
+        let groups = decomposer.infer_parallel_groups(&tasks);
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups[0], vec!["1", "2"]);
+        assert_eq!(groups[1], vec!["3"]);
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_json_value_valid() {
+        let decomposer = TaskDecomposer::new();
+        let json = serde_json::json!({
+            "tasks": [
+                {"id": "1", "description": "first task", "type": "query", "dependencies": []},
+                {"id": "2", "description": "second task", "type": "tool_call", "dependencies": ["1"]}
+            ],
+            "parallel_groups": [["1"], ["2"]],
+            "reasoning": "test"
+        });
+        let result = decomposer.parse_json_value(&json).unwrap();
+        assert_eq!(result.tasks.len(), 2);
+        assert_eq!(result.tasks[0].id, "1");
+        assert_eq!(result.tasks[1].task_type, TaskType::ToolCall);
+        assert_eq!(result.tasks[1].dependencies, vec!["1"]);
+        assert_eq!(result.reasoning, "test");
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_json_value_missing_tasks() {
+        let decomposer = TaskDecomposer::new();
+        let json = serde_json::json!({"reasoning": "no tasks"});
+        let result = decomposer.parse_json_value(&json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_json_value_default_fields() {
+        let decomposer = TaskDecomposer::new();
+        let json = serde_json::json!({
+            "tasks": [{"description": "a task"}]
+        });
+        let result = decomposer.parse_json_value(&json).unwrap();
+        assert_eq!(result.tasks.len(), 1);
+        assert_eq!(result.tasks[0].id, "0");
+        assert_eq!(result.tasks[0].task_type, TaskType::Query);
+        assert!(result.tasks[0].dependencies.is_empty());
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_json_value_all_task_types() {
+        let decomposer = TaskDecomposer::new();
+        let json = serde_json::json!({
+            "tasks": [
+                {"id": "1", "type": "tool_call"},
+                {"id": "2", "type": "reasoning"},
+                {"id": "3", "type": "query"},
+                {"id": "4", "type": "validation"}
+            ]
+        });
+        let result = decomposer.parse_json_value(&json).unwrap();
+        assert_eq!(result.tasks[0].task_type, TaskType::ToolCall);
+        assert_eq!(result.tasks[1].task_type, TaskType::Reasoning);
+        assert_eq!(result.tasks[2].task_type, TaskType::Query);
+        assert_eq!(result.tasks[3].task_type, TaskType::Validation);
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_json_value_invalid_type_defaults_to_query() {
+        let decomposer = TaskDecomposer::new();
+        let json = serde_json::json!({
+            "tasks": [{"id": "1", "type": "unknown_type"}]
+        });
+        let result = decomposer.parse_json_value(&json).unwrap();
+        assert_eq!(result.tasks[0].task_type, TaskType::Query);
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_json_value_inferred_parallel_groups() {
+        let decomposer = TaskDecomposer::new();
+        let json = serde_json::json!({
+            "tasks": [
+                {"id": "1", "description": "task 1", "type": "query"},
+                {"id": "2", "description": "task 2", "type": "query"}
+            ]
+        });
+        let result = decomposer.parse_json_value(&json).unwrap();
+        assert_eq!(result.parallel_groups.len(), 1);
+        assert_eq!(result.parallel_groups[0], vec!["1", "2"]);
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_fallback_response_too_short() {
+        let decomposer = TaskDecomposer::new();
+        let result = decomposer.parse_fallback_response("single line");
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), DecompositionError::ParseError(_)));
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_fallback_response_empty() {
+        let decomposer = TaskDecomposer::new();
+        let result = decomposer.parse_fallback_response("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_fallback_response_valid() {
+        let decomposer = TaskDecomposer::new();
+        let response = "first task\nsecond task\nthird task";
+        let result = decomposer.parse_fallback_response(response).unwrap();
+        assert_eq!(result.tasks.len(), 3);
+        assert_eq!(result.tasks[0].id, "1");
+        assert_eq!(result.tasks[1].id, "2");
+        assert_eq!(result.tasks[2].id, "3");
+        assert_eq!(result.reasoning, "Simple line-by-line decomposition");
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_fallback_response_with_markers() {
+        let decomposer = TaskDecomposer::new();
+        let response = "- first task\n* second task\n→ third task\n• fourth task";
+        let result = decomposer.parse_fallback_response(response).unwrap();
+        assert_eq!(result.tasks.len(), 4);
+        assert_eq!(result.tasks[0].description, "first task");
+        assert_eq!(result.tasks[1].description, "second task");
+        assert_eq!(result.tasks[2].description, "third task");
+        assert_eq!(result.tasks[3].description, "fourth task");
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_fallback_response_blank_lines() {
+        let decomposer = TaskDecomposer::new();
+        let response = "first task\n\n\nsecond task";
+        let result = decomposer.parse_fallback_response(response).unwrap();
+        assert_eq!(result.tasks.len(), 2);
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_response_json() {
+        let decomposer = TaskDecomposer::new();
+        let response = r#"{"tasks":[{"id":"1","description":"test","type":"query","dependencies":[]}],"parallel_groups":[["1"]],"reasoning":"test"}"#;
+        let result = decomposer.parse_response(response).unwrap();
+        assert_eq!(result.tasks.len(), 1);
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_response_fallback() {
+        let decomposer = TaskDecomposer::new();
+        let response = "task one\ntask two";
+        let result = decomposer.parse_response(response).unwrap();
+        assert_eq!(result.tasks.len(), 2);
+    }
+
+    #[test]
+    fn test_task_decomposer_parse_response_invalid_json_fallback() {
+        let decomposer = TaskDecomposer::new();
+        let response = "{invalid json}\nsecond line";
+        let result = decomposer.parse_response(response).unwrap();
+        assert_eq!(result.tasks.len(), 2);
+    }
+
+    #[test]
+    fn test_truncate_string_short() {
+        let result = truncate_string("hello", 10);
+        assert_eq!(result, "hello");
+    }
+
+    #[test]
+    fn test_truncate_string_long() {
+        let long_str = "a".repeat(200);
+        let result = truncate_string(&long_str, 100);
+        assert!(result.len() <= 100);
+        assert!(result.ends_with("..."));
+    }
+
+    #[test]
+    fn test_truncate_string_exact_length() {
+        let s = "a".repeat(100);
+        let result = truncate_string(&s, 100);
+        assert_eq!(result.len(), 100);
+        assert!(!result.ends_with("..."));
+    }
+
+    #[test]
+    fn test_truncate_string_empty() {
+        let result = truncate_string("", 10);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_truncate_string_small_max() {
+        let result = truncate_string("abc", 2);
+        assert_eq!(result, "...");
+    }
+}

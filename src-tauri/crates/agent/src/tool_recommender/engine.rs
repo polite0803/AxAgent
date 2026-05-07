@@ -359,3 +359,155 @@ impl SimilarityModel {
         intersection / union
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tool_recommender_new() {
+        let recommender = ToolRecommender::new();
+        assert!(recommender.tool_index.tools.len() >= 6);
+    }
+
+    #[test]
+    fn test_tool_recommender_recommend_information_retrieval() {
+        let recommender = ToolRecommender::new();
+        let analyzer = crate::tool_recommender::analyzer::ContextAnalyzer::new();
+        let ctx = analyzer.analyze("search the web");
+        let rec = recommender.recommend(&ctx);
+        assert!(!rec.tools.is_empty());
+        assert!(!rec.reasoning.is_empty());
+    }
+
+    #[test]
+    fn test_tool_recommender_recommend_code_generation() {
+        let recommender = ToolRecommender::new();
+        let analyzer = crate::tool_recommender::analyzer::ContextAnalyzer::new();
+        let ctx = analyzer.analyze("execute code");
+        let rec = recommender.recommend(&ctx);
+        assert!(!rec.tools.is_empty());
+    }
+
+    #[test]
+    fn test_tool_recommender_recommend_file_operation() {
+        let recommender = ToolRecommender::new();
+        let analyzer = crate::tool_recommender::analyzer::ContextAnalyzer::new();
+        let ctx = analyzer.analyze("read contents from a file");
+        let rec = recommender.recommend(&ctx);
+        assert!(!rec.tools.is_empty());
+    }
+
+    #[test]
+    fn test_tool_recommender_confidence_range() {
+        let recommender = ToolRecommender::new();
+        let analyzer = crate::tool_recommender::analyzer::ContextAnalyzer::new();
+        let ctx = analyzer.analyze("search for information");
+        let rec = recommender.recommend(&ctx);
+        assert!(rec.confidence >= 0.0 && rec.confidence <= 1.0);
+    }
+
+    #[test]
+    fn test_tool_recommender_tools_sorted_by_score() {
+        let recommender = ToolRecommender::new();
+        let analyzer = crate::tool_recommender::analyzer::ContextAnalyzer::new();
+        let ctx = analyzer.analyze("search for information on the web");
+        let rec = recommender.recommend(&ctx);
+        for i in 1..rec.tools.len() {
+            assert!(rec.tools[i - 1].score >= rec.tools[i].score);
+        }
+    }
+
+    #[test]
+    fn test_tool_recommender_alternatives() {
+        let recommender = ToolRecommender::new();
+        let analyzer = crate::tool_recommender::analyzer::ContextAnalyzer::new();
+        let ctx = analyzer.analyze("search for information on the web");
+        let rec = recommender.recommend(&ctx);
+        if rec.tools.len() >= 2 {
+            assert!(!rec.alternatives.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_tool_score_serialization() {
+        let score = ToolScore {
+            tool_id: "web_search".to_string(),
+            tool_name: "Web Search".to_string(),
+            score: 0.85,
+            reasons: vec!["High relevance".to_string()],
+        };
+        let json = serde_json::to_string(&score).unwrap();
+        let de: ToolScore = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.tool_id, "web_search");
+        assert!((de.score - 0.85).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_tool_recommendation_serialization() {
+        let rec = ToolRecommendation {
+            tools: vec![],
+            reasoning: "test".to_string(),
+            confidence: 0.9,
+            alternatives: vec![],
+        };
+        let json = serde_json::to_string(&rec).unwrap();
+        let de: ToolRecommendation = serde_json::from_str(&json).unwrap();
+        assert!((de.confidence - 0.9).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_alternative_set_serialization() {
+        let alt = AlternativeSet {
+            description: "alt approach".to_string(),
+            tools: vec!["tool_b".to_string()],
+            tradeoffs: vec!["lower score".to_string()],
+        };
+        let json = serde_json::to_string(&alt).unwrap();
+        let de: AlternativeSet = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.description, "alt approach");
+    }
+
+    #[test]
+    fn test_similarity_model_identical() {
+        let model = SimilarityModel::new();
+        let sim = model.calculate_similarity("hello world", "hello world");
+        assert!((sim - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_similarity_model_no_overlap() {
+        let model = SimilarityModel::new();
+        let sim = model.calculate_similarity("hello world", "foo bar");
+        assert!((sim - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_similarity_model_partial() {
+        let model = SimilarityModel::new();
+        let sim = model.calculate_similarity("hello world", "hello there");
+        assert!(sim > 0.0 && sim < 1.0);
+    }
+
+    #[test]
+    fn test_similarity_model_empty() {
+        let model = SimilarityModel::new();
+        let sim = model.calculate_similarity("", "hello");
+        assert!((sim - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_tool_recommender_default() {
+        let recommender = ToolRecommender::default();
+        assert!(!recommender.tool_index.tools.is_empty());
+    }
+
+    #[test]
+    fn test_tool_recommender_recommend_data_analysis() {
+        let recommender = ToolRecommender::new();
+        let analyzer = crate::tool_recommender::analyzer::ContextAnalyzer::new();
+        let ctx = analyzer.analyze("analyze and process data");
+        let rec = recommender.recommend(&ctx);
+        assert!(!rec.tools.is_empty());
+    }
+}

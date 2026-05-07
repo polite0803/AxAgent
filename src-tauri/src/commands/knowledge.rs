@@ -1,4 +1,5 @@
 use crate::AppState;
+use axagent_core::rag::KnowledgeContainer;
 use axagent_core::types::*;
 use tauri::{AppHandle, Emitter, State};
 
@@ -360,6 +361,38 @@ pub async fn rebuild_knowledge_index(
     });
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn list_knowledge_containers(
+    state: State<'_, AppState>,
+) -> Result<Vec<KnowledgeContainer>, String> {
+    let mut containers = Vec::new();
+
+    let kbs = axagent_core::repo::knowledge::list_knowledge_bases(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+    for kb in kbs {
+        containers.push(KnowledgeContainer::from_knowledge_base(&kb));
+    }
+
+    let namespaces = axagent_core::repo::memory::list_namespaces(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+    for ns in namespaces {
+        containers.push(KnowledgeContainer::from_memory_ns(&ns));
+    }
+
+    let wikis = axagent_core::repo::wiki::list_wikis(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+    for wiki in wikis {
+        containers.push(KnowledgeContainer::from_wiki(&wiki));
+    }
+
+    containers.sort_by_key(|c| c.sort_order);
+
+    Ok(containers)
 }
 
 #[tauri::command]

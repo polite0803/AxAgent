@@ -1060,6 +1060,7 @@ export type ContextToggleState = {
   searchProviderId?: string;
   enabledKnowledgeBaseIds: string[];
   enabledMcpServerIds: string[];
+  enabledWikiIds: string[];
   enabledToolNames?: string[];
   memoryEnabled: boolean;
   memoryNamespaceId?: string;
@@ -1082,6 +1083,7 @@ export type ContextOverrideInput = {
   searchProviderId?: string | null;
   enabledKnowledgeBaseIds?: string[];
   enabledMcpServerIds?: string[];
+  enabledWikiIds?: string[];
   enabledToolNames?: string[];
   memoryEnabled?: boolean;
   memoryNamespaceId?: string | null;

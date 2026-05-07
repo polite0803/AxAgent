@@ -419,34 +419,92 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
     ) -> Result<serde_json::Value, TaskExecutorError> {
         match context.task_type {
             crate::task::TaskType::ToolCall => {
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                Ok(serde_json::json!({
-                    "output": format!("Executed tool call: {}", context.task_id),
-                    "task_id": context.task_id,
-                }))
+                let tool_name = context.inputs.get("tool_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let tool_input = context.inputs.get("tool_input")
+                    .cloned()
+                    .unwrap_or(serde_json::json!({}));
+
+                if tool_name.is_empty() {
+                    return Err(TaskExecutorError::ExecutionFailed(
+                        "ToolCall task missing 'tool_name' in inputs".to_string(),
+                    ));
+                }
+
+                let (server_name, local_name) = parse_tool_name(tool_name);
+                let args = if let Some(obj) = tool_input.as_object() {
+                    serde_json::to_value(obj.clone()).unwrap_or(tool_input.clone())
+                } else {
+                    serde_json::json!({ "input": tool_input })
+                };
+
+                match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await {
+                    Ok(result) => Ok(serde_json::json!({
+                        "output": result.content,
+                        "task_id": context.task_id,
+                        "tool_name": tool_name,
+                    })),
+                    Err(e) => Err(TaskExecutorError::ExecutionFailed(
+                        format!("Tool '{}' execution failed: {}", tool_name, e),
+                    )),
+                }
             },
             crate::task::TaskType::Reasoning => {
-                tokio::time::sleep(Duration::from_millis(50)).await;
+                let prompt = context.inputs.get("prompt")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(&context.description);
+
                 Ok(serde_json::json!({
                     "output": format!("Reasoning completed for: {}", context.task_id),
                     "task_id": context.task_id,
+                    "prompt_used": prompt,
                 }))
             },
             crate::task::TaskType::Query => {
-                tokio::time::sleep(Duration::from_millis(150)).await;
+                let query = context.inputs.get("query")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(&context.description);
+
                 Ok(serde_json::json!({
                     "output": format!("Query executed: {}", context.task_id),
                     "task_id": context.task_id,
+                    "query": query,
                 }))
             },
             crate::task::TaskType::Validation => {
-                tokio::time::sleep(Duration::from_millis(75)).await;
+                let target = context.inputs.get("target")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(&context.description);
+                let expected = context.inputs.get("expected")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                let passed = if !expected.is_empty() {
+                    target.contains(expected)
+                } else {
+                    !target.is_empty()
+                };
+
                 Ok(serde_json::json!({
-                    "output": format!("Validation passed: {}", context.task_id),
+                    "output": format!("Validation {}: {}", if passed { "passed" } else { "failed" }, context.task_id),
                     "task_id": context.task_id,
+                    "passed": passed,
+                    "target": target,
+                    "expected": expected,
                 }))
             },
         }
+    }
+}
+
+fn parse_tool_name(full_name: &str) -> (&str, &str) {
+    if let Some(idx) = full_name.find('/') {
+        let server = &full_name[..idx];
+        let tool = &full_name[idx + 1..];
+        (server, tool)
+    } else {
+        ("", full_name)
     }
 }
 
@@ -474,5 +532,525 @@ impl From<DecompositionError> for ExecutionError {
 impl From<TopologicalSortError> for ExecutionError {
     fn from(e: TopologicalSortError) -> Self {
         ExecutionError::InvalidGraph(e.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::task::{TaskNode, TaskStatus, TaskType};
+    use crate::task_decomposer::DecompositionError;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_task_context_creation() {
+        let context = TaskContext {
+            task_id: "task-1".to_string(),
+            task_type: TaskType::Query,
+            description: "test task".to_string(),
+            inputs: HashMap::new(),
+            outputs: HashMap::new(),
+        };
+        assert_eq!(context.task_id, "task-1");
+        assert_eq!(context.task_type, TaskType::Query);
+        assert_eq!(context.description, "test task");
+        assert!(context.inputs.is_empty());
+        assert!(context.outputs.is_empty());
+    }
+
+    #[test]
+    fn test_task_context_with_inputs() {
+        let mut inputs = HashMap::new();
+        inputs.insert("key".to_string(), serde_json::json!("value"));
+        let context = TaskContext {
+            task_id: "task-2".to_string(),
+            task_type: TaskType::ToolCall,
+            description: "tool task".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        assert_eq!(context.inputs.len(), 1);
+        assert_eq!(context.inputs["key"], serde_json::json!("value"));
+    }
+
+    #[test]
+    fn test_task_executor_error_execution_failed() {
+        let err = TaskExecutorError::ExecutionFailed("something broke".to_string());
+        assert!(err.to_string().contains("something broke"));
+    }
+
+    #[test]
+    fn test_task_executor_error_timeout() {
+        let err = TaskExecutorError::Timeout("timed out".to_string());
+        assert!(err.to_string().contains("timed out"));
+    }
+
+    #[test]
+    fn test_task_executor_error_cancelled() {
+        let err = TaskExecutorError::Cancelled("was cancelled".to_string());
+        assert!(err.to_string().contains("was cancelled"));
+    }
+
+    #[test]
+    fn test_task_result_success() {
+        let result = TaskResult::success(serde_json::json!("output"), 150);
+        assert!(result.is_success());
+        assert_eq!(result.output, serde_json::json!("output"));
+        assert!(result.error.is_none());
+        assert_eq!(result.duration_ms, 150);
+    }
+
+    #[test]
+    fn test_task_result_failed() {
+        let result = TaskResult::failed("error occurred".to_string());
+        assert!(!result.is_success());
+        assert_eq!(result.output, serde_json::Value::Null);
+        assert_eq!(result.error, Some("error occurred".to_string()));
+        assert_eq!(result.duration_ms, 0);
+    }
+
+    #[test]
+    fn test_parse_tool_name_with_slash() {
+        let (server, tool) = parse_tool_name("myserver/mytool");
+        assert_eq!(server, "myserver");
+        assert_eq!(tool, "mytool");
+    }
+
+    #[test]
+    fn test_parse_tool_name_without_slash() {
+        let (server, tool) = parse_tool_name("mytool");
+        assert_eq!(server, "");
+        assert_eq!(tool, "mytool");
+    }
+
+    #[test]
+    fn test_parse_tool_name_multiple_slashes() {
+        let (server, tool) = parse_tool_name("server/path/tool");
+        assert_eq!(server, "server");
+        assert_eq!(tool, "path/tool");
+    }
+
+    #[test]
+    fn test_parse_tool_name_empty() {
+        let (server, tool) = parse_tool_name("");
+        assert_eq!(server, "");
+        assert_eq!(tool, "");
+    }
+
+    #[test]
+    fn test_execution_progress_new() {
+        let mut graph = TaskGraph::new();
+        graph.add_task(TaskNode::new("1", "task 1", TaskType::Query));
+        graph.add_task(TaskNode::new("2", "task 2", TaskType::Reasoning));
+        let progress = ExecutionProgress::new(&graph);
+        assert_eq!(progress.total_tasks, 2);
+        assert_eq!(progress.completed_tasks, 0);
+        assert_eq!(progress.failed_tasks, 0);
+        assert!(progress.current_tasks.is_empty());
+        assert_eq!(progress.percentage, 0.0);
+    }
+
+    #[test]
+    fn test_execution_progress_update_completed() {
+        let mut graph = TaskGraph::new();
+        let mut task1 = TaskNode::new("1", "task 1", TaskType::Query);
+        task1.status = TaskStatus::Completed;
+        graph.add_task(task1);
+        let mut progress = ExecutionProgress::new(&graph);
+        progress.update(&graph);
+        assert_eq!(progress.completed_tasks, 1);
+        assert!((progress.percentage - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_execution_progress_update_running() {
+        let mut graph = TaskGraph::new();
+        let mut task1 = TaskNode::new("1", "task 1", TaskType::Query);
+        task1.status = TaskStatus::Running;
+        graph.add_task(task1);
+        let mut progress = ExecutionProgress::new(&graph);
+        progress.update(&graph);
+        assert_eq!(progress.current_tasks, vec!["1"]);
+        assert_eq!(progress.percentage, 0.0);
+    }
+
+    #[test]
+    fn test_execution_progress_update_failed() {
+        let mut graph = TaskGraph::new();
+        let mut task1 = TaskNode::new("1", "task 1", TaskType::Query);
+        task1.status = TaskStatus::Failed;
+        task1.error = Some("error".to_string());
+        graph.add_task(task1);
+        let mut progress = ExecutionProgress::new(&graph);
+        progress.update(&graph);
+        assert_eq!(progress.failed_tasks, 1);
+    }
+
+    #[test]
+    fn test_execution_progress_empty_graph() {
+        let graph = TaskGraph::new();
+        let progress = ExecutionProgress::new(&graph);
+        assert_eq!(progress.total_tasks, 0);
+        assert_eq!(progress.percentage, 0.0);
+    }
+
+    #[test]
+    fn test_execution_progress_mixed_statuses() {
+        let mut graph = TaskGraph::new();
+        let mut t1 = TaskNode::new("1", "t1", TaskType::Query);
+        t1.status = TaskStatus::Completed;
+        let mut t2 = TaskNode::new("2", "t2", TaskType::Reasoning);
+        t2.status = TaskStatus::Running;
+        let mut t3 = TaskNode::new("3", "t3", TaskType::Validation);
+        t3.status = TaskStatus::Failed;
+        t3.error = Some("err".to_string());
+        graph.add_task(t1);
+        graph.add_task(t2);
+        graph.add_task(t3);
+        let mut progress = ExecutionProgress::new(&graph);
+        progress.update(&graph);
+        assert_eq!(progress.total_tasks, 3);
+        assert_eq!(progress.completed_tasks, 1);
+        assert_eq!(progress.failed_tasks, 1);
+        assert_eq!(progress.current_tasks, vec!["2"]);
+        assert!((progress.percentage - 33.333334).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_task_executor_config_default() {
+        let config = TaskExecutorConfig::default();
+        assert!(!config.continue_on_failure);
+        assert_eq!(config.task_timeout_ms, 300_000);
+        assert_eq!(config.max_concurrent, 10);
+        assert!(config.enable_retry);
+        assert_eq!(config.max_retries, 3);
+    }
+
+    #[test]
+    fn test_task_executor_config_custom() {
+        let config = TaskExecutorConfig {
+            continue_on_failure: true,
+            task_timeout_ms: 60_000,
+            max_concurrent: 5,
+            enable_retry: false,
+            max_retries: 1,
+        };
+        assert!(config.continue_on_failure);
+        assert_eq!(config.task_timeout_ms, 60_000);
+        assert_eq!(config.max_concurrent, 5);
+        assert!(!config.enable_retry);
+        assert_eq!(config.max_retries, 1);
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_new() {
+        let executor = TaskExecutor::new();
+        assert!(executor.get_graph().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_default() {
+        let executor = TaskExecutor::default();
+        assert!(executor.get_graph().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_with_config() {
+        let config = TaskExecutorConfig {
+            continue_on_failure: true,
+            task_timeout_ms: 60_000,
+            max_concurrent: 5,
+            enable_retry: false,
+            max_retries: 1,
+        };
+        let executor = TaskExecutor::new().with_config(config);
+        assert!(executor.get_graph().await.is_none());
+    }
+
+    #[test]
+    fn test_task_executor_subscribe() {
+        let executor = TaskExecutor::new();
+        let _receiver = executor.subscribe();
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_get_progress_none() {
+        let executor = TaskExecutor::new();
+        assert!(executor.get_progress().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_get_graph_none() {
+        let executor = TaskExecutor::new();
+        assert!(executor.get_graph().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_execute_not_prepared() {
+        let executor = TaskExecutor::new();
+        let result = executor.execute().await;
+        assert!(matches!(result, Err(ExecutionError::NotPrepared)));
+    }
+
+    #[test]
+    fn test_execution_error_not_prepared() {
+        let err = ExecutionError::NotPrepared;
+        assert!(err.to_string().contains("not prepared"));
+    }
+
+    #[test]
+    fn test_execution_error_task_failed() {
+        let err = ExecutionError::TaskFailed(vec!["t1".to_string(), "t2".to_string()]);
+        assert!(err.to_string().contains("t1"));
+        assert!(err.to_string().contains("t2"));
+    }
+
+    #[test]
+    fn test_execution_error_invalid_graph() {
+        let err = ExecutionError::InvalidGraph("bad graph".to_string());
+        assert!(err.to_string().contains("bad graph"));
+    }
+
+    #[test]
+    fn test_execution_error_other() {
+        let err = ExecutionError::Other("misc error".to_string());
+        assert!(err.to_string().contains("misc error"));
+    }
+
+    #[test]
+    fn test_execution_error_from_decomposition_error() {
+        let decomp_err = DecompositionError::ParseError("parse failed".to_string());
+        let exec_err: ExecutionError = decomp_err.into();
+        assert!(matches!(exec_err, ExecutionError::InvalidGraph(_)));
+    }
+
+    #[test]
+    fn test_execution_error_from_topological_sort_error() {
+        let topo_err = TopologicalSortError::CircularDependency(vec!["a".to_string()]);
+        let exec_err: ExecutionError = topo_err.into();
+        assert!(matches!(exec_err, ExecutionError::InvalidGraph(_)));
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_reasoning() {
+        let executor = DefaultTaskExecutorImpl;
+        let context = TaskContext {
+            task_id: "r1".to_string(),
+            task_type: TaskType::Reasoning,
+            description: "reason about X".to_string(),
+            inputs: HashMap::new(),
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["task_id"], "r1");
+        assert!(result["output"].as_str().unwrap().contains("Reasoning completed"));
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_reasoning_with_prompt() {
+        let executor = DefaultTaskExecutorImpl;
+        let mut inputs = HashMap::new();
+        inputs.insert("prompt".to_string(), serde_json::json!("custom prompt"));
+        let context = TaskContext {
+            task_id: "r2".to_string(),
+            task_type: TaskType::Reasoning,
+            description: "default".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["prompt_used"], "custom prompt");
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_query() {
+        let executor = DefaultTaskExecutorImpl;
+        let context = TaskContext {
+            task_id: "q1".to_string(),
+            task_type: TaskType::Query,
+            description: "query something".to_string(),
+            inputs: HashMap::new(),
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["task_id"], "q1");
+        assert!(result["output"].as_str().unwrap().contains("Query executed"));
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_query_with_query_input() {
+        let executor = DefaultTaskExecutorImpl;
+        let mut inputs = HashMap::new();
+        inputs.insert("query".to_string(), serde_json::json!("custom query"));
+        let context = TaskContext {
+            task_id: "q2".to_string(),
+            task_type: TaskType::Query,
+            description: "default".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["query"], "custom query");
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_validation_passed() {
+        let executor = DefaultTaskExecutorImpl;
+        let mut inputs = HashMap::new();
+        inputs.insert("target".to_string(), serde_json::json!("hello world"));
+        inputs.insert("expected".to_string(), serde_json::json!("world"));
+        let context = TaskContext {
+            task_id: "v1".to_string(),
+            task_type: TaskType::Validation,
+            description: "validate".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["passed"], true);
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_validation_failed() {
+        let executor = DefaultTaskExecutorImpl;
+        let mut inputs = HashMap::new();
+        inputs.insert("target".to_string(), serde_json::json!("hello world"));
+        inputs.insert("expected".to_string(), serde_json::json!("missing"));
+        let context = TaskContext {
+            task_id: "v2".to_string(),
+            task_type: TaskType::Validation,
+            description: "validate".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["passed"], false);
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_validation_no_expected() {
+        let executor = DefaultTaskExecutorImpl;
+        let mut inputs = HashMap::new();
+        inputs.insert("target".to_string(), serde_json::json!("non-empty"));
+        let context = TaskContext {
+            task_id: "v3".to_string(),
+            task_type: TaskType::Validation,
+            description: "validate".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["passed"], true);
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_validation_empty_target_no_expected() {
+        let executor = DefaultTaskExecutorImpl;
+        let mut inputs = HashMap::new();
+        inputs.insert("target".to_string(), serde_json::json!(""));
+        let context = TaskContext {
+            task_id: "v4".to_string(),
+            task_type: TaskType::Validation,
+            description: "validate".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await.unwrap();
+        assert_eq!(result["passed"], false);
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_tool_call_missing_name() {
+        let executor = DefaultTaskExecutorImpl;
+        let context = TaskContext {
+            task_id: "tc1".to_string(),
+            task_type: TaskType::ToolCall,
+            description: "call tool".to_string(),
+            inputs: HashMap::new(),
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await;
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), TaskExecutorError::ExecutionFailed(_)));
+    }
+
+    #[tokio::test]
+    async fn test_default_task_executor_impl_tool_call_empty_name() {
+        let executor = DefaultTaskExecutorImpl;
+        let mut inputs = HashMap::new();
+        inputs.insert("tool_name".to_string(), serde_json::json!(""));
+        let context = TaskContext {
+            task_id: "tc2".to_string(),
+            task_type: TaskType::ToolCall,
+            description: "call tool".to_string(),
+            inputs,
+            outputs: HashMap::new(),
+        };
+        let result = executor.execute_task(&context).await;
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), TaskExecutorError::ExecutionFailed(_)));
+    }
+
+    #[test]
+    fn test_execution_event_started() {
+        let event = ExecutionEvent::Started;
+        assert!(matches!(event, ExecutionEvent::Started));
+    }
+
+    #[test]
+    fn test_execution_event_task_started() {
+        let event = ExecutionEvent::TaskStarted("t1".to_string());
+        assert!(matches!(event, ExecutionEvent::TaskStarted(_)));
+    }
+
+    #[test]
+    fn test_execution_event_task_completed() {
+        let event = ExecutionEvent::TaskCompleted("t1".to_string());
+        assert!(matches!(event, ExecutionEvent::TaskCompleted(_)));
+    }
+
+    #[test]
+    fn test_execution_event_task_failed() {
+        let event = ExecutionEvent::TaskFailed("t1".to_string(), "error".to_string());
+        assert!(matches!(event, ExecutionEvent::TaskFailed(_, _)));
+    }
+
+    #[test]
+    fn test_execution_event_progress() {
+        let progress = ExecutionProgress {
+            total_tasks: 3,
+            completed_tasks: 1,
+            failed_tasks: 0,
+            current_tasks: vec!["t2".to_string()],
+            percentage: 33.33,
+        };
+        let event = ExecutionEvent::Progress(progress);
+        assert!(matches!(event, ExecutionEvent::Progress(_)));
+    }
+
+    #[test]
+    fn test_execution_event_completed() {
+        let event = ExecutionEvent::Completed;
+        assert!(matches!(event, ExecutionEvent::Completed));
+    }
+
+    #[test]
+    fn test_execution_event_failed() {
+        let event = ExecutionEvent::Failed("error msg".to_string());
+        assert!(matches!(event, ExecutionEvent::Failed(_)));
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_with_decomposer() {
+        let decomposer = crate::task_decomposer::TaskDecomposer::new();
+        let executor = TaskExecutor::new().with_decomposer(decomposer);
+        assert!(executor.get_graph().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_execute_with_groups_not_prepared() {
+        let executor = TaskExecutor::new();
+        let result = executor.execute_with_groups().await;
+        assert!(matches!(result, Err(ExecutionError::NotPrepared)));
     }
 }

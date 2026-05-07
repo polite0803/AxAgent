@@ -72,7 +72,7 @@ pub async fn extract_memories_from_messages(
         .take(20)
         .collect();
 
-    if recent.len() < 3 {
+    if recent.len() < 5 {
         return Ok(ExtractionResult {
             items: vec![],
             conversation_id: conversation_id.to_string(),

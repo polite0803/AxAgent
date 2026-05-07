@@ -337,3 +337,160 @@ impl Default for BenchmarkRunnerState {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_runner_config_default() {
+        let config = RunnerConfig::default();
+        assert_eq!(config.max_concurrency, 3);
+        assert_eq!(config.timeout_ms, 60000);
+        assert!(config.max_difficulty.is_none());
+        assert!(config.include_traces);
+    }
+
+    #[test]
+    fn test_evaluation_runner_new() {
+        let runner = EvaluationRunner::new(RunnerConfig::default());
+        let config = runner.get_config();
+        assert_eq!(config.max_concurrency, 3);
+    }
+
+    #[test]
+    fn test_evaluation_runner_with_config() {
+        let mut runner = EvaluationRunner::new(RunnerConfig::default());
+        let new_config = RunnerConfig {
+            max_concurrency: 5,
+            timeout_ms: 30000,
+            max_difficulty: Some(Difficulty::Medium),
+            include_traces: false,
+        };
+        runner.with_config(new_config);
+        let config = runner.get_config();
+        assert_eq!(config.max_concurrency, 5);
+        assert_eq!(config.timeout_ms, 30000);
+        assert_eq!(config.max_difficulty, Some(Difficulty::Medium));
+    }
+
+    #[tokio::test]
+    async fn test_run_benchmark_reasoning() {
+        let runner = EvaluationRunner::new(RunnerConfig::default());
+        let suite = crate::evaluator::benchmark::BenchmarkSuite::new();
+        let benchmark = suite.get("reasoning").unwrap();
+        let result = runner.run_benchmark(benchmark).await;
+        assert_eq!(result.benchmark_id, "reasoning");
+        assert!(!result.task_results.is_empty());
+        assert!(result.duration_ms >= 0);
+    }
+
+    #[tokio::test]
+    async fn test_run_benchmark_with_max_difficulty() {
+        let config = RunnerConfig {
+            max_concurrency: 3,
+            timeout_ms: 60000,
+            max_difficulty: Some(Difficulty::Easy),
+            include_traces: true,
+        };
+        let runner = EvaluationRunner::new(config);
+        let suite = crate::evaluator::benchmark::BenchmarkSuite::new();
+        let benchmark = suite.get("reasoning").unwrap();
+        let result = runner.run_benchmark(benchmark).await;
+        for task_result in &result.task_results {
+            assert!(task_result.difficulty <= Difficulty::Easy);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_benchmark_runner_state() {
+        let state = BenchmarkRunnerState::new();
+        assert!(state.get_current_result().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_benchmark_runner_state_run() {
+        let state = BenchmarkRunnerState::new();
+        let suite = crate::evaluator::benchmark::BenchmarkSuite::new();
+        let benchmark = suite.get("reasoning").unwrap();
+        let result = state.run(benchmark, RunnerConfig::default()).await;
+        assert_eq!(result.benchmark_id, "reasoning");
+        let current = state.get_current_result().await;
+        assert!(current.is_some());
+        assert_eq!(current.unwrap().benchmark_id, "reasoning");
+    }
+
+    #[test]
+    fn test_task_result_serialization() {
+        let result = TaskResult {
+            task_id: "t1".to_string(),
+            task_name: "Task".to_string(),
+            difficulty: Difficulty::Easy,
+            success: true,
+            duration_ms: 100,
+            scores: vec![],
+            overall_score: 0.8,
+            response: Some("resp".to_string()),
+            error: None,
+            trace_id: None,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let de: TaskResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.task_id, "t1");
+        assert!(de.success);
+    }
+
+    #[test]
+    fn test_score_result_serialization() {
+        let score = ScoreResult {
+            criteria_name: "test".to_string(),
+            metric: EvaluationMetric::ExactMatch,
+            raw_score: 1.0,
+            weighted_score: 0.6,
+            passed: true,
+        };
+        let json = serde_json::to_string(&score).unwrap();
+        let de: ScoreResult = serde_json::from_str(&json).unwrap();
+        assert!((de.raw_score - 1.0).abs() < 0.001);
+        assert!(de.passed);
+    }
+
+    #[test]
+    fn test_benchmark_result_serialization() {
+        let result = BenchmarkResult {
+            benchmark_id: "b1".to_string(),
+            benchmark_name: "Test".to_string(),
+            run_at: Utc::now(),
+            config: RunnerConfig::default(),
+            task_results: vec![],
+            aggregate: AggregateMetrics {
+                total_tasks: 0,
+                passed_tasks: 0,
+                failed_tasks: 0,
+                pass_rate: 0.0,
+                avg_duration_ms: 0.0,
+                avg_score: 0.0,
+                score_breakdown: std::collections::HashMap::new(),
+                difficulty_distribution: std::collections::HashMap::new(),
+            },
+            duration_ms: 0,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let de: BenchmarkResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.benchmark_id, "b1");
+    }
+
+    #[test]
+    fn test_runner_config_serialization() {
+        let config = RunnerConfig {
+            max_concurrency: 5,
+            timeout_ms: 30000,
+            max_difficulty: Some(Difficulty::Hard),
+            include_traces: true,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let de: RunnerConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.max_concurrency, 5);
+        assert_eq!(de.max_difficulty, Some(Difficulty::Hard));
+    }
+}

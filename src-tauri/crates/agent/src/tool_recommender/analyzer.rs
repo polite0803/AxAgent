@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TaskType {
     InformationRetrieval,
     CodeGeneration,
@@ -11,7 +11,7 @@ pub enum TaskType {
     ProblemSolving,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum EntityType {
     FilePath,
     Url,
@@ -210,5 +210,174 @@ impl IntentClassifier {
         } else {
             TaskType::ProblemSolving
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_context_analyzer_new() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("search for rust tutorials");
+        assert_eq!(ctx.task_type, TaskType::InformationRetrieval);
+    }
+
+    #[test]
+    fn test_analyze_information_retrieval() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("find the best restaurants");
+        assert_eq!(ctx.task_type, TaskType::InformationRetrieval);
+    }
+
+    #[test]
+    fn test_analyze_code_generation() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("implement a sorting function");
+        assert_eq!(ctx.task_type, TaskType::CodeGeneration);
+    }
+
+    #[test]
+    fn test_analyze_data_analysis() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("analyze the sales data from Q4");
+        assert_eq!(ctx.task_type, TaskType::DataAnalysis);
+    }
+
+    #[test]
+    fn test_analyze_file_operation() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("read the file at /tmp/config.txt");
+        assert_eq!(ctx.task_type, TaskType::FileOperation);
+    }
+
+    #[test]
+    fn test_analyze_web_interaction() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("browse the website for product info");
+        assert_eq!(ctx.task_type, TaskType::WebInteraction);
+    }
+
+    #[test]
+    fn test_analyze_content_creation() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("write a blog post about AI");
+        assert_eq!(ctx.task_type, TaskType::ContentCreation);
+    }
+
+    #[test]
+    fn test_analyze_problem_solving_default() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("optimize the system performance");
+        assert_eq!(ctx.task_type, TaskType::ProblemSolving);
+    }
+
+    #[test]
+    fn test_analyze_extracts_url_entity() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("visit https://example.com for details");
+        let urls: Vec<_> = ctx.entities.iter().filter(|e| e.entity_type == EntityType::Url).collect();
+        assert!(!urls.is_empty());
+        assert!(urls[0].value.contains("example.com"));
+        assert!((urls[0].confidence - 0.95).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_analyze_extracts_language_entity() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("write a python script for data processing");
+        let langs: Vec<_> = ctx.entities.iter().filter(|e| e.entity_type == EntityType::Language).collect();
+        assert!(!langs.is_empty());
+        assert_eq!(langs[0].value, "python");
+    }
+
+    #[test]
+    fn test_analyze_extracts_speed_constraint() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("search for results fast");
+        let speed_constraints: Vec<_> = ctx.constraints.iter().filter(|c| c.constraint_type == "speed").collect();
+        assert!(!speed_constraints.is_empty());
+    }
+
+    #[test]
+    fn test_analyze_extracts_accuracy_constraint() {
+        let analyzer = ContextAnalyzer::new();
+        let ctx = analyzer.analyze("provide accurate measurements");
+        let acc_constraints: Vec<_> = ctx.constraints.iter().filter(|c| c.constraint_type == "accuracy").collect();
+        assert!(!acc_constraints.is_empty());
+    }
+
+    #[test]
+    fn test_analyze_preserves_description() {
+        let analyzer = ContextAnalyzer::new();
+        let desc = "test task description";
+        let ctx = analyzer.analyze(desc);
+        assert_eq!(ctx.task_description, desc);
+    }
+
+    #[test]
+    fn test_context_analyzer_default() {
+        let analyzer = ContextAnalyzer::default();
+        let ctx = analyzer.analyze("test");
+        assert_eq!(ctx.task_description, "test");
+    }
+
+    #[test]
+    fn test_task_type_variants() {
+        let types = vec![
+            TaskType::InformationRetrieval,
+            TaskType::CodeGeneration,
+            TaskType::DataAnalysis,
+            TaskType::FileOperation,
+            TaskType::WebInteraction,
+            TaskType::ContentCreation,
+            TaskType::ProblemSolving,
+        ];
+        for t in types {
+            let json = serde_json::to_string(&t).unwrap();
+            let de: TaskType = serde_json::from_str(&json).unwrap();
+            assert_eq!(de, t);
+        }
+    }
+
+    #[test]
+    fn test_entity_type_variants() {
+        let types = vec![
+            EntityType::FilePath,
+            EntityType::Url,
+            EntityType::CodeSnippet,
+            EntityType::Command,
+            EntityType::Language,
+            EntityType::Framework,
+        ];
+        for t in types {
+            let json = serde_json::to_string(&t).unwrap();
+            let de: EntityType = serde_json::from_str(&json).unwrap();
+            assert_eq!(de, t);
+        }
+    }
+
+    #[test]
+    fn test_entity_serialization() {
+        let entity = Entity {
+            entity_type: EntityType::Url,
+            value: "https://example.com".to_string(),
+            confidence: 0.95,
+        };
+        let json = serde_json::to_string(&entity).unwrap();
+        let de: Entity = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.value, "https://example.com");
+    }
+
+    #[test]
+    fn test_constraint_serialization() {
+        let constraint = Constraint {
+            constraint_type: "speed".to_string(),
+            value: "fast".to_string(),
+        };
+        let json = serde_json::to_string(&constraint).unwrap();
+        let de: Constraint = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.constraint_type, "speed");
     }
 }

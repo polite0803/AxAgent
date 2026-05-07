@@ -28,7 +28,7 @@ pub struct ExperienceState {
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TaskType {
     CodeGeneration,
     InformationRetrieval,
@@ -55,7 +55,7 @@ pub struct ExperienceAction {
     pub reasoning: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ActionType {
     ToolCall,
     TaskDecomposition,
@@ -117,7 +117,7 @@ pub struct Episode {
     pub status: EpisodeStatus,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum EpisodeStatus {
     Running,
     Completed,
@@ -202,5 +202,232 @@ impl ExperienceBuffer {
 
     pub fn clear(&mut self) {
         self.buffer.clear();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_state(task_id: &str) -> ExperienceState {
+        ExperienceState {
+            task_id: task_id.to_string(),
+            task_type: TaskType::CodeGeneration,
+            context: StateContext {
+                entities: HashMap::new(),
+                constraints: vec![],
+                preferences: HashMap::new(),
+            },
+            available_actions: vec!["action_a".to_string()],
+            completed_actions: vec![],
+            error_count: 0,
+            elapsed_ms: 0,
+            timestamp: Utc::now(),
+        }
+    }
+
+    fn make_action(action_id: &str) -> ExperienceAction {
+        ExperienceAction {
+            action_id: action_id.to_string(),
+            action_type: ActionType::ToolCall,
+            tool_id: Some("tool_1".to_string()),
+            parameters: HashMap::new(),
+            reasoning: "test".to_string(),
+        }
+    }
+
+    fn make_experience(episode_id: &str, step: u32, reward: f32) -> Experience {
+        Experience::new(
+            episode_id.to_string(),
+            step,
+            make_state("task_1"),
+            make_action("action_1"),
+            reward,
+            make_state("task_1"),
+            false,
+        )
+    }
+
+    #[test]
+    fn test_experience_new() {
+        let exp = make_experience("ep1", 1, 1.0);
+        assert!(!exp.id.is_empty());
+        assert_eq!(exp.episode_id, "ep1");
+        assert_eq!(exp.step, 1);
+        assert!((exp.reward - 1.0).abs() < 0.001);
+        assert!((exp.cumulative_reward - 0.0).abs() < 0.001);
+        assert!(!exp.done);
+    }
+
+    #[test]
+    fn test_experience_state_action_key() {
+        let exp = make_experience("ep1", 1, 1.0);
+        let key = exp.state_action_key();
+        assert!(key.contains("task_1"));
+        assert!(key.contains("action_1"));
+    }
+
+    #[test]
+    fn test_experience_metadata_default() {
+        let exp = make_experience("ep1", 1, 0.5);
+        assert_eq!(exp.metadata.environment, "axagent");
+        assert_eq!(exp.metadata.model_id, "unknown");
+        assert!(exp.metadata.user_id.is_none());
+    }
+
+    #[test]
+    fn test_episode_new() {
+        let episode = Episode::new("task_1".to_string());
+        assert!(!episode.id.is_empty());
+        assert_eq!(episode.task_id, "task_1");
+        assert!(episode.experiences.is_empty());
+        assert!((episode.total_reward - 0.0).abs() < 0.001);
+        assert_eq!(episode.status, EpisodeStatus::Running);
+        assert!(episode.end_time.is_none());
+    }
+
+    #[test]
+    fn test_episode_add_experience() {
+        let mut episode = Episode::new("task_1".to_string());
+        let exp = make_experience("ep1", 1, 0.5);
+        episode.add_experience(exp);
+        assert_eq!(episode.experiences.len(), 1);
+        assert!((episode.total_reward - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_episode_complete() {
+        let mut episode = Episode::new("task_1".to_string());
+        episode.complete();
+        assert_eq!(episode.status, EpisodeStatus::Completed);
+        assert!(episode.end_time.is_some());
+    }
+
+    #[test]
+    fn test_episode_fail() {
+        let mut episode = Episode::new("task_1".to_string());
+        episode.fail();
+        assert_eq!(episode.status, EpisodeStatus::Failed);
+        assert!(episode.end_time.is_some());
+    }
+
+    #[test]
+    fn test_experience_buffer_new() {
+        let buffer = ExperienceBuffer::new(100);
+        assert!(buffer.is_empty());
+        assert_eq!(buffer.len(), 0);
+    }
+
+    #[test]
+    fn test_experience_buffer_push() {
+        let mut buffer = ExperienceBuffer::new(100);
+        let exp = make_experience("ep1", 1, 1.0);
+        buffer.push(exp);
+        assert_eq!(buffer.len(), 1);
+        assert!(!buffer.is_empty());
+    }
+
+    #[test]
+    fn test_experience_buffer_capacity() {
+        let mut buffer = ExperienceBuffer::new(3);
+        for i in 0..5 {
+            buffer.push(make_experience("ep1", i, i as f32));
+        }
+        assert_eq!(buffer.len(), 3);
+    }
+
+    #[test]
+    fn test_experience_buffer_sample_empty() {
+        let buffer = ExperienceBuffer::new(100);
+        let sample = buffer.sample(10);
+        assert!(sample.is_empty());
+    }
+
+    #[test]
+    fn test_experience_buffer_sample() {
+        let mut buffer = ExperienceBuffer::new(100);
+        for i in 0..20 {
+            buffer.push(make_experience("ep1", i, i as f32));
+        }
+        let sample = buffer.sample(5);
+        assert_eq!(sample.len(), 5);
+    }
+
+    #[test]
+    fn test_experience_buffer_sample_more_than_available() {
+        let mut buffer = ExperienceBuffer::new(100);
+        for i in 0..3 {
+            buffer.push(make_experience("ep1", i, i as f32));
+        }
+        let sample = buffer.sample(10);
+        assert_eq!(sample.len(), 3);
+    }
+
+    #[test]
+    fn test_experience_buffer_clear() {
+        let mut buffer = ExperienceBuffer::new(100);
+        buffer.push(make_experience("ep1", 1, 1.0));
+        buffer.push(make_experience("ep1", 2, 2.0));
+        buffer.clear();
+        assert!(buffer.is_empty());
+        assert_eq!(buffer.len(), 0);
+    }
+
+    #[test]
+    fn test_task_type_variants() {
+        let types = vec![
+            TaskType::CodeGeneration,
+            TaskType::InformationRetrieval,
+            TaskType::DataAnalysis,
+            TaskType::FileOperation,
+            TaskType::WebInteraction,
+            TaskType::ProblemSolving,
+            TaskType::General,
+        ];
+        for t in types {
+            let json = serde_json::to_string(&t).unwrap();
+            let de: TaskType = serde_json::from_str(&json).unwrap();
+            assert_eq!(de, t);
+        }
+    }
+
+    #[test]
+    fn test_action_type_variants() {
+        let types = vec![
+            ActionType::ToolCall,
+            ActionType::TaskDecomposition,
+            ActionType::ErrorRecovery,
+            ActionType::Reflection,
+            ActionType::UserConfirmation,
+        ];
+        for t in types {
+            let json = serde_json::to_string(&t).unwrap();
+            let de: ActionType = serde_json::from_str(&json).unwrap();
+            assert_eq!(de, t);
+        }
+    }
+
+    #[test]
+    fn test_episode_status_variants() {
+        let statuses = vec![
+            EpisodeStatus::Running,
+            EpisodeStatus::Completed,
+            EpisodeStatus::Failed,
+            EpisodeStatus::Cancelled,
+        ];
+        for s in statuses {
+            let json = serde_json::to_string(&s).unwrap();
+            let de: EpisodeStatus = serde_json::from_str(&json).unwrap();
+            assert_eq!(de, s);
+        }
+    }
+
+    #[test]
+    fn test_experience_serialization() {
+        let exp = make_experience("ep1", 1, 0.8);
+        let json = serde_json::to_string(&exp).unwrap();
+        let de: Experience = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.episode_id, "ep1");
+        assert!((de.reward - 0.8).abs() < 0.001);
     }
 }

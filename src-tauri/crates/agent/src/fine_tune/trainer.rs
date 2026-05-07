@@ -224,3 +224,197 @@ impl DatasetConverter {
         Ok(lines.join("\n"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fine_tune::dataset::{FineTuneSample, SampleMetadata};
+
+    fn make_sample(id: &str, input: &str, output: &str) -> FineTuneSample {
+        FineTuneSample {
+            id: id.to_string(),
+            input: input.to_string(),
+            output: output.to_string(),
+            system_prompt: None,
+            metadata: SampleMetadata {
+                source: "test".to_string(),
+                category: None,
+                difficulty: None,
+                tags: vec![],
+            },
+        }
+    }
+
+    fn make_dataset() -> FineTuneDataset {
+        let mut ds = FineTuneDataset::new("ds1".to_string(), "Test".to_string());
+        ds.add_sample(make_sample("s1", "hello", "world"));
+        ds.add_sample(make_sample("s2", "foo", "bar"));
+        ds
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_new() {
+        let trainer = FineTuneTrainer::new();
+        assert!(trainer.list_jobs().is_empty());
+        assert!(trainer.get_current_job().is_none());
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_create_job() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        assert_eq!(job.status, JobStatus::Pending);
+        assert_eq!(trainer.list_jobs().len(), 1);
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_get_job() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let found = trainer.get_job(&job.id);
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().dataset_id, "ds1");
+        assert!(trainer.get_job("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_start_training() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let result = trainer.start_training(&job.id);
+        assert!(result.is_ok());
+        let found = trainer.get_job(&job.id).unwrap();
+        assert_eq!(found.status, JobStatus::Preparing);
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_start_training_non_pending() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        trainer.start_training(&job.id).unwrap();
+        let result = trainer.start_training(&job.id);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_start_nonexistent() {
+        let mut trainer = FineTuneTrainer::new();
+        let result = trainer.start_training("nonexistent");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_cancel_training() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let result = trainer.cancel_training(&job.id);
+        assert!(result.is_ok());
+        assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Cancelled);
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_complete_job() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        trainer.start_training(&job.id).unwrap();
+        let result = trainer.complete_job(&job.id, "/output/lora".to_string());
+        assert!(result.is_ok());
+        assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Completed);
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_fail_job() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let result = trainer.fail_job(&job.id);
+        assert!(result.is_ok());
+        assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Failed);
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_delete_job() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let result = trainer.delete_job(&job.id);
+        assert!(result.is_ok());
+        assert!(trainer.get_job(&job.id).is_none());
+        assert!(trainer.list_jobs().is_empty());
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_update_progress() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let result = trainer.update_progress(&job.id, 1, 10, 0.5);
+        assert!(result.is_ok());
+        let found = trainer.get_job(&job.id).unwrap();
+        assert_eq!(found.progress.current_epoch, 1);
+        assert_eq!(found.progress.current_step, 10);
+        assert!((found.progress.loss - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_list_jobs_by_status() {
+        let mut trainer = FineTuneTrainer::new();
+        let j1 = trainer.create_job("ds1".to_string(), "m1".to_string(), LoRAConfig::default());
+        let _j2 = trainer.create_job("ds2".to_string(), "m2".to_string(), LoRAConfig::default());
+        trainer.cancel_training(&j1.id).unwrap();
+        let pending = trainer.list_jobs_by_status(JobStatus::Cancelled);
+        assert_eq!(pending.len(), 1);
+        let active = trainer.list_jobs_by_status(JobStatus::Pending);
+        assert_eq!(active.len(), 1);
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_get_training_stats() {
+        let mut trainer = FineTuneTrainer::new();
+        let j1 = trainer.create_job("ds1".to_string(), "m1".to_string(), LoRAConfig::default());
+        let _j2 = trainer.create_job("ds2".to_string(), "m2".to_string(), LoRAConfig::default());
+        trainer.cancel_training(&j1.id).unwrap();
+        let stats = trainer.get_training_stats();
+        assert_eq!(stats.total_jobs, 2);
+        assert_eq!(stats.failed_jobs, 0);
+    }
+
+    #[test]
+    fn test_dataset_converter_to_alpaca() {
+        let ds = make_dataset();
+        let result = DatasetConverter::convert_to_alpaca(&ds);
+        assert!(result.is_ok());
+        let json = result.unwrap();
+        assert!(json.contains("instruction"));
+        assert!(json.contains("output"));
+    }
+
+    #[test]
+    fn test_dataset_converter_to_chatml() {
+        let ds = make_dataset();
+        let result = DatasetConverter::convert_to_chatml(&ds);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("system"));
+        assert!(output.contains("user"));
+        assert!(output.contains("assistant"));
+    }
+
+    #[test]
+    fn test_dataset_converter_to_jsonl() {
+        let ds = make_dataset();
+        let result = DatasetConverter::convert_to_jsonl(&ds);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("hello"));
+        assert!(output.contains("foo"));
+    }
+
+    #[test]
+    fn test_fine_tune_trainer_pause_training() {
+        let mut trainer = FineTuneTrainer::new();
+        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        trainer.start_training(&job.id).unwrap();
+        let j = trainer.get_job_mut(&job.id).unwrap();
+        j.status = JobStatus::Training;
+        let result = trainer.pause_training(&job.id);
+        assert!(result.is_ok());
+    }
+}

@@ -1497,6 +1497,11 @@ pub async fn agent_query(
     .flatten();
     let workspace_root_for_prompt = db_session.as_ref().and_then(|s| s.cwd.clone());
 
+    let app_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
+        .await
+        .ok()
+        .map(|s| s.language);
+
     let system_prompt = build_agent_system_prompt(
         effective_system_prompt.as_deref(),
         rag_context_parts.as_deref(),
@@ -1521,6 +1526,7 @@ pub async fn agent_query(
         user_profile_text.as_deref(),
         adaptation_hint_text.as_deref(),
         workspace_root_for_prompt.as_deref(),
+        app_language.as_deref(),
     );
 
     // Attach image URLs to the API client for multimodal support
@@ -2531,6 +2537,7 @@ fn create_llm_step_executor(
     provider_id: String,
     base_url: String,
     db: Option<Arc<sea_orm::DatabaseConnection>>,
+    output_language: Option<String>,
 ) -> StepExecutor {
     Arc::new(
         move |step: axagent_runtime::workflow_engine::WorkflowStep,
@@ -2541,6 +2548,7 @@ fn create_llm_step_executor(
             let provider_id = provider_id.clone();
             let base_url = base_url.clone();
             let db = db.clone();
+            let output_language = output_language.clone();
 
             async move {
                 let ctx = ProviderRequestContext {
@@ -2577,6 +2585,12 @@ fn create_llm_step_executor(
                     }
                 } else {
                     effective_role.system_prompt().to_string()
+                };
+
+                let system_prompt = if let Some(ref lang) = output_language {
+                    axagent_core::utils::append_language_directive(&system_prompt, lang)
+                } else {
+                    system_prompt
                 };
 
                 let mut user_message = format!("Task goal: {}\n\n", step.goal);
@@ -3037,6 +3051,7 @@ async fn execute_skill_async(
                         ctx.provider_key_id.clone(),
                         "https://api.openai.com/v1".to_string(),
                         None,
+                        None,
                     );
                     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
                         ctx.workflow_engine.clone(),
@@ -3081,6 +3096,7 @@ async fn execute_skill_async(
                         ctx.provider_api_key.clone(),
                         ctx.provider_key_id.clone(),
                         "https://api.openai.com/v1".to_string(),
+                        None,
                         None,
                     );
                     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
@@ -3275,6 +3291,7 @@ fn build_agent_system_prompt(
     user_profile: Option<&str>,
     adaptation_hint: Option<&str>,
     workspace_root: Option<&str>,
+    output_language: Option<&str>,
 ) -> Vec<String> {
     let mut prompts = Vec::new();
 
@@ -3390,6 +3407,15 @@ fn build_agent_system_prompt(
                 patterns.join("\n")
             );
             prompts.push(pattern_section);
+        }
+    }
+
+    if let Some(lang) = output_language {
+        if !lang.is_empty() {
+            let already_present = prompts.iter().any(|p| axagent_core::utils::has_output_language_directive(p));
+            if !already_present {
+                prompts.push(axagent_core::utils::build_output_language_directive(lang));
+            }
         }
     }
 
@@ -4044,6 +4070,11 @@ pub async fn workflow_execute(
 
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
 
+    let workflow_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
+        .await
+        .ok()
+        .map(|s| s.language);
+
     let step_executor = create_llm_step_executor(
         adapter,
         key.id.clone(),
@@ -4051,6 +4082,7 @@ pub async fn workflow_execute(
         prov.id.clone(),
         base_url,
         Some(Arc::new(app_state.sea_db.clone())),
+        workflow_language,
     );
 
     let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
@@ -4222,6 +4254,11 @@ pub async fn workflow_execute_with_session(
 
     let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
 
+    let plan_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
+        .await
+        .ok()
+        .map(|s| s.language);
+
     let llm_executor = create_llm_step_executor(
         adapter,
         key.id.clone(),
@@ -4229,6 +4266,7 @@ pub async fn workflow_execute_with_session(
         prov.id.clone(),
         base_url,
         Some(Arc::new(app_state.sea_db.clone())),
+        plan_language,
     );
 
     let session_callback: Arc<dyn SessionCallback> = Arc::new(TauriSessionCallback::new(

@@ -510,3 +510,140 @@ impl LintChecker {
         Ok(fixed)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_score_no_issues() {
+        let issues: Vec<LintIssue> = vec![];
+        let score = LintChecker::calculate_score(&issues);
+        assert_eq!(score, 1.0);
+    }
+
+    #[test]
+    fn test_calculate_score_single_error() {
+        let issues = vec![LintIssue {
+            severity: IssueSeverity::Error,
+            code: "test".to_string(),
+            message: "error".to_string(),
+            line: None,
+        }];
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.7).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_calculate_score_single_warning() {
+        let issues = vec![LintIssue {
+            severity: IssueSeverity::Warning,
+            code: "test".to_string(),
+            message: "warning".to_string(),
+            line: None,
+        }];
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.9).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_calculate_score_single_info() {
+        let issues = vec![LintIssue {
+            severity: IssueSeverity::Info,
+            code: "test".to_string(),
+            message: "info".to_string(),
+            line: None,
+        }];
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.98).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_calculate_score_clamped_to_zero() {
+        let issues: Vec<LintIssue> = (0..10)
+            .map(|_| LintIssue {
+                severity: IssueSeverity::Error,
+                code: "test".to_string(),
+                message: "error".to_string(),
+                line: None,
+            })
+            .collect();
+        let score = LintChecker::calculate_score(&issues);
+        assert_eq!(score, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_score_mixed_severities() {
+        let issues = vec![
+            LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err".to_string(), line: None },
+            LintIssue { severity: IssueSeverity::Warning, code: "w1".to_string(), message: "warn".to_string(), line: None },
+            LintIssue { severity: IssueSeverity::Info, code: "i1".to_string(), message: "info".to_string(), line: None },
+        ];
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.58).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_issue_severity_equality() {
+        assert_eq!(IssueSeverity::Error, IssueSeverity::Error);
+        assert_eq!(IssueSeverity::Warning, IssueSeverity::Warning);
+        assert_eq!(IssueSeverity::Info, IssueSeverity::Info);
+        assert_ne!(IssueSeverity::Error, IssueSeverity::Warning);
+    }
+
+    #[test]
+    fn test_lint_issue_type_variants() {
+        let types = vec![
+            LintIssueType::BrokenLink { page: "p".to_string(), link: "l".to_string() },
+            LintIssueType::MissingIndexEntry { page: "p".to_string() },
+            LintIssueType::OrphanPage { page: "p".to_string() },
+            LintIssueType::StaleOverview,
+            LintIssueType::IncompleteSourceSummary { source: "s".to_string() },
+        ];
+        assert_eq!(types.len(), 5);
+    }
+
+    #[test]
+    fn test_lint_result_serialization() {
+        let result = LintResult {
+            note_id: "n1".to_string(),
+            issues: vec![LintIssue {
+                severity: IssueSeverity::Warning,
+                code: "broken-link".to_string(),
+                message: "Broken link".to_string(),
+                line: Some(5),
+            }],
+            score: 0.9,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let deserialized: LintResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.note_id, "n1");
+        assert_eq!(deserialized.issues.len(), 1);
+        assert!((deserialized.score - 0.9).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_lint_issue_serialization() {
+        let issue = LintIssue {
+            severity: IssueSeverity::Error,
+            code: "missing-title".to_string(),
+            message: "Missing title".to_string(),
+            line: Some(1),
+        };
+        let json = serde_json::to_string(&issue).unwrap();
+        let deserialized: LintIssue = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.severity, IssueSeverity::Error);
+        assert_eq!(deserialized.line, Some(1));
+    }
+
+    #[test]
+    fn test_calculate_score_multiple_errors() {
+        let issues = vec![
+            LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err1".to_string(), line: None },
+            LintIssue { severity: IssueSeverity::Error, code: "e2".to_string(), message: "err2".to_string(), line: None },
+            LintIssue { severity: IssueSeverity::Error, code: "e3".to_string(), message: "err3".to_string(), line: None },
+        ];
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.1).abs() < f64::EPSILON);
+    }
+}

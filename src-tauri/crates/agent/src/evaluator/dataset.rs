@@ -228,3 +228,210 @@ pub fn validate_benchmark(benchmark: &Benchmark) -> Result<(), DatasetError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::evaluator::benchmark::*;
+
+    fn make_valid_task() -> BenchmarkTask {
+        BenchmarkTask {
+            id: "t1".to_string(),
+            name: "Task 1".to_string(),
+            description: "A task".to_string(),
+            input: TaskInput {
+                query: "query".to_string(),
+                context: None,
+                constraints: vec![],
+            },
+            expected_output: None,
+            evaluation_criteria: vec![EvaluationCriteria {
+                name: "c1".to_string(),
+                metric: EvaluationMetric::ExactMatch,
+                weight: 1.0,
+                threshold: None,
+            }],
+            difficulty: Difficulty::Easy,
+            tags: vec![],
+        }
+    }
+
+    #[test]
+    fn test_validate_task_valid() {
+        let task = make_valid_task();
+        assert!(validate_task(&task).is_ok());
+    }
+
+    #[test]
+    fn test_validate_task_empty_id() {
+        let mut task = make_valid_task();
+        task.id = "".to_string();
+        let err = validate_task(&task).unwrap_err();
+        match err {
+            DatasetError::ValidationError(msg) => assert!(msg.contains("ID")),
+            _ => panic!("Expected ValidationError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_task_empty_name() {
+        let mut task = make_valid_task();
+        task.name = "".to_string();
+        let err = validate_task(&task).unwrap_err();
+        match err {
+            DatasetError::ValidationError(msg) => assert!(msg.contains("name")),
+            _ => panic!("Expected ValidationError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_task_empty_query() {
+        let mut task = make_valid_task();
+        task.input.query = "".to_string();
+        let err = validate_task(&task).unwrap_err();
+        match err {
+            DatasetError::ValidationError(msg) => assert!(msg.contains("query")),
+            _ => panic!("Expected ValidationError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_task_no_criteria() {
+        let mut task = make_valid_task();
+        task.evaluation_criteria = vec![];
+        let err = validate_task(&task).unwrap_err();
+        match err {
+            DatasetError::ValidationError(msg) => assert!(msg.contains("criteria")),
+            _ => panic!("Expected ValidationError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_task_weights_not_sum_to_one() {
+        let mut task = make_valid_task();
+        task.evaluation_criteria = vec![
+            EvaluationCriteria {
+                name: "c1".to_string(),
+                metric: EvaluationMetric::ExactMatch,
+                weight: 0.5,
+                threshold: None,
+            },
+            EvaluationCriteria {
+                name: "c2".to_string(),
+                metric: EvaluationMetric::Contains,
+                weight: 0.3,
+                threshold: None,
+            },
+        ];
+        let err = validate_task(&task).unwrap_err();
+        match err {
+            DatasetError::ValidationError(msg) => assert!(msg.contains("1.0")),
+            _ => panic!("Expected ValidationError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_benchmark_valid() {
+        let benchmark = Benchmark {
+            id: "b1".to_string(),
+            name: "Bench".to_string(),
+            description: "Desc".to_string(),
+            category: BenchmarkCategory::Reasoning,
+            tasks: vec![make_valid_task()],
+            metadata: BenchmarkMetadata::default(),
+        };
+        assert!(validate_benchmark(&benchmark).is_ok());
+    }
+
+    #[test]
+    fn test_validate_benchmark_empty_id() {
+        let benchmark = Benchmark {
+            id: "".to_string(),
+            name: "Bench".to_string(),
+            description: "Desc".to_string(),
+            category: BenchmarkCategory::Reasoning,
+            tasks: vec![make_valid_task()],
+            metadata: BenchmarkMetadata::default(),
+        };
+        assert!(validate_benchmark(&benchmark).is_err());
+    }
+
+    #[test]
+    fn test_validate_benchmark_no_tasks() {
+        let benchmark = Benchmark {
+            id: "b1".to_string(),
+            name: "Bench".to_string(),
+            description: "Desc".to_string(),
+            category: BenchmarkCategory::Reasoning,
+            tasks: vec![],
+            metadata: BenchmarkMetadata::default(),
+        };
+        assert!(validate_benchmark(&benchmark).is_err());
+    }
+
+    #[test]
+    fn test_dataset_registry_new() {
+        let registry = DatasetRegistry::new();
+        assert!(registry.get_dataset("builtin").is_some());
+        assert!(registry.get_dataset("extended").is_some());
+    }
+
+    #[test]
+    fn test_dataset_registry_all_datasets() {
+        let registry = DatasetRegistry::new();
+        let all = registry.all_datasets();
+        assert!(all.len() >= 2);
+    }
+
+    #[test]
+    fn test_dataset_registry_custom_tasks() {
+        let mut registry = DatasetRegistry::new();
+        let task = make_valid_task();
+        registry.register_custom_task(task.clone());
+        assert!(registry.get_custom_task("t1").is_some());
+        assert_eq!(registry.list_custom_tasks().len(), 1);
+        let removed = registry.remove_custom_task("t1");
+        assert!(removed.is_some());
+        assert!(registry.get_custom_task("t1").is_none());
+    }
+
+    #[test]
+    fn test_dataset_loader_new() {
+        let loader = DatasetLoader::new();
+        assert!(loader.base_path.is_none());
+    }
+
+    #[test]
+    fn test_dataset_loader_with_base_path() {
+        let loader = DatasetLoader::with_base_path(PathBuf::from("/tmp"));
+        assert!(loader.base_path.is_some());
+    }
+
+    #[test]
+    fn test_dataset_loader_load_nonexistent() {
+        let loader = DatasetLoader::new();
+        let result = loader.load_from_file("nonexistent_file.json");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_dataset_error_clone() {
+        let err = DatasetError::IoError("test".to_string());
+        let cloned = err.clone();
+        match cloned {
+            DatasetError::IoError(msg) => assert_eq!(msg, "test"),
+            _ => panic!("Expected IoError"),
+        }
+    }
+
+    #[test]
+    fn test_dataset_metadata() {
+        let meta = DatasetMetadata {
+            source: "test".to_string(),
+            license: "MIT".to_string(),
+            tags: vec!["a".to_string()],
+        };
+        assert_eq!(meta.source, "test");
+        assert_eq!(meta.license, "MIT");
+    }
+}

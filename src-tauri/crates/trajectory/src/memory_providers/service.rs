@@ -332,6 +332,22 @@ impl MemoryService {
         self.working_memory.read().unwrap().clone()
     }
 
+    pub fn get_all_entries_for_sync(&self) -> Vec<(String, String, String)> {
+        let mem = self.working_memory.read().unwrap_or_else(|e| {
+            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
+
+        let mut entries = Vec::new();
+        for entry in mem.memory.values() {
+            entries.push((entry.id.clone(), entry.content.clone(), "memory".to_string()));
+        }
+        for entry in mem.user.values() {
+            entries.push((entry.id.clone(), entry.content.clone(), "user".to_string()));
+        }
+        entries
+    }
+
     pub fn format_for_prompt(&self) -> String {
         let mem = self.working_memory.read().unwrap_or_else(|e| {
             tracing::warn!("Working memory lock poisoned, recovering: {}", e);

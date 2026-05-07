@@ -411,3 +411,168 @@ impl Default for RecoveryContext {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_recovery_config_default() {
+        let config = RecoveryConfig::default();
+        assert_eq!(config.max_total_attempts, 5);
+        assert!(config.enable_fallback);
+        assert!(config.enable_adjustments);
+        assert_eq!(config.timeout_per_attempt, Duration::from_secs(30));
+    }
+
+    #[test]
+    fn test_engine_new() {
+        let engine = ErrorRecoveryEngine::new();
+        let _rx = engine.subscribe();
+    }
+
+    #[test]
+    fn test_engine_with_config() {
+        let config = RecoveryConfig {
+            max_total_attempts: 10,
+            enable_fallback: false,
+            enable_adjustments: false,
+            timeout_per_attempt: Duration::from_secs(60),
+        };
+        let engine = ErrorRecoveryEngine::new().with_config(config);
+        assert_eq!(engine.config.max_total_attempts, 10);
+        assert!(!engine.config.enable_fallback);
+    }
+
+    #[test]
+    fn test_classify_error_transient() {
+        let engine = ErrorRecoveryEngine::new();
+        let classified = engine.classify_error("connection timeout");
+        assert_eq!(classified.error_type, ErrorType::Transient);
+    }
+
+    #[test]
+    fn test_classify_error_unrecoverable() {
+        let engine = ErrorRecoveryEngine::new();
+        let classified = engine.classify_error("syntax error");
+        assert_eq!(classified.error_type, ErrorType::Unrecoverable);
+    }
+
+    #[test]
+    fn test_get_recovery_strategy_transient() {
+        let engine = ErrorRecoveryEngine::new();
+        let strategy = engine.get_recovery_strategy(ErrorType::Transient);
+        assert!(matches!(strategy, RecoveryStrategy::Retry { .. }));
+    }
+
+    #[test]
+    fn test_get_recovery_strategy_recoverable_without_adjustments() {
+        let config = RecoveryConfig {
+            enable_adjustments: false,
+            ..RecoveryConfig::default()
+        };
+        let engine = ErrorRecoveryEngine::new().with_config(config);
+        let strategy = engine.get_recovery_strategy(ErrorType::Recoverable);
+        assert!(matches!(strategy, RecoveryStrategy::Fail));
+    }
+
+    #[test]
+    fn test_get_recovery_strategy_recoverable_with_adjustments() {
+        let engine = ErrorRecoveryEngine::new();
+        let strategy = engine.get_recovery_strategy(ErrorType::Recoverable);
+        assert!(matches!(strategy, RecoveryStrategy::AdjustAndRetry { .. }));
+    }
+
+    #[tokio::test]
+    async fn test_recover_unrecoverable_error() {
+        let engine = ErrorRecoveryEngine::new();
+        let result = engine.recover("fatal error: out of memory", || async {
+            Err::<i32, String>("fail".to_string())
+        }).await;
+        assert!(!result.success);
+    }
+
+    #[tokio::test]
+    async fn test_recover_success_on_first_try() {
+        let engine = ErrorRecoveryEngine::new();
+        let mut call_count = 0;
+        let result = engine.recover("connection timeout", || {
+            call_count += 1;
+            async move {
+                if call_count == 1 {
+                    Ok::<i32, String>(42)
+                } else {
+                    Err("unexpected".to_string())
+                }
+            }
+        }).await;
+        assert!(result.success);
+        assert_eq!(result.attempts_made, 1);
+    }
+
+    #[tokio::test]
+    async fn test_recover_retry_then_success() {
+        let engine = ErrorRecoveryEngine::new();
+        let mut call_count = 0;
+        let result = engine.recover("connection timeout", || {
+            call_count += 1;
+            async move {
+                if call_count < 2 {
+                    Err("retry".to_string())
+                } else {
+                    Ok::<i32, String>(42)
+                }
+            }
+        }).await;
+        assert!(result.success);
+    }
+
+    #[tokio::test]
+    async fn test_recover_all_attempts_fail() {
+        let engine = ErrorRecoveryEngine::new();
+        let result = engine.recover("connection timeout", || async {
+            Err::<i32, String>("always fail".to_string())
+        }).await;
+        assert!(!result.success);
+    }
+
+    #[test]
+    fn test_recovery_context_new() {
+        let ctx = RecoveryContext::new();
+        assert!(ctx.task_id.is_none());
+        assert!(ctx.original_error.is_none());
+        assert!(ctx.error_type.is_none());
+        assert!(ctx.strategy_used.is_none());
+        assert_eq!(ctx.attempts, 0);
+        assert_eq!(ctx.recovery_time_ms, 0);
+    }
+
+    #[test]
+    fn test_recovery_context_builder() {
+        let ctx = RecoveryContext::new()
+            .with_task_id("task-1".to_string())
+            .with_error("timeout".to_string())
+            .build();
+        assert_eq!(ctx.task_id, Some("task-1".to_string()));
+        assert_eq!(ctx.original_error, Some("timeout".to_string()));
+    }
+
+    #[test]
+    fn test_recovery_context_default() {
+        let ctx = RecoveryContext::default();
+        assert!(ctx.task_id.is_none());
+    }
+
+    #[test]
+    fn test_recovery_event_variants() {
+        let events = vec![
+            RecoveryEvent::RecoveryStarted { error: "e".to_string(), error_type: ErrorType::Transient },
+            RecoveryEvent::AttemptStarted { attempt: 1, strategy: "Retry".to_string() },
+            RecoveryEvent::AttemptCompleted { attempt: 1, success: true },
+            RecoveryEvent::RecoveryCompleted { result: RecoveryResult::success(1, 0) },
+            RecoveryEvent::RecoveryFailed { error: "e".to_string() },
+            RecoveryEvent::RetryScheduled { delay_ms: 100, attempt: 1 },
+        ];
+        assert_eq!(events.len(), 6);
+    }
+}

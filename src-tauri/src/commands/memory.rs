@@ -526,6 +526,128 @@ pub async fn reindex_memory_item(
 }
 
 #[tauri::command]
+pub async fn sync_working_memory_to_namespace(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    namespace_id: String,
+) -> Result<usize, String> {
+    let entries = {
+        let ms = state.memory_service.read().await;
+        ms.get_all_entries_for_sync()
+    };
+
+    if entries.is_empty() {
+        return Ok(0);
+    }
+
+    let mut synced = 0;
+    for (id, content, mem_type) in &entries {
+        let title = format!(
+            "[working-memory][{}] {}",
+            mem_type,
+            &content[..content.len().min(50)]
+        );
+        let input = CreateMemoryItemInput {
+            namespace_id: namespace_id.clone(),
+            title,
+            content: content.clone(),
+            source: Some("auto_extract".to_string()),
+        };
+        match axagent_core::repo::memory::add_item(&state.sea_db, input).await {
+            Ok(mem_item) => {
+                let ns = axagent_core::repo::memory::get_namespace(&state.sea_db, &namespace_id)
+                    .await
+                    .ok();
+                if let Some(ns) = ns {
+                    if let Some(ref embedding_provider) = ns.embedding_provider {
+                        let _ = axagent_core::repo::memory::update_item_index_status(
+                            &state.sea_db,
+                            &mem_item.id,
+                            "indexing",
+                            None,
+                        )
+                        .await;
+
+                        let db = state.sea_db.clone();
+                        let master_key = state.master_key;
+                        let vector_store = state.vector_store.clone();
+                        let item_id = mem_item.id.clone();
+                        let item_content = mem_item.content.clone();
+                        let ep = embedding_provider.clone();
+                        let ns_id = namespace_id.clone();
+                        let dims = ns.embedding_dimensions.map(|v| v as usize);
+                        let app_clone = app.clone();
+
+                        tokio::spawn(async move {
+                            let res = crate::indexing::index_memory_item(
+                                &db,
+                                &master_key,
+                                &vector_store,
+                                &ns_id,
+                                &item_id,
+                                &item_content,
+                                &ep,
+                                dims,
+                            )
+                            .await;
+
+                            let (status, err_msg) = match &res {
+                                Ok(_) => ("ready", None),
+                                Err(e) => {
+                                    tracing::warn!(
+                                        "Sync working memory embedding failed for {}: {}",
+                                        item_id,
+                                        e
+                                    );
+                                    ("failed", Some(e.to_string()))
+                                },
+                            };
+                            let _ = axagent_core::repo::memory::update_item_index_status(
+                                &db,
+                                &item_id,
+                                status,
+                                err_msg.as_deref(),
+                            )
+                            .await;
+
+                            let _ = app_clone.emit(
+                                "memory-item-indexed",
+                                serde_json::json!({
+                                    "itemId": item_id,
+                                    "success": res.is_ok(),
+                                    "status": status,
+                                    "error": err_msg,
+                                }),
+                            );
+                        });
+                    } else {
+                        let _ = axagent_core::repo::memory::update_item_index_status(
+                            &state.sea_db,
+                            &mem_item.id,
+                            "skipped",
+                            None,
+                        )
+                        .await;
+                    }
+                }
+
+                synced += 1;
+                tracing::info!(
+                    "Synced working memory entry {} to namespace {}",
+                    id,
+                    namespace_id
+                );
+            },
+            Err(e) => {
+                tracing::warn!("Failed to sync working memory entry {}: {}", id, e);
+            },
+        }
+    }
+
+    Ok(synced)
+}
+
+#[tauri::command]
 pub async fn reorder_memory_namespaces(
     state: State<'_, AppState>,
     namespace_ids: Vec<String>,
@@ -606,8 +728,25 @@ pub async fn extract_conversation_memories(
     )
     .await?;
 
+    let existing_items = axagent_core::repo::memory::list_items(&state.sea_db, &namespace_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    let existing_contents: std::collections::HashSet<String> = existing_items
+        .iter()
+        .map(|item| item.content.to_lowercase().trim().to_string())
+        .collect();
+
+    // TODO: Track `last_extracted_at` per conversation to avoid re-extracting
+    // already-processed messages on subsequent calls.
+
     let mut saved = Vec::new();
     for item in &result.items {
+        let content_lower = item.content.to_lowercase().trim().to_string();
+        if existing_contents.contains(&content_lower) {
+            tracing::info!("Skipping duplicate memory: {}", item.title);
+            continue;
+        }
+
         let title = format!("[{}] {}", item.category.as_str(), item.title);
         let input = CreateMemoryItemInput {
             namespace_id: namespace_id.clone(),

@@ -228,6 +228,15 @@ pub async fn update_document_status_with_error(
     Ok(())
 }
 
+pub async fn get_document(db: &DatabaseConnection, id: &str) -> Result<KnowledgeDocument> {
+    let model = knowledge_documents::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("KnowledgeDocument {}", id)))?;
+
+    Ok(model_to_doc(model))
+}
+
 pub async fn delete_document(db: &DatabaseConnection, id: &str) -> Result<()> {
     let result = knowledge_documents::Entity::delete_by_id(id)
         .exec(db)

@@ -283,3 +283,126 @@ impl std::fmt::Debug for TauriEventAdapter {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_frontend_event_filter_default() {
+        let filter = FrontendEventFilter::default();
+        assert_eq!(filter, FrontendEventFilter::All);
+    }
+
+    #[test]
+    fn test_frontend_event_filter_equality() {
+        assert_eq!(FrontendEventFilter::All, FrontendEventFilter::All);
+        assert_eq!(
+            FrontendEventFilter::Specific(vec![AgentEventType::TurnStarted]),
+            FrontendEventFilter::Specific(vec![AgentEventType::TurnStarted])
+        );
+        assert_ne!(FrontendEventFilter::All, FrontendEventFilter::Specific(vec![]));
+    }
+
+    #[test]
+    fn test_frontend_event_type_from_agent_event_type() {
+        assert_eq!(FrontendEventType::from(AgentEventType::TurnStarted), FrontendEventType::AgentTurnStarted);
+        assert_eq!(FrontendEventType::from(AgentEventType::TurnCompleted), FrontendEventType::AgentTurnCompleted);
+        assert_eq!(FrontendEventType::from(AgentEventType::ToolUse), FrontendEventType::AgentToolUse);
+        assert_eq!(FrontendEventType::from(AgentEventType::ToolResult), FrontendEventType::AgentToolResult);
+        assert_eq!(FrontendEventType::from(AgentEventType::ToolError), FrontendEventType::AgentToolError);
+        assert_eq!(FrontendEventType::from(AgentEventType::StateChanged), FrontendEventType::AgentStateChanged);
+        assert_eq!(FrontendEventType::from(AgentEventType::Error), FrontendEventType::AgentError);
+        assert_eq!(FrontendEventType::from(AgentEventType::Warning), FrontendEventType::AgentWarning);
+        assert_eq!(FrontendEventType::from(AgentEventType::Debug), FrontendEventType::AgentDebug);
+    }
+
+    #[test]
+    fn test_frontend_event_payload_serialization() {
+        let payload = FrontendEventPayload {
+            event_type: "TurnStarted".to_string(),
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+            source: "agent".to_string(),
+            payload: serde_json::json!({"key": "value"}),
+            correlation_id: Some("corr-1".to_string()),
+        };
+        let json = serde_json::to_string(&payload).unwrap();
+        let deserialized: FrontendEventPayload = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.event_type, "TurnStarted");
+        assert_eq!(deserialized.source, "agent");
+        assert_eq!(deserialized.correlation_id, Some("corr-1".to_string()));
+    }
+
+    #[test]
+    fn test_tauri_event_envelope_new() {
+        let payload = FrontendEventPayload {
+            event_type: "TurnStarted".to_string(),
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+            source: "agent".to_string(),
+            payload: serde_json::json!(null),
+            correlation_id: None,
+        };
+        let envelope = TauriEventEnvelope::new(AgentEventType::TurnStarted, payload);
+        assert_eq!(envelope.event_name, "agent::TurnStarted");
+    }
+
+    #[test]
+    fn test_tauri_event_envelope_serialization() {
+        let payload = FrontendEventPayload {
+            event_type: "Error".to_string(),
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+            source: "test".to_string(),
+            payload: serde_json::json!({"msg": "fail"}),
+            correlation_id: None,
+        };
+        let envelope = TauriEventEnvelope::new(AgentEventType::Error, payload);
+        let json = serde_json::to_string(&envelope).unwrap();
+        let deserialized: TauriEventEnvelope = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.event_name, "agent::Error");
+    }
+
+    #[test]
+    fn test_frontend_event_type_all_variants() {
+        let variants = vec![
+            FrontendEventType::AgentTurnStarted,
+            FrontendEventType::AgentTurnCompleted,
+            FrontendEventType::AgentToolUse,
+            FrontendEventType::AgentToolResult,
+            FrontendEventType::AgentToolError,
+            FrontendEventType::AgentStateChanged,
+            FrontendEventType::AgentIterationComplete,
+            FrontendEventType::AgentChainComplete,
+            FrontendEventType::AgentResearchPhaseChanged,
+            FrontendEventType::AgentSourceFound,
+            FrontendEventType::AgentCitationAdded,
+            FrontendEventType::AgentReportGenerated,
+            FrontendEventType::AgentError,
+            FrontendEventType::AgentWarning,
+            FrontendEventType::AgentDebug,
+            FrontendEventType::AgentLlmGenerationStarted,
+            FrontendEventType::AgentLlmGenerationCompleted,
+            FrontendEventType::AgentPermissionRequest,
+            FrontendEventType::AgentPermissionGranted,
+            FrontendEventType::AgentPermissionDenied,
+        ];
+        assert_eq!(variants.len(), 20);
+    }
+
+    #[test]
+    fn test_frontend_event_type_equality() {
+        assert_eq!(FrontendEventType::AgentTurnStarted, FrontendEventType::AgentTurnStarted);
+        assert_ne!(FrontendEventType::AgentTurnStarted, FrontendEventType::AgentTurnCompleted);
+    }
+
+    #[test]
+    fn test_frontend_event_payload_no_correlation_id() {
+        let payload = FrontendEventPayload {
+            event_type: "Debug".to_string(),
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+            source: "agent".to_string(),
+            payload: serde_json::json!(null),
+            correlation_id: None,
+        };
+        assert!(payload.correlation_id.is_none());
+    }
+}

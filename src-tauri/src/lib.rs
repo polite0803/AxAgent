@@ -6,6 +6,7 @@ mod commands;
 mod context_manager;
 mod indexing;
 mod init;
+mod knowledge_integration;
 mod memory_extract;
 mod paths;
 mod semantic_cache;
@@ -95,6 +96,7 @@ pub fn run() {
             commands::conversation_categories::delete_conversation_category,
             commands::conversation_categories::reorder_conversation_categories,
             commands::knowledge::list_knowledge_bases,
+            commands::knowledge::list_knowledge_containers,
             commands::knowledge::create_knowledge_base,
             commands::knowledge::update_knowledge_base,
             commands::knowledge::delete_knowledge_base,
@@ -121,6 +123,7 @@ pub fn run() {
             commands::knowledge::create_knowledge_flow,
             commands::knowledge::list_knowledge_interfaces,
             commands::knowledge::create_knowledge_interface,
+            knowledge_integration::analyze_knowledge_integration,
             commands::prompt_templates::list_prompt_templates,
             commands::prompt_templates::get_prompt_template,
             commands::prompt_templates::create_prompt_template,
@@ -167,6 +170,7 @@ pub fn run() {
             commands::memory::reindex_memory_item,
             commands::memory::reorder_memory_namespaces,
             commands::memory::extract_conversation_memories,
+            commands::memory::sync_working_memory_to_namespace,
             commands::skills::list_skills,
             commands::skills::get_skill,
             commands::skills::toggle_skill,
@@ -640,6 +644,8 @@ pub fn run() {
             commands::wiki::wiki_notes_sync_links,
             commands::wiki::wiki_notes_search,
             commands::wiki::get_wiki_graph,
+            commands::wiki::sync_note_to_knowledge_base,
+            commands::wiki::sync_knowledge_document_to_wiki,
             commands::agency_expert::import_agency_experts,
             commands::agency_expert::list_agency_experts,
             commands::agency_expert::clear_agency_experts,

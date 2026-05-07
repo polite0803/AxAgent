@@ -28,7 +28,7 @@ import {
   Typography,
 } from "antd";
 import type { MenuProps } from "antd";
-import { GripVertical, MoreHorizontal, Pencil, Plus, Search, Settings, Trash, Trash2, Zap } from "lucide-react";
+import { GripVertical, MoreHorizontal, Pencil, Plus, Search, Settings, Trash, Trash2, Zap, ArrowRightLeft } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -623,6 +623,25 @@ function MemoryItemsPanel({
                 loading={rebuildingIndex}
                 disabled={!namespace.embeddingProvider}
               />
+            </Tooltip>
+          </Popconfirm>
+          <Popconfirm
+            title={t("settings.memory.syncWorkingMemoryConfirm")}
+            placement="bottom"
+            onConfirm={async () => {
+              try {
+                const count = await invoke<number>("sync_working_memory_to_namespace", {
+                  namespaceId: namespace.id,
+                });
+                messageApi.success(t("settings.memory.syncWorkingMemorySuccess", { count }));
+                loadItems(namespace.id);
+              } catch (e) {
+                messageApi.error(t("settings.memory.syncWorkingMemoryError", { error: String(e) }));
+              }
+            }}
+          >
+            <Tooltip title={t("settings.memory.syncWorkingMemory")}>
+              <Button icon={<ArrowRightLeft size={14} />} />
             </Tooltip>
           </Popconfirm>
         </div>

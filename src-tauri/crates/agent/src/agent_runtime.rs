@@ -239,3 +239,186 @@ pub enum AgentRuntimeError {
     #[error("Tool execution error: {0}")]
     ToolError(String),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_agent_output_creation() {
+        let output = AgentOutput {
+            response: "test response".to_string(),
+            iterations: 5,
+            tool_call_count: 3,
+        };
+        assert_eq!(output.response, "test response");
+        assert_eq!(output.iterations, 5);
+        assert_eq!(output.tool_call_count, 3);
+    }
+
+    #[test]
+    fn test_agent_output_zero_values() {
+        let output = AgentOutput {
+            response: String::new(),
+            iterations: 0,
+            tool_call_count: 0,
+        };
+        assert!(output.response.is_empty());
+        assert_eq!(output.iterations, 0);
+        assert_eq!(output.tool_call_count, 0);
+    }
+
+    #[test]
+    fn test_agent_runtime_config_default() {
+        let config = AgentRuntimeConfig::default();
+        assert_eq!(config.role, "executor");
+        assert!(config.system_prompt.is_empty());
+        assert_eq!(config.max_iterations, 50);
+        assert_eq!(config.timeout_secs, 300);
+    }
+
+    #[test]
+    fn test_agent_runtime_config_custom() {
+        let config = AgentRuntimeConfig {
+            role: "planner".to_string(),
+            system_prompt: "You are a planner".to_string(),
+            max_iterations: 100,
+            timeout_secs: 600,
+        };
+        assert_eq!(config.role, "planner");
+        assert_eq!(config.system_prompt, "You are a planner");
+        assert_eq!(config.max_iterations, 100);
+        assert_eq!(config.timeout_secs, 600);
+    }
+
+    #[test]
+    fn test_agent_event_turn_started() {
+        let event = AgentEvent::TurnStarted { iteration: 0 };
+        assert!(matches!(event, AgentEvent::TurnStarted { iteration: 0 }));
+    }
+
+    #[test]
+    fn test_agent_event_turn_completed() {
+        let event = AgentEvent::TurnCompleted { iteration: 3 };
+        assert!(matches!(event, AgentEvent::TurnCompleted { iteration: 3 }));
+    }
+
+    #[test]
+    fn test_agent_event_tool_use() {
+        let event = AgentEvent::ToolUse {
+            tool_name: "read_file".to_string(),
+            tool_use_id: "id-1".to_string(),
+        };
+        match &event {
+            AgentEvent::ToolUse { tool_name, tool_use_id } => {
+                assert_eq!(tool_name, "read_file");
+                assert_eq!(tool_use_id, "id-1");
+            },
+            _ => panic!("Expected ToolUse"),
+        }
+    }
+
+    #[test]
+    fn test_agent_event_tool_result() {
+        let event = AgentEvent::ToolResult {
+            tool_use_id: "id-1".to_string(),
+            is_error: false,
+        };
+        match &event {
+            AgentEvent::ToolResult { tool_use_id, is_error } => {
+                assert_eq!(tool_use_id, "id-1");
+                assert!(!is_error);
+            },
+            _ => panic!("Expected ToolResult"),
+        }
+    }
+
+    #[test]
+    fn test_agent_event_tool_result_error() {
+        let event = AgentEvent::ToolResult {
+            tool_use_id: "id-2".to_string(),
+            is_error: true,
+        };
+        match &event {
+            AgentEvent::ToolResult { is_error, .. } => {
+                assert!(is_error);
+            },
+            _ => panic!("Expected ToolResult"),
+        }
+    }
+
+    #[test]
+    fn test_agent_event_error() {
+        let event = AgentEvent::Error {
+            error: "something failed".to_string(),
+        };
+        match &event {
+            AgentEvent::Error { error } => {
+                assert_eq!(error, "something failed");
+            },
+            _ => panic!("Expected Error"),
+        }
+    }
+
+    #[test]
+    fn test_agent_event_proactive_tick() {
+        let event = AgentEvent::ProactiveTick;
+        assert!(matches!(event, AgentEvent::ProactiveTick));
+    }
+
+    #[test]
+    fn test_agent_runtime_error_runtime() {
+        let err = AgentRuntimeError::RuntimeError("runtime error".to_string());
+        assert!(err.to_string().contains("runtime error"));
+    }
+
+    #[test]
+    fn test_agent_runtime_error_session() {
+        let err = AgentRuntimeError::SessionError("session error".to_string());
+        assert!(err.to_string().contains("session error"));
+    }
+
+    #[test]
+    fn test_agent_runtime_error_tool() {
+        let err = AgentRuntimeError::ToolError("tool error".to_string());
+        assert!(err.to_string().contains("tool error"));
+    }
+
+    #[test]
+    fn test_agent_output_clone() {
+        let output = AgentOutput {
+            response: "clone me".to_string(),
+            iterations: 2,
+            tool_call_count: 1,
+        };
+        let cloned = output.clone();
+        assert_eq!(cloned.response, "clone me");
+        assert_eq!(cloned.iterations, 2);
+        assert_eq!(cloned.tool_call_count, 1);
+    }
+
+    #[test]
+    fn test_agent_output_debug() {
+        let output = AgentOutput {
+            response: "debug".to_string(),
+            iterations: 1,
+            tool_call_count: 0,
+        };
+        let debug_str = format!("{:?}", output);
+        assert!(debug_str.contains("debug"));
+    }
+
+    #[test]
+    fn test_agent_event_debug() {
+        let event = AgentEvent::TurnStarted { iteration: 0 };
+        let debug_str = format!("{:?}", event);
+        assert!(debug_str.contains("TurnStarted"));
+    }
+
+    #[test]
+    fn test_agent_runtime_error_debug() {
+        let err = AgentRuntimeError::RuntimeError("test".to_string());
+        let debug_str = format!("{:?}", err);
+        assert!(debug_str.contains("RuntimeError"));
+    }
+}

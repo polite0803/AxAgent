@@ -197,3 +197,122 @@ impl WikiValidator {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validation_issue_type_equality() {
+        assert_eq!(ValidationIssueType::HashMismatch, ValidationIssueType::HashMismatch);
+        assert_eq!(ValidationIssueType::MissingInDatabase, ValidationIssueType::MissingInDatabase);
+        assert_eq!(ValidationIssueType::MissingInFilesystem, ValidationIssueType::MissingInFilesystem);
+        assert_eq!(ValidationIssueType::OrphanInVectorStore, ValidationIssueType::OrphanInVectorStore);
+        assert_ne!(ValidationIssueType::HashMismatch, ValidationIssueType::MissingInDatabase);
+    }
+
+    #[test]
+    fn test_validation_issue_serialization() {
+        let issue = ValidationIssue {
+            note_id: "n1".to_string(),
+            title: "Test Note".to_string(),
+            issue_type: ValidationIssueType::HashMismatch,
+            message: "Hash mismatch detected".to_string(),
+        };
+        let json = serde_json::to_string(&issue).unwrap();
+        let deserialized: ValidationIssue = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.note_id, "n1");
+        assert_eq!(deserialized.issue_type, ValidationIssueType::HashMismatch);
+    }
+
+    #[test]
+    fn test_validation_report_serialization() {
+        let report = ValidationReport {
+            wiki_id: "wiki-1".to_string(),
+            total_notes: 10,
+            consistent_notes: 8,
+            issues: vec![ValidationIssue {
+                note_id: "n2".to_string(),
+                title: "Broken".to_string(),
+                issue_type: ValidationIssueType::MissingInFilesystem,
+                message: "File missing".to_string(),
+            }],
+            checked_at: 1234567890,
+        };
+        let json = serde_json::to_string(&report).unwrap();
+        let deserialized: ValidationReport = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.wiki_id, "wiki-1");
+        assert_eq!(deserialized.total_notes, 10);
+        assert_eq!(deserialized.consistent_notes, 8);
+        assert_eq!(deserialized.issues.len(), 1);
+    }
+
+    #[test]
+    fn test_validation_issue_type_all_variants() {
+        let variants = vec![
+            ValidationIssueType::HashMismatch,
+            ValidationIssueType::MissingInDatabase,
+            ValidationIssueType::MissingInFilesystem,
+            ValidationIssueType::OrphanInVectorStore,
+        ];
+        assert_eq!(variants.len(), 4);
+    }
+
+    #[test]
+    fn test_validation_report_empty_issues() {
+        let report = ValidationReport {
+            wiki_id: "wiki-2".to_string(),
+            total_notes: 5,
+            consistent_notes: 5,
+            issues: vec![],
+            checked_at: 0,
+        };
+        assert!(report.issues.is_empty());
+        assert_eq!(report.total_notes, report.consistent_notes);
+    }
+
+    #[test]
+    fn test_validation_issue_hash_mismatch_message() {
+        let issue = ValidationIssue {
+            note_id: "n1".to_string(),
+            title: "Test".to_string(),
+            issue_type: ValidationIssueType::HashMismatch,
+            message: "Hash mismatch: file=abc, db=def".to_string(),
+        };
+        assert!(issue.message.contains("Hash mismatch"));
+    }
+
+    #[test]
+    fn test_validation_issue_missing_in_database() {
+        let issue = ValidationIssue {
+            note_id: "n1".to_string(),
+            title: "Orphan".to_string(),
+            issue_type: ValidationIssueType::MissingInDatabase,
+            message: "Note has no wiki_page entry".to_string(),
+        };
+        assert_eq!(issue.issue_type, ValidationIssueType::MissingInDatabase);
+    }
+
+    #[test]
+    fn test_validation_report_checked_at() {
+        let report = ValidationReport {
+            wiki_id: "w1".to_string(),
+            total_notes: 1,
+            consistent_notes: 1,
+            issues: vec![],
+            checked_at: chrono::Utc::now().timestamp(),
+        };
+        assert!(report.checked_at > 0);
+    }
+
+    #[test]
+    fn test_validation_issue_orphan_in_vector_store() {
+        let issue = ValidationIssue {
+            note_id: "n1".to_string(),
+            title: "Unknown".to_string(),
+            issue_type: ValidationIssueType::OrphanInVectorStore,
+            message: "Wiki page references non-existent note".to_string(),
+        };
+        assert_eq!(issue.issue_type, ValidationIssueType::OrphanInVectorStore);
+    }
+}

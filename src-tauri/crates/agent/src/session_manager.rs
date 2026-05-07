@@ -1011,3 +1011,313 @@ impl HookProgressReporter for TauriHookProgressReporter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_estimate_tokens_from_text() {
+        assert_eq!(estimate_tokens_from_text(""), 0);
+        assert_eq!(estimate_tokens_from_text("abcd"), 1);
+        assert_eq!(estimate_tokens_from_text("abcdefgh"), 2);
+        assert_eq!(estimate_tokens_from_text("abc"), 0);
+        assert_eq!(estimate_tokens_from_text("hello world test!"), 4);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_text_long() {
+        let long_text = "a".repeat(400);
+        assert_eq!(estimate_tokens_from_text(&long_text), 100);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_messages_empty() {
+        let messages: Vec<axagent_runtime::ConversationMessage> = vec![];
+        assert_eq!(estimate_tokens_from_messages(&messages), 0);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_messages_with_text() {
+        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        let messages = vec![ConversationMessage {
+            role: MessageRole::User,
+            blocks: vec![ContentBlock::Text {
+                text: "hello world".to_string(),
+            }],
+            usage: None,
+        }];
+        assert_eq!(estimate_tokens_from_messages(&messages), 2);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_messages_with_tool_use() {
+        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        let messages = vec![ConversationMessage {
+            role: MessageRole::Assistant,
+            blocks: vec![ContentBlock::ToolUse {
+                id: "tool-1".to_string(),
+                name: "read_file".to_string(),
+                input: "{}".to_string(),
+            }],
+            usage: None,
+        }];
+        let tokens = estimate_tokens_from_messages(&messages);
+        assert!(tokens > 0);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_messages_with_tool_result() {
+        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        let messages = vec![ConversationMessage {
+            role: MessageRole::Tool,
+            blocks: vec![ContentBlock::ToolResult {
+                tool_use_id: "tu-1".to_string(),
+                tool_name: "read_file".to_string(),
+                output: "file contents here".to_string(),
+                is_error: false,
+            }],
+            usage: None,
+        }];
+        let tokens = estimate_tokens_from_messages(&messages);
+        assert!(tokens > 0);
+    }
+
+    #[test]
+    fn test_dynamic_max_iterations_low() {
+        assert_eq!(
+            dynamic_max_iterations(&axagent_trajectory::Complexity::Low),
+            20
+        );
+    }
+
+    #[test]
+    fn test_dynamic_max_iterations_medium() {
+        assert_eq!(
+            dynamic_max_iterations(&axagent_trajectory::Complexity::Medium),
+            50
+        );
+    }
+
+    #[test]
+    fn test_dynamic_max_iterations_high() {
+        assert_eq!(
+            dynamic_max_iterations(&axagent_trajectory::Complexity::High),
+            100
+        );
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_with_actual_usage() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 100,
+            output_tokens: 50,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
+        assert_eq!(breakdown.input_tokens, 100);
+        assert_eq!(breakdown.output_tokens, 50);
+        assert_eq!(breakdown.total_tokens, 150);
+        assert!(!breakdown.estimated_from_chars);
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_with_estimated_chars() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 400);
+        assert_eq!(breakdown.total_tokens, 100);
+        assert!(breakdown.estimated_from_chars);
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_tokens_delta() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 100,
+            output_tokens: 50,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
+        assert_eq!(breakdown.tokens_delta(), 150);
+    }
+
+    #[test]
+    fn test_agent_session_new() {
+        let session = AgentSession::new("provider-1".to_string(), "conv-1".to_string());
+        assert_eq!(session.provider_id(), "provider-1");
+        assert_eq!(session.conversation_id(), "conv-1");
+        assert!(session.team_id().is_none());
+        assert!(session.role().is_none());
+        assert!(session.axagent_session_id().is_none());
+    }
+
+    #[test]
+    fn test_agent_session_with_team() {
+        let session = AgentSession::new("p1".to_string(), "c1".to_string())
+            .with_team("team-1".to_string());
+        assert_eq!(session.team_id(), Some("team-1"));
+    }
+
+    #[test]
+    fn test_agent_session_with_role() {
+        let session = AgentSession::new("p1".to_string(), "c1".to_string())
+            .with_role("developer".to_string());
+        assert_eq!(session.role(), Some("developer"));
+    }
+
+    #[test]
+    fn test_agent_session_with_axagent_session_id() {
+        let session = AgentSession::new("p1".to_string(), "c1".to_string())
+            .with_axagent_session_id("ax-123".to_string());
+        assert_eq!(session.axagent_session_id(), Some("ax-123"));
+    }
+
+    #[test]
+    fn test_agent_session_builder_chain() {
+        let session = AgentSession::new("p1".to_string(), "c1".to_string())
+            .with_team("team-1".to_string())
+            .with_role("reviewer".to_string())
+            .with_axagent_session_id("ax-456".to_string());
+        assert_eq!(session.provider_id(), "p1");
+        assert_eq!(session.conversation_id(), "c1");
+        assert_eq!(session.team_id(), Some("team-1"));
+        assert_eq!(session.role(), Some("reviewer"));
+        assert_eq!(session.axagent_session_id(), Some("ax-456"));
+    }
+
+    #[test]
+    fn test_agent_session_session_accessor() {
+        let session = AgentSession::new("p1".to_string(), "c1".to_string());
+        let session_id = session.session().session_id.clone();
+        assert!(!session_id.is_empty());
+    }
+
+    #[test]
+    fn test_agent_session_clone() {
+        let session = AgentSession::new("p1".to_string(), "c1".to_string())
+            .with_team("team-1".to_string());
+        let cloned = session.clone();
+        assert_eq!(cloned.provider_id(), session.provider_id());
+        assert_eq!(cloned.conversation_id(), session.conversation_id());
+        assert_eq!(cloned.team_id(), session.team_id());
+    }
+
+    #[test]
+    fn test_agent_session_session_mut() {
+        let mut session = AgentSession::new("p1".to_string(), "c1".to_string());
+        let original_updated_at = session.session().updated_at_ms;
+        session.session_mut().updated_at_ms = 999;
+        assert_eq!(session.session().updated_at_ms, 999);
+        assert_ne!(session.session().updated_at_ms, original_updated_at);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_content_blocks_text() {
+        let blocks = vec![axagent_runtime::ContentBlock::Text {
+            text: "hello world test!".to_string(),
+        }];
+        let tokens = estimate_tokens_from_content_blocks(&blocks);
+        assert_eq!(tokens, 4);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_content_blocks_tool_use() {
+        let blocks = vec![axagent_runtime::ContentBlock::ToolUse {
+            id: "id-1234".to_string(),
+            name: "read_file".to_string(),
+            input: "{\"path\": \"/test\"}".to_string(),
+        }];
+        let tokens = estimate_tokens_from_content_blocks(&blocks);
+        assert!(tokens > 0);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_content_blocks_tool_result() {
+        let blocks = vec![axagent_runtime::ContentBlock::ToolResult {
+            tool_use_id: "tu-1234".to_string(),
+            tool_name: "bash".to_string(),
+            output: "command output here".to_string(),
+            is_error: false,
+        }];
+        let tokens = estimate_tokens_from_content_blocks(&blocks);
+        assert!(tokens > 0);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_content_blocks_multiple() {
+        let blocks = vec![
+            axagent_runtime::ContentBlock::Text {
+                text: "hello".to_string(),
+            },
+            axagent_runtime::ContentBlock::Text {
+                text: "world".to_string(),
+            },
+        ];
+        let tokens = estimate_tokens_from_content_blocks(&blocks);
+        assert_eq!(tokens, 2);
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_zero_tokens_zero_chars() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
+        assert_eq!(breakdown.total_tokens, 0);
+        assert!(!breakdown.estimated_from_chars);
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_actual_overrides_estimate() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 50,
+            output_tokens: 25,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 1000);
+        assert_eq!(breakdown.total_tokens, 75);
+        assert!(!breakdown.estimated_from_chars);
+    }
+
+    #[test]
+    fn test_dynamic_max_iterations_matches_complexity() {
+        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Low), 20);
+        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Medium), 50);
+        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::High), 100);
+    }
+
+    #[test]
+    fn test_agent_session_debug() {
+        let session = AgentSession::new("p1".to_string(), "c1".to_string());
+        let debug_str = format!("{:?}", session);
+        assert!(debug_str.contains("p1"));
+        assert!(debug_str.contains("c1"));
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_serialization() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 100,
+            output_tokens: 50,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
+        let json = serde_json::to_string(&breakdown).unwrap();
+        let deserialized: TokenUsageBreakdown = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.input_tokens, 100);
+        assert_eq!(deserialized.output_tokens, 50);
+        assert_eq!(deserialized.total_tokens, 150);
+        assert!(!deserialized.estimated_from_chars);
+    }
+}

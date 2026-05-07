@@ -427,3 +427,207 @@ impl ApiClient for AxAgentApiClient {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_messages() -> Vec<ConversationMessage> {
+        vec![ConversationMessage {
+            role: MessageRole::User,
+            blocks: vec![ContentBlock::Text {
+                text: "Hello".to_string(),
+            }],
+            usage: None,
+        }]
+    }
+
+    #[test]
+    fn test_convert_messages_user() {
+        let messages = vec![ConversationMessage {
+            role: MessageRole::User,
+            blocks: vec![ContentBlock::Text {
+                text: "Hello".to_string(),
+            }],
+            usage: None,
+        }];
+        let result = AxAgentApiClient::convert_messages(&messages, &[]);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].role, "user");
+    }
+
+    #[test]
+    fn test_convert_messages_system() {
+        let messages = vec![ConversationMessage {
+            role: MessageRole::System,
+            blocks: vec![ContentBlock::Text {
+                text: "You are helpful".to_string(),
+            }],
+            usage: None,
+        }];
+        let result = AxAgentApiClient::convert_messages(&messages, &[]);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].role, "system");
+    }
+
+    #[test]
+    fn test_convert_messages_assistant_with_text() {
+        let messages = vec![ConversationMessage {
+            role: MessageRole::Assistant,
+            blocks: vec![ContentBlock::Text {
+                text: "Hi there".to_string(),
+            }],
+            usage: None,
+        }];
+        let result = AxAgentApiClient::convert_messages(&messages, &[]);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].role, "assistant");
+        match &result[0].content {
+            ChatContent::Text(t) => assert_eq!(t, "Hi there"),
+            _ => panic!("Expected text content"),
+        }
+    }
+
+    #[test]
+    fn test_convert_messages_assistant_with_tool_use() {
+        let messages = vec![ConversationMessage {
+            role: MessageRole::Assistant,
+            blocks: vec![
+                ContentBlock::Text {
+                    text: "Let me check".to_string(),
+                },
+                ContentBlock::ToolUse {
+                    id: "call_1".to_string(),
+                    name: "search".to_string(),
+                    input: "{}".to_string(),
+                },
+            ],
+            usage: None,
+        }];
+        let result = AxAgentApiClient::convert_messages(&messages, &[]);
+        assert_eq!(result.len(), 1);
+        assert!(result[0].tool_calls.is_some());
+        let tool_calls = result[0].tool_calls.as_ref().unwrap();
+        assert_eq!(tool_calls.len(), 1);
+        assert_eq!(tool_calls[0].function.name, "search");
+    }
+
+    #[test]
+    fn test_convert_messages_tool_result() {
+        let messages = vec![ConversationMessage {
+            role: MessageRole::Tool,
+            blocks: vec![ContentBlock::ToolResult {
+                tool_use_id: "call_1".to_string(),
+                tool_name: "search".to_string(),
+                output: "result data".to_string(),
+                is_error: false,
+            }],
+            usage: None,
+        }];
+        let result = AxAgentApiClient::convert_messages(&messages, &[]);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].role, "tool");
+        assert_eq!(result[0].tool_call_id, Some("call_1".to_string()));
+    }
+
+    #[test]
+    fn test_convert_messages_with_image_urls() {
+        let messages = vec![ConversationMessage {
+            role: MessageRole::User,
+            blocks: vec![ContentBlock::Text {
+                text: "Describe this image".to_string(),
+            }],
+            usage: None,
+        }];
+        let image_urls = vec!["data:image/png;base64,abc".to_string()];
+        let result = AxAgentApiClient::convert_messages(&messages, &image_urls);
+        assert_eq!(result.len(), 1);
+        match &result[0].content {
+            ChatContent::Multipart(parts) => {
+                assert_eq!(parts.len(), 2);
+                assert_eq!(parts[0].r#type, "text");
+                assert_eq!(parts[1].r#type, "image_url");
+            },
+            _ => panic!("Expected multipart content"),
+        }
+    }
+
+    #[test]
+    fn test_convert_messages_image_urls_only_on_last_user() {
+        let messages = vec![
+            ConversationMessage {
+                role: MessageRole::User,
+                blocks: vec![ContentBlock::Text { text: "First".to_string() }],
+                usage: None,
+            },
+            ConversationMessage {
+                role: MessageRole::User,
+                blocks: vec![ContentBlock::Text { text: "Second".to_string() }],
+                usage: None,
+            },
+        ];
+        let image_urls = vec!["data:image/png;base64,abc".to_string()];
+        let result = AxAgentApiClient::convert_messages(&messages, &image_urls);
+        match &result[0].content {
+            ChatContent::Text(t) => assert_eq!(t, "First"),
+            _ => panic!("Expected text content for first message"),
+        }
+        match &result[1].content {
+            ChatContent::Multipart(_) => {},
+            _ => panic!("Expected multipart content for last user message"),
+        }
+    }
+
+    #[test]
+    fn test_convert_tool_call() {
+        let tool_call = ToolCall {
+            id: "call_1".to_string(),
+            call_type: "function".to_string(),
+            function: ToolCallFunction {
+                name: "search".to_string(),
+                arguments: "{\"q\": \"test\"}".to_string(),
+            },
+        };
+        let block = AxAgentApiClient::convert_tool_call(&tool_call);
+        match block {
+            ContentBlock::ToolUse { id, name, input } => {
+                assert_eq!(id, "call_1");
+                assert_eq!(name, "search");
+                assert_eq!(input, "{\"q\": \"test\"}");
+            },
+            _ => panic!("Expected ToolUse block"),
+        }
+    }
+
+    #[test]
+    fn test_convert_usage() {
+        let usage = AxAgentTokenUsage {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+        };
+        let runtime_usage = AxAgentApiClient::convert_usage(&usage);
+        assert_eq!(runtime_usage.input_tokens, 100);
+        assert_eq!(runtime_usage.output_tokens, 50);
+    }
+
+    #[test]
+    fn test_convert_messages_assistant_tool_calls_only() {
+        let messages = vec![ConversationMessage {
+            role: MessageRole::Assistant,
+            blocks: vec![ContentBlock::ToolUse {
+                id: "call_1".to_string(),
+                name: "tool".to_string(),
+                input: "{}".to_string(),
+            }],
+            usage: None,
+        }];
+        let result = AxAgentApiClient::convert_messages(&messages, &[]);
+        assert_eq!(result.len(), 1);
+        match &result[0].content {
+            ChatContent::Text(t) => assert!(t.is_empty()),
+            _ => panic!("Expected empty text content"),
+        }
+        assert!(result[0].tool_calls.is_some());
+    }
+}

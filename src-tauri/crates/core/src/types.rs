@@ -230,6 +230,7 @@ pub struct Conversation {
     pub enabled_mcp_server_ids: Vec<String>,
     pub enabled_knowledge_base_ids: Vec<String>,
     pub enabled_memory_namespace_ids: Vec<String>,
+    pub enabled_wiki_ids: Vec<String>,
     pub message_count: u32,
     pub is_pinned: bool,
     pub is_archived: bool,
@@ -241,6 +242,7 @@ pub struct Conversation {
     pub scenario: Option<String>,
     pub enabled_skill_ids: Vec<String>,
     pub expert_role_id: Option<String>,
+    pub agent_profile_id: Option<String>,
     pub workflow_template_id: Option<String>,
     pub session_type: String,
     pub workflow_status: Option<String>,
@@ -391,6 +393,7 @@ pub struct UpdateConversationInput {
     pub enabled_mcp_server_ids: Option<Vec<String>>,
     pub enabled_knowledge_base_ids: Option<Vec<String>>,
     pub enabled_memory_namespace_ids: Option<Vec<String>>,
+    pub enabled_wiki_ids: Option<Vec<String>>,
     pub context_compression: Option<bool>,
     #[serde(default, deserialize_with = "deserialize_double_option")]
     pub category_id: Option<Option<String>>,
@@ -402,6 +405,8 @@ pub struct UpdateConversationInput {
     pub enabled_skill_ids: Option<Vec<String>>,
     #[serde(default, deserialize_with = "deserialize_double_option")]
     pub expert_role_id: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    pub agent_profile_id: Option<Option<String>>,
     #[serde(default, deserialize_with = "deserialize_double_option")]
     pub workflow_template_id: Option<Option<String>>,
     pub session_type: Option<String>,

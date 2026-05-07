@@ -69,3 +69,187 @@ impl VerificationAgent {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_verification_context_creation() {
+        let ctx = VerificationContext {
+            plan_summary: "implement feature X".to_string(),
+            changed_files: vec!["src/main.rs".to_string(), "src/lib.rs".to_string()],
+            test_command: Some("cargo test".to_string()),
+            session_id: "session-1".to_string(),
+        };
+        assert_eq!(ctx.plan_summary, "implement feature X");
+        assert_eq!(ctx.changed_files.len(), 2);
+        assert!(ctx.test_command.is_some());
+        assert_eq!(ctx.session_id, "session-1");
+    }
+
+    #[test]
+    fn test_verification_context_no_test_command() {
+        let ctx = VerificationContext {
+            plan_summary: "refactor module".to_string(),
+            changed_files: vec!["src/utils.rs".to_string()],
+            test_command: None,
+            session_id: "session-2".to_string(),
+        };
+        assert!(ctx.test_command.is_none());
+    }
+
+    #[test]
+    fn test_verification_result_passed() {
+        let result = VerificationResult {
+            passed: true,
+            issues: Vec::new(),
+            suggestions: vec!["consider adding more tests".to_string()],
+            summary: "all checks passed".to_string(),
+        };
+        assert!(result.passed);
+        assert!(result.issues.is_empty());
+        assert_eq!(result.suggestions.len(), 1);
+        assert_eq!(result.summary, "all checks passed");
+    }
+
+    #[test]
+    fn test_verification_result_failed() {
+        let result = VerificationResult {
+            passed: false,
+            issues: vec!["missing error handling".to_string(), "unused import".to_string()],
+            suggestions: Vec::new(),
+            summary: "verification failed".to_string(),
+        };
+        assert!(!result.passed);
+        assert_eq!(result.issues.len(), 2);
+        assert!(result.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_verification_agent_allowed_tools() {
+        let tools = VerificationAgent::allowed_tools();
+        assert!(tools.contains(&"FileRead"));
+        assert!(tools.contains(&"Grep"));
+        assert!(tools.contains(&"Glob"));
+        assert!(tools.contains(&"Bash"));
+        assert!(tools.contains(&"TodoWrite"));
+    }
+
+    #[test]
+    fn test_verification_agent_disallowed_tools() {
+        let tools = VerificationAgent::disallowed_tools();
+        assert!(tools.contains(&"FileWrite"));
+        assert!(tools.contains(&"FileEdit"));
+    }
+
+    #[test]
+    fn test_verification_agent_allowed_tools_no_write() {
+        let allowed = VerificationAgent::allowed_tools();
+        let disallowed = VerificationAgent::disallowed_tools();
+        for tool in &disallowed {
+            assert!(!allowed.contains(tool));
+        }
+    }
+
+    #[test]
+    fn test_verification_agent_build_system_prompt() {
+        let ctx = VerificationContext {
+            plan_summary: "add login feature".to_string(),
+            changed_files: vec!["src/auth.rs".to_string(), "src/routes.rs".to_string()],
+            test_command: Some("cargo test auth".to_string()),
+            session_id: "session-3".to_string(),
+        };
+
+        let prompt = VerificationAgent::build_system_prompt(&ctx);
+        assert!(prompt.contains("add login feature"));
+        assert!(prompt.contains("src/auth.rs"));
+        assert!(prompt.contains("src/routes.rs"));
+        assert!(prompt.contains("验证步骤"));
+    }
+
+    #[test]
+    fn test_verification_agent_build_system_prompt_no_test_command() {
+        let ctx = VerificationContext {
+            plan_summary: "refactor code".to_string(),
+            changed_files: vec!["src/main.rs".to_string()],
+            test_command: None,
+            session_id: "session-4".to_string(),
+        };
+
+        let prompt = VerificationAgent::build_system_prompt(&ctx);
+        assert!(prompt.contains("refactor code"));
+        assert!(prompt.contains("src/main.rs"));
+    }
+
+    #[test]
+    fn test_verification_agent_quick_result_passed() {
+        let result = VerificationAgent::quick_result(true, "everything looks good");
+        assert!(result.passed);
+        assert_eq!(result.summary, "everything looks good");
+        assert!(result.issues.is_empty());
+        assert!(result.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_verification_agent_quick_result_failed() {
+        let result = VerificationAgent::quick_result(false, "critical issues found");
+        assert!(!result.passed);
+        assert_eq!(result.summary, "critical issues found");
+        assert!(result.issues.is_empty());
+        assert!(result.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_verification_context_empty_changed_files() {
+        let ctx = VerificationContext {
+            plan_summary: "no changes".to_string(),
+            changed_files: Vec::new(),
+            test_command: None,
+            session_id: "session-5".to_string(),
+        };
+        assert!(ctx.changed_files.is_empty());
+
+        let prompt = VerificationAgent::build_system_prompt(&ctx);
+        assert!(prompt.contains("no changes"));
+    }
+
+    #[test]
+    fn test_verification_context_multiple_changed_files() {
+        let ctx = VerificationContext {
+            plan_summary: "multi-file refactor".to_string(),
+            changed_files: vec![
+                "src/a.rs".to_string(),
+                "src/b.rs".to_string(),
+                "src/c.rs".to_string(),
+                "src/d.rs".to_string(),
+            ],
+            test_command: Some("cargo test".to_string()),
+            session_id: "session-6".to_string(),
+        };
+
+        let prompt = VerificationAgent::build_system_prompt(&ctx);
+        assert!(prompt.contains("src/a.rs"));
+        assert!(prompt.contains("src/d.rs"));
+    }
+
+    #[test]
+    fn test_verification_result_with_issues_and_suggestions() {
+        let result = VerificationResult {
+            passed: false,
+            issues: vec![
+                "missing null check".to_string(),
+                "potential overflow".to_string(),
+            ],
+            suggestions: vec![
+                "add null check before dereference".to_string(),
+                "use checked arithmetic".to_string(),
+                "add unit tests for edge cases".to_string(),
+            ],
+            summary: "2 issues found".to_string(),
+        };
+        assert!(!result.passed);
+        assert_eq!(result.issues.len(), 2);
+        assert_eq!(result.suggestions.len(), 3);
+    }
+}

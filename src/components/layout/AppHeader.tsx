@@ -1,6 +1,8 @@
-import { theme } from "antd";
+import { theme, Tooltip } from "antd";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
+import { HelpCircle } from "lucide-react";
+import { useHelpStore } from "@/stores/feature/helpStore";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": "nav.chat",
@@ -28,6 +30,7 @@ export function AppHeader() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const location = useLocation();
+  const toggleHelp = useHelpStore((s) => s.toggle);
 
   const labelKey = resolvePageLabel(location.pathname);
   if (!labelKey) { return null; }
@@ -39,6 +42,7 @@ export function AppHeader() {
         minHeight: 40,
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         padding: "0 16px",
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
         backgroundColor: "transparent",
@@ -53,6 +57,24 @@ export function AppHeader() {
       >
         {t(labelKey)}
       </span>
+      <Tooltip title={t("help.title", "帮助中心")}>
+        <button
+          type="button"
+          onClick={toggleHelp}
+          style={{
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            padding: 4,
+            borderRadius: 4,
+            display: "inline-flex",
+            alignItems: "center",
+            color: token.colorTextQuaternary,
+          }}
+        >
+          <HelpCircle size={16} />
+        </button>
+      </Tooltip>
     </div>
   );
 }

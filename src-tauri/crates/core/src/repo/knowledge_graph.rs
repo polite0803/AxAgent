@@ -318,6 +318,45 @@ pub async fn create_knowledge_interface(
     Ok(model_to_interface(model))
 }
 
+pub async fn search_entities(
+    db: &DatabaseConnection,
+    kb_id: &str,
+    query: &str,
+    top_k: usize,
+) -> Result<Vec<KnowledgeEntity>> {
+    let all = list_knowledge_entities(db, kb_id).await?;
+    let query_lower = query.to_lowercase();
+    let keywords: Vec<&str> = query_lower.split_whitespace().collect();
+    if keywords.is_empty() {
+        let limited: Vec<_> = all.into_iter().take(top_k).collect();
+        return Ok(limited);
+    }
+    let mut scored: Vec<(i64, KnowledgeEntity)> = all
+        .into_iter()
+        .map(|e| {
+            let name_lower = e.name.to_lowercase();
+            let desc_lower = e.description.as_deref().unwrap_or("").to_lowercase();
+            let type_lower = e.entity_type.to_lowercase();
+            let mut score: i64 = 0;
+            for kw in &keywords {
+                if name_lower.contains(kw) {
+                    score += 10;
+                }
+                if desc_lower.contains(kw) {
+                    score += 5;
+                }
+                if type_lower.contains(kw) {
+                    score += 3;
+                }
+            }
+            (score, e)
+        })
+        .filter(|(s, _)| *s > 0)
+        .collect();
+    scored.sort_by(|a, b| b.0.cmp(&a.0));
+    Ok(scored.into_iter().take(top_k).map(|(_, e)| e).collect())
+}
+
 pub async fn list_knowledge_interfaces(
     db: &DatabaseConnection,
     base_id: &str,

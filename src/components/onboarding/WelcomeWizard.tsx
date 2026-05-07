@@ -16,12 +16,14 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import "./WelcomeWizard.css";
 
 const { Title, Text, Paragraph } = Typography;
 
 export function WelcomeWizard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { token } = theme.useToken();
 
   const wizardCompleted = useOnboardingStore((s) => s.wizardCompleted);
@@ -261,6 +263,20 @@ export function WelcomeWizard() {
             >
               {presetMsg}
             </Text>
+          )}
+          {selectedPreset === "openai" && detectedKeys.length === 0 && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+              <Button
+                size="small"
+                type="link"
+                onClick={() => {
+                  completeWizard();
+                  navigate("/settings");
+                }}
+              >
+                {t("onboarding.goToSettings", "前往设置添加 API Key")}
+              </Button>
+            </div>
           )}
         </div>
       )}

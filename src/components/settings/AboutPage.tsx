@@ -1,11 +1,12 @@
 import logoUrl from "@/assets/image/logo.png";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri } from "@/lib/invoke";
-import { useSettingsStore } from "@/stores";
+import { useOnboardingStore, useSettingsStore } from "@/stores";
 import { Button, Divider, InputNumber, Typography } from "antd";
-import { GitFork, Globe, RefreshCw, Terminal } from "lucide-react";
+import { GitFork, Globe, GraduationCap, RefreshCw, Terminal } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
@@ -17,6 +18,8 @@ export function AboutPage() {
   const { checkForUpdate } = useUpdateChecker();
   const updateCheckInterval = useSettingsStore((s) => s.settings.update_check_interval ?? 60);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
+  const navigate = useNavigate();
+  const startTutorial = useOnboardingStore((s) => s.startTutorial);
 
   useEffect(() => {
     if (isTauri()) {
@@ -44,6 +47,15 @@ export function AboutPage() {
       } catch { /* ignore */ }
     }
   }, []);
+
+  const handleReplayTutorial = useCallback(() => {
+    useSettingsStore.getState().saveSettings({
+      onboarding_tutorial_completed: false,
+      onboarding_completed: true,
+    });
+    startTutorial();
+    navigate("/");
+  }, [startTutorial, navigate]);
 
   return (
     <div className="p-6 pb-12">
@@ -140,6 +152,17 @@ export function AboutPage() {
             </div>
           </>
         )}
+      </SettingsGroup>
+      <SettingsGroup title={t("help.onboardingReplay", "Replay Tutorial")}>
+        <div style={rowStyle} className="flex items-center justify-between">
+          <span>{t("help.onboardingReplayDesc", "Restart the interactive tutorial to re-learn the interface")}</span>
+          <Button
+            icon={<GraduationCap size={16} />}
+            onClick={handleReplayTutorial}
+          >
+            {t("help.onboardingReplay", "Replay Tutorial")}
+          </Button>
+        </div>
       </SettingsGroup>
     </div>
   );

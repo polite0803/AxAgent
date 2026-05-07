@@ -11,7 +11,7 @@ use axagent_core::utils::gen_id;
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum IngestSourceType {
     WebArticle,
     Paper,
@@ -911,5 +911,349 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         };
 
         am.insert(self.db.as_ref()).await.map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn create_test_pipeline() -> IngestPipeline {
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
+        IngestPipeline::new(db)
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_pdf() {
+        let result = IngestSourceType::from_mime("application/pdf");
+        assert_eq!(result, Some(IngestSourceType::Paper));
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_markdown() {
+        let result = IngestSourceType::from_mime("text/markdown");
+        assert_eq!(result, Some(IngestSourceType::RawMarkdown));
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_plain() {
+        let result = IngestSourceType::from_mime("text/plain");
+        assert_eq!(result, Some(IngestSourceType::RawMarkdown));
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_docx() {
+        let result = IngestSourceType::from_mime(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        );
+        assert_eq!(result, Some(IngestSourceType::Docx));
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_xlsx() {
+        let result = IngestSourceType::from_mime(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        );
+        assert_eq!(result, Some(IngestSourceType::Xlsx));
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_pptx() {
+        let result = IngestSourceType::from_mime(
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        );
+        assert_eq!(result, Some(IngestSourceType::Pptx));
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_unknown() {
+        let result = IngestSourceType::from_mime("application/octet-stream");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_ingest_source_type_from_mime_empty() {
+        let result = IngestSourceType::from_mime("");
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_compute_sha256_empty() {
+        let pipeline = create_test_pipeline().await;
+        let hash = pipeline.compute_sha256("");
+        assert!(!hash.is_empty());
+        assert_eq!(hash.len(), 64);
+    }
+
+    #[tokio::test]
+    async fn test_compute_sha256_hello() {
+        let pipeline = create_test_pipeline().await;
+        let hash = pipeline.compute_sha256("hello");
+        assert_eq!(
+            hash,
+            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_compute_sha256_deterministic() {
+        let pipeline = create_test_pipeline().await;
+        let hash1 = pipeline.compute_sha256("test content");
+        let hash2 = pipeline.compute_sha256("test content");
+        assert_eq!(hash1, hash2);
+    }
+
+    #[tokio::test]
+    async fn test_compute_sha256_different_inputs() {
+        let pipeline = create_test_pipeline().await;
+        let hash1 = pipeline.compute_sha256("content A");
+        let hash2 = pipeline.compute_sha256("content B");
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_parse_analysis_json_valid_fenced() {
+        let json = r#"```json
+{
+    "entities": [],
+    "concepts": [],
+    "arguments": [],
+    "connections": [],
+    "contradictions": [],
+    "suggested_structure": [],
+    "review_items": [],
+    "search_queries": []
+}
+```"#;
+        let result = IngestPipeline::parse_analysis_json(json);
+        assert!(result.is_ok());
+        let analysis = result.unwrap();
+        assert!(analysis.entities.is_empty());
+        assert!(analysis.concepts.is_empty());
+    }
+
+    #[test]
+    fn test_parse_analysis_json_valid_bare() {
+        let json = r#"{"entities":[],"concepts":[],"arguments":[],"connections":[],"contradictions":[],"suggested_structure":[],"review_items":[],"search_queries":[]}"#;
+        let result = IngestPipeline::parse_analysis_json(json);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_analysis_json_invalid() {
+        let json = "not json at all";
+        let result = IngestPipeline::parse_analysis_json(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_analysis_json_with_entities() {
+        let json = r#"```json
+{
+    "entities": [{"name": "Rust", "entity_type": "language", "description": "A systems programming language"}],
+    "concepts": [],
+    "arguments": [],
+    "connections": [],
+    "contradictions": [],
+    "suggested_structure": [],
+    "review_items": [],
+    "search_queries": []
+}
+```"#;
+        let result = IngestPipeline::parse_analysis_json(json);
+        assert!(result.is_ok());
+        let analysis = result.unwrap();
+        assert_eq!(analysis.entities.len(), 1);
+        assert_eq!(analysis.entities[0].name, "Rust");
+    }
+
+    #[tokio::test]
+    async fn test_parse_pages_from_response_valid() {
+        let pipeline = create_test_pipeline().await;
+        let response = "```json\n{\"title\": \"Test Page\", \"content\": \"# Test\\nSome content\", \"page_type\": \"concept\"}\n```";
+        let result = pipeline.parse_pages_from_response(response, "src1");
+        assert!(result.is_ok());
+        let pages = result.unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].title, "Test Page");
+        assert_eq!(pages[0].page_type, "concept");
+    }
+
+    #[tokio::test]
+    async fn test_parse_pages_from_response_multiple() {
+        let pipeline = create_test_pipeline().await;
+        let response = "```json\n{\"title\": \"Page 1\", \"content\": \"Content 1\", \"page_type\": \"entity\"}\n```\n```json\n{\"title\": \"Page 2\", \"content\": \"Content 2\", \"page_type\": \"concept\"}\n```";
+        let result = pipeline.parse_pages_from_response(response, "src1");
+        assert!(result.is_ok());
+        let pages = result.unwrap();
+        assert_eq!(pages.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_parse_pages_from_response_empty_title_skipped() {
+        let pipeline = create_test_pipeline().await;
+        let response = "```json\n{\"title\": \"\", \"content\": \"Content\", \"page_type\": \"entity\"}\n```";
+        let result = pipeline.parse_pages_from_response(response, "src1");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_parse_pages_from_response_empty_content_skipped() {
+        let pipeline = create_test_pipeline().await;
+        let response = "```json\n{\"title\": \"Title\", \"content\": \"\", \"page_type\": \"entity\"}\n```";
+        let result = pipeline.parse_pages_from_response(response, "src1");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_parse_pages_from_response_no_json() {
+        let pipeline = create_test_pipeline().await;
+        let response = "No JSON here at all";
+        let result = pipeline.parse_pages_from_response(response, "src1");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_extract_metadata_title_from_heading() {
+        let pipeline = create_test_pipeline().await;
+        let metadata = pipeline.extract_metadata("# My Document\n\nSome body text").await.unwrap();
+        assert_eq!(metadata.title.as_deref(), Some("My Document"));
+    }
+
+    #[tokio::test]
+    async fn test_extract_metadata_title_from_prefix() {
+        let pipeline = create_test_pipeline().await;
+        let metadata = pipeline.extract_metadata("Title: My Title\n\nBody text").await.unwrap();
+        assert_eq!(metadata.title.as_deref(), Some("My Title"));
+    }
+
+    #[tokio::test]
+    async fn test_extract_metadata_author() {
+        let pipeline = create_test_pipeline().await;
+        let metadata = pipeline.extract_metadata("# Title\nAuthor: John Doe\n\nBody").await.unwrap();
+        assert_eq!(metadata.author.as_deref(), Some("John Doe"));
+    }
+
+    #[tokio::test]
+    async fn test_extract_metadata_author_lowercase() {
+        let pipeline = create_test_pipeline().await;
+        let metadata = pipeline.extract_metadata("# Title\nauthor: Jane Smith\n\nBody").await.unwrap();
+        assert_eq!(metadata.author.as_deref(), Some("Jane Smith"));
+    }
+
+    #[tokio::test]
+    async fn test_extract_metadata_date() {
+        let pipeline = create_test_pipeline().await;
+        let metadata = pipeline.extract_metadata("# Title\nDate: 2024-01-15\n\nBody").await.unwrap();
+        assert_eq!(metadata.created_date.as_deref(), Some("2024-01-15"));
+    }
+
+    #[tokio::test]
+    async fn test_extract_metadata_empty_content() {
+        let pipeline = create_test_pipeline().await;
+        let metadata = pipeline.extract_metadata("").await.unwrap();
+        assert!(metadata.title.is_none());
+        assert!(metadata.author.is_none());
+        assert!(metadata.created_date.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_extract_metadata_no_title() {
+        let pipeline = create_test_pipeline().await;
+        let metadata = pipeline.extract_metadata("Just some text\nwithout any heading").await.unwrap();
+        assert!(metadata.title.is_none());
+    }
+
+    #[test]
+    fn test_cache_path() {
+        let path = IngestPipeline::cache_path("wiki123");
+        assert!(path.contains("wiki123"));
+        assert!(path.contains("ingest_cache.json"));
+    }
+
+    #[test]
+    fn test_ingest_source_type_debug() {
+        let st = IngestSourceType::Pdf;
+        let debug_str = format!("{:?}", st);
+        assert_eq!(debug_str, "Pdf");
+    }
+
+    #[test]
+    fn test_ingest_source_type_serialize_deserialize() {
+        let st = IngestSourceType::WebArticle;
+        let json = serde_json::to_string(&st).unwrap();
+        let deserialized: IngestSourceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(st, deserialized);
+    }
+
+    #[test]
+    fn test_source_metadata_serialize_deserialize() {
+        let metadata = SourceMetadata {
+            title: Some("Test".to_string()),
+            author: Some("Author".to_string()),
+            created_date: Some("2024-01-01".to_string()),
+            page_count: Some(42),
+        };
+        let json = serde_json::to_string(&metadata).unwrap();
+        let deserialized: SourceMetadata = serde_json::from_str(&json).unwrap();
+        assert_eq!(metadata.title, deserialized.title);
+        assert_eq!(metadata.author, deserialized.author);
+        assert_eq!(metadata.page_count, deserialized.page_count);
+    }
+
+    #[test]
+    fn test_entity_mention_serialize_deserialize() {
+        let entity = EntityMention {
+            name: "Rust".to_string(),
+            entity_type: "language".to_string(),
+            description: "Systems programming language".to_string(),
+        };
+        let json = serde_json::to_string(&entity).unwrap();
+        let deserialized: EntityMention = serde_json::from_str(&json).unwrap();
+        assert_eq!(entity.name, deserialized.name);
+        assert_eq!(entity.entity_type, deserialized.entity_type);
+    }
+
+    #[test]
+    fn test_concept_mention_serialize_deserialize() {
+        let concept = ConceptMention {
+            name: "Ownership".to_string(),
+            description: "Memory management model".to_string(),
+            related_concepts: vec!["Borrowing".to_string(), "Lifetime".to_string()],
+        };
+        let json = serde_json::to_string(&concept).unwrap();
+        let deserialized: ConceptMention = serde_json::from_str(&json).unwrap();
+        assert_eq!(concept.related_concepts.len(), 2);
+    }
+
+    #[test]
+    fn test_generated_page_serialize_deserialize() {
+        let page = GeneratedPage {
+            title: "Test Page".to_string(),
+            content: "# Test\nContent".to_string(),
+            page_type: "concept".to_string(),
+        };
+        let json = serde_json::to_string(&page).unwrap();
+        let deserialized: GeneratedPage = serde_json::from_str(&json).unwrap();
+        assert_eq!(page.title, deserialized.title);
+        assert_eq!(page.page_type, deserialized.page_type);
+    }
+
+    #[test]
+    fn test_ingest_result_serialize_deserialize() {
+        let result = IngestResult {
+            source_id: "src123".to_string(),
+            raw_path: "/path/to/raw".to_string(),
+            title: "Test".to_string(),
+            pages_generated: 3,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let deserialized: IngestResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(result.source_id, deserialized.source_id);
+        assert_eq!(result.pages_generated, deserialized.pages_generated);
     }
 }

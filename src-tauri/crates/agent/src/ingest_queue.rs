@@ -464,3 +464,410 @@ pub struct FolderImportPreviewItem {
     pub file_type: crate::ingest_pipeline::IngestSourceType,
     pub estimated_size: u64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ingest_pipeline::IngestSourceType;
+
+    async fn create_test_queue() -> IngestQueue {
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
+        let pipeline = Arc::new(IngestPipeline::new(db));
+        let temp_dir = std::env::temp_dir().join(format!("ingest_queue_test_{}", uuid::Uuid::new_v4()));
+        IngestQueue::new(pipeline, temp_dir.to_string_lossy().to_string())
+    }
+
+    fn make_source(path: &str) -> IngestSource {
+        IngestSource {
+            source_type: IngestSourceType::RawMarkdown,
+            path: path.to_string(),
+            url: None,
+            title: None,
+            folder_context: None,
+        }
+    }
+
+    #[test]
+    fn test_ingest_task_status_equality() {
+        assert_eq!(IngestTaskStatus::Pending, IngestTaskStatus::Pending);
+        assert_ne!(IngestTaskStatus::Pending, IngestTaskStatus::Completed);
+        assert_ne!(IngestTaskStatus::Failed, IngestTaskStatus::Cancelled);
+    }
+
+    #[tokio::test]
+    async fn test_enqueue_single_task() {
+        let queue = create_test_queue().await;
+        let id = queue.enqueue("wiki1", make_source("/test.md")).await;
+        assert!(!id.is_empty());
+
+        let task = queue.get_task(&id).await.unwrap();
+        assert_eq!(task.wiki_id, "wiki1");
+        assert_eq!(task.status, IngestTaskStatus::Pending);
+        assert_eq!(task.retry_count, 0);
+        assert_eq!(task.max_retries, 3);
+        assert!(task.error_message.is_none());
+        assert!(task.result.is_none());
+        assert!(task.started_at.is_none());
+        assert!(task.completed_at.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_enqueue_batch() {
+        let queue = create_test_queue().await;
+        let sources = vec![
+            make_source("/a.md"),
+            make_source("/b.md"),
+            make_source("/c.md"),
+        ];
+        let ids = queue.enqueue_batch("wiki1", sources).await;
+        assert_eq!(ids.len(), 3);
+
+        for id in &ids {
+            let task = queue.get_task(id).await.unwrap();
+            assert_eq!(task.status, IngestTaskStatus::Pending);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_task_not_found() {
+        let queue = create_test_queue().await;
+        let task = queue.get_task("nonexistent").await;
+        assert!(task.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_list_tasks_all() {
+        let queue = create_test_queue().await;
+        queue.enqueue("wiki1", make_source("/a.md")).await;
+        queue.enqueue("wiki1", make_source("/b.md")).await;
+
+        let tasks = queue.list_tasks(None).await;
+        assert_eq!(tasks.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_list_tasks_by_wiki_id() {
+        let queue = create_test_queue().await;
+        queue.enqueue("wiki1", make_source("/a.md")).await;
+        queue.enqueue("wiki2", make_source("/b.md")).await;
+        queue.enqueue("wiki1", make_source("/c.md")).await;
+
+        let wiki1_tasks = queue.list_tasks(Some("wiki1")).await;
+        assert_eq!(wiki1_tasks.len(), 2);
+
+        let wiki2_tasks = queue.list_tasks(Some("wiki2")).await;
+        assert_eq!(wiki2_tasks.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_pending_count() {
+        let queue = create_test_queue().await;
+        assert_eq!(queue.pending_count().await, 0);
+
+        queue.enqueue("wiki1", make_source("/a.md")).await;
+        queue.enqueue("wiki1", make_source("/b.md")).await;
+        assert_eq!(queue.pending_count().await, 2);
+    }
+
+    #[tokio::test]
+    async fn test_processing_count() {
+        let queue = create_test_queue().await;
+        assert_eq!(queue.processing_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_cancel_task_pending() {
+        let queue = create_test_queue().await;
+        let id = queue.enqueue("wiki1", make_source("/test.md")).await;
+
+        {
+            let mut tasks = queue.tasks.lock().await;
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id) {
+                task.status = IngestTaskStatus::Cancelled;
+                task.completed_at = Some(chrono::Utc::now().timestamp());
+            }
+        }
+
+        let task = queue.get_task(&id).await.unwrap();
+        assert_eq!(task.status, IngestTaskStatus::Cancelled);
+        assert!(task.completed_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_task_nonexistent() {
+        let queue = create_test_queue().await;
+        let cancelled = queue.cancel_task("nonexistent").await;
+        assert!(!cancelled);
+    }
+
+    #[tokio::test]
+    async fn test_retry_task_failed() {
+        let queue = create_test_queue().await;
+        let id = queue.enqueue("wiki1", make_source("/test.md")).await;
+
+        {
+            let mut tasks = queue.tasks.lock().await;
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id) {
+                task.status = IngestTaskStatus::Failed;
+                task.retry_count = 3;
+                task.error_message = Some("test error".to_string());
+            }
+        }
+
+        {
+            let mut tasks = queue.tasks.lock().await;
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id) {
+                if task.status == IngestTaskStatus::Failed {
+                    task.status = IngestTaskStatus::Pending;
+                    task.retry_count = 0;
+                    task.error_message = None;
+                }
+            }
+        }
+
+        let task = queue.get_task(&id).await.unwrap();
+        assert_eq!(task.status, IngestTaskStatus::Pending);
+        assert_eq!(task.retry_count, 0);
+        assert!(task.error_message.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_retry_task_not_failed() {
+        let queue = create_test_queue().await;
+        let id = queue.enqueue("wiki1", make_source("/test.md")).await;
+
+        let retried = queue.retry_task(&id).await;
+        assert!(!retried);
+    }
+
+    #[tokio::test]
+    async fn test_retry_task_nonexistent() {
+        let queue = create_test_queue().await;
+        let retried = queue.retry_task("nonexistent").await;
+        assert!(!retried);
+    }
+
+    #[tokio::test]
+    async fn test_clear_completed() {
+        let queue = create_test_queue().await;
+        let id1 = queue.enqueue("wiki1", make_source("/a.md")).await;
+        let id2 = queue.enqueue("wiki1", make_source("/b.md")).await;
+        let id3 = queue.enqueue("wiki1", make_source("/c.md")).await;
+
+        {
+            let mut tasks = queue.tasks.lock().await;
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id1) {
+                task.status = IngestTaskStatus::Completed;
+                task.completed_at = Some(chrono::Utc::now().timestamp());
+            }
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id2) {
+                task.status = IngestTaskStatus::Cancelled;
+                task.completed_at = Some(chrono::Utc::now().timestamp());
+            }
+        }
+
+        {
+            let mut tasks = queue.tasks.lock().await;
+            tasks.retain(|t| {
+                t.status != IngestTaskStatus::Completed && t.status != IngestTaskStatus::Cancelled
+            });
+        }
+
+        let tasks = queue.list_tasks(None).await;
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, id3);
+    }
+
+    #[tokio::test]
+    async fn test_clear_completed_none() {
+        let queue = create_test_queue().await;
+        queue.enqueue("wiki1", make_source("/a.md")).await;
+
+        let tasks_before = queue.list_tasks(None).await.len();
+        assert_eq!(tasks_before, 1);
+    }
+
+    #[tokio::test]
+    async fn test_snapshot_path() {
+        let queue = create_test_queue().await;
+        let path = queue.snapshot_path();
+        assert!(path.ends_with("queue_snapshot.json"));
+    }
+
+    #[test]
+    fn test_infer_type_pdf() {
+        let path = std::path::Path::new("document.pdf");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::Pdf);
+    }
+
+    #[test]
+    fn test_infer_type_docx() {
+        let path = std::path::Path::new("document.docx");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::Docx);
+    }
+
+    #[test]
+    fn test_infer_type_doc() {
+        let path = std::path::Path::new("document.doc");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::Docx);
+    }
+
+    #[test]
+    fn test_infer_type_xlsx() {
+        let path = std::path::Path::new("spreadsheet.xlsx");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::Xlsx);
+    }
+
+    #[test]
+    fn test_infer_type_pptx() {
+        let path = std::path::Path::new("presentation.pptx");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::Pptx);
+    }
+
+    #[test]
+    fn test_infer_type_markdown() {
+        let path = std::path::Path::new("notes.md");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::RawMarkdown);
+    }
+
+    #[test]
+    fn test_infer_type_markdown_extension() {
+        let path = std::path::Path::new("notes.markdown");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::RawMarkdown);
+    }
+
+    #[test]
+    fn test_infer_type_html() {
+        let path = std::path::Path::new("page.html");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::WebArticle);
+    }
+
+    #[test]
+    fn test_infer_type_htm() {
+        let path = std::path::Path::new("page.htm");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::WebArticle);
+    }
+
+    #[test]
+    fn test_infer_type_unknown() {
+        let path = std::path::Path::new("file.xyz");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::RawMarkdown);
+    }
+
+    #[test]
+    fn test_infer_type_no_extension() {
+        let path = std::path::Path::new("Makefile");
+        assert_eq!(IngestQueue::infer_type(path), IngestSourceType::RawMarkdown);
+    }
+
+    #[test]
+    fn test_get_relative_path() {
+        let base = std::path::Path::new("/home/user/docs");
+        let full = std::path::Path::new("/home/user/docs/sub/file.md");
+        let relative = IngestQueue::get_relative_path(base, full);
+        assert_eq!(relative, std::path::PathBuf::from("sub/file.md"));
+    }
+
+    #[test]
+    fn test_get_relative_path_same() {
+        let base = std::path::Path::new("/home/user/docs");
+        let full = std::path::Path::new("/home/user/docs/file.md");
+        let relative = IngestQueue::get_relative_path(base, full);
+        assert_eq!(relative, std::path::PathBuf::from("file.md"));
+    }
+
+    #[test]
+    fn test_get_relative_path_no_prefix() {
+        let base = std::path::Path::new("/other/path");
+        let full = std::path::Path::new("/home/user/docs/file.md");
+        let relative = IngestQueue::get_relative_path(base, full);
+        assert_eq!(relative, std::path::PathBuf::from("/home/user/docs/file.md"));
+    }
+
+    #[test]
+    fn test_queued_ingest_task_serialize_deserialize() {
+        let task = QueuedIngestTask {
+            id: "task123".to_string(),
+            wiki_id: "wiki1".to_string(),
+            source: make_source("/test.md"),
+            status: IngestTaskStatus::Pending,
+            retry_count: 0,
+            max_retries: 3,
+            error_message: None,
+            result: None,
+            created_at: 1000,
+            started_at: None,
+            completed_at: None,
+        };
+        let json = serde_json::to_string(&task).unwrap();
+        let deserialized: QueuedIngestTask = serde_json::from_str(&json).unwrap();
+        assert_eq!(task.id, deserialized.id);
+        assert_eq!(task.wiki_id, deserialized.wiki_id);
+        assert_eq!(task.status, deserialized.status);
+    }
+
+    #[test]
+    fn test_ingest_task_status_serialize_deserialize() {
+        for status in [
+            IngestTaskStatus::Pending,
+            IngestTaskStatus::Processing,
+            IngestTaskStatus::Completed,
+            IngestTaskStatus::Failed,
+            IngestTaskStatus::Cancelled,
+        ] {
+            let json = serde_json::to_string(&status).unwrap();
+            let deserialized: IngestTaskStatus = serde_json::from_str(&json).unwrap();
+            assert_eq!(status, deserialized);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_load_from_disk_no_file() {
+        let queue = create_test_queue().await;
+        let count = queue.load_from_disk().await.unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_import_folder_nonexistent() {
+        let queue = create_test_queue().await;
+        let result = queue.import_folder("wiki1", "/nonexistent/path/12345").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_folder_import_preview_nonexistent() {
+        let queue = create_test_queue().await;
+        let result = queue.get_folder_import_preview("/nonexistent/path/12345").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_process_next_no_pending() {
+        let queue = create_test_queue().await;
+        let result = queue.process_next().await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_task_cannot_cancel_completed() {
+        let queue = create_test_queue().await;
+        let id = queue.enqueue("wiki1", make_source("/test.md")).await;
+
+        {
+            let mut tasks = queue.tasks.lock().await;
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id) {
+                task.status = IngestTaskStatus::Completed;
+                task.completed_at = Some(chrono::Utc::now().timestamp());
+            }
+        }
+
+        let task = queue.get_task(&id).await.unwrap();
+        assert_eq!(task.status, IngestTaskStatus::Completed);
+        assert!(task.completed_at.is_some());
+    }
+}

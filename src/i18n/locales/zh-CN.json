@@ -480,6 +480,11 @@
       "resultsCount": "检索到 {{count}} 条记忆",
       "searching": "正在检索记忆..."
     },
+    "wikiRetrieval": {
+      "searching": "正在搜索 Wiki 知识库…",
+      "error": "Wiki 知识库检索失败",
+      "resultsCount": "Wiki 检索到 {{count}} 条结果"
+    },
     "messageArea": "消息区域",
     "modelRouting": "模型路由",
     "modelRoutingConfig": {
@@ -2317,7 +2322,11 @@
       "updateSuccess": "更新成功",
       "vectorNotConfigured": "未配置",
       "vectorOps": "向量操作",
-      "vectorReady": "就绪"
+      "vectorReady": "就绪",
+      "syncWorkingMemory": "同步工作记忆",
+      "syncWorkingMemoryConfirm": "确定将工作记忆中的所有条目同步到此命名空间？",
+      "syncWorkingMemorySuccess": "已同步 {{count}} 条工作记忆",
+      "syncWorkingMemoryError": "同步失败：{{error}}"
     },
     "messageChannels": "消息渠道",
     "platform": {
@@ -3436,6 +3445,16 @@
       "refresh": "刷新",
       "retryCount": "重试次数",
       "title": "同步",
+      "toKnowledgeBase": "同步到知识库",
+      "toKnowledgeBaseTitle": "同步笔记到知识库",
+      "selectKnowledgeBase": "选择知识库",
+      "success": "已同步到知识库",
+      "error": "同步失败",
+      "toWiki": "同步到 Wiki",
+      "toWikiTitle": "同步文档到 Wiki",
+      "selectWiki": "选择 Wiki",
+      "wikiSuccess": "已同步到 Wiki",
+      "wikiError": "同步到 Wiki 失败",
       "usage": "使用量"
     },
     "titlePlaceholder": "笔记标题...",
@@ -4148,7 +4167,8 @@
     "tutorialAgentDesc": "切换到 Agent 模式让 AI 自主分析、规划和执行复杂任务",
     "tutorialKnowledgeTitle": "知识库",
     "tutorialKnowledgeDesc": "上传文档构建知识库，AI 将基于你的文档提供上下文感知回答",
-    "targetNotFound": "目标元素未找到，请先进入聊天页面"
+    "targetNotFound": "目标元素未找到，请先进入聊天页面",
+    "goToSettings": "前往设置添加 API Key"
   },
   "help": {
     "title": "帮助中心",
@@ -4174,6 +4194,31 @@
     "providers": "模型供应商",
     "providersAddQ": "如何添加模型供应商？",
     "providersAddA": "在设置 → 模型供应商页面，点击添加按钮，选择供应商类型并填入配置。",
+    "chatSummary": "发送消息与 AI 模型对话",
+    "agentSummary": "让 AI 自主规划和执行任务",
+    "knowledgeSummary": "上传文档获取上下文感知回答",
+    "shortcutsSummary": "快捷键快速访问",
+    "providersSummary": "配置 AI 模型供应商",
+    "workflowSummary": "设计和运行自动化工作流",
+    "skillsSummary": "使用技能扩展功能",
+    "gatewaySummary": "管理 API 网关和路由",
+    "workflow": "工作流",
+    "workflowCreateQ": "如何创建工作流？",
+    "workflowCreateA": "进入 Workflow 页面，从侧边栏拖拽节点到画布上，连接节点构建工作流。",
+    "workflowRunQ": "如何运行工作流？",
+    "workflowRunA": "点击工作流编辑器右上角的运行按钮，也可以逐步调试。",
+    "skills": "技能",
+    "skillsInstallQ": "如何安装技能？",
+    "skillsInstallA": "进入 Skills 页面，浏览并安装市场中的技能，或创建自定义技能。",
+    "skillsUseQ": "如何使用技能？",
+    "skillsUseA": "已安装的技能以斜杠命令形式出现在聊天输入框中，输入 / 查看可用技能。",
+    "gateway": "网关",
+    "gatewaySetupQ": "如何设置网关？",
+    "gatewaySetupA": "进入 Gateway 页面，配置 API Key 和路由规则。网关允许统一访问多个供应商。",
+    "gatewayMonitorQ": "如何监控网关使用情况？",
+    "gatewayMonitorA": "Gateway 页面显示实时指标，包括请求次数、延迟和 Token 用量。",
+    "onboardingReplay": "重播教程",
+    "onboardingReplayDesc": "重新开始交互式教程，重新学习界面操作",
     "noResults": "未找到相关帮助"
   },
   "continuation": {

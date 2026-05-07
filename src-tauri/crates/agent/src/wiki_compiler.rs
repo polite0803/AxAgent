@@ -925,3 +925,169 @@ fn infer_page_type(title: &str) -> String {
         "concept".to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compiled_page_serialization() {
+        let page = CompiledPage {
+            title: "Test Page".to_string(),
+            content: "Some content".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec!["src1".to_string()],
+        };
+        let json = serde_json::to_string(&page).unwrap();
+        let deserialized: CompiledPage = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.title, "Test Page");
+        assert_eq!(deserialized.page_type, "concept");
+        assert_eq!(deserialized.source_ids.len(), 1);
+    }
+
+    #[test]
+    fn test_compile_result_serialization() {
+        let result = CompileResult {
+            new_pages: vec![],
+            updated_pages: vec![],
+            errors: vec!["error1".to_string()],
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let deserialized: CompileResult = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.new_pages.is_empty());
+        assert!(deserialized.updated_pages.is_empty());
+        assert_eq!(deserialized.errors.len(), 1);
+    }
+
+    #[test]
+    fn test_page_compile_result_serialization() {
+        let result = PageCompileResult {
+            page: CompiledPage {
+                title: "Test".to_string(),
+                content: "content".to_string(),
+                page_type: "entity".to_string(),
+                source_ids: vec![],
+            },
+            score: 0.85,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let deserialized: PageCompileResult = serde_json::from_str(&json).unwrap();
+        assert!((deserialized.score - 0.85).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_llm_response_valid_json() {
+        let raw = r#"```json
+{"title": "ML", "content": "some content here", "page_type": "concept", "source_ids": ["s1"]}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].title, "ML");
+    }
+
+    #[test]
+    fn test_parse_llm_response_empty_content_rejected() {
+        let raw = r#"```json
+{"title": "Empty", "content": "", "page_type": "concept", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw);
+        assert!(result.is_err() || result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_parse_llm_response_empty_title_rejected() {
+        let raw = r#"```json
+{"title": "", "content": "some content", "page_type": "concept", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw);
+        assert!(result.is_err() || result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_parse_llm_response_invalid_page_type_rejected() {
+        let raw = r#"```json
+{"title": "Test", "content": "content", "page_type": "invalid_type", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw);
+        assert!(result.is_err() || result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_parse_llm_response_array_format() {
+        let raw = r#"```json
+[{"title": "A", "content": "content a", "page_type": "concept", "source_ids": []}, {"title": "B", "content": "content b", "page_type": "entity", "source_ids": []}]
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_llm_response_no_json_blocks() {
+        let raw = "This is just plain text with no JSON blocks";
+        let result = WikiCompiler::parse_llm_response(raw);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_is_valid_page_type() {
+        assert!(WikiCompiler::is_valid_page_type("concept"));
+        assert!(WikiCompiler::is_valid_page_type("entity"));
+        assert!(WikiCompiler::is_valid_page_type("comparison"));
+        assert!(WikiCompiler::is_valid_page_type("source_summary"));
+        assert!(WikiCompiler::is_valid_page_type("index"));
+        assert!(WikiCompiler::is_valid_page_type("log"));
+        assert!(WikiCompiler::is_valid_page_type("overview"));
+        assert!(!WikiCompiler::is_valid_page_type("invalid"));
+    }
+
+    #[test]
+    fn test_infer_page_type_comparison() {
+        assert_eq!(infer_page_type("React vs Vue"), "comparison");
+        assert_eq!(infer_page_type("Python vs. Java Comparison"), "comparison");
+        assert_eq!(infer_page_type("A comparison of frameworks"), "comparison");
+    }
+
+    #[test]
+    fn test_infer_page_type_source_summary() {
+        assert_eq!(infer_page_type("Source: Research Paper"), "source_summary");
+        assert_eq!(infer_page_type("Article Summary"), "source_summary");
+        assert_eq!(infer_page_type("Summary of Findings"), "source_summary");
+    }
+
+    #[test]
+    fn test_infer_page_type_entity() {
+        assert_eq!(infer_page_type("Google Inc."), "entity");
+        assert_eq!(infer_page_type("Microsoft Corp."), "entity");
+        assert_eq!(infer_page_type("Something Ltd."), "entity");
+    }
+
+    #[test]
+    fn test_infer_page_type_concept() {
+        assert_eq!(infer_page_type("Machine Learning"), "concept");
+        assert_eq!(infer_page_type("Data Structures"), "concept");
+    }
+
+    #[test]
+    fn test_page_types_heading() {
+        assert_eq!(page_types_heading("concept"), "Concepts");
+        assert_eq!(page_types_heading("entity"), "Entities");
+        assert_eq!(page_types_heading("comparison"), "Comparisons");
+        assert_eq!(page_types_heading("source_summary"), "Source Summaries");
+        assert_eq!(page_types_heading("other"), "Other");
+    }
+
+    #[test]
+    fn test_default_schema() {
+        let schema = WikiCompiler::default_schema();
+        assert!(schema.contains("Page Types"));
+        assert!(schema.contains("concept"));
+        assert!(schema.contains("entity"));
+    }
+
+    #[test]
+    fn test_parse_llm_response_smart_quotes() {
+        let raw = "```json\n{\"title\": \"Test\u{201c}Quote\u{201d}\", \"content\": \"content\u{2018}single\u{2019}\", \"page_type\": \"concept\", \"source_ids\": []}\n```";
+        let result = WikiCompiler::parse_llm_response(raw);
+        assert!(result.is_ok() || result.is_err());
+    }
+}

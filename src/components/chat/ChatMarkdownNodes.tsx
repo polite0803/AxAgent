@@ -35,6 +35,7 @@ import { InfographicBlockHeaderActions } from "./InfographicBlockHeaderActions";
 import { KnowledgeRetrievalNode } from "./KnowledgeRetrievalNode";
 import { McpContainerNode } from "./McpContainerNode";
 import { MemoryRetrievalNode } from "./MemoryRetrievalNode";
+import { WikiRetrievalNode } from "./WikiRetrievalNode";
 import { MermaidBlockHeaderActions } from "./MermaidBlockHeaderActions";
 import { MermaidZoomControls } from "./MermaidZoomControls";
 import { StructuredThinking } from "./StructuredThinking";
@@ -966,6 +967,7 @@ setCustomComponents("chat", {
   "web-search": WebSearchNode,
   "knowledge-retrieval": KnowledgeRetrievalNode,
   "memory-retrieval": MemoryRetrievalNode,
+  "wiki-retrieval": WikiRetrievalNode,
   "tool-call": ToolCallNode,
   d2: ChatD2Node,
   vmr_container: McpContainerNode,

@@ -353,3 +353,184 @@ impl Default for BenchmarkSuite {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_difficulty_ordering() {
+        assert!(Difficulty::Easy < Difficulty::Medium);
+        assert!(Difficulty::Medium < Difficulty::Hard);
+        assert!(Difficulty::Hard < Difficulty::Expert);
+        assert!(Difficulty::Easy < Difficulty::Expert);
+        assert_eq!(Difficulty::Easy, Difficulty::Easy);
+    }
+
+    #[test]
+    fn test_difficulty_partial_cmp() {
+        assert_eq!(Difficulty::Easy.partial_cmp(&Difficulty::Easy), Some(std::cmp::Ordering::Equal));
+        assert_eq!(Difficulty::Medium.partial_cmp(&Difficulty::Hard), Some(std::cmp::Ordering::Less));
+    }
+
+    #[test]
+    fn test_benchmark_category_serde() {
+        let cat = BenchmarkCategory::Reasoning;
+        let json = serde_json::to_string(&cat).unwrap();
+        assert!(json.contains("reasoning"));
+        let de: BenchmarkCategory = serde_json::from_str(&json).unwrap();
+        assert_eq!(de, cat);
+    }
+
+    #[test]
+    fn test_difficulty_serde() {
+        let diff = Difficulty::Hard;
+        let json = serde_json::to_string(&diff).unwrap();
+        assert!(json.contains("hard"));
+        let de: Difficulty = serde_json::from_str(&json).unwrap();
+        assert_eq!(de, diff);
+    }
+
+    #[test]
+    fn test_evaluation_metric_serde_roundtrip() {
+        let metrics = vec![
+            EvaluationMetric::ExactMatch,
+            EvaluationMetric::Contains,
+            EvaluationMetric::LevenshteinSimilarity,
+            EvaluationMetric::SemanticSimilarity,
+            EvaluationMetric::ToolCorrectness,
+            EvaluationMetric::OutputFormat,
+            EvaluationMetric::Performance,
+        ];
+        for m in metrics {
+            let json = serde_json::to_string(&m).unwrap();
+            let de: EvaluationMetric = serde_json::from_str(&json).unwrap();
+            assert_eq!(de, m);
+        }
+    }
+
+    #[test]
+    fn test_benchmark_metadata_default() {
+        let meta = BenchmarkMetadata::default();
+        assert_eq!(meta.version, "1.0.0");
+        assert_eq!(meta.author, "system");
+        assert!(!meta.created_at.is_empty());
+        assert!(meta.tags.is_empty());
+    }
+
+    #[test]
+    fn test_benchmark_suite_new_has_defaults() {
+        let suite = BenchmarkSuite::new();
+        assert!(!suite.is_empty());
+        assert!(suite.len() >= 4);
+    }
+
+    #[test]
+    fn test_benchmark_suite_get_existing() {
+        let suite = BenchmarkSuite::new();
+        let benchmark = suite.get("reasoning");
+        assert!(benchmark.is_some());
+        assert_eq!(benchmark.unwrap().category, BenchmarkCategory::Reasoning);
+    }
+
+    #[test]
+    fn test_benchmark_suite_get_nonexistent() {
+        let suite = BenchmarkSuite::new();
+        assert!(suite.get("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_benchmark_suite_by_category() {
+        let suite = BenchmarkSuite::new();
+        let reasoning = suite.by_category(BenchmarkCategory::Reasoning);
+        assert_eq!(reasoning.len(), 1);
+        let tool_usage = suite.by_category(BenchmarkCategory::ToolUsage);
+        assert_eq!(tool_usage.len(), 1);
+    }
+
+    #[test]
+    fn test_benchmark_suite_add_and_remove() {
+        let mut suite = BenchmarkSuite::new();
+        let initial_len = suite.len();
+        let custom = Benchmark {
+            id: "custom".to_string(),
+            name: "Custom".to_string(),
+            description: "Custom benchmark".to_string(),
+            category: BenchmarkCategory::Conversation,
+            tasks: vec![],
+            metadata: BenchmarkMetadata::default(),
+        };
+        suite.add(custom);
+        assert_eq!(suite.len(), initial_len + 1);
+        assert!(suite.get("custom").is_some());
+        let removed = suite.remove("custom");
+        assert!(removed.is_some());
+        assert_eq!(suite.len(), initial_len);
+        assert!(suite.get("custom").is_none());
+    }
+
+    #[test]
+    fn test_benchmark_suite_all() {
+        let suite = BenchmarkSuite::new();
+        let all = suite.all();
+        assert_eq!(all.len(), suite.len());
+    }
+
+    #[test]
+    fn test_task_input_with_context() {
+        let input = TaskInput {
+            query: "test query".to_string(),
+            context: Some(serde_json::json!({"key": "value"})),
+            constraints: vec!["c1".to_string()],
+        };
+        assert_eq!(input.query, "test query");
+        assert!(input.context.is_some());
+        assert_eq!(input.constraints.len(), 1);
+    }
+
+    #[test]
+    fn test_task_output() {
+        let output = TaskOutput {
+            content: "result".to_string(),
+            format: "text".to_string(),
+        };
+        assert_eq!(output.content, "result");
+        assert_eq!(output.format, "text");
+    }
+
+    #[test]
+    fn test_benchmark_task_serialization() {
+        let task = BenchmarkTask {
+            id: "test_001".to_string(),
+            name: "Test Task".to_string(),
+            description: "A test task".to_string(),
+            input: TaskInput {
+                query: "query".to_string(),
+                context: None,
+                constraints: vec![],
+            },
+            expected_output: Some(TaskOutput {
+                content: "expected".to_string(),
+                format: "text".to_string(),
+            }),
+            evaluation_criteria: vec![EvaluationCriteria {
+                name: "correctness".to_string(),
+                metric: EvaluationMetric::ExactMatch,
+                weight: 1.0,
+                threshold: Some(1.0),
+            }],
+            difficulty: Difficulty::Easy,
+            tags: vec!["test".to_string()],
+        };
+        let json = serde_json::to_string(&task).unwrap();
+        let de: BenchmarkTask = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.id, "test_001");
+        assert_eq!(de.difficulty, Difficulty::Easy);
+    }
+
+    #[test]
+    fn test_benchmark_suite_default() {
+        let suite = BenchmarkSuite::default();
+        assert!(!suite.is_empty());
+    }
+}
