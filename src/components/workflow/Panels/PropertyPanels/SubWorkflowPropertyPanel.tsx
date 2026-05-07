@@ -1,6 +1,7 @@
 import { useWorkflowEditorStore } from "@/stores";
 import { Divider, Input, Select, Switch } from "antd";
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { SubWorkflowNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -11,6 +12,7 @@ interface SubWorkflowPropertyPanelProps {
 }
 
 export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation("chat");
   const subWorkflowNode = node as SubWorkflowNode;
   const config = subWorkflowNode.config || {
     sub_workflow_id: "",
@@ -30,7 +32,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
   const workflowOptions = useMemo(
     () =>
       templates
-        .filter((t) => t.id !== currentTemplate?.id) // Exclude the current template to avoid self-reference
+        .filter((t) => t.id !== currentTemplate?.id)
         .map((t) => ({ value: t.id, label: t.name })),
     [templates, currentTemplate?.id],
   );
@@ -83,7 +85,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
           onChange={(value) => handleConfigChange("sub_workflow_id", value)}
           size="small"
           style={{ width: "100%" }}
-          placeholder="选择子工作流..."
+          placeholder={t("workflow.props.selectSubWorkflow")}
           showSearch
           optionFilterProp="label"
           options={workflowOptions}
@@ -91,7 +93,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 11 }}>异步执行</label>
+        <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.asyncExecution")}</label>
         <Switch
           size="small"
           checked={config.is_async ?? false}
@@ -101,9 +103,9 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 11 }}>输入映射</label>
+          <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.inputMapping")}</label>
           <a style={{ fontSize: 10 }} onClick={handleAddInputMapping}>
-            + 添加
+            {t("workflow.props.addMapping")}
           </a>
         </div>
 
@@ -122,7 +124,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
                 onChange={(e) =>
                   handleUpdateInputMapping(key, e.target.value)}
                 size="small"
-                placeholder="变量"
+                placeholder={t("workflow.props.variable")}
                 style={{ flex: 1 }}
               />
               <a
@@ -130,21 +132,21 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
                 onClick={() =>
                   handleDeleteInputMapping(key)}
               >
-                删除
+                {t("workflow.props.delete")}
               </a>
             </div>
           ))}
 
           {Object.keys(config.input_mapping || {}).length === 0 && (
             <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 8 }}>
-              点击"添加"创建输入映射
+              {t("workflow.props.clickToAddMapping")}
             </div>
           )}
         </div>
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>输出变量</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}

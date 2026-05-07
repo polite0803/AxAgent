@@ -1,4 +1,5 @@
 use crate::AppState;
+use axagent_trajectory::TrajectoryQuery;
 use tauri::State;
 
 #[tauri::command]
@@ -13,16 +14,35 @@ pub async fn trajectory_stats(app_state: State<'_, AppState>) -> Result<serde_js
 #[tauri::command]
 pub async fn trajectory_list(
     app_state: State<'_, AppState>,
+    session_id: Option<String>,
     limit: Option<usize>,
 ) -> Result<Vec<serde_json::Value>, String> {
+    let query = TrajectoryQuery {
+        session_id,
+        limit: limit.or(Some(20)),
+        ..Default::default()
+    };
     let trajectories = app_state
         .trajectory_storage
-        .get_trajectories(limit.or(Some(20)))
+        .query_trajectories(&query)
         .map_err(|e| e.to_string())?;
     Ok(trajectories
         .iter()
         .filter_map(|t| serde_json::to_value(t).ok())
         .collect())
+}
+
+#[tauri::command]
+pub async fn get_trajectory_detail(
+    app_state: State<'_, AppState>,
+    trajectory_id: String,
+) -> Result<serde_json::Value, String> {
+    let trajectory = app_state
+        .trajectory_storage
+        .get_trajectory(&trajectory_id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Trajectory {} not found", trajectory_id))?;
+    serde_json::to_value(trajectory).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

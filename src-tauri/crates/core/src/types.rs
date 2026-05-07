@@ -1920,7 +1920,8 @@ pub struct SkillInfo {
     pub argument_hint: Option<String>,
     pub when_to_use: Option<String>,
     pub group: Option<String>,
-    pub frontend: Option<SkillFrontendExtension>,
+    #[serde(default)]
+    pub manifest: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1941,8 +1942,6 @@ pub struct SkillManifest {
     pub commit: Option<String>,
     pub installed_at: String,
     pub installed_via: Option<String>,
-    #[serde(default)]
-    pub frontend: Option<SkillFrontendExtension>,
 }
 
 // ── Skill Frontend Extension ──

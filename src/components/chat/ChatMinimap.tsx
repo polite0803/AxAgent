@@ -5,55 +5,14 @@ import type { Message } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { Avatar, theme, Typography } from "antd";
 import { ChevronDown, User } from "lucide-react";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useScrollToMessage } from "./ScrollToMessageContext";
 
-// ── Scroll context — provided by ChatView ──
+export { MinimapScrollProvider } from "./ScrollToMessageContext";
 
-type ScrollToFn = (messageId: string) => void;
-interface MinimapContextValue {
-  scrollTo: ScrollToFn;
-  scrollBoxRef: React.RefObject<HTMLElement | null>;
-  /** Set by programmatic scroll — suppresses detection updates */
-  scrollLockRef: React.MutableRefObject<number>;
-  /** Forced active ID set by click — overrides detection during lock */
-  forcedActiveRef: React.MutableRefObject<string | null>;
-}
-const MinimapScrollContext = createContext<MinimapContextValue | null>(null);
-
-export function MinimapScrollProvider({
-  children,
-  scrollTo,
-  scrollBoxRef,
-}: {
-  children: React.ReactNode;
-  scrollTo: ScrollToFn;
-  scrollBoxRef: React.RefObject<HTMLElement | null>;
-}) {
-  const scrollLockRef = useRef(0);
-  const forcedActiveRef = useRef<string | null>(null);
-  const wrappedScrollTo = useCallback<ScrollToFn>((messageId) => {
-    // Lock detection for 800ms after programmatic scroll
-    scrollLockRef.current = Date.now() + 800;
-    forcedActiveRef.current = messageId;
-    scrollTo(messageId);
-  }, [scrollTo]);
-  const value = useMemo(() => ({ scrollTo: wrappedScrollTo, scrollBoxRef, scrollLockRef, forcedActiveRef }), [
-    wrappedScrollTo,
-    scrollBoxRef,
-  ]);
-  return <MinimapScrollContext.Provider value={value}>{children}</MinimapScrollContext.Provider>;
-}
-
-function useMinimapContext(): MinimapContextValue {
-  const ctx = useContext(MinimapScrollContext);
-  return ctx
-    ?? {
-      scrollTo: () => {},
-      scrollBoxRef: { current: null },
-      scrollLockRef: { current: 0 },
-      forcedActiveRef: { current: null },
-    };
+function useMinimapContext() {
+  return useScrollToMessage();
 }
 
 // ── Types ──

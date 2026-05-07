@@ -56,7 +56,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   onCreateNew,
   onEditTemplate,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const { templates, isLoading, loadTemplates, deleteTemplate, duplicateTemplate } = useWorkflowEditorStore();
   const [searchText, setSearchText] = useState("");
   const [filterTag, setFilterTag] = useState<string | undefined>(undefined);
@@ -93,20 +93,20 @@ export const TemplateList: React.FC<TemplateListProps> = ({
     if (!templateToDelete) { return; }
     try {
       await deleteTemplate(templateToDelete.id);
-      message.success("模板已删除");
+      message.success(t("workflow.templateList.deleted"));
       setDeleteModalVisible(false);
       setTemplateToDelete(null);
     } catch (error) {
-      message.error("删除失败");
+      message.error(t("workflow.templateList.deleteFailed"));
     }
   };
 
   const handleDuplicate = async (template: WorkflowTemplateResponse) => {
     try {
       await duplicateTemplate(template.id);
-      message.success("模板已复制");
+      message.success(t("workflow.templateList.copied"));
     } catch (error) {
-      message.error("复制失败");
+      message.error(t("workflow.templateList.copyFailed"));
     }
   };
 
@@ -115,7 +115,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       {
         key: "view",
         icon: <Eye size={14} />,
-        label: "查看",
+        label: t("workflow.templateList.view"),
         onClick: () => onSelectTemplate(template),
       },
     ];
@@ -125,13 +125,13 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         {
           key: "edit",
           icon: <Edit2 size={14} />,
-          label: "编辑",
+          label: t("workflow.templateList.edit"),
           onClick: () => onEditTemplate?.(template),
         },
         {
           key: "versionHistory",
           icon: <History size={14} />,
-          label: "版本历史",
+          label: t("workflow.templateList.versionHistory"),
           onClick: () => {
             setTemplateForVersionHistory(template);
             setVersionHistoryVisible(true);
@@ -140,13 +140,13 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         {
           key: "duplicate",
           icon: <Copy size={14} />,
-          label: "复制",
+          label: t("workflow.templateList.duplicate"),
           onClick: () => handleDuplicate(template),
         },
         {
           key: "delete",
           icon: <Trash2 size={14} style={{ color: "#ff4d4f" }} />,
-          label: "删除",
+          label: t("workflow.templateList.delete"),
           onClick: () => {
             setTemplateToDelete(template);
             setDeleteModalVisible(true);
@@ -182,12 +182,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
               </span>
               {template.is_preset && (
                 <Tag color="gold" style={{ marginLeft: 4, fontSize: 10 }}>
-                  预设
+                  {t("workflow.templateList.preset")}
                 </Tag>
               )}
               {!template.is_editable && (
                 <Tag color="default" style={{ fontSize: 10 }}>
-                  只读
+                  {t("workflow.templateList.readonly")}
                 </Tag>
               )}
             </div>
@@ -203,7 +203,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             >
               {template.is_preset && PRESET_I18N_KEY[template.id]
                 ? t(`chat.workflow.${PRESET_I18N_KEY[template.id]}.description`, template.description || "")
-                : template.description || "暂无描述"}
+                : template.description || t("workflow.templateList.noDescription")}
             </div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {template.tags?.slice(0, 4).map((tag) => (
@@ -251,7 +251,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <Input
-            placeholder="搜索模板..."
+            placeholder={t("workflow.templateList.searchPlaceholder")}
             prefix={<Search size={14} color="#666" />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -260,7 +260,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             allowClear
           />
           <Select
-            placeholder="标签"
+            placeholder={t("workflow.templateList.tagPlaceholder")}
             value={filterTag}
             onChange={setFilterTag}
             allowClear
@@ -269,15 +269,15 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             options={allTags.map((tag) => ({ value: tag, label: tag }))}
           />
           <Select
-            placeholder="类型"
+            placeholder={t("workflow.templateList.typePlaceholder")}
             value={filterPreset}
             onChange={setFilterPreset}
             allowClear
             size="small"
             style={{ width: 100 }}
             options={[
-              { value: true, label: "预设" },
-              { value: false, label: "自定义" },
+              { value: true, label: t("workflow.templateList.preset") },
+              { value: false, label: t("workflow.templateList.custom") },
             ]}
           />
         </div>
@@ -288,7 +288,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           style={{ width: "100%" }}
           size="small"
         >
-          新建模板
+          {t("workflow.templateList.newTemplate")}
         </Button>
       </div>
 
@@ -298,24 +298,24 @@ export const TemplateList: React.FC<TemplateListProps> = ({
 
       {filteredTemplates.length === 0 && !isLoading && (
         <Empty
-          description={searchText || filterTag ? "未找到匹配的模板" : "暂无模板"}
+          description={searchText || filterTag ? t("workflow.templateList.noMatchFound") : t("workflow.templateList.noTemplates")}
           style={{ marginTop: 48 }}
         />
       )}
 
       <Modal
-        title="确认删除"
+        title={t("workflow.templateList.confirmDelete")}
         open={deleteModalVisible}
         onOk={handleDelete}
         onCancel={() => {
           setDeleteModalVisible(false);
           setTemplateToDelete(null);
         }}
-        okText="删除"
+        okText={t("workflow.templateList.delete")}
         okButtonProps={{ danger: true }}
       >
-        <p>确定要删除模板 "{templateToDelete?.name}" 吗？</p>
-        <p style={{ color: "#ff4d4f", fontSize: 12 }}>此操作不可恢复</p>
+        <p>{t("workflow.templateList.confirmDeleteMessage", { name: templateToDelete?.name })}</p>
+        <p style={{ color: "#ff4d4f", fontSize: 12 }}>{t("workflow.templateList.irreversible")}</p>
       </Modal>
 
       <VersionHistoryModal

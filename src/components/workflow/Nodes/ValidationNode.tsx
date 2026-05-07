@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 export interface ValidationNodeData {
@@ -23,6 +24,7 @@ export interface Assertion {
 }
 
 const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#722ed1";
   const assertions = data.assertions || [];
   const onFail = data.onFail || "stop";
@@ -31,11 +33,11 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
   const getOnFailLabel = (): string => {
     switch (onFail) {
       case "stop":
-        return "停止";
+        return t("workflow.validationNode.stop");
       case "retry":
-        return `重试 (最多${maxRetries}次)`;
+        return t("workflow.validationNode.retry", { count: maxRetries });
       case "continue":
-        return "继续";
+        return t("workflow.validationNode.continue");
       default:
         return onFail;
     }
@@ -78,7 +80,7 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
               fontWeight: 600,
             }}
           >
-            验证
+            {t("workflow.validationNode.title")}
           </span>
         </div>
 
@@ -108,7 +110,7 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
               fontWeight: 500,
             }}
           >
-            {assertions.length} 个断言
+            {t("workflow.validationNode.assertionCount", { count: assertions.length })}
           </Tag>
 
           <div
@@ -118,7 +120,7 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
               color: "#888",
             }}
           >
-            失败策略: {getOnFailLabel()}
+            {t("workflow.validationNode.failStrategy")} {getOnFailLabel()}
           </div>
         </div>
       </div>

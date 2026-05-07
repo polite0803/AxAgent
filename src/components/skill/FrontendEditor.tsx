@@ -1,41 +1,43 @@
-import { useSkillExtensionStore } from "@/stores";
-import type { SkillFrontendExtension } from "@/types";
+import type { SkillCapability, SkillManifest } from "@/types";
 import { Button, Input, message, Modal, Typography } from "antd";
 import { useState } from "react";
 
 interface FrontendEditorProps {
   skillName: string;
   sourcePath: string;
-  currentFrontend?: SkillFrontendExtension;
+  currentManifest?: SkillManifest;
   onSaved: () => void;
 }
 
-export function FrontendEditor({ skillName, currentFrontend, onSaved }: FrontendEditorProps) {
+export function FrontendEditor({ skillName, currentManifest, onSaved }: FrontendEditorProps) {
   const [visible, setVisible] = useState(false);
   const [jsonText, setJsonText] = useState(
-    currentFrontend
-      ? JSON.stringify(currentFrontend, null, 2)
+    currentManifest
+      ? JSON.stringify(currentManifest, null, 2)
       : JSON.stringify(
         {
-          navigation: [],
-          pages: [],
-          commands: [],
-          panels: [],
-          settingsSections: [],
+          name: skillName,
+          version: "0.1.0",
+          description: "",
+          capabilities: [],
+          permissions: { commands: [], events: [] },
         },
         null,
         2,
       ),
   );
   const [saving, setSaving] = useState(false);
-  const setSkillFrontend = useSkillExtensionStore((s) => s.setSkillFrontend);
 
   const handleSave = async () => {
     try {
-      const parsed = JSON.parse(jsonText);
+      JSON.parse(jsonText);
       setSaving(true);
-      await setSkillFrontend(skillName, parsed);
-      message.success(`前端扩展配置已保存`);
+      const { invoke } = await import("@/lib/invoke");
+      await invoke<SkillCapability[]>("skill_set_manifest", {
+        name: skillName,
+        manifest: JSON.parse(jsonText),
+      });
+      message.success("清单配置已保存");
       setVisible(false);
       onSaved();
     } catch (e) {
@@ -47,10 +49,10 @@ export function FrontendEditor({ skillName, currentFrontend, onSaved }: Frontend
   return (
     <>
       <Button size="small" onClick={() => setVisible(true)}>
-        编辑前端扩展
+        编辑清单
       </Button>
       <Modal
-        title={`编辑技能前端扩展 — ${skillName}`}
+        title={`编辑 Skill 清单 — ${skillName}`}
         open={visible}
         onCancel={() => setVisible(false)}
         onOk={handleSave}
@@ -60,8 +62,9 @@ export function FrontendEditor({ skillName, currentFrontend, onSaved }: Frontend
         cancelText="取消"
       >
         <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
-          编辑 <code>skill-manifest.json</code> 中的 <code>frontend</code>{" "}
-          字段。支持的扩展类型：navigation（导航）、pages（页面）、commands（命令）、panels（面板）、settingsSections（设置段）。
+          编辑{" "}
+          <code>skill-manifest.json</code>。支持的 capability
+          类型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。
         </Typography.Paragraph>
         <Input.TextArea
           value={jsonText}

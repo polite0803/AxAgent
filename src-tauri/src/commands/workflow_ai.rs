@@ -430,42 +430,255 @@ Rules:
 
 #[tauri::command]
 pub async fn optimize_agent_prompt(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     prompt: String,
 ) -> Result<String, String> {
-    let optimized = format!(
-        r#"# Role
-You are an expert AI assistant specialized in the task described below.
+    let providers = axagent_core::repo::provider::list_providers(&state.sea_db)
+        .await
+        .map_err(|e| format!("Failed to list providers: {}", e))?;
 
-# Task
-{}
+    let provider = providers.iter().find(|p| p.enabled).ok_or_else(|| {
+        "No enabled provider found. Please configure a provider in settings.".to_string()
+    })?;
 
-# Requirements
-1. Be clear and specific about goals and constraints
-2. Break down complex tasks into manageable steps
-3. Define clear success criteria
-4. Consider edge cases and error handling
-5. Specify any necessary tools or resources
+    let provider_key = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider.id)
+        .await
+        .map_err(|e| format!("Failed to get provider key: {}", e))?;
 
-# Output Format
-Provide your response in a structured format with:
-- Main content
-- Supporting details
-- Any relevant examples
-"#,
-        prompt
-    );
+    let decrypted_key = decrypt_key(&provider_key.key_encrypted, &state.master_key)
+        .map_err(|e| format!("Failed to decrypt API key: {}", e))?;
 
-    Ok(optimized)
+    let registry = ProviderRegistry::create_default();
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = registry
+        .get(registry_key)
+        .ok_or_else(|| format!("Provider adapter not found for type: {}", registry_key))?;
+
+    let base_url = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
+
+    let ctx = ProviderRequestContext {
+        api_key: decrypted_key,
+        key_id: provider_key.id,
+        provider_id: provider.id.clone(),
+        base_url: Some(base_url),
+        api_path: provider.api_path.clone(),
+        proxy_config: provider.proxy_config.clone(),
+        custom_headers: None,
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let system_prompt = r#"You are an expert prompt engineer. Your task is to optimize the given agent prompt to make it more effective, clear, and structured.
+
+Rules for optimization:
+1. Add a clear role definition at the beginning
+2. Break down complex instructions into numbered steps
+3. Add specific constraints and boundaries
+4. Include output format specifications
+5. Add error handling guidance
+6. Make the prompt more specific and actionable
+7. Remove ambiguity and vague language
+8. Keep the original intent and purpose intact
+
+Output ONLY the optimized prompt text, without any explanation or meta-commentary."#;
+
+    let model_id = provider
+        .models
+        .iter()
+        .find(|m| m.enabled)
+        .map(|m| m.model_id.clone())
+        .unwrap_or_else(|| "gpt-4".to_string());
+
+    let request = ChatRequest {
+        model: model_id.clone(),
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text(system_prompt.to_string()),
+                tool_calls: None,
+                tool_call_id: None,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(format!("Please optimize the following agent prompt:\n\n{}", prompt)),
+                tool_calls: None,
+                tool_call_id: None,
+            },
+        ],
+        temperature: Some(0.7),
+        top_p: None,
+        max_tokens: Some(4096),
+        stream: false,
+        tools: None,
+        thinking_budget: None,
+        use_max_completion_tokens: None,
+        thinking_param_style: None,
+        api_mode: None,
+        instructions: None,
+        conversation: None,
+        previous_response_id: None,
+        store: None,
+    };
+
+    let response = adapter
+        .chat(&ctx, request)
+        .await
+        .map_err(|e| format!("LLM API error: {}", e))?;
+
+    Ok(response.content)
 }
 
 #[tauri::command]
 pub async fn recommend_nodes(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     context: String,
 ) -> Result<Vec<NodeRecommendation>, String> {
-    let context_lower = context.to_lowercase();
+    let providers = axagent_core::repo::provider::list_providers(&state.sea_db)
+        .await
+        .map_err(|e| format!("Failed to list providers: {}", e))?;
 
+    let provider = providers.iter().find(|p| p.enabled).ok_or_else(|| {
+        "No enabled provider found. Please configure a provider in settings.".to_string()
+    })?;
+
+    let provider_key = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider.id)
+        .await
+        .map_err(|e| format!("Failed to get provider key: {}", e))?;
+
+    let decrypted_key = decrypt_key(&provider_key.key_encrypted, &state.master_key)
+        .map_err(|e| format!("Failed to decrypt API key: {}", e))?;
+
+    let registry = ProviderRegistry::create_default();
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = registry
+        .get(registry_key)
+        .ok_or_else(|| format!("Provider adapter not found for type: {}", registry_key))?;
+
+    let base_url = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
+
+    let ctx = ProviderRequestContext {
+        api_key: decrypted_key,
+        key_id: provider_key.id,
+        provider_id: provider.id.clone(),
+        base_url: Some(base_url),
+        api_path: provider.api_path.clone(),
+        proxy_config: provider.proxy_config.clone(),
+        custom_headers: None,
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let system_prompt = r#"You are a workflow design assistant. Based on the user's description of their workflow needs, recommend the most suitable node types.
+
+Available node types:
+- trigger: Workflow trigger (manual, schedule, webhook, event)
+- agent: AI Agent node for autonomous task execution with role, tools, and context
+- llm: Direct LLM call node for text generation or analysis
+- condition: Conditional branching node (if/else logic)
+- parallel: Parallel execution node for concurrent tasks
+- loop: Loop iteration node (forEach, while, doWhile, until)
+- merge: Merge multiple branches into one
+- delay: Delay/wait node
+- tool: External tool/API call node
+- code: Custom code execution node (JavaScript/Python)
+- subWorkflow: Sub-workflow invocation node
+- documentParser: Document parsing and extraction node
+- vectorRetrieve: Vector similarity search from knowledge base
+- validation: Data validation and assertion node
+- end: Workflow end node
+
+Output a valid JSON array with this structure:
+[
+  {
+    "node_type": "agent",
+    "label": "Agent 节点",
+    "description": "Description of why this node type is recommended",
+    "confidence": 0.9
+  }
+]
+
+Rules:
+1. Return at most 5 recommendations, sorted by confidence (highest first)
+2. Confidence should be between 0.0 and 1.0
+3. Provide clear descriptions explaining why each node is recommended
+4. Consider the workflow context and how nodes work together
+5. Use Chinese for labels and descriptions when the input is in Chinese"#;
+
+    let model_id = provider
+        .models
+        .iter()
+        .find(|m| m.enabled)
+        .map(|m| m.model_id.clone())
+        .unwrap_or_else(|| "gpt-4".to_string());
+
+    let request = ChatRequest {
+        model: model_id.clone(),
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text(system_prompt.to_string()),
+                tool_calls: None,
+                tool_call_id: None,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(format!("Based on this workflow context, recommend suitable node types:\n\n{}", context)),
+                tool_calls: None,
+                tool_call_id: None,
+            },
+        ],
+        temperature: Some(0.7),
+        top_p: None,
+        max_tokens: Some(2048),
+        stream: false,
+        tools: None,
+        thinking_budget: None,
+        use_max_completion_tokens: None,
+        thinking_param_style: None,
+        api_mode: None,
+        instructions: None,
+        conversation: None,
+        previous_response_id: None,
+        store: None,
+    };
+
+    let response = adapter
+        .chat(&ctx, request)
+        .await
+        .map_err(|e| format!("LLM API error: {}", e))?;
+
+    let trimmed = response.content.trim();
+    let json_str = if trimmed.contains("```json") {
+        trimmed
+            .split("```json")
+            .nth(1)
+            .and_then(|s| s.split("```").next())
+            .map(|s| s.trim())
+    } else if trimmed.starts_with('[') {
+        Some(trimmed)
+    } else {
+        None
+    };
+
+    let json_str = match json_str {
+        Some(s) => s,
+        None => {
+            return Ok(fallback_recommendations(&context));
+        }
+    };
+
+    match serde_json::from_str::<Vec<NodeRecommendation>>(json_str) {
+        Ok(recs) => Ok(recs),
+        Err(_) => Ok(fallback_recommendations(&context)),
+    }
+}
+
+fn fallback_recommendations(context: &str) -> Vec<NodeRecommendation> {
+    let context_lower = context.to_lowercase();
     let mut recommendations = Vec::new();
 
     if context_lower.contains("代码")
@@ -585,5 +798,5 @@ pub async fn recommend_nodes(
     recommendations.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
     recommendations.truncate(5);
 
-    Ok(recommendations)
+    recommendations
 }

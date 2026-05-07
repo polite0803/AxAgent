@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface VectorRetrieveNodeData {
@@ -18,9 +19,10 @@ interface VectorRetrieveNodeData {
 }
 
 const VectorRetrieveNodeComponent: React.FC<NodeProps<VectorRetrieveNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#eb2f96";
   const query = data.query || "";
-  const knowledgeBaseId = data.knowledgeBaseId || "未选择";
+  const knowledgeBaseId = data.knowledgeBaseId || t("workflow.vectorRetrieveNode.notSelected");
   const topK = data.topK || 5;
   const similarityThreshold = data.similarityThreshold;
   const outputVar = data.outputVar;
@@ -62,7 +64,7 @@ const VectorRetrieveNodeComponent: React.FC<NodeProps<VectorRetrieveNodeData>> =
               fontWeight: 600,
             }}
           >
-            向量检索
+            {t("workflow.vectorRetrieveNode.title")}
           </span>
         </div>
 
@@ -140,7 +142,7 @@ const VectorRetrieveNodeComponent: React.FC<NodeProps<VectorRetrieveNodeData>> =
                   color: "#aaa",
                 }}
               >
-                阈值: {(similarityThreshold * 100).toFixed(0)}%
+                {t("workflow.vectorRetrieveNode.threshold")} {(similarityThreshold * 100).toFixed(0)}%
               </Tag>
             )}
 

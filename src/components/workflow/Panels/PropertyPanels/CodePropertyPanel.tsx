@@ -42,9 +42,9 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
     switch (language) {
       case "javascript":
       case "typescript":
-        return "// 输入参数: input\n// 返回值将存储到 output_var\n\nconst result = input;\nreturn result;";
+        return `// ${t("workflow.props.codeInputParams")}\n// ${t("workflow.props.codeReturnHint")}\n\nconst result = input;\nreturn result;`;
       case "python":
-        return "# 输入参数: input\n# 返回值将存储到 output_var\n\nresult = input\nreturn result";
+        return `${t("workflow.props.defaultCodePythonComment")}\n\nresult = input\nreturn result`;
       default:
         return `// ${language} code\n// Input: input\n// Output: output_var\n\n`;
     }
@@ -64,7 +64,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>语言</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.language")}</label>
         <Select
           value={config.language}
           onChange={handleLanguageChange}
@@ -79,7 +79,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
           {t("workflow.props.code")}
           <span style={{ color: "#666", fontWeight: 400, marginLeft: 4 }}>
-            (输入: input, 输出: return)
+            {t("workflow.props.codeInputOutputHint")}
           </span>
         </label>
         <Input.TextArea

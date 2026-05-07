@@ -9,6 +9,8 @@ export interface ActionContext {
   conversationId?: string;
   pageParams?: Record<string, string>;
   triggerEvent?: Event;
+  /** 内部：chain 递归深度计数器 */
+  _chainDepth?: number;
 }
 
 export interface ActionResult {
@@ -29,6 +31,9 @@ export type DeclarativeExecutor = (action: DeclarativeActionType, ctx: ActionCon
 
 // ── Action Router ──
 
+/** chain action 最大递归深度 */
+const MAX_CHAIN_DEPTH = 20;
+
 export class ActionRouter {
   private declarativeExecutors = new Map<string, DeclarativeExecutor>();
 
@@ -44,15 +49,6 @@ export class ActionRouter {
   /** 执行单个 Action */
   async execute(action: SkillCommandAction, context: ActionContext): Promise<ActionResult> {
     try {
-      // 权限检查（声明式 action）
-      if (action.mode === "declarative" && context.skillName) {
-        const { checkDeclarativeAction } = await import("./skillPermissions");
-        const permCheck = await checkDeclarativeAction(context.skillName, action);
-        if (!permCheck.allowed) {
-          return { success: false, error: permCheck.reason || "Permission denied" };
-        }
-      }
-
       if (action.mode === "agentic") {
         return await this.executeAgentic(action, context);
       }
@@ -63,7 +59,10 @@ export class ActionRouter {
   }
 
   /** 执行 Action 链（顺序执行，前一个的输出合并到上下文） */
-  async executeChain(actions: SkillCommandAction[], context: ActionContext): Promise<ActionResult> {
+  async executeChain(actions: SkillCommandAction[], context: ActionContext, depth = 0): Promise<ActionResult> {
+    if (depth > MAX_CHAIN_DEPTH) {
+      return { success: false, error: `Action 链超过最大递归深度 ${MAX_CHAIN_DEPTH}` };
+    }
     let lastResult: ActionResult = { success: true };
     for (const action of actions) {
       lastResult = await this.execute(action, {
@@ -79,7 +78,7 @@ export class ActionRouter {
   private async executeDeclarative(action: DeclarativeActionType, ctx: ActionContext): Promise<ActionResult> {
     const executor = this.declarativeExecutors.get(action.type);
     if (!executor) {
-      return { success: false, error: `Unknown declarative action type: ${action.type}` };
+      return { success: false, error: `未知声明式 action 类型: ${action.type}` };
     }
     return executor(action, ctx);
   }
@@ -95,13 +94,15 @@ export class ActionRouter {
     const model = provider?.models.find((m) => m.enabled);
 
     if (!provider || !model) {
-      return { success: false, error: "No enabled provider/model found" };
+      return { success: false, error: "没有可用的 LLM 提供商/模型" };
     }
 
     const title = `${ctx.skillName || "Skill"}: ${action.prompt.slice(0, 50)}`;
 
     try {
       const conv = await convStore.createConversation(title, model.model_id, provider.id);
+      // 将 prompt 作为首条消息发送到 LLM
+      await convStore.sendMessage(action.prompt);
       return { success: true, data: { conversationId: conv.id } };
     } catch (e) {
       return { success: false, error: String(e) };
@@ -112,63 +113,67 @@ export class ActionRouter {
   private registerBuiltinExecutors(): void {
     // invoke: 调用 Tauri 后端命令
     this.declarativeExecutors.set("invoke", async (action) => {
-      if (action.type !== "invoke") { return { success: false, error: "Type mismatch" }; }
+      if (action.type !== "invoke") { return { success: false, error: "类型不匹配" }; }
       const result = await invoke(action.command, action.args || {});
       return { success: true, data: result };
     });
 
     // navigate: 前端路由跳转
     this.declarativeExecutors.set("navigate", async (action) => {
-      if (action.type !== "navigate") { return { success: false, error: "Type mismatch" }; }
+      if (action.type !== "navigate") { return { success: false, error: "类型不匹配" }; }
       window.location.hash = action.path;
       return { success: true };
     });
 
     // emit: 发送事件
     this.declarativeExecutors.set("emit", async (action) => {
-      if (action.type !== "emit") { return { success: false, error: "Type mismatch" }; }
+      if (action.type !== "emit") { return { success: false, error: "类型不匹配" }; }
       window.dispatchEvent(new CustomEvent(action.event, { detail: action.payload }));
       return { success: true };
     });
 
     // store: 读写 Zustand Store
     this.declarativeExecutors.set("store", async (action) => {
-      if (action.type !== "store") { return { success: false, error: "Type mismatch" }; }
+      if (action.type !== "store") { return { success: false, error: "类型不匹配" }; }
       const { getStoreRegistry } = await import("./storeRegistry");
       const store = getStoreRegistry().get(action.storeName);
-      if (!store) { return { success: false, error: `Store ${action.storeName} not registered` }; }
+      if (!store) { return { success: false, error: `Store ${action.storeName} 未注册` }; }
       const result = store[action.operation](action.payload);
       return { success: true, data: result };
     });
 
     // function: 执行注册的自定义函数
     this.declarativeExecutors.set("function", async (action) => {
-      if (action.type !== "function") { return { success: false, error: "Type mismatch" }; }
+      if (action.type !== "function") { return { success: false, error: "类型不匹配" }; }
       const { getCustomFunction } = await import("./skillActionExecutor");
       const fn = getCustomFunction(action.name);
-      if (!fn) { return { success: false, error: `Function ${action.name} not registered` }; }
+      if (!fn) { return { success: false, error: `函数 ${action.name} 未注册` }; }
       await fn({ args: action.args }, "");
       return { success: true };
     });
 
     // handler: 引用 handlers 中定义的处理器
-    this.declarativeExecutors.set("handler", async (action) => {
-      if (action.type !== "handler") { return { success: false, error: "Type mismatch" }; }
+    this.declarativeExecutors.set("handler", async (action, ctx) => {
+      if (action.type !== "handler") { return { success: false, error: "类型不匹配" }; }
       const { useSkillExtensionStore } = await import("@/stores");
       const handler = useSkillExtensionStore.getState().getHandler(action.name);
-      if (!handler) { return { success: false, error: `Handler ${action.name} not found` }; }
+      if (!handler) { return { success: false, error: `Handler ${action.name} 未找到` }; }
       if (handler.mode === "declarative" && handler.actions) {
-        return this.executeChain(handler.actions, { skillName: action.name });
+        return this.executeChain(handler.actions, ctx);
       }
-      return { success: false, error: `Handler ${action.name} is not declarative` };
+      return { success: false, error: `Handler ${action.name} 非声明式` };
     });
 
-    // chain: 嵌套子链
-    this.declarativeExecutors.set("chain", async (action) => {
-      if (action.type !== "chain") { return { success: false, error: "Type mismatch" }; }
+    // chain: 嵌套子链（继承父级 skillName，限制递归深度）
+    this.declarativeExecutors.set("chain", async (action, ctx) => {
+      if (action.type !== "chain") { return { success: false, error: "类型不匹配" }; }
+      const depth = (ctx._chainDepth || 0) + 1;
+      if (depth > MAX_CHAIN_DEPTH) {
+        return { success: false, error: `Action 链超过最大递归深度 ${MAX_CHAIN_DEPTH}` };
+      }
       return this.executeChain(
         action.actions.map((a) => ({ mode: "declarative" as const, action: a })),
-        { skillName: "chain" },
+        { ...ctx, _chainDepth: depth },
       );
     });
   }

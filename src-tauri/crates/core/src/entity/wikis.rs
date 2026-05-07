@@ -13,6 +13,9 @@ pub struct Model {
     pub note_count: i32,
     pub source_count: i32,
     pub embedding_provider: Option<String>,
+    pub embedding_dimensions: Option<i32>,
+    pub retrieval_threshold: Option<f32>,
+    pub retrieval_top_k: Option<i32>,
     pub created_at: i64,
     pub updated_at: i64,
 }

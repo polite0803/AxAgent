@@ -90,10 +90,9 @@ export function SkillStatsPanel() {
   const avgSuccess = stats.length > 0
     ? stats.reduce((sum, s) => sum + s.successRate, 0) / stats.length
     : 0;
-  const avgTime = stats.filter((s) => s.avgExecutionTimeMs > 0).length > 0
-    ? stats.filter((s) => s.avgExecutionTimeMs > 0)
-      .reduce((sum, s) => sum + s.avgExecutionTimeMs, 0)
-      / stats.filter((s) => s.avgExecutionTimeMs > 0).length
+  const timedStats = stats.filter((s) => s.avgExecutionTimeMs > 0);
+  const avgTime = timedStats.length > 0
+    ? timedStats.reduce((sum, s) => sum + s.avgExecutionTimeMs, 0) / timedStats.length
     : 0;
 
   return (

@@ -14,7 +14,7 @@ interface VectorRetrievePropertyPanelProps {
 export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelProps> = (
   { node, onUpdate, onDelete },
 ) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const vectorRetrieveNode = node as VectorRetrieveNode;
   const config = vectorRetrieveNode.config || {
     query: "",
@@ -47,18 +47,18 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>查询</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.query")}</label>
         <Input.TextArea
           value={config.query || ""}
           onChange={(e) => handleConfigChange("query", e.target.value)}
           rows={2}
           size="small"
-          placeholder="输入检索查询..."
+          placeholder={t("workflow.props.queryPlaceholder")}
         />
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>知识库</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.knowledgeBase")}</label>
         <Select
           value={config.knowledge_base_id || undefined}
           onChange={(value) => handleConfigChange("knowledge_base_id", value)}

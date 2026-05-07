@@ -1,0 +1,31 @@
+/* ── TrajectoryReplay ─────────────────────────────────────────── */
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.trajectory-replay__btn:hover {
+  background-color: var(--color-fill-secondary, rgba(0, 0, 0, 0.06)) !important;
+}
+
+.trajectory-replay__btn--play:hover {
+  opacity: 0.85;
+  background-color: var(--color-primary, #1890ff) !important;
+}
+
+/* 步骤过渡动画 */
+@keyframes stepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.trajectory-replay__step-enter {
+  animation: stepFadeIn 0.3s ease-out;
+}

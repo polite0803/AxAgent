@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface SubWorkflowNodeData {
@@ -17,8 +18,9 @@ interface SubWorkflowNodeData {
 }
 
 const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#eb2f96";
-  const subWorkflowId = data.subWorkflowId || "未选择";
+  const subWorkflowId = data.subWorkflowId || t("workflow.subWorkflowNode.notSelected");
   const inputMapping = data.inputMapping || {};
   const outputVar = data.outputVar;
   const isAsync = data.isAsync ?? false;
@@ -66,7 +68,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
               fontWeight: 600,
             }}
           >
-            子工作流
+            {t("workflow.subWorkflowNode.title")}
           </span>
           {isAsync && (
             <Tag
@@ -79,7 +81,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
                 color: "#fff",
               }}
             >
-              异步
+              {t("workflow.subWorkflowNode.async")}
             </Tag>
           )}
         </div>

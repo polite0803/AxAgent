@@ -2,6 +2,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { Button, List, message, Modal, Spin, Tag } from "antd";
 import { History, RotateCcw } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
 
 interface VersionHistoryModalProps {
@@ -21,6 +22,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const { loadTemplateVersions, loadTemplateByVersion } = useWorkflowEditorStore();
+  const { t } = useTranslation("chat");
 
   useEffect(() => {
     if (visible && template?.id) {
@@ -35,7 +37,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       const vers = await loadTemplateVersions(template.id);
       setVersions(vers.sort((a, b) => b - a));
     } catch (error) {
-      message.error("加载版本历史失败");
+      message.error(t("workflow.versionHistory.loadFailed"));
     } finally {
       setLoadingVersions(false);
     }
@@ -49,11 +51,11 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       const versionedTemplate = useWorkflowEditorStore.getState().currentTemplate;
       if (versionedTemplate) {
         onLoadVersion(versionedTemplate);
-        message.success(`已加载版本 ${version}`);
+        message.success(t("workflow.versionHistory.loadedVersion", { version }));
         onClose();
       }
     } catch (error) {
-      message.error("加载版本失败");
+      message.error(t("workflow.versionHistory.loadVersionFailed"));
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       title={
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <History size={18} />
-          <span>版本历史 - {template?.name}</span>
+          <span>{t("workflow.versionHistory.title", { name: template?.name })}</span>
         </div>
       }
       open={visible}
@@ -81,7 +83,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
         : (
           <List
             dataSource={versions}
-            locale={{ emptyText: "暂无版本历史" }}
+            locale={{ emptyText: t("workflow.versionHistory.noHistory") }}
             renderItem={(version) => (
               <List.Item
                 actions={[
@@ -93,7 +95,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                     onClick={() => handleLoadVersion(version)}
                     disabled={loading}
                   >
-                    加载此版本
+                    {t("workflow.versionHistory.loadThisVersion")}
                   </Button>,
                 ]}
               >
@@ -103,10 +105,10 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                       <Tag color={version === Math.max(...versions) ? "green" : "default"}>
                         v{version}
                       </Tag>
-                      {version === template?.version && <Tag color="blue">当前版本</Tag>}
+                      {version === template?.version && <Tag color="blue">{t("workflow.versionHistory.currentVersion")}</Tag>}
                     </div>
                   }
-                  description={`版本 ${version}`}
+                  description={t("workflow.versionHistory.version", { version })}
                 />
               </List.Item>
             )}
@@ -126,7 +128,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             justifyContent: "center",
           }}
         >
-          <Spin tip="加载版本..." />
+          <Spin tip={t("workflow.versionHistory.loading")} />
         </div>
       )}
     </Modal>

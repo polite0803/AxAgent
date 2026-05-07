@@ -13,7 +13,7 @@ interface LoopPropertyPanelProps {
 }
 
 export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const loopNode = node as LoopNode;
   const config = loopNode.config || {
     loop_type: "forEach" as LoopType,
@@ -142,7 +142,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 11 }}>错误时继续</label>
+        <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.continueOnError")}</label>
         <Switch
           size="small"
           checked={config.continue_on_error ?? false}
@@ -152,7 +152,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-          循环体步骤 ({config.body_steps?.length || 0})
+          {t("workflow.props.loopBodySteps", { count: config.body_steps?.length || 0 })}
         </label>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {config.body_steps.map((stepId) => (
@@ -166,15 +166,15 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
               {getNodeLabel(stepId)}
             </Tag>
           ))}
-          {config.body_steps.length === 0 && <div style={{ color: "#666", fontSize: 11 }}>暂无循环体步骤</div>}
+          {config.body_steps.length === 0 && <div style={{ color: "#666", fontSize: 11 }}>{t("workflow.props.noLoopSteps")}</div>}
         </div>
       </div>
 
       {availableNodes.length > 0 && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>添加步骤</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.addStep")}</label>
           <Select
-            placeholder="选择要添加的节点"
+            placeholder={t("workflow.props.selectNodeToAdd")}
             size="small"
             style={{ width: "100%" }}
             onChange={handleAddStep}

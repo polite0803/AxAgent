@@ -373,6 +373,8 @@ pub struct AgentQueryRequest {
     pub enabled_knowledge_base_ids: Option<Vec<String>>,
     #[serde(rename = "enabledMemoryNamespaceIds")]
     pub enabled_memory_namespace_ids: Option<Vec<String>>,
+    #[serde(rename = "enabledWikiIds")]
+    pub enabled_wiki_ids: Option<Vec<String>>,
     #[serde(rename = "systemPrompt")]
     pub system_prompt: Option<String>,
     #[serde(rename = "thinkingBudget")]
@@ -1274,12 +1276,14 @@ pub async fn agent_query(
             Err(_) => Vec::new(),
         }
     };
+    let wiki_ids = request.enabled_wiki_ids.clone().unwrap_or_default();
     let rag_result = crate::indexing::collect_rag_context(
         &app_state.sea_db,
         &app_state.master_key,
         &app_state.vector_store,
         &kb_ids,
         &mem_ids,
+        &wiki_ids,
         &request.input,
         5,
     )

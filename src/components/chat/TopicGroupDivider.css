@@ -1,0 +1,7 @@
+.topic-group-divider__bar:hover {
+  opacity: 0.85;
+}
+
+.topic-group-divider__bar:active {
+  transform: scale(0.995);
+}

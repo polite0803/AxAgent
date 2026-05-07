@@ -1,5 +1,6 @@
 import { Badge, Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface AgentNodeData {
@@ -19,10 +20,21 @@ interface AgentNodeData {
   expertRoleId?: string;
   expertIcon?: string;
   expertName?: string;
+  validationState?: "error" | "warning";
 }
 
 const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#1890ff";
+
+  const getBorderColor = () => {
+    if (data.validationState === "error") { return "#ff4d4f"; }
+    if (data.validationState === "warning") { return "#faad14"; }
+    if (selected) { return "#1890ff"; }
+    return color;
+  };
+
+  const borderColor = getBorderColor();
 
   const getRoleIcon = (role: string): string => {
     switch (role) {
@@ -45,12 +57,12 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
 
   const getRoleLabel = (role: string): string => {
     const labels: Record<string, string> = {
-      researcher: "研究员",
-      planner: "规划师",
-      developer: "开发者",
-      reviewer: "审核员",
-      synthesizer: "综合师",
-      executor: "执行者",
+      researcher: t("workflow.agentNode.roleResearcher"),
+      planner: t("workflow.agentNode.rolePlanner"),
+      developer: t("workflow.agentNode.roleDeveloper"),
+      reviewer: t("workflow.agentNode.roleReviewer"),
+      synthesizer: t("workflow.agentNode.roleSynthesizer"),
+      executor: t("workflow.agentNode.roleExecutor"),
     };
     return labels[role] || role;
   };
@@ -84,10 +96,10 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
       <div
         style={{
           background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          border: `2px solid ${borderColor}`,
           borderRadius: 8,
           overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
+          boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
           transition: "all 0.2s",
         }}
       >
@@ -111,7 +123,9 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
               fontWeight: 600,
             }}
           >
-            {data.expertRoleId ? (data.expertName || "专家") : `Agent \u00B7 ${getRoleLabel(agentRole)}`}
+            {data.expertRoleId
+              ? (data.expertName || t("workflow.agentNode.expert"))
+              : `Agent · ${getRoleLabel(agentRole)}`}
           </span>
           {data.model && (
             <Tag
@@ -179,7 +193,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
                     color: "#52c41a",
                   }}
                 >
-                  🔧 工具
+                  {t("workflow.agentNode.tools")}
                 </Tag>
               </Badge>
             )}
@@ -203,7 +217,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
                     color: "#13c2c2",
                   }}
                 >
-                  📚 上下文
+                  {t("workflow.agentNode.context")}
                 </Tag>
               </Badge>
             )}

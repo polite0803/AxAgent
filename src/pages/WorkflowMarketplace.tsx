@@ -201,7 +201,7 @@ export function WorkflowMarketplace() {
   };
 
   const handleImportSubmit = async (jsonData: string) => {
-    return await invoke<string>("import_workflow_template", { jsonData });
+    return await invoke<{ id: string; warnings: string[]; errors: string[] }>("import_workflow_template", { jsonData });
   };
 
   const renderTemplateCard = (template: MarketplaceTemplate) => (

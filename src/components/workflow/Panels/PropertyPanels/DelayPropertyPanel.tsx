@@ -11,7 +11,7 @@ interface DelayPropertyPanelProps {
 }
 
 export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const delayNode = node as DelayNode;
   const config = delayNode.config || {
     delay_type: "seconds",
@@ -27,7 +27,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "seconds":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟秒数</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delaySeconds")}</label>
             <InputNumber
               value={config.seconds ?? 5}
               onChange={(value) => handleConfigChange("seconds", value)}
@@ -38,8 +38,8 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
             />
             <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
               {(config.seconds || 5) >= 60
-                ? `≈ ${Math.floor((config.seconds || 5) / 60)} 分钟`
-                : `${config.seconds || 5} 秒`}
+                ? `≈ ${Math.floor((config.seconds || 5) / 60)} ${t("workflow.props.minutes")}`
+                : `${config.seconds || 5} ${t("workflow.props.seconds")}`}
             </div>
           </div>
         );
@@ -47,7 +47,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "minutes":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟分钟数</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayMinutes")}</label>
             <InputNumber
               value={Math.floor((config.seconds || 5) / 60)}
               onChange={(value) => handleConfigChange("seconds", (value || 1) * 60)}
@@ -62,7 +62,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "hours":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟小时数</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayHours")}</label>
             <InputNumber
               value={Math.floor((config.seconds || 5) / 3600)}
               onChange={(value) => handleConfigChange("seconds", (value || 1) * 3600)}
@@ -77,7 +77,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "until":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>延迟到</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayUntil")}</label>
             <Input
               value={config.until || ""}
               onChange={(e) => handleConfigChange("until", e.target.value)}
@@ -107,10 +107,10 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "seconds", label: "秒" },
-            { value: "minutes", label: "分钟" },
-            { value: "hours", label: "小时" },
-            { value: "until", label: "直到指定时间" },
+            { value: "seconds", label: t("workflow.props.seconds") },
+            { value: "minutes", label: t("workflow.props.minutes") },
+            { value: "hours", label: t("workflow.props.hours") },
+            { value: "until", label: t("workflow.props.untilSpecifiedTime") },
           ]}
         />
       </div>

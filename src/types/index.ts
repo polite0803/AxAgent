@@ -123,6 +123,7 @@ export interface Conversation {
   enabled_mcp_server_ids: string[];
   enabled_knowledge_base_ids: string[];
   enabled_memory_namespace_ids: string[];
+  enabled_wiki_ids: string[];
   is_pinned: boolean;
   is_archived: boolean;
   context_compression: boolean;
@@ -265,6 +266,7 @@ export interface UpdateConversationInput {
   enabled_mcp_server_ids?: string[];
   enabled_knowledge_base_ids?: string[];
   enabled_memory_namespace_ids?: string[];
+  enabled_wiki_ids?: string[];
   context_compression?: boolean;
   category_id?: string | null;
   parent_conversation_id?: string | null;
@@ -487,6 +489,18 @@ export interface AppSettings {
   /** Chat minimap / navigation overlay */
   chat_minimap_enabled?: boolean;
   chat_minimap_style?: "faq" | "sticky";
+  /** Agent execution panel — show right-side panel during agent mode */
+  agent_panel_enabled?: boolean;
+  /** Agent execution panel — use compact (simplified) view by default */
+  agent_panel_compact?: boolean;
+  /** Onboarding — welcome wizard completed */
+  onboarding_completed?: boolean;
+  /** Onboarding — wizard dismissed (user skipped) */
+  onboarding_wizard_dismissed?: boolean;
+  /** Onboarding — interactive tutorial completed */
+  onboarding_tutorial_completed?: boolean;
+  /** Onboarding — selected quick-start preset */
+  onboarding_selected_preset?: string | null;
   /** Multi-model response display mode */
   multi_model_display_mode?: "tabs" | "side-by-side" | "stacked";
   /** Render user messages as Markdown (like AI messages). Default: false */
@@ -715,25 +729,23 @@ export interface Skill {
   argumentHint?: string;
   whenToUse?: string;
   group?: string;
-  frontend?: SkillFrontendExtension;
-  manifest?: SkillManifestMeta;
+  manifest?: SkillManifest;
 }
 
 export interface SkillDetail {
   info: Skill;
   content: string;
   files: string[];
-  manifest?: SkillManifest;
+  manifest?: SkillInstallMeta;
 }
 
-export interface SkillManifest {
+export interface SkillInstallMeta {
   sourceKind: string;
   sourceRef?: string;
   branch?: string;
   commit?: string;
   installedAt: string;
   installedVia?: string;
-  frontend?: SkillFrontendExtension;
 }
 
 export interface MarketplaceSkill {
@@ -766,49 +778,45 @@ export interface SkillProposal {
   similar_skills: string[];
 }
 
-// ── Skill Frontend Extension ──
-
-export interface SkillFrontendExtension {
-  navigation: SkillNavItem[];
-  pages: SkillPage[];
-  commands: SkillUICommand[];
-  panels: SkillUIPanel[];
-  settingsSections: SkillSettingsSection[];
-  toolbar: SkillToolbarButton[];
-  chatCommand: SkillChatCommand[];
-  statusBar: SkillStatusBarItem[];
-}
-
 // ── Skill Manifest ──
 
-export interface SkillManifestMeta {
+/** Skill 清单定义（skill-manifest.json 解析后的统一格式） */
+export interface SkillManifest {
   name: string;
   version: string;
   description: string;
   author?: string;
   icon?: string;
-  permissions?: SkillPermissions;
   dependencies?: Record<string, string>;
+  /** 能力声明列表 */
+  capabilities?: SkillCapability[];
+  /** 权限白名单 */
+  permissions?: SkillPermissions;
+  /** 生命周期钩子 */
   lifecycle?: SkillLifecycleHooks;
-  frontend?: SkillFrontendExtension;
-  handlers?: Record<string, SkillHandler>;
-  /** V2 能力声明（存在此字段时优先使用） */
-  capabilities?: SkillCapabilityV2[];
-  /** V2 权限白名单 */
-  permissionsV2?: SkillPermissionsV2;
-  /** V2 生命周期 */
-  lifecycleV2?: SkillLifecycleHooksV2;
 }
 
+/** 权限白名单 */
 export interface SkillPermissions {
-  tools?: string[];
-  toolCategories?: string[];
-  network?: string[];
-  filesystem?: { read?: string[]; write?: string[] };
+  /** 允许调用的 Tauri 命令列表 */
   commands?: string[];
+  /** 允许发送的事件列表 */
   events?: string[];
+  /** 允许读取的 Zustand Store 名称列表 */
+  storeRead?: string[];
+  /** 允许写入的 Zustand Store 名称列表 */
+  storeWrite?: string[];
+  /** 允许导航到的路由路径列表 */
+  navigate?: string[];
+  /** 允许的网络请求域名列表 */
+  network?: string[];
+  /** 文件系统访问权限 */
+  filesystem?: { read?: string[]; write?: string[] };
+  /** 允许使用的工具名称列表 */
+  tools?: string[];
 }
 
+/** 生命周期钩子 */
 export interface SkillLifecycleHooks {
   onInstall?: SkillCommandAction[];
   onEnable?: SkillCommandAction[];
@@ -816,7 +824,7 @@ export interface SkillLifecycleHooks {
   onUninstall?: SkillCommandAction[];
 }
 
-// ── Skill Handler (声明式/Agentic 行为单元) ──
+// ── Skill Handler ──
 
 export interface SkillHandler {
   mode: "declarative" | "agentic";
@@ -827,52 +835,11 @@ export interface SkillHandler {
   resultHandler?: SkillResultHandler;
 }
 
-// ── Navigation ──
-
-export interface SkillNavItem {
-  id: string;
-  label: string;
-  icon: string;
-  pageId: string;
-  position: number;
-  badge?: {
-    text?: string;
-    command: string;
-    refreshIntervalMs?: number;
-  };
-  visible?: {
-    command: string;
-  };
-}
+// ── Navigation（旧 UI 类型已移除，统一使用 SkillManifest.capabilities） ──
 
 export type NavPosition = "Top" | "Bottom";
 
-// ── Pages ──
-
-export interface SkillPage {
-  id: string;
-  title: string;
-  componentType: SkillComponentType;
-  componentConfig: Record<string, unknown>;
-  layout?: "default" | "fullscreen" | "sidebar";
-  icon?: string;
-}
-
-export type SkillComponentType = "Html" | "Iframe" | "React" | "WebComponent" | "Markdown" | "Sandbox";
-
-// ── Commands ──
-
-export interface SkillUICommand {
-  id: string;
-  label: string;
-  description?: string;
-  category?: string;
-  icon?: string;
-  shortcut?: string;
-  actions: SkillCommandAction[];
-}
-
-// ── SkillCommandAction (混合模式：声明式 + Agentic) ──
+// ── SkillCommandAction (声明式 + Agentic) ──
 
 export type SkillCommandAction = DeclarativeAction | AgenticAction;
 
@@ -909,124 +876,32 @@ export interface SkillContextGatherer {
   includeSelection?: boolean;
 }
 
-// ── Panels ──
+export type SkillComponentType = "Sandbox" | "Markdown";
 
-export interface SkillUIPanel {
-  id: string;
-  title: string;
-  componentType: SkillComponentType;
-  componentConfig: Record<string, unknown>;
-  position: UIPanelPosition;
-  size: UIPanelSize;
-  collapsible: boolean;
-  defaultCollapsed: boolean;
-}
+// ── Panels ──
 
 export type UIPanelPosition = "Main" | "Sidebar" | "Header" | "Footer";
 
 export type UIPanelSize = "Small" | "Medium" | "Large" | "FullWidth";
 
-// ── Settings ──
+// ── Chat Command Args ──
 
-export interface SkillSettingsSection {
-  id: string;
-  title: string;
-  icon?: string;
-  settingsGroup: string;
-  componentType: SkillComponentType;
-  componentConfig: Record<string, unknown>;
-}
+// ── Skill Capability 类型（Capability-based Manifest） ──────────────
 
-// ── Toolbar ──
+export type SkillCapability =
+  | SkillPageCapability
+  | SkillPanelCapability
+  | SkillToolbarCapability
+  | SkillChatCommandCapability
+  | SkillStatusBarCapability
+  | SkillNavigationCapability
+  | SkillSettingsCapability;
 
-export interface SkillToolbarButton {
-  id: string;
-  icon: string;
-  tooltip: string;
-  position: "left" | "right";
-  priority: number;
-  onClick: SkillCommandAction[];
-  menu?: { label: string; actions: SkillCommandAction[] }[];
-}
-
-// ── Chat Command ──
-
-export interface SkillChatCommand {
-  name: string;
-  description: string;
-  icon?: string;
-  mode: "declarative" | "agentic";
-  actions?: SkillCommandAction[];
-  promptTemplate?: string;
-  contextGatherer?: SkillContextGatherer;
-  args?: SkillChatCommandArg[];
-}
-
-export interface SkillChatCommandArg {
-  name: string;
-  description: string;
-  required?: boolean;
-  type: "string" | "number" | "boolean" | "file";
-}
-
-// ── Status Bar ──
-
-export interface SkillStatusBarItem {
-  id: string;
-  alignment: "left" | "right";
-  priority: number;
-  text?: string;
-  icon?: string;
-  dynamicText?: {
-    command: string;
-    args?: Record<string, unknown>;
-    refreshIntervalMs: number;
-    template?: string;
-  };
-  onClick?: SkillCommandAction[];
-}
-
-// ── V2 Skill Manifest（Capability-based，兼容旧版 V1） ──────────────
-
-/**
- * V2 Skill 清单类型。
- * 如果 skill-manifest.json 中包含 `capabilities` 字段，则使用此类型解析。
- * 与 V1 `SkillFrontendExtension` 的关系：渲染时优先使用 V2，
- * 若 V2 字段缺失则回退到 V1 对应字段。
- */
-export interface SkillManifestV2 {
-  name: string;
-  version: string;
-  description: string;
-  author?: string;
-  icon?: string;
-  dependencies?: Record<string, string>;
-  /** V2 能力声明（存在此字段即为 V2 格式） */
-  capabilities?: SkillCapabilityV2[];
-  /** 权限白名单 */
-  permissions?: SkillPermissionsV2;
-  /** 生命周期钩子 */
-  lifecycle?: SkillLifecycleHooksV2;
-  /** V1 兼容：前端扩展声明（V2 不存在 capabilities 时使用） */
-  frontend?: SkillFrontendExtension;
-  /** V1 兼容：处理器定义 */
-  handlers?: Record<string, SkillHandler>;
-}
-
-export type SkillCapabilityV2 =
-  | SkillPageCapabilityV2
-  | SkillUIPanelV2
-  | SkillToolbarButtonV2
-  | SkillChatCommandV2
-  | SkillStatusBarItemV2
-  | SkillNavItemV2
-  | SkillSettingsSectionV2;
-
-export interface SkillPageCapabilityV2 {
+export interface SkillPageCapability {
   type: "page";
   id: string;
   title: string;
-  componentType: "Sandbox" | "Html" | "Markdown";
+  componentType: "Sandbox" | "Markdown";
   componentConfig: {
     entry: string;
     props?: Record<string, unknown>;
@@ -1035,11 +910,11 @@ export interface SkillPageCapabilityV2 {
   icon?: string;
 }
 
-export interface SkillUIPanelV2 {
+export interface SkillPanelCapability {
   type: "panel";
   id: string;
   title: string;
-  componentType: "Sandbox" | "Html" | "Markdown";
+  componentType: "Sandbox" | "Markdown";
   componentConfig: {
     entry: string;
     props?: Record<string, unknown>;
@@ -1050,7 +925,7 @@ export interface SkillUIPanelV2 {
   defaultCollapsed?: boolean;
 }
 
-export interface SkillToolbarButtonV2 {
+export interface SkillToolbarCapability {
   type: "toolbar";
   id: string;
   title?: string;
@@ -1062,7 +937,7 @@ export interface SkillToolbarButtonV2 {
   menu?: { label: string; actions: SkillCommandAction[] }[];
 }
 
-export interface SkillChatCommandV2 {
+export interface SkillChatCommandCapability {
   type: "chatCommand";
   id: string;
   title: string;
@@ -1073,7 +948,7 @@ export interface SkillChatCommandV2 {
   actions?: SkillCommandAction[];
 }
 
-export interface SkillStatusBarItemV2 {
+export interface SkillStatusBarCapability {
   type: "statusBar";
   id: string;
   title: string;
@@ -1090,7 +965,7 @@ export interface SkillStatusBarItemV2 {
   onClick?: SkillCommandAction[];
 }
 
-export interface SkillNavItemV2 {
+export interface SkillNavigationCapability {
   type: "navigation";
   id: string;
   title: string;
@@ -1099,37 +974,17 @@ export interface SkillNavItemV2 {
   position?: number;
 }
 
-export interface SkillSettingsSectionV2 {
+export interface SkillSettingsCapability {
   type: "settings";
   id: string;
   title: string;
   icon?: string;
   settingsGroup: string;
-  componentType: "Sandbox" | "Html" | "Markdown";
+  componentType: "Sandbox" | "Markdown";
   componentConfig: {
     entry: string;
     props?: Record<string, unknown>;
   };
-}
-
-/** V2 权限声明 */
-export interface SkillPermissionsV2 {
-  commands?: string[];
-  events?: string[];
-  storeRead?: string[];
-  storeWrite?: string[];
-  navigate?: string[];
-  network?: string[];
-  filesystem?: { read?: string[]; write?: string[] };
-  tools?: string[];
-}
-
-/** V2 生命周期钩子 */
-export interface SkillLifecycleHooksV2 {
-  onInstall?: SkillCommandAction[];
-  onEnable?: SkillCommandAction[];
-  onDisable?: SkillCommandAction[];
-  onUninstall?: SkillCommandAction[];
 }
 
 // Phase-2 type modules

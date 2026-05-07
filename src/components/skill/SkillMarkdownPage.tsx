@@ -32,9 +32,9 @@ export function SkillMarkdownPage({ skillName }: SkillMarkdownPageProps) {
         if (!cancelled) {
           setRawContent(detail.content || "");
         }
-      } catch {
+      } catch (e) {
         if (!cancelled) {
-          setError(String(Error));
+          setError(String(e));
         }
       } finally {
         if (!cancelled) { setLoading(false); }

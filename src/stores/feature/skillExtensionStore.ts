@@ -1,53 +1,96 @@
 import { invoke } from "@/lib/invoke";
-import { extractRequiredCommands, validateSkillPermissionsAtLoad } from "@/lib/skillPermissions";
-import type {
-  Skill,
-  SkillCapabilityV2,
-  SkillChatCommand,
-  SkillFrontendExtension,
-  SkillHandler,
-  SkillNavItem,
-  SkillPage,
-  SkillSettingsSection,
-  SkillStatusBarItem,
-  SkillToolbarButton,
-  SkillUICommand,
-  SkillUIPanel,
-} from "@/types";
+import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
+import type { Skill, SkillCapability, SkillCommandAction, SkillHandler } from "@/types";
 import { create } from "zustand";
 
-export interface MergedNavItem extends SkillNavItem {
+export interface MergedNavItem {
+  id: string;
+  label: string;
+  icon: string;
+  pageId: string;
+  position: number;
   skillName: string;
 }
 
-export interface MergedPage extends SkillPage {
-  skillName: string;
-  sourcePath: string;
-}
-
-export interface MergedCommand extends SkillUICommand {
-  skillName: string;
-}
-
-export interface MergedPanel extends SkillUIPanel {
-  skillName: string;
-  sourcePath: string;
-}
-
-export interface MergedSettingsSection extends SkillSettingsSection {
+export interface MergedPage {
+  id: string;
+  title: string;
+  componentType: string;
+  componentConfig: Record<string, unknown>;
+  layout?: string;
+  icon?: string;
   skillName: string;
   sourcePath: string;
 }
 
-export interface MergedToolbarButton extends SkillToolbarButton {
+export interface MergedCommand {
+  id: string;
+  label: string;
+  description?: string;
+  category?: string;
+  icon?: string;
+  shortcut?: string;
+  actions: SkillCommandAction[];
   skillName: string;
 }
 
-export interface MergedChatCommand extends SkillChatCommand {
+export interface MergedPanel {
+  id: string;
+  title: string;
+  componentType: string;
+  componentConfig: Record<string, unknown>;
+  position: string;
+  size: string;
+  collapsible: boolean;
+  defaultCollapsed: boolean;
+  skillName: string;
+  sourcePath: string;
+}
+
+export interface MergedSettingsSection {
+  id: string;
+  title: string;
+  icon?: string;
+  settingsGroup: string;
+  componentType: string;
+  componentConfig: Record<string, unknown>;
+  skillName: string;
+  sourcePath: string;
+}
+
+export interface MergedToolbarButton {
+  id: string;
+  icon: string;
+  tooltip: string;
+  position: "left" | "right";
+  priority: number;
+  onClick: SkillCommandAction[];
+  menu?: { label: string; actions: SkillCommandAction[] }[];
   skillName: string;
 }
 
-export interface MergedStatusBarItem extends SkillStatusBarItem {
+export interface MergedChatCommand {
+  name: string;
+  description: string;
+  icon?: string;
+  mode: "declarative" | "agentic";
+  actions?: SkillCommandAction[];
+  skillName: string;
+}
+
+export interface MergedStatusBarItem {
+  id: string;
+  alignment: "left" | "right";
+  priority: number;
+  text?: string;
+  icon?: string;
+  dynamicText?: {
+    command: string;
+    args?: Record<string, unknown>;
+    refreshIntervalMs: number;
+    template?: string;
+  };
+  onClick?: SkillCommandAction[];
   skillName: string;
 }
 
@@ -55,7 +98,6 @@ interface SkillExtensionState {
   skills: Skill[];
   loading: boolean;
 
-  extensions: Skill[];
   navItems: MergedNavItem[];
   pages: MergedPage[];
   commands: MergedCommand[];
@@ -67,7 +109,6 @@ interface SkillExtensionState {
   handlers: Record<string, SkillHandler>;
 
   fetchSkills: () => Promise<void>;
-  setSkillFrontend: (name: string, frontend: SkillFrontendExtension) => Promise<void>;
   getHandler: (name: string) => SkillHandler | undefined;
   refreshSkill: (skillName: string) => Promise<void>;
 }
@@ -82,25 +123,39 @@ function mergeExtensions(skills: Skill[]) {
   const chatCommands: MergedChatCommand[] = [];
   const statusBarItems: MergedStatusBarItem[] = [];
   const handlers: Record<string, SkillHandler> = {};
+  // ID 去重追踪
+  const seenIds = new Map<string, Set<string>>();
+
+  function checkDuplicate(type: string, id: string, skillName: string): boolean {
+    if (!seenIds.has(type)) { seenIds.set(type, new Set()); }
+    const ids = seenIds.get(type)!;
+    if (ids.has(id)) {
+      console.warn(`[SkillExtension] 重复的 ${type} ID "${id}"，技能 "${skillName}" 的 capability 已被跳过`);
+      return true;
+    }
+    ids.add(id);
+    return false;
+  }
 
   for (const skill of skills) {
-    // ── V2: 优先处理 capabilities（新架构） ──
-    const capabilitiesV2 = skill.manifest?.capabilities;
-    if (capabilitiesV2 && capabilitiesV2.length > 0) {
-      // V2 权限前置校验
-      const permsV2 = skill.manifest?.permissionsV2;
-      const required = extractRequiredCommands(capabilitiesV2);
-      const permResult = validateSkillPermissionsAtLoad(permsV2, required);
-      if (!permResult.valid) {
-        console.warn(
-          `[SkillExtension] Skill "${skill.name}" 权限校验失败:`,
-          permResult.violations,
-        );
-        // 部分加载：只跳过未授权的 capabilities
-      }
+    const capabilities = skill.manifest?.capabilities;
+    if (!capabilities || capabilities.length === 0) { continue; }
 
-      for (const cap of capabilitiesV2) {
-        mergeV2Capability(cap, skill, {
+    // 权限前置校验
+    const perms = skill.manifest?.permissions;
+    const required = extractRequiredCommands(capabilities);
+    const permResult = validateSkillPermissions(perms, required);
+    if (!permResult.valid) {
+      console.warn(
+        `[SkillExtension] Skill "${skill.name}" 权限校验未通过，跳过未授权能力:`,
+        permResult.violations,
+      );
+      continue;
+    }
+
+    for (const cap of capabilities) {
+      if (!checkDuplicate((cap as { type: string }).type, (cap as { id: string }).id, skill.name)) {
+        mergeCapability(cap, skill, {
           navItems,
           pages,
           commands,
@@ -111,44 +166,6 @@ function mergeExtensions(skills: Skill[]) {
           statusBarItems,
           handlers,
         });
-      }
-      continue; // V2 的 skill 跳过 V1 处理
-    }
-
-    // ── V1: 回退到 frontend 扩展（旧架构，保持向后兼容） ──
-    if (!skill.frontend) { continue; }
-    const f = skill.frontend;
-
-    for (const nav of f.navigation) {
-      navItems.push({ ...nav, skillName: skill.name });
-    }
-    for (const page of f.pages) {
-      pages.push({ ...page, skillName: skill.name, sourcePath: skill.sourcePath });
-    }
-    for (const cmd of f.commands) {
-      commands.push({ ...cmd, skillName: skill.name });
-    }
-    for (const panel of f.panels) {
-      panels.push({ ...panel, skillName: skill.name, sourcePath: skill.sourcePath });
-    }
-    for (const section of f.settingsSections) {
-      settingsSections.push({ ...section, skillName: skill.name, sourcePath: skill.sourcePath });
-    }
-    for (const btn of f.toolbar) {
-      toolbarButtons.push({ ...btn, skillName: skill.name });
-    }
-    for (const cc of f.chatCommand) {
-      chatCommands.push({ ...cc, skillName: skill.name });
-    }
-    for (const sb of f.statusBar) {
-      statusBarItems.push({ ...sb, skillName: skill.name });
-    }
-
-    // V1 handlers
-    if (skill.manifest?.handlers) {
-      for (const [hName, hDef] of Object.entries(skill.manifest.handlers)) {
-        handlers[`${skill.name}:${hName}`] = hDef;
-        handlers[hName] = hDef;
       }
     }
   }
@@ -166,12 +183,9 @@ function mergeExtensions(skills: Skill[]) {
   };
 }
 
-/**
- * 将单个 V2 capability 合并到对应的扩展列表。
- * V2 → V1 格式转换，保持下游组件透明。
- */
-function mergeV2Capability(
-  cap: SkillCapabilityV2,
+/** 将单个 capability 合并到对应的扩展列表 */
+function mergeCapability(
+  cap: SkillCapability,
   skill: Skill,
   target: {
     navItems: MergedNavItem[];
@@ -269,14 +283,13 @@ function mergeV2Capability(
       });
       break;
     default:
-      console.warn(`[SkillExtension] Unknown V2 capability type: "${(cap as any).type}"`);
+      console.warn(`[SkillExtension] 未知的 capability 类型: "${(cap as any).type}"`);
   }
 }
 
 export const useSkillExtensionStore = create<SkillExtensionState>((set, get) => ({
   skills: [],
   loading: false,
-  extensions: [],
   navItems: [],
   pages: [],
   commands: [],
@@ -291,31 +304,30 @@ export const useSkillExtensionStore = create<SkillExtensionState>((set, get) => 
     set({ loading: true });
     try {
       const skills = await invoke<Skill[]>("list_skills");
-      const extensions = skills.filter((s) => s.frontend);
       const merged = mergeExtensions(skills);
-      set({ skills, extensions, ...merged, loading: false });
+      set({ skills, ...merged, loading: false });
     } catch (e) {
-      console.error("Failed to fetch skill extensions:", e);
+      console.error("获取 skill 扩展失败:", e);
       set({ loading: false });
-    }
-  },
-
-  setSkillFrontend: async (name: string, frontend: SkillFrontendExtension) => {
-    try {
-      await invoke("skill_set_frontend", { name, frontend });
-      await get().fetchSkills();
-    } catch (e) {
-      console.error("Failed to set skill frontend:", e);
     }
   },
 
   getHandler: (name: string) => get().handlers[name],
 
-  refreshSkill: async (_skillName: string) => {
+  refreshSkill: async (skillName: string) => {
     const skills = await invoke<Skill[]>("list_skills");
+    // 增量更新：只合并变化的 skill，保留其他 skill 的扩展数据
+    const currentSkills = get().skills;
+    const updatedSkills = skills.map((s) => {
+      const existing = currentSkills.find((cs) => cs.name === s.name);
+      return existing && s.name !== skillName ? existing : s;
+    });
+    if (!updatedSkills.some((s) => s.name === skillName)) {
+      const newSkill = skills.find((s) => s.name === skillName);
+      if (newSkill) { updatedSkills.push(newSkill); }
+    }
     const merged = mergeExtensions(skills);
-    const extensions = skills.filter((s) => s.frontend);
-    set({ skills, extensions, ...merged });
+    set({ skills, ...merged });
   },
 }));
 

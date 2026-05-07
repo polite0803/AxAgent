@@ -12,6 +12,14 @@ import type { HostToSkillMessage, SkillHostApi, SkillHostStore, SkillHostUi, Ski
 /** RPC 调用超时时间（毫秒） */
 const RPC_TIMEOUT_MS = 15000;
 
+/** 允许的 postMessage 来源（Tauri 自定义协议下仅自身） */
+function defaultAllowedOrigin(): string {
+  if (typeof window !== "undefined" && window.location.protocol === "tauri:") {
+    return window.location.origin;
+  }
+  return "*";
+}
+
 // ── 宿主侧 RPC 注册表 ──
 
 /** 宿主侧 RPC 管理器 */
@@ -32,13 +40,14 @@ export interface HostRpcBridge {
  * 创建宿主侧 RPC 桥接
  *
  * @param contentWindow Skill iframe 的 contentWindow
- * @param allowedOrigin 允许的来源，生产环境用 Tauri 自定义协议
+ * @param origin 允许的来源，生产环境用 Tauri 自定义协议
  * @returns RPC 桥接实例
  */
 export function createHostRpcBridge(
   contentWindow: Window | null,
-  allowedOrigin = "*",
+  origin?: string,
 ): HostRpcBridge {
+  const resolvedOrigin = origin ?? defaultAllowedOrigin();
   const pendingCalls = new Map<string, {
     resolve: (value: unknown) => void;
     reject: (error: Error) => void;
@@ -69,7 +78,7 @@ export function createHostRpcBridge(
     sendMessage(message: HostToSkillMessage): void {
       if (destroyed || !contentWindow) { return; }
       try {
-        contentWindow.postMessage(message, allowedOrigin);
+        contentWindow.postMessage(message, resolvedOrigin);
       } catch (e) {
         console.error("[HostRpcBridge] Failed to send message:", e);
       }
@@ -118,7 +127,7 @@ export function createHostRpcBridge(
           args,
         };
         try {
-          contentWindow.postMessage(requestMsg, allowedOrigin);
+          contentWindow.postMessage(requestMsg, resolvedOrigin);
         } catch (e) {
           window.removeEventListener("message", responseHandler);
           clearTimeout(timer);
@@ -195,14 +204,14 @@ export interface HostApiBridgeOptions {
  */
 export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridge {
   const { api, ui, store, permissions, contentWindow } = options;
-  const allowedOrigin = options.allowedOrigin ?? "*";
+  const resolvedOrigin = options.allowedOrigin ?? defaultAllowedOrigin();
   let destroyed = false;
 
   function sendResponse(callId: string, result?: unknown, error?: string): void {
     if (destroyed || !contentWindow) { return; }
     contentWindow.postMessage(
       { type: "rpc:response", callId, result, error } satisfies HostToSkillMessage,
-      allowedOrigin,
+      resolvedOrigin,
     );
   }
 

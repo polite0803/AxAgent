@@ -2,6 +2,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { Button, Divider, Input, Select, Switch, Tag } from "antd";
 import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { Branch, ParallelNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -12,6 +13,7 @@ interface ParallelPropertyPanelProps {
 }
 
 export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation("chat");
   const parallelNode = node as ParallelNode;
   const config = parallelNode.config || {
     branches: [],
@@ -32,7 +34,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
   const handleAddBranch = () => {
     const newBranch: Branch = {
       id: `branch-${Date.now()}`,
-      title: `分支 ${config.branches.length + 1}`,
+      title: t("workflow.props.branchName"),
       steps: [],
     };
     onUpdate({
@@ -79,7 +81,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 11 }}>等待全部分支完成</label>
+        <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.waitForAllBranches")}</label>
         <Switch
           size="small"
           checked={config.wait_for_all}
@@ -94,12 +96,12 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
       </div>
       <div style={{ color: "#666", fontSize: 10 }}>
         {config.wait_for_all
-          ? "将等待所有分支完成后继续"
-          : "任一分支完成即继续执行"}
+          ? t("workflow.props.waitForAllHint")
+          : t("workflow.props.waitForAnyHint")}
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>超时时间 (秒)</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.timeoutSeconds")}</label>
         <Input
           type="number"
           value={config.timeout ?? ""}
@@ -111,14 +113,14 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
               },
             })}
           size="small"
-          placeholder="不设置"
+          placeholder={t("workflow.props.notSet")}
         />
       </div>
 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <label style={{ color: "#999", fontSize: 11 }}>
-            分支 ({config.branches.length})
+            {t("workflow.props.branches")}
           </label>
           <Button
             type="dashed"
@@ -126,7 +128,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
             icon={<Plus size={12} />}
             onClick={handleAddBranch}
           >
-            添加分支
+            {t("workflow.props.addBranch")}
           </Button>
         </div>
 
@@ -149,7 +151,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                     value={branch.title}
                     onChange={(e) => handleUpdateBranch(index, { title: e.target.value })}
                     size="small"
-                    placeholder="分支名称"
+                    placeholder={t("workflow.props.branchName")}
                     style={{ flex: 1 }}
                   />
                   <Button
@@ -162,7 +164,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 20 }}>
-                  <label style={{ fontSize: 10, color: "#888" }}>步骤:</label>
+                  <label style={{ fontSize: 10, color: "#888" }}>{t("workflow.props.steps")}</label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {branch.steps.map((stepId) => (
                       <Tag
@@ -175,11 +177,11 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                         {getNodeLabel(stepId)}
                       </Tag>
                     ))}
-                    {branch.steps.length === 0 && <span style={{ fontSize: 10, color: "#666" }}>暂无步骤</span>}
+                    {branch.steps.length === 0 && <span style={{ fontSize: 10, color: "#666" }}>{t("workflow.props.noSteps")}</span>}
                   </div>
                   {availableNodes.length > 0 && (
                     <Select
-                      placeholder="添加步骤"
+                      placeholder={t("workflow.props.addStep")}
                       size="small"
                       style={{ width: "100%", marginTop: 4 }}
                       onChange={(nodeId) => handleAddStepToBranch(index, nodeId)}
@@ -196,7 +198,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
 
           {config.branches.length === 0 && (
             <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 16 }}>
-              点击"添加分支"创建第一个并行分支
+              {t("workflow.props.clickToAddBranch")}
             </div>
           )}
         </div>

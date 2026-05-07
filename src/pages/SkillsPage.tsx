@@ -146,7 +146,7 @@ function SkillCard({
   onExport?: (name: string) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
-  const hasFrontend = !!skill.frontend;
+  const hasManifest = !!(skill.manifest?.capabilities?.length);
   return (
     <Card
       size="small"
@@ -173,7 +173,7 @@ function SkillCard({
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
-            {hasFrontend && <Tag color="blue" style={{ margin: 0 }}>含 UI 扩展</Tag>}
+            {hasManifest && <Tag color="blue" style={{ margin: 0 }}>含 UI 扩展</Tag>}
           </div>
           <Paragraph
             type="secondary"
@@ -202,7 +202,7 @@ function SkillCard({
             size="small"
             icon={<LayoutPanelTop size={14} color={CHAT_ICON_COLORS.Trash2} />}
             onClick={() => onEditFrontend(skill.name)}
-            title={hasFrontend ? "编辑前端扩展" : "添加前端扩展"}
+            title={hasManifest ? "编辑前端扩展" : "添加前端扩展"}
           />
           {onExport && (
             <Button
@@ -1144,7 +1144,7 @@ export function SkillsPage() {
       <FrontendEditorModal
         open={!!editingFrontendSkill}
         skillName={editingFrontendSkill?.name || ""}
-        currentFrontend={editingFrontendSkill?.frontend}
+        currentManifest={editingFrontendSkill?.manifest}
         onClose={() => setEditingFrontendSkill(null)}
         onSaved={() => {
           setEditingFrontendSkill(null);

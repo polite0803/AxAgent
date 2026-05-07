@@ -436,19 +436,18 @@ pub async fn collect_rag_context(
     vector_store: &VectorStore,
     kb_ids: &[String],
     mem_ids: &[String],
+    wiki_ids: &[String],
     query: &str,
     top_k: usize,
 ) -> RagContextResult {
-    // Skip if no sources configured
-    if kb_ids.is_empty() && mem_ids.is_empty() {
+    if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
         return RagContextResult {
             context_parts: vec![],
             source_results: vec![],
         };
     }
 
-    // Check cache
-    let cache_key = format!("{:?}|{:?}|{}", kb_ids, mem_ids, query);
+    let cache_key = format!("{:?}|{:?}|{:?}|{}", kb_ids, mem_ids, wiki_ids, query);
     {
         let cache = RAG_CACHE.lock().await;
         if let Some((timestamp, result)) = cache.get(&cache_key) {
@@ -464,6 +463,7 @@ pub async fn collect_rag_context(
         vector_store,
         kb_ids,
         mem_ids,
+        wiki_ids,
         query,
         top_k,
         ProviderEmbedFn,

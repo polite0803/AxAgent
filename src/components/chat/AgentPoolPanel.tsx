@@ -1,4 +1,4 @@
-import { useAgentStore } from "@/stores";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { AgentPoolItem, AgentPoolSummary, WorkerMessage } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";
 
@@ -6,6 +6,7 @@ const _EMPTY: never[] = [];
 import { AlertTriangle, ChevronDown, ChevronRight, Clock, SkipForward } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useScrollToMessage } from "./ScrollToMessageContext";
 import "./AgentPoolPanel.css";
 
 // ---------------------------------------------------------------------------
@@ -144,6 +145,7 @@ function WorkerMessageLog({ messages }: { messages?: WorkerMessage[] }) {
 
 function PoolItemCard({ item }: { item: AgentPoolItem }) {
   const navigate = useNavigate();
+  const { scrollTo } = useScrollToMessage();
   const color = getTypeColor(item.type, item.agentType);
   const icon = getTypeIcon(item.type, item.agentType);
   const typeLabel = getTypeLabel(item.type);
@@ -152,10 +154,19 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
   const isFailed = item.status === "failed";
 
   const handleClick = () => {
+    // 优先跳转到关联消息
+    if (item.messageId && !isRunning) {
+      scrollTo(item.messageId);
+      return;
+    }
+    // 子 Agent 回退：跳转子会话
     if (item.type === "sub_agent" && item.childConversationId && !isRunning) {
       navigate(`/chat/${item.childConversationId}`);
     }
   };
+
+  const clickable = (!isRunning && item.messageId)
+    || (item.type === "sub_agent" && item.childConversationId && !isRunning);
 
   return (
     <div
@@ -163,7 +174,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
         isFailed ? "pool-item--failed" : ""
       }`}
       onClick={handleClick}
-      style={{ cursor: isRunning ? "default" : item.type === "sub_agent" ? "pointer" : "default" }}
+      style={{ cursor: clickable ? "pointer" : "default" }}
       data-component="agent-pool-item"
     >
       {/* 头部 */}
@@ -282,8 +293,8 @@ interface AgentPoolPanelProps {
 }
 
 export function AgentPoolPanel({ conversationId, visible = true }: AgentPoolPanelProps) {
-  const pool = useAgentStore((s) => s.agentPool[conversationId] || _EMPTY);
-  const summary = useAgentStore((s) => s.getPoolSummary(conversationId));
+  const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
+  const summary = useExecutionStore((s) => s.getPoolSummary(conversationId));
 
   // 按依赖关系排序：无依赖的在前，有依赖的在后
   const sorted = useMemo(() => {

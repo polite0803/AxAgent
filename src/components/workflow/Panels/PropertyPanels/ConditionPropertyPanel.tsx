@@ -11,29 +11,29 @@ interface ConditionPropertyPanelProps {
   onDelete: () => void;
 }
 
-const OPERATOR_OPTIONS: { value: CompareOperator; label: string }[] = [
-  { value: "eq", label: "=" },
-  { value: "ne", label: "≠" },
-  { value: "gt", label: ">" },
-  { value: "lt", label: "<" },
-  { value: "gte", label: "≥" },
-  { value: "lte", label: "≤" },
-  { value: "contains", label: "包含" },
-  { value: "notContains", label: "不包含" },
-  { value: "startsWith", label: "开头是" },
-  { value: "endsWith", label: "结尾是" },
-  { value: "regexMatch", label: "正则匹配" },
-  { value: "isEmpty", label: "为空" },
-  { value: "isNotEmpty", label: "不为空" },
-];
-
 export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const conditionNode = node as ConditionNode;
   const config = conditionNode.config || {
     conditions: [],
     logical_op: "and" as LogicalOperator,
   };
+
+  const OPERATOR_OPTIONS: { value: CompareOperator; label: string }[] = [
+    { value: "eq", label: "=" },
+    { value: "ne", label: "≠" },
+    { value: "gt", label: ">" },
+    { value: "lt", label: "<" },
+    { value: "gte", label: "≥" },
+    { value: "lte", label: "≤" },
+    { value: "contains", label: t("workflow.props.opContains") },
+    { value: "notContains", label: t("workflow.props.opNotContains") },
+    { value: "startsWith", label: t("workflow.props.opStartsWith") },
+    { value: "endsWith", label: t("workflow.props.opEndsWith") },
+    { value: "regexMatch", label: t("workflow.props.opRegexMatch") },
+    { value: "isEmpty", label: t("workflow.props.opIsEmpty") },
+    { value: "isNotEmpty", label: t("workflow.props.opIsNotEmpty") },
+  ];
 
   const handleAddCondition = () => {
     const newCondition: Condition = {
@@ -82,15 +82,15 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>逻辑操作</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.logicalOp")}</label>
         <Select
           value={config.logical_op}
           onChange={handleLogicalOpChange}
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "and", label: "AND - 所有条件都为真" },
-            { value: "or", label: "OR - 任一条件为真" },
+            { value: "and", label: t("workflow.props.andAllTrue") },
+            { value: "or", label: t("workflow.props.orAnyTrue") },
           ]}
         />
       </div>
@@ -98,7 +98,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <label style={{ color: "#999", fontSize: 11 }}>
-            条件 ({config.conditions.length})
+            {t("workflow.props.conditions")} ({config.conditions.length})
           </label>
           <Button
             type="dashed"
@@ -168,7 +168,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
 
           {config.conditions.length === 0 && (
             <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 16 }}>
-              点击"添加条件"创建第一个条件
+              {t("workflow.props.clickToAddCondition")}
             </div>
           )}
         </div>

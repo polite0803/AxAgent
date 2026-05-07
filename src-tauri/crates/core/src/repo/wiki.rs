@@ -15,6 +15,9 @@ pub struct Wiki {
     pub note_count: i32,
     pub source_count: i32,
     pub embedding_provider: Option<String>,
+    pub embedding_dimensions: Option<i32>,
+    pub retrieval_threshold: Option<f32>,
+    pub retrieval_top_k: Option<i32>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -37,6 +40,9 @@ fn model_to_wiki(m: wikis::Model) -> Wiki {
         note_count: m.note_count,
         source_count: m.source_count,
         embedding_provider: m.embedding_provider,
+        embedding_dimensions: m.embedding_dimensions,
+        retrieval_threshold: m.retrieval_threshold,
+        retrieval_top_k: m.retrieval_top_k,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -55,6 +61,9 @@ pub async fn create_wiki(db: &DatabaseConnection, input: CreateWikiInput) -> Res
         note_count: Set(0),
         source_count: Set(0),
         embedding_provider: Set(input.embedding_provider),
+        embedding_dimensions: Set(None),
+        retrieval_threshold: Set(None),
+        retrieval_top_k: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     })

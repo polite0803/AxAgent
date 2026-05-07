@@ -62,3 +62,6 @@ autoresearch-*.json
 research-*.tsv
 
 debug/*
+
+# OpenWolf
+.wolf/

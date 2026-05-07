@@ -1,5 +1,6 @@
 import { Badge, Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface ParallelNodeData {
@@ -19,6 +20,7 @@ interface ParallelNodeData {
 }
 
 const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#fa8c16";
   const branches = data.branches || [];
   const waitForAll = data.waitForAll ?? true;
@@ -60,7 +62,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
               fontWeight: 600,
             }}
           >
-            并行分支
+            {t("workflow.parallelNode.title")}
           </span>
           <Tag
             style={{
@@ -72,7 +74,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
               color: "#fff",
             }}
           >
-            {waitForAll ? "等待全部" : "任一完成"}
+            {waitForAll ? t("workflow.parallelNode.waitForAll") : t("workflow.parallelNode.anyComplete")}
           </Tag>
         </div>
 
@@ -118,7 +120,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
                         flex: 1,
                       }}
                     >
-                      {branch.title || `分支 ${index + 1}`}
+                      {branch.title || t("workflow.parallelNode.branch", { index: index + 1 })}
                     </span>
                     {branch.steps && (
                       <Badge
@@ -140,7 +142,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
                       textAlign: "center",
                     }}
                   >
-                    +{branches.length - 4} 更多分支
+                    +{t("workflow.parallelNode.moreBranches", { count: branches.length - 4 })}
                   </div>
                 )}
               </div>
@@ -156,7 +158,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
                   borderRadius: 4,
                 }}
               >
-                点击添加分支
+                {t("workflow.parallelNode.clickToAdd")}
               </div>
             )}
         </div>

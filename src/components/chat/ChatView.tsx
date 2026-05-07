@@ -29,6 +29,7 @@ import {
   ArrowUp,
   ArrowUpRight,
   Bot,
+  Brain,
   ChartNoAxesColumn,
   Check,
   ChevronDown,
@@ -44,6 +45,7 @@ import {
   Globe,
   Languages,
   Lightbulb,
+  ListTodo,
   MessageSquare,
   Pencil,
   RotateCcw,
@@ -82,7 +84,10 @@ import {
   useStreamStore,
   useUserProfileStore,
 } from "@/stores";
+import { useContinuationStore } from "@/stores/feature/continuationStore";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import { useExpertStore } from "@/stores/feature/expertStore";
+import { useTopicGroupStore } from "@/stores/feature/topicGroupStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { ProactiveSuggestionBar } from "../proactive/ProactiveSuggestionBar";
@@ -107,7 +112,7 @@ import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
 import { DeleteLastVersionPopover } from "./DeleteLastVersionPopover";
-import { ExecutionTimeline } from "./ExecutionTimeline";
+import { ExtractMemoriesModal } from "./ExtractMemoriesModal";
 import { ExpertBadge } from "./ExpertBadge";
 import { ExpertSelector } from "./ExpertSelector";
 import { AgentRoleSelect, InputArea } from "./InputArea";
@@ -119,6 +124,7 @@ import { PermissionModal } from "./PermissionModal";
 import { QuickCommandBar } from "./QuickCommandBar";
 import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
+import { TopicGroupDivider } from "./TopicGroupDivider";
 import { VersionPagination } from "./VersionPagination";
 import { WorkflowBadge } from "./WorkflowBadge";
 import { WorkflowEndMarker } from "./WorkflowEndMarker";
@@ -269,7 +275,7 @@ function AssistantFooter({
             {totalTokens > 0 && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <Coins size={10} />
-                {t("chat.totalTokens", "总 tokens")}: {formatTokenCount(totalTokens)}
+                {t("chat.totalTokens")}: {formatTokenCount(totalTokens)}
               </span>
             )}
             {msg.tokens_per_second != null && (
@@ -313,6 +319,20 @@ function AssistantFooter({
                   }
                 },
               },
+              ...(msg.role === "assistant" && msg.status !== "partial"
+                ? [{
+                  key: "continue",
+                  icon: <MessageSquare size={14} />,
+                  label: t("continuation.continueFromHere"),
+                  onItemClick: async () => {
+                    try {
+                      await useContinuationStore.getState().startContinue(conversationId, msg.id, true);
+                    } catch (e) {
+                      messageApi.error(String(e));
+                    }
+                  },
+                }]
+                : []),
               ...(msg.role === "assistant"
                 ? [{
                   key: "edit",
@@ -626,7 +646,11 @@ function StatsPopoverContent({ stats, t, token }: {
 
 // ── Component ──────────────────────────────────────────────────────────
 
-function ChatViewInner() {
+function ChatViewInner({ onScrollToReady }: {
+  onScrollToReady?: (
+    api: { scrollTo: (messageId: string) => void; scrollBoxRef: React.RefObject<HTMLElement | null> },
+  ) => void;
+}) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { message: messageApi } = App.useApp();
@@ -667,6 +691,7 @@ function ChatViewInner() {
   const deleteCompression = useCompressStore((s) => s.deleteCompression);
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [summaryModalText, setSummaryModalText] = useState("");
+  const [extractMemoriesOpen, setExtractMemoriesOpen] = useState(false);
   const [previewPayload, setPreviewPayload] = useState<CodeBlockPreviewPayload | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [mermaidPreviewSvg, setMermaidPreviewSvg] = useState<string | null>(null);
@@ -828,6 +853,20 @@ function ChatViewInner() {
       }
     }
   }, [activeConversationId]);
+
+  // ── Topic group toggle ─────────────────────────────────────────────
+  const topicGroupEnabled = useTopicGroupStore((s) =>
+    activeConversationId ? s.enabledByConversation[activeConversationId] : false
+  );
+  const handleTopicGroupToggle = useCallback(() => {
+    if (!activeConversationId) { return; }
+    const enabled = !topicGroupEnabled;
+    useTopicGroupStore.getState().setEnabled(activeConversationId, enabled);
+    if (enabled) {
+      useTopicGroupStore.getState().autoDetect(activeConversationId);
+    }
+  }, [activeConversationId, topicGroupEnabled]);
+
   const messageAreaRef = useRef<HTMLDivElement>(null);
   const bubbleListRef = useRef<BubbleListRef | null>(null);
   const scrollBoxRef = useRef<HTMLElement | null>(null);
@@ -895,6 +934,11 @@ function ChatViewInner() {
     }
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
+
+  // 将 scrollTo 能力和 scrollBoxRef 暴露给父组件，供右侧面板点击跳转使用
+  useEffect(() => {
+    onScrollToReady?.({ scrollTo: minimapScrollTo, scrollBoxRef });
+  }, [minimapScrollTo]);
 
   useEffect(() => {
     if (editingTitle && titleInputRef.current) {
@@ -973,7 +1017,7 @@ function ChatViewInner() {
     (s) => (activeConversationId ? s.agentStatus[activeConversationId] : undefined),
   );
 
-  const agentToolCalls = useAgentStore((s) => s.toolCalls);
+  const agentToolCalls = useExecutionStore((s) => s.toolCalls);
   const agentPendingPermissions = useAgentStore((s) => s.pendingPermissions);
   const agentPendingAskUser = useAgentStore((s) => s.pendingAskUser);
 
@@ -1143,7 +1187,7 @@ function ChatViewInner() {
     () => [
       {
         key: "copy-md",
-        label: t("chat.copyMarkdown", "复制 Markdown"),
+        label: t("chat.copyMarkdown"),
         icon: <Copy size={14} />,
         onClick: async () => {
           if (messages.length === 0) {
@@ -1195,7 +1239,7 @@ function ChatViewInner() {
       },
       {
         key: "export-md-no-thinking",
-        label: t("chat.exportMdNoThinking", "导出 Markdown（不含思维链）"),
+        label: t("chat.exportMdNoThinking"),
         icon: <FileCode size={14} />,
         onClick: async () => {
           if (messages.length === 0) {
@@ -1233,7 +1277,7 @@ function ChatViewInner() {
       },
       {
         key: "export-txt-no-thinking",
-        label: t("chat.exportTxtNoThinking", "导出文本（不含思维链）"),
+        label: t("chat.exportTxtNoThinking"),
         icon: <FileType size={14} />,
         onClick: async () => {
           if (messages.length === 0) {
@@ -1269,7 +1313,7 @@ function ChatViewInner() {
       },
       {
         key: "export-json-no-thinking",
-        label: t("chat.exportJsonNoThinking", "导出 JSON（不含思维链）"),
+        label: t("chat.exportJsonNoThinking"),
         icon: <FileText size={14} />,
         onClick: async () => {
           if (messages.length === 0) {
@@ -1287,7 +1331,7 @@ function ChatViewInner() {
       },
       {
         key: "html",
-        label: t("chat.exportHtml", "导出 HTML"),
+        label: t("chat.exportHtml"),
         icon: <Globe size={14} />,
         onClick: async () => {
           if (messages.length === 0) {
@@ -1305,7 +1349,7 @@ function ChatViewInner() {
       },
       {
         key: "export-html-no-thinking",
-        label: t("chat.exportHtmlNoThinking", "导出 HTML（不含思维链）"),
+        label: t("chat.exportHtmlNoThinking"),
         icon: <Globe size={14} />,
         onClick: async () => {
           if (messages.length === 0) {
@@ -1587,18 +1631,55 @@ function ChatViewInner() {
     const sw = consumeSwitch(activeConversationId);
     if (!sw) { return; }
     const role = getRoleById(sw.roleId);
-    const name = role?.displayName ?? "\u901A\u7528\u52A9\u624B";
+    const name = role?.displayName ?? t("chat.generalAssistant");
     const icon = role?.icon ?? "\uD83E\uDD16";
     setExpertSwitchBubble({
       key: `__expert-switch__${sw.roleId}__${Date.now()}`,
       role: "expert-switch",
-      content: JSON.stringify({ icon, name: `\u5DF2\u5207\u6362\u81F3\uFF1A${name}` }),
+      content: JSON.stringify({ icon, name: t("chat.switchedTo", { name }) }),
       variant: "borderless" as const,
     } as BubbleItemType);
   }, [activeConversationId, consumeSwitch, getRoleById]);
 
   const allBubbleItems = useMemo(() => {
     let items = bubbleItems;
+
+    // Inject topic group dividers if enabled
+    const topicEnabled = activeConversationId
+      && useTopicGroupStore.getState().enabledByConversation[activeConversationId];
+    const topicGroups = activeConversationId
+      ? useTopicGroupStore.getState().groupsByConversation[activeConversationId]
+      : null;
+    if (topicEnabled && topicGroups && topicGroups.length > 0) {
+      const msgKeyToGroup = new Map<string, typeof topicGroups[0]>();
+      for (const g of topicGroups) {
+        for (const mid of g.messageIds) {
+          msgKeyToGroup.set(mid, g);
+        }
+      }
+
+      const enhanced: typeof items = [];
+      let lastGroupId: string | null = null;
+
+      for (const item of items) {
+        const key = String(item.key);
+        const group = msgKeyToGroup.get(key);
+        if (group && group.id !== lastGroupId) {
+          lastGroupId = group.id;
+          enhanced.push({
+            key: `__topic-group__${group.id}`,
+            role: "topic-group",
+            content: group,
+            variant: "borderless" as const,
+          } as BubbleItemType);
+        }
+        if (group && group.collapsed) {
+          continue;
+        }
+        enhanced.push(item);
+      }
+      items = enhanced;
+    }
 
     // Append expert switch separator if present
     if (expertSwitchBubble) {
@@ -2440,7 +2521,7 @@ function ChatViewInner() {
 
   const expertSwitchRole = useCallback((bubbleData: BubbleItemType) => {
     let icon = "\uD83E\uDD16";
-    let name = "\u5DF2\u5207\u6362\u81F3\uFF1A\u901A\u7528\u52A9\u624B";
+    let name = t("chat.switchedTo", { name: t("chat.generalAssistant") });
     try {
       const data = JSON.parse(String(bubbleData.content ?? "{}"));
       icon = data.icon || icon;
@@ -2474,6 +2555,17 @@ function ChatViewInner() {
     };
   }, [token.colorPrimary, token.colorPrimaryBorder]);
 
+  const topicGroupRole = useCallback((bubbleData: BubbleItemType) => {
+    const group = bubbleData.content as import("@/stores/feature/topicGroupStore").TopicGroup;
+    if (!group || !activeConversationId) { return {} as any; }
+    return {
+      placement: "start" as const,
+      variant: "borderless" as const,
+      className: "context-clear-bubble",
+      contentRender: () => <TopicGroupDivider conversationId={activeConversationId} group={group} />,
+    };
+  }, [activeConversationId]);
+
   const roles: RoleType = useMemo(() => ({
     user: userRole,
     ai: aiRole,
@@ -2481,7 +2573,16 @@ function ChatViewInner() {
     "context-compressed": contextCompressedRole,
     "context-compressing": contextCompressingRole,
     "expert-switch": expertSwitchRole,
-  }), [aiRole, contextClearRole, contextCompressedRole, contextCompressingRole, expertSwitchRole, userRole]);
+    "topic-group": topicGroupRole,
+  }), [
+    aiRole,
+    contextClearRole,
+    contextCompressedRole,
+    contextCompressingRole,
+    expertSwitchRole,
+    userRole,
+    topicGroupRole,
+  ]);
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
@@ -2686,6 +2787,18 @@ function ChatViewInner() {
 
               <div className="flex-1" />
 
+              <Tooltip
+                title={topicGroupEnabled
+                  ? t("topicGroup.disableAutoGroup")
+                  : t("topicGroup.autoGroup")}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ListTodo size={14} style={{ color: topicGroupEnabled ? token.colorPrimary : undefined }} />}
+                  onClick={handleTopicGroupToggle}
+                />
+              </Tooltip>
               <ModelSelector />
               <Popover
                 content={<StatsPopoverContent stats={stats} t={t} token={token} />}
@@ -2701,6 +2814,15 @@ function ChatViewInner() {
               <Dropdown menu={{ items: exportMenuItems }} trigger={["click"]}>
                 <Button type="text" icon={<Share2 size={14} />} size="small" />
               </Dropdown>
+              <Tooltip title={t("chat.extractMemories")}>
+                <Button
+                  type="text"
+                  icon={<Brain size={14} />}
+                  size="small"
+                  onClick={() => setExtractMemoriesOpen(true)}
+                  disabled={!activeConversationId}
+                />
+              </Tooltip>
             </>
           )
           : (
@@ -2756,7 +2878,7 @@ function ChatViewInner() {
         role="log"
         aria-live="polite"
         aria-atomic="false"
-        aria-label={t("chat.messageArea", "消息区域")}
+        aria-label={t("chat.messageArea")}
         style={{
           // CSS containment for long conversations: tells the browser to skip
           // off-screen bubble rendering. Only applied when 50+ messages to avoid
@@ -2800,12 +2922,6 @@ function ChatViewInner() {
           )
           : (
             <>
-              {/* 统一执行时间线 — 整合 Plan + ToolCall + AgentPool */}
-              {activeConversation?.mode === "agent" && activeConversationId && (
-                <div style={{ padding: "4px 16px" }}>
-                  <ExecutionTimeline conversationId={activeConversationId} />
-                </div>
-              )}
               {/* 上下文图谱 — 可视化当前对话的上下文关系 */}
               {activeConversationId && (() => {
                 const ctxProvider = providers.find((p) => p.id === activeConversation?.provider_id);
@@ -2837,7 +2953,7 @@ function ChatViewInner() {
                       virtualizer.scrollToIndex(0, { behavior: "smooth" });
                     }}
                   >
-                    {`显示全部 ${allBubbleItems.length} 条消息`}
+                    {t("chat.showAllMessages", { count: allBubbleItems.length })}
                   </Button>
                 </div>
               )}
@@ -2860,7 +2976,7 @@ function ChatViewInner() {
                 && activeConversation?.workflow_status === "completed"
                 && (
                   <WorkflowEndMarker
-                    workflowName={activeConversation.workflow_template_id ?? "工作流"}
+                    workflowName={activeConversation.workflow_template_id ?? t("chat.workflowLabel")}
                     stepCount={0}
                     completedCount={0}
                     durationSeconds={0}
@@ -3081,6 +3197,11 @@ function ChatViewInner() {
           />
         )}
       </Modal>
+      <ExtractMemoriesModal
+        open={extractMemoriesOpen}
+        onClose={() => setExtractMemoriesOpen(false)}
+        conversationId={activeConversationId ?? ""}
+      />
     </div>
   );
 }
@@ -3088,10 +3209,17 @@ function ChatViewInner() {
 // Wrap with ModuleErrorBoundary for error isolation
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 
-export function ChatView() {
+export interface ChatViewScrollApi {
+  scrollTo: (messageId: string) => void;
+  scrollBoxRef: React.RefObject<HTMLElement | null>;
+}
+
+export function ChatView({ onScrollToReady }: {
+  onScrollToReady?: (api: ChatViewScrollApi) => void;
+}) {
   return (
     <ModuleErrorBoundary moduleName="ChatView" showDetails={import.meta.env.DEV}>
-      <ChatViewInner />
+      <ChatViewInner onScrollToReady={onScrollToReady} />
     </ModuleErrorBoundary>
   );
 }

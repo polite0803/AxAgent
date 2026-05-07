@@ -1381,6 +1381,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     return (
       <div
         className="flex flex-col items-center h-full"
+        data-tutorial="chat-sidebar"
         style={{
           width: "48px",
           paddingTop: 8,
@@ -1402,7 +1403,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   }
 
   return (
-    <div className="flex flex-col h-full transition-all duration-200">
+    <div className="flex flex-col h-full transition-all duration-200" data-tutorial="chat-sidebar">
       {/* Toolbar */}
       <div
         className="flex items-center justify-between"

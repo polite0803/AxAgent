@@ -10,26 +10,26 @@ interface DocumentParserPropertyPanelProps {
   onDelete: () => void;
 }
 
-const PARSER_TYPE_OPTIONS = [
-  { value: "pdf", label: "📄 PDF" },
-  { value: "markdown", label: "📝 Markdown" },
-  { value: "html", label: "🌐 HTML" },
-  { value: "json", label: "{} JSON" },
-  { value: "xml", label: "📋 XML" },
-  { value: "csv", label: "📊 CSV" },
-  { value: "text", label: "📃 纯文本" },
-];
-
 export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelProps> = (
   { node, onUpdate, onDelete },
 ) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const documentParserNode = node as DocumentParserNode;
   const config = documentParserNode.config || {
     input_var: "",
     parser_type: "text",
     output_var: "",
   };
+
+  const PARSER_TYPE_OPTIONS = [
+    { value: "pdf", label: "📄 PDF" },
+    { value: "markdown", label: "📝 Markdown" },
+    { value: "html", label: "🌐 HTML" },
+    { value: "json", label: "{} JSON" },
+    { value: "xml", label: "📋 XML" },
+    { value: "csv", label: "📊 CSV" },
+    { value: "text", label: t("workflow.props.plainText") },
+  ];
 
   const handleConfigChange = (key: string, value: unknown) => {
     onUpdate({ config: { ...config, [key]: value } });

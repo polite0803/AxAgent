@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface EndNodeData {
@@ -13,6 +14,7 @@ interface EndNodeData {
 }
 
 const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#ff4d4f";
 
   return (
@@ -52,7 +54,7 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({ data, selected }) 
               fontWeight: 600,
             }}
           >
-            结束
+            {t("workflow.endNode.title")}
           </span>
         </div>
 

@@ -11,7 +11,7 @@ interface TriggerPropertyPanelProps {
 }
 
 export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const triggerNode = node as TriggerNode;
   const triggerConfig = triggerNode.config || { type: "manual" as TriggerType, config: {} };
 
@@ -49,7 +49,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>Cron 表达式</label>
+              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.cronExpression")}</label>
               <Input
                 value={(triggerConfig.config as { cron?: string }).cron || ""}
                 onChange={(e) => handleConfigChange("cron", e.target.value)}
@@ -58,7 +58,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>时区</label>
+              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.timezone")}</label>
               <Select
                 value={(triggerConfig.config as { timezone?: string }).timezone || "UTC"}
                 onChange={(value) => handleConfigChange("timezone", value)}
@@ -150,7 +150,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
       default:
         return (
           <div style={{ color: "#666", fontSize: 11, padding: "8px 0" }}>
-            手动触发无需配置
+            {t("workflow.props.manualNoConfig")}
           </div>
         );
     }
@@ -159,24 +159,24 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>触发类型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.triggerType")}</label>
         <Select
           value={triggerConfig.type}
           onChange={handleTypeChange}
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "manual", label: "👆 手动触发" },
-            { value: "schedule", label: "⏰ 定时触发" },
+            { value: "manual", label: t("workflow.props.manualTrigger") },
+            { value: "schedule", label: t("workflow.props.scheduleTrigger") },
             { value: "webhook", label: "🪝 Webhook" },
-            { value: "event", label: "⚡ 事件触发" },
+            { value: "event", label: t("workflow.props.eventTrigger") },
           ]}
         />
       </div>
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-          触发配置
+          {t("workflow.props.triggerConfig")}
         </label>
         {renderTriggerConfig()}
       </div>

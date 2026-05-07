@@ -120,17 +120,13 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
         .into_iter()
         .map(|p| {
             let enabled = !disabled.contains(&p.metadata.name);
-            let frontend = p
+            let manifest = p
                 .metadata
                 .root
                 .as_ref()
                 .map(|root| root.join("skill-manifest.json"))
                 .and_then(|path| std::fs::read_to_string(&path).ok())
-                .and_then(|s| {
-                    let manifest: serde_json::Value = serde_json::from_str(&s).ok()?;
-                    manifest.get("frontend").cloned()
-                })
-                .and_then(|v| serde_json::from_value(v).ok());
+                .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok());
             SkillInfo {
                 name: p.metadata.name.clone(),
                 description: p.metadata.description.clone(),
@@ -148,7 +144,7 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
                 argument_hint: None,
                 when_to_use: None,
                 group: None,
-                frontend,
+                manifest,
             }
         })
         .collect();
@@ -188,11 +184,14 @@ pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<Skill
         })
         .unwrap_or_default();
 
-    // Read manifest if exists
+    // Read install metadata manifest (skill-manifest.json)
     let manifest_path = skill_dir.join("skill-manifest.json");
-    let manifest = std::fs::read_to_string(&manifest_path)
+    let raw_manifest_json = std::fs::read_to_string(&manifest_path)
         .ok()
-        .and_then(|s| serde_json::from_str::<SkillManifest>(&s).ok());
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok());
+    let install_meta = raw_manifest_json
+        .as_ref()
+        .and_then(|v| serde_json::from_value::<SkillManifest>(v.clone()).ok());
 
     // Read all .md files in the skill directory as content
     let content = collect_skill_content(&skill_dir);
@@ -210,14 +209,14 @@ pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<Skill
         argument_hint: None,
         when_to_use: None,
         group: None,
-        frontend: manifest.as_ref().and_then(|m| m.frontend.clone()),
+        manifest: raw_manifest_json,
     };
 
     Ok(SkillDetail {
         info,
         content,
         files,
-        manifest,
+        manifest: install_meta,
     })
 }
 
@@ -303,6 +302,10 @@ pub async fn install_skill(
         };
 
     let skill_target = target_dir.join(&skill_name);
+
+    // 检查依赖是否满足
+    check_skill_dependencies(&skill_target, &target_dir)?;
+
     let content = collect_skill_content(&skill_target);
     let now = chrono::Utc::now();
 
@@ -350,6 +353,34 @@ pub async fn install_skill(
         .map_err(|e| e.to_string())?;
 
     Ok(skill_name)
+}
+
+/// 检查 skill-manifest.json 中的 dependencies 是否已安装
+fn check_skill_dependencies(skill_dir: &Path, target_dir: &Path) -> Result<(), String> {
+    let manifest_path = skill_dir.join("skill-manifest.json");
+    if !manifest_path.exists() {
+        return Ok(()); // 无清单文件，跳过检查
+    }
+    let contents = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+    let manifest: serde_json::Value = serde_json::from_str(&contents)
+        .map_err(|e| format!("解析 skill-manifest.json 失败: {}", e))?;
+
+    let deps = match manifest.get("dependencies") {
+        Some(serde_json::Value::Object(deps)) => deps,
+        _ => return Ok(()), // 无依赖声明
+    };
+
+    for dep_name in deps.keys() {
+        let dep_dir = target_dir.join(dep_name);
+        if !dep_dir.exists() || !dep_dir.is_dir() {
+            return Err(format!(
+                "依赖未满足: Skill '{}' 需要 '{}'，但未在目标目录中找到",
+                skill_dir.file_name().unwrap_or_default().to_string_lossy(),
+                dep_name
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn load_plugin_scenarios(skill_dir: &Path) -> Vec<String> {
@@ -458,6 +489,11 @@ async fn install_from_github(
 
         if output.status.success() {
             let commit = get_git_commit(&skill_target).unwrap_or_else(|| "unknown".to_string());
+            // 清理 .git 目录，避免嵌套 git 仓库问题
+            let git_dir = skill_target.join(".git");
+            if git_dir.exists() {
+                let _ = std::fs::remove_dir_all(&git_dir);
+            }
             save_skill_manifest(
                 &skill_target,
                 "github",
@@ -746,12 +782,25 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn uninstall_skill(name: String) -> Result<(), String> {
-    let skill_dir = skills_dir().join(&name);
-    if !skill_dir.exists() {
-        return Err(format!("Skill '{}' not found in ~/.axagent/skills/", name));
+    let home = home_dir();
+    let search_dirs = [
+        home.join(".axagent").join("skills"),
+        home.join(".claude").join("skills"),
+        home.join(".agents").join("skills"),
+        home.join(".trae").join("skills"),
+        home.join(".codebuddy").join("skills"),
+        home.join(".workbuddy").join("skills"),
+    ];
+
+    for parent in &search_dirs {
+        let skill_dir = parent.join(&name);
+        if skill_dir.exists() && skill_dir.is_dir() {
+            std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
+            return Ok(());
+        }
     }
-    std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
-    Ok(())
+
+    Err(format!("Skill '{}' 未在任何技能目录中找到", name))
 }
 
 #[tauri::command]
@@ -1532,11 +1581,11 @@ pub async fn skill_upgrade_or_create(
     Ok(format!("Skill '{}' created at {}", name, dir.display()))
 }
 
-/// 设置技能的前端扩展配置。若 skill-manifest.json 不存在则创建，存在则更新 frontend 字段。
+/// 设置技能的 manifest 配置。写入或替换 skill-manifest.json。
 #[tauri::command]
-pub async fn skill_set_frontend(
+pub async fn skill_set_manifest(
     name: String,
-    frontend: SkillFrontendExtension,
+    manifest: serde_json::Value,
 ) -> Result<String, String> {
     let skill_dir = skills_dir().join(&name);
     if !skill_dir.exists() {
@@ -1544,19 +1593,10 @@ pub async fn skill_set_frontend(
     }
 
     let manifest_path = skill_dir.join("skill-manifest.json");
-    let mut manifest: serde_json::Value = if manifest_path.exists() {
-        let existing = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&existing).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-
-    manifest["frontend"] = serde_json::to_value(&frontend).map_err(|e| e.to_string())?;
-
     std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
         .map_err(|e| e.to_string())?;
 
-    Ok(format!("Frontend config set for skill '{}'", name))
+    Ok(format!("清单已保存: '{}'", name))
 }
 
 /// 使用 LLM 分析技能内容，自动生成前端扩展配置建议
@@ -1564,7 +1604,7 @@ pub async fn skill_set_frontend(
 pub async fn skill_analyze_frontend(
     state: State<'_, AppState>,
     name: String,
-) -> Result<SkillFrontendExtension, String> {
+) -> Result<serde_json::Value, String> {
     // 读取技能内容
     let plugin_manager = create_plugin_manager_with_skill_dirs()?;
     let plugins = plugin_manager.list_plugins().map_err(|e| e.to_string())?;
@@ -1579,7 +1619,6 @@ pub async fn skill_analyze_frontend(
         .ok_or_else(|| "Skill has no root dir".to_string())?;
     let raw_content = collect_skill_content(&skill_dir);
 
-    // 限制内容长度，避免 prompt 过大
     let max_content_len = 8000;
     let skill_content = if raw_content.len() > max_content_len {
         format!(
@@ -1592,7 +1631,7 @@ pub async fn skill_analyze_frontend(
     };
 
     if skill_content.trim().is_empty() {
-        return Err("Skill content is empty, cannot analyze".to_string());
+        return Err("Skill 内容为空，无法分析".to_string());
     }
 
     // 获取默认 Provider 配置
@@ -1608,7 +1647,6 @@ pub async fn skill_analyze_frontend(
         .as_ref()
         .ok_or_else(|| "未配置默认模型".to_string())?;
 
-    // 获取 Provider 并解密 key
     let provider = axagent_core::repo::provider::get_provider(&state.sea_db, provider_id)
         .await
         .map_err(|e| e.to_string())?;
@@ -1618,7 +1656,6 @@ pub async fn skill_analyze_frontend(
     let decrypted_key =
         decrypt_key(&key_row.key_encrypted, &state.master_key).map_err(|e| e.to_string())?;
 
-    // 注册 Provider Adapter
     let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let registry_key = match provider.provider_type {
         ProviderType::OpenAI => "openai",
@@ -1631,11 +1668,10 @@ pub async fn skill_analyze_frontend(
     };
     let adapter = registry
         .get(registry_key)
-        .ok_or_else(|| format!("Provider adapter not found for {}", registry_key))?;
+        .ok_or_else(|| format!("未找到 Provider adapter: {}", registry_key))?;
 
-    // 构造分析 prompt
     let prompt = format!(
-        r#"你是一个 UI 扩展分析专家。请分析以下技能(Skill)的说明文档，推断出该技能可能需要哪些前端 UI 扩展。
+        r#"你是一个 UI 扩展分析专家。分析以下 Skill 文档，生成 skill-manifest.json 的 capabilities 和 permissions 配置。
 
 技能名称：{name}
 
@@ -1644,68 +1680,85 @@ pub async fn skill_analyze_frontend(
 {skill_content}
 ---
 
-## 分析要求
-
-请为该技能设计合适的前端扩展配置，以 JSON 格式输出。支持的扩展类型：
-
-### navigation（导航）
-向侧边栏添加导航菜单项。字段：
-- id: 唯一标识
-- label: 显示标签
-- icon: 图标标识 (如 "lucide:Puzzle", "lucide:FolderOpen", "lucide:Settings", "lucide:Search", "lucide:Code", "lucide:ChartBar", "lucide:Database", "lucide:Globe", "lucide:Play", "lucide:Wrench", "lucide:MessageSquare", "lucide:LayoutDashboard", "lucide:ExternalLink")
-- path: 路由路径 (如 "/skill-name")
-- position: "Top" 或 "Bottom"
-- order: 排序数字
-
-### pages（页面）
-技能的自定义页面。字段：
-- id: 唯一标识
-- path: 路由路径
-- title: 页面标题
-- componentType: "Html" | "Iframe" | "Markdown"
-- componentConfig: 配置对象，如 {{ "file": "index.html" }}
-
-### commands（命令）
-命令面板中的命令。字段：
-- id: 唯一标识
-- label: 命令标签
-- category: 命令分类
-- icon: 图标标识（可选）
-- action: 动作对象，支持以下类型：
-  - {{ "type": "Navigate", "path": "/path" }}  导航到页面
-  - {{ "type": "InvokeBackend", "command": "command_name", "args": {{}} }}  调用后端命令
-  - {{ "type": "EmitEvent", "event": "event_name", "payload": {{}} }}  发送事件
-
-### panels（面板）
-嵌入到界面的面板。字段：
-- id: 唯一标识
-- title: 面板标题
-- componentType: "Html" | "Iframe" | "Markdown"
-- componentConfig: 配置对象，如 {{ "file": "panel.html" }}
-- position: "Main" | "Sidebar" | "Header" | "Footer"
-- size: "Small" | "Medium" | "Large" | "FullWidth"
-- collapsible: true/false
-
-### settingsSections（设置段）
-设置页面的自定义段。字段：
-- id: 唯一标识
-- label: 段标签
-- icon: 图标标识（可选）
-- componentType: "Html" | "Iframe" | "Markdown"
-- componentConfig: 配置对象，如 {{ "file": "settings.html" }}
-
 ## 输出格式
 
-请只输出 JSON，不要有其他文字。格式如下：
+只输出 JSON，不要有其他文字。格式：
 {{
-  "navigation": [...],
-  "pages": [...],
-  "commands": [...],
-  "panels": [...],
-  "settingsSections": [...]
+  "name": "{name}",
+  "version": "0.1.0",
+  "description": "技能描述",
+  "capabilities": [
+    {{
+      "type": "page",
+      "id": "页面ID",
+      "title": "页面标题",
+      "componentType": "Sandbox",
+      "componentConfig": {{ "entry": "index.html" }}
+    }},
+    {{
+      "type": "panel",
+      "id": "面板ID",
+      "title": "面板标题",
+      "componentType": "Sandbox",
+      "componentConfig": {{ "entry": "panel.html" }},
+      "position": "Sidebar",
+      "size": "Medium"
+    }},
+    {{
+      "type": "toolbar",
+      "id": "按钮ID",
+      "title": "按钮标题",
+      "icon": "lucide:Puzzle",
+      "tooltip": "提示",
+      "position": "left",
+      "priority": 0,
+      "onClick": []
+    }},
+    {{
+      "type": "chatCommand",
+      "id": "命令ID",
+      "title": "命令标题",
+      "commandName": "/command",
+      "description": "命令描述",
+      "mode": "agentic",
+      "actions": []
+    }},
+    {{
+      "type": "statusBar",
+      "id": "状态栏ID",
+      "title": "标题",
+      "alignment": "left",
+      "text": "文本"
+    }},
+    {{
+      "type": "navigation",
+      "id": "导航ID",
+      "title": "标题",
+      "icon": "lucide:Puzzle",
+      "pageId": "页面ID",
+      "position": 1
+    }},
+    {{
+      "type": "settings",
+      "id": "设置ID",
+      "title": "设置标题",
+      "settingsGroup": "extensions",
+      "componentType": "Sandbox",
+      "componentConfig": {{ "entry": "settings.html" }}
+    }}
+  ],
+  "permissions": {{
+    "commands": [],
+    "events": [],
+    "storeRead": [],
+    "storeWrite": [],
+    "navigate": []
+  }}
 }}
 
-请根据技能内容，合理推断并生成合适的扩展配置。如果某个类型不需要，返回空数组 []。"#,
+capability type 可选: page, panel, toolbar, chatCommand, statusBar, navigation, settings。
+componentType 可选: "Sandbox" (沙箱页面) 或 "Markdown" (纯文档)。
+不需要的 capability 类型不要包含。根据技能内容合理推断。"#,
         name = name,
         skill_content = skill_content,
     );
@@ -1726,66 +1779,105 @@ pub async fn skill_analyze_frontend(
         store_response: None,
     };
 
-    let llm_request = ChatRequest {
-        model: model_id.clone(),
-        messages: vec![ChatMessage {
-            role: "user".to_string(),
-            content: ChatContent::Text(prompt),
-            tool_calls: None,
-            tool_call_id: None,
-        }],
-        temperature: Some(0.3),
-        top_p: None,
-        max_tokens: Some(4096),
-        stream: false,
-        tools: None,
-        thinking_budget: None,
-        use_max_completion_tokens: None,
-        thinking_param_style: None,
-        api_mode: None,
-        instructions: None,
-        conversation: None,
-        previous_response_id: None,
-        store: None,
-    };
+    // 带重试的 LLM 调用（最多 3 次）
+    let max_retries = 3;
+    let mut last_error = String::new();
 
-    let response = adapter
-        .chat(&ctx, llm_request)
-        .await
-        .map_err(|e| format!("LLM 调用失败: {}", e))?;
+    for attempt in 1..=max_retries {
+        let llm_request = ChatRequest {
+            model: model_id.clone(),
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(if attempt > 1 {
+                    format!("之前的输出格式不正确，请严格只输出 JSON。\n\n{}", prompt)
+                } else {
+                    prompt.clone()
+                }),
+                tool_calls: None,
+                tool_call_id: None,
+            }],
+            temperature: Some(0.3),
+            top_p: None,
+            max_tokens: Some(4096),
+            stream: false,
+            tools: None,
+            thinking_budget: None,
+            use_max_completion_tokens: None,
+            thinking_param_style: None,
+            api_mode: None,
+            instructions: None,
+            conversation: None,
+            previous_response_id: None,
+            store: None,
+        };
 
-    let content = response.content.trim();
+        let response = match adapter.chat(&ctx, llm_request).await {
+            Ok(r) => r,
+            Err(e) => {
+                last_error = format!("LLM 调用失败: {}", e);
+                if attempt < max_retries {
+                    continue;
+                }
+                return Err(last_error);
+            },
+        };
 
-    // 提取 JSON（处理 markdown 代码块）
-    let json_str = if let Some(start) = content.find("```json") {
-        let after = &content[start + 7..];
-        if let Some(end) = after.find("```") {
-            &after[..end]
-        } else {
-            after
-        }
-    } else if let Some(start) = content.find("```") {
-        let after = &content[start + 3..];
-        if let Some(end) = after.find("```") {
-            &after[..end]
-        } else {
-            after
-        }
-    } else {
-        let json_start = content.find('{');
-        let json_end = content.rfind('}').map(|i| i + 1);
-        match (json_start, json_end) {
-            (Some(start), Some(end)) => &content[start..end],
-            _ => content,
+        let content = response.content.trim();
+        let json_str = extract_json(content);
+
+        match serde_json::from_str::<serde_json::Value>(json_str) {
+            Ok(value) => {
+                // 校验必需字段
+                if value.get("capabilities").is_some() {
+                    return Ok(value);
+                }
+                last_error = "响应缺少 capabilities 字段".to_string();
+                if attempt < max_retries {
+                    continue;
+                }
+            },
+            Err(e) => {
+                last_error = format!(
+                    "解析 LLM 响应失败 (尝试 {}/{}): {}。原始响应: {}",
+                    attempt,
+                    max_retries,
+                    e,
+                    &content[..content.len().min(300)]
+                );
+                if attempt < max_retries {
+                    continue;
+                }
+            },
         }
     }
-    .trim();
 
-    let frontend: SkillFrontendExtension = serde_json::from_str(json_str).map_err(|e| {
-        format!("解析 LLM 响应失败: {}。原始响应: {}", e, &content[..content.len().min(500)])
-    })?;
+    Err(last_error)
+}
 
-    Ok(frontend)
+fn extract_json(content: &str) -> &str {
+    let content = content.trim();
+    // 尝试 markdown 代码块
+    if let Some(start) = content.find("```json") {
+        let after = &content[start + 7..];
+        if let Some(end) = after.find("```") {
+            return after[..end].trim();
+        }
+        return after.trim();
+    }
+    if let Some(start) = content.find("```") {
+        let after = &content[start + 3..];
+        if let Some(end) = after.find("```") {
+            return after[..end].trim();
+        }
+        return after.trim();
+    }
+    // 尝试直接提取花括号
+    if let Some(start) = content.find('{') {
+        if let Some(end) = content.rfind('}') {
+            return &content[start..=end];
+        }
+    }
+    content
 }
 
 /// 读取技能目录下的资源文件内容（用于 HTML/JS/CSS 等静态资源）
@@ -1809,14 +1901,15 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Strin
         return Err(format!("File '{}' not found in skill '{}'", file_name, name));
     }
 
-    // 只允许文本类文件
+    // 允许文本类文件和常见二进制资源
     let ext = canonical_requested
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
     let allowed = [
-        "html", "htm", "md", "txt", "css", "js", "json", "svg", "xml",
+        "html", "htm", "md", "txt", "css", "js", "json", "svg", "xml", "png", "jpg", "jpeg", "gif",
+        "webp", "ico", "woff", "woff2", "ttf", "otf",
     ];
     if !allowed.contains(&ext.as_str()) {
         return Err(format!("File type '{}' is not allowed for direct reading", ext));

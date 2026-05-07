@@ -11,7 +11,7 @@
 // ── 基础类型 ─────────────────────────────────────────────────────────
 
 /** Skill 清单（skill.json 顶层结构） */
-export interface SkillManifestV2 {
+export interface SkillManifest {
   /** 技能名称（唯一标识，kebab-case） */
   name: string;
   /** 语义化版本号 */
@@ -25,18 +25,18 @@ export interface SkillManifestV2 {
   /** 依赖的其他 Skill（名称 → 版本约束） */
   dependencies?: Record<string, string>;
   /** 权限声明（白名单，宿主强制执行） */
-  permissions: SkillPermissionsV2;
+  permissions: SkillPermissions;
   /** 能力声明列表 */
   capabilities: SkillCapability[];
   /** 生命周期钩子 */
-  lifecycle?: SkillLifecycleHooksV2;
+  lifecycle?: SkillLifecycleHooks;
   /** Skill SKILL.md 的主内容文件路径，默认 "SKILL.md" */
   entryPoint?: string;
 }
 
 // ── 权限声明（加载时强制执行的白名单） ─────────────────────────────
 
-export interface SkillPermissionsV2 {
+export interface SkillPermissions {
   /** 允许调用的 Tauri 命令列表 */
   commands?: string[];
   /** 允许发送的事件列表，支持通配符 "app:*" */
@@ -274,7 +274,7 @@ export type SkillActionDeclarative =
 
 // ── 生命周期钩子 ───────────────────────────────────────────────────
 
-export interface SkillLifecycleHooksV2 {
+export interface SkillLifecycleHooks {
   /** 安装后触发 */
   onInstall?: SkillActionDeclarative[];
   /** 启用时触发 */

@@ -150,6 +150,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const {
     isDecompositionTemplate,
@@ -166,6 +167,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     recommendNodes,
     exportTemplate,
     importTemplate,
+    loadTemplates,
   } = useWorkflowEditorStore();
 
   useEffect(() => {
@@ -175,6 +177,29 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       initNewTemplate();
     }
   }, [templateId]);
+
+  useEffect(() => {
+    if (!isDirty || !currentTemplate?.id || isSaving || isDecompositionTemplate) { return; }
+
+    const timer = setTimeout(() => {
+      const input = {
+        name: currentTemplate.name,
+        description: currentTemplate.description,
+        icon: currentTemplate.icon,
+        tags: currentTemplate.tags,
+        trigger_config: currentTemplate.trigger_config,
+        nodes,
+        edges,
+        input_schema: currentTemplate.input_schema,
+        output_schema: currentTemplate.output_schema,
+        variables: currentTemplate.variables,
+        error_config: currentTemplate.error_config,
+      };
+      updateTemplate(currentTemplate.id, input);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [isDirty, nodes, edges, currentTemplate, isSaving, isDecompositionTemplate, updateTemplate]);
 
   useEffect(() => {
     if (isInitialized && isDecompositionTemplate && nodes.length > 0) {
@@ -195,8 +220,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
   useEffect(() => {
     if (currentTemplate) {
+      const errorNodeIds = new Set<string>();
+      const warningNodeIds = new Set<string>();
+      if (validationResult) {
+        validationResult.errors.forEach((e) => {
+          if (e.node_id) { errorNodeIds.add(e.node_id); }
+        });
+        validationResult.warnings.forEach((w) => {
+          if (w.node_id) { warningNodeIds.add(w.node_id); }
+        });
+      }
+
       const flowNodes: Node[] = nodes.map((node: WorkflowNode) => {
-        const typeInfo = NODE_TYPE_MAP[node.type] || { label: node.type, color: "#999" };
+        const typeInfo = NODE_TYPE_MAP[node.type] || { labelKey: "", color: "#999" };
         const nodeType = NODE_TYPE_MAP[node.type] ? node.type : "base";
 
         let semanticMatch = undefined;
@@ -213,6 +249,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           }
         }
 
+        let validationState: "error" | "warning" | undefined;
+        if (errorNodeIds.has(node.id)) {
+          validationState = "error";
+        } else if (warningNodeIds.has(node.id)) {
+          validationState = "warning";
+        }
+
         return {
           id: node.id,
           type: nodeType,
@@ -225,6 +268,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
             semanticMatch,
             onSemanticAction: applySemanticAction,
             onUpgradeRequest: handleUpgradeRequest,
+            ...(validationState ? { validationState } : {}),
             ...(node.type === "agent" && (node as AgentNodeType).config
               ? {
                 agentRole: (node as AgentNodeType).config.role,
@@ -263,7 +307,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       setREdges(flowEdges);
       setIsInitialized(true);
     }
-  }, [currentTemplate, nodes, edges]);
+  }, [currentTemplate, nodes, edges, validationResult]);
 
   const handleUpgradeRequest = useCallback(
     (
@@ -344,6 +388,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
   const reactFlowInstance = useReactFlow();
 
+  const onMoveEnd = useCallback(() => {
+    setZoom(reactFlowInstance.getZoom());
+  }, [reactFlowInstance]);
+
+  const handleFitView = useCallback(() => {
+    reactFlowInstance.fitView({ padding: 0.2 });
+  }, [reactFlowInstance]);
+
+  const handleResetZoom = useCallback(() => {
+    reactFlowInstance.zoomTo(1);
+    setZoom(1);
+  }, [reactFlowInstance]);
+
   // Custom DnD: handle mouse-up on the canvas to place a node.
   // We listen on the window so the drop works even if the cursor
   // is slightly outside the ReactFlow pane.
@@ -353,7 +410,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       if (!payload) { return; }
 
       try {
-        const typeInfo = NODE_TYPE_MAP[payload.type] || { label: payload.type, color: "#999" };
+        const typeInfo = NODE_TYPE_MAP[payload.type] || { labelKey: "", color: "#999" };
 
         // Check if the mouse is within the canvas area
         const canvasEl = document.querySelector(".react-flow");
@@ -384,7 +441,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           data: {
             id,
             type: payload.type,
-            title: t("workflow.newNode", { type: typeInfo.label }),
+            title: t("workflow.newNode", { type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type }),
             description: "",
             color: typeInfo.color,
             nodeType: payload.type,
@@ -399,12 +456,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           id,
           payload.type,
           position,
-          t("workflow.newNode", { type: typeInfo.label }),
+          t("workflow.newNode", { type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type }),
         );
         useWorkflowEditorStore.getState().addNode(workflowNode);
       } catch (error) {
         console.error("Failed to drop node:", error);
-        message.error(`节点放置失败: ${String(error)}`);
+        message.error(t("workflow.nodeDropFailed", { error: String(error) }));
       } finally {
         clearDragPayload();
       }
@@ -421,21 +478,21 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       if (isCtrlOrCmd && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         if (canUndo()) { undo(); }
-        else { message.info("没有可撤销的操作"); }
+        else { message.info(t("workflow.noUndoAvailable")); }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "z" && e.shiftKey) {
         e.preventDefault();
         if (canRedo()) { redo(); }
-        else { message.info("没有可重做的操作"); }
+        else { message.info(t("workflow.noRedoAvailable")); }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "y") {
         e.preventDefault();
         if (canRedo()) { redo(); }
-        else { message.info("没有可重做的操作"); }
+        else { message.info(t("workflow.noRedoAvailable")); }
         return;
       }
 
@@ -580,6 +637,22 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     [updateTemplateMetadata],
   );
 
+  const handleClose = useCallback(() => {
+    if (isDirty) {
+      Modal.confirm({
+        title: t("wiki.unsavedTitle"),
+        content: t("wiki.unsavedContent"),
+        okText: t("wiki.discard"),
+        cancelText: t("wiki.keepEditing"),
+        onOk: () => {
+          onClose?.();
+        },
+      });
+    } else {
+      onClose?.();
+    }
+  }, [isDirty, t, onClose]);
+
   const selectedNode = useMemo(() => {
     if (!selectedNodeId) { return null; }
     return nodes.find((n) => n.id === selectedNodeId) || null;
@@ -606,10 +679,18 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         isSaving={isSaving}
         onSave={handleSave}
         onNameChange={handleNameChange}
-        onClose={onClose}
+        onClose={handleClose}
         onToggleAIPanel={() => setAiPanelVisible(!aiPanelVisible)}
         onToggleDebugPanel={() => setDebugPanelVisible(!debugPanelVisible)}
         onOpenImportExport={() => setImportExportModalVisible(true)}
+        onUndo={() => {
+          if (canUndo()) { undo(); }
+        }}
+        onRedo={() => {
+          if (canRedo()) { redo(); }
+        }}
+        canUndo={canUndo()}
+        canRedo={canRedo()}
         aiPanelVisible={aiPanelVisible}
         debugPanelVisible={debugPanelVisible}
       />
@@ -629,6 +710,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                 onNodeClick={onNodeClick}
                 onEdgeClick={onEdgeClick}
                 onPaneClick={onPaneClick}
+                onMoveEnd={onMoveEnd}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 defaultEdgeOptions={defaultEdgeOptions}
@@ -709,6 +791,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         edgeCount={edges.length}
         validationResult={validationResult}
         isDirty={isDirty}
+        zoom={zoom}
+        onFitView={handleFitView}
+        onResetZoom={handleResetZoom}
       />
 
       {error && (
@@ -730,7 +815,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
             onClick={async () => {
               setSimilarWorkflowsModal((prev) => ({ ...prev, visible: false }));
               message.success(t("workflow.workflowSavedAsNew"));
-              onClose?.();
+              handleClose();
             }}
           >
             {t("workflow.saveAsNew")}
@@ -748,7 +833,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                   );
                   message.success(t("workflow.workflowUpdated", { name: wf.name }));
                   setSimilarWorkflowsModal((prev) => ({ ...prev, visible: false }));
-                  onClose?.();
+                  handleClose();
                 } catch (e) {
                   message.error(String(e));
                 }
@@ -776,6 +861,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         onClose={() => setImportExportModalVisible(false)}
         onExport={exportTemplate}
         onImport={importTemplate}
+        onImportComplete={() => { loadTemplates(); }}
       />
     </div>
   );
@@ -806,8 +892,16 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
       return { tool_name: "", input_mapping: {}, output_var: "" };
     case "code":
       return { language: "javascript", code: "", output_var: "" };
-    case "agent":
-      return { skill_id: "", skill_name: "", entry_type: "builtin", input_mapping: {}, output_var: "" };
+    case "merge":
+      return { merge_type: "all", inputs: [] };
+    case "delay":
+      return { delay_type: "seconds", seconds: 5 };
+    case "subWorkflow":
+      return { sub_workflow_id: "", input_mapping: {}, output_var: "", is_async: false };
+    case "documentParser":
+      return { input_var: "", parser_type: "", output_var: "" };
+    case "vectorRetrieve":
+      return { query: "", knowledge_base_id: "", top_k: 5, output_var: "" };
     case "end":
       return { output_var: "" };
     case "validation":
@@ -883,19 +977,6 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
         ...baseNode,
         type: "vectorRetrieve",
         config: { query: "", knowledge_base_id: "", top_k: 5, output_var: "" },
-      };
-    case "agent":
-      return {
-        ...baseNode,
-        type: "agent",
-        config: {
-          role: "executor" as AgentRole,
-          system_prompt: "",
-          context_sources: [],
-          output_var: "",
-          tools: [],
-          output_mode: "text" as OutputMode,
-        },
       };
     case "end":
       return { ...baseNode, type: "end", config: {} };

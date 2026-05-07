@@ -47,6 +47,7 @@ interface WorkflowEditorState {
   error: string | null;
   past: Array<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }>;
   future: Array<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }>;
+  _lastUndoRecordTime: number;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -85,7 +86,7 @@ interface WorkflowEditorState {
   duplicateTemplate: (id: string) => Promise<string | null>;
   validateTemplate: () => Promise<ValidationResult | null>;
   exportTemplate: (id: string) => Promise<string | null>;
-  importTemplate: (jsonData: string) => Promise<string | null>;
+  importTemplate: (jsonData: string) => Promise<{ id: string; warnings: string[]; errors: string[] } | null>;
   loadTemplateVersions: (id: string) => Promise<number[]>;
   loadTemplateByVersion: (id: string, version: number) => Promise<void>;
 
@@ -149,9 +150,13 @@ interface WorkflowEditorState {
   setSimilarWorkflowsForReview: (workflows: SimilarWorkflow[], pendingData: PendingWorkflowData) => void;
   clearSimilarWorkflowsForReview: () => void;
 
-  generateWorkflowFromPrompt: (prompt: string) => Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] } | null>;
+  generateWorkflowFromPrompt: (
+    prompt: string,
+  ) => Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[]; explanation?: string } | null>;
   optimizeAgentPrompt: (prompt: string) => Promise<string | null>;
-  recommendNodes: (context: string) => Promise<string[] | null>;
+  recommendNodes: (
+    context: string,
+  ) => Promise<Array<{ node_type: string; label: string; description: string; confidence: number }> | null>;
 
   semanticCheckResult: SemanticCheckResult | null;
   pendingReplacements: Map<string, { existingSkillId: string; action: SkillReplacementAction }>;
@@ -209,6 +214,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     edges: [],
     past: [],
     future: [],
+    _lastUndoRecordTime: 0,
 
     undo: () => {
       const { past } = get();
@@ -428,12 +434,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const id = await invoke<string>("import_workflow_template", { jsonData });
+        const result = await invoke<{ id: string; warnings: string[]; errors: string[] }>("import_workflow_template", { jsonData });
         await get().loadTemplates();
         set((state) => {
           state.isSaving = false;
         });
-        return id;
+        return result;
       } catch (error) {
         set((state) => {
           state.error = String(error);
@@ -511,6 +517,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
         }
+        state._lastUndoRecordTime = Date.now();
         state.nodes.push(node);
         state.isDirty = true;
       });
@@ -518,10 +525,14 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     updateNode: (nodeId: string, updates: Partial<WorkflowNode>) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
-        state.future = [];
-        if (state.past.length > 50) {
-          state.past = state.past.slice(-50);
+        const now = Date.now();
+        if (now - state._lastUndoRecordTime >= 1000) {
+          state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+          state.future = [];
+          if (state.past.length > 50) {
+            state.past = state.past.slice(-50);
+          }
+          state._lastUndoRecordTime = now;
         }
         const index = state.nodes.findIndex((n) => n.id === nodeId);
         if (index !== -1) {
@@ -538,6 +549,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
         }
+        state._lastUndoRecordTime = Date.now();
         state.nodes = state.nodes.filter((n) => n.id !== nodeId);
         state.edges = state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId);
         if (state.selectedNodeId === nodeId) {
@@ -554,6 +566,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
         }
+        state._lastUndoRecordTime = Date.now();
         state.edges.push(edge);
         state.isDirty = true;
       });
@@ -561,10 +574,14 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     updateEdge: (edgeId: string, updates: Partial<WorkflowEdge>) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
-        state.future = [];
-        if (state.past.length > 50) {
-          state.past = state.past.slice(-50);
+        const now = Date.now();
+        if (now - state._lastUndoRecordTime >= 1000) {
+          state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+          state.future = [];
+          if (state.past.length > 50) {
+            state.past = state.past.slice(-50);
+          }
+          state._lastUndoRecordTime = now;
         }
         const index = state.edges.findIndex((e) => e.id === edgeId);
         if (index !== -1) {
@@ -581,6 +598,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
         }
+        state._lastUndoRecordTime = Date.now();
         state.edges = state.edges.filter((e) => e.id !== edgeId);
         if (state.selectedEdgeId === edgeId) {
           state.selectedEdgeId = null;
@@ -596,6 +614,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
         }
+        state._lastUndoRecordTime = Date.now();
         state.nodes = nodes;
         state.isDirty = true;
       });
@@ -608,6 +627,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
         }
+        state._lastUndoRecordTime = Date.now();
         state.edges = edges;
         state.isDirty = true;
       });
@@ -855,7 +875,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             state.edges = result.edges;
             state.isLoading = false;
           });
-          return { nodes: result.nodes, edges: result.edges };
+          return { nodes: result.nodes, edges: result.edges, explanation: result.explanation };
         }
         return null;
       } catch (error) {
@@ -902,7 +922,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         set((state) => {
           state.isLoading = false;
         });
-        return result?.map((r) => r.label) ?? null;
+        return result ?? null;
       } catch (error) {
         set((state) => {
           state.error = String(error);

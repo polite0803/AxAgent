@@ -18,6 +18,7 @@ type ConversationPreferenceState = Pick<
   | "enabledMcpServerIds"
   | "enabledKnowledgeBaseIds"
   | "enabledMemoryNamespaceIds"
+  | "enabledWikiIds"
 >;
 
 function conversationPreferenceStateFromConversation(
@@ -31,6 +32,7 @@ function conversationPreferenceStateFromConversation(
     enabledMcpServerIds: [...(conversation?.enabled_mcp_server_ids ?? [])],
     enabledKnowledgeBaseIds: [...(conversation?.enabled_knowledge_base_ids ?? [])],
     enabledMemoryNamespaceIds: [...(conversation?.enabled_memory_namespace_ids ?? [])],
+    enabledWikiIds: [...(conversation?.enabled_wiki_ids ?? [])],
   };
 }
 
@@ -43,6 +45,7 @@ function conversationPreferenceUpdateFromState(
     | "enabledMcpServerIds"
     | "enabledKnowledgeBaseIds"
     | "enabledMemoryNamespaceIds"
+    | "enabledWikiIds"
   >,
 ): Pick<
   UpdateConversationInput,
@@ -52,6 +55,7 @@ function conversationPreferenceUpdateFromState(
   | "enabled_mcp_server_ids"
   | "enabled_knowledge_base_ids"
   | "enabled_memory_namespace_ids"
+  | "enabled_wiki_ids"
 > {
   return {
     search_enabled: state.searchEnabled,
@@ -60,6 +64,7 @@ function conversationPreferenceUpdateFromState(
     enabled_mcp_server_ids: [...state.enabledMcpServerIds],
     enabled_knowledge_base_ids: [...state.enabledKnowledgeBaseIds],
     enabled_memory_namespace_ids: [...state.enabledMemoryNamespaceIds],
+    enabled_wiki_ids: [...state.enabledWikiIds],
   };
 }
 
@@ -140,6 +145,7 @@ async function persistConversationPreferences(
         enabledMcpServerIds: prefState.enabledMcpServerIds,
         enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
         enabledMemoryNamespaceIds: prefState.enabledMemoryNamespaceIds,
+        enabledWikiIds: prefState.enabledWikiIds,
       }, optimisticState)
     ) {
       useConversationStore.setState({ error: String(error) });
@@ -211,6 +217,7 @@ interface PreferenceState {
   thinkingBudget: number | null;
   enabledKnowledgeBaseIds: string[];
   enabledMemoryNamespaceIds: string[];
+  enabledWikiIds: string[];
   setSearchEnabled: (enabled: boolean) => void;
   setSearchProviderId: (id: string | null) => void;
   setEnabledMcpServerIds: (ids: string[]) => void;
@@ -221,6 +228,8 @@ interface PreferenceState {
   toggleKnowledgeBase: (id: string) => void;
   setEnabledMemoryNamespaceIds: (ids: string[]) => void;
   toggleMemoryNamespace: (id: string) => void;
+  setEnabledWikiIds: (ids: string[]) => void;
+  toggleWiki: (id: string) => void;
 }
 
 export const usePreferenceStore = create<PreferenceState>((set, get) => ({
@@ -231,6 +240,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
   thinkingBudget: null,
   enabledKnowledgeBaseIds: [],
   enabledMemoryNamespaceIds: [],
+  enabledWikiIds: [],
 
   setSearchEnabled: (enabled) => {
     const previous = get().searchEnabled;
@@ -392,6 +402,36 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { enabled_memory_namespace_ids: nextIds },
         { enabledMemoryNamespaceIds: nextIds },
         { enabledMemoryNamespaceIds: previous },
+      );
+    }
+  },
+  setEnabledWikiIds: (ids) => {
+    const previous = get().enabledWikiIds;
+    const conversationId = useConversationStore.getState().activeConversationId;
+    const nextIds = [...ids];
+    set({ enabledWikiIds: nextIds });
+    if (conversationId) {
+      void persistConversationPreferences(
+        conversationId,
+        { enabled_wiki_ids: nextIds },
+        { enabledWikiIds: nextIds },
+        { enabledWikiIds: previous },
+      );
+    }
+  },
+  toggleWiki: (id) => {
+    const previous = get().enabledWikiIds;
+    const nextIds = previous.includes(id)
+      ? previous.filter((wikiId) => wikiId !== id)
+      : [...previous, id];
+    const conversationId = useConversationStore.getState().activeConversationId;
+    set({ enabledWikiIds: nextIds });
+    if (conversationId) {
+      void persistConversationPreferences(
+        conversationId,
+        { enabled_wiki_ids: nextIds },
+        { enabledWikiIds: nextIds },
+        { enabledWikiIds: previous },
       );
     }
   },

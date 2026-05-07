@@ -1,0 +1,66 @@
+// 消息续写状态管理
+import { invoke } from "@/lib/invoke";
+import { useConversationStore } from "@/stores";
+import { create } from "zustand";
+
+interface ContinuationStore {
+  continuing: Record<string, boolean>;
+  continuableMessages: Record<
+    string,
+    Array<{
+      id: string;
+      parentMessageId: string;
+      status: string;
+      contentPreview: string;
+      createdAt: number;
+    }>
+  >;
+
+  loadContinuable: (conversationId: string) => Promise<void>;
+  startContinue: (
+    conversationId: string,
+    messageId: string,
+    branch: boolean,
+  ) => Promise<void>;
+}
+
+export const useContinuationStore = create<ContinuationStore>((set) => ({
+  continuing: {},
+  continuableMessages: {},
+
+  loadContinuable: async (conversationId: string) => {
+    try {
+      const result = await invoke<
+        Array<{
+          id: string;
+          parentMessageId: string;
+          status: string;
+          contentPreview: string;
+          createdAt: number;
+        }>
+      >("list_continuable_messages", { conversationId });
+      set((s) => ({
+        continuableMessages: {
+          ...s.continuableMessages,
+          [conversationId]: result,
+        },
+      }));
+    } catch (e) {
+      console.error("[continuationStore] 加载可续写消息失败:", e);
+    }
+  },
+
+  startContinue: async (conversationId, messageId, branch) => {
+    set((s) => ({ continuing: { ...s.continuing, [messageId]: true } }));
+
+    try {
+      await invoke("continue_message", { conversationId, messageId, branch });
+      const convStore = useConversationStore.getState();
+      await convStore.regenerateMessage(messageId);
+    } catch (e) {
+      console.error("[continuationStore] 续写失败:", e);
+    } finally {
+      set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
+    }
+  },
+}));

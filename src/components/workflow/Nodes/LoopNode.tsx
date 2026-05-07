@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface LoopNodeData {
@@ -18,6 +19,7 @@ interface LoopNodeData {
 }
 
 const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#fa8c16";
   const loopType = data.loopType || "forEach";
   const maxIterations = data.maxIterations || 100;
@@ -40,10 +42,10 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
 
   const getLoopTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      forEach: "遍历",
-      while: "当...时",
-      doWhile: "执行...直到",
-      until: "直到...",
+      forEach: t("workflow.loopNode.forEach"),
+      while: t("workflow.loopNode.while"),
+      doWhile: t("workflow.loopNode.doWhile"),
+      until: t("workflow.loopNode.until"),
     };
     return labels[type] || type;
   };
@@ -85,7 +87,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
               fontWeight: 600,
             }}
           >
-            循环 · {getLoopTypeLabel(loopType)}
+            {t("workflow.loopNode.title")} · {getLoopTypeLabel(loopType)}
           </span>
         </div>
 
@@ -133,7 +135,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
                 color: "#aaa",
               }}
             >
-              最多 {maxIterations} 次
+              {t("workflow.loopNode.maxIterations", { count: maxIterations })}
             </Tag>
 
             {data.continueOnError && (
@@ -147,7 +149,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
                   color: "#fa8c16",
                 }}
               >
-                容错
+                {t("workflow.loopNode.continueOnError")}
               </Tag>
             )}
 
@@ -162,7 +164,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
                   color: "#1890ff",
                 }}
               >
-                📝 {bodySteps.length} 步
+                📝 {t("workflow.loopNode.steps", { count: bodySteps.length })}
               </Tag>
             )}
           </div>

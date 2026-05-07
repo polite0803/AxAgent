@@ -1,6 +1,7 @@
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Select } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { ValidationNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -11,6 +12,7 @@ interface ValidationPropertyPanelProps {
 }
 
 export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation("chat");
   const validationNode = node as ValidationNode;
   const config = validationNode.config || {
     assertions: [],
@@ -42,7 +44,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 11 }}>断言</label>
+          <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.assertions")}</label>
           <Button
             size="small"
             type="dashed"
@@ -50,7 +52,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
             onClick={handleAddAssertion}
             style={{ fontSize: 10 }}
           >
-            添加
+            {t("workflow.props.add")}
           </Button>
         </div>
 
@@ -65,11 +67,11 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
                   size="small"
                   style={{ flex: 1 }}
                   options={[
-                    { value: "equals", label: "等于" },
-                    { value: "contains", label: "包含" },
-                    { value: "matches", label: "匹配" },
-                    { value: "exists", label: "存在" },
-                    { value: "custom", label: "自定义" },
+                    { value: "equals", label: t("workflow.props.equals") },
+                    { value: "contains", label: t("workflow.props.contains") },
+                    { value: "matches", label: t("workflow.props.matches") },
+                    { value: "exists", label: t("workflow.props.exists") },
+                    { value: "custom", label: t("workflow.props.custom") },
                   ]}
                 />
                 <MinusCircleOutlined
@@ -84,14 +86,14 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
                     value={assertion.expected || ""}
                     onChange={(e) => handleAssertionChange(index, "expected", e.target.value)}
                     size="small"
-                    placeholder="期望值"
+                    placeholder={t("workflow.props.expectedValue")}
                     style={{ flex: 1 }}
                   />
                   <Input
                     value={assertion.actual || ""}
                     onChange={(e) => handleAssertionChange(index, "actual", e.target.value)}
                     size="small"
-                    placeholder="实际值"
+                    placeholder={t("workflow.props.actualValue")}
                     style={{ flex: 1 }}
                   />
                 </div>
@@ -101,7 +103,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
                   value={assertion.expression || ""}
                   onChange={(e) => handleAssertionChange(index, "expression", e.target.value)}
                   size="small"
-                  placeholder="自定义表达式..."
+                  placeholder={t("workflow.props.customExpression")}
                   style={{ marginTop: 4 }}
                 />
               )}
@@ -110,30 +112,30 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
 
           {(config.assertions || []).length === 0 && (
             <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 8 }}>
-              点击"添加"创建断言
+              {t("workflow.props.clickToAddAssertion")}
             </div>
           )}
         </div>
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>失败策略</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.failStrategy")}</label>
         <Select
           value={config.on_fail || "stop"}
           onChange={(value) => handleConfigChange("on_fail", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "stop", label: "停止" },
-            { value: "retry", label: "重试" },
-            { value: "continue", label: "继续" },
+            { value: "stop", label: t("workflow.props.stop") },
+            { value: "retry", label: t("workflow.props.retry") },
+            { value: "continue", label: t("workflow.props.continue") },
           ]}
         />
       </div>
 
       {config.on_fail === "retry" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>最大重试次数</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxRetries")}</label>
           <Input
             type="number"
             value={config.max_retries ?? 0}

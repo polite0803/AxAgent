@@ -1,0 +1,28 @@
+/* ── AgentExecutionPanel ─────────────────────────────────────────── */
+
+.agent-exec-panel__tabs .ant-tabs-content-holder {
+  flex: 1;
+  overflow: auto;
+}
+
+.agent-exec-panel__tab-content {
+  padding: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+
+/* 折叠按钮 hover */
+.agent-exec-panel__compact-btn:hover {
+  background-color: var(--color-fill-secondary) !important;
+  color: var(--color-text) !important;
+}
+
+/* 深色主题下滚动条 */
+.agent-exec-panel__tabs .ant-tabs-content-holder::-webkit-scrollbar {
+  width: 4px;
+}
+
+.agent-exec-panel__tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb {
+  background-color: var(--color-fill-tertiary);
+  border-radius: 2px;
+}

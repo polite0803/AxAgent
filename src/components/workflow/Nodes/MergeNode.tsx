@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface MergeNodeData {
@@ -15,15 +16,16 @@ interface MergeNodeData {
 }
 
 const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#fa8c16";
   const mergeType = data.mergeType || "all";
   const inputs = data.inputs || [];
 
   const getMergeTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      all: "全部",
-      first: "首个",
-      last: "最后一个",
+      all: t("workflow.mergeNode.all"),
+      first: t("workflow.mergeNode.first"),
+      last: t("workflow.mergeNode.last"),
     };
     return labels[type] || type;
   };
@@ -65,7 +67,7 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
               fontWeight: 600,
             }}
           >
-            合并
+            {t("workflow.mergeNode.title")}
           </span>
           <Tag
             style={{
@@ -106,7 +108,7 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected
               color: "#aaa",
             }}
           >
-            {inputs.length} 个输入
+            {t("workflow.mergeNode.inputCount", { count: inputs.length })}
           </Tag>
         </div>
       </div>

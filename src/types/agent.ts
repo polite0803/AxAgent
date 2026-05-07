@@ -273,6 +273,8 @@ export interface AgentPoolItem {
   childSessionId?: string;
   /** 是否为 fork 子 agent */
   isFork?: boolean;
+  /** 关联的消息 ID，用于点击跳转到对话中的消息 */
+  messageId?: string;
 
   // -- 队友面板专用 --
   /** 队友当前正在执行的任务描述 */
@@ -328,4 +330,65 @@ export interface SubAgent {
   completed_at?: string;
   children: string[];
   metadata: SubAgentMetadata;
+}
+
+// ── Trajectory 轨迹类型 ──
+
+export interface TrajectorySummary {
+  id: string;
+  session_id: string;
+  topic: string;
+  outcome: string;
+  duration_ms: number;
+  quality?: {
+    overall: number;
+    task_completion: number;
+    tool_efficiency: number;
+    reasoning_quality: number;
+    user_satisfaction: number;
+  };
+  step_count: number;
+  created_at: string;
+}
+
+export interface TrajectoryStep {
+  timestamp_ms: number;
+  role: string;
+  content: string;
+  reasoning?: string;
+  tool_calls?: Array<{
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  }>;
+  tool_results?: Array<{
+    id: string;
+    output: string;
+    error?: string;
+  }>;
+}
+
+export interface TrajectoryDetail {
+  id: string;
+  session_id: string;
+  topic: string;
+  outcome: string;
+  duration_ms: number;
+  quality?: {
+    overall: number;
+    task_completion: number;
+    tool_efficiency: number;
+    reasoning_quality: number;
+    user_satisfaction: number;
+  };
+  steps: TrajectoryStep[];
+  patterns: string[];
+  rewards: Array<{
+    reward_type: string;
+    value: number;
+    step_index: number;
+    timestamp_ms: number;
+  }>;
+  created_at: string;
+  replay_count: number;
 }

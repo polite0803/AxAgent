@@ -1,5 +1,5 @@
-import { Button, Input, message, Space, Tooltip } from "antd";
-import { ArrowLeft, Bot, Bug, Download, Eye, Save, Share2, Sparkles } from "lucide-react";
+import { Button, Input, message, Popover, Space, Tooltip } from "antd";
+import { ArrowLeft, Bot, Bug, Download, Eye, Keyboard, Redo2, Save, Share2, Sparkles, Undo2 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -13,6 +13,10 @@ interface EditorHeaderProps {
   onToggleAIPanel?: () => void;
   onToggleDebugPanel?: () => void;
   onOpenImportExport?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   aiPanelVisible?: boolean;
   debugPanelVisible?: boolean;
 }
@@ -27,6 +31,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onToggleAIPanel,
   onToggleDebugPanel,
   onOpenImportExport,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   aiPanelVisible = false,
   debugPanelVisible = false,
 }) => {
@@ -119,6 +127,75 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       <div style={{ flex: 1 }} />
 
       <Space>
+        {onUndo && (
+          <Tooltip title={`${t("workflow.undo")} (Ctrl+Z)`}>
+            <Button
+              type="text"
+              icon={<Undo2 size={18} />}
+              onClick={onUndo}
+              disabled={!canUndo}
+              style={{ color: canUndo ? "#999" : "#444" }}
+            />
+          </Tooltip>
+        )}
+
+        {onRedo && (
+          <Tooltip title={`${t("workflow.redo")} (Ctrl+Shift+Z)`}>
+            <Button
+              type="text"
+              icon={<Redo2 size={18} />}
+              onClick={onRedo}
+              disabled={!canRedo}
+              style={{ color: canRedo ? "#999" : "#444" }}
+            />
+          </Tooltip>
+        )}
+
+        <Popover
+          content={
+            <div style={{ minWidth: 220 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 8 }}>
+                {t("workflow.shortcuts.title")}
+              </div>
+              {[
+                { keys: "Ctrl+Z", label: t("workflow.shortcuts.undo") },
+                { keys: "Ctrl+Shift+Z / Ctrl+Y", label: t("workflow.shortcuts.redo") },
+                { keys: "Ctrl+C", label: t("workflow.shortcuts.copy") },
+                { keys: "Ctrl+V", label: t("workflow.shortcuts.paste") },
+                { keys: "Delete / Backspace", label: t("workflow.shortcuts.delete") },
+                { keys: "Ctrl+S", label: t("workflow.shortcuts.save") },
+              ].map((item) => (
+                <div
+                  key={item.keys}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}
+                >
+                  <span style={{ fontSize: 12, color: "#ccc" }}>{item.label}</span>
+                  <kbd
+                    style={{
+                      fontSize: 11,
+                      padding: "1px 6px",
+                      background: "#333",
+                      border: "1px solid #444",
+                      borderRadius: 3,
+                      color: "#999",
+                    }}
+                  >
+                    {item.keys}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+          }
+          trigger="click"
+          placement="bottomRight"
+        >
+          <Button
+            type="text"
+            icon={<Keyboard size={18} />}
+            style={{ color: "#999" }}
+          />
+        </Popover>
+
         {onToggleAIPanel && (
           <Tooltip title={t("workflow.aiAssistant")}>
             <Button

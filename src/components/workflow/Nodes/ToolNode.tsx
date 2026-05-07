@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface ToolNodeData {
@@ -16,8 +17,9 @@ interface ToolNodeData {
 }
 
 const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#52c41a";
-  const toolName = data.toolName || "未选择工具";
+  const toolName = data.toolName || t("workflow.toolNode.notSelected");
   const inputMapping = data.inputMapping || {};
   const outputVar = data.outputVar;
 
@@ -60,7 +62,7 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
               fontWeight: 600,
             }}
           >
-            工具
+            {t("workflow.toolNode.title")}
           </span>
         </div>
 
@@ -108,7 +110,7 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }
                   color: "#aaa",
                 }}
               >
-                📥 {inputCount} 输入
+                📥 {t("workflow.toolNode.inputCount", { count: inputCount })}
               </Tag>
             )}
 

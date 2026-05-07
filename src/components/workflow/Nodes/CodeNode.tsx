@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface CodeNodeData {
@@ -16,6 +17,7 @@ interface CodeNodeData {
 }
 
 const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#52c41a";
   const language = data.language || "javascript";
   const code = data.code || "";
@@ -123,7 +125,7 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({ data, selected }
                 color: "#fff",
               }}
             >
-              {lineCount} 行
+              {t("workflow.codeNode.lineCount", { count: lineCount })}
             </Tag>
           )}
         </div>

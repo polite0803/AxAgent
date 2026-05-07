@@ -10,7 +10,6 @@ import type {
   AgentPoolSummary,
   AgentRateLimitEvent,
   AgentSession,
-  AgentStatusEvent,
   AskUserEvent,
   PermissionRequestEvent,
   SubAgentCardData,
@@ -24,6 +23,7 @@ import type {
 import type { ToolExecution } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
+import { setupExecutionEventListeners } from "./executionStore";
 
 interface QueryStats {
   numTurns?: number;
@@ -904,33 +904,22 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
 let _listenersSetup = false;
 
+/**
+ * 注册 agentStore 独有的 Tauri 事件监听器。
+ * 执行相关事件（tool-use/worker/status 等）统一
+ * 委托给 setupExecutionEventListeners 处理，避免重复。
+ */
 export function setupAgentEventListeners(): () => void {
-  // Guard against double registration (e.g., React 18 Strict Mode)
-  if (_listenersSetup) {
-    return () => {};
-  }
+  if (_listenersSetup) { return () => {}; }
   _listenersSetup = true;
+
+  // 执行事件由 executionStore 统一接管
+  const execCleanup = setupExecutionEventListeners();
 
   const unlisteners: Promise<UnlistenFn>[] = [];
   const store = useAgentStore.getState();
 
-  unlisteners.push(
-    listen<ToolUseEvent>("agent-tool-use", (event) => {
-      store.handleToolUse(event.payload);
-    }),
-  );
-
-  unlisteners.push(
-    listen<ToolStartEvent>("agent-tool-start", (event) => {
-      store.handleToolStart(event.payload);
-    }),
-  );
-
-  unlisteners.push(
-    listen<ToolResultEvent>("agent-tool-result", (event) => {
-      store.handleToolResult(event.payload);
-    }),
-  );
+  // ── agentStore 独有的事件 ──
 
   unlisteners.push(
     listen<PermissionRequestEvent>("agent-permission-request", (event) => {
@@ -945,155 +934,14 @@ export function setupAgentEventListeners(): () => void {
   );
 
   unlisteners.push(
-    listen<AgentStatusEvent>("agent-status", (event) => {
-      store.handleStatus(event.payload.conversationId, event.payload.message);
-    }),
-  );
-
-  unlisteners.push(
-    listen<AgentDoneEvent>("agent-done", (event) => {
-      store.clearStatus(event.payload.conversationId);
-      store.handleDone(event.payload);
-    }),
-  );
-
-  unlisteners.push(
-    listen<AgentErrorEvent>("agent-error", (event) => {
-      store.handleError(event.payload);
-    }),
-  );
-
-  // Listen for workflow match suggestions from semantic matching
-  unlisteners.push(
     listen<WorkflowMatchSuggestion>("workflow-match-suggestion", (event) => {
       store.setWorkflowMatchSuggestion(event.payload);
     }),
   );
 
   unlisteners.push(
-    listen<AgentCancelledEvent>("agent-cancelled", (event) => {
-      store.handleCancelled(event.payload);
-    }),
-  );
-
-  unlisteners.push(
     listen<AgentRateLimitEvent>("agent-rate-limit", (event) => {
       store.handleRateLimit(event.payload);
-    }),
-  );
-
-  unlisteners.push(
-    listen<SubAgentCardEvent>("agent-subagent-card", (event) => {
-      store.handleSubAgentCard(event.payload);
-    }),
-  );
-
-  // Worker events
-  unlisteners.push(
-    listen<{
-      conversationId: string;
-      workerId: string;
-      taskId: string;
-      messageType: string;
-      content: string;
-      status?: string;
-    }>("worker-created", (event) => {
-      store.handleWorkerEvent({ ...event.payload, messageType: "progress", content: "Worker created" });
-    }),
-  );
-
-  unlisteners.push(
-    listen<{
-      conversationId: string;
-      workerId: string;
-      taskId: string;
-      messageType: string;
-      content: string;
-      status?: string;
-    }>("worker-progress", (event) => {
-      store.handleWorkerEvent(event.payload);
-    }),
-  );
-
-  unlisteners.push(
-    listen<{
-      conversationId: string;
-      workerId: string;
-      taskId: string;
-      messageType: string;
-      content: string;
-      status?: string;
-    }>("worker-completed", (event) => {
-      store.handleWorkerEvent({ ...event.payload, messageType: "completion", status: "completed" });
-    }),
-  );
-
-  unlisteners.push(
-    listen<{
-      conversationId: string;
-      workerId: string;
-      taskId: string;
-      messageType: string;
-      content: string;
-      status?: string;
-    }>("worker-failed", (event) => {
-      store.handleWorkerEvent({ ...event.payload, messageType: "error", status: "failed" });
-    }),
-  );
-
-  // Workflow step events → sync to agentPool
-  unlisteners.push(
-    listen<{
-      conversationId: string;
-      stepId: string;
-      stepGoal: string;
-      agentRole: string;
-    }>("workflow-step-start", (event) => {
-      const item: AgentPoolItem = {
-        id: event.payload.stepId,
-        conversationId: event.payload.conversationId,
-        type: "workflow_step",
-        name: event.payload.stepGoal,
-        status: "running",
-        agentRole: event.payload.agentRole,
-        startedAt: Date.now(),
-      };
-      store.upsertPoolItem(item);
-    }),
-  );
-
-  unlisteners.push(
-    listen<{
-      conversationId: string;
-      stepId: string;
-      stepGoal: string;
-      result: string;
-    }>("workflow-step-complete", (event) => {
-      store.upsertPoolItem({
-        id: event.payload.stepId,
-        conversationId: event.payload.conversationId,
-        type: "workflow_step",
-        name: event.payload.stepGoal,
-        status: "completed",
-        summary: event.payload.result,
-      });
-    }),
-  );
-
-  unlisteners.push(
-    listen<{
-      conversationId: string;
-      stepId: string;
-      error: string;
-    }>("workflow-step-error", (event) => {
-      store.upsertPoolItem({
-        id: event.payload.stepId,
-        conversationId: event.payload.conversationId,
-        type: "workflow_step",
-        name: event.payload.stepId,
-        status: "failed",
-        error: event.payload.error,
-      });
     }),
   );
 
@@ -1119,6 +967,7 @@ export function setupAgentEventListeners(): () => void {
 
   return () => {
     _listenersSetup = false;
+    execCleanup();
     for (const p of unlisteners) {
       p.then((u) => u());
     }

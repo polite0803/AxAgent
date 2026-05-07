@@ -1,10 +1,38 @@
 import { invoke } from "@/lib/invoke";
-import { Alert, Button, Divider, Input, message, Modal, Tabs, Upload } from "antd";
+import { Alert, Button, Descriptions, Divider, Input, message, Modal, Tabs, Upload } from "antd";
 import type { UploadProps } from "antd";
 import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-react";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-function BatchImportN8n() {
+function getImportPreview(jsonStr: string): { name: string; nodeCount: number; edgeCount: number; format: string } | null {
+  try {
+    const json = JSON.parse(jsonStr);
+    const isN8n = json.nodes?.some?.((n: any) => n.type?.startsWith?.("n8n-nodes-base."));
+    const name = json.name || "Untitled";
+    const nodeCount = json.nodes?.length || 0;
+    let edgeCount = 0;
+    if (isN8n) {
+      const connections = json.connections || {};
+      for (const conn of Object.values(connections)) {
+        const main = (conn as any)?.main;
+        if (Array.isArray(main)) {
+          for (const group of main) {
+            if (Array.isArray(group)) edgeCount += group.length;
+          }
+        }
+      }
+    } else {
+      edgeCount = json.edges?.length || 0;
+    }
+    return { name, nodeCount, edgeCount, format: isN8n ? "n8n" : "AxAgent" };
+  } catch {
+    return null;
+  }
+}
+
+function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void }) {
+  const { t } = useTranslation();
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<
     {
@@ -42,7 +70,8 @@ function BatchImportN8n() {
         importedNames: res.imported_names,
       });
       if (res.imported > 0) {
-        message.success(`成功导入 ${res.imported} 个工作流`);
+        message.success(t("workflow.importExport.importSuccess", { count: res.imported }));
+        onImportComplete?.();
       }
     } catch (e) {
       message.error(String(e));
@@ -59,7 +88,7 @@ function BatchImportN8n() {
         loading={importing}
         style={{ width: "100%" }}
       >
-        选择 n8n 工作流目录导入
+        {t("workflow.importExport.selectN8nDir")}
       </Button>
       {result && (
         <Alert
@@ -68,8 +97,8 @@ function BatchImportN8n() {
           message={
             <div style={{ fontSize: 12 }}>
               <div>
-                导入 {result.imported} 个 · 跳过 {result.skipped} 个
-                {result.errorCount > 0 && ` · 错误 ${result.errorCount} 个`}
+                {t("workflow.importExport.n8nResult", { imported: result.imported, skipped: result.skipped })}
+                {result.errorCount > 0 ? ` · ${t("workflow.importExport.errorCount", { count: result.errorCount })}` : ""}
               </div>
               {result.errors.length > 0 && (
                 <div style={{ marginTop: 6 }}>
@@ -83,7 +112,7 @@ function BatchImportN8n() {
                       style={{ padding: 0, fontSize: 11 }}
                       onClick={() => setShowAllErrors(true)}
                     >
-                      查看全部 {result.errors.length} 个错误
+                      {t("workflow.importExport.viewAllErrors", { count: result.errors.length })}
                     </Button>
                   )}
                 </div>
@@ -96,7 +125,8 @@ function BatchImportN8n() {
   );
 }
 
-function BatchImportFolder() {
+function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void }) {
+  const { t } = useTranslation();
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null);
 
@@ -120,9 +150,10 @@ function BatchImportFolder() {
         errors: res.error_details,
       });
       if (res.imported > 0) {
-        message.success(`成功导入 ${res.imported} 个工作流模板`);
+        message.success(t("workflow.importExport.batchImportSuccess", { count: res.imported }));
+        onImportComplete?.();
       } else if (res.error_details.length === 0) {
-        message.warning("目录中未找到 JSON 文件");
+        message.warning(t("workflow.importExport.noJsonFound"));
       }
     } catch (e) {
       message.error(String(e));
@@ -139,7 +170,7 @@ function BatchImportFolder() {
         loading={importing}
         style={{ width: "100%" }}
       >
-        选择文件夹批量导入工作流
+        {t("workflow.importExport.selectFolder")}
       </Button>
       {result && (
         <Alert
@@ -148,7 +179,8 @@ function BatchImportFolder() {
           message={
             <div style={{ fontSize: 12 }}>
               <div>
-                导入 {result.imported} 个{result.errors.length > 0 && ` · 错误 ${result.errors.length} 个`}
+                {t("workflow.importExport.batchResult", { count: result.imported })}
+                {result.errors.length > 0 ? ` · ${t("workflow.importExport.errorCount", { count: result.errors.length })}` : ""}
               </div>
               {result.errors.length > 0 && (
                 <div style={{ marginTop: 6 }}>
@@ -156,7 +188,7 @@ function BatchImportFolder() {
                     <div key={i} style={{ color: "#595959", fontSize: 11, marginBottom: 2 }}>{e}</div>
                   ))}
                   {result.errors.length > 10 && (
-                    <div style={{ color: "#999", fontSize: 11 }}>...及其他 {result.errors.length - 10} 个错误</div>
+                    <div style={{ color: "#999", fontSize: 11 }}>{t("workflow.importExport.moreErrors", { count: result.errors.length - 10 })}</div>
                   )}
                 </div>
               )}
@@ -172,7 +204,8 @@ interface ImportExportModalProps {
   open: boolean;
   onClose: () => void;
   onExport: (id: string) => Promise<string | null>;
-  onImport: (jsonData: string) => Promise<string | null>;
+  onImport: (jsonData: string) => Promise<{ id: string; warnings: string[]; errors: string[] } | null>;
+  onImportComplete?: () => void;
 }
 
 export const ImportExportModal: React.FC<ImportExportModalProps> = ({
@@ -180,18 +213,26 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   onClose,
   onExport,
   onImport,
+  onImportComplete,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("export");
   const [exportId, setExportId] = useState("");
   const [exportResult, setExportResult] = useState<string | null>(null);
   const [importData, setImportData] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+
+  const preview = useMemo(() => {
+    if (!importData.trim()) return null;
+    return getImportPreview(importData.trim());
+  }, [importData]);
 
   const handleExport = async () => {
     if (!exportId.trim()) {
-      message.warning("请输入模板 ID");
+      message.warning(t("workflow.importExport.pleaseEnterId"));
       return;
     }
     setIsExporting(true);
@@ -200,12 +241,12 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
       const result = await onExport(exportId.trim());
       if (result) {
         setExportResult(result);
-        message.success("模板导出成功");
+        message.success(t("workflow.importExport.exportSuccess"));
       } else {
-        message.error("模板不存在或导出失败");
+        message.error(t("workflow.importExport.exportNotFound"));
       }
     } catch (error) {
-      message.error("导出失败");
+      message.error(t("workflow.importExport.exportFailed"));
     } finally {
       setIsExporting(false);
     }
@@ -213,27 +254,31 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
 
   const handleImport = async () => {
     if (!importData.trim()) {
-      message.warning("请输入或粘贴 JSON 数据");
+      message.warning(t("workflow.importExport.pleaseEnterJson"));
       return;
     }
     try {
       JSON.parse(importData);
     } catch {
-      message.error("JSON 格式无效");
+      message.error(t("workflow.importExport.invalidJson"));
       return;
     }
     setIsImporting(true);
     try {
-      const newId = await onImport(importData.trim());
-      if (newId) {
-        message.success("模板导入成功");
+      const result = await onImport(importData.trim());
+      if (result) {
+        message.success(t("workflow.importExport.templateImportSuccess"));
         setImportData("");
-        onClose();
+        setImportWarnings(result.warnings || []);
+        onImportComplete?.();
+        if (!result.warnings?.length && !result.errors?.length) {
+          onClose();
+        }
       } else {
-        message.error("导入失败");
+        message.error(t("workflow.importExport.importFailed"));
       }
     } catch (error) {
-      message.error(`导入失败: ${String(error)}`);
+      message.error(t("workflow.importExport.importFailedWithError", { error: String(error) }));
     } finally {
       setIsImporting(false);
     }
@@ -243,7 +288,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     if (exportResult) {
       navigator.clipboard.writeText(exportResult);
       setCopied(true);
-      message.success("已复制到剪贴板");
+      message.success(t("workflow.importExport.copiedToClipboard"));
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -252,6 +297,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     setExportId("");
     setExportResult(null);
     setImportData("");
+    setImportWarnings([]);
     setCopied(false);
   };
 
@@ -269,7 +315,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
       onSuccess?.(file);
     };
     reader.onerror = () => {
-      message.error("文件读取失败");
+      message.error(t("workflow.importExport.fileReadFailed"));
       onError?.(new Error("File read error"));
     };
     reader.readAsText(file as Blob);
@@ -278,15 +324,15 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   const tabItems = [
     {
       key: "export",
-      label: "导出",
+      label: t("workflow.importExport.export"),
       children: (
         <div style={{ padding: "16px 0" }}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
-              模板 ID
+              {t("workflow.importExport.templateId")}
             </label>
             <Input
-              placeholder="输入要导出的模板 ID"
+              placeholder={t("workflow.importExport.enterTemplateId")}
               value={exportId}
               onChange={(e) => setExportId(e.target.value)}
               size="large"
@@ -300,7 +346,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             loading={isExporting}
             style={{ width: "100%", marginBottom: 16 }}
           >
-            导出模板
+            {t("workflow.importExport.exportTemplate")}
           </Button>
 
           {exportResult && (
@@ -308,7 +354,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               <Divider style={{ margin: "16px 0" }} />
               <div>
                 <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
-                  导出结果 (JSON)
+                  {t("workflow.importExport.exportResultJson")}
                 </label>
                 <div style={{ position: "relative" }}>
                   <Input.TextArea
@@ -327,7 +373,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                     onClick={handleCopy}
                     style={{ position: "absolute", top: 8, right: 8 }}
                   >
-                    {copied ? "已复制" : "复制"}
+                    {copied ? t("workflow.importExport.copied") : t("workflow.importExport.copy")}
                   </Button>
                 </div>
               </div>
@@ -338,12 +384,12 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     },
     {
       key: "import",
-      label: "导入",
+      label: t("workflow.importExport.import"),
       children: (
         <div style={{ padding: "16px 0" }}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
-              上传 JSON 文件
+              {t("workflow.importExport.uploadJsonFile")}
             </label>
             <Upload.Dragger
               accept=".json"
@@ -354,19 +400,19 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               <p style={{ color: "#666", margin: "16px 0" }}>
                 <UploadIcon size={24} color="#666" style={{ marginBottom: 8 }} />
                 <br />
-                点击或拖拽文件到此处上传
+                {t("workflow.importExport.dragOrClickUpload")}
               </p>
             </Upload.Dragger>
           </div>
 
-          <Divider>或</Divider>
+          <Divider>{t("workflow.importExport.or")}</Divider>
 
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
-              粘贴 JSON 数据
+              {t("workflow.importExport.pasteJsonData")}
             </label>
             <Input.TextArea
-              placeholder="粘贴模板 JSON 数据..."
+              placeholder={t("workflow.importExport.pasteJsonPlaceholder")}
               value={importData}
               onChange={(e) => setImportData(e.target.value)}
               rows={8}
@@ -378,6 +424,25 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             />
           </div>
 
+          {preview && (
+            <div style={{ marginBottom: 16 }}>
+              <Descriptions
+                title={t("workflow.importExport.preview")}
+                size="small"
+                bordered
+                column={2}
+                style={{ fontSize: 12 }}
+              >
+                <Descriptions.Item label={t("workflow.importExport.workflowName")}>{preview.name}</Descriptions.Item>
+                <Descriptions.Item label={t("workflow.importExport.format")}>
+                  {preview.format === "n8n" ? t("workflow.importExport.formatN8n") : t("workflow.importExport.formatAxAgent")}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("workflow.importExport.nodeCount")}>{preview.nodeCount}</Descriptions.Item>
+                <Descriptions.Item label={t("workflow.importExport.edgeCount")}>{preview.edgeCount}</Descriptions.Item>
+              </Descriptions>
+            </div>
+          )}
+
           <Button
             type="primary"
             icon={<UploadIcon size={14} />}
@@ -385,19 +450,35 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             loading={isImporting}
             style={{ width: "100%" }}
           >
-            导入模板
+            {t("workflow.importExport.importTemplate")}
           </Button>
 
+          {importWarnings.length > 0 && (
+            <Alert
+              style={{ marginTop: 12 }}
+              type="warning"
+              showClose
+              onClose={() => setImportWarnings([])}
+              message={
+                <div style={{ fontSize: 12 }}>
+                  {importWarnings.map((w, i) => (
+                    <div key={i}>{w}</div>
+                  ))}
+                </div>
+              }
+            />
+          )}
+
           <p style={{ color: "#666", fontSize: 11, marginTop: 12 }}>
-            导入将创建一个新的模板副本。导入的模板默认是自定义模板（非预设）。
+            {t("workflow.importExport.importHint")}
           </p>
 
-          <Divider style={{ margin: "12px 0", fontSize: 11 }}>批量导入</Divider>
-          <BatchImportFolder />
+          <Divider style={{ margin: "12px 0", fontSize: 11 }}>{t("workflow.importExport.batchImport")}</Divider>
+          <BatchImportFolder onImportComplete={onImportComplete} />
 
-          <Divider style={{ margin: "12px 0", fontSize: 11 }}>n8n 批量导入</Divider>
+          <Divider style={{ margin: "12px 0", fontSize: 11 }}>{t("workflow.importExport.n8nBatchImport")}</Divider>
 
-          <BatchImportN8n />
+          <BatchImportN8n onImportComplete={onImportComplete} />
         </div>
       ),
     },
@@ -405,7 +486,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
 
   return (
     <Modal
-      title="导入/导出模板"
+      title={t("workflow.importExport.title")}
       open={open}
       onCancel={handleClose}
       footer={null}

@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface DocumentParserNodeData {
@@ -16,9 +17,10 @@ interface DocumentParserNodeData {
 }
 
 const DocumentParserNodeComponent: React.FC<NodeProps<DocumentParserNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#eb2f96";
-  const inputVar = data.inputVar || "未设置";
-  const parserType = data.parserType || "未选择";
+  const inputVar = data.inputVar || t("workflow.documentParserNode.notSet");
+  const parserType = data.parserType || t("workflow.documentParserNode.notSelected");
   const outputVar = data.outputVar;
 
   const getParserTypeIcon = (type: string): string => {
@@ -71,7 +73,7 @@ const DocumentParserNodeComponent: React.FC<NodeProps<DocumentParserNodeData>> =
               fontWeight: 600,
             }}
           >
-            文档解析
+            {t("workflow.documentParserNode.title")}
           </span>
         </div>
 

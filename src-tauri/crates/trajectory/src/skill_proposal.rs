@@ -22,14 +22,35 @@ pub struct SkillProposalService {
     storage: Arc<TrajectoryStorage>,
     recent_proposals: Vec<SkillProposal>,
     topic_trajectory_count: HashMap<String, usize>,
+    persist_path: std::path::PathBuf,
 }
 
 impl SkillProposalService {
     pub fn new(storage: Arc<TrajectoryStorage>) -> Self {
+        let persist_path = dirs::home_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join(".axagent")
+            .join("skill_proposals.json");
+        let recent_proposals = Self::load_from_disk(&persist_path).unwrap_or_default();
         Self {
             storage,
-            recent_proposals: Vec::new(),
+            recent_proposals,
             topic_trajectory_count: HashMap::new(),
+            persist_path,
+        }
+    }
+
+    fn load_from_disk(path: &std::path::Path) -> Option<Vec<SkillProposal>> {
+        let content = std::fs::read_to_string(path).ok()?;
+        serde_json::from_str(&content).ok()
+    }
+
+    fn save_to_disk(&self) {
+        if let Some(parent) = self.persist_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        if let Ok(json) = serde_json::to_string_pretty(&self.recent_proposals) {
+            let _ = std::fs::write(&self.persist_path, json);
         }
     }
 
@@ -78,6 +99,7 @@ impl SkillProposalService {
         if self.recent_proposals.len() > MAX_PROPOSALS_STORED {
             self.recent_proposals.remove(0);
         }
+        self.save_to_disk();
 
         Some(proposal)
     }
@@ -193,6 +215,7 @@ impl SkillProposalService {
     pub fn clear_proposal(&mut self, task_description: &str) {
         self.recent_proposals
             .retain(|p| p.task_description != task_description);
+        self.save_to_disk();
     }
 
     pub fn get_proposal_by_name(&self, name: &str) -> Option<&SkillProposal> {

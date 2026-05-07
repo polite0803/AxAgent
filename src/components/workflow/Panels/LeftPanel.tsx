@@ -9,6 +9,7 @@ import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
 export const LeftPanel: React.FC = () => {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
+  const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loadTemplate } = useWorkflowEditorStore();
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<DragPayload | null>(null);
@@ -75,9 +76,9 @@ export const LeftPanel: React.FC = () => {
   }, [isDragging]);
 
   const filteredNodeTypes = Object.entries(NODE_TYPE_MAP)
-    .filter(([_, info]) => info.label.toLowerCase().includes(search.toLowerCase()))
+    .filter(([_, info]) => t(info.labelKey).toLowerCase().includes(search.toLowerCase()))
     .filter(([type, _]) => !type.startsWith("_"))
-    .filter(([_, info]) => !info.label.includes(t("workflow.leftPanel.legacySuffix")));
+    .filter(([_, info]) => !t(info.labelKey).includes(t("workflow.leftPanel.legacySuffix")));
 
   const groupedNodeTypes = NODE_CATEGORIES.map((category) => ({
     ...category,
@@ -87,6 +88,16 @@ export const LeftPanel: React.FC = () => {
   const handleTemplateClick = (templateId: string) => {
     loadTemplate(templateId);
   };
+
+  const filteredTemplates = templates.filter((template) => {
+    if (!templateSearch.trim()) { return true; }
+    const q = templateSearch.toLowerCase();
+    return (
+      template.name.toLowerCase().includes(q)
+      || (template.description && template.description.toLowerCase().includes(q))
+      || template.tags.some((tag) => tag.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div
@@ -130,13 +141,13 @@ export const LeftPanel: React.FC = () => {
                           paddingLeft: 4,
                         }}
                       >
-                        {category.label}
+                        {t(category.labelKey)}
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                         {category.items.map(([type, info]) => (
                           <div
                             key={type}
-                            onMouseDown={(e) => handleMouseDown(e, type, info.label)}
+                            onMouseDown={(e) => handleMouseDown(e, type, t(info.labelKey))}
                             style={{
                               padding: "8px 6px",
                               background: "#1a1a1a",
@@ -160,7 +171,7 @@ export const LeftPanel: React.FC = () => {
                           >
                             <div style={{ fontSize: 16, marginBottom: 4 }}>{getNodeIcon(type)}</div>
                             <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {info.label}
+                              {t(info.labelKey)}
                             </div>
                           </div>
                         ))}
@@ -179,11 +190,13 @@ export const LeftPanel: React.FC = () => {
                 <Input
                   prefix={<Search size={14} style={{ color: "#666" }} />}
                   placeholder={t("workflow.leftPanel.searchTemplates")}
+                  value={templateSearch}
+                  onChange={(e) => setTemplateSearch(e.target.value)}
                   style={{ marginBottom: 8 }}
                   size="small"
                 />
                 <div style={{ overflow: "auto", maxHeight: "calc(100vh - 200px)" }}>
-                  {templates.map((template) => (
+                  {filteredTemplates.map((template) => (
                     <div
                       key={template.id}
                       onClick={() => handleTemplateClick(template.id)}

@@ -1,4 +1,4 @@
-import { useAgentStore } from "@/stores";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { AgentPoolItem, TeammateStatus, WorkerMessage } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, TeamOutlined } from "@ant-design/icons";
 
@@ -87,8 +87,8 @@ export function TeammatePanel({
   conversationId,
   visible = true,
 }: TeammatePanelProps) {
-  const pool = useAgentStore((s) => s.agentPool[conversationId] || _EMPTY);
-  const upsertPoolItem = useAgentStore((s) => s.upsertPoolItem);
+  const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
+  const upsertPoolItem = useExecutionStore((s) => s.upsertPoolItem);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);
 

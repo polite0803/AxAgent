@@ -1,6 +1,21 @@
 use crate::AppState;
 use axagent_core::types::*;
+use axagent_providers::{
+    registry::ProviderRegistry, resolve_base_url_for_type, ProviderRequestContext,
+};
 use tauri::{AppHandle, Emitter, State};
+
+fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
+    match pt {
+        ProviderType::OpenAI => "openai",
+        ProviderType::OpenAIResponses => "openai_responses",
+        ProviderType::Anthropic => "anthropic",
+        ProviderType::Gemini => "gemini",
+        ProviderType::OpenClaw => "openclaw",
+        ProviderType::Hermes => "hermes",
+        ProviderType::Ollama => "ollama",
+    }
+}
 
 #[tauri::command]
 pub async fn list_memory_namespaces(
@@ -518,4 +533,182 @@ pub async fn reorder_memory_namespaces(
     axagent_core::repo::memory::reorder_namespaces(&state.sea_db, &namespace_ids)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn extract_conversation_memories(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    conversation_id: String,
+    namespace_id: String,
+) -> Result<Vec<MemoryItem>, String> {
+    let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let (provider, key_row, model_id, settings) = {
+        let settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+            .await
+            .unwrap_or_default();
+        let provider_id = settings
+            .default_provider_id
+            .as_deref()
+            .ok_or("No default provider configured")?;
+        let model_id = settings
+            .default_model_id
+            .as_deref()
+            .ok_or("No default model configured")?;
+
+        let provider = axagent_core::repo::provider::get_provider(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        (provider, key_row, model_id.to_string(), settings)
+    };
+
+    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        .map_err(|e| e.to_string())?;
+
+    let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key_row.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(
+            &provider.api_host,
+            &provider.provider_type,
+        )),
+        api_path: provider.api_path.clone(),
+        proxy_config: proxy,
+        custom_headers: provider
+            .custom_headers
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let registry = ProviderRegistry::create_default();
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = match registry.get(registry_key) {
+        Some(a) => a,
+        None => return Err(format!("Unsupported provider type: {}", registry_key)),
+    };
+
+    let result = crate::memory_extract::extract_memories_from_messages(
+        &messages,
+        &conversation_id,
+        adapter,
+        &ctx,
+        &model_id,
+    )
+    .await?;
+
+    let mut saved = Vec::new();
+    for item in &result.items {
+        let title = format!("[{}] {}", item.category.as_str(), item.title);
+        let input = CreateMemoryItemInput {
+            namespace_id: namespace_id.clone(),
+            title,
+            content: item.content.clone(),
+            source: Some("auto_extract".to_string()),
+        };
+        match axagent_core::repo::memory::add_item(&state.sea_db, input).await {
+            Ok(mem_item) => {
+                let ns =
+                    axagent_core::repo::memory::get_namespace(&state.sea_db, &namespace_id)
+                        .await
+                        .ok();
+                if let Some(ns) = ns {
+                    if let Some(ref embedding_provider) = ns.embedding_provider {
+                        let _ = axagent_core::repo::memory::update_item_index_status(
+                            &state.sea_db,
+                            &mem_item.id,
+                            "indexing",
+                            None,
+                        )
+                        .await;
+
+                        let db = state.sea_db.clone();
+                        let master_key = state.master_key;
+                        let vector_store = state.vector_store.clone();
+                        let item_id = mem_item.id.clone();
+                        let content = mem_item.content.clone();
+                        let ep = embedding_provider.clone();
+                        let ns_id = namespace_id.clone();
+                        let dims = ns.embedding_dimensions.map(|v| v as usize);
+                        let app_clone = app.clone();
+
+                        tokio::spawn(async move {
+                            let res = crate::indexing::index_memory_item(
+                                &db,
+                                &master_key,
+                                &vector_store,
+                                &ns_id,
+                                &item_id,
+                                &content,
+                                &ep,
+                                dims,
+                            )
+                            .await;
+
+                            let (status, err_msg) = match &res {
+                                Ok(_) => ("ready", None),
+                                Err(e) => {
+                                    tracing::warn!(
+                                        "Auto-extract memory embedding failed for {}: {}",
+                                        item_id,
+                                        e
+                                    );
+                                    ("failed", Some(e.to_string()))
+                                }
+                            };
+                            let _ = axagent_core::repo::memory::update_item_index_status(
+                                &db, &item_id, status, err_msg.as_deref(),
+                            )
+                            .await;
+
+                            let _ = app_clone.emit(
+                                "memory-item-indexed",
+                                serde_json::json!({
+                                    "itemId": item_id,
+                                    "success": res.is_ok(),
+                                    "status": status,
+                                    "error": err_msg,
+                                }),
+                            );
+                        });
+
+                        saved.push(MemoryItem {
+                            index_status: "indexing".to_string(),
+                            ..mem_item
+                        });
+                        continue;
+                    }
+                }
+
+                let _ = axagent_core::repo::memory::update_item_index_status(
+                    &state.sea_db,
+                    &mem_item.id,
+                    "skipped",
+                    None,
+                )
+                .await;
+                saved.push(MemoryItem {
+                    index_status: "skipped".to_string(),
+                    ..mem_item
+                });
+            }
+            Err(e) => {
+                tracing::warn!("Failed to save extracted memory: {}", e);
+            }
+        }
+    }
+
+    Ok(saved)
 }

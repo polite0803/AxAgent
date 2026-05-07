@@ -4,7 +4,7 @@ import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore } from "@/stores";
 import type { MergedStatusBarItem } from "@/stores/feature/skillExtensionStore";
 import { Typography } from "antd";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface SkillStatusBarProps {
@@ -30,24 +30,34 @@ export function SkillStatusBar({ alignment }: SkillStatusBarProps) {
 function StatusBarItem({ item }: { item: MergedStatusBarItem }) {
   const navigate = useNavigate();
   const [dynamicValue, setDynamicValue] = useState<string | null>(null);
+  const failCountRef = useRef(0);
 
-  // 动态轮询
+  // 动态轮询（带退避）
   useEffect(() => {
     if (!item.dynamicText) { return; }
     const { command, args, refreshIntervalMs } = item.dynamicText;
+    let timer: ReturnType<typeof setTimeout>;
+
     const fetchValue = async () => {
       try {
         const result = await invoke<Record<string, unknown>>(command, args || {});
         const template = item.dynamicText!.template || "{{value}}";
         const val = result?.value ?? result?.count ?? Object.values(result || {})[0];
         setDynamicValue(template.replace("{{value}}", String(val ?? "")));
+        failCountRef.current = 0;
       } catch {
         setDynamicValue("--");
+        failCountRef.current += 1;
       }
+      // 连续失败时指数退避，最大 5 分钟
+      const backoff = Math.min(
+        Math.max(refreshIntervalMs, 5000) * Math.pow(2, failCountRef.current),
+        300000,
+      );
+      timer = setTimeout(fetchValue, backoff);
     };
     fetchValue();
-    const timer = setInterval(fetchValue, Math.max(refreshIntervalMs, 5000));
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [item.dynamicText]);
 
   const handleClick = useCallback(() => {

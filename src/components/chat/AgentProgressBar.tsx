@@ -1,4 +1,4 @@
-import { useAgentStore } from "@/stores";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import { Progress, Spin, Tag, theme, Typography } from "antd";
 import { Wrench } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -48,8 +48,8 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   conversationId,
 }) => {
   const { token } = theme.useToken();
-  const currentToolCall = useAgentStore((s) => s.currentToolCall);
-  const isExecuting = useAgentStore((s) => s.isExecuting[conversationId] ?? false);
+  const currentToolCall = useExecutionStore((s) => s.currentToolCall);
+  const isExecuting = useExecutionStore((s) => s.isActive(conversationId));
 
   // 用于动画过渡：当工具切换时短暂闪烁
   const [lastToolName, setLastToolName] = useState<string | null>(null);

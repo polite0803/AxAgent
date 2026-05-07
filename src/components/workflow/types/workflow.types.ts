@@ -413,32 +413,31 @@ export interface ValidationResult {
 }
 
 export const NODE_CATEGORIES = [
-  { id: "trigger", label: "触发器", color: "#722ed1" },
-  { id: "execution", label: "执行节点", color: "#52c41a" },
-  { id: "agent", label: "Agent", color: "#1890ff" },
-  { id: "llm", label: "LLM", color: "#13c2c2" },
-  { id: "flow", label: "流程控制", color: "#fa8c16" },
-  { id: "integration", label: "集成", color: "#eb2f96" },
+  { id: "trigger", labelKey: "workflow.categories.trigger", color: "#722ed1" },
+  { id: "execution", labelKey: "workflow.categories.execution", color: "#52c41a" },
+  { id: "agent", labelKey: "workflow.categories.agent", color: "#1890ff" },
+  { id: "llm", labelKey: "workflow.categories.llm", color: "#13c2c2" },
+  { id: "flow", labelKey: "workflow.categories.flow", color: "#fa8c16" },
+  { id: "integration", labelKey: "workflow.categories.integration", color: "#eb2f96" },
 ] as const;
 
-export const NODE_TYPE_MAP: Record<string, { label: string; category: string; color: string }> = {
-  trigger: { label: "触发器", category: "trigger", color: "#722ed1" },
-  atomicSkill: { label: "原子Skill", category: "execution", color: "#52c41a" },
-  agent: { label: "Agent", category: "agent", color: "#1890ff" },
-  llm: { label: "LLM", category: "llm", color: "#13c2c2" },
-  condition: { label: "条件分支", category: "flow", color: "#fa8c16" },
-  parallel: { label: "并行分支", category: "flow", color: "#fa8c16" },
-  loop: { label: "循环", category: "flow", color: "#fa8c16" },
-  validation: { label: "验证", category: "flow", color: "#722ed1" },
-  merge: { label: "合并", category: "flow", color: "#fa8c16" },
-  delay: { label: "延迟", category: "flow", color: "#fa8c16" },
-  subWorkflow: { label: "子工作流", category: "integration", color: "#eb2f96" },
-  documentParser: { label: "文档解析", category: "integration", color: "#eb2f96" },
-  vectorRetrieve: { label: "向量检索", category: "integration", color: "#eb2f96" },
-  end: { label: "结束", category: "flow", color: "#fa8c16" },
-  // Legacy types (kept for backward compatibility)
-  tool: { label: "工具(旧)", category: "execution", color: "#52c41a" },
-  code: { label: "代码(旧)", category: "execution", color: "#52c41a" },
+export const NODE_TYPE_MAP: Record<string, { labelKey: string; category: string; color: string }> = {
+  trigger: { labelKey: "workflow.nodeTypes.trigger", category: "trigger", color: "#722ed1" },
+  atomicSkill: { labelKey: "workflow.nodeTypes.atomicSkill", category: "execution", color: "#52c41a" },
+  agent: { labelKey: "workflow.nodeTypes.agent", category: "agent", color: "#1890ff" },
+  llm: { labelKey: "workflow.nodeTypes.llm", category: "llm", color: "#13c2c2" },
+  condition: { labelKey: "workflow.nodeTypes.condition", category: "flow", color: "#fa8c16" },
+  parallel: { labelKey: "workflow.nodeTypes.parallel", category: "flow", color: "#fa8c16" },
+  loop: { labelKey: "workflow.nodeTypes.loop", category: "flow", color: "#fa8c16" },
+  validation: { labelKey: "workflow.nodeTypes.validation", category: "flow", color: "#722ed1" },
+  merge: { labelKey: "workflow.nodeTypes.merge", category: "flow", color: "#fa8c16" },
+  delay: { labelKey: "workflow.nodeTypes.delay", category: "flow", color: "#fa8c16" },
+  subWorkflow: { labelKey: "workflow.nodeTypes.subWorkflow", category: "integration", color: "#eb2f96" },
+  documentParser: { labelKey: "workflow.nodeTypes.documentParser", category: "integration", color: "#eb2f96" },
+  vectorRetrieve: { labelKey: "workflow.nodeTypes.vectorRetrieve", category: "integration", color: "#eb2f96" },
+  end: { labelKey: "workflow.nodeTypes.end", category: "flow", color: "#fa8c16" },
+  tool: { labelKey: "workflow.nodeTypes.tool", category: "execution", color: "#52c41a" },
+  code: { labelKey: "workflow.nodeTypes.code", category: "execution", color: "#52c41a" },
 };
 
 export interface SkillMatchResult {

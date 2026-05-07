@@ -848,6 +848,24 @@ async fn convert_n8n_to_axagent(
     let mut ax_nodes: Vec<WorkflowNode> = Vec::new();
     let mut ax_edges: Vec<WorkflowEdge> = Vec::new();
     let mut edge_id_counter = 0u32;
+    let mut name_to_id: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+
+    let trigger_node = WorkflowNode::Trigger(TriggerNode {
+        base: WorkflowNodeBase {
+            id: "trigger_imported".to_string(),
+            title: "Trigger".to_string(),
+            description: Some("Auto-created trigger from n8n import".to_string()),
+            position: Position { x: 0.0, y: 0.0 },
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        },
+        config: TriggerConfig {
+            trigger_type: TriggerType::Manual,
+            config: serde_json::Value::Null,
+        },
+    });
+    ax_nodes.push(trigger_node);
 
     for n8n_node in n8n_nodes {
         let node_id = n8n_node
@@ -867,6 +885,8 @@ async fn convert_n8n_to_axagent(
             .and_then(|v| v.as_str())
             .unwrap_or("unknown")
             .to_string();
+
+        name_to_id.insert(node_name.clone(), node_id.clone());
 
         let (agent_profile_id, agent_role, expert_id, expert_prompt) =
             infer_agent_from_n8n(&n8n_type, &node_name);
@@ -925,37 +945,62 @@ async fn convert_n8n_to_axagent(
         ax_nodes.push(agent_node);
     }
 
+    let last_position = ax_nodes
+        .iter()
+        .filter_map(|n| match n {
+            WorkflowNode::Agent(a) => Some(a.base.position.clone()),
+            _ => None,
+        })
+        .last()
+        .unwrap_or(Position { x: 250.0, y: 0.0 });
+
+    let end_node = WorkflowNode::End(EndNode {
+        base: WorkflowNodeBase {
+            id: "end_imported".to_string(),
+            title: "End".to_string(),
+            description: Some("Auto-created end node from n8n import".to_string()),
+            position: Position {
+                x: last_position.x + 250.0,
+                y: last_position.y,
+            },
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        },
+        config: EndNodeConfig {
+            output_var: Some("final_output".to_string()),
+        },
+    });
+    ax_nodes.push(end_node);
+
     // Convert n8n connections → edges
     if let Some(connections) = n8n_connections {
         if let Some(conn_map) = connections.as_object() {
-            let ax_node_ids: Vec<String> =
-                ax_nodes.iter().map(|n| n.base_id().to_string()).collect();
-
-            for (source_id, conn_val) in conn_map {
-                if !ax_node_ids.contains(source_id) {
-                    continue;
-                }
-                // n8n connections format: { "source_node": { "main": [[{ "node": "target1" }, { "node": "target2" }]] } }
+            for (source_name, conn_val) in conn_map {
+                let source_id = match name_to_id.get(source_name) {
+                    Some(id) => id.clone(),
+                    None => continue,
+                };
                 if let Some(main_arr) = conn_val.get("main").and_then(|v| v.as_array()) {
                     for main_group in main_arr {
                         if let Some(entries) = main_group.as_array() {
                             for entry in entries {
-                                if let Some(target_id) = entry.get("node").and_then(|v| v.as_str())
-                                {
-                                    if ax_node_ids.contains(&target_id.to_string()) {
-                                        ax_edges.push(WorkflowEdge {
-                                            id: format!("edge_{}", edge_id_counter),
-                                            source: source_id.clone(),
-                                            source_handle: None,
-                                            target: target_id.to_string(),
-                                            target_handle: None,
-                                            edge_type:
-                                                axagent_core::workflow_types::EdgeType::Direct,
-                                            label: None,
-                                        });
-                                        edge_id_counter += 1;
-                                    }
-                                }
+                                let target_name = entry.get("node").and_then(|v| v.as_str());
+                                let target_id =
+                                    match target_name.and_then(|n| name_to_id.get(n)) {
+                                        Some(id) => id.clone(),
+                                        None => continue,
+                                    };
+                                ax_edges.push(WorkflowEdge {
+                                    id: format!("edge_{}", edge_id_counter),
+                                    source: source_id.clone(),
+                                    source_handle: None,
+                                    target: target_id,
+                                    target_handle: None,
+                                    edge_type: EdgeType::Direct,
+                                    label: None,
+                                });
+                                edge_id_counter += 1;
                             }
                         }
                     }
@@ -973,10 +1018,51 @@ async fn convert_n8n_to_axagent(
                 source_handle: None,
                 target: ax_nodes[i].base_id().to_string(),
                 target_handle: None,
-                edge_type: axagent_core::workflow_types::EdgeType::Direct,
+                edge_type: EdgeType::Direct,
                 label: None,
             });
             edge_id_counter += 1;
+        }
+    } else if !ax_edges.is_empty() {
+        let targets_with_incoming: std::collections::HashSet<String> =
+            ax_edges.iter().map(|e| e.target.clone()).collect();
+        for node in &ax_nodes {
+            let nid = node.base_id();
+            if nid != "trigger_imported"
+                && nid != "end_imported"
+                && !targets_with_incoming.contains(nid)
+            {
+                ax_edges.push(WorkflowEdge {
+                    id: format!("edge_{}", edge_id_counter),
+                    source: "trigger_imported".to_string(),
+                    source_handle: None,
+                    target: nid.to_string(),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+                edge_id_counter += 1;
+            }
+        }
+        let sources_with_outgoing: std::collections::HashSet<String> =
+            ax_edges.iter().map(|e| e.source.clone()).collect();
+        for node in &ax_nodes {
+            let nid = node.base_id();
+            if nid != "trigger_imported"
+                && nid != "end_imported"
+                && !sources_with_outgoing.contains(nid)
+            {
+                ax_edges.push(WorkflowEdge {
+                    id: format!("edge_{}", edge_id_counter),
+                    source: nid.to_string(),
+                    source_handle: None,
+                    target: "end_imported".to_string(),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+                edge_id_counter += 1;
+            }
         }
     }
 
@@ -1007,7 +1093,7 @@ async fn convert_n8n_to_axagent(
 pub async fn import_workflow_template(
     state: State<'_, AppState>,
     json_data: String,
-) -> Result<String, String> {
+) -> Result<serde_json::Value, String> {
     let db = &state.sea_db;
 
     // Detect n8n format and convert to AxAgent format
@@ -1022,7 +1108,7 @@ pub async fn import_workflow_template(
         .to_string();
     if let Some(existing) = check_workflow_duplicate(db, &workflow_name).await? {
         return Err(format!(
-            "工作流 '{}' 与已存在的 '{}' 语义重复（相似度 ≥ 0.6），请重命名后重试",
+            "Workflow '{}' is semantically similar to existing '{}' (similarity ≥ 0.6). Please rename and try again.",
             workflow_name, existing
         ));
     }
@@ -1071,10 +1157,66 @@ pub async fn import_workflow_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(new_template.id)
+    let mut warnings: Vec<String> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+
+    if new_template.nodes.is_empty() {
+        errors.push("Workflow has no nodes".to_string());
+    }
+
+    let has_trigger = new_template
+        .nodes
+        .iter()
+        .any(|n| matches!(n, WorkflowNode::Trigger(_)));
+    if !has_trigger {
+        warnings.push("Workflow has no trigger node".to_string());
+    }
+
+    let node_ids: std::collections::HashSet<String> =
+        new_template.nodes.iter().map(|n| n.base_id().to_string()).collect();
+    for edge in &new_template.edges {
+        if !node_ids.contains(&edge.source) {
+            errors.push(format!(
+                "Edge '{}' references non-existent source node '{}'",
+                edge.id, edge.source
+            ));
+        }
+        if !node_ids.contains(&edge.target) {
+            errors.push(format!(
+                "Edge '{}' references non-existent target node '{}'",
+                edge.id, edge.target
+            ));
+        }
+    }
+
+    if !warnings.is_empty() {
+        tracing::warn!("Import validation warnings for {}: {:?}", new_template.id, warnings);
+    }
+    if !errors.is_empty() {
+        tracing::warn!("Import validation errors for {}: {:?}", new_template.id, errors);
+    }
+
+    Ok(serde_json::json!({
+        "id": new_template.id,
+        "warnings": warnings,
+        "errors": errors,
+    }))
 }
 
 /// 批量导入 n8n 目录中的所有工作流 JSON 文件
+fn collect_json_files(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                collect_json_files(&path, files);
+            } else if path.extension().is_some_and(|e| e == "json") {
+                files.push(path);
+            }
+        }
+    }
+}
+
 #[tauri::command]
 pub async fn import_n8n_directory(
     state: State<'_, AppState>,
@@ -1086,20 +1228,17 @@ pub async fn import_n8n_directory(
     let db = &state.sea_db;
     let dir = Path::new(&path);
     if !dir.is_dir() {
-        return Err(format!("路径不存在或不是目录: {}", path));
+        return Err(format!("Path does not exist or is not a directory: {}", path));
     }
 
     let mut imported = Vec::new();
     let mut skipped = Vec::new();
     let mut errors = Vec::new();
 
-    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let file_path = entry.path();
+    let mut json_files: Vec<std::path::PathBuf> = Vec::new();
+    collect_json_files(dir, &mut json_files);
 
-        if file_path.extension().is_none_or(|e| e != "json") {
-            continue;
-        }
+    for file_path in json_files {
 
         let content = fs::read_to_string(&file_path)
             .map_err(|e| format!("{}: {}", file_path.display(), e))?;
@@ -1165,34 +1304,33 @@ pub async fn import_workflow_directory(
 
     let dir = Path::new(&path);
     if !dir.is_dir() {
-        return Err(format!("路径不存在或不是目录: {}", path));
+        return Err(format!("Path does not exist or is not a directory: {}", path));
     }
 
     let mut imported = Vec::new();
     let mut errors = Vec::new();
 
-    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let file_path = entry.path();
+    let mut json_files: Vec<std::path::PathBuf> = Vec::new();
+    collect_json_files(dir, &mut json_files);
 
-        if file_path.extension().is_none_or(|e| e != "json") {
-            continue;
-        }
+    for file_path in json_files {
 
         let content = fs::read_to_string(&file_path)
             .map_err(|e| format!("{}: {}", file_path.display(), e))?;
         if serde_json::from_str::<serde_json::Value>(&content).is_err() {
-            errors.push(format!("{}: JSON 格式无效", file_path.display()));
+            errors.push(format!("{}: Invalid JSON format", file_path.display()));
             continue;
         }
 
         match import_workflow_template(state.clone(), content).await {
-            Ok(id) => {
-                imported.push(id);
-            },
+            Ok(val) => {
+                if let Some(id) = val.get("id").and_then(|v| v.as_str()) {
+                    imported.push(id.to_string());
+                }
+            }
             Err(e) => {
                 errors.push(format!("{}: {}", file_path.display(), e));
-            },
+            }
         }
     }
 

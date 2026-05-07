@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 import { NODE_TYPE_MAP } from "../types";
 
@@ -10,10 +11,21 @@ export interface BaseNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
+  validationState?: "error" | "warning";
 }
 
 const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }) => {
-  const typeInfo = NODE_TYPE_MAP[data.nodeType] || { label: data.nodeType, color: "#999" };
+  const { t } = useTranslation();
+  const typeInfo = NODE_TYPE_MAP[data.nodeType] || { labelKey: "", color: "#999" };
+
+  const getBorderColor = () => {
+    if (data.validationState === "error") { return "#ff4d4f"; }
+    if (data.validationState === "warning") { return "#faad14"; }
+    if (selected) { return "#1890ff"; }
+    return data.color;
+  };
+
+  const borderColor = getBorderColor();
 
   return (
     <div
@@ -27,10 +39,10 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
       <div
         style={{
           background: "#252525",
-          border: `2px solid ${selected ? "#1890ff" : data.color}`,
+          border: `2px solid ${borderColor}`,
           borderRadius: 8,
           padding: 0,
-          boxShadow: selected ? `0 0 0 2px ${data.color}40` : "none",
+          boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
           transition: "all 0.2s",
         }}
       >
@@ -51,7 +63,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
               fontWeight: 500,
             }}
           >
-            {typeInfo.label}
+            {typeInfo.labelKey ? t(typeInfo.labelKey) : data.nodeType}
           </span>
         </div>
 

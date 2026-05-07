@@ -6,6 +6,7 @@ mod commands;
 mod context_manager;
 mod indexing;
 mod init;
+mod memory_extract;
 mod paths;
 mod semantic_cache;
 mod smart_router;
@@ -165,6 +166,7 @@ pub fn run() {
             commands::memory::clear_memory_index,
             commands::memory::reindex_memory_item,
             commands::memory::reorder_memory_namespaces,
+            commands::memory::extract_conversation_memories,
             commands::skills::list_skills,
             commands::skills::get_skill,
             commands::skills::toggle_skill,
@@ -182,7 +184,7 @@ pub fn run() {
             commands::skills::skill_upgrade_or_create,
             commands::skills::get_skill_proposals,
             commands::skills::create_skill_from_proposal,
-            commands::skills::skill_set_frontend,
+            commands::skills::skill_set_manifest,
             commands::skills::get_skill_versions,
             commands::skills::rollback_skill,
             commands::skills::get_marketplace_categories,
@@ -358,8 +360,14 @@ pub fn run() {
             commands::proactive::proactive_set_enabled,
             commands::proactive::proactive_update_config,
             commands::proactive::proactive_prefetch,
+            commands::message_continuation::continue_message,
+            commands::message_continuation::list_continuable_messages,
+            commands::onboarding::detect_ollama_availability,
+            commands::onboarding::detect_api_keys,
+            commands::onboarding::apply_quick_start_preset,
             commands::agent_analytics::trajectory_stats,
             commands::agent_analytics::trajectory_list,
+            commands::agent_analytics::get_trajectory_detail,
             commands::agent_analytics::pattern_stats,
             commands::agent_analytics::closed_loop_status,
             commands::agent_analytics::rl_config,

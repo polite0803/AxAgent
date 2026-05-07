@@ -180,6 +180,7 @@ export function Sidebar() {
         <div
           onClick={() => navigate(item.path)}
           className={isActive ? "ax-nav-item-active" : ""}
+          data-tutorial={item.key === "knowledge" ? "knowledge-nav" : undefined}
           style={{
             display: "flex",
             alignItems: "center",

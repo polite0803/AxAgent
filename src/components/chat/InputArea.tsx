@@ -541,7 +541,7 @@ export function InputArea() {
       <div style={{ minWidth: 260, maxHeight: 360, overflowY: "auto", padding: "4px 0" }}>
         {/* Mode selector */}
         <div style={{ padding: "4px 0 8px", borderBottom: `1px solid ${token.colorBorderSecondary}`, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 6 }}>MCP 模式</div>
+          <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 6 }}>{t("chat.mcp.mode")}</div>
           <div style={{ display: "flex", gap: 4 }}>
             {(["auto", "manual", "disabled"] as const).map((mode) => (
               <Button
@@ -551,16 +551,16 @@ export function InputArea() {
                 onClick={() => setMcpMode(mode)}
                 style={{ flex: 1, fontSize: 11 }}
               >
-                {mode === "auto" ? "自动" : mode === "manual" ? "手动" : "禁用"}
+                {mode === "auto" ? t("chat.mcp.modeAuto") : mode === "manual" ? t("chat.mcp.modeManual") : t("chat.mcp.modeDisabled")}
               </Button>
             ))}
           </div>
           <div style={{ fontSize: 10, color: token.colorTextQuaternary, marginTop: 4 }}>
             {mcpMode === "auto"
-              ? "自动启用所有内置 MCP 工具"
+              ? t("chat.mcp.modeAutoDesc")
               : mcpMode === "manual"
-              ? "手动选择需要启用的 MCP 服务器"
-              : "禁用所有 MCP 工具调用"}
+              ? t("chat.mcp.modeManualDesc")
+              : t("chat.mcp.modeDisabledDesc")}
           </div>
         </div>
         {builtinServers.length > 0 && renderGroup(t("settings.mcp.builtin"), builtinServers)}
@@ -779,19 +779,13 @@ export function InputArea() {
       const isFullAccess = mode === "full_access";
       modal.confirm({
         title: isFullAccess
-          ? t("agent.permissionFullAccessWarningTitle", "⚠️ 完全访问模式")
-          : t("agent.permissionAcceptEditsWarningTitle", "⚠️ 允许编辑模式"),
+          ? t("agent.permissionFullAccessWarningTitle")
+          : t("agent.permissionAcceptEditsWarningTitle"),
         content: isFullAccess
-          ? t(
-            "agent.permissionFullAccessWarning",
-            "Agent 将拥有完全访问权限，可以执行任何文件操作且不受路径限制。请确保你信任当前使用的模型和 System Prompt。",
-          )
-          : t(
-            "agent.permissionAcceptEditsWarning",
-            "Agent 将自动批准文件编辑操作，无需逐一确认。请确保你了解潜在的安全风险。",
-          ),
-        okText: t("common.confirm", "确认"),
-        cancelText: t("common.cancel", "取消"),
+          ? t("agent.permissionFullAccessWarning")
+          : t("agent.permissionAcceptEditsWarning"),
+        okText: t("common.confirm"),
+        cancelText: t("common.cancel"),
         okButtonProps: isFullAccess ? { danger: true } : undefined,
         onOk: applyChange,
       });
@@ -1620,7 +1614,7 @@ export function InputArea() {
   }, [currentMode, handleModeSwitch]);
 
   return (
-    <div className="px-4 pb-3 pt-1">
+    <div className="px-4 pb-3 pt-1" data-tutorial="chat-input">
       <input
         ref={fileInputRef}
         type="file"
@@ -2230,6 +2224,7 @@ export function InputArea() {
                 <Button
                   type="text"
                   size="small"
+                  data-tutorial="agent-mode"
                   icon={currentMode === "agent"
                     ? <Bot size={14} />
                     : currentMode === "gateway"
@@ -2350,7 +2345,7 @@ export function InputArea() {
                   shape="circle"
                   size="small"
                   data-testid="send-btn"
-                  aria-label={t("chat.sendMessage", "发送消息")}
+                  aria-label={t("chat.sendMessage")}
                   icon={<ArrowUp size={14} />}
                   onClick={handleSend}
                   disabled={!value.trim()

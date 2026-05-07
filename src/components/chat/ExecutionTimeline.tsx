@@ -1,4 +1,5 @@
-import { useAgentStore, usePlanStore } from "@/stores";
+import { usePlanStore } from "@/stores";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { PlanStep } from "@/types";
 import type { AgentPoolItem, ToolCallState } from "@/types";
 
@@ -19,8 +20,9 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useScrollToMessage } from "./ScrollToMessageContext";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -155,12 +157,24 @@ export const ExecutionTimeline = React.memo(
   function ExecutionTimeline({ conversationId, maxItems = 50 }: ExecutionTimelineProps) {
     const { t } = useTranslation();
     const { token } = theme.useToken();
+    const { scrollTo } = useScrollToMessage();
+
+    // 从事件源的原始数据中提取 messageId
+    const getMessageId = useCallback((evt: TimelineEvent): string | null => {
+      if (evt.type === "tool_call") {
+        return (evt.source as ToolCallState).assistantMessageId ?? null;
+      }
+      if (evt.type === "agent_pool") {
+        return (evt.source as AgentPoolItem).messageId ?? null;
+      }
+      return null;
+    }, []);
 
     // Read from all three stores
     const plan = usePlanStore((s) => s.activePlans[conversationId]);
-    const toolCalls = useAgentStore((s) => s.toolCalls);
-    const poolItems = useAgentStore((s) => s.agentPool[conversationId] ?? _EMPTY);
-    const agentStatus = useAgentStore((s) => s.agentStatus[conversationId]);
+    const toolCalls = useExecutionStore((s) => s.toolCalls);
+    const poolItems = useExecutionStore((s) => s.agentPool[conversationId] ?? _EMPTY);
+    const agentStatus = useExecutionStore((s) => s.agentStatus[conversationId]);
 
     const events = useMemo(() => {
       const result: TimelineEvent[] = [];
@@ -220,6 +234,9 @@ export const ExecutionTimeline = React.memo(
     const timelineItems: TimelineItemProps[] = events.map((evt) => {
       const sc = statusConfig[evt.status] || statusConfig.pending;
       const tc = typeColors[evt.type];
+      const msgId = getMessageId(evt);
+
+      const handleClick = msgId ? () => scrollTo(msgId) : undefined;
 
       return {
         key: evt.id,
@@ -244,11 +261,13 @@ export const ExecutionTimeline = React.memo(
           ),
         children: (
           <div
+            onClick={handleClick}
             style={{
               display: "flex",
               flexDirection: "column",
               gap: 4,
               opacity: evt.status === "cancelled" ? 0.5 : 1,
+              cursor: msgId ? "pointer" : "default",
             }}
           >
             {/* Header: type badge + title + status */}

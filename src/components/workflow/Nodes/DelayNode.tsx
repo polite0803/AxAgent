@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface DelayNodeData {
@@ -16,6 +17,7 @@ interface DelayNodeData {
 }
 
 const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#fa8c16";
   const delayType = data.delayType || "seconds";
   const seconds = data.seconds || 5;
@@ -26,15 +28,15 @@ const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({ data, selected
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return remainingSeconds > 0
-          ? `${minutes}分${remainingSeconds}秒`
-          : `${minutes}分钟`;
+          ? `${minutes}${t("workflow.delayNode.minute")}${remainingSeconds}${t("workflow.delayNode.second")}`
+          : `${minutes}${t("workflow.delayNode.minutes")}`;
       }
-      return `${seconds}秒`;
+      return `${seconds}${t("workflow.delayNode.second")}`;
     }
     if (delayType === "until" && data.until) {
-      return `直到 ${data.until}`;
+      return `${t("workflow.delayNode.until")} ${data.until}`;
     }
-    return `${seconds}秒`;
+    return `${seconds}${t("workflow.delayNode.second")}`;
   };
 
   return (
@@ -74,7 +76,7 @@ const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({ data, selected
               fontWeight: 600,
             }}
           >
-            延迟
+            {t("workflow.delayNode.title")}
           </span>
         </div>
 

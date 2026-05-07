@@ -40,61 +40,58 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AgentProfileManager } from "./AgentProfileManager";
 import { HookExecutionLog } from "./HookExecutionLog";
 import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
 
-// ─── Hook 事件列表（与后端 runtime hooks.rs 中的 26 个事件一一对应）───
-
 interface HookEventItem {
   event: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descKey: string;
   icon: React.ReactNode;
 }
 
 const HOOK_EVENTS: HookEventItem[] = [
-  { event: "PreToolUse", label: "工具使用前", description: "工具调用执行前触发", icon: <Play size={14} /> },
-  { event: "PostToolUse", label: "工具使用后", description: "工具调用成功完成后触发", icon: <Code size={14} /> },
+  { event: "PreToolUse", labelKey: "settings.agent.hookEvents.preToolUse", descKey: "settings.agent.hookEvents.preToolUseDesc", icon: <Play size={14} /> },
+  { event: "PostToolUse", labelKey: "settings.agent.hookEvents.postToolUse", descKey: "settings.agent.hookEvents.postToolUseDesc", icon: <Code size={14} /> },
   {
     event: "PostToolUseFailure",
-    label: "工具使用失败",
-    description: "工具调用失败后触发",
+    labelKey: "settings.agent.hookEvents.postToolUseFailure",
+    descKey: "settings.agent.hookEvents.postToolUseFailureDesc",
     icon: <AlertTriangle size={14} />,
   },
-  { event: "Notification", label: "通知", description: "系统通知事件", icon: <Zap size={14} /> },
-  { event: "UserPromptSubmit", label: "用户提交提示", description: "用户提交消息时触发", icon: <Terminal size={14} /> },
-  { event: "SessionStart", label: "会话开始", description: "Agent 会话启动时触发", icon: <Play size={14} /> },
-  { event: "SessionEnd", label: "会话结束", description: "Agent 会话结束时触发", icon: <Bot size={14} /> },
-  { event: "Stop", label: "停止", description: "Agent 停止时触发", icon: <AlertTriangle size={14} /> },
-  { event: "StopFailure", label: "停止失败", description: "Agent 停止失败时触发", icon: <AlertTriangle size={14} /> },
-  { event: "SubagentStart", label: "子 Agent 开始", description: "子 Agent 启动时触发", icon: <Puzzle size={14} /> },
-  { event: "SubagentStop", label: "子 Agent 停止", description: "子 Agent 停止时触发", icon: <Puzzle size={14} /> },
-  { event: "PreCompact", label: "压缩前", description: "上下文压缩前触发", icon: <SlidersHorizontal size={14} /> },
-  { event: "PostCompact", label: "压缩后", description: "上下文压缩完成后触发", icon: <SlidersHorizontal size={14} /> },
-  { event: "TeammateIdle", label: "队友空闲", description: "队友 Agent 进入空闲时触发", icon: <Bot size={14} /> },
-  { event: "TaskCreated", label: "任务创建", description: "新任务创建时触发", icon: <Plus size={14} /> },
-  { event: "TaskCompleted", label: "任务完成", description: "任务完成时触发", icon: <Play size={14} /> },
-  { event: "Elicitation", label: "信息征询", description: "需要用户提供额外信息时触发", icon: <Terminal size={14} /> },
-  { event: "ElicitationResult", label: "征询结果", description: "用户回复征询后触发", icon: <Terminal size={14} /> },
+  { event: "Notification", labelKey: "settings.agent.hookEvents.notification", descKey: "settings.agent.hookEvents.notificationDesc", icon: <Zap size={14} /> },
+  { event: "UserPromptSubmit", labelKey: "settings.agent.hookEvents.userPromptSubmit", descKey: "settings.agent.hookEvents.userPromptSubmitDesc", icon: <Terminal size={14} /> },
+  { event: "SessionStart", labelKey: "settings.agent.hookEvents.sessionStart", descKey: "settings.agent.hookEvents.sessionStartDesc", icon: <Play size={14} /> },
+  { event: "SessionEnd", labelKey: "settings.agent.hookEvents.sessionEnd", descKey: "settings.agent.hookEvents.sessionEndDesc", icon: <Bot size={14} /> },
+  { event: "Stop", labelKey: "settings.agent.hookEvents.stop", descKey: "settings.agent.hookEvents.stopDesc", icon: <AlertTriangle size={14} /> },
+  { event: "StopFailure", labelKey: "settings.agent.hookEvents.stopFailure", descKey: "settings.agent.hookEvents.stopFailureDesc", icon: <AlertTriangle size={14} /> },
+  { event: "SubagentStart", labelKey: "settings.agent.hookEvents.subagentStart", descKey: "settings.agent.hookEvents.subagentStartDesc", icon: <Puzzle size={14} /> },
+  { event: "SubagentStop", labelKey: "settings.agent.hookEvents.subagentStop", descKey: "settings.agent.hookEvents.subagentStopDesc", icon: <Puzzle size={14} /> },
+  { event: "PreCompact", labelKey: "settings.agent.hookEvents.preCompact", descKey: "settings.agent.hookEvents.preCompactDesc", icon: <SlidersHorizontal size={14} /> },
+  { event: "PostCompact", labelKey: "settings.agent.hookEvents.postCompact", descKey: "settings.agent.hookEvents.postCompactDesc", icon: <SlidersHorizontal size={14} /> },
+  { event: "TeammateIdle", labelKey: "settings.agent.hookEvents.teammateIdle", descKey: "settings.agent.hookEvents.teammateIdleDesc", icon: <Bot size={14} /> },
+  { event: "TaskCreated", labelKey: "settings.agent.hookEvents.taskCreated", descKey: "settings.agent.hookEvents.taskCreatedDesc", icon: <Plus size={14} /> },
+  { event: "TaskCompleted", labelKey: "settings.agent.hookEvents.taskCompleted", descKey: "settings.agent.hookEvents.taskCompletedDesc", icon: <Play size={14} /> },
+  { event: "Elicitation", labelKey: "settings.agent.hookEvents.elicitation", descKey: "settings.agent.hookEvents.elicitationDesc", icon: <Terminal size={14} /> },
+  { event: "ElicitationResult", labelKey: "settings.agent.hookEvents.elicitationResult", descKey: "settings.agent.hookEvents.elicitationResultDesc", icon: <Terminal size={14} /> },
   {
     event: "ConfigChange",
-    label: "配置变更",
-    description: "系统配置发生变更时触发",
+    labelKey: "settings.agent.hookEvents.configChange",
+    descKey: "settings.agent.hookEvents.configChangeDesc",
     icon: <SlidersHorizontal size={14} />,
   },
-  { event: "InstructionsLoaded", label: "指令加载", description: "Agent 指令加载完成时触发", icon: <Code size={14} /> },
-  { event: "FileChanged", label: "文件变更", description: "监控的文件发生变更时触发", icon: <Code size={14} /> },
-  { event: "CwdChanged", label: "目录切换", description: "当前工作目录切换时触发", icon: <Terminal size={14} /> },
-  { event: "PermissionRequest", label: "权限请求", description: "工具调用请求权限时触发", icon: <Shield size={14} /> },
-  { event: "PermissionDenied", label: "权限拒绝", description: "权限请求被拒绝时触发", icon: <Shield size={14} /> },
-  { event: "WorktreeCreate", label: "工作树创建", description: "Git Worktree 创建时触发", icon: <Plus size={14} /> },
-  { event: "WorktreeRemove", label: "工作树移除", description: "Git Worktree 移除时触发", icon: <Trash2 size={14} /> },
+  { event: "InstructionsLoaded", labelKey: "settings.agent.hookEvents.instructionsLoaded", descKey: "settings.agent.hookEvents.instructionsLoadedDesc", icon: <Code size={14} /> },
+  { event: "FileChanged", labelKey: "settings.agent.hookEvents.fileChanged", descKey: "settings.agent.hookEvents.fileChangedDesc", icon: <Code size={14} /> },
+  { event: "CwdChanged", labelKey: "settings.agent.hookEvents.cwdChanged", descKey: "settings.agent.hookEvents.cwdChangedDesc", icon: <Terminal size={14} /> },
+  { event: "PermissionRequest", labelKey: "settings.agent.hookEvents.permissionRequest", descKey: "settings.agent.hookEvents.permissionRequestDesc", icon: <Shield size={14} /> },
+  { event: "PermissionDenied", labelKey: "settings.agent.hookEvents.permissionDenied", descKey: "settings.agent.hookEvents.permissionDeniedDesc", icon: <Shield size={14} /> },
+  { event: "WorktreeCreate", labelKey: "settings.agent.hookEvents.worktreeCreate", descKey: "settings.agent.hookEvents.worktreeCreateDesc", icon: <Plus size={14} /> },
+  { event: "WorktreeRemove", labelKey: "settings.agent.hookEvents.worktreeRemove", descKey: "settings.agent.hookEvents.worktreeRemoveDesc", icon: <Trash2 size={14} /> },
 ];
-
-// ─── Hook 数据接口 ───
 
 interface HookCommand {
   id: string;
@@ -107,8 +104,6 @@ interface HookState {
   commands: HookCommand[];
 }
 
-// ─── Agent 数据接口 ───
-
 interface AgentDisplay {
   id: string;
   name: string;
@@ -119,9 +114,43 @@ interface AgentDisplay {
   capabilities: string[];
 }
 
-// ─── 通用 Tab ───
+const FEATURE_FLAG_META: Array<{
+  key: keyof FeatureFlags;
+  labelKey: string;
+  descKey: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    key: "forkSubagent",
+    labelKey: "settings.agent.featureFlags.forkSubagent",
+    descKey: "settings.agent.featureFlags.forkSubagentDesc",
+    icon: <Puzzle size={14} />,
+  },
+  {
+    key: "coordinatorMode",
+    labelKey: "settings.agent.featureFlags.coordinatorMode",
+    descKey: "settings.agent.featureFlags.coordinatorModeDesc",
+    icon: <Bot size={14} />,
+  },
+  {
+    key: "proactiveMode",
+    labelKey: "settings.agent.featureFlags.proactiveMode",
+    descKey: "settings.agent.featureFlags.proactiveModeDesc",
+    icon: <Zap size={14} />,
+  },
+  { key: "swarmMode", labelKey: "settings.agent.featureFlags.swarmMode", descKey: "settings.agent.featureFlags.swarmModeDesc", icon: <Shield size={14} /> },
+  { key: "toolConcurrency", labelKey: "settings.agent.featureFlags.toolConcurrency", descKey: "settings.agent.featureFlags.toolConcurrencyDesc", icon: <Play size={14} /> },
+  {
+    key: "verificationAgent",
+    labelKey: "settings.agent.featureFlags.verificationAgent",
+    descKey: "settings.agent.featureFlags.verificationAgentDesc",
+    icon: <Code size={14} />,
+  },
+  { key: "dreamTask", labelKey: "settings.agent.featureFlags.dreamTask", descKey: "settings.agent.featureFlags.dreamTaskDesc", icon: <Bot size={14} /> },
+];
 
 function GeneralTab() {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const { permissionMode, maxIterations, setPermissionMode, setMaxIterations } = useAppConfigStore();
 
@@ -129,10 +158,10 @@ function GeneralTab() {
 
   return (
     <div className="p-6 pb-12">
-      <SettingsGroup title="Agent 配置">
+      <SettingsGroup title={t("settings.agent.agentConfig")}>
         <div style={rowStyle} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Gauge size={14} /> 最大迭代次数
+            <Gauge size={14} /> {t("settings.agent.maxIterations")}
           </span>
           <InputNumber
             min={1}
@@ -145,10 +174,10 @@ function GeneralTab() {
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title="权限控制">
+      <SettingsGroup title={t("settings.agent.permissionControl")}>
         <div style={rowStyle} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Shield size={14} /> 权限模式
+            <Shield size={14} /> {t("settings.agent.permissionMode")}
           </span>
           <Radio.Group
             value={permissionMode}
@@ -157,8 +186,8 @@ function GeneralTab() {
             optionType="button"
             buttonStyle="solid"
           >
-            <Radio.Button value="read-only">只读</Radio.Button>
-            <Radio.Button value="workspace-write">工作区写入</Radio.Button>
+            <Radio.Button value="read-only">{t("settings.agent.readOnly")}</Radio.Button>
+            <Radio.Button value="workspace-write">{t("settings.agent.workspaceWrite")}</Radio.Button>
             <Radio.Button
               value="danger-full-access"
               style={{
@@ -166,7 +195,7 @@ function GeneralTab() {
                 color: permissionMode === "danger-full-access" ? token.colorError : undefined,
               }}
             >
-              完全访问
+              {t("settings.agent.fullAccess")}
             </Radio.Button>
           </Radio.Group>
         </div>
@@ -183,7 +212,7 @@ function GeneralTab() {
             }}
           >
             <AlertTriangle size={14} style={{ display: "inline", marginRight: 6 }} />
-            完全访问模式下，Agent 可以执行任意系统命令和文件操作，请谨慎使用。
+            {t("settings.agent.fullAccessWarning")}
           </div>
         )}
       </SettingsGroup>
@@ -191,44 +220,8 @@ function GeneralTab() {
   );
 }
 
-// ─── Features Tab ───
-
-const FEATURE_FLAG_META: Array<{
-  key: keyof FeatureFlags;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-}> = [
-  {
-    key: "forkSubagent",
-    label: "Fork 子 Agent",
-    description: "允许 Agent 派生子 Agent 执行并行任务",
-    icon: <Puzzle size={14} />,
-  },
-  {
-    key: "coordinatorMode",
-    label: "协调者模式",
-    description: "Agent 以协调者角色运行，调度多个子任务",
-    icon: <Bot size={14} />,
-  },
-  {
-    key: "proactiveMode",
-    label: "主动模式",
-    description: "Agent 主动预测用户需求并提前执行操作",
-    icon: <Zap size={14} />,
-  },
-  { key: "swarmMode", label: "集群模式", description: "启用多 Agent 集群协作完成复杂任务", icon: <Shield size={14} /> },
-  { key: "toolConcurrency", label: "工具并发", description: "允许同时执行多个独立工具调用", icon: <Play size={14} /> },
-  {
-    key: "verificationAgent",
-    label: "验证 Agent",
-    description: "启用独立验证 Agent 审查执行结果",
-    icon: <Code size={14} />,
-  },
-  { key: "dreamTask", label: "Dream Task", description: "空闲时执行背景优化和反思任务", icon: <Bot size={14} /> },
-];
-
 function FeaturesTab() {
+  const { t } = useTranslation();
   const { token: _t } = theme.useToken();
   const { features, toggleFeature } = useAppConfigStore();
 
@@ -241,15 +234,15 @@ function FeaturesTab() {
             <div style={{ padding: "8px 0" }} className="flex items-center justify-between">
               <div className="flex flex-col" style={{ flex: 1 }}>
                 <span className="flex items-center gap-2" style={{ fontSize: 13, fontWeight: 500 }}>
-                  {item.icon} {item.label}
+                  {item.icon} {t(item.labelKey)}
                   {features[item.key] && (
                     <Tag color="green" style={{ marginLeft: 4, fontSize: 10, lineHeight: "16px", padding: "0 4px" }}>
-                      开启
+                      {t("settings.agent.enabled")}
                     </Tag>
                   )}
                 </span>
                 <Text type="secondary" style={{ fontSize: 12, marginTop: 2 }}>
-                  {item.description}
+                  {t(item.descKey)}
                 </Text>
               </div>
               <Switch
@@ -265,9 +258,8 @@ function FeaturesTab() {
   );
 }
 
-// ─── Agents Tab ───
-
 function AgentsTab() {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [agents, setAgents] = useState<AgentDisplay[]>([]);
   const [loading, setLoading] = useState(false);
@@ -279,7 +271,7 @@ function AgentsTab() {
       const list: AgentDisplay[] = (rawList || []).map((a: SubAgent) => ({
         id: a.id,
         name: a.name,
-        description: a.description || "暂无描述",
+        description: a.description || t("settings.agent.noDescription"),
         status: a.status,
         agentType: a.metadata?.agent_type ?? "unknown",
         tools: a.metadata?.tools ?? [],
@@ -292,7 +284,7 @@ function AgentsTab() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchAgents();
@@ -307,11 +299,11 @@ function AgentsTab() {
   };
 
   const statusLabel: Record<string, string> = {
-    pending: "等待中",
-    running: "运行中",
-    completed: "已完成",
-    failed: "失败",
-    cancelled: "已取消",
+    pending: t("settings.agent.statusPending"),
+    running: t("settings.agent.statusRunning"),
+    completed: t("settings.agent.statusCompleted"),
+    failed: t("settings.agent.statusFailed"),
+    cancelled: t("settings.agent.statusCancelled"),
   };
 
   return (
@@ -320,10 +312,10 @@ function AgentsTab() {
       <Divider style={{ margin: "20px 0" }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Text strong style={{ fontSize: 13, color: token.colorTextSecondary }}>
-          运行时 Agent 列表
+          {t("settings.agent.runtimeAgentList")}
         </Text>
         <Button size="small" icon={<ChevronRight size={14} />} onClick={fetchAgents} loading={loading}>
-          刷新
+          {t("settings.agent.refresh")}
         </Button>
       </div>
 
@@ -331,13 +323,13 @@ function AgentsTab() {
         ? (
           <div style={{ textAlign: "center", padding: 48 }}>
             <Spin />
-            <div style={{ marginTop: 12, color: token.colorTextDescription, fontSize: 12 }}>加载中...</div>
+            <div style={{ marginTop: 12, color: token.colorTextDescription, fontSize: 12 }}>{t("settings.agent.loading")}</div>
           </div>
         )
         : agents.length === 0
         ? (
           <Card size="small" style={{ borderRadius: 10, textAlign: "center", padding: 32 }}>
-            <Empty description="暂无已注册的 Agent" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <Empty description={t("settings.agent.noRegisteredAgents")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
           </Card>
         )
         : (
@@ -360,23 +352,23 @@ function AgentsTab() {
                 }
               >
                 <Descriptions size="small" column={1} colon={false}>
-                  <Descriptions.Item label="描述">
+                  <Descriptions.Item label={t("settings.agent.descLabel")}>
                     {agent.description}
                   </Descriptions.Item>
-                  <Descriptions.Item label="类型">
+                  <Descriptions.Item label={t("settings.agent.typeLabel")}>
                     <Tag>{agent.agentType}</Tag>
                   </Descriptions.Item>
                   {agent.tools.length > 0 && (
-                    <Descriptions.Item label="工具">
+                    <Descriptions.Item label={t("settings.agent.toolsLabel")}>
                       <Space size={4} wrap>
-                        {agent.tools.map((t) => <Tag key={t} color="blue" style={{ fontSize: 11 }}>{t}</Tag>)}
+                        {agent.tools.map((tool) => <Tag key={tool} color="blue" style={{ fontSize: 11 }}>{tool}</Tag>)}
                       </Space>
                     </Descriptions.Item>
                   )}
                   {agent.capabilities.length > 0 && (
-                    <Descriptions.Item label="能力">
+                    <Descriptions.Item label={t("settings.agent.capabilitiesLabel")}>
                       <Space size={4} wrap>
-                        {agent.capabilities.map((c) => <Tag key={c} color="purple" style={{ fontSize: 11 }}>{c}</Tag>)}
+                        {agent.capabilities.map((cap) => <Tag key={cap} color="purple" style={{ fontSize: 11 }}>{cap}</Tag>)}
                       </Space>
                     </Descriptions.Item>
                   )}
@@ -389,9 +381,8 @@ function AgentsTab() {
   );
 }
 
-// ─── Hooks Tab ───
-
 function HooksTab() {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [hooks, setHooks] = useState<HookState[]>(() =>
     HOOK_EVENTS.map((e) => ({
@@ -419,7 +410,7 @@ function HooksTab() {
   };
 
   const addCommand = (event: string) => {
-    const cmd = window.prompt("请输入 Shell 命令:");
+    const cmd = window.prompt(t("settings.agent.enterShellCommand"));
     if (!cmd || !cmd.trim()) { return; }
     setHooks((prev) =>
       prev.map((h) =>
@@ -428,14 +419,14 @@ function HooksTab() {
           : h
       )
     );
-    message.success(`已为 ${event} 添加命令`);
+    message.success(t("settings.agent.commandAddedForEvent", { event }));
   };
 
   const removeCommand = (event: string, cmdId: string) => {
     setHooks((prev) =>
       prev.map((h) => h.event === event ? { ...h, commands: h.commands.filter((c) => c.id !== cmdId) } : h)
     );
-    message.success("命令已移除");
+    message.success(t("settings.agent.commandRemoved"));
   };
 
   const hookMeta = (event: string) => HOOK_EVENTS.find((e) => e.event === event);
@@ -444,7 +435,7 @@ function HooksTab() {
     <div className="pt-2">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Text strong style={{ fontSize: 13, color: token.colorTextSecondary }}>
-          Hook 事件配置 ({HOOK_EVENTS.length} 个事件)
+          {t("settings.agent.hookEventConfig")} ({HOOK_EVENTS.length})
         </Text>
       </div>
 
@@ -473,7 +464,7 @@ function HooksTab() {
                     {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </span>
                   {meta?.icon}
-                  <Text strong style={{ fontSize: 13 }}>{meta?.label ?? hook.event}</Text>
+                  <Text strong style={{ fontSize: 13 }}>{meta ? t(meta.labelKey) : hook.event}</Text>
                   <Text type="secondary" style={{ fontSize: 11 }}>{hook.event}</Text>
                 </Space>
                 <Space size={8} onClick={(e) => e.stopPropagation()}>
@@ -486,7 +477,7 @@ function HooksTab() {
 
               {meta && (
                 <Text type="secondary" style={{ fontSize: 11, marginLeft: 28 }}>
-                  {meta.description}
+                  {t(meta.descKey)}
                 </Text>
               )}
 
@@ -495,7 +486,7 @@ function HooksTab() {
                   <Divider style={{ margin: "4px 0 10px" }} />
 
                   {hook.commands.length === 0
-                    ? <Text type="secondary" style={{ fontSize: 12 }}>暂无配置的 Shell 命令</Text>
+                    ? <Text type="secondary" style={{ fontSize: 12 }}>{t("settings.agent.noShellCommands")}</Text>
                     : (
                       <List
                         size="small"
@@ -505,10 +496,10 @@ function HooksTab() {
                             actions={[
                               <Popconfirm
                                 key="del"
-                                title="确认移除?"
+                                title={t("settings.agent.confirmRemove")}
                                 onConfirm={() => removeCommand(hook.event, cmd.id)}
-                                okText="确认"
-                                cancelText="取消"
+                                okText={t("common.confirm")}
+                                cancelText={t("common.cancel")}
                               >
                                 <Button size="small" type="text" danger icon={<Trash2 size={13} />} />
                               </Popconfirm>,
@@ -530,7 +521,7 @@ function HooksTab() {
                     style={{ marginTop: 8 }}
                     disabled={!hook.enabled}
                   >
-                    添加 Shell 命令
+                    {t("settings.agent.addShellCommand")}
                   </Button>
                 </div>
               )}
@@ -557,7 +548,7 @@ function HooksTab() {
             label: (
               <span className="flex items-center gap-1.5">
                 <Code size={13} />
-                事件配置
+                {t("settings.agent.eventConfig")}
               </span>
             ),
             children: eventsContent,
@@ -567,7 +558,7 @@ function HooksTab() {
             label: (
               <span className="flex items-center gap-1.5">
                 <ScrollText size={13} />
-                执行日志
+                {t("settings.agent.executionLog")}
               </span>
             ),
             children: logsContent,
@@ -578,18 +569,15 @@ function HooksTab() {
   );
 }
 
-// ─── 主面板组件 ───
-
 export function SettingsPanel() {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const { saveConfig, loadConfig } = useAppConfigStore();
 
-  // 组件挂载时加载配置
   useEffect(() => {
     loadConfig();
   }, [loadConfig]);
 
-  // 离开时自动保存
   useEffect(() => {
     return () => {
       saveConfig();
@@ -602,7 +590,7 @@ export function SettingsPanel() {
       label: (
         <span className="flex items-center gap-1.5">
           <SlidersHorizontal size={14} />
-          通用
+          {t("settings.agent.general")}
         </span>
       ),
       children: <GeneralTab />,
@@ -648,10 +636,10 @@ export function SettingsPanel() {
         }}
       >
         <Typography.Title level={5} style={{ margin: 0 }}>
-          Agent 控制面板
+          {t("settings.agent.controlPanel")}
         </Typography.Title>
         <Text type="secondary" style={{ fontSize: 12 }}>
-          模型选择、功能开关、Agent 管理与 Hook 配置
+          {t("settings.agent.controlPanelDesc")}
         </Text>
       </div>
 
@@ -662,7 +650,6 @@ export function SettingsPanel() {
         style={{ padding: "0 24px" }}
         tabBarStyle={{ marginBottom: 0 }}
         onChange={() => {
-          // Tab 切换时保存当前配置
           saveConfig();
         }}
       />

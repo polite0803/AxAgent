@@ -7,6 +7,7 @@ mod m20240101_000004_init_knowledge;
 mod m20240101_000005_init_trajectory;
 mod m20240101_000006_init_prompt;
 mod m20240101_000007_init_background_tasks;
+mod m20240101_000009_wiki_retrieval_fields;
 
 pub struct Migrator;
 
@@ -21,6 +22,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000005_init_trajectory::Migration),
             Box::new(m20240101_000006_init_prompt::Migration),
             Box::new(m20240101_000007_init_background_tasks::Migration),
+            Box::new(m20240101_000009_wiki_retrieval_fields::Migration),
         ]
     }
 }

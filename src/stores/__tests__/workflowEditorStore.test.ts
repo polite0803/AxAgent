@@ -375,7 +375,7 @@ describe("WorkflowEditorStore", () => {
 
     it("should import a template from JSON", async () => {
       invokeMock
-        .mockResolvedValueOnce("imported-template-id") // import_workflow_template
+        .mockResolvedValueOnce({ id: "imported-template-id", warnings: [], errors: [] }) // import_workflow_template
         .mockResolvedValueOnce([]); // loadTemplates → list_workflow_templates
       const jsonData = JSON.stringify(makeMockTemplate("imported"));
 
@@ -385,7 +385,7 @@ describe("WorkflowEditorStore", () => {
       const result = await store.importTemplate(jsonData);
 
       expect(invokeMock).toHaveBeenCalledWith("import_workflow_template", { jsonData });
-      expect(result).toBe("imported-template-id");
+      expect(result).toEqual({ id: "imported-template-id", warnings: [], errors: [] });
     });
   });
 
@@ -485,7 +485,7 @@ describe("WorkflowEditorStore", () => {
       const result = await store.recommendNodes("I need an AI workflow");
 
       expect(invokeMock).toHaveBeenCalledWith("recommend_nodes", { context: "I need an AI workflow" });
-      expect(result).toEqual(["Agent 节点", "LLM 节点"]);
+      expect(result).toEqual(mockRecommendations);
     });
   });
 

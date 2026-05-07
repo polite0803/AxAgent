@@ -25,7 +25,8 @@ import NodeRenderer, {
 
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { CHAT_CUSTOM_HTML_TAGS, type ChatMarkdownNode, parseChatMarkdown } from "@/lib/chatMarkdown";
-import { useAgentStore, useSettingsStore } from "@/stores";
+import { useSettingsStore } from "@/stores";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration } from "../gateway/tokenFormat";
 import { CodeBlockHeaderActions } from "./CodeBlockHeaderActions";
@@ -819,7 +820,7 @@ function ToolCallNode(
   const { node } = props;
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const toolCalls = useAgentStore((s) => s.toolCalls);
+  const toolCalls = useExecutionStore((s) => s.toolCalls);
   const [expanded, setExpanded] = useState(false);
 
   const execId = getCustomAttr(node.attrs, "id") ?? "";

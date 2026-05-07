@@ -52,3 +52,17 @@ export function buildMemoryTag(
   const json = JSON.stringify(sources ?? []);
   return `<memory-retrieval status="done" data-axagent="1">\n${json}\n</memory-retrieval>\n\n`;
 }
+
+export function buildWikiTag(
+  status: "searching" | "done" | "error",
+  sources?: MemorySourceResult[],
+): string {
+  if (status === "searching") {
+    return '<wiki-retrieval status="searching" data-axagent="1"></wiki-retrieval>';
+  }
+  if (status === "error") {
+    return '<wiki-retrieval status="error" data-axagent="1"></wiki-retrieval>';
+  }
+  const json = JSON.stringify(sources ?? []);
+  return `<wiki-retrieval status="done" data-axagent="1">\n${json}\n</wiki-retrieval>\n\n`;
+}

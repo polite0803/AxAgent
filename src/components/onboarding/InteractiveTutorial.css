@@ -1,0 +1,27 @@
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: transparent;
+}
+
+.tutorial-spotlight {
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.tutorial-bubble {
+  animation: tutorialFadeIn 0.3s ease;
+}
+
+@keyframes tutorialFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tutorial-start-bar {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 1050;
+}

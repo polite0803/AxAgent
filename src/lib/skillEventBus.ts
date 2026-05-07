@@ -1,6 +1,6 @@
-/** Skill 事件总线，提供 Skill -> App 通信的 namespace 隔离事件系统 */
+/** Skill 事件总线，提供 Skill → App 通信的 namespace 隔离事件系统 */
 
-type EventHandler = (payload: unknown) => void;
+type EventHandler = (payload: unknown) => void | Promise<void>;
 const listeners = new Map<string, Set<EventHandler>>();
 
 export const skillEventBus = {
@@ -11,9 +11,13 @@ export const skillEventBus = {
     if (handlers) {
       for (const handler of handlers) {
         try {
-          handler(payload);
+          // 用 Promise.resolve 包裹以捕获同步和异步错误
+          const result = handler(payload);
+          if (result instanceof Promise) {
+            result.catch((e) => console.error(`[skillEventBus] 异步 handler 错误 ${key}:`, e));
+          }
         } catch (e) {
-          console.error(`[skillEventBus] Handler error for ${key}:`, e);
+          console.error(`[skillEventBus] Handler 错误 ${key}:`, e);
         }
       }
     }

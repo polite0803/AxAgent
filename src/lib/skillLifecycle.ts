@@ -1,17 +1,33 @@
 import { invoke } from "@/lib/invoke";
-import type { SkillCommandAction, SkillLifecycleHooks, SkillManifestMeta } from "@/types";
+import type { SkillCommandAction, SkillLifecycleHooks, SkillManifest } from "@/types";
 import { getActionRouter } from "./actionRouter";
+
+/** 生命周期钩子缓存（5 分钟 TTL） */
+const lifecycleCache = new Map<string, { hooks: SkillLifecycleHooks | null; ts: number }>();
+const LIFECYCLE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 /** 从 skill 目录读取 manifest.json 并提取生命周期钩子 */
 async function readLifecycleHooks(skillName: string): Promise<SkillLifecycleHooks | null> {
+  const cached = lifecycleCache.get(skillName);
+  if (cached && Date.now() - cached.ts < LIFECYCLE_CACHE_TTL_MS) {
+    return cached.hooks;
+  }
+
   try {
-    const detail = await invoke<{ manifest?: SkillManifestMeta }>("get_skill", {
+    const detail = await invoke<{ manifest?: SkillManifest }>("get_skill", {
       name: skillName,
     });
-    return detail?.manifest?.lifecycle ?? null;
+    const hooks = detail?.manifest?.lifecycle ?? null;
+    lifecycleCache.set(skillName, { hooks, ts: Date.now() });
+    return hooks;
   } catch {
     return null;
   }
+}
+
+/** 清除指定 skill 的缓存 */
+export function invalidateLifecycleCache(skillName: string): void {
+  lifecycleCache.delete(skillName);
 }
 
 /** 执行生命周期钩子 */

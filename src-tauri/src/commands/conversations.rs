@@ -2093,6 +2093,7 @@ pub async fn send_message(
     thinking_budget: Option<u32>,
     enabled_knowledge_base_ids: Option<Vec<String>>,
     enabled_memory_namespace_ids: Option<Vec<String>>,
+    enabled_wiki_ids: Option<Vec<String>>,
 ) -> Result<Message, String> {
     let persisted_attachments = persist_attachments(&state, &conversation_id, &attachments)
         .await
@@ -2217,12 +2218,14 @@ pub async fn send_message(
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = enabled_knowledge_base_ids.unwrap_or_default();
     let mem_ids = enabled_memory_namespace_ids.unwrap_or_default();
+    let wiki_ids = enabled_wiki_ids.unwrap_or_default();
     let rag_result = crate::indexing::collect_rag_context(
         &state.sea_db,
         &state.master_key,
         &state.vector_store,
         &kb_ids,
         &mem_ids,
+        &wiki_ids,
         &content,
         5,
     )
@@ -2589,6 +2592,7 @@ pub async fn regenerate_message(
     thinking_budget: Option<u32>,
     enabled_knowledge_base_ids: Option<Vec<String>>,
     enabled_memory_namespace_ids: Option<Vec<String>>,
+    enabled_wiki_ids: Option<Vec<String>>,
 ) -> Result<(), String> {
     // 1. Get all active messages for the conversation
     let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
@@ -2692,12 +2696,14 @@ pub async fn regenerate_message(
     let memory_tag = {
         let kb_ids = enabled_knowledge_base_ids.unwrap_or_default();
         let mem_ids = enabled_memory_namespace_ids.unwrap_or_default();
+        let wiki_ids = enabled_wiki_ids.unwrap_or_default();
         let rag_result = crate::indexing::collect_rag_context(
             &state.sea_db,
             &state.master_key,
             &state.vector_store,
             &kb_ids,
             &mem_ids,
+            &wiki_ids,
             &last_user_msg.content,
             5,
         )
@@ -2960,6 +2966,7 @@ pub async fn regenerate_with_model(
     thinking_budget: Option<u32>,
     enabled_knowledge_base_ids: Option<Vec<String>>,
     enabled_memory_namespace_ids: Option<Vec<String>>,
+    enabled_wiki_ids: Option<Vec<String>>,
     is_companion: Option<bool>,
 ) -> Result<(), String> {
     let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
@@ -3053,12 +3060,14 @@ pub async fn regenerate_with_model(
     let memory_tag = {
         let kb_ids = enabled_knowledge_base_ids.unwrap_or_default();
         let mem_ids = enabled_memory_namespace_ids.unwrap_or_default();
+        let wiki_ids = enabled_wiki_ids.unwrap_or_default();
         let rag_result = crate::indexing::collect_rag_context(
             &state.sea_db,
             &state.master_key,
             &state.vector_store,
             &kb_ids,
             &mem_ids,
+            &wiki_ids,
             &user_msg.content,
             5,
         )

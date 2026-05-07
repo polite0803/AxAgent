@@ -74,15 +74,17 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     });
     try {
       await invoke("toggle_skill", { name, enabled });
-      // 生命周期钩子
       const { triggerOnEnable, triggerOnDisable } = await import("@/lib/skillLifecycle");
       if (enabled) {
-        triggerOnEnable(name).catch((e) => console.error("onEnable failed:", e));
+        triggerOnEnable(name).catch((e) => console.error("onEnable 失败:", e));
       } else {
-        triggerOnDisable(name).catch((e) => console.error("onDisable failed:", e));
+        triggerOnDisable(name).catch((e) => console.error("onDisable 失败:", e));
       }
+      // 同步刷新扩展 store
+      const { useSkillExtensionStore } = await import("@/stores");
+      useSkillExtensionStore.getState().fetchSkills();
     } catch (e) {
-      console.error("Failed to toggle skill:", e);
+      console.error("切换 skill 状态失败:", e);
       set({
         skills: get().skills.map(s => s.name === name ? { ...s, enabled: !enabled } : s),
       });
@@ -191,18 +193,28 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   createSkill: async (name: string, description: string, content: string) => {
     const result = await invoke<string>("skill_create", { name, description, content });
     await get().loadSkills();
+    const { triggerOnInstall } = await import("@/lib/skillLifecycle");
+    triggerOnInstall(name).catch((e) => console.error("onInstall 失败:", e));
+    // 同步刷新扩展 store
+    const { useSkillExtensionStore } = await import("@/stores");
+    useSkillExtensionStore.getState().fetchSkills();
     return result;
   },
 
   patchSkill: async (name: string, content: string) => {
     const result = await invoke<string>("skill_patch", { name, content });
     await get().getSkill(name);
+    // 刷新扩展 store
+    const { useSkillExtensionStore } = await import("@/stores");
+    useSkillExtensionStore.getState().fetchSkills();
     return result;
   },
 
   editSkill: async (name: string, content: string) => {
     const result = await invoke<string>("skill_edit", { name, content });
     await get().getSkill(name);
+    const { useSkillExtensionStore } = await import("@/stores");
+    useSkillExtensionStore.getState().fetchSkills();
     return result;
   },
 

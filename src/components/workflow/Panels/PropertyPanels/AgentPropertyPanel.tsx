@@ -15,7 +15,7 @@ interface AgentPropertyPanelProps {
 }
 
 export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("chat");
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
     role: "developer" as AgentRole,
@@ -100,7 +100,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-          {t("workflow.props.expertRole") || "专家角色"}
+          {t("workflow.props.expertRole")}
         </label>
         {selectedExpert
           ? (
@@ -121,7 +121,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
               block
               onClick={() => setExpertSelectorOpen(true)}
             >
-              {t("workflow.props.selectExpert") || "选择专家"}
+              {t("workflow.props.selectExpert")}
             </Button>
           )}
       </div>

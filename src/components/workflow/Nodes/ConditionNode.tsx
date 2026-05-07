@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface ConditionNodeData {
@@ -16,12 +17,23 @@ interface ConditionNodeData {
     value: unknown;
   }>;
   logicalOp?: "and" | "or";
+  validationState?: "error" | "warning";
 }
 
 const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const color = "#fa8c16";
   const conditions = data.conditions || [];
   const logicalOp = data.logicalOp || "and";
+
+  const getBorderColor = () => {
+    if (data.validationState === "error") { return "#ff4d4f"; }
+    if (data.validationState === "warning") { return "#faad14"; }
+    if (selected) { return "#1890ff"; }
+    return color;
+  };
+
+  const borderColor = getBorderColor();
 
   const getOperatorLabel = (op: string): string => {
     const labels: Record<string, string> = {
@@ -31,13 +43,13 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
       lt: "<",
       gte: "≥",
       lte: "≤",
-      contains: "包含",
-      notContains: "不包含",
-      startsWith: "开头",
-      endsWith: "结尾",
-      regexMatch: "正则",
-      isEmpty: "为空",
-      isNotEmpty: "不为空",
+      contains: t("workflow.conditionNode.opContains"),
+      notContains: t("workflow.conditionNode.opNotContains"),
+      startsWith: t("workflow.conditionNode.opStartsWith"),
+      endsWith: t("workflow.conditionNode.opEndsWith"),
+      regexMatch: t("workflow.conditionNode.opRegexMatch"),
+      isEmpty: t("workflow.conditionNode.opIsEmpty"),
+      isNotEmpty: t("workflow.conditionNode.opIsNotEmpty"),
     };
     return labels[op] || op;
   };
@@ -61,10 +73,10 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
       <div
         style={{
           background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          border: `2px solid ${borderColor}`,
           borderRadius: 8,
           overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
+          boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
           transition: "all 0.2s",
         }}
       >
@@ -86,7 +98,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
               fontWeight: 600,
             }}
           >
-            条件分支
+            {t("workflow.conditionNode.title")}
           </span>
           <Tag
             style={{
@@ -144,7 +156,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
                         flex: 1,
                       }}
                     >
-                      {condition.var_path || "未设置"}
+                      {condition.var_path || t("workflow.conditionNode.notSet")}
                     </span>
                     <span style={{ color: color, fontWeight: 500 }}>
                       {getOperatorLabel(condition.operator)}
@@ -170,7 +182,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
                       textAlign: "center",
                     }}
                   >
-                    +{conditions.length - 3} 更多条件
+                    {t("workflow.conditionNode.moreConditions", { count: conditions.length - 3 })}
                   </div>
                 )}
               </div>
@@ -186,7 +198,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
                   borderRadius: 4,
                 }}
               >
-                点击编辑条件
+                {t("workflow.conditionNode.clickToEdit")}
               </div>
             )}
         </div>
@@ -231,10 +243,10 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
 
       <div style={{ display: "flex", justifyContent: "space-around", marginTop: 4 }}>
         <Tag color="green" style={{ margin: 0, fontSize: 9 }}>
-          ✅ 真
+          {t("workflow.conditionNode.true")}
         </Tag>
         <Tag color="red" style={{ margin: 0, fontSize: 9 }}>
-          ❌ 假
+          {t("workflow.conditionNode.false")}
         </Tag>
       </div>
     </div>

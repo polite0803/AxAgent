@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use axagent_core::entity::{note_backlinks, note_links, notes, wikis};
@@ -157,6 +157,125 @@ impl QueryEngine {
                 relevance_score: score,
                 link_paths,
             });
+        }
+
+        Ok(QueryResult { pages, total })
+    }
+
+    pub async fn query_with_embedding(
+        &self,
+        ctx: &QueryContext,
+        query_embedding: &[f32],
+    ) -> Result<QueryResult, String> {
+        let _wiki = wikis::Entity::find_by_id(&ctx.wiki_id)
+            .one(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Wiki {} not found", ctx.wiki_id))?;
+
+        let vector_results = if let Some(vs) = &self.vector_store {
+            vs.search(&ctx.wiki_id, query_embedding, ctx.limit * 2)
+                .await
+                .map_err(|e| e.to_string())?
+        } else {
+            vec![]
+        };
+
+        let db_notes = notes::Entity::find()
+            .filter(notes::Column::VaultId.eq(&ctx.wiki_id))
+            .filter(notes::Column::IsDeleted.eq(0))
+            .all(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let query_lower = ctx.query.to_lowercase();
+        let query_words: Vec<&str> = query_lower.split_whitespace().collect();
+
+        let mut keyword_scores: HashMap<String, f64> = HashMap::new();
+        for note_model in &db_notes {
+            let note = axagent_core::repo::note::model_to_note(note_model.clone());
+            let mut score = 0.0_f64;
+            let content_lower = note.content.to_lowercase();
+            let title_lower = note.title.to_lowercase();
+
+            if title_lower.contains(&query_lower) {
+                score += 1.0;
+            }
+
+            let mut word_matches = 0u32;
+            for word in &query_words {
+                if content_lower.contains(word) {
+                    word_matches += 1;
+                }
+            }
+            if !query_words.is_empty() {
+                score += (word_matches as f64 / query_words.len() as f64) * 0.5;
+            }
+            if let Some(qs) = note.quality_score {
+                score += qs * 0.3;
+            }
+            keyword_scores.insert(note.id.clone(), score);
+        }
+
+        let mut combined: Vec<(String, f64)> = Vec::new();
+
+        for (note_id, vector_score) in &vector_results {
+            let kw_score = keyword_scores.get(note_id).copied().unwrap_or(0.0);
+            let normalized_vector = 1.0 / (1.0 + *vector_score);
+            let combined_score = normalized_vector * 0.7 + kw_score * 0.3;
+            combined.push((note_id.clone(), combined_score));
+        }
+
+        let vector_ids: HashSet<&String> = vector_results.iter().map(|(id, _)| id).collect();
+        for (note_id, kw_score) in &keyword_scores {
+            if !vector_ids.contains(note_id) && *kw_score > 0.0 {
+                combined.push((note_id.clone(), *kw_score * 0.5));
+            }
+        }
+
+        combined.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        combined.retain(|(_, s)| *s > 0.0);
+
+        let total = combined.len();
+        let paginated: Vec<_> = combined
+            .into_iter()
+            .skip(ctx.offset)
+            .take(ctx.limit)
+            .collect();
+
+        let note_map: HashMap<String, axagent_core::repo::note::Note> = db_notes
+            .into_iter()
+            .map(|m| {
+                let note = axagent_core::repo::note::model_to_note(m);
+                (note.id.clone(), note)
+            })
+            .collect();
+
+        let mut pages = Vec::new();
+        for (note_id, score) in paginated {
+            if let Some(note) = note_map.get(&note_id) {
+                let links = note_links::Entity::find()
+                    .filter(note_links::Column::SourceNoteId.eq(&note.id))
+                    .all(self.db.as_ref())
+                    .await
+                    .map_err(|e| e.to_string())?;
+
+                let link_paths: Vec<String> = links.iter().map(|l| l.target_note_id.clone()).collect();
+
+                let snippet = if note.content.len() > 200 {
+                    format!("{}...", &note.content[..200])
+                } else {
+                    note.content.clone()
+                };
+
+                pages.push(PageResult {
+                    note_id: note.id.clone(),
+                    title: note.title.clone(),
+                    content_snippet: snippet,
+                    relevance_score: score,
+                    link_paths,
+                });
+            }
         }
 
         Ok(QueryResult { pages, total })

@@ -228,6 +228,7 @@ interface ConversationState {
   enabledMcpServerIds: string[];
   enabledKnowledgeBaseIds: string[];
   enabledMemoryNamespaceIds: string[];
+  enabledWikiIds: string[];
   setSearchEnabled: (enabled: boolean) => void;
   setSearchProviderId: (id: string | null) => void;
   toggleMcpServer: (id: string) => void;
@@ -235,6 +236,7 @@ interface ConversationState {
   setThinkingBudget: (budget: number | null) => void;
   toggleKnowledgeBase: (id: string) => void;
   toggleMemoryNamespace: (id: string) => void;
+  toggleWiki: (id: string) => void;
 }
 
 export const useConversationStore = create<ConversationState>((set, get) => ({
@@ -264,6 +266,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   enabledMcpServerIds: usePreferenceStore.getState().enabledMcpServerIds,
   enabledKnowledgeBaseIds: usePreferenceStore.getState().enabledKnowledgeBaseIds,
   enabledMemoryNamespaceIds: usePreferenceStore.getState().enabledMemoryNamespaceIds,
+  enabledWikiIds: usePreferenceStore.getState().enabledWikiIds,
   setMcpMode: (mode: "auto" | "manual" | "disabled") => {
     usePreferenceStore.getState().setMcpMode(mode);
     set({ mcpMode: mode });
@@ -302,6 +305,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const next = current.includes(id) ? current.filter((s) => s !== id) : [...current, id];
     usePreferenceStore.getState().toggleMemoryNamespace(id);
     set({ enabledMemoryNamespaceIds: next });
+  },
+  toggleWiki: (id) => {
+    const current = get().enabledWikiIds;
+    const next = current.includes(id) ? current.filter((s) => s !== id) : [...current, id];
+    usePreferenceStore.getState().toggleWiki(id);
+    set({ enabledWikiIds: next });
   },
   insertContextClear: async () => {
     const conversationId = get().activeConversationId;
@@ -476,6 +485,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       enabledMcpServerIds: prefState.enabledMcpServerIds,
       enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
       enabledMemoryNamespaceIds: prefState.enabledMemoryNamespaceIds,
+      enabledWikiIds: prefState.enabledWikiIds,
     });
     // Sync preference state from the conversation (direct setState to avoid triggering persistence)
     usePreferenceStore.setState(prefState);
@@ -835,9 +845,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const tempAssistantId = `temp-assistant-${Date.now()}`;
     kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
     memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+    const wikiIds = usePreferenceStore.getState().enabledWikiIds;
     const hasKnowledgeRag = kbIds.length > 0;
     const hasMemoryRag = memIds.length > 0;
-    const hasAnyRag = hasKnowledgeRag || hasMemoryRag;
+    const hasWikiRag = wikiIds.length > 0;
+    const hasAnyRag = hasKnowledgeRag || hasMemoryRag || hasWikiRag;
     let placeholderContent = "";
     if (searchProviderId) { placeholderContent += buildSearchTag("searching"); }
     if (hasKnowledgeRag) { placeholderContent += buildKnowledgeTag("searching"); }

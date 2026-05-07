@@ -1,4 +1,5 @@
 import { BuddyWidget } from "@/components/chat/BuddyWidget";
+import { HelpPanel } from "@/components/help/HelpPanel";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
@@ -6,6 +7,8 @@ import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
 import { GlobalErrorBoundary } from "@/components/layout/GlobalErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
+import { InteractiveTutorial } from "@/components/onboarding/InteractiveTutorial";
+import { WelcomeWizard } from "@/components/onboarding/WelcomeWizard";
 import { SkillPanels } from "@/components/skill/SkillPanels";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
@@ -15,7 +18,13 @@ import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { checkIpcHealth, invoke, isTauri, listen } from "@/lib/invoke";
 import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
-import { useConversationStore, useSettingsStore, useSkillExtensionStore, useStreamStore } from "@/stores";
+import {
+  useConversationStore,
+  useOnboardingStore,
+  useSettingsStore,
+  useSkillExtensionStore,
+  useStreamStore,
+} from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { App as AntdApp, ConfigProvider, Layout, theme } from "antd";
@@ -128,6 +137,12 @@ function AppInner() {
     });
   }, [fetchSkills]);
 
+  // 加载引导状态
+  const loadOnboarding = useOnboardingStore((s) => s.loadFromSettings);
+  useEffect(() => {
+    loadOnboarding();
+  }, []);
+
   // Auto-check for updates on startup and periodically
   const { checkForUpdate } = useUpdateChecker();
   const updateCheckInterval = useSettingsStore((s) => s.settings.update_check_interval ?? 60);
@@ -185,6 +200,9 @@ function AppInner() {
         </>
       )}
       {/* Buddy 陪伴系统 — 全局浮动组件 */}
+      <WelcomeWizard />
+      <InteractiveTutorial />
+      <HelpPanel />
       <BuddyWidget />
     </div>
   );

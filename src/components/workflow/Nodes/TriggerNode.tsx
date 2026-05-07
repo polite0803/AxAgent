@@ -1,5 +1,6 @@
 import { Tag } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 interface TriggerNodeData {
@@ -17,6 +18,7 @@ interface TriggerNodeData {
 }
 
 const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, selected }) => {
+  const { t } = useTranslation("chat");
   const triggerType = data.triggerConfig?.type || "manual";
   const color = "#722ed1";
 
@@ -38,16 +40,16 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, sele
   const getTriggerDescription = (type: string, config: unknown): string => {
     switch (type) {
       case "manual":
-        return "手动触发";
+        return t("workflow.triggerNode.manual");
       case "schedule":
         const scheduleConfig = config as { cron?: string; timezone?: string };
-        return scheduleConfig.cron ? `Cron: ${scheduleConfig.cron}` : "定时触发";
+        return scheduleConfig.cron ? `Cron: ${scheduleConfig.cron}` : t("workflow.triggerNode.schedule");
       case "webhook":
         const webhookConfig = config as { path?: string; method?: string };
         return webhookConfig.path ? `${webhookConfig.method || "GET"} ${webhookConfig.path}` : "Webhook";
       case "event":
         const eventConfig = config as { event_type?: string };
-        return eventConfig.event_type || "事件触发";
+        return eventConfig.event_type || t("workflow.triggerNode.event");
       default:
         return "";
     }
@@ -92,7 +94,7 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, sele
               letterSpacing: "0.5px",
             }}
           >
-            触发器
+            {t("workflow.triggerNode.title")}
           </span>
         </div>
 

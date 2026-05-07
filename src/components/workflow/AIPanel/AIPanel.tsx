@@ -1,14 +1,19 @@
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Card, Empty, Input, message, Tabs, Tag } from "antd";
-import { Lightbulb, MessageSquare, Sparkles, Wand2 } from "lucide-react";
+import { Lightbulb, MessageSquare, Plus, Sparkles, Wand2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { setDragPayload } from "../dndState";
 import type { WorkflowEdge, WorkflowNode } from "../types";
 
 interface AIPanelProps {
-  onGenerateWorkflow: (prompt: string) => Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] } | null>;
+  onGenerateWorkflow: (
+    prompt: string,
+  ) => Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[]; explanation?: string } | null>;
   onOptimizePrompt: (prompt: string) => Promise<string | null>;
-  onRecommendNodes: (context: string) => Promise<string[] | null>;
+  onRecommendNodes: (
+    context: string,
+  ) => Promise<Array<{ node_type: string; label: string; description: string; confidence: number }> | null>;
   onClose: () => void;
 }
 
@@ -26,7 +31,10 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isRecommending, setIsRecommending] = useState(false);
   const [optimizedResult, setOptimizedResult] = useState<string | null>(null);
-  const [recommendedNodes, setRecommendedNodes] = useState<string[] | null>(null);
+  const [recommendedNodes, setRecommendedNodes] = useState<
+    Array<{ node_type: string; label: string; description: string; confidence: number }> | null
+  >(null);
+  const [generationExplanation, setGenerationExplanation] = useState<string | null>(null);
 
   const { nodes, edges, setNodes, setEdges } = useWorkflowEditorStore();
 
@@ -41,6 +49,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       if (result) {
         setNodes(result.nodes);
         setEdges(result.edges);
+        setGenerationExplanation(result.explanation || null);
         message.success(t("workflow.aiPanel.workflowGenerated"));
       }
     } catch (error) {
@@ -136,6 +145,35 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               {isGenerating ? t("workflow.aiPanel.generating") : t("workflow.aiPanel.generateBtn")}
             </Button>
           </div>
+
+          {generationExplanation && (
+            <Card
+              size="small"
+              style={{
+                background: "#1a1a1a",
+                border: "1px solid #333",
+                marginBottom: 12,
+              }}
+              styles={{ body: { padding: 12 } }}
+            >
+              <div
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}
+              >
+                <span style={{ color: "#999", fontSize: 11, fontWeight: 500 }}>Explanation</span>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={() => setGenerationExplanation(null)}
+                  style={{ color: "#666", fontSize: 11, minWidth: "auto", padding: "0 4px" }}
+                >
+                  ✕
+                </Button>
+              </div>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, color: "#ccc", margin: 0 }}>
+                {generationExplanation}
+              </pre>
+            </Card>
+          )}
 
           <div style={{ color: "#666", fontSize: 11 }}>
             <strong>{t("workflow.aiPanel.currentCanvasState")}</strong>
@@ -250,15 +288,52 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               <label style={{ color: "#999", fontSize: 12, marginBottom: 8, display: "block" }}>
                 {t("workflow.aiPanel.recommendedNodeTypes")}
               </label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {recommendedNodes.map((node) => (
-                  <Tag
-                    key={node}
-                    color="blue"
-                    style={{ fontSize: 12, padding: "4px 12px" }}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {recommendedNodes.map((node, index) => (
+                  <Card
+                    key={`${node.node_type}-${index}`}
+                    size="small"
+                    style={{
+                      background: "#1a1a1a",
+                      border: "1px solid #333",
+                      cursor: "pointer",
+                      transition: "border-color 0.2s",
+                    }}
+                    styles={{ body: { padding: "8px 12px" } }}
+                    hoverable
+                    onClick={() => {
+                      setDragPayload({ type: node.node_type, label: node.label });
+                      message.info(t("workflow.aiPanel.clickCanvasToAdd", { label: node.label }));
+                    }}
                   >
-                    {node}
-                  </Tag>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <Tag color="blue" style={{ fontSize: 11, margin: 0, padding: "0 6px" }}>
+                            {node.node_type}
+                          </Tag>
+                          <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>{node.label}</span>
+                        </div>
+                        {node.description && (
+                          <div style={{ color: "#999", fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+                            {node.description}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, flexShrink: 0 }}>
+                        <span
+                          style={{
+                            color: node.confidence >= 0.8 ? "#52c41a" : node.confidence >= 0.5 ? "#faad14" : "#ff4d4f",
+                            fontSize: 11,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {Math.round(node.confidence * 100)}%
+                        </span>
+                        <Plus size={14} color="#666" />
+                      </div>
+                    </div>
+                  </Card>
                 ))}
               </div>
               <div style={{ color: "#666", fontSize: 11, marginTop: 12 }}>

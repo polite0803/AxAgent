@@ -1,5 +1,6 @@
 import { Divider, Select } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { MergeNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -10,6 +11,7 @@ interface MergePropertyPanelProps {
 }
 
 export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation("chat");
   const mergeNode = node as MergeNode;
   const config = mergeNode.config || {
     merge_type: "all",
@@ -23,26 +25,26 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>合并类型</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.mergeType")}</label>
         <Select
           value={config.merge_type}
           onChange={(value) => handleConfigChange("merge_type", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "all", label: "全部 - 等待所有输入" },
-            { value: "first", label: "首个 - 使用第一个完成的输入" },
-            { value: "last", label: "最后 - 使用最后一个完成的输入" },
+            { value: "all", label: t("workflow.props.mergeAll") },
+            { value: "first", label: t("workflow.props.mergeFirst") },
+            { value: "last", label: t("workflow.props.mergeLast") },
           ]}
         />
       </div>
 
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-          输入数量 ({config.inputs?.length || 0})
+          {t("workflow.props.inputCount")} ({config.inputs?.length || 0})
         </label>
         <div style={{ color: "#666", fontSize: 11 }}>
-          从画布上连接节点到此节点的输入端口
+          {t("workflow.props.connectInputsHint")}
         </div>
       </div>
 

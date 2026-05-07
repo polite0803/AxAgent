@@ -1,15 +1,25 @@
+import { AgentExecutionPanel } from "@/components/chat/AgentExecutionPanel";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import type { ChatViewScrollApi } from "@/components/chat/ChatView";
 import { ChatView } from "@/components/chat/ChatView";
+import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
 import { TabBar } from "@/components/chat/TabBar";
-import { useConversationStore, useProviderStore, useTabStore } from "@/stores";
+import { useConversationStore, useProviderStore, useSettingsStore, useTabStore } from "@/stores";
 import { theme } from "antd";
+import { ChevronRight, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 480;
 const SIDEBAR_DEFAULT = 256;
 
+const RIGHT_PANEL_MIN = 220;
+const RIGHT_PANEL_MAX = 560;
+const RIGHT_PANEL_DEFAULT = 320;
+
 export function ChatPage() {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
@@ -20,8 +30,31 @@ export function ChatPage() {
   const fetchProviders = useProviderStore((s) => s.fetchProviders);
   const providerCount = useProviderStore((s) => s.providers.length);
 
-  // 拖拽调整侧栏宽度
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // 右侧面板状态
+  const settings = useSettingsStore((s) => s.settings);
+  const saveSettings = useSettingsStore((s) => s.saveSettings);
+  const agentPanelEnabled = settings.agent_panel_enabled !== false;
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(settings.agent_panel_compact === true);
+  const [rightPanelWidth, setRightPanelWidth] = useState(RIGHT_PANEL_DEFAULT);
+  const [rightDragging, setRightDragging] = useState(false);
+
+  // 折叠切换 — 同步持久化到 settings
+  const toggleRightPanel = useCallback(() => {
+    setRightPanelCollapsed((prev) => {
+      const next = !prev;
+      saveSettings({ agent_panel_compact: next });
+      return next;
+    });
+  }, [saveSettings]);
+
+  // ChatView 暴露的 scroll 能力，供右侧面板点击跳转消息使用
+  const [scrollApi, setScrollApi] = useState<ChatViewScrollApi | null>(null);
+  const handleScrollToReady = useCallback((api: ChatViewScrollApi) => {
+    setScrollApi(api);
+  }, []);
+
+  // 左侧边栏拖拽调整宽度
+  const handleLeftMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setDragging(true);
   }, []);
@@ -43,8 +76,33 @@ export function ChatPage() {
     };
   }, [dragging]);
 
+  // 右侧面板拖拽调整宽度
+  const handleRightMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setRightDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!rightDragging) { return; }
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      setRightPanelWidth(Math.min(RIGHT_PANEL_MAX, Math.max(RIGHT_PANEL_MIN, newWidth)));
+    };
+    const handleMouseUp = () => setRightDragging(false);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.body.style.userSelect = prevUserSelect;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [rightDragging]);
+
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation);
   const createConversation = useConversationStore((s) => s.createConversation);
   const providers = useProviderStore((s) => s.providers);
@@ -83,7 +141,6 @@ export function ChatPage() {
   useEffect(() => {
     if (!activeTabId) {
       if (tabsInitializedRef.current && activeConversationId) {
-        // All tabs closed after initial load — clear active conversation.
         void setActiveConversation(null);
       }
       return;
@@ -105,29 +162,45 @@ export function ChatPage() {
         openTab(conv.id, conv.title);
       }
     } else if (existingTab.id !== activeTabId) {
-      // The conversation is already in a tab but not the active one — activate it
       useTabStore.getState().setActiveTab(existingTab.id);
     }
   }, [activeConversationId]);
 
   // Handle new conversation from TabBar
   const handleNewConversation = useCallback(async () => {
-    // Find a default provider/model
     let provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
     let model = provider?.models.find((m) => m.enabled);
     if (!provider || !model) { return; }
 
     const conv = await createConversation(
-      "", // empty title — AI will generate later
+      "",
       model.model_id,
       provider.id,
     );
-    // Open a tab for the new conversation
     openTab(conv.id, conv.title);
   }, [providers, createConversation, openTab]);
 
+  // 是否显示右侧面板（仅 agent 模式 + 设置启用）
+  const showRightPanel = agentPanelEnabled
+    && activeConversation?.mode === "agent"
+    && activeConversationId != null;
+
+  // 右侧面板内容（在 ScrollToMessageProvider 内部）
+  const rightPanelContent = showRightPanel && scrollApi && activeConversationId
+    ? (
+      <ScrollToMessageProvider scrollTo={scrollApi.scrollTo} scrollBoxRef={scrollApi.scrollBoxRef}>
+        <AgentExecutionPanel
+          conversationId={activeConversationId}
+          compactMode={rightPanelCollapsed}
+          onToggleCompact={toggleRightPanel}
+        />
+      </ScrollToMessageProvider>
+    )
+    : null;
+
   return (
     <div className="flex h-full" style={{ overflow: "hidden" }} data-testid="chat-view">
+      {/* 左侧会话列表 */}
       <div
         ref={sidebarRef}
         className="h-full transition-all duration-200"
@@ -141,10 +214,10 @@ export function ChatPage() {
       >
         <ChatSidebar onCollapseChange={setSidebarCollapsed} />
       </div>
-      {/* 拖拽手柄 */}
+      {/* 左侧拖拽手柄 */}
       {!sidebarCollapsed && (
         <div
-          onMouseDown={handleMouseDown}
+          onMouseDown={handleLeftMouseDown}
           style={{
             width: 4,
             cursor: "col-resize",
@@ -163,6 +236,7 @@ export function ChatPage() {
           }}
         />
       )}
+      {/* 中间主区域 */}
       <div
         style={{
           flex: 1,
@@ -173,8 +247,88 @@ export function ChatPage() {
         }}
       >
         <TabBar onNewConversation={handleNewConversation} />
-        <ChatView />
+        <ChatView onScrollToReady={handleScrollToReady} />
       </div>
+      {/* 右侧拖拽手柄 */}
+      {showRightPanel && !rightPanelCollapsed && (
+        <div
+          onMouseDown={handleRightMouseDown}
+          style={{
+            width: 4,
+            cursor: "col-resize",
+            flexShrink: 0,
+            backgroundColor: rightDragging ? "var(--color-primary)" : "transparent",
+            transition: "background-color 0.15s",
+            zIndex: 10,
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-primary)";
+          }}
+          onMouseLeave={(e) => {
+            if (!rightDragging) {
+              (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+            }
+          }}
+        />
+      )}
+      {/* 右侧面板 */}
+      {showRightPanel && (
+        <div
+          style={{
+            width: rightPanelCollapsed ? 48 : rightPanelWidth,
+            minWidth: 0,
+            borderLeft: "1px solid var(--border-color)",
+            backgroundColor: token.colorBgContainer,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            transition: rightDragging ? "none" : "width 0.2s",
+            position: "relative",
+          }}
+        >
+          {/* 折叠/展开按钮 — 始终在 ChatPage 层级，覆盖在面板左上角 */}
+          <button
+            type="button"
+            onClick={toggleRightPanel}
+            title={rightPanelCollapsed ? t("chat.agentPanel.expand") : t("chat.agentPanel.collapse")}
+            style={{
+              position: "absolute",
+              top: 8,
+              left: rightPanelCollapsed ? "50%" : 8,
+              transform: rightPanelCollapsed ? "translateX(-50%)" : "none",
+              zIndex: 5,
+              width: 28,
+              height: 28,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+              backgroundColor: token.colorFillQuaternary,
+              color: token.colorTextSecondary,
+              padding: 0,
+            }}
+          >
+            {rightPanelCollapsed ? <ChevronRight size={14} /> : <PanelRight size={14} />}
+          </button>
+          {/* 始终渲染 AgentExecutionPanel，由 compactMode 控制内部展示 */}
+          {rightPanelContent || (
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: token.colorTextQuaternary,
+                fontSize: 12,
+              }}
+            >
+              加载中…
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
