@@ -47,9 +47,7 @@ import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
 import {
   type AgentNode as AgentNodeType,
-  type AgentRole,
   NODE_TYPE_MAP,
-  type OutputMode,
   type WorkflowEdge,
   type WorkflowNode,
 } from "./types";

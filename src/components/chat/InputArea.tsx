@@ -23,6 +23,7 @@ import {
   useUIStore,
 } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
+import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
 import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
@@ -48,6 +49,7 @@ import {
   Globe,
   GripHorizontal,
   Image as ImageIcon,
+  Library,
   MessageSquare,
   Mic,
   Music,
@@ -303,6 +305,13 @@ export function InputArea() {
   const toggleMemoryNamespace = useConversationStore((s) => s.toggleMemoryNamespace);
   const [memoryPopoverOpen, setMemoryPopoverOpen] = useState(false);
 
+  // Wiki vault state
+  const wikis = useLlmWikiStore((s) => s.wikis);
+  const loadWikis = useLlmWikiStore((s) => s.loadWikis);
+  const enabledWikiIds = useConversationStore((s) => s.enabledWikiIds);
+  const toggleWiki = useConversationStore((s) => s.toggleWiki);
+  const [wikiPopoverOpen, setWikiPopoverOpen] = useState(false);
+
   // Prompt template state
   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
 
@@ -343,6 +352,11 @@ export function InputArea() {
   useEffect(() => {
     if (memoryNamespaces.length === 0) { loadMemoryNamespaces(); }
   }, [memoryNamespaces.length, loadMemoryNamespaces]);
+
+  // Load wiki vaults on mount
+  useEffect(() => {
+    if (wikis.length === 0) { loadWikis(); }
+  }, [wikis.length, loadWikis]);
 
   // Load gateway links on mount
   useEffect(() => {
@@ -953,6 +967,47 @@ export function InputArea() {
       </div>
     );
   }, [memoryNamespaces, enabledMemoryNamespaceIds, toggleMemoryNamespace, token, t, navigate]);
+
+  // Wiki vault popover content
+  const wikiPopoverContent = useMemo(() => {
+    if (wikis.length === 0) {
+      return (
+        <div style={{ padding: "8px 0", minWidth: 180 }}>
+          <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
+            {t("chat.wiki.empty")}
+          </div>
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, fontSize: 12 }}
+            onClick={() => {
+              setWikiPopoverOpen(false);
+              navigate("/wiki");
+            }}
+          >
+            {t("chat.mcp.goConfig")}
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div style={{ minWidth: 180, maxHeight: 300, overflowY: "auto" }}>
+        {wikis.map((wiki) => (
+          <div key={wiki.id} style={{ padding: "3px 0" }}>
+            <Checkbox
+              checked={enabledWikiIds.includes(wiki.id)}
+              onChange={() => toggleWiki(wiki.id)}
+            >
+              <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Library size={14} />
+                {wiki.name}
+              </span>
+            </Checkbox>
+          </div>
+        ))}
+      </div>
+    );
+  }, [wikis, enabledWikiIds, toggleWiki, token, t, navigate]);
 
   const handleTemplateSelect = useCallback(
     (_template: { content: string }, filledContent: string) => {
@@ -2087,6 +2142,30 @@ export function InputArea() {
                     size="small"
                     icon={<Brain size={14} />}
                     style={enabledMemoryNamespaceIds.length > 0 ? { color: token.colorPrimary } : undefined}
+                  />
+                </Badge>
+              </Tooltip>
+            </Popover>
+            <Popover
+              trigger="click"
+              placement="topLeft"
+              content={wikiPopoverContent}
+              arrow={false}
+              open={wikiPopoverOpen}
+              onOpenChange={setWikiPopoverOpen}
+            >
+              <Tooltip title={t("chat.wiki.title")} open={wikiPopoverOpen ? false : undefined}>
+                <Badge
+                  count={enabledWikiIds.length}
+                  size="small"
+                  offset={[-4, 4]}
+                  color={token.colorPrimary}
+                >
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Library size={14} />}
+                    style={enabledWikiIds.length > 0 ? { color: token.colorPrimary } : undefined}
                   />
                 </Badge>
               </Tooltip>

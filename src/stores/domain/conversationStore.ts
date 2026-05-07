@@ -1002,6 +1002,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 thinkingBudget,
                 enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
                 enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+                enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0 ? usePreferenceStore.getState().enabledWikiIds : undefined,
               });
               // Re-start stream
               const newTempId = `temp-assistant-${Date.now()}`;
@@ -1741,6 +1742,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const rThinkingBudget = getEffectiveThinkingBudget(conversationId);
       const rKbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
       const rMemIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const rWikiIds = usePreferenceStore.getState().enabledWikiIds;
       await invoke("regenerate_message", {
         conversationId,
         userMessageId: userMsg.id,
@@ -1748,6 +1750,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         thinkingBudget: rThinkingBudget,
         enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
         enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
+        enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
       });
 
       // In browser mode, simulate brief loading then fetch the mock AI response
@@ -1862,6 +1865,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const rThinkingBudget = getEffectiveThinkingBudget(conversationId);
       const rKbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
       const rMemIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const rWikiIds = usePreferenceStore.getState().enabledWikiIds;
       await invoke("regenerate_with_model", {
         conversationId,
         userMessageId: userMsg.id,
@@ -1871,6 +1875,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         thinkingBudget: rThinkingBudget,
         enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
         enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
+        enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
       });
 
       if (!isTauri()) {
@@ -2309,11 +2314,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Split sources by type and build separate tags
       const knowledgeSources = sources.filter(s => s.source_type === "knowledge");
       const memorySources = sources.filter(s => s.source_type === "memory");
+      const wikiSources = sources.filter(s => (s.source_type as string) === "wiki");
 
       const kbSearching = buildKnowledgeTag("searching");
       const memSearching = buildMemoryTag("searching");
+      const wikiSearching = buildWikiTag("searching");
       const kbDone = knowledgeSources.length > 0 ? buildKnowledgeTag("done", knowledgeSources) : "";
       const memDone = memorySources.length > 0 ? buildMemoryTag("done", memorySources) : "";
+      const wikiDone = wikiSources.length > 0 ? buildWikiTag("done", wikiSources) : "";
 
       // Replace each searching tag with its done counterpart (or remove if empty)
       const replaceTag = (content: string, searching: string, done: string) => {
@@ -2326,10 +2334,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         const buf = _streamBuffer;
         setStreamBuffer({
           ...buf,
-          content: replaceTag(replaceTag(buf.content, kbSearching, kbDone), memSearching, memDone),
+          content: replaceTag(replaceTag(replaceTag(buf.content, kbSearching, kbDone), memSearching, memDone), wikiSearching, wikiDone),
         });
       } else {
-        setStreamPrefix(replaceTag(replaceTag(_streamPrefix, kbSearching, kbDone), memSearching, memDone));
+        setStreamPrefix(replaceTag(replaceTag(replaceTag(_streamPrefix, kbSearching, kbDone), memSearching, memDone), wikiSearching, wikiDone));
       }
 
       // Update UI immediately

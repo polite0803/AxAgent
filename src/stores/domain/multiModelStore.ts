@@ -143,6 +143,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
       const thinkingBudget = getEffectiveThinkingBudget(conversationId);
       const kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
       const memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const wikiIds = usePreferenceStore.getState().enabledWikiIds;
 
       const invocations = remaining.map((model) =>
         invoke("regenerate_with_model", {
@@ -154,6 +155,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           thinkingBudget,
           enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
           enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+          enabledWikiIds: wikiIds.length > 0 ? wikiIds : undefined,
           isCompanion: true,
         }).then(async () => {
           if (!_isMultiModelActive) { return; }

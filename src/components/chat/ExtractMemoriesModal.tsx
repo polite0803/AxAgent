@@ -2,7 +2,7 @@ import { invoke } from "@/lib/invoke";
 import { useMemoryStore } from "@/stores/feature/memoryStore";
 import { App, Button, Empty, Modal, Select, Spin, theme, Typography } from "antd";
 import { Brain } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface ExtractMemoriesModalProps {

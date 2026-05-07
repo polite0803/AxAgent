@@ -467,7 +467,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             <Alert
               style={{ marginTop: 12 }}
               type="warning"
-              showClose
+              closable
               onClose={() => setImportWarnings([])}
               message={
                 <div style={{ fontSize: 12 }}>
