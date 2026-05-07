@@ -159,7 +159,9 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.triggerType")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.triggerType")}
+        </label>
         <Select
           value={triggerConfig.type}
           onChange={handleTypeChange}

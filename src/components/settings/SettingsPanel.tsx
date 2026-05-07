@@ -55,42 +55,162 @@ interface HookEventItem {
 }
 
 const HOOK_EVENTS: HookEventItem[] = [
-  { event: "PreToolUse", labelKey: "settings.agent.hookEvents.preToolUse", descKey: "settings.agent.hookEvents.preToolUseDesc", icon: <Play size={14} /> },
-  { event: "PostToolUse", labelKey: "settings.agent.hookEvents.postToolUse", descKey: "settings.agent.hookEvents.postToolUseDesc", icon: <Code size={14} /> },
+  {
+    event: "PreToolUse",
+    labelKey: "settings.agent.hookEvents.preToolUse",
+    descKey: "settings.agent.hookEvents.preToolUseDesc",
+    icon: <Play size={14} />,
+  },
+  {
+    event: "PostToolUse",
+    labelKey: "settings.agent.hookEvents.postToolUse",
+    descKey: "settings.agent.hookEvents.postToolUseDesc",
+    icon: <Code size={14} />,
+  },
   {
     event: "PostToolUseFailure",
     labelKey: "settings.agent.hookEvents.postToolUseFailure",
     descKey: "settings.agent.hookEvents.postToolUseFailureDesc",
     icon: <AlertTriangle size={14} />,
   },
-  { event: "Notification", labelKey: "settings.agent.hookEvents.notification", descKey: "settings.agent.hookEvents.notificationDesc", icon: <Zap size={14} /> },
-  { event: "UserPromptSubmit", labelKey: "settings.agent.hookEvents.userPromptSubmit", descKey: "settings.agent.hookEvents.userPromptSubmitDesc", icon: <Terminal size={14} /> },
-  { event: "SessionStart", labelKey: "settings.agent.hookEvents.sessionStart", descKey: "settings.agent.hookEvents.sessionStartDesc", icon: <Play size={14} /> },
-  { event: "SessionEnd", labelKey: "settings.agent.hookEvents.sessionEnd", descKey: "settings.agent.hookEvents.sessionEndDesc", icon: <Bot size={14} /> },
-  { event: "Stop", labelKey: "settings.agent.hookEvents.stop", descKey: "settings.agent.hookEvents.stopDesc", icon: <AlertTriangle size={14} /> },
-  { event: "StopFailure", labelKey: "settings.agent.hookEvents.stopFailure", descKey: "settings.agent.hookEvents.stopFailureDesc", icon: <AlertTriangle size={14} /> },
-  { event: "SubagentStart", labelKey: "settings.agent.hookEvents.subagentStart", descKey: "settings.agent.hookEvents.subagentStartDesc", icon: <Puzzle size={14} /> },
-  { event: "SubagentStop", labelKey: "settings.agent.hookEvents.subagentStop", descKey: "settings.agent.hookEvents.subagentStopDesc", icon: <Puzzle size={14} /> },
-  { event: "PreCompact", labelKey: "settings.agent.hookEvents.preCompact", descKey: "settings.agent.hookEvents.preCompactDesc", icon: <SlidersHorizontal size={14} /> },
-  { event: "PostCompact", labelKey: "settings.agent.hookEvents.postCompact", descKey: "settings.agent.hookEvents.postCompactDesc", icon: <SlidersHorizontal size={14} /> },
-  { event: "TeammateIdle", labelKey: "settings.agent.hookEvents.teammateIdle", descKey: "settings.agent.hookEvents.teammateIdleDesc", icon: <Bot size={14} /> },
-  { event: "TaskCreated", labelKey: "settings.agent.hookEvents.taskCreated", descKey: "settings.agent.hookEvents.taskCreatedDesc", icon: <Plus size={14} /> },
-  { event: "TaskCompleted", labelKey: "settings.agent.hookEvents.taskCompleted", descKey: "settings.agent.hookEvents.taskCompletedDesc", icon: <Play size={14} /> },
-  { event: "Elicitation", labelKey: "settings.agent.hookEvents.elicitation", descKey: "settings.agent.hookEvents.elicitationDesc", icon: <Terminal size={14} /> },
-  { event: "ElicitationResult", labelKey: "settings.agent.hookEvents.elicitationResult", descKey: "settings.agent.hookEvents.elicitationResultDesc", icon: <Terminal size={14} /> },
+  {
+    event: "Notification",
+    labelKey: "settings.agent.hookEvents.notification",
+    descKey: "settings.agent.hookEvents.notificationDesc",
+    icon: <Zap size={14} />,
+  },
+  {
+    event: "UserPromptSubmit",
+    labelKey: "settings.agent.hookEvents.userPromptSubmit",
+    descKey: "settings.agent.hookEvents.userPromptSubmitDesc",
+    icon: <Terminal size={14} />,
+  },
+  {
+    event: "SessionStart",
+    labelKey: "settings.agent.hookEvents.sessionStart",
+    descKey: "settings.agent.hookEvents.sessionStartDesc",
+    icon: <Play size={14} />,
+  },
+  {
+    event: "SessionEnd",
+    labelKey: "settings.agent.hookEvents.sessionEnd",
+    descKey: "settings.agent.hookEvents.sessionEndDesc",
+    icon: <Bot size={14} />,
+  },
+  {
+    event: "Stop",
+    labelKey: "settings.agent.hookEvents.stop",
+    descKey: "settings.agent.hookEvents.stopDesc",
+    icon: <AlertTriangle size={14} />,
+  },
+  {
+    event: "StopFailure",
+    labelKey: "settings.agent.hookEvents.stopFailure",
+    descKey: "settings.agent.hookEvents.stopFailureDesc",
+    icon: <AlertTriangle size={14} />,
+  },
+  {
+    event: "SubagentStart",
+    labelKey: "settings.agent.hookEvents.subagentStart",
+    descKey: "settings.agent.hookEvents.subagentStartDesc",
+    icon: <Puzzle size={14} />,
+  },
+  {
+    event: "SubagentStop",
+    labelKey: "settings.agent.hookEvents.subagentStop",
+    descKey: "settings.agent.hookEvents.subagentStopDesc",
+    icon: <Puzzle size={14} />,
+  },
+  {
+    event: "PreCompact",
+    labelKey: "settings.agent.hookEvents.preCompact",
+    descKey: "settings.agent.hookEvents.preCompactDesc",
+    icon: <SlidersHorizontal size={14} />,
+  },
+  {
+    event: "PostCompact",
+    labelKey: "settings.agent.hookEvents.postCompact",
+    descKey: "settings.agent.hookEvents.postCompactDesc",
+    icon: <SlidersHorizontal size={14} />,
+  },
+  {
+    event: "TeammateIdle",
+    labelKey: "settings.agent.hookEvents.teammateIdle",
+    descKey: "settings.agent.hookEvents.teammateIdleDesc",
+    icon: <Bot size={14} />,
+  },
+  {
+    event: "TaskCreated",
+    labelKey: "settings.agent.hookEvents.taskCreated",
+    descKey: "settings.agent.hookEvents.taskCreatedDesc",
+    icon: <Plus size={14} />,
+  },
+  {
+    event: "TaskCompleted",
+    labelKey: "settings.agent.hookEvents.taskCompleted",
+    descKey: "settings.agent.hookEvents.taskCompletedDesc",
+    icon: <Play size={14} />,
+  },
+  {
+    event: "Elicitation",
+    labelKey: "settings.agent.hookEvents.elicitation",
+    descKey: "settings.agent.hookEvents.elicitationDesc",
+    icon: <Terminal size={14} />,
+  },
+  {
+    event: "ElicitationResult",
+    labelKey: "settings.agent.hookEvents.elicitationResult",
+    descKey: "settings.agent.hookEvents.elicitationResultDesc",
+    icon: <Terminal size={14} />,
+  },
   {
     event: "ConfigChange",
     labelKey: "settings.agent.hookEvents.configChange",
     descKey: "settings.agent.hookEvents.configChangeDesc",
     icon: <SlidersHorizontal size={14} />,
   },
-  { event: "InstructionsLoaded", labelKey: "settings.agent.hookEvents.instructionsLoaded", descKey: "settings.agent.hookEvents.instructionsLoadedDesc", icon: <Code size={14} /> },
-  { event: "FileChanged", labelKey: "settings.agent.hookEvents.fileChanged", descKey: "settings.agent.hookEvents.fileChangedDesc", icon: <Code size={14} /> },
-  { event: "CwdChanged", labelKey: "settings.agent.hookEvents.cwdChanged", descKey: "settings.agent.hookEvents.cwdChangedDesc", icon: <Terminal size={14} /> },
-  { event: "PermissionRequest", labelKey: "settings.agent.hookEvents.permissionRequest", descKey: "settings.agent.hookEvents.permissionRequestDesc", icon: <Shield size={14} /> },
-  { event: "PermissionDenied", labelKey: "settings.agent.hookEvents.permissionDenied", descKey: "settings.agent.hookEvents.permissionDeniedDesc", icon: <Shield size={14} /> },
-  { event: "WorktreeCreate", labelKey: "settings.agent.hookEvents.worktreeCreate", descKey: "settings.agent.hookEvents.worktreeCreateDesc", icon: <Plus size={14} /> },
-  { event: "WorktreeRemove", labelKey: "settings.agent.hookEvents.worktreeRemove", descKey: "settings.agent.hookEvents.worktreeRemoveDesc", icon: <Trash2 size={14} /> },
+  {
+    event: "InstructionsLoaded",
+    labelKey: "settings.agent.hookEvents.instructionsLoaded",
+    descKey: "settings.agent.hookEvents.instructionsLoadedDesc",
+    icon: <Code size={14} />,
+  },
+  {
+    event: "FileChanged",
+    labelKey: "settings.agent.hookEvents.fileChanged",
+    descKey: "settings.agent.hookEvents.fileChangedDesc",
+    icon: <Code size={14} />,
+  },
+  {
+    event: "CwdChanged",
+    labelKey: "settings.agent.hookEvents.cwdChanged",
+    descKey: "settings.agent.hookEvents.cwdChangedDesc",
+    icon: <Terminal size={14} />,
+  },
+  {
+    event: "PermissionRequest",
+    labelKey: "settings.agent.hookEvents.permissionRequest",
+    descKey: "settings.agent.hookEvents.permissionRequestDesc",
+    icon: <Shield size={14} />,
+  },
+  {
+    event: "PermissionDenied",
+    labelKey: "settings.agent.hookEvents.permissionDenied",
+    descKey: "settings.agent.hookEvents.permissionDeniedDesc",
+    icon: <Shield size={14} />,
+  },
+  {
+    event: "WorktreeCreate",
+    labelKey: "settings.agent.hookEvents.worktreeCreate",
+    descKey: "settings.agent.hookEvents.worktreeCreateDesc",
+    icon: <Plus size={14} />,
+  },
+  {
+    event: "WorktreeRemove",
+    labelKey: "settings.agent.hookEvents.worktreeRemove",
+    descKey: "settings.agent.hookEvents.worktreeRemoveDesc",
+    icon: <Trash2 size={14} />,
+  },
 ];
 
 interface HookCommand {
@@ -138,15 +258,30 @@ const FEATURE_FLAG_META: Array<{
     descKey: "settings.agent.featureFlags.proactiveModeDesc",
     icon: <Zap size={14} />,
   },
-  { key: "swarmMode", labelKey: "settings.agent.featureFlags.swarmMode", descKey: "settings.agent.featureFlags.swarmModeDesc", icon: <Shield size={14} /> },
-  { key: "toolConcurrency", labelKey: "settings.agent.featureFlags.toolConcurrency", descKey: "settings.agent.featureFlags.toolConcurrencyDesc", icon: <Play size={14} /> },
+  {
+    key: "swarmMode",
+    labelKey: "settings.agent.featureFlags.swarmMode",
+    descKey: "settings.agent.featureFlags.swarmModeDesc",
+    icon: <Shield size={14} />,
+  },
+  {
+    key: "toolConcurrency",
+    labelKey: "settings.agent.featureFlags.toolConcurrency",
+    descKey: "settings.agent.featureFlags.toolConcurrencyDesc",
+    icon: <Play size={14} />,
+  },
   {
     key: "verificationAgent",
     labelKey: "settings.agent.featureFlags.verificationAgent",
     descKey: "settings.agent.featureFlags.verificationAgentDesc",
     icon: <Code size={14} />,
   },
-  { key: "dreamTask", labelKey: "settings.agent.featureFlags.dreamTask", descKey: "settings.agent.featureFlags.dreamTaskDesc", icon: <Bot size={14} /> },
+  {
+    key: "dreamTask",
+    labelKey: "settings.agent.featureFlags.dreamTask",
+    descKey: "settings.agent.featureFlags.dreamTaskDesc",
+    icon: <Bot size={14} />,
+  },
 ];
 
 function GeneralTab() {
@@ -323,7 +458,9 @@ function AgentsTab() {
         ? (
           <div style={{ textAlign: "center", padding: 48 }}>
             <Spin />
-            <div style={{ marginTop: 12, color: token.colorTextDescription, fontSize: 12 }}>{t("settings.agent.loading")}</div>
+            <div style={{ marginTop: 12, color: token.colorTextDescription, fontSize: 12 }}>
+              {t("settings.agent.loading")}
+            </div>
           </div>
         )
         : agents.length === 0
@@ -368,7 +505,9 @@ function AgentsTab() {
                   {agent.capabilities.length > 0 && (
                     <Descriptions.Item label={t("settings.agent.capabilitiesLabel")}>
                       <Space size={4} wrap>
-                        {agent.capabilities.map((cap) => <Tag key={cap} color="purple" style={{ fontSize: 11 }}>{cap}</Tag>)}
+                        {agent.capabilities.map((cap) => (
+                          <Tag key={cap} color="purple" style={{ fontSize: 11 }}>{cap}</Tag>
+                        ))}
                       </Space>
                     </Descriptions.Item>
                   )}

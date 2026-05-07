@@ -47,7 +47,9 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.query")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.query")}
+        </label>
         <Input.TextArea
           value={config.query || ""}
           onChange={(e) => handleConfigChange("query", e.target.value)}
@@ -58,7 +60,9 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.knowledgeBase")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.knowledgeBase")}
+        </label>
         <Select
           value={config.knowledge_base_id || undefined}
           onChange={(value) => handleConfigChange("knowledge_base_id", value)}

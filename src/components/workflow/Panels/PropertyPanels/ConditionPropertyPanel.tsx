@@ -82,7 +82,9 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.logicalOp")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.logicalOp")}
+        </label>
         <Select
           value={config.logical_op}
           onChange={handleLogicalOpChange}

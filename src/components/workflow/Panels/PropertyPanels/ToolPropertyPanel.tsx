@@ -81,7 +81,9 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.tool")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.tool")}
+        </label>
         <Select
           value={config.tool_name || undefined}
           onChange={(value) => handleConfigChange("tool_name", value)}
@@ -138,7 +140,9 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.outputVariable")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.outputVariable")}
+        </label>
         <Input
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}

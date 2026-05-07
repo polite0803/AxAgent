@@ -551,7 +551,11 @@ export function InputArea() {
                 onClick={() => setMcpMode(mode)}
                 style={{ flex: 1, fontSize: 11 }}
               >
-                {mode === "auto" ? t("chat.mcp.modeAuto") : mode === "manual" ? t("chat.mcp.modeManual") : t("chat.mcp.modeDisabled")}
+                {mode === "auto"
+                  ? t("chat.mcp.modeAuto")
+                  : mode === "manual"
+                  ? t("chat.mcp.modeManual")
+                  : t("chat.mcp.modeDisabled")}
               </Button>
             ))}
           </div>

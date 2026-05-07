@@ -27,7 +27,9 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "seconds":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delaySeconds")}</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+              {t("workflow.props.delaySeconds")}
+            </label>
             <InputNumber
               value={config.seconds ?? 5}
               onChange={(value) => handleConfigChange("seconds", value)}
@@ -47,7 +49,9 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "minutes":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayMinutes")}</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+              {t("workflow.props.delayMinutes")}
+            </label>
             <InputNumber
               value={Math.floor((config.seconds || 5) / 60)}
               onChange={(value) => handleConfigChange("seconds", (value || 1) * 60)}
@@ -62,7 +66,9 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "hours":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayHours")}</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+              {t("workflow.props.delayHours")}
+            </label>
             <InputNumber
               value={Math.floor((config.seconds || 5) / 3600)}
               onChange={(value) => handleConfigChange("seconds", (value || 1) * 3600)}
@@ -77,7 +83,9 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
       case "until":
         return (
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.delayUntil")}</label>
+            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+              {t("workflow.props.delayUntil")}
+            </label>
             <Input
               value={config.until || ""}
               onChange={(e) => handleConfigChange("until", e.target.value)}

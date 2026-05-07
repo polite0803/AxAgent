@@ -166,13 +166,17 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
               {getNodeLabel(stepId)}
             </Tag>
           ))}
-          {config.body_steps.length === 0 && <div style={{ color: "#666", fontSize: 11 }}>{t("workflow.props.noLoopSteps")}</div>}
+          {config.body_steps.length === 0 && (
+            <div style={{ color: "#666", fontSize: 11 }}>{t("workflow.props.noLoopSteps")}</div>
+          )}
         </div>
       </div>
 
       {availableNodes.length > 0 && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.addStep")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.addStep")}
+          </label>
           <Select
             placeholder={t("workflow.props.selectNodeToAdd")}
             size="small"

@@ -434,7 +434,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const result = await invoke<{ id: string; warnings: string[]; errors: string[] }>("import_workflow_template", { jsonData });
+        const result = await invoke<{ id: string; warnings: string[]; errors: string[] }>("import_workflow_template", {
+          jsonData,
+        });
         await get().loadTemplates();
         set((state) => {
           state.isSaving = false;

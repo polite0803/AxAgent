@@ -85,30 +85,34 @@ export function ExtractMemoriesModal({ open, onClose, conversationId }: ExtractM
         <Typography.Text type="secondary">
           {t("chat.extractMemoriesDesc")}
         </Typography.Text>
-        {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
-            <Spin size="small" />
-          </div>
-        ) : hasNamespaces ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <Typography.Text style={{ fontSize: 13 }}>
-              {t("chat.extractMemoriesSelectNamespace")}
-            </Typography.Text>
-            <Select
-              value={selectedNamespaceId}
-              onChange={setSelectedNamespaceId}
-              options={namespaceOptions}
-              placeholder={t("chat.extractMemoriesSelectNamespace")}
-              style={{ width: "100%" }}
-              disabled={extracting}
+        {loading
+          ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
+              <Spin size="small" />
+            </div>
+          )
+          : hasNamespaces
+          ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <Typography.Text style={{ fontSize: 13 }}>
+                {t("chat.extractMemoriesSelectNamespace")}
+              </Typography.Text>
+              <Select
+                value={selectedNamespaceId}
+                onChange={setSelectedNamespaceId}
+                options={namespaceOptions}
+                placeholder={t("chat.extractMemoriesSelectNamespace")}
+                style={{ width: "100%" }}
+                disabled={extracting}
+              />
+            </div>
+          )
+          : (
+            <Empty
+              description={t("chat.extractMemoriesNoNamespaces")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
-          </div>
-        ) : (
-          <Empty
-            description={t("chat.extractMemoriesNoNamespaces")}
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        )}
+          )}
       </div>
     </Modal>
   );

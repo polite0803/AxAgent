@@ -25,7 +25,9 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.mergeType")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.mergeType")}
+        </label>
         <Select
           value={config.merge_type}
           onChange={(value) => handleConfigChange("merge_type", value)}

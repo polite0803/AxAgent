@@ -1,5 +1,5 @@
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
-import { buildKnowledgeTag, buildMemoryTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
+import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
 import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
 import { useSearchStore } from "@/stores";
 import { useProviderStore } from "@/stores/feature/providerStore";
@@ -854,6 +854,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     if (searchProviderId) { placeholderContent += buildSearchTag("searching"); }
     if (hasKnowledgeRag) { placeholderContent += buildKnowledgeTag("searching"); }
     if (hasMemoryRag) { placeholderContent += buildMemoryTag("searching"); }
+    if (hasWikiRag) { placeholderContent += buildWikiTag("searching"); }
     const placeholderAssistant: Message = {
       id: tempAssistantId,
       conversation_id: conversationId,
@@ -903,23 +904,26 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         // Replace searching tag with results, keep RAG searching tags if present
         const kbPart = hasKnowledgeRag ? buildKnowledgeTag("searching") : "";
         const memPart = hasMemoryRag ? buildMemoryTag("searching") : "";
-        setStreamPrefix(searchResultTag + kbPart + memPart);
+        const wikiPart = hasWikiRag ? buildWikiTag("searching") : "";
+        setStreamPrefix(searchResultTag + kbPart + memPart + wikiPart);
         set((s) => ({
           messages: s.messages.map(m =>
-            m.id === tempAssistantId ? { ...m, content: searchResultTag + kbPart + memPart } : m
+            m.id === tempAssistantId ? { ...m, content: searchResultTag + kbPart + memPart + wikiPart } : m
           ),
         }));
       } else if (hasAnyRag) {
         // RAG only — set prefix so searching tags flow into stream buffer
         const kbPart = hasKnowledgeRag ? buildKnowledgeTag("searching") : "";
         const memPart = hasMemoryRag ? buildMemoryTag("searching") : "";
-        setStreamPrefix(kbPart + memPart);
+        const wikiPart = hasWikiRag ? buildWikiTag("searching") : "";
+        setStreamPrefix(kbPart + memPart + wikiPart);
       }
 
       mcpIds = usePreferenceStore.getState().enabledMcpServerIds;
       thinkingBudget = getEffectiveThinkingBudget(conversationId);
       kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
       memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const wikiIdsForSend = usePreferenceStore.getState().enabledWikiIds;
       const userMessage = await invoke<Message>("send_message", {
         conversationId,
         content: finalContent,
@@ -928,6 +932,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         thinkingBudget,
         enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
         enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+        enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
       });
 
       // Replace optimistic user msg with real one, update placeholder parent

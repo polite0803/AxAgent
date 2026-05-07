@@ -5,7 +5,9 @@ import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-function getImportPreview(jsonStr: string): { name: string; nodeCount: number; edgeCount: number; format: string } | null {
+function getImportPreview(
+  jsonStr: string,
+): { name: string; nodeCount: number; edgeCount: number; format: string } | null {
   try {
     const json = JSON.parse(jsonStr);
     const isN8n = json.nodes?.some?.((n: any) => n.type?.startsWith?.("n8n-nodes-base."));
@@ -18,7 +20,7 @@ function getImportPreview(jsonStr: string): { name: string; nodeCount: number; e
         const main = (conn as any)?.main;
         if (Array.isArray(main)) {
           for (const group of main) {
-            if (Array.isArray(group)) edgeCount += group.length;
+            if (Array.isArray(group)) { edgeCount += group.length; }
           }
         }
       }
@@ -98,7 +100,9 @@ function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void })
             <div style={{ fontSize: 12 }}>
               <div>
                 {t("workflow.importExport.n8nResult", { imported: result.imported, skipped: result.skipped })}
-                {result.errorCount > 0 ? ` · ${t("workflow.importExport.errorCount", { count: result.errorCount })}` : ""}
+                {result.errorCount > 0
+                  ? ` · ${t("workflow.importExport.errorCount", { count: result.errorCount })}`
+                  : ""}
               </div>
               {result.errors.length > 0 && (
                 <div style={{ marginTop: 6 }}>
@@ -180,7 +184,9 @@ function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void
             <div style={{ fontSize: 12 }}>
               <div>
                 {t("workflow.importExport.batchResult", { count: result.imported })}
-                {result.errors.length > 0 ? ` · ${t("workflow.importExport.errorCount", { count: result.errors.length })}` : ""}
+                {result.errors.length > 0
+                  ? ` · ${t("workflow.importExport.errorCount", { count: result.errors.length })}`
+                  : ""}
               </div>
               {result.errors.length > 0 && (
                 <div style={{ marginTop: 6 }}>
@@ -188,7 +194,9 @@ function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void
                     <div key={i} style={{ color: "#595959", fontSize: 11, marginBottom: 2 }}>{e}</div>
                   ))}
                   {result.errors.length > 10 && (
-                    <div style={{ color: "#999", fontSize: 11 }}>{t("workflow.importExport.moreErrors", { count: result.errors.length - 10 })}</div>
+                    <div style={{ color: "#999", fontSize: 11 }}>
+                      {t("workflow.importExport.moreErrors", { count: result.errors.length - 10 })}
+                    </div>
                   )}
                 </div>
               )}
@@ -226,7 +234,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   const [copied, setCopied] = useState(false);
 
   const preview = useMemo(() => {
-    if (!importData.trim()) return null;
+    if (!importData.trim()) { return null; }
     return getImportPreview(importData.trim());
   }, [importData]);
 
@@ -435,7 +443,9 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               >
                 <Descriptions.Item label={t("workflow.importExport.workflowName")}>{preview.name}</Descriptions.Item>
                 <Descriptions.Item label={t("workflow.importExport.format")}>
-                  {preview.format === "n8n" ? t("workflow.importExport.formatN8n") : t("workflow.importExport.formatAxAgent")}
+                  {preview.format === "n8n"
+                    ? t("workflow.importExport.formatN8n")
+                    : t("workflow.importExport.formatAxAgent")}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("workflow.importExport.nodeCount")}>{preview.nodeCount}</Descriptions.Item>
                 <Descriptions.Item label={t("workflow.importExport.edgeCount")}>{preview.edgeCount}</Descriptions.Item>
@@ -461,9 +471,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               onClose={() => setImportWarnings([])}
               message={
                 <div style={{ fontSize: 12 }}>
-                  {importWarnings.map((w, i) => (
-                    <div key={i}>{w}</div>
-                  ))}
+                  {importWarnings.map((w, i) => <div key={i}>{w}</div>)}
                 </div>
               }
             />

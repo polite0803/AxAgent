@@ -101,7 +101,9 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.timeoutSeconds")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.timeoutSeconds")}
+        </label>
         <Input
           type="number"
           value={config.timeout ?? ""}
@@ -177,7 +179,9 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                         {getNodeLabel(stepId)}
                       </Tag>
                     ))}
-                    {branch.steps.length === 0 && <span style={{ fontSize: 10, color: "#666" }}>{t("workflow.props.noSteps")}</span>}
+                    {branch.steps.length === 0 && (
+                      <span style={{ fontSize: 10, color: "#666" }}>{t("workflow.props.noSteps")}</span>
+                    )}
                   </div>
                   {availableNodes.length > 0 && (
                     <Select

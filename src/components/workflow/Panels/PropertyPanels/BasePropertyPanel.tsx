@@ -14,7 +14,9 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.title")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.title")}
+        </label>
         <Input
           value={node.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
@@ -23,7 +25,9 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.description")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.description")}
+        </label>
         <Input.TextArea
           value={node.description || ""}
           onChange={(e) => onUpdate({ description: e.target.value })}
@@ -44,7 +48,9 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.retryPolicy")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.retryPolicy")}
+        </label>
         <Switch
           size="small"
           checked={node.retry.enabled}
@@ -95,7 +101,9 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.timeoutSeconds")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.timeoutSeconds")}
+        </label>
         <InputNumber
           value={node.timeout}
           onChange={(value) => onUpdate({ timeout: value ?? undefined })}

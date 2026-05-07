@@ -105,7 +105,9 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                       <Tag color={version === Math.max(...versions) ? "green" : "default"}>
                         v{version}
                       </Tag>
-                      {version === template?.version && <Tag color="blue">{t("workflow.versionHistory.currentVersion")}</Tag>}
+                      {version === template?.version && (
+                        <Tag color="blue">{t("workflow.versionHistory.currentVersion")}</Tag>
+                      )}
                     </div>
                   }
                   description={t("workflow.versionHistory.version", { version })}

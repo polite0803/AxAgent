@@ -861,7 +861,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         onClose={() => setImportExportModalVisible(false)}
         onExport={exportTemplate}
         onImport={importTemplate}
-        onImportComplete={() => { loadTemplates(); }}
+        onImportComplete={() => {
+          loadTemplates();
+        }}
       />
     </div>
   );

@@ -119,7 +119,9 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.failStrategy")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.failStrategy")}
+        </label>
         <Select
           value={config.on_fail || "stop"}
           onChange={(value) => handleConfigChange("on_fail", value)}
@@ -135,7 +137,9 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
 
       {config.on_fail === "retry" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.maxRetries")}</label>
+          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            {t("workflow.props.maxRetries")}
+          </label>
           <Input
             type="number"
             value={config.max_retries ?? 0}

@@ -42,7 +42,9 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
     switch (language) {
       case "javascript":
       case "typescript":
-        return `// ${t("workflow.props.codeInputParams")}\n// ${t("workflow.props.codeReturnHint")}\n\nconst result = input;\nreturn result;`;
+        return `// ${t("workflow.props.codeInputParams")}\n// ${
+          t("workflow.props.codeReturnHint")
+        }\n\nconst result = input;\nreturn result;`;
       case "python":
         return `${t("workflow.props.defaultCodePythonComment")}\n\nresult = input\nreturn result`;
       default:
@@ -64,7 +66,9 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>{t("workflow.props.language")}</label>
+        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          {t("workflow.props.language")}
+        </label>
         <Select
           value={config.language}
           onChange={handleLanguageChange}

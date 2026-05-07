@@ -298,7 +298,9 @@ export const TemplateList: React.FC<TemplateListProps> = ({
 
       {filteredTemplates.length === 0 && !isLoading && (
         <Empty
-          description={searchText || filterTag ? t("workflow.templateList.noMatchFound") : t("workflow.templateList.noTemplates")}
+          description={searchText || filterTag
+            ? t("workflow.templateList.noMatchFound")
+            : t("workflow.templateList.noTemplates")}
           style={{ marginTop: 48 }}
         />
       )}
