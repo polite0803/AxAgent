@@ -1399,7 +1399,7 @@ mod tests {
     #[test]
     fn test_extract_goal_database_node() {
         let node = json!({
-            "type": "n8n-nodes-base.postgres",
+            "type": "n8n-nodes-base.sqlite",
             "parameters": {
                 "operation": "SELECT",
                 "table": "orders"

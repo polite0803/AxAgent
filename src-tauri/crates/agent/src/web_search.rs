@@ -180,8 +180,8 @@ impl WebSearchProvider {
         let results: Vec<SearchResult> = wiki_response
             .titles
             .into_iter()
-            .zip(wiki_response.snippets.into_iter())
-            .zip(wiki_response.urls.into_iter())
+            .zip(wiki_response.snippets)
+            .zip(wiki_response.urls)
             .enumerate()
             .filter(|(idx, _)| *idx < max_results)
             .map(|(_, ((title, snippet), url))| {

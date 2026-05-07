@@ -147,7 +147,7 @@ pub fn get_invoke_metrics() -> Result<serde_json::Value, String> {
     let errors = IPC_ERROR_COUNT.load(std::sync::atomic::Ordering::Relaxed);
     Ok(serde_json::json!({
         "totalCalls": total,
-        "avgDurationMs": if total > 0 { total_dur / total } else { 0 },
+        "avgDurationMs": total_dur.checked_div(total).unwrap_or(0),
         "errorRate": if total > 0 { errors as f64 / total as f64 } else { 0.0 },
     }))
 }

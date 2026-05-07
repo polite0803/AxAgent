@@ -148,9 +148,9 @@ pub fn apply_search_filter(
 /// Sort entries by the given key (`"name"`, `"size"`, or `"date"` / default newest-first).
 pub fn apply_sort(mut entries: Vec<FilesPageEntry>, sort_key: Option<&str>) -> Vec<FilesPageEntry> {
     match sort_key {
-        Some("name") => entries.sort_by(|a, b| a.display_name.cmp(&b.display_name)),
-        Some("size") => entries.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes)),
-        _ => entries.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+        Some("name") => entries.sort_by_cached_key(|a| a.display_name.clone()),
+        Some("size") => entries.sort_by_key(|a| std::cmp::Reverse(a.size_bytes)),
+        _ => entries.sort_by_cached_key(|a| std::cmp::Reverse(a.created_at.clone())),
     }
     entries
 }

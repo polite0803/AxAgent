@@ -292,10 +292,8 @@ pub async fn rebuild_knowledge_index(
 
             match crate::indexing::generate_embeddings(&db, &master_key, &ep, texts, None).await {
                 Ok(embed_response) => {
-                    let entries: Vec<(i64, Vec<f32>)> = rowids
-                        .into_iter()
-                        .zip(embed_response.embeddings.into_iter())
-                        .collect();
+                    let entries: Vec<(i64, Vec<f32>)> =
+                        rowids.into_iter().zip(embed_response.embeddings).collect();
 
                     if let Err(e) = vector_store
                         .upsert_document_embeddings(&collection_id, entries)
@@ -780,10 +778,8 @@ pub async fn rebuild_knowledge_document(
 
         match result {
             Ok(embed_response) => {
-                let entries: Vec<(i64, Vec<f32>)> = rowids
-                    .into_iter()
-                    .zip(embed_response.embeddings.into_iter())
-                    .collect();
+                let entries: Vec<(i64, Vec<f32>)> =
+                    rowids.into_iter().zip(embed_response.embeddings).collect();
 
                 if let Err(e) = vector_store
                     .upsert_document_embeddings(&collection_id, entries)
