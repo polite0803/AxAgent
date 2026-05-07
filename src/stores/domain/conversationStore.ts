@@ -1002,7 +1002,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 thinkingBudget,
                 enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
                 enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-                enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0 ? usePreferenceStore.getState().enabledWikiIds : undefined,
+                enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
+                  ? usePreferenceStore.getState().enabledWikiIds
+                  : undefined,
               });
               // Re-start stream
               const newTempId = `temp-assistant-${Date.now()}`;
@@ -2334,10 +2336,20 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         const buf = _streamBuffer;
         setStreamBuffer({
           ...buf,
-          content: replaceTag(replaceTag(replaceTag(buf.content, kbSearching, kbDone), memSearching, memDone), wikiSearching, wikiDone),
+          content: replaceTag(
+            replaceTag(replaceTag(buf.content, kbSearching, kbDone), memSearching, memDone),
+            wikiSearching,
+            wikiDone,
+          ),
         });
       } else {
-        setStreamPrefix(replaceTag(replaceTag(replaceTag(_streamPrefix, kbSearching, kbDone), memSearching, memDone), wikiSearching, wikiDone));
+        setStreamPrefix(
+          replaceTag(
+            replaceTag(replaceTag(_streamPrefix, kbSearching, kbDone), memSearching, memDone),
+            wikiSearching,
+            wikiDone,
+          ),
+        );
       }
 
       // Update UI immediately

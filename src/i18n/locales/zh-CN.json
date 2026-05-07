@@ -470,6 +470,10 @@
       "empty": "请先在设置中添加记忆命名空间",
       "title": "记忆"
     },
+    "wiki": {
+      "empty": "请先在设置中添加 Wiki 知识库",
+      "title": "Wiki 知识库"
+    },
     "memoryRetrieval": {
       "error": "记忆检索失败",
       "label": "记忆",

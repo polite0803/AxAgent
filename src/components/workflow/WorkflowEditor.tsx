@@ -45,12 +45,7 @@ import { LeftPanel } from "./Panels/LeftPanel";
 import { RightPanel } from "./Panels/RightPanel";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
-import {
-  type AgentNode as AgentNodeType,
-  NODE_TYPE_MAP,
-  type WorkflowEdge,
-  type WorkflowNode,
-} from "./types";
+import { type AgentNode as AgentNodeType, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
 
 const nodeTypes = {
   base: BaseNode,
