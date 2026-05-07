@@ -35,11 +35,11 @@ import { InfographicBlockHeaderActions } from "./InfographicBlockHeaderActions";
 import { KnowledgeRetrievalNode } from "./KnowledgeRetrievalNode";
 import { McpContainerNode } from "./McpContainerNode";
 import { MemoryRetrievalNode } from "./MemoryRetrievalNode";
-import { WikiRetrievalNode } from "./WikiRetrievalNode";
 import { MermaidBlockHeaderActions } from "./MermaidBlockHeaderActions";
 import { MermaidZoomControls } from "./MermaidZoomControls";
 import { StructuredThinking } from "./StructuredThinking";
 import { WebSearchNode } from "./WebSearchNode";
+import { WikiRetrievalNode } from "./WikiRetrievalNode";
 
 interface CodeBlockActionContext {
   collapsed: boolean;

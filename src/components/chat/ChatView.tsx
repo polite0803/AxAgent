@@ -2736,33 +2736,33 @@ function ChatViewInner({ onScrollToReady }: {
                 )}
 
               {activeConversation?.mode === "agent" && (
-              <WorkflowBadge
-                sessionType={activeConversation?.session_type ?? "conversation"}
-                workflowTemplateId={activeConversation?.workflow_template_id}
-                workflowStatus={activeConversation?.workflow_status}
-                onSelectWorkflow={(templateId) => {
-                  if (templateId === "") {
+                <WorkflowBadge
+                  sessionType={activeConversation?.session_type ?? "conversation"}
+                  workflowTemplateId={activeConversation?.workflow_template_id}
+                  workflowStatus={activeConversation?.workflow_status}
+                  onSelectWorkflow={(templateId) => {
+                    if (templateId === "") {
+                      void updateConversation(activeConversation.id, {
+                        session_type: "conversation",
+                        workflow_template_id: null,
+                      });
+                    } else {
+                      void updateConversation(activeConversation.id, {
+                        session_type: "workflow",
+                        workflow_template_id: templateId,
+                      });
+                    }
+                    fetchConversation();
+                  }}
+                  onRemoveWorkflow={() => {
                     void updateConversation(activeConversation.id, {
                       session_type: "conversation",
                       workflow_template_id: null,
                     });
-                  } else {
-                    void updateConversation(activeConversation.id, {
-                      session_type: "workflow",
-                      workflow_template_id: templateId,
-                    });
-                  }
-                  fetchConversation();
-                }}
-                onRemoveWorkflow={() => {
-                  void updateConversation(activeConversation.id, {
-                    session_type: "conversation",
-                    workflow_template_id: null,
-                  });
-                  fetchConversation();
-                }}
-                disabled={!!streamingMessageId}
-              />
+                    fetchConversation();
+                  }}
+                  disabled={!!streamingMessageId}
+                />
               )}
               {activeConversation?.mode === "agent"
                 && activeConversation?.session_type !== "workflow" && (

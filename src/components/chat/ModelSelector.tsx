@@ -1,3 +1,4 @@
+import { ContextHelp } from "@/components/help/ContextHelp";
 import { getVisibleModelCapabilities } from "@/lib/modelCapabilities";
 import { SmartProviderIcon } from "@/lib/providerIcons";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
@@ -26,7 +27,6 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { ContextHelp } from "@/components/help/ContextHelp";
 
 const PINNED_MODELS_KEY = "axagent_pinned_models";
 

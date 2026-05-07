@@ -125,7 +125,7 @@ export function InteractiveTutorial() {
   }, [tutorialStep, navigate]);
 
   useEffect(() => {
-    if (!tutorialActive) return;
+    if (!tutorialActive) { return; }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
         handleNext();
@@ -150,11 +150,11 @@ export function InteractiveTutorial() {
       bubbleRef.current?.focus();
     }, 50);
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab" || !bubbleRef.current) return;
+      if (e.key !== "Tab" || !bubbleRef.current) { return; }
       const focusable = bubbleRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) { return; }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (e.shiftKey) {

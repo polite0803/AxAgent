@@ -4,7 +4,21 @@ import { useKnowledgeStore } from "@/stores";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { KnowledgeBase, Note, NoteLink } from "@/types";
 import { DeleteOutlined, LinkOutlined, SaveOutlined } from "@ant-design/icons";
-import { Button, Empty, List, message, Modal, Popconfirm, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
+import {
+  Button,
+  Empty,
+  List,
+  message,
+  Modal,
+  Popconfirm,
+  Select,
+  Spin,
+  Tabs,
+  Tag,
+  theme,
+  Tooltip,
+  Typography,
+} from "antd";
 import { ArrowLeftRight, BookOpen, GitGraph, Network, PenLine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, { Background, Controls, Edge, MiniMap, Node, useEdgesState, useNodesState } from "reactflow";

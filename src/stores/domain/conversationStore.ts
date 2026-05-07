@@ -1010,7 +1010,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 thinkingBudget,
                 enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
                 enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-                enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0 ? usePreferenceStore.getState().enabledWikiIds : undefined,
+                enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
+                  ? usePreferenceStore.getState().enabledWikiIds
+                  : undefined,
               });
               // Re-start stream
               const newTempId = `temp-assistant-${Date.now()}`;

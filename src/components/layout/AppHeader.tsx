@@ -1,8 +1,8 @@
+import { useHelpStore } from "@/stores/feature/helpStore";
 import { theme, Tooltip } from "antd";
+import { HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
-import { HelpCircle } from "lucide-react";
-import { useHelpStore } from "@/stores/feature/helpStore";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": "nav.chat",

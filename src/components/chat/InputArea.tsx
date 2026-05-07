@@ -1,9 +1,9 @@
+import { ContextHelp } from "@/components/help/ContextHelp";
 import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { SkillToolbar } from "@/components/skill/SkillToolbar";
-import { ContextHelp } from "@/components/help/ContextHelp";
 import { invoke, isTauri } from "@/lib/invoke";
 import { findModelByIds, modelHasCapability, supportsReasoning } from "@/lib/modelCapabilities";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";

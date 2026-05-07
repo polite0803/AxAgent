@@ -28,7 +28,18 @@ import {
   Typography,
 } from "antd";
 import type { MenuProps } from "antd";
-import { GripVertical, MoreHorizontal, Pencil, Plus, Search, Settings, Trash, Trash2, Zap, ArrowRightLeft } from "lucide-react";
+import {
+  ArrowRightLeft,
+  GripVertical,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Trash,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
