@@ -138,10 +138,16 @@ mod tests {
     fn documents_root_ends_with_axagent() {
         let root = default_documents_root();
         assert!(root.ends_with("axagent"), "Expected path ending with 'axagent', got {:?}", root);
-        // Should be under the platform Documents directory
-        let parent = root.parent().unwrap();
-        let parent_name = parent.file_name().unwrap().to_str().unwrap();
-        assert_eq!(parent_name, "Documents", "Expected parent 'Documents', got {}", parent_name);
+        // 仅当系统有 Documents 目录时才检查父目录名称（CI 环境可能没有）
+        if let Some(_doc_dir) = dirs::document_dir() {
+            let parent = root.parent().unwrap();
+            let parent_name = parent.file_name().unwrap().to_str().unwrap();
+            assert_eq!(
+                parent_name, "Documents",
+                "Expected parent 'Documents', got {}",
+                parent_name
+            );
+        }
     }
 
     #[test]

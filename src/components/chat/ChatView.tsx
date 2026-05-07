@@ -72,6 +72,7 @@ import {
   setupAgentEventListeners,
   setupDreamEventListeners,
   setupPlanEventListeners,
+  useAgentProfileStore,
   useAgentStore,
   useCompressStore,
   useConversationStore,
@@ -109,7 +110,7 @@ import { DeleteLastVersionPopover } from "./DeleteLastVersionPopover";
 import { ExecutionTimeline } from "./ExecutionTimeline";
 import { ExpertBadge } from "./ExpertBadge";
 import { ExpertSelector } from "./ExpertSelector";
-import { InputArea } from "./InputArea";
+import { AgentRoleSelect, InputArea } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 import { ModelTags } from "./ModelTags";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
@@ -2638,10 +2639,19 @@ function ChatViewInner() {
                 workflowTemplateId={activeConversation?.workflow_template_id}
                 workflowStatus={activeConversation?.workflow_status}
                 onSelectWorkflow={(templateId) => {
-                  void updateConversation(activeConversation.id, {
-                    session_type: "workflow",
-                    workflow_template_id: templateId,
-                  });
+                  if (templateId === "") {
+                    // "对话模式" selected
+                    void updateConversation(activeConversation.id, {
+                      session_type: "conversation",
+                      workflow_template_id: "",
+                    });
+                  } else {
+                    // Specific workflow template selected
+                    void updateConversation(activeConversation.id, {
+                      session_type: "workflow",
+                      workflow_template_id: templateId,
+                    });
+                  }
                   fetchConversation();
                 }}
                 onRemoveWorkflow={() => {
@@ -2653,10 +2663,26 @@ function ChatViewInner() {
                 }}
                 disabled={!!streamingMessageId}
               />
-              <ExpertBadge
-                expertRoleId={activeConversation?.expert_role_id ?? null}
-                onClick={() => setExpertOpen(true)}
-              />
+              {activeConversation?.session_type === "conversation"
+                && activeConversation?.workflow_template_id === "" && (
+                <>
+                  <ExpertBadge
+                    expertRoleId={activeConversation.expert_role_id ?? null}
+                    onClick={() => setExpertOpen(true)}
+                  />
+                  <AgentRoleSelect
+                    value={activeConversation.agent_profile_id ?? ""}
+                    onChange={(profileId) => {
+                      const profile = useAgentProfileStore.getState().getProfileById(profileId);
+                      updateConversation(activeConversation.id, {
+                        agent_profile_id: profileId || null,
+                        system_prompt: profile?.systemPrompt || undefined,
+                        expert_role_id: null,
+                      });
+                    }}
+                  />
+                </>
+              )}
 
               <div className="flex-1" />
 

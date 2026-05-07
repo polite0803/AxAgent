@@ -22,7 +22,6 @@ import {
   useStreamStore,
   useUIStore,
 } from "@/stores";
-import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
 import { EXPERT_CATEGORY_LABELS } from "@/types";
@@ -145,7 +144,7 @@ function getFileIcon(category: FileTypeCategory) {
 // In-memory draft cache: persists input text per-conversation across component unmounts
 const _draftCache = new Map<string, string>();
 
-function AgentRoleSelect({
+export function AgentRoleSelect({
   value,
   onChange,
 }: {
@@ -2312,27 +2311,15 @@ export function InputArea() {
               </Tooltip>
             )}
             {activeConversationId && activeConversation?.session_type !== "workflow" && (
-              <>
-                <AgentRoleSelect
-                  value={activeConversation?.agent_profile_id ?? ""}
-                  onChange={(profileId) => {
-                    const profile = useAgentProfileStore.getState().getProfileById(profileId);
-                    updateConversation(activeConversationId, {
-                      agent_profile_id: profileId || null,
-                      system_prompt: profile?.systemPrompt || undefined,
-                      expert_role_id: null, // AgentProfile supersedes standalone Expert
-                    });
-                  }}
+              <Tooltip title={t("chat.modelRouting")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Route size={14} />}
+                  onClick={() =>
+                    setModelRoutingOpen(true)}
                 />
-                <Tooltip title={t("chat.modelRouting")}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Route size={14} />}
-                    onClick={() => setModelRoutingOpen(true)}
-                  />
-                </Tooltip>
-              </>
+              </Tooltip>
             )}
             {hasRealtimeVoice && (
               <Tooltip title={t("voice.startCall") + " - " + t("common.comingSoon")}>
