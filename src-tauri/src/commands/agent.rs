@@ -2415,7 +2415,7 @@ struct SkillTaskContext {
     constraints: Option<Vec<String>>,
 }
 
-use tokio::sync::RwLock;
+use std::sync::RwLock;
 
 static SKILL_MCP_REGISTRY: std::sync::OnceLock<axagent_tools::registry::McpRegistry> =
     std::sync::OnceLock::new();
@@ -2438,13 +2438,13 @@ impl SkillOutputTracker {
     }
 
     fn record_execution(&self, conversation_id: &str, record: SkillExecutionRecord) {
-        let mut tracker = self.inner.blocking_write();
+        let mut tracker = self.inner.write().expect("SkillOutputTracker poisoned");
         let entries = tracker.entry(conversation_id.to_string()).or_default();
         entries.push(record);
     }
 
     fn get_recent_skills(&self, conversation_id: &str, limit: usize) -> Vec<SkillExecutionRecord> {
-        let tracker = self.inner.blocking_read();
+        let tracker = self.inner.read().expect("SkillOutputTracker poisoned");
         if let Some(entries) = tracker.get(conversation_id) {
             let start = if entries.len() > limit {
                 entries.len() - limit
@@ -2457,7 +2457,7 @@ impl SkillOutputTracker {
     }
 
     fn update_output(&self, conversation_id: &str, skill_name: &str, output: String) {
-        let mut tracker = self.inner.blocking_write();
+        let mut tracker = self.inner.write().expect("SkillOutputTracker poisoned");
         if let Some(entries) = tracker.get_mut(conversation_id) {
             if let Some(last) = entries
                 .iter_mut()

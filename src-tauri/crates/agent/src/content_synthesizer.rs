@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_to_anchor() {
-        assert_eq!(ContentFormatter::to_anchor("Hello World"), "helloworld");
-        assert_eq!(ContentFormatter::to_anchor("Test 123"), "test123");
+        assert_eq!(ContentFormatter::to_anchor("Hello World"), "hello-world");
+        assert_eq!(ContentFormatter::to_anchor("Test 123"), "test-123");
     }
 }

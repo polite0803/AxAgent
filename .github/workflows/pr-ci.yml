@@ -144,7 +144,10 @@ jobs:
       - name: Run frontend tests
         run: npm run test:run
 
-  # ── E2E tests on macOS ─────────────────────────────────
+  # ── E2E tests（纯前端，无需 Tauri 后端）────────────────
+  # 所有 E2E 测试使用 browserMock（localStorage）模拟后端，
+  # 仅需 Vite dev server，无需 Tauri 原生窗口或 Rust 编译。
+  # 如未来需要测试 Tauri API，请改用 webDriver 方案连接 Playwright。
   test-e2e:
     name: E2E Tests (macOS)
     needs: [should-run-heavy]
@@ -152,23 +155,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: 'v1'
-          key: 'macos-latest-e2e-tests'
-          workspaces: src-tauri -> target
-
-      - name: Install Protoc
-        run: brew install protobuf
 
       - uses: actions/setup-node@v4
         with:
@@ -180,11 +166,6 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install chromium
-
-      - name: Build Tauri app
-        run: npm run tauri build -- --target aarch64-apple-darwin
-        env:
-          NODE_OPTIONS: '--max_old_space_size=4096'
 
       - name: Run E2E tests
         run: npm run test:e2e

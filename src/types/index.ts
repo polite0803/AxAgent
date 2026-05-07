@@ -792,6 +792,12 @@ export interface SkillManifestMeta {
   lifecycle?: SkillLifecycleHooks;
   frontend?: SkillFrontendExtension;
   handlers?: Record<string, SkillHandler>;
+  /** V2 能力声明（存在此字段时优先使用） */
+  capabilities?: SkillCapabilityV2[];
+  /** V2 权限白名单 */
+  permissionsV2?: SkillPermissionsV2;
+  /** V2 生命周期 */
+  lifecycleV2?: SkillLifecycleHooksV2;
 }
 
 export interface SkillPermissions {
@@ -852,7 +858,7 @@ export interface SkillPage {
   icon?: string;
 }
 
-export type SkillComponentType = "Html" | "Iframe" | "React" | "WebComponent" | "Markdown";
+export type SkillComponentType = "Html" | "Iframe" | "React" | "WebComponent" | "Markdown" | "Sandbox";
 
 // ── Commands ──
 
@@ -978,6 +984,152 @@ export interface SkillStatusBarItem {
     template?: string;
   };
   onClick?: SkillCommandAction[];
+}
+
+// ── V2 Skill Manifest（Capability-based，兼容旧版 V1） ──────────────
+
+/**
+ * V2 Skill 清单类型。
+ * 如果 skill-manifest.json 中包含 `capabilities` 字段，则使用此类型解析。
+ * 与 V1 `SkillFrontendExtension` 的关系：渲染时优先使用 V2，
+ * 若 V2 字段缺失则回退到 V1 对应字段。
+ */
+export interface SkillManifestV2 {
+  name: string;
+  version: string;
+  description: string;
+  author?: string;
+  icon?: string;
+  dependencies?: Record<string, string>;
+  /** V2 能力声明（存在此字段即为 V2 格式） */
+  capabilities?: SkillCapabilityV2[];
+  /** 权限白名单 */
+  permissions?: SkillPermissionsV2;
+  /** 生命周期钩子 */
+  lifecycle?: SkillLifecycleHooksV2;
+  /** V1 兼容：前端扩展声明（V2 不存在 capabilities 时使用） */
+  frontend?: SkillFrontendExtension;
+  /** V1 兼容：处理器定义 */
+  handlers?: Record<string, SkillHandler>;
+}
+
+export type SkillCapabilityV2 =
+  | SkillPageCapabilityV2
+  | SkillUIPanelV2
+  | SkillToolbarButtonV2
+  | SkillChatCommandV2
+  | SkillStatusBarItemV2
+  | SkillNavItemV2
+  | SkillSettingsSectionV2;
+
+export interface SkillPageCapabilityV2 {
+  type: "page";
+  id: string;
+  title: string;
+  componentType: "Sandbox" | "Html" | "Markdown";
+  componentConfig: {
+    entry: string;
+    props?: Record<string, unknown>;
+    layout?: "default" | "fullscreen" | "sidebar";
+  };
+  icon?: string;
+}
+
+export interface SkillUIPanelV2 {
+  type: "panel";
+  id: string;
+  title: string;
+  componentType: "Sandbox" | "Html" | "Markdown";
+  componentConfig: {
+    entry: string;
+    props?: Record<string, unknown>;
+  };
+  position: "Main" | "Sidebar" | "Header" | "Footer";
+  size?: "Small" | "Medium" | "Large" | "FullWidth";
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+}
+
+export interface SkillToolbarButtonV2 {
+  type: "toolbar";
+  id: string;
+  title?: string;
+  icon: string;
+  tooltip?: string;
+  position: "left" | "right";
+  priority?: number;
+  onClick: SkillCommandAction[];
+  menu?: { label: string; actions: SkillCommandAction[] }[];
+}
+
+export interface SkillChatCommandV2 {
+  type: "chatCommand";
+  id: string;
+  title: string;
+  commandName: string;
+  description: string;
+  icon?: string;
+  mode: "declarative" | "agentic";
+  actions?: SkillCommandAction[];
+}
+
+export interface SkillStatusBarItemV2 {
+  type: "statusBar";
+  id: string;
+  title: string;
+  alignment: "left" | "right";
+  priority?: number;
+  text?: string;
+  icon?: string;
+  dynamicText?: {
+    command: string;
+    args?: Record<string, unknown>;
+    refreshIntervalMs: number;
+    template?: string;
+  };
+  onClick?: SkillCommandAction[];
+}
+
+export interface SkillNavItemV2 {
+  type: "navigation";
+  id: string;
+  title: string;
+  icon: string;
+  pageId: string;
+  position?: number;
+}
+
+export interface SkillSettingsSectionV2 {
+  type: "settings";
+  id: string;
+  title: string;
+  icon?: string;
+  settingsGroup: string;
+  componentType: "Sandbox" | "Html" | "Markdown";
+  componentConfig: {
+    entry: string;
+    props?: Record<string, unknown>;
+  };
+}
+
+/** V2 权限声明 */
+export interface SkillPermissionsV2 {
+  commands?: string[];
+  events?: string[];
+  storeRead?: string[];
+  storeWrite?: string[];
+  navigate?: string[];
+  network?: string[];
+  filesystem?: { read?: string[]; write?: string[] };
+  tools?: string[];
+}
+
+/** V2 生命周期钩子 */
+export interface SkillLifecycleHooksV2 {
+  onInstall?: SkillCommandAction[];
+  onEnable?: SkillCommandAction[];
+  onDisable?: SkillCommandAction[];
+  onUninstall?: SkillCommandAction[];
 }
 
 // Phase-2 type modules

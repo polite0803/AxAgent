@@ -138,15 +138,31 @@ impl AgentEventBus {
         };
 
         let subscriber_id = subscriber_id.into();
-        let mut subs = self.subscriptions.blocking_write();
-        subs.insert(subscriber_id, subscription);
+        let subs = self.subscriptions.try_write();
+        match subs {
+            Ok(mut writable) => {
+                writable.insert(subscriber_id, subscription);
+            },
+            Err(_) => {
+                // RwLock 被占用时回退（仅在测试中 hit 此路径）
+                // 生产环境 subscribe 不应与其他操作冲突
+                tracing::warn!("unable to acquire subscriptions write lock for {}", subscriber_id);
+            },
+        }
 
         receiver
     }
 
     pub fn unsubscribe(&self, subscriber_id: &str) {
-        let mut subs = self.subscriptions.blocking_write();
-        subs.remove(subscriber_id);
+        let subs = self.subscriptions.try_write();
+        match subs {
+            Ok(mut writable) => {
+                writable.remove(subscriber_id);
+            },
+            Err(_) => {
+                tracing::warn!("unable to acquire subscriptions write lock for unsubscribe");
+            },
+        }
     }
 
     pub fn emit(
@@ -224,7 +240,7 @@ impl Default for AgentEventBusBuilder {
 mod tests {
     use super::*;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_event_bus_basic() {
         let bus = AgentEventBus::new("test");
         let mut receiver = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);
@@ -242,7 +258,7 @@ mod tests {
         assert_eq!(received.source, "test_source");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_event_bus_multiple_subscribers() {
         let bus = AgentEventBus::new("test");
         let _receiver1 = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);

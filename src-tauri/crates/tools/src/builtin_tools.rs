@@ -7,7 +7,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::LazyLock;
-use tokio::sync::RwLock;
+use std::sync::RwLock;
 
 pub type BoxedToolHandlerInner =
     dyn Fn(Value) -> Pin<Box<dyn Future<Output = Result<McpToolResult>> + Send>> + Send + Sync;
@@ -53,13 +53,13 @@ static GLOBAL_DB_PATH: LazyLock<RwLock<Option<String>>> = LazyLock::new(|| RwLoc
 
 /// Set the global database path for builtin tools. Called once at startup.
 pub fn set_global_db_path(path: &str) {
-    let mut db_path = GLOBAL_DB_PATH.blocking_write();
+    let mut db_path = GLOBAL_DB_PATH.write().expect("GLOBAL_DB_PATH poisoned");
     *db_path = Some(path.to_string());
 }
 
 /// Get the global database path for builtin tools.
 pub fn get_global_db_path() -> Option<String> {
-    let db_path = GLOBAL_DB_PATH.blocking_read();
+    let db_path = GLOBAL_DB_PATH.read().expect("GLOBAL_DB_PATH poisoned");
     db_path.clone()
 }
 
@@ -70,13 +70,13 @@ static GLOBAL_SEA_DB: LazyLock<RwLock<Option<Arc<DatabaseConnection>>>> =
 
 /// 设置全局 SeaORM 连接（应用启动时由 Tauri setup 调用）
 pub fn set_global_sea_db(db: Arc<DatabaseConnection>) {
-    let mut sea_db = GLOBAL_SEA_DB.blocking_write();
+    let mut sea_db = GLOBAL_SEA_DB.write().expect("GLOBAL_SEA_DB poisoned");
     *sea_db = Some(db);
 }
 
 /// 获取全局 SeaORM 连接供 builtin_tools 使用
 pub fn get_global_sea_db() -> Option<Arc<DatabaseConnection>> {
-    let sea_db = GLOBAL_SEA_DB.blocking_read();
+    let sea_db = GLOBAL_SEA_DB.read().expect("GLOBAL_SEA_DB poisoned");
     sea_db.clone()
 }
 
@@ -102,13 +102,17 @@ static GLOBAL_SUB_AGENT_RUNNER: LazyLock<RwLock<Option<SubAgentRunner>>> =
 
 /// Set the global sub-agent runner. Called once at startup.
 pub fn set_global_sub_agent_runner(runner: SubAgentRunner) {
-    let mut r = GLOBAL_SUB_AGENT_RUNNER.blocking_write();
+    let mut r = GLOBAL_SUB_AGENT_RUNNER
+        .write()
+        .expect("GLOBAL_SUB_AGENT_RUNNER poisoned");
     *r = Some(runner);
 }
 
 /// Get the global sub-agent runner.
 pub fn get_global_sub_agent_runner() -> Option<SubAgentRunner> {
-    let r = GLOBAL_SUB_AGENT_RUNNER.blocking_read();
+    let r = GLOBAL_SUB_AGENT_RUNNER
+        .read()
+        .expect("GLOBAL_SUB_AGENT_RUNNER poisoned");
     r.clone()
 }
 
@@ -118,13 +122,17 @@ static GLOBAL_CURRENT_CONVERSATION_ID: LazyLock<RwLock<Option<String>>> =
 
 /// Set the current conversation ID, called before each agent turn.
 pub fn set_current_conversation_id(id: &str) {
-    let mut cid = GLOBAL_CURRENT_CONVERSATION_ID.blocking_write();
+    let mut cid = GLOBAL_CURRENT_CONVERSATION_ID
+        .write()
+        .expect("GLOBAL_CURRENT_CONVERSATION_ID poisoned");
     *cid = Some(id.to_string());
 }
 
 /// Get the current conversation ID.
 pub fn get_current_conversation_id() -> Option<String> {
-    let cid = GLOBAL_CURRENT_CONVERSATION_ID.blocking_read();
+    let cid = GLOBAL_CURRENT_CONVERSATION_ID
+        .read()
+        .expect("GLOBAL_CURRENT_CONVERSATION_ID poisoned");
     cid.clone()
 }
 
@@ -142,7 +150,9 @@ pub fn store_pending_sub_agent_card(
     agent_type: &str,
     description: &str,
 ) {
-    let mut m = PENDING_SUB_AGENT_CARDS.blocking_write();
+    let mut m = PENDING_SUB_AGENT_CARDS
+        .write()
+        .expect("PENDING_SUB_AGENT_CARDS poisoned");
     m.insert(
         parent_id.to_string(),
         (child_id.to_string(), agent_type.to_string(), description.to_string()),
@@ -151,7 +161,9 @@ pub fn store_pending_sub_agent_card(
 
 /// Take and remove a pending sub-agent card for the given parent conversation.
 pub fn take_pending_sub_agent_card(parent_id: &str) -> Option<PendingSubAgentCard> {
-    let mut m = PENDING_SUB_AGENT_CARDS.blocking_write();
+    let mut m = PENDING_SUB_AGENT_CARDS
+        .write()
+        .expect("PENDING_SUB_AGENT_CARDS poisoned");
     m.remove(parent_id)
 }
 
@@ -179,19 +191,19 @@ pub fn has_fork_context(parent_id: &str) -> bool {
 }
 
 pub fn register_builtin_handler(server_name: &str, tool_name: &str, handler: BoxedToolHandler) {
-    let mut handlers = BUILTIN_HANDLERS.blocking_write();
+    let mut handlers = BUILTIN_HANDLERS.write().expect("BUILTIN_HANDLERS poisoned");
     handlers.insert((server_name.to_string(), tool_name.to_string()), handler);
 }
 
 pub fn get_handler(server_name: &str, tool_name: &str) -> Option<BoxedToolHandler> {
-    let handlers = BUILTIN_HANDLERS.blocking_read();
+    let handlers = BUILTIN_HANDLERS.read().expect("BUILTIN_HANDLERS poisoned");
     handlers
         .get(&(server_name.to_string(), tool_name.to_string()))
         .cloned()
 }
 
 pub fn list_all_builtin_handlers() -> Vec<(String, String)> {
-    let handlers = BUILTIN_HANDLERS.blocking_read();
+    let handlers = BUILTIN_HANDLERS.read().expect("BUILTIN_HANDLERS poisoned");
     handlers.keys().cloned().collect()
 }
 

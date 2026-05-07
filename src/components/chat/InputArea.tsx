@@ -78,8 +78,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import CommandSuggest from "./CommandSuggest";
 import { ConversationSettingsModal } from "./ConversationSettingsModal";
-import { ExpertBadge } from "./ExpertBadge";
-import { ExpertSelector } from "./ExpertSelector";
 import ModelRoutingConfigPanel from "./ModelRoutingConfigPanel";
 import { ModelSelector } from "./ModelSelector";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
@@ -190,7 +188,6 @@ export function InputArea() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelRoutingOpen, setModelRoutingOpen] = useState(false);
-  const [expertOpen, setExpertOpen] = useState(false);
   const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2327,10 +2324,6 @@ export function InputArea() {
                     });
                   }}
                 />
-                <ExpertBadge
-                  expertRoleId={activeConversation?.expert_role_id ?? null}
-                  onClick={() => setExpertOpen(true)}
-                />
                 <Tooltip title={t("chat.modelRouting")}>
                   <Button
                     type="text"
@@ -2495,48 +2488,6 @@ export function InputArea() {
           conversationId={activeConversationId}
           open={modelRoutingOpen}
           onClose={() => setModelRoutingOpen(false)}
-        />
-      )}
-
-      {currentMode === "agent" && activeConversationId && (
-        <ExpertSelector
-          open={expertOpen}
-          onClose={() => setExpertOpen(false)}
-          selectedRoleId={activeConversation?.expert_role_id ?? null}
-          onSelect={(roleId) => {
-            const store = useExpertStore.getState();
-            const role = store.getRoleById(roleId);
-            if (!role) { return; }
-
-            // Update conversation expert_role_id and system_prompt
-            updateConversation(activeConversationId, {
-              system_prompt: role.systemPrompt || undefined,
-              expert_role_id: roleId,
-            });
-
-            // Record the switch for ChatView separator rendering
-            const expertStore = useExpertStore.getState();
-            expertStore.recordSwitch(activeConversationId, roleId);
-
-            // Optionally apply suggested model settings
-            if (role.suggestedProviderId && role.suggestedModelId) {
-              updateConversation(activeConversationId, {
-                provider_id: role.suggestedProviderId,
-                model_id: role.suggestedModelId,
-              });
-            }
-            if (role.suggestedTemperature != null) {
-              updateConversation(activeConversationId, {
-                temperature: role.suggestedTemperature,
-              });
-            }
-
-            // Apply recommended permission mode for the agent session
-            if (role.recommendPermissionMode) {
-              const { updatePermissionMode } = useAgentStore.getState();
-              updatePermissionMode(activeConversationId, role.recommendPermissionMode);
-            }
-          }}
         />
       )}
 

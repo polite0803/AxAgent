@@ -1,0 +1,197 @@
+/**
+ * SkillStatsPanel — Skill 执行统计仪表盘
+ *
+ * 展示 Skill 的执行成功率、平均耗时、使用次数等关键指标。
+ *
+ * @module components/skill/SkillStatsPanel
+ */
+
+import { invoke } from "@/lib/invoke";
+import { Card, Col, Progress, Row, Statistic, Typography } from "antd";
+import { Clock, Target, TrendingUp, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+interface SkillExecutionStats {
+  name: string;
+  successRate: number;
+  avgExecutionTimeMs: number;
+  totalUsages: number;
+  successfulUsages: number;
+  qualityScore: number;
+  lastUsedAt?: string;
+}
+
+export function SkillStatsPanel() {
+  const { t } = useTranslation();
+  const [stats, setStats] = useState<SkillExecutionStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    async function load() {
+      try {
+        const allStats = await invoke<SkillExecutionStats[]>("get_skill_execution_stats");
+
+        if (!cancelled) {
+          const merged = allStats.map((s) => {
+            return {
+              ...s,
+              successRate: s.successRate * 100,
+              qualityScore: (s.qualityScore ?? 0.5) * 100,
+            };
+          });
+          setStats(merged.sort((a, b) => b.totalUsages - a.totalUsages));
+        }
+      } catch {
+        if (!cancelled) {
+          setError("get_skill_execution_stats not available");
+        }
+      } finally {
+        if (!cancelled) { setLoading(false); }
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <Typography.Text type="secondary">
+        {t("skill.stats.error", "加载统计失败")}
+      </Typography.Text>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Typography.Text type="secondary">
+        {t("skill.stats.loading", "加载中...")}
+      </Typography.Text>
+    );
+  }
+
+  if (stats.length === 0) {
+    return (
+      <Typography.Text type="secondary">
+        {t("skill.stats.empty", "暂无使用数据")}
+      </Typography.Text>
+    );
+  }
+
+  const totalUsages = stats.reduce((sum, s) => sum + s.totalUsages, 0);
+  const avgSuccess = stats.length > 0
+    ? stats.reduce((sum, s) => sum + s.successRate, 0) / stats.length
+    : 0;
+  const avgTime = stats.filter((s) => s.avgExecutionTimeMs > 0).length > 0
+    ? stats.filter((s) => s.avgExecutionTimeMs > 0)
+      .reduce((sum, s) => sum + s.avgExecutionTimeMs, 0)
+      / stats.filter((s) => s.avgExecutionTimeMs > 0).length
+    : 0;
+
+  return (
+    <div>
+      <Typography.Title level={5} style={{ marginBottom: 16 }}>
+        {t("skill.stats.title", "技能执行仪表盘")}
+      </Typography.Title>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title={t("skill.stats.totalUsages", "总使用次数")}
+              value={totalUsages}
+              prefix={<Zap size={16} />}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title={t("skill.stats.avgSuccess", "平均成功率")}
+              value={avgSuccess}
+              precision={1}
+              suffix="%"
+              prefix={<Target size={16} />}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title={t("skill.stats.avgTime", "平均耗时")}
+              value={avgTime}
+              precision={0}
+              suffix="ms"
+              prefix={<Clock size={16} />}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title={t("skill.stats.totalSkills", "活跃技能")}
+              value={stats.length}
+              prefix={<TrendingUp size={16} />}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+        {t("skill.stats.perSkill", "分技能统计")}
+      </Typography.Text>
+
+      {stats.map((s) => (
+        <Card key={s.name} size="small" style={{ marginBottom: 8 }}>
+          <Row align="middle" gutter={16}>
+            <Col span={6}>
+              <Typography.Text strong>{s.name}</Typography.Text>
+              <Typography.Text type="secondary" style={{ display: "block", fontSize: 12 }}>
+                {s.totalUsages > 0
+                  ? t("skill.stats.usedCount", { count: s.totalUsages })
+                  : t("skill.stats.neverUsed", "未使用")}
+              </Typography.Text>
+            </Col>
+            <Col span={6}>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t("skill.stats.successRate", "成功率")}
+              </Typography.Text>
+              <Progress
+                percent={s.successRate}
+                size="small"
+                status={s.successRate >= 80 ? "success" : s.successRate >= 50 ? "normal" : "exception"}
+                format={(p) => `${p?.toFixed(0)}%`}
+              />
+            </Col>
+            <Col span={6}>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t("skill.stats.quality", "质量分")}
+              </Typography.Text>
+              <Progress
+                percent={s.qualityScore}
+                size="small"
+                status={s.qualityScore >= 70 ? "success" : "normal"}
+                format={(p) => `${p?.toFixed(0)}%`}
+              />
+            </Col>
+            <Col span={6}>
+              {s.avgExecutionTimeMs > 0 && (
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {s.avgExecutionTimeMs}ms
+                </Typography.Text>
+              )}
+            </Col>
+          </Row>
+        </Card>
+      ))}
+    </div>
+  );
+}

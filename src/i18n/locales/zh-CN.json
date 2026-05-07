@@ -2734,7 +2734,29 @@
       "viewContent": "查看内容"
     },
     "retry": "重试",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "deps": {
+      "allSatisfied": "所有技能依赖已满足",
+      "title": "依赖检查",
+      "refresh": "刷新",
+      "installed": "已安装",
+      "missing": "缺失"
+    },
+    "stats": {
+      "title": "技能执行仪表盘",
+      "loading": "加载中...",
+      "error": "加载统计失败",
+      "empty": "暂无使用数据",
+      "totalUsages": "总使用次数",
+      "avgSuccess": "平均成功率",
+      "avgTime": "平均耗时",
+      "totalSkills": "活跃技能",
+      "perSkill": "分技能统计",
+      "usedCount": "使用 {{count}} 次",
+      "neverUsed": "未使用",
+      "successRate": "成功率",
+      "quality": "质量分"
+    }
   },
   "skillEditor": {
     "actionAdd": "添加 Action",

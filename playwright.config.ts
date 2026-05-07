@@ -26,9 +26,13 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm run tauri dev",
+    // 使用 npm run dev（仅 Vite）而非 tauri dev，因为：
+    // 1. E2E 测试为纯前端测试，使用 browserMock（localStorage）模拟后端
+    // 2. macOS CI runner 无图形界面，Tauri WebView 无法初始化
+    // 3. 如未来需要测试 Tauri API，请改用 webDriver 方案
+    command: "npm run dev",
     url: "http://localhost:1420",
     reuseExistingServer: !process.env.CI,
-    timeout: 180 * 1000,
+    timeout: 120 * 1000,
   },
 });
