@@ -146,7 +146,8 @@ impl SemanticValidator for LlmSemanticValidator {
             ChatMessage {
                 role: "system".to_string(),
                 content: ChatContent::Text(
-                    "You are a precise tool output validator. Always respond with valid JSON.".to_string(),
+                    "You are a precise tool output validator. Always respond with valid JSON."
+                        .to_string(),
                 ),
                 tool_calls: None,
                 tool_call_id: None,
@@ -199,8 +200,9 @@ impl SemanticValidator for LlmSemanticValidator {
             content
         };
 
-        let parsed: serde_json::Value = serde_json::from_str(json_str)
-            .map_err(|e| VerificationError::ParseError(format!("Failed to parse LLM response as JSON: {}", e)))?;
+        let parsed: serde_json::Value = serde_json::from_str(json_str).map_err(|e| {
+            VerificationError::ParseError(format!("Failed to parse LLM response as JSON: {}", e))
+        })?;
 
         let is_valid = parsed
             .get("is_valid")
@@ -379,9 +381,9 @@ impl RuleBasedValidator {
 
         let lines: Vec<&str> = output.lines().collect();
         if lines.len() > 1 {
-            let has_consistent_delimiter = lines.iter().all(|l| {
-                l.contains(": ") || l.contains(" = ") || l.contains("\t")
-            });
+            let has_consistent_delimiter = lines
+                .iter()
+                .all(|l| l.contains(": ") || l.contains(" = ") || l.contains("\t"));
             if has_consistent_delimiter {
                 let has_colon = lines.iter().all(|l| l.contains(": "));
                 return if has_colon {
@@ -391,9 +393,9 @@ impl RuleBasedValidator {
                 };
             }
 
-            let has_path_chars = lines.iter().all(|l| {
-                l.contains('/') || l.contains('\\') || l.contains('.')
-            });
+            let has_path_chars = lines
+                .iter()
+                .all(|l| l.contains('/') || l.contains('\\') || l.contains('.'));
             if has_path_chars {
                 return OutputFormat::FilePath;
             }
@@ -425,7 +427,12 @@ impl RuleBasedValidator {
         None
     }
 
-    fn check_output_completeness(&self, tool_name: &str, input: &str, output: &str) -> VerificationResult {
+    fn check_output_completeness(
+        &self,
+        tool_name: &str,
+        input: &str,
+        output: &str,
+    ) -> VerificationResult {
         if output.is_empty() {
             return VerificationResult::invalid(format!(
                 "Tool '{}' produced empty output",
@@ -436,7 +443,10 @@ impl RuleBasedValidator {
         let input_json = serde_json::from_str::<serde_json::Value>(input);
         if let Ok(ref parsed) = input_json {
             if let Some(obj) = parsed.as_object() {
-                if obj.contains_key("path") || obj.contains_key("file_path") || obj.contains_key("filepath") {
+                if obj.contains_key("path")
+                    || obj.contains_key("file_path")
+                    || obj.contains_key("filepath")
+                {
                     if output.contains("No such file") || output.contains("not found") {
                         return VerificationResult::invalid("Referenced file path does not exist")
                             .with_correction("Verify the file path in the input");
@@ -458,11 +468,8 @@ impl RuleBasedValidator {
         let truncated_indicators = ["...", "[truncated]", "(truncated)", "<truncated>"];
         let is_truncated = truncated_indicators.iter().any(|ind| output.contains(ind));
         if is_truncated && lines <= 3 {
-            return VerificationResult::uncertain(
-                0.6,
-                "Output appears to be truncated",
-            )
-            .with_correction("Consider requesting a larger output or paginating results");
+            return VerificationResult::uncertain(0.6, "Output appears to be truncated")
+                .with_correction("Consider requesting a larger output or paginating results");
         }
 
         VerificationResult::valid("Output completeness check passed")
@@ -527,13 +534,12 @@ impl SemanticValidator for RuleBasedValidator {
         }
 
         if results.is_empty() {
-            return Ok(VerificationResult::valid(
-                "Rule-based validation passed",
-            ));
+            return Ok(VerificationResult::valid("Rule-based validation passed"));
         }
 
         let any_invalid = results.iter().any(|r| !r.is_valid);
-        let avg_confidence = results.iter().map(|r| r.confidence).sum::<f32>() / results.len() as f32;
+        let avg_confidence =
+            results.iter().map(|r| r.confidence).sum::<f32>() / results.len() as f32;
         let combined_reason = results
             .iter()
             .map(|r| r.reason.clone())
@@ -559,7 +565,10 @@ impl SemanticValidator for RuleBasedValidator {
     }
 }
 
-pub fn validate_json_output(output: &str, schema: Option<&serde_json::Value>) -> JsonValidationResult {
+pub fn validate_json_output(
+    output: &str,
+    schema: Option<&serde_json::Value>,
+) -> JsonValidationResult {
     let parsed: Result<serde_json::Value, _> = serde_json::from_str(output);
 
     match parsed {
@@ -709,10 +718,7 @@ fn validate_against_schema(
     valid
 }
 
-pub fn detect_state_change(
-    before: &serde_json::Value,
-    after: &serde_json::Value,
-) -> StateDiff {
+pub fn detect_state_change(before: &serde_json::Value, after: &serde_json::Value) -> StateDiff {
     let mut keys_added = Vec::new();
     let mut keys_removed = Vec::new();
     let mut keys_modified = Vec::new();
@@ -1377,7 +1383,9 @@ mod tests {
 
     #[test]
     fn test_verification_result_with_correction() {
-        let r = VerificationResult::invalid("err").with_correction("fix it").with_correction("try again");
+        let r = VerificationResult::invalid("err")
+            .with_correction("fix it")
+            .with_correction("try again");
         assert_eq!(r.suggested_corrections.len(), 2);
     }
 
@@ -1422,7 +1430,9 @@ mod tests {
     #[test]
     fn test_rule_based_validator_success_patterns_unknown_tool() {
         let v = RuleBasedValidator::new();
-        assert!(v.check_success_patterns("unknown_tool", "anything").is_none());
+        assert!(v
+            .check_success_patterns("unknown_tool", "anything")
+            .is_none());
     }
 
     #[test]
@@ -1471,7 +1481,9 @@ mod tests {
     #[test]
     fn test_rule_based_validator_format_consistency_unknown_tool() {
         let v = RuleBasedValidator::new();
-        assert!(v.check_format_consistency("unknown_tool", "anything").is_none());
+        assert!(v
+            .check_format_consistency("unknown_tool", "anything")
+            .is_none());
     }
 
     #[test]
@@ -1498,7 +1510,9 @@ mod tests {
     #[tokio::test]
     async fn test_rule_based_validator_semantic_valid() {
         let v = RuleBasedValidator::new();
-        let result = v.validate_semantically("read_file", "{}", "File contents loaded successfully").await;
+        let result = v
+            .validate_semantically("read_file", "{}", "File contents loaded successfully")
+            .await;
         assert!(result.is_ok());
         let r = result.unwrap();
         assert!(r.is_valid);
@@ -1507,7 +1521,9 @@ mod tests {
     #[tokio::test]
     async fn test_rule_based_validator_semantic_error() {
         let v = RuleBasedValidator::new();
-        let result = v.validate_semantically("execute_command", "{}", "Error: command failed with exception").await;
+        let result = v
+            .validate_semantically("execute_command", "{}", "Error: command failed with exception")
+            .await;
         assert!(result.is_ok());
         let r = result.unwrap();
         assert!(!r.is_valid);
@@ -1516,7 +1532,9 @@ mod tests {
     #[tokio::test]
     async fn test_rule_based_validator_contextual_error() {
         let v = RuleBasedValidator::new();
-        let result = v.validate_semantically("execute_command", "{}", "Build completed with 0 errors").await;
+        let result = v
+            .validate_semantically("execute_command", "{}", "Build completed with 0 errors")
+            .await;
         assert!(result.is_ok());
         let r = result.unwrap();
         assert!(r.is_valid);

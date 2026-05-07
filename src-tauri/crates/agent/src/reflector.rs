@@ -242,10 +242,12 @@ impl Reflector {
         let tool_efficiency_score = unique_ratio * 5.0 + iteration_ratio * 5.0;
 
         let expected_iterations = (unique_tools * 2).max(1);
-        let iteration_efficiency_score = (expected_iterations as f32 / record.iterations.max(1) as f32).min(1.0) * 10.0;
+        let iteration_efficiency_score =
+            (expected_iterations as f32 / record.iterations.max(1) as f32).min(1.0) * 10.0;
 
         let expected_duration = record.iterations.max(1) as u64 * 2000;
-        let time_efficiency_score = (expected_duration as f32 / record.duration_ms.max(1) as f32).min(1.0) * 10.0;
+        let time_efficiency_score =
+            (expected_duration as f32 / record.duration_ms.max(1) as f32).min(1.0) * 10.0;
 
         let error_recovery_score = if record.success {
             if record.iterations > expected_iterations {
@@ -422,15 +424,25 @@ impl Reflector {
         });
         let has_edit = tools.iter().any(|t| {
             let l = t.to_lowercase();
-            l.contains("edit") || l.contains("write") || l.contains("update") || l.contains("modify") || l.contains("patch")
+            l.contains("edit")
+                || l.contains("write")
+                || l.contains("update")
+                || l.contains("modify")
+                || l.contains("patch")
         });
         let has_verify = tools.iter().any(|t| {
             let l = t.to_lowercase();
-            l.contains("test") || l.contains("verify") || l.contains("check") || l.contains("validate")
+            l.contains("test")
+                || l.contains("verify")
+                || l.contains("check")
+                || l.contains("validate")
         });
         let has_search = tools.iter().any(|t| {
             let l = t.to_lowercase();
-            l.contains("search") || l.contains("find") || l.contains("query") || l.contains("lookup")
+            l.contains("search")
+                || l.contains("find")
+                || l.contains("query")
+                || l.contains("lookup")
         });
 
         if has_read && has_edit && has_verify {
@@ -460,10 +472,7 @@ impl Reflector {
 
         for (tool, count) in &tool_counts {
             if *count > 1 {
-                patterns.push(format!(
-                    "Retry with same approach: {} used {} times",
-                    tool, count
-                ));
+                patterns.push(format!("Retry with same approach: {} used {} times", tool, count));
             }
         }
 
@@ -471,7 +480,9 @@ impl Reflector {
             if tools[i] == tools[i + 2] && tools[i] != tools[i + 1] {
                 patterns.push(format!(
                     "Approach variation: {} -> {} -> {}",
-                    tools[i], tools[i + 1], tools[i + 2]
+                    tools[i],
+                    tools[i + 1],
+                    tools[i + 2]
                 ));
             }
         }
@@ -527,9 +538,8 @@ impl Reflector {
         }
 
         if metrics.error_recovery_score > 0.0 && metrics.error_recovery_score < 8.0 {
-            suggestions.push(
-                "Document error recovery patterns for similar future tasks".to_string(),
-            );
+            suggestions
+                .push("Document error recovery patterns for similar future tasks".to_string());
         }
 
         if record.success && metrics.overall_weighted_score >= 7.0 {
@@ -696,7 +706,11 @@ mod tests {
         record.compute_duration();
         record = record
             .with_error("timeout: connection refused".to_string())
-            .with_tools(vec!["search".to_string(), "search".to_string(), "read".to_string()])
+            .with_tools(vec![
+                "search".to_string(),
+                "search".to_string(),
+                "read".to_string(),
+            ])
             .with_iterations(15);
 
         let reflection = reflector.reflect(&record).await;
@@ -731,7 +745,9 @@ mod tests {
             "search".to_string(),
             "read".to_string(),
         ]);
-        assert!(patterns.iter().any(|p| p.contains("Retry with same approach") && p.contains("search")));
+        assert!(patterns
+            .iter()
+            .any(|p| p.contains("Retry with same approach") && p.contains("search")));
 
         let patterns = Reflector::detect_retry_patterns(&[
             "search".to_string(),

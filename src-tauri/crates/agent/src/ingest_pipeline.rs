@@ -993,10 +993,7 @@ mod tests {
     async fn test_compute_sha256_hello() {
         let pipeline = create_test_pipeline().await;
         let hash = pipeline.compute_sha256("hello");
-        assert_eq!(
-            hash,
-            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
-        );
+        assert_eq!(hash, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
     }
 
     #[tokio::test]
@@ -1096,7 +1093,8 @@ mod tests {
     #[tokio::test]
     async fn test_parse_pages_from_response_empty_title_skipped() {
         let pipeline = create_test_pipeline().await;
-        let response = "```json\n{\"title\": \"\", \"content\": \"Content\", \"page_type\": \"entity\"}\n```";
+        let response =
+            "```json\n{\"title\": \"\", \"content\": \"Content\", \"page_type\": \"entity\"}\n```";
         let result = pipeline.parse_pages_from_response(response, "src1");
         assert!(result.is_err());
     }
@@ -1104,7 +1102,8 @@ mod tests {
     #[tokio::test]
     async fn test_parse_pages_from_response_empty_content_skipped() {
         let pipeline = create_test_pipeline().await;
-        let response = "```json\n{\"title\": \"Title\", \"content\": \"\", \"page_type\": \"entity\"}\n```";
+        let response =
+            "```json\n{\"title\": \"Title\", \"content\": \"\", \"page_type\": \"entity\"}\n```";
         let result = pipeline.parse_pages_from_response(response, "src1");
         assert!(result.is_err());
     }
@@ -1120,35 +1119,50 @@ mod tests {
     #[tokio::test]
     async fn test_extract_metadata_title_from_heading() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("# My Document\n\nSome body text").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# My Document\n\nSome body text")
+            .await
+            .unwrap();
         assert_eq!(metadata.title.as_deref(), Some("My Document"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_title_from_prefix() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("Title: My Title\n\nBody text").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("Title: My Title\n\nBody text")
+            .await
+            .unwrap();
         assert_eq!(metadata.title.as_deref(), Some("My Title"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_author() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("# Title\nAuthor: John Doe\n\nBody").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# Title\nAuthor: John Doe\n\nBody")
+            .await
+            .unwrap();
         assert_eq!(metadata.author.as_deref(), Some("John Doe"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_author_lowercase() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("# Title\nauthor: Jane Smith\n\nBody").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# Title\nauthor: Jane Smith\n\nBody")
+            .await
+            .unwrap();
         assert_eq!(metadata.author.as_deref(), Some("Jane Smith"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_date() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("# Title\nDate: 2024-01-15\n\nBody").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# Title\nDate: 2024-01-15\n\nBody")
+            .await
+            .unwrap();
         assert_eq!(metadata.created_date.as_deref(), Some("2024-01-15"));
     }
 
@@ -1164,7 +1178,10 @@ mod tests {
     #[tokio::test]
     async fn test_extract_metadata_no_title() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("Just some text\nwithout any heading").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("Just some text\nwithout any heading")
+            .await
+            .unwrap();
         assert!(metadata.title.is_none());
     }
 

@@ -414,10 +414,11 @@ pub async fn collect_knowledge_graph_context(
     let mut context_parts = Vec::new();
 
     for kb_id in kb_ids {
-        let entities = match crate::repo::knowledge_graph::search_entities(db, kb_id, query, top_k).await {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
+        let entities =
+            match crate::repo::knowledge_graph::search_entities(db, kb_id, query, top_k).await {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
 
         if entities.is_empty() {
             continue;

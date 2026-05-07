@@ -486,9 +486,11 @@ mod tests {
     #[tokio::test]
     async fn test_recover_unrecoverable_error() {
         let engine = ErrorRecoveryEngine::new();
-        let result = engine.recover("fatal error: out of memory", || async {
-            Err::<i32, String>("fail".to_string())
-        }).await;
+        let result = engine
+            .recover("fatal error: out of memory", || async {
+                Err::<i32, String>("fail".to_string())
+            })
+            .await;
         assert!(!result.success);
     }
 
@@ -496,16 +498,18 @@ mod tests {
     async fn test_recover_success_on_first_try() {
         let engine = ErrorRecoveryEngine::new();
         let mut call_count = 0;
-        let result = engine.recover("connection timeout", || {
-            call_count += 1;
-            async move {
-                if call_count == 1 {
-                    Ok::<i32, String>(42)
-                } else {
-                    Err("unexpected".to_string())
+        let result = engine
+            .recover("connection timeout", || {
+                call_count += 1;
+                async move {
+                    if call_count == 1 {
+                        Ok::<i32, String>(42)
+                    } else {
+                        Err("unexpected".to_string())
+                    }
                 }
-            }
-        }).await;
+            })
+            .await;
         assert!(result.success);
         assert_eq!(result.attempts_made, 1);
     }
@@ -514,25 +518,29 @@ mod tests {
     async fn test_recover_retry_then_success() {
         let engine = ErrorRecoveryEngine::new();
         let mut call_count = 0;
-        let result = engine.recover("connection timeout", || {
-            call_count += 1;
-            async move {
-                if call_count < 2 {
-                    Err("retry".to_string())
-                } else {
-                    Ok::<i32, String>(42)
+        let result = engine
+            .recover("connection timeout", || {
+                call_count += 1;
+                async move {
+                    if call_count < 2 {
+                        Err("retry".to_string())
+                    } else {
+                        Ok::<i32, String>(42)
+                    }
                 }
-            }
-        }).await;
+            })
+            .await;
         assert!(result.success);
     }
 
     #[tokio::test]
     async fn test_recover_all_attempts_fail() {
         let engine = ErrorRecoveryEngine::new();
-        let result = engine.recover("connection timeout", || async {
-            Err::<i32, String>("always fail".to_string())
-        }).await;
+        let result = engine
+            .recover("connection timeout", || async {
+                Err::<i32, String>("always fail".to_string())
+            })
+            .await;
         assert!(!result.success);
     }
 
@@ -566,12 +574,28 @@ mod tests {
     #[test]
     fn test_recovery_event_variants() {
         let events = vec![
-            RecoveryEvent::RecoveryStarted { error: "e".to_string(), error_type: ErrorType::Transient },
-            RecoveryEvent::AttemptStarted { attempt: 1, strategy: "Retry".to_string() },
-            RecoveryEvent::AttemptCompleted { attempt: 1, success: true },
-            RecoveryEvent::RecoveryCompleted { result: RecoveryResult::success(1, 0) },
-            RecoveryEvent::RecoveryFailed { error: "e".to_string() },
-            RecoveryEvent::RetryScheduled { delay_ms: 100, attempt: 1 },
+            RecoveryEvent::RecoveryStarted {
+                error: "e".to_string(),
+                error_type: ErrorType::Transient,
+            },
+            RecoveryEvent::AttemptStarted {
+                attempt: 1,
+                strategy: "Retry".to_string(),
+            },
+            RecoveryEvent::AttemptCompleted {
+                attempt: 1,
+                success: true,
+            },
+            RecoveryEvent::RecoveryCompleted {
+                result: RecoveryResult::success(1, 0),
+            },
+            RecoveryEvent::RecoveryFailed {
+                error: "e".to_string(),
+            },
+            RecoveryEvent::RetryScheduled {
+                delay_ms: 100,
+                attempt: 1,
+            },
         ];
         assert_eq!(events.len(), 6);
     }

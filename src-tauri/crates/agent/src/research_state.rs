@@ -590,11 +590,26 @@ mod tests {
 
     #[test]
     fn test_research_phase_progress_percentage() {
-        assert!(ResearchPhase::Planning.progress_percentage() < ResearchPhase::Searching.progress_percentage());
-        assert!(ResearchPhase::Searching.progress_percentage() < ResearchPhase::Extracting.progress_percentage());
-        assert!(ResearchPhase::Extracting.progress_percentage() < ResearchPhase::Analyzing.progress_percentage());
-        assert!(ResearchPhase::Analyzing.progress_percentage() < ResearchPhase::Synthesizing.progress_percentage());
-        assert!(ResearchPhase::Synthesizing.progress_percentage() < ResearchPhase::Reporting.progress_percentage());
+        assert!(
+            ResearchPhase::Planning.progress_percentage()
+                < ResearchPhase::Searching.progress_percentage()
+        );
+        assert!(
+            ResearchPhase::Searching.progress_percentage()
+                < ResearchPhase::Extracting.progress_percentage()
+        );
+        assert!(
+            ResearchPhase::Extracting.progress_percentage()
+                < ResearchPhase::Analyzing.progress_percentage()
+        );
+        assert!(
+            ResearchPhase::Analyzing.progress_percentage()
+                < ResearchPhase::Synthesizing.progress_percentage()
+        );
+        assert!(
+            ResearchPhase::Synthesizing.progress_percentage()
+                < ResearchPhase::Reporting.progress_percentage()
+        );
     }
 
     #[test]
@@ -631,7 +646,10 @@ mod tests {
     #[test]
     fn test_source_type_default_credibility() {
         assert!(SourceType::Academic.default_credibility() > SourceType::Web.default_credibility());
-        assert!(SourceType::Documentation.default_credibility() > SourceType::Blog.default_credibility());
+        assert!(
+            SourceType::Documentation.default_credibility()
+                > SourceType::Blog.default_credibility()
+        );
         assert!(SourceType::Forum.default_credibility() < SourceType::News.default_credibility());
     }
 
@@ -658,10 +676,15 @@ mod tests {
 
     #[test]
     fn test_search_result_builder() {
-        let result = SearchResult::new(SourceType::Academic, "url".to_string(), "Title".to_string(), "snippet".to_string())
-            .with_published_date("2024-01-01".to_string())
-            .with_credibility(0.9)
-            .with_relevance(0.85);
+        let result = SearchResult::new(
+            SourceType::Academic,
+            "url".to_string(),
+            "Title".to_string(),
+            "snippet".to_string(),
+        )
+        .with_published_date("2024-01-01".to_string())
+        .with_credibility(0.9)
+        .with_relevance(0.85);
         assert_eq!(result.published_date, Some("2024-01-01".to_string()));
         assert_eq!(result.credibility_score, Some(0.9));
         assert!((result.relevance_score - 0.85).abs() < f32::EPSILON);
@@ -792,7 +815,12 @@ mod tests {
     #[test]
     fn test_research_state_add_search_result() {
         let mut state = ResearchState::new("Topic".to_string());
-        let result = SearchResult::new(SourceType::Web, "url".to_string(), "Title".to_string(), "snippet".to_string());
+        let result = SearchResult::new(
+            SourceType::Web,
+            "url".to_string(),
+            "Title".to_string(),
+            "snippet".to_string(),
+        );
         state.add_search_result(result);
         assert_eq!(state.search_results.len(), 1);
         assert_eq!(state.progress.sources_found, 1);

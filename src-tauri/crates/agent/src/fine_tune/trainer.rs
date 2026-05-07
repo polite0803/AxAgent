@@ -262,7 +262,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_create_job() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         assert_eq!(job.status, JobStatus::Pending);
         assert_eq!(trainer.list_jobs().len(), 1);
     }
@@ -270,7 +271,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_get_job() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let found = trainer.get_job(&job.id);
         assert!(found.is_some());
         assert_eq!(found.unwrap().dataset_id, "ds1");
@@ -280,7 +282,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_start_training() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.start_training(&job.id);
         assert!(result.is_ok());
         let found = trainer.get_job(&job.id).unwrap();
@@ -290,7 +293,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_start_training_non_pending() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         trainer.start_training(&job.id).unwrap();
         let result = trainer.start_training(&job.id);
         assert!(result.is_err());
@@ -306,7 +310,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_cancel_training() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.cancel_training(&job.id);
         assert!(result.is_ok());
         assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Cancelled);
@@ -315,7 +320,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_complete_job() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         trainer.start_training(&job.id).unwrap();
         let result = trainer.complete_job(&job.id, "/output/lora".to_string());
         assert!(result.is_ok());
@@ -325,7 +331,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_fail_job() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.fail_job(&job.id);
         assert!(result.is_ok());
         assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Failed);
@@ -334,7 +341,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_delete_job() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.delete_job(&job.id);
         assert!(result.is_ok());
         assert!(trainer.get_job(&job.id).is_none());
@@ -344,7 +352,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_update_progress() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.update_progress(&job.id, 1, 10, 0.5);
         assert!(result.is_ok());
         let found = trainer.get_job(&job.id).unwrap();
@@ -410,7 +419,8 @@ mod tests {
     #[test]
     fn test_fine_tune_trainer_pause_training() {
         let mut trainer = FineTuneTrainer::new();
-        let job = trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
+        let job =
+            trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         trainer.start_training(&job.id).unwrap();
         let j = trainer.get_job_mut(&job.id).unwrap();
         j.status = JobStatus::Training;

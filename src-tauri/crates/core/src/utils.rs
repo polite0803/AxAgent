@@ -45,9 +45,5 @@ pub fn append_language_directive(system_prompt: &str, language_code: &str) -> St
     if language_code.is_empty() || has_output_language_directive(system_prompt) {
         return system_prompt.to_string();
     }
-    format!(
-        "{}\n\n{}",
-        system_prompt,
-        build_output_language_directive(language_code)
-    )
+    format!("{}\n\n{}", system_prompt, build_output_language_directive(language_code))
 }

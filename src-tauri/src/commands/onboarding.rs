@@ -66,7 +66,9 @@ fn detect_single_key(env_var: &str, provider_type: &str) -> Option<DetectedApiKe
 
 /// 检测本地 Ollama 是否可用
 #[tauri::command]
-pub async fn detect_ollama_availability(ollama_host: Option<String>) -> Result<OllamaDetection, String> {
+pub async fn detect_ollama_availability(
+    ollama_host: Option<String>,
+) -> Result<OllamaDetection, String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(3))
         .build()

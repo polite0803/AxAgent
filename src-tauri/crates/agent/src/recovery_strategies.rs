@@ -188,7 +188,12 @@ mod tests {
     fn test_for_error_type_transient() {
         let strategy = RecoveryStrategy::for_error_type(ErrorType::Transient);
         match strategy {
-            RecoveryStrategy::Retry { max_attempts, base_delay_ms, max_delay_ms, exponential_backoff } => {
+            RecoveryStrategy::Retry {
+                max_attempts,
+                base_delay_ms,
+                max_delay_ms,
+                exponential_backoff,
+            } => {
                 assert_eq!(max_attempts, 3);
                 assert_eq!(base_delay_ms, 1000);
                 assert_eq!(max_delay_ms, 10000);
@@ -202,7 +207,10 @@ mod tests {
     fn test_for_error_type_recoverable() {
         let strategy = RecoveryStrategy::for_error_type(ErrorType::Recoverable);
         match strategy {
-            RecoveryStrategy::AdjustAndRetry { max_attempts, adjustments } => {
+            RecoveryStrategy::AdjustAndRetry {
+                max_attempts,
+                adjustments,
+            } => {
                 assert_eq!(max_attempts, 2);
                 assert_eq!(adjustments.len(), 2);
             },
@@ -220,7 +228,12 @@ mod tests {
     fn test_for_error_type_unknown() {
         let strategy = RecoveryStrategy::for_error_type(ErrorType::Unknown);
         match strategy {
-            RecoveryStrategy::Retry { max_attempts, base_delay_ms, max_delay_ms, exponential_backoff } => {
+            RecoveryStrategy::Retry {
+                max_attempts,
+                base_delay_ms,
+                max_delay_ms,
+                exponential_backoff,
+            } => {
                 assert_eq!(max_attempts, 1);
                 assert_eq!(base_delay_ms, 500);
                 assert_eq!(max_delay_ms, 2000);
@@ -232,7 +245,12 @@ mod tests {
 
     #[test]
     fn test_should_retry_retry() {
-        let strategy = RecoveryStrategy::Retry { max_attempts: 3, base_delay_ms: 100, max_delay_ms: 1000, exponential_backoff: true };
+        let strategy = RecoveryStrategy::Retry {
+            max_attempts: 3,
+            base_delay_ms: 100,
+            max_delay_ms: 1000,
+            exponential_backoff: true,
+        };
         assert!(strategy.should_retry());
     }
 
@@ -250,53 +268,125 @@ mod tests {
 
     #[test]
     fn test_should_retry_fallback() {
-        let strategy = RecoveryStrategy::Fallback { fallback_value: "default".to_string() };
+        let strategy = RecoveryStrategy::Fallback {
+            fallback_value: "default".to_string(),
+        };
         assert!(strategy.should_retry());
     }
 
     #[test]
     fn test_should_retry_adjust_and_retry() {
-        let strategy = RecoveryStrategy::AdjustAndRetry { max_attempts: 2, adjustments: vec![] };
+        let strategy = RecoveryStrategy::AdjustAndRetry {
+            max_attempts: 2,
+            adjustments: vec![],
+        };
         assert!(strategy.should_retry());
     }
 
     #[test]
     fn test_should_retry_auto_recover() {
-        let strategy = RecoveryStrategy::AutoRecover { max_attempts: 3, checkpoint_interval_secs: 30 };
+        let strategy = RecoveryStrategy::AutoRecover {
+            max_attempts: 3,
+            checkpoint_interval_secs: 30,
+        };
         assert!(strategy.should_retry());
     }
 
     #[test]
     fn test_should_retry_auto_recover_zero_attempts() {
-        let strategy = RecoveryStrategy::AutoRecover { max_attempts: 0, checkpoint_interval_secs: 30 };
+        let strategy = RecoveryStrategy::AutoRecover {
+            max_attempts: 0,
+            checkpoint_interval_secs: 30,
+        };
         assert!(!strategy.should_retry());
     }
 
     #[test]
     fn test_max_attempts() {
-        assert_eq!(RecoveryStrategy::Retry { max_attempts: 5, base_delay_ms: 100, max_delay_ms: 1000, exponential_backoff: true }.max_attempts(), 5);
-        assert_eq!(RecoveryStrategy::AdjustAndRetry { max_attempts: 3, adjustments: vec![] }.max_attempts(), 3);
-        assert_eq!(RecoveryStrategy::Fallback { fallback_value: "x".to_string() }.max_attempts(), 1);
+        assert_eq!(
+            RecoveryStrategy::Retry {
+                max_attempts: 5,
+                base_delay_ms: 100,
+                max_delay_ms: 1000,
+                exponential_backoff: true
+            }
+            .max_attempts(),
+            5
+        );
+        assert_eq!(
+            RecoveryStrategy::AdjustAndRetry {
+                max_attempts: 3,
+                adjustments: vec![]
+            }
+            .max_attempts(),
+            3
+        );
+        assert_eq!(
+            RecoveryStrategy::Fallback {
+                fallback_value: "x".to_string()
+            }
+            .max_attempts(),
+            1
+        );
         assert_eq!(RecoveryStrategy::SkipTask.max_attempts(), 0);
         assert_eq!(RecoveryStrategy::Fail.max_attempts(), 0);
-        assert_eq!(RecoveryStrategy::AutoRecover { max_attempts: 4, checkpoint_interval_secs: 10 }.max_attempts(), 4);
+        assert_eq!(
+            RecoveryStrategy::AutoRecover {
+                max_attempts: 4,
+                checkpoint_interval_secs: 10
+            }
+            .max_attempts(),
+            4
+        );
     }
 
     #[test]
     fn test_description() {
-        assert_eq!(RecoveryStrategy::Retry { max_attempts: 1, base_delay_ms: 100, max_delay_ms: 1000, exponential_backoff: false }.description(), "Retry with exponential backoff");
-        assert_eq!(RecoveryStrategy::AdjustAndRetry { max_attempts: 1, adjustments: vec![] }.description(), "Adjust parameters and retry");
-        assert_eq!(RecoveryStrategy::Fallback { fallback_value: "x".to_string() }.description(), "Use fallback value");
+        assert_eq!(
+            RecoveryStrategy::Retry {
+                max_attempts: 1,
+                base_delay_ms: 100,
+                max_delay_ms: 1000,
+                exponential_backoff: false
+            }
+            .description(),
+            "Retry with exponential backoff"
+        );
+        assert_eq!(
+            RecoveryStrategy::AdjustAndRetry {
+                max_attempts: 1,
+                adjustments: vec![]
+            }
+            .description(),
+            "Adjust parameters and retry"
+        );
+        assert_eq!(
+            RecoveryStrategy::Fallback {
+                fallback_value: "x".to_string()
+            }
+            .description(),
+            "Use fallback value"
+        );
         assert_eq!(RecoveryStrategy::SkipTask.description(), "Skip this task");
         assert_eq!(RecoveryStrategy::Fail.description(), "Fail immediately");
-        assert_eq!(RecoveryStrategy::AutoRecover { max_attempts: 1, checkpoint_interval_secs: 10 }.description(), "Auto-recover with checkpointing");
+        assert_eq!(
+            RecoveryStrategy::AutoRecover {
+                max_attempts: 1,
+                checkpoint_interval_secs: 10
+            }
+            .description(),
+            "Auto-recover with checkpointing"
+        );
     }
 
     #[test]
     fn test_for_interrupt() {
         let strategy = RecoveryStrategy::for_interrupt();
         match strategy {
-            RecoveryStrategy::AutoRecover { max_attempts, checkpoint_interval_secs } => {
+            RecoveryStrategy::AutoRecover {
+                max_attempts,
+                checkpoint_interval_secs,
+            } => {
                 assert_eq!(max_attempts, 3);
                 assert_eq!(checkpoint_interval_secs, 30);
             },
@@ -337,7 +427,12 @@ mod tests {
 
     #[test]
     fn test_recovery_attempt_new() {
-        let strategy = RecoveryStrategy::Retry { max_attempts: 3, base_delay_ms: 100, max_delay_ms: 1000, exponential_backoff: true };
+        let strategy = RecoveryStrategy::Retry {
+            max_attempts: 3,
+            base_delay_ms: 100,
+            max_delay_ms: 1000,
+            exponential_backoff: true,
+        };
         let attempt = RecoveryAttempt::new(2, "error msg".to_string(), strategy);
         assert_eq!(attempt.attempt_number, 2);
         assert_eq!(attempt.error, "error msg");
@@ -356,7 +451,8 @@ mod tests {
     #[test]
     fn test_recovery_attempt_with_success() {
         let strategy = RecoveryStrategy::Fail;
-        let attempt = RecoveryAttempt::new(1, "err".to_string(), strategy).with_success("ok".to_string());
+        let attempt =
+            RecoveryAttempt::new(1, "err".to_string(), strategy).with_success("ok".to_string());
         assert!(attempt.success);
         assert_eq!(attempt.message, Some("ok".to_string()));
     }
@@ -375,7 +471,12 @@ mod tests {
 
     #[test]
     fn test_serialization_roundtrip() {
-        let strategy = RecoveryStrategy::Retry { max_attempts: 3, base_delay_ms: 1000, max_delay_ms: 10000, exponential_backoff: true };
+        let strategy = RecoveryStrategy::Retry {
+            max_attempts: 3,
+            base_delay_ms: 1000,
+            max_delay_ms: 10000,
+            exponential_backoff: true,
+        };
         let json = serde_json::to_string(&strategy).unwrap();
         let deserialized: RecoveryStrategy = serde_json::from_str(&json).unwrap();
         assert!(matches!(deserialized, RecoveryStrategy::Retry { .. }));

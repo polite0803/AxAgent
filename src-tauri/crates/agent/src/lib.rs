@@ -86,7 +86,9 @@ pub use agent_config::{AgentConfig, ConfigManager, ConfigSnapshot, DebugMode};
 pub use agent_runtime::{
     AgentEvent, AgentOutput, AgentRuntime, AgentRuntimeConfig, AgentRuntimeError,
 };
-pub use blackboard::{Blackboard, BlackboardEntry, BlackboardEvent, BlackboardManager, EntryPriority};
+pub use blackboard::{
+    Blackboard, BlackboardEntry, BlackboardEvent, BlackboardManager, EntryPriority,
+};
 pub use checkpoint::{Checkpoint, CheckpointBuilder, CheckpointManager};
 pub use citation_tracker::{
     CitationContext, CitationQuerier, CitationStats, CitationTracker, CitationUsage,
@@ -247,7 +249,9 @@ impl LocalToolRegistry {
             .await;
 
         if let Ok(Some(record)) = result {
-            if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, bool>>(&record.value) {
+            if let Ok(map) =
+                serde_json::from_str::<std::collections::HashMap<String, bool>>(&record.value)
+            {
                 for (gid, is_enabled) in map {
                     self.enabled.insert(gid, is_enabled);
                 }
@@ -332,9 +336,9 @@ impl LocalToolRegistry {
         self.enabled.insert(gid.to_string(), new_state);
 
         let key = "tool_groups_enabled";
+        use axagent_core::entity::settings as settings_model;
         use axagent_core::entity::settings::Entity as SettingsEntity;
         use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-        use axagent_core::entity::settings as settings_model;
 
         let existing = SettingsEntity::find()
             .filter(settings_model::Column::Key.eq(key))

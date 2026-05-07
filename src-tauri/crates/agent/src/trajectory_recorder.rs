@@ -3,9 +3,7 @@ use axagent_trajectory::{
     TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,
 };
 use chrono::{DateTime, Utc};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -103,16 +101,22 @@ impl TrajectoryStore {
             Some(record) => {
                 let mut active: settings_model::ActiveModel = record.into();
                 active.value = Set(json);
-                active.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
-            }
+                active
+                    .update(self.db.as_ref())
+                    .await
+                    .map_err(|e| e.to_string())?;
+            },
             None => {
                 let active = settings_model::ActiveModel {
                     key: Set(key),
                     value: Set(json),
                     ..Default::default()
                 };
-                active.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
-            }
+                active
+                    .insert(self.db.as_ref())
+                    .await
+                    .map_err(|e| e.to_string())?;
+            },
         }
 
         let index_key = "trajectory_index".to_string();
@@ -146,13 +150,17 @@ impl TrajectoryStore {
                 let trajectory: Trajectory =
                     serde_json::from_str(&record.value).map_err(|e| e.to_string())?;
                 Ok(Some(trajectory))
-            }
+            },
             None => Ok(None),
         }
     }
 
     pub async fn list(&self, limit: usize) -> Result<Vec<TrajectorySummary>, String> {
-        let index = self.load_index("trajectory_index").await.unwrap_or_default().unwrap_or_default();
+        let index = self
+            .load_index("trajectory_index")
+            .await
+            .unwrap_or_default()
+            .unwrap_or_default();
         let mut summaries = Vec::new();
 
         for id in index.iter().rev() {
@@ -167,7 +175,11 @@ impl TrajectoryStore {
         Ok(summaries)
     }
 
-    pub async fn search(&self, query: &str, limit: usize) -> Result<Vec<TrajectorySummary>, String> {
+    pub async fn search(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<TrajectorySummary>, String> {
         let all = self.list(1000).await?;
         let query_lower = query.to_lowercase();
         let results: Vec<TrajectorySummary> = all
@@ -196,15 +208,22 @@ impl TrajectoryStore {
         match existing {
             Some(record) => {
                 let active: settings_model::ActiveModel = record.into();
-                active.delete(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+                active
+                    .delete(self.db.as_ref())
+                    .await
+                    .map_err(|e| e.to_string())?;
 
                 let index_key = "trajectory_index".to_string();
-                let mut index = self.load_index(&index_key).await.unwrap_or_default().unwrap_or_default();
+                let mut index = self
+                    .load_index(&index_key)
+                    .await
+                    .unwrap_or_default()
+                    .unwrap_or_default();
                 index.retain(|i| i != id);
                 self.save_index(&index_key, &index).await?;
 
                 Ok(true)
-            }
+            },
             None => Ok(false),
         }
     }
@@ -221,9 +240,10 @@ impl TrajectoryStore {
 
         match result {
             Some(record) => {
-                let index: Vec<String> = serde_json::from_str(&record.value).map_err(|e| e.to_string())?;
+                let index: Vec<String> =
+                    serde_json::from_str(&record.value).map_err(|e| e.to_string())?;
                 Ok(Some(index))
-            }
+            },
             None => Ok(None),
         }
     }
@@ -244,16 +264,22 @@ impl TrajectoryStore {
             Some(record) => {
                 let mut active: settings_model::ActiveModel = record.into();
                 active.value = Set(json);
-                active.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
-            }
+                active
+                    .update(self.db.as_ref())
+                    .await
+                    .map_err(|e| e.to_string())?;
+            },
             None => {
                 let active = settings_model::ActiveModel {
                     key: Set(index_key.to_string()),
                     value: Set(json),
                     ..Default::default()
                 };
-                active.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
-            }
+                active
+                    .insert(self.db.as_ref())
+                    .await
+                    .map_err(|e| e.to_string())?;
+            },
         }
 
         Ok(())

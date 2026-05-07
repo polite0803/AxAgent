@@ -274,7 +274,7 @@ pub async fn sync_knowledge_document_to_wiki(
                          The document may have been deleted or the source is a remote URL.",
                         doc.source_path
                     ))
-                }
+                },
             }
         }
     };

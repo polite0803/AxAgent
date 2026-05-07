@@ -165,7 +165,11 @@ mod tests {
 
     #[test]
     fn test_tool_selection_policy_new() {
-        let policy = ToolSelectionPolicy::new("p1".to_string(), "Test Policy".to_string(), "model-1".to_string());
+        let policy = ToolSelectionPolicy::new(
+            "p1".to_string(),
+            "Test Policy".to_string(),
+            "model-1".to_string(),
+        );
         assert_eq!(policy.id, "p1");
         assert_eq!(policy.name, "Test Policy");
         assert_eq!(policy.model_id, "model-1");
@@ -178,7 +182,8 @@ mod tests {
 
     #[test]
     fn test_tool_selection_policy_update_q_value_new() {
-        let mut policy = ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
+        let mut policy =
+            ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
         policy.update_q_value("state1:action1", 1.0, 0.5);
         assert!(policy.q_values.contains_key("state1:action1"));
         let q = policy.q_values.get("state1:action1").unwrap();
@@ -187,7 +192,8 @@ mod tests {
 
     #[test]
     fn test_tool_selection_policy_update_q_value_existing() {
-        let mut policy = ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
+        let mut policy =
+            ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
         policy.training_config.learning_rate = 0.1;
         policy.update_q_value("state1:action1", 1.0, 0.5);
         let first_q = *policy.q_values.get("state1:action1").unwrap();
@@ -198,7 +204,8 @@ mod tests {
 
     #[test]
     fn test_tool_selection_policy_get_best_action() {
-        let mut policy = ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
+        let mut policy =
+            ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
         policy.q_values.insert("state1:action_a".to_string(), 0.8);
         policy.q_values.insert("state1:action_b".to_string(), 0.3);
         let best = policy.get_best_action("state1");
@@ -208,7 +215,8 @@ mod tests {
 
     #[test]
     fn test_tool_selection_policy_get_best_action_no_match() {
-        let mut policy = ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
+        let mut policy =
+            ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
         policy.q_values.insert("state1:action_a".to_string(), 0.8);
         let best = policy.get_best_action("state2");
         assert!(best.is_none());

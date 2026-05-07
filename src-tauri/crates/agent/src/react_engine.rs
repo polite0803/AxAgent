@@ -196,7 +196,11 @@ impl Default for DefaultReasoningProvider {
 
 #[async_trait::async_trait]
 impl LlmReasoningProvider for DefaultReasoningProvider {
-    async fn analyze(&self, input: &str, _context: &ReasoningContext) -> Result<String, ReActError> {
+    async fn analyze(
+        &self,
+        input: &str,
+        _context: &ReasoningContext,
+    ) -> Result<String, ReActError> {
         Ok(self.analyze_input(input))
     }
 
@@ -309,12 +313,7 @@ impl LlmDrivenReasoningProvider {
 
         if let Some(start) = lower.find("tool_call:") {
             let remainder = &response[start + "tool_call:".len()..];
-            let tool_name = remainder
-                .lines()
-                .next()
-                .unwrap_or("")
-                .trim()
-                .to_string();
+            let tool_name = remainder.lines().next().unwrap_or("").trim().to_string();
             if !tool_name.is_empty() {
                 let tool_input = remainder
                     .lines()
@@ -488,13 +487,7 @@ impl LlmReasoningProvider for LlmDrivenReasoningProvider {
             .steps
             .iter()
             .take(10)
-            .map(|s| {
-                format!(
-                    "[{}] {}",
-                    s.state,
-                    truncate_string(&s.reasoning, 80)
-                )
-            })
+            .map(|s| format!("[{}] {}", s.state, truncate_string(&s.reasoning, 80)))
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -745,7 +738,10 @@ impl ReActEngine {
             },
 
             ReasoningState::Thinking => {
-                let reasoning = self.reasoning_provider.think(user_input, context, chain).await?;
+                let reasoning = self
+                    .reasoning_provider
+                    .think(user_input, context, chain)
+                    .await?;
                 let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
                 chain.add_step(step);
 
@@ -755,8 +751,14 @@ impl ReActEngine {
             },
 
             ReasoningState::Planning => {
-                let action = self.reasoning_provider.plan(user_input, context, chain).await?;
-                let reasoning = format!("Creating plan: {}", action.llm_prompt.as_deref().unwrap_or("execute action"));
+                let action = self
+                    .reasoning_provider
+                    .plan(user_input, context, chain)
+                    .await?;
+                let reasoning = format!(
+                    "Creating plan: {}",
+                    action.llm_prompt.as_deref().unwrap_or("execute action")
+                );
                 let step = ThoughtStep::with_action(ReasoningState::Planning, reasoning, action);
                 chain.add_step(step);
 
@@ -957,7 +959,10 @@ mod tests {
         let mut context = ReasoningContext::new("Test input");
         context.set_goal("Test goal".to_string());
         let chain = ThoughtChain::new();
-        let result = provider.think("Test input", &context, &chain).await.unwrap();
+        let result = provider
+            .think("Test input", &context, &chain)
+            .await
+            .unwrap();
         assert!(result.contains("Test goal"));
     }
 
@@ -966,7 +971,10 @@ mod tests {
         let provider = DefaultReasoningProvider::new();
         let mut context = ReasoningContext::new("Test input");
         let chain = ThoughtChain::new();
-        let action = provider.plan("Test input", &mut context, &chain).await.unwrap();
+        let action = provider
+            .plan("Test input", &mut context, &chain)
+            .await
+            .unwrap();
         assert_eq!(action.action_type, ActionType::Plan);
         assert!(action.llm_prompt.is_some());
     }
@@ -997,13 +1005,27 @@ mod tests {
 
         #[async_trait::async_trait]
         impl LlmReasoningProvider for TestProvider {
-            async fn analyze(&self, _input: &str, _context: &ReasoningContext) -> Result<String, ReActError> {
+            async fn analyze(
+                &self,
+                _input: &str,
+                _context: &ReasoningContext,
+            ) -> Result<String, ReActError> {
                 Ok("Custom analysis".to_string())
             }
-            async fn think(&self, _input: &str, _context: &ReasoningContext, _chain: &ThoughtChain) -> Result<String, ReActError> {
+            async fn think(
+                &self,
+                _input: &str,
+                _context: &ReasoningContext,
+                _chain: &ThoughtChain,
+            ) -> Result<String, ReActError> {
                 Ok("Custom thinking".to_string())
             }
-            async fn plan(&self, _input: &str, context: &mut ReasoningContext, _chain: &ThoughtChain) -> Result<Action, ReActError> {
+            async fn plan(
+                &self,
+                _input: &str,
+                context: &mut ReasoningContext,
+                _chain: &ThoughtChain,
+            ) -> Result<Action, ReActError> {
                 context.increment_depth();
                 Ok(Action {
                     action_type: ActionType::Plan,
@@ -1013,10 +1035,18 @@ mod tests {
                     requires_confirmation: false,
                 })
             }
-            async fn reflect(&self, _chain: &ThoughtChain, _context: &ReasoningContext) -> Result<String, ReActError> {
+            async fn reflect(
+                &self,
+                _chain: &ThoughtChain,
+                _context: &ReasoningContext,
+            ) -> Result<String, ReActError> {
                 Ok("Custom reflection".to_string())
             }
-            async fn synthesize(&self, _chain: &ThoughtChain, _context: &ReasoningContext) -> Result<String, ReActError> {
+            async fn synthesize(
+                &self,
+                _chain: &ThoughtChain,
+                _context: &ReasoningContext,
+            ) -> Result<String, ReActError> {
                 Ok("Custom synthesis result".to_string())
             }
         }

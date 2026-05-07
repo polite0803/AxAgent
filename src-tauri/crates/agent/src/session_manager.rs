@@ -1085,26 +1085,17 @@ mod tests {
 
     #[test]
     fn test_dynamic_max_iterations_low() {
-        assert_eq!(
-            dynamic_max_iterations(&axagent_trajectory::Complexity::Low),
-            20
-        );
+        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Low), 20);
     }
 
     #[test]
     fn test_dynamic_max_iterations_medium() {
-        assert_eq!(
-            dynamic_max_iterations(&axagent_trajectory::Complexity::Medium),
-            50
-        );
+        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Medium), 50);
     }
 
     #[test]
     fn test_dynamic_max_iterations_high() {
-        assert_eq!(
-            dynamic_max_iterations(&axagent_trajectory::Complexity::High),
-            100
-        );
+        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::High), 100);
     }
 
     #[test]
@@ -1159,8 +1150,8 @@ mod tests {
 
     #[test]
     fn test_agent_session_with_team() {
-        let session = AgentSession::new("p1".to_string(), "c1".to_string())
-            .with_team("team-1".to_string());
+        let session =
+            AgentSession::new("p1".to_string(), "c1".to_string()).with_team("team-1".to_string());
         assert_eq!(session.team_id(), Some("team-1"));
     }
 
@@ -1200,8 +1191,8 @@ mod tests {
 
     #[test]
     fn test_agent_session_clone() {
-        let session = AgentSession::new("p1".to_string(), "c1".to_string())
-            .with_team("team-1".to_string());
+        let session =
+            AgentSession::new("p1".to_string(), "c1".to_string()).with_team("team-1".to_string());
         let cloned = session.clone();
         assert_eq!(cloned.provider_id(), session.provider_id());
         assert_eq!(cloned.conversation_id(), session.conversation_id());

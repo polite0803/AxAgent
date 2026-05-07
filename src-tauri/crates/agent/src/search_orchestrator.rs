@@ -330,9 +330,19 @@ mod tests {
         }
     }
 
-    fn make_result(url: &str, title: &str, source_type: SourceType, relevance: f32) -> SearchResult {
-        SearchResult::new(source_type, url.to_string(), title.to_string(), format!("Snippet for {}", title))
-            .with_relevance(relevance)
+    fn make_result(
+        url: &str,
+        title: &str,
+        source_type: SourceType,
+        relevance: f32,
+    ) -> SearchResult {
+        SearchResult::new(
+            source_type,
+            url.to_string(),
+            title.to_string(),
+            format!("Snippet for {}", title),
+        )
+        .with_relevance(relevance)
     }
 
     #[test]
@@ -383,7 +393,9 @@ mod tests {
 
     #[test]
     fn test_orchestrator_builder_deduplication() {
-        let orch = SearchOrchestratorBuilder::new().deduplication(false).build();
+        let orch = SearchOrchestratorBuilder::new()
+            .deduplication(false)
+            .build();
         assert!(!orch.use_deduplication);
     }
 
@@ -419,7 +431,9 @@ mod tests {
     #[test]
     fn test_orchestrator_builder_add_provider() {
         let provider = Arc::new(MockSearchProvider::new(SourceType::Web, vec![]));
-        let orch = SearchOrchestratorBuilder::new().add_provider(provider).build();
+        let orch = SearchOrchestratorBuilder::new()
+            .add_provider(provider)
+            .build();
         assert!(orch.providers.contains_key(&SourceType::Web));
     }
 
@@ -482,9 +496,26 @@ mod tests {
     fn test_get_high_credibility_results() {
         let orch = SearchOrchestrator::new();
         let results = vec![
-            SearchResult::new(SourceType::Web, "https://a.com".to_string(), "A".to_string(), "s".to_string()).with_credibility(0.9),
-            SearchResult::new(SourceType::Web, "https://b.com".to_string(), "B".to_string(), "s".to_string()).with_credibility(0.5),
-            SearchResult::new(SourceType::Web, "https://c.com".to_string(), "C".to_string(), "s".to_string()),
+            SearchResult::new(
+                SourceType::Web,
+                "https://a.com".to_string(),
+                "A".to_string(),
+                "s".to_string(),
+            )
+            .with_credibility(0.9),
+            SearchResult::new(
+                SourceType::Web,
+                "https://b.com".to_string(),
+                "B".to_string(),
+                "s".to_string(),
+            )
+            .with_credibility(0.5),
+            SearchResult::new(
+                SourceType::Web,
+                "https://c.com".to_string(),
+                "C".to_string(),
+                "s".to_string(),
+            ),
         ];
         let high = orch.get_high_credibility_results(&results, 0.8);
         assert_eq!(high.len(), 1);
@@ -494,9 +525,13 @@ mod tests {
     #[test]
     fn test_get_high_credibility_results_none_match() {
         let orch = SearchOrchestrator::new();
-        let results = vec![
-            SearchResult::new(SourceType::Web, "https://a.com".to_string(), "A".to_string(), "s".to_string()).with_credibility(0.3),
-        ];
+        let results = vec![SearchResult::new(
+            SourceType::Web,
+            "https://a.com".to_string(),
+            "A".to_string(),
+            "s".to_string(),
+        )
+        .with_credibility(0.3)];
         let high = orch.get_high_credibility_results(&results, 0.8);
         assert!(high.is_empty());
     }
@@ -599,9 +634,15 @@ mod tests {
     #[tokio::test]
     async fn test_execute_multiple_source_types() {
         let web_results = vec![make_result("https://web.com", "Web", SourceType::Web, 0.8)];
-        let academic_results = vec![make_result("https://acad.com", "Academic", SourceType::Academic, 0.9)];
+        let academic_results = vec![make_result(
+            "https://acad.com",
+            "Academic",
+            SourceType::Academic,
+            0.9,
+        )];
         let web_provider = Arc::new(MockSearchProvider::new(SourceType::Web, web_results));
-        let academic_provider = Arc::new(MockSearchProvider::new(SourceType::Academic, academic_results));
+        let academic_provider =
+            Arc::new(MockSearchProvider::new(SourceType::Academic, academic_results));
         let orch = SearchOrchestrator::new()
             .with_provider(web_provider)
             .with_provider(academic_provider);

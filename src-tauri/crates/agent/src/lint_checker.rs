@@ -575,9 +575,24 @@ mod tests {
     #[test]
     fn test_calculate_score_mixed_severities() {
         let issues = vec![
-            LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err".to_string(), line: None },
-            LintIssue { severity: IssueSeverity::Warning, code: "w1".to_string(), message: "warn".to_string(), line: None },
-            LintIssue { severity: IssueSeverity::Info, code: "i1".to_string(), message: "info".to_string(), line: None },
+            LintIssue {
+                severity: IssueSeverity::Error,
+                code: "e1".to_string(),
+                message: "err".to_string(),
+                line: None,
+            },
+            LintIssue {
+                severity: IssueSeverity::Warning,
+                code: "w1".to_string(),
+                message: "warn".to_string(),
+                line: None,
+            },
+            LintIssue {
+                severity: IssueSeverity::Info,
+                code: "i1".to_string(),
+                message: "info".to_string(),
+                line: None,
+            },
         ];
         let score = LintChecker::calculate_score(&issues);
         assert!((score - 0.58).abs() < f64::EPSILON);
@@ -594,11 +609,20 @@ mod tests {
     #[test]
     fn test_lint_issue_type_variants() {
         let types = vec![
-            LintIssueType::BrokenLink { page: "p".to_string(), link: "l".to_string() },
-            LintIssueType::MissingIndexEntry { page: "p".to_string() },
-            LintIssueType::OrphanPage { page: "p".to_string() },
+            LintIssueType::BrokenLink {
+                page: "p".to_string(),
+                link: "l".to_string(),
+            },
+            LintIssueType::MissingIndexEntry {
+                page: "p".to_string(),
+            },
+            LintIssueType::OrphanPage {
+                page: "p".to_string(),
+            },
             LintIssueType::StaleOverview,
-            LintIssueType::IncompleteSourceSummary { source: "s".to_string() },
+            LintIssueType::IncompleteSourceSummary {
+                source: "s".to_string(),
+            },
         ];
         assert_eq!(types.len(), 5);
     }
@@ -639,9 +663,24 @@ mod tests {
     #[test]
     fn test_calculate_score_multiple_errors() {
         let issues = vec![
-            LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err1".to_string(), line: None },
-            LintIssue { severity: IssueSeverity::Error, code: "e2".to_string(), message: "err2".to_string(), line: None },
-            LintIssue { severity: IssueSeverity::Error, code: "e3".to_string(), message: "err3".to_string(), line: None },
+            LintIssue {
+                severity: IssueSeverity::Error,
+                code: "e1".to_string(),
+                message: "err1".to_string(),
+                line: None,
+            },
+            LintIssue {
+                severity: IssueSeverity::Error,
+                code: "e2".to_string(),
+                message: "err2".to_string(),
+                line: None,
+            },
+            LintIssue {
+                severity: IssueSeverity::Error,
+                code: "e3".to_string(),
+                message: "err3".to_string(),
+                line: None,
+            },
         ];
         let score = LintChecker::calculate_score(&issues);
         assert!((score - 0.1).abs() < f64::EPSILON);

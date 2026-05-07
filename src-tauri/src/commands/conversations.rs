@@ -676,13 +676,19 @@ pub async fn archive_workflow_session(
             let execution = axagent_core::entity::workflow_executions::ActiveModel {
                 id: Set(uuid::Uuid::new_v4().to_string()),
                 workflow_id: Set(template_id.clone()),
-                status: Set(conv.workflow_status.clone().unwrap_or_else(|| "completed".to_string())),
+                status: Set(conv
+                    .workflow_status
+                    .clone()
+                    .unwrap_or_else(|| "completed".to_string())),
                 input_params: Set(None),
                 output_result: Set(feedback.clone()),
-                node_executions: Set(Some(serde_json::json!({
-                    "conversation_id": conversation_id,
-                    "message_count": messages.len(),
-                }).to_string())),
+                node_executions: Set(Some(
+                    serde_json::json!({
+                        "conversation_id": conversation_id,
+                        "message_count": messages.len(),
+                    })
+                    .to_string(),
+                )),
                 total_time_ms: Set(None),
                 created_at: Set(axagent_core::utils::now_ts()),
                 updated_at: Set(axagent_core::utils::now_ts()),
@@ -2214,14 +2220,13 @@ pub async fn send_message(
     // Inject output language directive from app settings
     if let Ok(settings) = axagent_core::repo::settings::get_settings(&state.sea_db).await {
         if !settings.language.is_empty() {
-            let already_present = chat_messages.iter().any(|m| {
-                match &m.content {
-                    ChatContent::Text(t) => axagent_core::utils::has_output_language_directive(t),
-                    _ => false,
-                }
+            let already_present = chat_messages.iter().any(|m| match &m.content {
+                ChatContent::Text(t) => axagent_core::utils::has_output_language_directive(t),
+                _ => false,
             });
             if !already_present {
-                let directive = axagent_core::utils::build_output_language_directive(&settings.language);
+                let directive =
+                    axagent_core::utils::build_output_language_directive(&settings.language);
                 chat_messages.push(ChatMessage {
                     role: if no_system_role {
                         "user".to_string()

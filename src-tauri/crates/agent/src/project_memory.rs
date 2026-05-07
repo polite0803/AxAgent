@@ -224,7 +224,8 @@ mod tests {
 
     #[test]
     fn test_project_memory_parse_from_markdown_basic() {
-        let content = "# Project Memory\n\n## Tech Stack\n- Rust\n- Tauri\n\n## Conventions\n- Use tabs\n";
+        let content =
+            "# Project Memory\n\n## Tech Stack\n- Rust\n- Tauri\n\n## Conventions\n- Use tabs\n";
         let memory = ProjectMemory::parse_from_markdown(content, "/test");
         assert_eq!(memory.project_path, "/test");
         assert_eq!(memory.tech_stack, vec!["Rust", "Tauri"]);

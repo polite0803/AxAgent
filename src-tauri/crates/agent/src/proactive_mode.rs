@@ -169,15 +169,29 @@ mod tests {
 
     #[test]
     fn test_proactive_state_paused_equality() {
-        let paused_typing = ProactiveState::Paused { reason: PauseReason::UserTyping };
-        let paused_api = ProactiveState::Paused { reason: PauseReason::ApiError };
-        assert_eq!(paused_typing, ProactiveState::Paused { reason: PauseReason::UserTyping });
+        let paused_typing = ProactiveState::Paused {
+            reason: PauseReason::UserTyping,
+        };
+        let paused_api = ProactiveState::Paused {
+            reason: PauseReason::ApiError,
+        };
+        assert_eq!(
+            paused_typing,
+            ProactiveState::Paused {
+                reason: PauseReason::UserTyping
+            }
+        );
         assert_ne!(paused_typing, paused_api);
     }
 
     #[test]
     fn test_pause_reason_variants() {
-        let reasons = [PauseReason::UserTyping, PauseReason::ApiError, PauseReason::ManualPause, PauseReason::ContextBlocked];
+        let reasons = [
+            PauseReason::UserTyping,
+            PauseReason::ApiError,
+            PauseReason::ManualPause,
+            PauseReason::ContextBlocked,
+        ];
         assert_eq!(reasons.len(), 4);
     }
 
@@ -213,7 +227,12 @@ mod tests {
         axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
         mode.activate();
         mode.pause(PauseReason::ManualPause);
-        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::ManualPause });
+        assert_eq!(
+            mode.state(),
+            ProactiveState::Paused {
+                reason: PauseReason::ManualPause
+            }
+        );
     }
 
     #[test]
@@ -246,7 +265,12 @@ mod tests {
         axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
         mode.activate();
         mode.on_user_input();
-        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::UserTyping });
+        assert_eq!(
+            mode.state(),
+            ProactiveState::Paused {
+                reason: PauseReason::UserTyping
+            }
+        );
     }
 
     #[test]
@@ -262,7 +286,12 @@ mod tests {
         axagent_runtime::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
         mode.activate();
         mode.on_api_error();
-        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::ApiError });
+        assert_eq!(
+            mode.state(),
+            ProactiveState::Paused {
+                reason: PauseReason::ApiError
+            }
+        );
     }
 
     #[test]

@@ -306,14 +306,35 @@ mod tests {
 
     #[test]
     fn test_frontend_event_type_from_agent_event_type() {
-        assert_eq!(FrontendEventType::from(AgentEventType::TurnStarted), FrontendEventType::AgentTurnStarted);
-        assert_eq!(FrontendEventType::from(AgentEventType::TurnCompleted), FrontendEventType::AgentTurnCompleted);
-        assert_eq!(FrontendEventType::from(AgentEventType::ToolUse), FrontendEventType::AgentToolUse);
-        assert_eq!(FrontendEventType::from(AgentEventType::ToolResult), FrontendEventType::AgentToolResult);
-        assert_eq!(FrontendEventType::from(AgentEventType::ToolError), FrontendEventType::AgentToolError);
-        assert_eq!(FrontendEventType::from(AgentEventType::StateChanged), FrontendEventType::AgentStateChanged);
+        assert_eq!(
+            FrontendEventType::from(AgentEventType::TurnStarted),
+            FrontendEventType::AgentTurnStarted
+        );
+        assert_eq!(
+            FrontendEventType::from(AgentEventType::TurnCompleted),
+            FrontendEventType::AgentTurnCompleted
+        );
+        assert_eq!(
+            FrontendEventType::from(AgentEventType::ToolUse),
+            FrontendEventType::AgentToolUse
+        );
+        assert_eq!(
+            FrontendEventType::from(AgentEventType::ToolResult),
+            FrontendEventType::AgentToolResult
+        );
+        assert_eq!(
+            FrontendEventType::from(AgentEventType::ToolError),
+            FrontendEventType::AgentToolError
+        );
+        assert_eq!(
+            FrontendEventType::from(AgentEventType::StateChanged),
+            FrontendEventType::AgentStateChanged
+        );
         assert_eq!(FrontendEventType::from(AgentEventType::Error), FrontendEventType::AgentError);
-        assert_eq!(FrontendEventType::from(AgentEventType::Warning), FrontendEventType::AgentWarning);
+        assert_eq!(
+            FrontendEventType::from(AgentEventType::Warning),
+            FrontendEventType::AgentWarning
+        );
         assert_eq!(FrontendEventType::from(AgentEventType::Debug), FrontendEventType::AgentDebug);
     }
 

@@ -123,11 +123,9 @@ mod tests {
 
     #[test]
     fn test_unified_agent_event_with_correlation_id() {
-        let event = UnifiedAgentEvent::new(
-            "source",
-            AgentEventType::ToolResult,
-            serde_json::json!({}),
-        ).with_correlation_id("corr-123");
+        let event =
+            UnifiedAgentEvent::new("source", AgentEventType::ToolResult, serde_json::json!({}))
+                .with_correlation_id("corr-123");
         assert_eq!(event.correlation_id.unwrap(), "corr-123");
     }
 
@@ -161,7 +159,8 @@ mod tests {
         let mut receiver1 = bus.subscribe("sub1", vec![AgentEventType::TurnStarted]);
         let mut receiver2 = bus.subscribe("sub2", vec![AgentEventType::TurnStarted]);
 
-        let event = UnifiedAgentEvent::new("src", AgentEventType::TurnStarted, serde_json::json!({}));
+        let event =
+            UnifiedAgentEvent::new("src", AgentEventType::TurnStarted, serde_json::json!({}));
         bus.emit(event).unwrap();
 
         let r1 = receiver1.recv().await.unwrap();
@@ -182,9 +181,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_event_bus_builder() {
-        let bus = AgentEventBus::builder()
-            .name("builder_test")
-            .build();
+        let bus = AgentEventBus::builder().name("builder_test").build();
         assert_eq!(bus.name(), "builder_test");
     }
 

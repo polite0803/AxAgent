@@ -369,8 +369,14 @@ mod tests {
 
     #[test]
     fn test_difficulty_partial_cmp() {
-        assert_eq!(Difficulty::Easy.partial_cmp(&Difficulty::Easy), Some(std::cmp::Ordering::Equal));
-        assert_eq!(Difficulty::Medium.partial_cmp(&Difficulty::Hard), Some(std::cmp::Ordering::Less));
+        assert_eq!(
+            Difficulty::Easy.partial_cmp(&Difficulty::Easy),
+            Some(std::cmp::Ordering::Equal)
+        );
+        assert_eq!(
+            Difficulty::Medium.partial_cmp(&Difficulty::Hard),
+            Some(std::cmp::Ordering::Less)
+        );
     }
 
     #[test]

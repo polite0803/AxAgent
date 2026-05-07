@@ -76,8 +76,15 @@ impl AgentImpl for AgentImplAdapter {
         )
         .await;
 
-        let result = if let Some(tool_name) = input.context.as_ref().and_then(|c| c.get("tool_name")).and_then(|v| v.as_str()) {
-            let tool_input = input.context.as_ref()
+        let result = if let Some(tool_name) = input
+            .context
+            .as_ref()
+            .and_then(|c| c.get("tool_name"))
+            .and_then(|v| v.as_str())
+        {
+            let tool_input = input
+                .context
+                .as_ref()
                 .and_then(|c| c.get("tool_input"))
                 .cloned()
                 .unwrap_or(serde_json::json!({}));
@@ -91,7 +98,9 @@ impl AgentImpl for AgentImplAdapter {
 
             match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await {
                 Ok(mcp_result) => Ok(CoordinatorOutput::success(mcp_result.content, 1)),
-                Err(e) => Err(AgentError::ExecutionFailed(format!("Tool '{}' failed: {}", tool_name, e))),
+                Err(e) => {
+                    Err(AgentError::ExecutionFailed(format!("Tool '{}' failed: {}", tool_name, e)))
+                },
             }
         } else {
             Ok(CoordinatorOutput::success(input.content, 1))
@@ -379,7 +388,9 @@ impl<M: AgentRuntimeManager + Send + Sync> std::fmt::Debug for AgentRuntimeAdapt
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::coordinator::{AgentConfig, AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput};
+    use crate::coordinator::{
+        AgentConfig, AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput,
+    };
     use crate::event_bus::AgentEventType;
 
     #[test]
@@ -433,7 +444,9 @@ mod tests {
         adapter.set_status(AgentStatus::Completed).await;
         assert_eq!(adapter.get_status().await, AgentStatus::Completed);
 
-        adapter.set_status(AgentStatus::Failed("error".to_string())).await;
+        adapter
+            .set_status(AgentStatus::Failed("error".to_string()))
+            .await;
         let status = adapter.get_status().await;
         assert!(matches!(status, AgentStatus::Failed(_)));
     }

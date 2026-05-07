@@ -505,7 +505,7 @@ pub async fn archive_to_knowledge_base(
                     assistant_msgs: Vec::new(),
                     tool_msgs: Vec::new(),
                 });
-            }
+            },
             "assistant" => {
                 if let Some(ref mut t) = current_turn {
                     let tc_json = msg.tool_calls_json.clone();
@@ -514,13 +514,13 @@ pub async fn archive_to_knowledge_base(
                         tool_calls_json: tc_json,
                     });
                 }
-            }
+            },
             "tool" => {
                 if let Some(ref mut t) = current_turn {
                     t.tool_msgs.push(msg.clone());
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
     if let Some(prev) = current_turn.take() {
@@ -560,7 +560,8 @@ pub async fn archive_to_knowledge_base(
             .iter()
             .filter(|a| a.tool_calls_json.is_some())
             .filter_map(|a| {
-                let tc: Vec<serde_json::Value> = serde_json::from_str(a.tool_calls_json.as_ref()?).ok()?;
+                let tc: Vec<serde_json::Value> =
+                    serde_json::from_str(a.tool_calls_json.as_ref()?).ok()?;
                 Some(serde_json::json!({
                     "toolCalls": tc,
                     "contentPreview": if a.msg.content.len() > 100 {
@@ -718,7 +719,10 @@ pub async fn get_conversation_archive_text(
         };
         if msg.role == "assistant" {
             if let Some(ref tc_json) = msg.tool_calls_json {
-                text_parts.push(format!("## {} (Tool Call)\n\n{}\n\nTool Calls: {}", role_label, content, tc_json));
+                text_parts.push(format!(
+                    "## {} (Tool Call)\n\n{}\n\nTool Calls: {}",
+                    role_label, content, tc_json
+                ));
             } else {
                 text_parts.push(format!("## {}\n\n{}", role_label, content));
             }

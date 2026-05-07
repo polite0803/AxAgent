@@ -160,9 +160,7 @@ impl DeepResearcher {
 
             all_queries.extend(queries.clone());
 
-            let findings = self
-                .execute_searches(&queries, &mut seen_urls)
-                .await;
+            let findings = self.execute_searches(&queries, &mut seen_urls).await;
 
             all_findings.extend(findings.clone());
 
@@ -459,7 +457,16 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
             ("definition", vec!["definition", "meaning", "what is", "explained"]),
             ("history", vec!["history", "origin", "background", "timeline"]),
             ("current state", vec!["recent", "current", "latest", "2024", "2025", "today"]),
-            ("applications", vec!["application", "use case", "example", "practice", "implementation"]),
+            (
+                "applications",
+                vec![
+                    "application",
+                    "use case",
+                    "example",
+                    "practice",
+                    "implementation",
+                ],
+            ),
             ("challenges", vec!["challenge", "problem", "limitation", "issue", "controversy"]),
         ];
 
@@ -479,7 +486,10 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
 
         for (keyword, count) in &covered_aspects {
             if *count == 0 {
-                gaps.push(format!("detailed information about \"{}\" in relation to {}", keyword, topic));
+                gaps.push(format!(
+                    "detailed information about \"{}\" in relation to {}",
+                    keyword, topic
+                ));
             }
         }
 
@@ -610,7 +620,10 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
         queries
     }
 
-    fn cross_validate_corroboration(&self, findings: &[ResearchFinding]) -> Vec<CorroboratedFinding> {
+    fn cross_validate_corroboration(
+        &self,
+        findings: &[ResearchFinding],
+    ) -> Vec<CorroboratedFinding> {
         let mut snippet_groups: HashMap<String, Vec<String>> = HashMap::new();
 
         for finding in findings {
@@ -654,10 +667,8 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
         ];
 
         let mut contradictions = Vec::new();
-        let all_results: Vec<&SearchResult> = findings
-            .iter()
-            .flat_map(|f| f.results.iter())
-            .collect();
+        let all_results: Vec<&SearchResult> =
+            findings.iter().flat_map(|f| f.results.iter()).collect();
 
         for i in 0..all_results.len() {
             for j in (i + 1)..all_results.len() {
@@ -855,14 +866,12 @@ mod tests {
     fn test_research_finding() {
         let f = ResearchFinding {
             query: "test".to_string(),
-            results: vec![
-                SearchResult {
-                    query: "test".to_string(),
-                    url: "https://a.com".to_string(),
-                    title: "A".to_string(),
-                    snippet: "snippet a".to_string(),
-                },
-            ],
+            results: vec![SearchResult {
+                query: "test".to_string(),
+                url: "https://a.com".to_string(),
+                title: "A".to_string(),
+                snippet: "snippet a".to_string(),
+            }],
         };
         assert_eq!(f.results.len(), 1);
     }
@@ -915,7 +924,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_analyze_coverage_empty() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -926,7 +939,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_analyze_coverage_with_findings() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -953,7 +970,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_analyze_coverage_identifies_gaps() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -972,7 +993,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_gap_queries_without_llm() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -980,49 +1005,59 @@ mod tests {
             "definition of Rust".to_string(),
             "history of Rust".to_string(),
         ];
-        let queries = researcher.generate_gap_queries("Rust", &gaps, None, None, None).await.unwrap();
+        let queries = researcher
+            .generate_gap_queries("Rust", &gaps, None, None, None)
+            .await
+            .unwrap();
         assert!(!queries.is_empty());
         assert!(queries.len() <= 5);
     }
 
     #[tokio::test]
     async fn test_generate_gap_queries_empty_gaps() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
-        let queries = researcher.generate_gap_queries("Rust", &[], None, None, None).await.unwrap();
+        let queries = researcher
+            .generate_gap_queries("Rust", &[], None, None, None)
+            .await
+            .unwrap();
         assert!(!queries.is_empty());
     }
 
     #[tokio::test]
     async fn test_cross_validate_corroboration() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![
             ResearchFinding {
                 query: "q1".to_string(),
-                results: vec![
-                    SearchResult {
-                        query: "q1".to_string(),
-                        url: "https://a.com".to_string(),
-                        title: "Rust is safe".to_string(),
-                        snippet: "Rust provides memory safety".to_string(),
-                    },
-                ],
+                results: vec![SearchResult {
+                    query: "q1".to_string(),
+                    url: "https://a.com".to_string(),
+                    title: "Rust is safe".to_string(),
+                    snippet: "Rust provides memory safety".to_string(),
+                }],
             },
             ResearchFinding {
                 query: "q2".to_string(),
-                results: vec![
-                    SearchResult {
-                        query: "q2".to_string(),
-                        url: "https://b.com".to_string(),
-                        title: "Rust is safe".to_string(),
-                        snippet: "Rust guarantees safety".to_string(),
-                    },
-                ],
+                results: vec![SearchResult {
+                    query: "q2".to_string(),
+                    url: "https://b.com".to_string(),
+                    title: "Rust is safe".to_string(),
+                    snippet: "Rust guarantees safety".to_string(),
+                }],
             },
         ];
         let corroborated = researcher.cross_validate_corroboration(&findings);
@@ -1032,7 +1067,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_cross_validate_corroboration_no_overlap() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1051,7 +1090,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_cross_validate_contradictions() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1078,7 +1121,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_cross_validate_contradictions_same_url_ignored() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1105,7 +1152,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_cross_validate_contradictions_no_contradictions() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1132,7 +1183,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_default_queries() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1143,7 +1198,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_context_with_overview() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1156,7 +1215,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_context_without_overview() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1167,7 +1230,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_json_array() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1179,7 +1246,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_json_object() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1191,7 +1262,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_json_no_json() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1221,7 +1296,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_default_gap_queries_definition() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
@@ -1233,7 +1312,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_default_gap_queries_empty() {
-        let db = Arc::new(sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:")).await.unwrap());
+        let db = Arc::new(
+            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+                .await
+                .unwrap(),
+        );
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);

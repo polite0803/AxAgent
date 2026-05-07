@@ -160,9 +160,7 @@ impl Blackboard {
         let count = expired_keys.len();
         for key in &expired_keys {
             map.remove(key);
-            let event = BlackboardEvent::Expired {
-                key: key.clone(),
-            };
+            let event = BlackboardEvent::Expired { key: key.clone() };
             let _ = self.event_sender.send(event);
         }
         count

@@ -477,7 +477,8 @@ mod tests {
                 .unwrap(),
         );
         let pipeline = Arc::new(IngestPipeline::new(db));
-        let temp_dir = std::env::temp_dir().join(format!("ingest_queue_test_{}", uuid::Uuid::new_v4()));
+        let temp_dir =
+            std::env::temp_dir().join(format!("ingest_queue_test_{}", uuid::Uuid::new_v4()));
         IngestQueue::new(pipeline, temp_dir.to_string_lossy().to_string())
     }
 
@@ -835,14 +836,18 @@ mod tests {
     #[tokio::test]
     async fn test_import_folder_nonexistent() {
         let queue = create_test_queue().await;
-        let result = queue.import_folder("wiki1", "/nonexistent/path/12345").await;
+        let result = queue
+            .import_folder("wiki1", "/nonexistent/path/12345")
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_get_folder_import_preview_nonexistent() {
         let queue = create_test_queue().await;
-        let result = queue.get_folder_import_preview("/nonexistent/path/12345").await;
+        let result = queue
+            .get_folder_import_preview("/nonexistent/path/12345")
+            .await;
         assert!(result.is_err());
     }
 

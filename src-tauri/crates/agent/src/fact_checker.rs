@@ -154,7 +154,10 @@ impl EnhancedRelevanceCalculator {
     fn extract_words(&self, text: &str) -> Vec<String> {
         text.split_whitespace()
             .map(|w| w.to_lowercase())
-            .filter(|w| w.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '\''))
+            .filter(|w| {
+                w.chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '\'')
+            })
             .collect()
     }
 
@@ -187,25 +190,15 @@ impl EnhancedRelevanceCalculator {
         let source_text = format!("{} {}", source.title, source.snippet);
         let source_words = self.extract_words(&source_text);
 
-        let claim_bigrams: HashSet<String> = claim_words
-            .windows(2)
-            .map(|w| w.join(" "))
-            .collect();
+        let claim_bigrams: HashSet<String> = claim_words.windows(2).map(|w| w.join(" ")).collect();
 
-        let source_bigrams: HashSet<String> = source_words
-            .windows(2)
-            .map(|w| w.join(" "))
-            .collect();
+        let source_bigrams: HashSet<String> =
+            source_words.windows(2).map(|w| w.join(" ")).collect();
 
-        let claim_trigrams: HashSet<String> = claim_words
-            .windows(3)
-            .map(|w| w.join(" "))
-            .collect();
+        let claim_trigrams: HashSet<String> = claim_words.windows(3).map(|w| w.join(" ")).collect();
 
-        let source_trigrams: HashSet<String> = source_words
-            .windows(3)
-            .map(|w| w.join(" "))
-            .collect();
+        let source_trigrams: HashSet<String> =
+            source_words.windows(3).map(|w| w.join(" ")).collect();
 
         let bigram_score = if claim_bigrams.is_empty() || source_bigrams.is_empty() {
             0.0
@@ -243,19 +236,17 @@ impl EnhancedRelevanceCalculator {
 
     fn extract_key_terms(&self, text: &str) -> HashSet<String> {
         let stop_words: HashSet<&str> = [
-            "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-            "have", "has", "had", "do", "does", "did", "will", "would", "could",
-            "should", "may", "might", "shall", "can", "need", "dare", "ought",
-            "used", "to", "of", "in", "for", "on", "with", "at", "by", "from",
-            "as", "into", "through", "during", "before", "after", "above", "below",
-            "between", "out", "off", "over", "under", "again", "further", "then",
-            "once", "and", "but", "or", "nor", "not", "so", "yet", "both",
-            "either", "neither", "each", "every", "all", "any", "few", "more",
-            "most", "other", "some", "such", "no", "only", "own", "same", "than",
-            "too", "very", "just", "because", "if", "when", "where", "how",
-            "what", "which", "who", "whom", "this", "that", "these", "those",
-            "it", "its", "he", "she", "they", "them", "his", "her", "their",
-            "we", "us", "our", "you", "your", "i", "me", "my",
+            "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has",
+            "had", "do", "does", "did", "will", "would", "could", "should", "may", "might",
+            "shall", "can", "need", "dare", "ought", "used", "to", "of", "in", "for", "on", "with",
+            "at", "by", "from", "as", "into", "through", "during", "before", "after", "above",
+            "below", "between", "out", "off", "over", "under", "again", "further", "then", "once",
+            "and", "but", "or", "nor", "not", "so", "yet", "both", "either", "neither", "each",
+            "every", "all", "any", "few", "more", "most", "other", "some", "such", "no", "only",
+            "own", "same", "than", "too", "very", "just", "because", "if", "when", "where", "how",
+            "what", "which", "who", "whom", "this", "that", "these", "those", "it", "its", "he",
+            "she", "they", "them", "his", "her", "their", "we", "us", "our", "you", "your", "i",
+            "me", "my",
         ]
         .into_iter()
         .collect();
@@ -291,7 +282,7 @@ impl RelevanceCalculator for EnhancedRelevanceCalculator {
             + ngram * self.ngram_weight
             + key_term * self.key_term_weight
             + length * self.length_weight)
-        .clamp(0.0, 1.0)
+            .clamp(0.0, 1.0)
     }
 }
 
@@ -355,7 +346,7 @@ impl RelevanceCalculator for EmbeddingRelevanceCalculator {
                     let cosine = Self::cosine_similarity(&ce, &se);
                     let text_score = self.fallback.calculate(claim, source);
                     (cosine * self.embedding_weight + text_score * self.text_weight).clamp(0.0, 1.0)
-                }
+                },
                 _ => self.fallback.calculate(claim, source),
             }
         } else {

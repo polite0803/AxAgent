@@ -542,11 +542,7 @@ pub async fn sync_working_memory_to_namespace(
 
     let mut synced = 0;
     for (id, content, mem_type) in &entries {
-        let title = format!(
-            "[working-memory][{}] {}",
-            mem_type,
-            &content[..content.len().min(50)]
-        );
+        let title = format!("[working-memory][{}] {}", mem_type, &content[..content.len().min(50)]);
         let input = CreateMemoryItemInput {
             namespace_id: namespace_id.clone(),
             title,
@@ -632,11 +628,7 @@ pub async fn sync_working_memory_to_namespace(
                 }
 
                 synced += 1;
-                tracing::info!(
-                    "Synced working memory entry {} to namespace {}",
-                    id,
-                    namespace_id
-                );
+                tracing::info!("Synced working memory entry {} to namespace {}", id, namespace_id);
             },
             Err(e) => {
                 tracing::warn!("Failed to sync working memory entry {}: {}", id, e);

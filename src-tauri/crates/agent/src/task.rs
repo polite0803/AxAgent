@@ -437,8 +437,10 @@ mod tests {
     fn test_task_graph_get_ready_tasks() {
         let mut graph = TaskGraph::new();
         graph.add_task(TaskNode::new("t1", "Task 1", TaskType::ToolCall));
-        graph.add_task(TaskNode::new("t2", "Task 2", TaskType::Reasoning)
-            .with_dependencies(vec!["t1".to_string()]));
+        graph.add_task(
+            TaskNode::new("t2", "Task 2", TaskType::Reasoning)
+                .with_dependencies(vec!["t1".to_string()]),
+        );
         let ready = graph.get_ready_tasks();
         assert_eq!(ready.len(), 1);
         assert_eq!(ready[0].id, "t1");
@@ -450,8 +452,10 @@ mod tests {
         let mut t1 = TaskNode::new("t1", "Task 1", TaskType::ToolCall);
         t1.complete(serde_json::json!("done"));
         graph.add_task(t1);
-        graph.add_task(TaskNode::new("t2", "Task 2", TaskType::Reasoning)
-            .with_dependencies(vec!["t1".to_string()]));
+        graph.add_task(
+            TaskNode::new("t2", "Task 2", TaskType::Reasoning)
+                .with_dependencies(vec!["t1".to_string()]),
+        );
         let ready = graph.get_ready_tasks();
         assert_eq!(ready.len(), 1);
         assert_eq!(ready[0].id, "t2");
@@ -509,8 +513,10 @@ mod tests {
     fn test_task_graph_topological_sort_simple() {
         let mut graph = TaskGraph::new();
         graph.add_task(TaskNode::new("t1", "Task 1", TaskType::ToolCall));
-        graph.add_task(TaskNode::new("t2", "Task 2", TaskType::Reasoning)
-            .with_dependencies(vec!["t1".to_string()]));
+        graph.add_task(
+            TaskNode::new("t2", "Task 2", TaskType::Reasoning)
+                .with_dependencies(vec!["t1".to_string()]),
+        );
         let result = graph.topological_sort().unwrap();
         assert_eq!(result.len(), 2);
         assert!(result[0].contains(&"t1".to_string()));
@@ -520,10 +526,14 @@ mod tests {
     #[test]
     fn test_task_graph_topological_sort_circular() {
         let mut graph = TaskGraph::new();
-        graph.add_task(TaskNode::new("t1", "Task 1", TaskType::ToolCall)
-            .with_dependencies(vec!["t2".to_string()]));
-        graph.add_task(TaskNode::new("t2", "Task 2", TaskType::Reasoning)
-            .with_dependencies(vec!["t1".to_string()]));
+        graph.add_task(
+            TaskNode::new("t1", "Task 1", TaskType::ToolCall)
+                .with_dependencies(vec!["t2".to_string()]),
+        );
+        graph.add_task(
+            TaskNode::new("t2", "Task 2", TaskType::Reasoning)
+                .with_dependencies(vec!["t1".to_string()]),
+        );
         let result = graph.topological_sort();
         assert!(matches!(result, Err(TopologicalSortError::CircularDependency(_))));
     }
@@ -534,8 +544,10 @@ mod tests {
         let mut t1 = TaskNode::new("t1", "Task 1", TaskType::ToolCall);
         t1.complete(serde_json::json!("done"));
         graph.add_task(t1);
-        graph.add_task(TaskNode::new("t2", "Task 2", TaskType::Reasoning)
-            .with_dependencies(vec!["t1".to_string()]));
+        graph.add_task(
+            TaskNode::new("t2", "Task 2", TaskType::Reasoning)
+                .with_dependencies(vec!["t1".to_string()]),
+        );
         assert!(graph.dependencies_ready("t2"));
         assert!(!graph.dependencies_ready("nonexistent"));
     }
@@ -581,7 +593,8 @@ mod tests {
 
     #[test]
     fn test_topological_sort_error_display() {
-        let err = TopologicalSortError::CircularDependency(vec!["t1".to_string(), "t2".to_string()]);
+        let err =
+            TopologicalSortError::CircularDependency(vec!["t1".to_string(), "t2".to_string()]);
         let msg = format!("{}", err);
         assert!(msg.contains("Circular dependency"));
     }

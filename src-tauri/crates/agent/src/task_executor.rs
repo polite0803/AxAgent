@@ -419,10 +419,14 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
     ) -> Result<serde_json::Value, TaskExecutorError> {
         match context.task_type {
             crate::task::TaskType::ToolCall => {
-                let tool_name = context.inputs.get("tool_name")
+                let tool_name = context
+                    .inputs
+                    .get("tool_name")
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
-                let tool_input = context.inputs.get("tool_input")
+                let tool_input = context
+                    .inputs
+                    .get("tool_input")
                     .cloned()
                     .unwrap_or(serde_json::json!({}));
 
@@ -439,19 +443,23 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
                     serde_json::json!({ "input": tool_input })
                 };
 
-                match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await {
+                match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await
+                {
                     Ok(result) => Ok(serde_json::json!({
                         "output": result.content,
                         "task_id": context.task_id,
                         "tool_name": tool_name,
                     })),
-                    Err(e) => Err(TaskExecutorError::ExecutionFailed(
-                        format!("Tool '{}' execution failed: {}", tool_name, e),
-                    )),
+                    Err(e) => Err(TaskExecutorError::ExecutionFailed(format!(
+                        "Tool '{}' execution failed: {}",
+                        tool_name, e
+                    ))),
                 }
             },
             crate::task::TaskType::Reasoning => {
-                let prompt = context.inputs.get("prompt")
+                let prompt = context
+                    .inputs
+                    .get("prompt")
                     .and_then(|v| v.as_str())
                     .unwrap_or(&context.description);
 
@@ -462,7 +470,9 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
                 }))
             },
             crate::task::TaskType::Query => {
-                let query = context.inputs.get("query")
+                let query = context
+                    .inputs
+                    .get("query")
                     .and_then(|v| v.as_str())
                     .unwrap_or(&context.description);
 
@@ -473,10 +483,14 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
                 }))
             },
             crate::task::TaskType::Validation => {
-                let target = context.inputs.get("target")
+                let target = context
+                    .inputs
+                    .get("target")
                     .and_then(|v| v.as_str())
                     .unwrap_or(&context.description);
-                let expected = context.inputs.get("expected")
+                let expected = context
+                    .inputs
+                    .get("expected")
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
 
@@ -843,7 +857,10 @@ mod tests {
         };
         let result = executor.execute_task(&context).await.unwrap();
         assert_eq!(result["task_id"], "r1");
-        assert!(result["output"].as_str().unwrap().contains("Reasoning completed"));
+        assert!(result["output"]
+            .as_str()
+            .unwrap()
+            .contains("Reasoning completed"));
     }
 
     #[tokio::test]
@@ -874,7 +891,10 @@ mod tests {
         };
         let result = executor.execute_task(&context).await.unwrap();
         assert_eq!(result["task_id"], "q1");
-        assert!(result["output"].as_str().unwrap().contains("Query executed"));
+        assert!(result["output"]
+            .as_str()
+            .unwrap()
+            .contains("Query executed"));
     }
 
     #[tokio::test]

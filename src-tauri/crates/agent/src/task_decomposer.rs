@@ -496,7 +496,8 @@ mod tests {
         let decomposer = TaskDecomposer::new();
         let mut graph = TaskGraph::new();
         let t1 = TaskNode::new("1", "task 1", TaskType::Query);
-        let t2 = TaskNode::new("2", "task 2", TaskType::Query).with_dependencies(vec!["1".to_string()]);
+        let t2 =
+            TaskNode::new("2", "task 2", TaskType::Query).with_dependencies(vec!["1".to_string()]);
         graph.add_task(t1);
         graph.add_task(t2);
         assert!(decomposer.validate_graph(&graph).is_ok());

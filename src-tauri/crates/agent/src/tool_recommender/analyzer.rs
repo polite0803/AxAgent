@@ -277,7 +277,11 @@ mod tests {
     fn test_analyze_extracts_url_entity() {
         let analyzer = ContextAnalyzer::new();
         let ctx = analyzer.analyze("visit https://example.com for details");
-        let urls: Vec<_> = ctx.entities.iter().filter(|e| e.entity_type == EntityType::Url).collect();
+        let urls: Vec<_> = ctx
+            .entities
+            .iter()
+            .filter(|e| e.entity_type == EntityType::Url)
+            .collect();
         assert!(!urls.is_empty());
         assert!(urls[0].value.contains("example.com"));
         assert!((urls[0].confidence - 0.95).abs() < 0.001);
@@ -287,7 +291,11 @@ mod tests {
     fn test_analyze_extracts_language_entity() {
         let analyzer = ContextAnalyzer::new();
         let ctx = analyzer.analyze("write a python script for data processing");
-        let langs: Vec<_> = ctx.entities.iter().filter(|e| e.entity_type == EntityType::Language).collect();
+        let langs: Vec<_> = ctx
+            .entities
+            .iter()
+            .filter(|e| e.entity_type == EntityType::Language)
+            .collect();
         assert!(!langs.is_empty());
         assert_eq!(langs[0].value, "python");
     }
@@ -296,7 +304,11 @@ mod tests {
     fn test_analyze_extracts_speed_constraint() {
         let analyzer = ContextAnalyzer::new();
         let ctx = analyzer.analyze("search for results fast");
-        let speed_constraints: Vec<_> = ctx.constraints.iter().filter(|c| c.constraint_type == "speed").collect();
+        let speed_constraints: Vec<_> = ctx
+            .constraints
+            .iter()
+            .filter(|c| c.constraint_type == "speed")
+            .collect();
         assert!(!speed_constraints.is_empty());
     }
 
@@ -304,7 +316,11 @@ mod tests {
     fn test_analyze_extracts_accuracy_constraint() {
         let analyzer = ContextAnalyzer::new();
         let ctx = analyzer.analyze("provide accurate measurements");
-        let acc_constraints: Vec<_> = ctx.constraints.iter().filter(|c| c.constraint_type == "accuracy").collect();
+        let acc_constraints: Vec<_> = ctx
+            .constraints
+            .iter()
+            .filter(|c| c.constraint_type == "accuracy")
+            .collect();
         assert!(!acc_constraints.is_empty());
     }
 

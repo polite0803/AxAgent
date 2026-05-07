@@ -3412,7 +3412,9 @@ fn build_agent_system_prompt(
 
     if let Some(lang) = output_language {
         if !lang.is_empty() {
-            let already_present = prompts.iter().any(|p| axagent_core::utils::has_output_language_directive(p));
+            let already_present = prompts
+                .iter()
+                .any(|p| axagent_core::utils::has_output_language_directive(p));
             if !already_present {
                 prompts.push(axagent_core::utils::build_output_language_directive(lang));
             }

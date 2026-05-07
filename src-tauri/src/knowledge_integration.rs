@@ -72,13 +72,19 @@ impl KnowledgeIntegrationEngine {
                                 source_ids: vec![
                                     SourceRef {
                                         container_id: containers[i].id.clone(),
-                                        container_type: format!("{:?}", containers[i].container_type),
+                                        container_type: format!(
+                                            "{:?}",
+                                            containers[i].container_type
+                                        ),
                                         item_id: id_a.clone(),
                                         item_title: title_a.to_string(),
                                     },
                                     SourceRef {
                                         container_id: containers[j].id.clone(),
-                                        container_type: format!("{:?}", containers[j].container_type),
+                                        container_type: format!(
+                                            "{:?}",
+                                            containers[j].container_type
+                                        ),
                                         item_id: id_b.clone(),
                                         item_title: title_b.to_string(),
                                     },

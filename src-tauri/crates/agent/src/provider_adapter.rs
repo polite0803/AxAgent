@@ -557,12 +557,16 @@ mod tests {
         let messages = vec![
             ConversationMessage {
                 role: MessageRole::User,
-                blocks: vec![ContentBlock::Text { text: "First".to_string() }],
+                blocks: vec![ContentBlock::Text {
+                    text: "First".to_string(),
+                }],
                 usage: None,
             },
             ConversationMessage {
                 role: MessageRole::User,
-                blocks: vec![ContentBlock::Text { text: "Second".to_string() }],
+                blocks: vec![ContentBlock::Text {
+                    text: "Second".to_string(),
+                }],
                 usage: None,
             },
         ];

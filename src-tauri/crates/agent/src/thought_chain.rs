@@ -342,10 +342,7 @@ mod tests {
         chain.add_step(step);
 
         chain.update_step_observation("saw something");
-        assert_eq!(
-            chain.latest_step().unwrap().observation.as_deref(),
-            Some("saw something")
-        );
+        assert_eq!(chain.latest_step().unwrap().observation.as_deref(), Some("saw something"));
     }
 
     #[test]

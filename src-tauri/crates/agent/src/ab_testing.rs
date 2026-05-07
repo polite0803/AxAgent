@@ -121,10 +121,7 @@ impl ExperimentRunner {
             .get_mut(id)
             .ok_or_else(|| format!("Experiment '{}' not found", id))?;
         if config.status != ExperimentStatus::Draft && config.status != ExperimentStatus::Paused {
-            return Err(format!(
-                "Cannot start experiment in {:?} status",
-                config.status
-            ));
+            return Err(format!("Cannot start experiment in {:?} status", config.status));
         }
         config.status = ExperimentStatus::Running;
         Ok(())
@@ -136,10 +133,7 @@ impl ExperimentRunner {
             .get_mut(id)
             .ok_or_else(|| format!("Experiment '{}' not found", id))?;
         if config.status != ExperimentStatus::Running {
-            return Err(format!(
-                "Cannot pause experiment in {:?} status",
-                config.status
-            ));
+            return Err(format!("Cannot pause experiment in {:?} status", config.status));
         }
         config.status = ExperimentStatus::Paused;
         Ok(())
@@ -153,10 +147,7 @@ impl ExperimentRunner {
         if config.status == ExperimentStatus::Completed
             || config.status == ExperimentStatus::Cancelled
         {
-            return Err(format!(
-                "Cannot cancel experiment in {:?} status",
-                config.status
-            ));
+            return Err(format!("Cannot cancel experiment in {:?} status", config.status));
         }
         config.status = ExperimentStatus::Cancelled;
         Ok(())
@@ -198,7 +189,11 @@ impl ExperimentRunner {
         let results = trial_results.get(experiment_id);
 
         let control_trials: Vec<&TrialResult> = results
-            .map(|r| r.iter().filter(|t| t.group == ExperimentGroup::Control).collect())
+            .map(|r| {
+                r.iter()
+                    .filter(|t| t.group == ExperimentGroup::Control)
+                    .collect()
+            })
             .unwrap_or_default();
         let treatment_trials: Vec<&TrialResult> = results
             .map(|r| {
@@ -209,7 +204,8 @@ impl ExperimentRunner {
             .unwrap_or_default();
 
         let control_stats = Self::compute_group_stats(ExperimentGroup::Control, &control_trials);
-        let treatment_stats = Self::compute_group_stats(ExperimentGroup::Treatment, &treatment_trials);
+        let treatment_stats =
+            Self::compute_group_stats(ExperimentGroup::Treatment, &treatment_trials);
 
         let metric_comparisons =
             Self::compute_metric_comparisons(&config.metrics, &control_stats, &treatment_stats);
@@ -316,7 +312,8 @@ impl ExperimentRunner {
         metrics
             .iter()
             .map(|metric| {
-                let (control_value, treatment_value) = Self::get_metric_values(metric, control, treatment);
+                let (control_value, treatment_value) =
+                    Self::get_metric_values(metric, control, treatment);
                 let improvement = if control_value.abs() > f32::EPSILON {
                     (treatment_value - control_value) / control_value.abs()
                 } else if treatment_value.abs() > f32::EPSILON {
@@ -348,17 +345,21 @@ impl ExperimentRunner {
         treatment: &GroupStats,
     ) -> (f32, f32) {
         match metric {
-            ExperimentMetric::TaskCompletionRate => (
-                control.task_completion_rate,
-                treatment.task_completion_rate,
-            ),
-            ExperimentMetric::AverageIterations => (control.avg_iterations, treatment.avg_iterations),
-            ExperimentMetric::AverageDuration => (
-                control.avg_duration_ms as f32,
-                treatment.avg_duration_ms as f32,
-            ),
-            ExperimentMetric::ToolEfficiency => (control.tool_efficiency, treatment.tool_efficiency),
-            ExperimentMetric::QualityScore => (control.avg_quality_score, treatment.avg_quality_score),
+            ExperimentMetric::TaskCompletionRate => {
+                (control.task_completion_rate, treatment.task_completion_rate)
+            },
+            ExperimentMetric::AverageIterations => {
+                (control.avg_iterations, treatment.avg_iterations)
+            },
+            ExperimentMetric::AverageDuration => {
+                (control.avg_duration_ms as f32, treatment.avg_duration_ms as f32)
+            },
+            ExperimentMetric::ToolEfficiency => {
+                (control.tool_efficiency, treatment.tool_efficiency)
+            },
+            ExperimentMetric::QualityScore => {
+                (control.avg_quality_score, treatment.avg_quality_score)
+            },
             ExperimentMetric::ErrorRate => (control.error_rate, treatment.error_rate),
             ExperimentMetric::Custom(name) => (
                 control.custom_metrics.get(name).copied().unwrap_or(0.0),
@@ -398,26 +399,26 @@ impl ExperimentRunner {
                 if p_pool <= 0.0 || p_pool >= 1.0 {
                     return false;
                 }
-                let se = (p_pool * (1.0 - p_pool) * (1.0 / control_n as f32 + 1.0 / treatment_n as f32))
-                    .sqrt();
+                let se =
+                    (p_pool * (1.0 - p_pool) * (1.0 / control_n as f32 + 1.0 / treatment_n as f32))
+                        .sqrt();
                 if se < f32::EPSILON {
                     return false;
                 }
                 let z = (p2 - p1) / se;
                 z.abs() > 1.96
-            }
+            },
             _ => {
                 let pooled_se = ((control_value * (1.0 - control_value)).max(0.001)
                     / control_n as f32
-                    + (treatment_value * (1.0 - treatment_value)).max(0.001)
-                        / treatment_n as f32)
+                    + (treatment_value * (1.0 - treatment_value)).max(0.001) / treatment_n as f32)
                     .sqrt();
                 if pooled_se < f32::EPSILON {
                     return false;
                 }
                 let t_stat = (treatment_value - control_value) / pooled_se;
                 t_stat.abs() > 2.0
-            }
+            },
         }
     }
 
@@ -426,23 +427,15 @@ impl ExperimentRunner {
             return None;
         }
 
-        let significant: Vec<&MetricComparison> = comparisons
-            .iter()
-            .filter(|c| c.is_significant)
-            .collect();
+        let significant: Vec<&MetricComparison> =
+            comparisons.iter().filter(|c| c.is_significant).collect();
 
         if significant.is_empty() {
             return None;
         }
 
-        let control_wins = significant
-            .iter()
-            .filter(|c| c.improvement < 0.0)
-            .count();
-        let treatment_wins = significant
-            .iter()
-            .filter(|c| c.improvement > 0.0)
-            .count();
+        let control_wins = significant.iter().filter(|c| c.improvement < 0.0).count();
+        let treatment_wins = significant.iter().filter(|c| c.improvement > 0.0).count();
 
         if treatment_wins > control_wins {
             Some(ExperimentGroup::Treatment)
@@ -487,7 +480,15 @@ mod tests {
         }
     }
 
-    fn trial_result(experiment_id: &str, group: ExperimentGroup, completed: bool, iterations: usize, duration_ms: u64, quality: f32, had_errors: bool) -> TrialResult {
+    fn trial_result(
+        experiment_id: &str,
+        group: ExperimentGroup,
+        completed: bool,
+        iterations: usize,
+        duration_ms: u64,
+        quality: f32,
+        had_errors: bool,
+    ) -> TrialResult {
         TrialResult {
             experiment_id: experiment_id.to_string(),
             group,
@@ -525,7 +526,10 @@ mod tests {
     #[tokio::test]
     async fn test_start_experiment_from_draft() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-start")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-start"))
+            .await
+            .unwrap();
         assert!(runner.start_experiment("exp-start").await.is_ok());
         let exp = runner.get_experiment("exp-start").await.unwrap();
         assert_eq!(exp.status, ExperimentStatus::Running);
@@ -534,7 +538,10 @@ mod tests {
     #[tokio::test]
     async fn test_start_experiment_from_paused() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-resume")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-resume"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-resume").await.unwrap();
         runner.pause_experiment("exp-resume").await.unwrap();
         assert!(runner.start_experiment("exp-resume").await.is_ok());
@@ -545,7 +552,10 @@ mod tests {
     #[tokio::test]
     async fn test_start_experiment_invalid_state() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-bad-start")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-bad-start"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-bad-start").await.unwrap();
         let result = runner.start_experiment("exp-bad-start").await;
         assert!(result.is_err());
@@ -555,7 +565,10 @@ mod tests {
     #[tokio::test]
     async fn test_pause_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-pause")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-pause"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-pause").await.unwrap();
         assert!(runner.pause_experiment("exp-pause").await.is_ok());
         let exp = runner.get_experiment("exp-pause").await.unwrap();
@@ -565,7 +578,10 @@ mod tests {
     #[tokio::test]
     async fn test_pause_non_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-pause-bad")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-pause-bad"))
+            .await
+            .unwrap();
         let result = runner.pause_experiment("exp-pause-bad").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Cannot pause"));
@@ -574,7 +590,10 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-cancel")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-cancel"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-cancel").await.unwrap();
         assert!(runner.cancel_experiment("exp-cancel").await.is_ok());
         let exp = runner.get_experiment("exp-cancel").await.unwrap();
@@ -584,7 +603,10 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_completed_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-cancel-done")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-cancel-done"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-cancel-done").await.unwrap();
         let mut exp = runner.get_experiment("exp-cancel-done").await.unwrap();
         exp.status = ExperimentStatus::Completed;
@@ -600,7 +622,10 @@ mod tests {
     #[tokio::test]
     async fn test_record_trial_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-trial")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-trial"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-trial").await.unwrap();
         let trial = trial_result("exp-trial", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
         assert!(runner.record_trial(trial).await.is_ok());
@@ -609,8 +634,12 @@ mod tests {
     #[tokio::test]
     async fn test_record_trial_non_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-trial-bad")).await.unwrap();
-        let trial = trial_result("exp-trial-bad", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
+        runner
+            .create_experiment(test_config("exp-trial-bad"))
+            .await
+            .unwrap();
+        let trial =
+            trial_result("exp-trial-bad", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
         let result = runner.record_trial(trial).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Cannot record trial"));
@@ -619,7 +648,8 @@ mod tests {
     #[tokio::test]
     async fn test_record_trial_nonexistent_experiment() {
         let runner = ExperimentRunner::new();
-        let trial = trial_result("no-such-exp", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
+        let trial =
+            trial_result("no-such-exp", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
         let result = runner.record_trial(trial).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("not found"));
@@ -628,7 +658,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_results_no_trials() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-empty")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-empty"))
+            .await
+            .unwrap();
         let result = runner.get_results("exp-empty").await;
         assert!(result.is_ok());
         let res = result.unwrap().unwrap();
@@ -640,13 +673,38 @@ mod tests {
     #[tokio::test]
     async fn test_get_results_with_trials() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-results")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-results"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-results").await.unwrap();
         for _ in 0..15 {
-            runner.record_trial(trial_result("exp-results", ExperimentGroup::Control, true, 5, 1000, 0.8, false)).await.unwrap();
+            runner
+                .record_trial(trial_result(
+                    "exp-results",
+                    ExperimentGroup::Control,
+                    true,
+                    5,
+                    1000,
+                    0.8,
+                    false,
+                ))
+                .await
+                .unwrap();
         }
         for _ in 0..15 {
-            runner.record_trial(trial_result("exp-results", ExperimentGroup::Treatment, true, 3, 800, 0.95, false)).await.unwrap();
+            runner
+                .record_trial(trial_result(
+                    "exp-results",
+                    ExperimentGroup::Treatment,
+                    true,
+                    3,
+                    800,
+                    0.95,
+                    false,
+                ))
+                .await
+                .unwrap();
         }
         let result = runner.get_results("exp-results").await.unwrap().unwrap();
         assert_eq!(result.control_stats.sample_count, 15);
@@ -664,8 +722,14 @@ mod tests {
     #[tokio::test]
     async fn test_list_experiments() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-a")).await.unwrap();
-        runner.create_experiment(test_config("exp-b")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-a"))
+            .await
+            .unwrap();
+        runner
+            .create_experiment(test_config("exp-b"))
+            .await
+            .unwrap();
         let list = runner.list_experiments().await;
         assert_eq!(list.len(), 2);
     }
@@ -693,7 +757,11 @@ mod tests {
     #[tokio::test]
     async fn test_is_statistically_significant_insufficient_samples() {
         assert!(!ExperimentRunner::is_statistically_significant(
-            &ExperimentMetric::TaskCompletionRate, 0.5, 0.7, 5, 5,
+            &ExperimentMetric::TaskCompletionRate,
+            0.5,
+            0.7,
+            5,
+            5,
         ));
     }
 
@@ -711,7 +779,10 @@ mod tests {
             improvement: 0.6,
             is_significant: true,
         }];
-        assert_eq!(ExperimentRunner::determine_winner(&comparisons), Some(ExperimentGroup::Treatment));
+        assert_eq!(
+            ExperimentRunner::determine_winner(&comparisons),
+            Some(ExperimentGroup::Treatment)
+        );
     }
 
     #[tokio::test]
@@ -723,7 +794,10 @@ mod tests {
             improvement: -0.375,
             is_significant: true,
         }];
-        assert_eq!(ExperimentRunner::determine_winner(&comparisons), Some(ExperimentGroup::Control));
+        assert_eq!(
+            ExperimentRunner::determine_winner(&comparisons),
+            Some(ExperimentGroup::Control)
+        );
     }
 
     #[tokio::test]
@@ -765,22 +839,43 @@ mod tests {
     #[tokio::test]
     async fn test_experiment_status_transitions() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-flow")).await.unwrap();
-        assert_eq!(runner.get_experiment("exp-flow").await.unwrap().status, ExperimentStatus::Draft);
+        runner
+            .create_experiment(test_config("exp-flow"))
+            .await
+            .unwrap();
+        assert_eq!(
+            runner.get_experiment("exp-flow").await.unwrap().status,
+            ExperimentStatus::Draft
+        );
         runner.start_experiment("exp-flow").await.unwrap();
-        assert_eq!(runner.get_experiment("exp-flow").await.unwrap().status, ExperimentStatus::Running);
+        assert_eq!(
+            runner.get_experiment("exp-flow").await.unwrap().status,
+            ExperimentStatus::Running
+        );
         runner.pause_experiment("exp-flow").await.unwrap();
-        assert_eq!(runner.get_experiment("exp-flow").await.unwrap().status, ExperimentStatus::Paused);
+        assert_eq!(
+            runner.get_experiment("exp-flow").await.unwrap().status,
+            ExperimentStatus::Paused
+        );
         runner.start_experiment("exp-flow").await.unwrap();
-        assert_eq!(runner.get_experiment("exp-flow").await.unwrap().status, ExperimentStatus::Running);
+        assert_eq!(
+            runner.get_experiment("exp-flow").await.unwrap().status,
+            ExperimentStatus::Running
+        );
         runner.cancel_experiment("exp-flow").await.unwrap();
-        assert_eq!(runner.get_experiment("exp-flow").await.unwrap().status, ExperimentStatus::Cancelled);
+        assert_eq!(
+            runner.get_experiment("exp-flow").await.unwrap().status,
+            ExperimentStatus::Cancelled
+        );
     }
 
     #[tokio::test]
     async fn test_custom_metrics_in_trial() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-custom")).await.unwrap();
+        runner
+            .create_experiment(test_config("exp-custom"))
+            .await
+            .unwrap();
         runner.start_experiment("exp-custom").await.unwrap();
         let mut custom = HashMap::new();
         custom.insert("latency_p99".to_string(), 250.0_f32);

@@ -348,7 +348,8 @@ mod tests {
     #[test]
     fn test_training_job_new() {
         let config = LoRAConfig::default();
-        let job = TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
+        let job =
+            TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
         assert_eq!(job.id, "job1");
         assert_eq!(job.status, JobStatus::Pending);
         assert_eq!(job.dataset_id, "ds1");
@@ -359,7 +360,8 @@ mod tests {
     #[test]
     fn test_training_job_start() {
         let config = LoRAConfig::default();
-        let mut job = TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
+        let mut job =
+            TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
         job.start();
         assert_eq!(job.status, JobStatus::Training);
     }
@@ -367,7 +369,8 @@ mod tests {
     #[test]
     fn test_training_job_complete() {
         let config = LoRAConfig::default();
-        let mut job = TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
+        let mut job =
+            TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
         job.complete("/output/lora".to_string());
         assert_eq!(job.status, JobStatus::Completed);
         assert_eq!(job.output_lora, Some("/output/lora".to_string()));
@@ -376,7 +379,8 @@ mod tests {
     #[test]
     fn test_training_job_fail() {
         let config = LoRAConfig::default();
-        let mut job = TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
+        let mut job =
+            TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
         job.fail();
         assert_eq!(job.status, JobStatus::Failed);
     }
@@ -384,7 +388,8 @@ mod tests {
     #[test]
     fn test_training_job_cancel() {
         let config = LoRAConfig::default();
-        let mut job = TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
+        let mut job =
+            TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
         job.cancel();
         assert_eq!(job.status, JobStatus::Cancelled);
     }
@@ -392,7 +397,8 @@ mod tests {
     #[test]
     fn test_training_job_is_running() {
         let config = LoRAConfig::default();
-        let mut job = TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
+        let mut job =
+            TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
         assert!(!job.is_running());
         job.start();
         assert!(job.is_running());
@@ -412,7 +418,8 @@ mod tests {
     #[test]
     fn test_lora_adapter_info_from_training_job() {
         let config = LoRAConfig::default();
-        let job = TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
+        let job =
+            TrainingJob::new("job1".to_string(), "ds1".to_string(), "model1".to_string(), config);
         let info = LoRAAdapterInfo::from_training_job(&job, "/path/lora".to_string());
         assert_eq!(info.base_model, "model1");
         assert_eq!(info.lora_path, "/path/lora");

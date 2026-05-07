@@ -117,7 +117,10 @@ mod tests {
     fn test_verification_result_failed() {
         let result = VerificationResult {
             passed: false,
-            issues: vec!["missing error handling".to_string(), "unused import".to_string()],
+            issues: vec![
+                "missing error handling".to_string(),
+                "unused import".to_string(),
+            ],
             suggestions: Vec::new(),
             summary: "verification failed".to_string(),
         };

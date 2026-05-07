@@ -187,7 +187,9 @@ mod tests {
     #[tokio::test]
     async fn test_interrupt_manager_request_soft() {
         let manager = InterruptManager::new(false);
-        manager.request(InterruptLevel::Soft, Some("test".to_string())).await;
+        manager
+            .request(InterruptLevel::Soft, Some("test".to_string()))
+            .await;
         assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Soft));
         let req = manager.check().await.unwrap();
         assert_eq!(req.level, InterruptLevel::Soft);

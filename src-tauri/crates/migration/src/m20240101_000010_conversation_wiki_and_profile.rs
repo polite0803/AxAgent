@@ -16,11 +16,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("[]"),
                     )
-                    .add_column(
-                        ColumnDef::new(Conversations::AgentProfileId)
-                            .text()
-                            .null(),
-                    )
+                    .add_column(ColumnDef::new(Conversations::AgentProfileId).text().null())
                     .to_owned(),
             )
             .await

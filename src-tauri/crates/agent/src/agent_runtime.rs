@@ -310,7 +310,10 @@ mod tests {
             tool_use_id: "id-1".to_string(),
         };
         match &event {
-            AgentEvent::ToolUse { tool_name, tool_use_id } => {
+            AgentEvent::ToolUse {
+                tool_name,
+                tool_use_id,
+            } => {
                 assert_eq!(tool_name, "read_file");
                 assert_eq!(tool_use_id, "id-1");
             },
@@ -325,7 +328,10 @@ mod tests {
             is_error: false,
         };
         match &event {
-            AgentEvent::ToolResult { tool_use_id, is_error } => {
+            AgentEvent::ToolResult {
+                tool_use_id,
+                is_error,
+            } => {
                 assert_eq!(tool_use_id, "id-1");
                 assert!(!is_error);
             },

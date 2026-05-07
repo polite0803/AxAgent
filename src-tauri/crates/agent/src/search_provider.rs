@@ -606,9 +606,24 @@ mod tests {
     fn test_relevance_scorer_score_and_sort() {
         let scorer = RelevanceScorer::new("rust");
         let results = vec![
-            SearchResult::new(SourceType::Web, "https://a.com".to_string(), "Java Guide".to_string(), "Java stuff".to_string()),
-            SearchResult::new(SourceType::Web, "https://b.com".to_string(), "Rust Guide".to_string(), "Rust stuff".to_string()),
-            SearchResult::new(SourceType::Web, "https://c.com".to_string(), "Python Guide".to_string(), "Python stuff".to_string()),
+            SearchResult::new(
+                SourceType::Web,
+                "https://a.com".to_string(),
+                "Java Guide".to_string(),
+                "Java stuff".to_string(),
+            ),
+            SearchResult::new(
+                SourceType::Web,
+                "https://b.com".to_string(),
+                "Rust Guide".to_string(),
+                "Rust stuff".to_string(),
+            ),
+            SearchResult::new(
+                SourceType::Web,
+                "https://c.com".to_string(),
+                "Python Guide".to_string(),
+                "Python stuff".to_string(),
+            ),
         ];
         let sorted = scorer.score_and_sort(results);
         assert_eq!(sorted[0].title, "Rust Guide");
@@ -632,8 +647,18 @@ mod tests {
     fn test_search_result_processor_process_batch() {
         let scorer = RelevanceScorer::new("rust");
         let results = vec![
-            SearchResult::new(SourceType::Web, "https://a.com".to_string(), "Rust A".to_string(), "rust".to_string()),
-            SearchResult::new(SourceType::Web, "https://b.com".to_string(), "Java B".to_string(), "java".to_string()),
+            SearchResult::new(
+                SourceType::Web,
+                "https://a.com".to_string(),
+                "Rust A".to_string(),
+                "rust".to_string(),
+            ),
+            SearchResult::new(
+                SourceType::Web,
+                "https://b.com".to_string(),
+                "Java B".to_string(),
+                "java".to_string(),
+            ),
         ];
         let processed = scorer.process_batch(results);
         assert_eq!(processed.len(), 2);
@@ -660,7 +685,10 @@ mod tests {
             name: "Test",
             rate: None,
         };
-        let content = provider.extract_content("https://example.com").await.unwrap();
+        let content = provider
+            .extract_content("https://example.com")
+            .await
+            .unwrap();
         assert_eq!(content.url, "https://example.com");
     }
 
