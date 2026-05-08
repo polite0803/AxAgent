@@ -37,24 +37,16 @@ export interface SkillManifest {
 // ── 权限声明（加载时强制执行的白名单） ─────────────────────────────
 
 export interface SkillPermissions {
-  /** 允许调用的 Tauri 命令列表 */
   commands?: string[];
-  /** 允许发送的事件列表，支持通配符 "app:*" */
   events?: string[];
-  /** 允许读取的 Zustand Store 名称列表 */
   storeRead?: string[];
-  /** 允许写入的 Zustand Store 名称列表 */
   storeWrite?: string[];
-  /** 允许导航到的路由路径列表，支持通配符 "/skills/*" */
   navigate?: string[];
-  /** 允许的网络请求域名列表 */
   network?: string[];
-  /** 文件系统访问权限 */
   filesystem?: {
     read?: string[];
     write?: string[];
   };
-  /** 允许使用的工具名称列表 */
   tools?: string[];
 }
 
@@ -323,10 +315,8 @@ export interface SkillHostUi {
 
 /** ctx.store — 状态读写 */
 export interface SkillHostStore {
-  /** 读取 Zustand Store 的某个字段 */
   read<T = unknown>(storeName: string, selector?: string): Promise<T>;
-  /** 写入 Zustand Store */
-  write(storeName: string, value: unknown): Promise<void>;
+  write(storeName: string, value: unknown, selector?: string): Promise<void>;
 }
 
 /** Skill 沙箱内可用的全局 ctx 对象 */

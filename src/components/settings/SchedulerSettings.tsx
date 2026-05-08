@@ -660,16 +660,16 @@ export function SchedulerSettings() {
         extra={
           <div className="flex items-center gap-2">
             <Button size="small" icon={<RefreshCw size={14} />} onClick={handleRefreshAll}>
-              刷新
+              {t("scheduler.refresh", "刷新")}
             </Button>
             <Button size="small" icon={<Zap size={14} />} onClick={() => handleQuickCreate("daily_summary")}>
-              日报
+              {t("scheduler.dailyReport", "日报")}
             </Button>
             <Button size="small" icon={<Calendar size={14} />} onClick={() => handleQuickCreate("backup")}>
-              备份
+              {t("scheduler.backup", "备份")}
             </Button>
             <Button size="small" icon={<Rocket size={14} />} onClick={() => handleQuickCreate("cleanup")}>
-              清理
+              {t("scheduler.cleanup", "清理")}
             </Button>
             <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateModal}>
               {t("settings.scheduler.addTask")}
@@ -707,7 +707,7 @@ export function SchedulerSettings() {
                       icon={executing[task.id] ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
                       onClick={() => handleExecuteNow(task.id)}
                       loading={executing[task.id]}
-                      title="立即执行"
+                      title={t("scheduler.executeNow", "立即执行")}
                     />
                     {task.status === "active"
                       ? (
@@ -733,7 +733,7 @@ export function SchedulerSettings() {
                       size="small"
                       icon={<History size={14} />}
                       onClick={() => handleLoadHistory(task.id)}
-                      title="执行历史"
+                      title={t("scheduler.executionHistory", "执行历史")}
                     />
                     <Button
                       type="text"
@@ -774,9 +774,9 @@ export function SchedulerSettings() {
                 {/* 执行历史 */}
                 {expandedHistory[task.id] && (
                   <div style={{ marginTop: 8, marginBottom: 8 }}>
-                    <Text type="secondary" style={{ fontSize: 11 }}>执行历史</Text>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{t("scheduler.historyTitle", "执行历史")}</Text>
                     {historyMap[task.id]?.length === 0
-                      ? <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>暂无记录</div>
+                      ? <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>{t("scheduler.noRecords", "暂无记录")}</div>
                       : (
                         <div style={{ maxHeight: 200, overflowY: "auto", marginTop: 4 }}>
                           {(historyMap[task.id] || []).slice(0, 20).map((rec) => (
@@ -793,7 +793,7 @@ export function SchedulerSettings() {
                               }}
                             >
                               <Tag color={rec.success ? "green" : "red"} style={{ fontSize: 10, margin: 0 }}>
-                                {rec.success ? "成功" : "失败"}
+                                {rec.success ? t("scheduler.success", "成功") : t("scheduler.failed", "失败")}
                               </Tag>
                               <span
                                 style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}

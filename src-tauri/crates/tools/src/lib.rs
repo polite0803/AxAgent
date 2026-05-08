@@ -11,8 +11,10 @@ pub mod hooks;
 pub mod mcp;
 pub mod orchestration;
 pub mod permissions;
+pub mod plugin_sdk;
 pub mod recorder;
 pub mod registry;
+pub mod sandbox;
 pub mod stats;
 pub mod streaming;
 pub mod tools;
@@ -22,7 +24,12 @@ pub use builtin_tools::{
     get_handler as get_builtin_handler, register_builtin_handler, BoxedToolHandler,
     FlatBuiltinTool,
 };
+pub use plugin_sdk::{
+    AxAgentPlugin, PluginBuilder, PluginCategory, PluginContext, PluginManifest, PluginPermission,
+    PluginToolDef, PluginToolResult,
+};
 pub use recorder::ToolExecutionRecorder;
+pub use sandbox::{SecuritySandbox, SandboxConfig, SandboxPlatform, SandboxViolation, SandboxViolationType};
 pub use stats::{StatCategory, ToolMetadata, ToolUsageStats};
 
 use async_trait::async_trait;

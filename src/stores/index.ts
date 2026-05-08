@@ -14,6 +14,7 @@ export { useMessageStore } from "./domain/messageStore";
 export { useMultiModelStore } from "./domain/multiModelStore";
 export { usePreferenceStore } from "./domain/preferenceStore";
 export { useStreamStore } from "./domain/streamStore";
+export { syncAllStoresToDomain, useAgentDomainStore } from "./domain/agentDomainStore";
 export { useAgentProfileStore } from "./feature/agentProfileStore";
 export { setupAgentEventListeners, useAgentStore } from "./feature/agentStore";
 export { useAppConfigStore } from "./feature/appConfigStore";

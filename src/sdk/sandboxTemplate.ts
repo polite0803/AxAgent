@@ -131,6 +131,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
 
   // ── 注册的 RPC 方法（供宿主通过 callSkillMethod 调用） ──
   var registeredMethods = {};
+  var themeChangeCallbacks = [];
 
   // ── RPC 基础设施 ──
 
@@ -219,6 +220,11 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
       },
       getLocale: function() {
         return callHost("ui.getLocale");
+      },
+      onThemeChange: function(callback) {
+        if (typeof callback === "function") {
+          themeChangeCallbacks.push(callback);
+        }
       }
     }),
 
@@ -226,8 +232,8 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
       read: function(storeName, selector) {
         return callHost("store.read", { storeName: storeName, selector: selector });
       },
-      write: function(storeName, value) {
-        return callHost("store.write", { storeName: storeName, value: value });
+      write: function(storeName, value, selector) {
+        return callHost("store.write", { storeName: storeName, value: value, selector: selector });
       }
     })
   });
@@ -250,6 +256,12 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
       case "host:event":
         if (window.dispatchEvent) {
           window.dispatchEvent(new CustomEvent("ax:" + msg.event, { detail: msg.payload }));
+        }
+        if (msg.event === "theme-change" && msg.payload && msg.payload.theme) {
+          document.documentElement.setAttribute("data-theme", msg.payload.theme);
+          for (var ti = 0; ti < themeChangeCallbacks.length; ti++) {
+            try { themeChangeCallbacks[ti](msg.payload.theme); } catch(e) {}
+          }
         }
         break;
 
@@ -312,7 +324,12 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
     window.parent.postMessage({ type: "skill:ready" }, "*");
   } catch(e) {}
 
-  // ── 调用 onSkillInit ──
+  callHost("ui.getTheme").then(function(theme) {
+    if (theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  });
+
   if (typeof window.onSkillInit === "function") {
     try {
       window.onSkillInit(window.ctx);

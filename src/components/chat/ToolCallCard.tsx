@@ -3,6 +3,7 @@ import { ThoughtChain, type ThoughtChainItemType } from "@ant-design/x";
 import { Alert, Tag, theme, Typography } from "antd";
 import { FileEdit, Search, Terminal, Wrench } from "lucide-react";
 import { useMemo } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { extractFileChanges, FileChangeList } from "./DiffViewer";
 
@@ -50,7 +51,7 @@ function getInputSummary(input: Record<string, unknown>): string {
   }
 }
 
-export function ToolCallCard({ toolCalls }: ToolCallChainProps) {
+export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: ToolCallChainProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
@@ -210,8 +211,26 @@ export function ToolCallCard({ toolCalls }: ToolCallChainProps) {
           />
         </>
       )}
-      {/* 文件变更 diff 视图 */}
       <FileChangeList changes={fileChanges} />
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  const prev = prevProps.toolCalls;
+  const next = nextProps.toolCalls;
+  if (prev.length !== next.length) { return false; }
+  for (let i = 0; i < prev.length; i++) {
+    const a = prev[i];
+    const b = next[i];
+    if (
+      a.toolUseId !== b.toolUseId
+      || a.toolName !== b.toolName
+      || a.executionStatus !== b.executionStatus
+      || a.approvalStatus !== b.approvalStatus
+      || a.output !== b.output
+      || a.isError !== b.isError
+    ) {
+      return false;
+    }
+  }
+  return true;
+});

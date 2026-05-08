@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
-import type { Skill, SkillCapability, SkillCommandAction, SkillHandler } from "@/types";
+import type { DeclarativeActionType, Skill, SkillCapability, SkillCommandAction, SkillHandler, SkillToolbarCapability } from "@/types";
 import { create } from "zustand";
 
 export interface MergedNavItem {
@@ -113,6 +113,29 @@ interface SkillExtensionState {
   refreshSkill: (skillName: string) => Promise<void>;
 }
 
+function namespaceId(skillName: string, id: string): string {
+  return `${skillName}::${id}`;
+}
+
+function rewriteDeclarativeAction(action: DeclarativeActionType, skillName: string): DeclarativeActionType {
+  if (action.type === "handler") {
+    return { ...action, name: `${skillName}::${action.name}` };
+  }
+  if (action.type === "chain") {
+    return { ...action, actions: action.actions.map((a) => rewriteDeclarativeAction(a, skillName)) };
+  }
+  return action;
+}
+
+function rewriteHandlerActions(actions: SkillCommandAction[], skillName: string): SkillCommandAction[] {
+  return actions.map((action) => {
+    if (action.mode === "declarative") {
+      return { ...action, action: rewriteDeclarativeAction(action.action, skillName) };
+    }
+    return action;
+  });
+}
+
 function mergeExtensions(skills: Skill[]) {
   const navItems: MergedNavItem[] = [];
   const pages: MergedPage[] = [];
@@ -123,25 +146,54 @@ function mergeExtensions(skills: Skill[]) {
   const chatCommands: MergedChatCommand[] = [];
   const statusBarItems: MergedStatusBarItem[] = [];
   const handlers: Record<string, SkillHandler> = {};
-  // ID 去重追踪
   const seenIds = new Map<string, Set<string>>();
+  const toolbarPositionMap = new Map<string, Set<string>>();
+  const pageRouteMap = new Map<string, Set<string>>();
 
   function checkDuplicate(type: string, id: string, skillName: string): boolean {
+    const namespacedId = namespaceId(skillName, id);
     if (!seenIds.has(type)) { seenIds.set(type, new Set()); }
     const ids = seenIds.get(type)!;
-    if (ids.has(id)) {
-      console.warn(`[SkillExtension] 重复的 ${type} ID "${id}"，技能 "${skillName}" 的 capability 已被跳过`);
+    if (ids.has(namespacedId)) {
+      console.warn(`[SkillExtension] 重复的 ${type} ID "${id}"（命名空间: ${namespacedId}），技能 "${skillName}" 的 capability 已被跳过`);
       return true;
     }
-    ids.add(id);
+    ids.add(namespacedId);
     return false;
+  }
+
+  function checkToolbarPositionConflict(position: string, skillName: string): void {
+    if (!toolbarPositionMap.has(position)) {
+      toolbarPositionMap.set(position, new Set());
+    }
+    const skillsAtPosition = toolbarPositionMap.get(position)!;
+    if (skillsAtPosition.size > 0 && !skillsAtPosition.has(skillName)) {
+      const existingSkills = [...skillsAtPosition].join(", ");
+      console.warn(
+        `[SkillExtension] Toolbar position "${position}" 冲突：技能 "${skillName}" 与已有技能 [${existingSkills}] 注册了相同 position 的按钮`,
+      );
+    }
+    skillsAtPosition.add(skillName);
+  }
+
+  function checkPageRouteConflict(routeId: string, skillName: string): void {
+    if (!pageRouteMap.has(routeId)) {
+      pageRouteMap.set(routeId, new Set());
+    }
+    const skillsAtRoute = pageRouteMap.get(routeId)!;
+    if (skillsAtRoute.size > 0 && !skillsAtRoute.has(skillName)) {
+      const existingSkills = [...skillsAtRoute].join(", ");
+      console.warn(
+        `[SkillExtension] Page route "${routeId}" 冲突：技能 "${skillName}" 与已有技能 [${existingSkills}] 注册了相同 route 的页面`,
+      );
+    }
+    skillsAtRoute.add(skillName);
   }
 
   for (const skill of skills) {
     const capabilities = skill.manifest?.capabilities;
     if (!capabilities || capabilities.length === 0) { continue; }
 
-    // 权限前置校验
     const perms = skill.manifest?.permissions;
     const required = extractRequiredCommands(capabilities);
     const permResult = validateSkillPermissions(perms, required);
@@ -154,7 +206,17 @@ function mergeExtensions(skills: Skill[]) {
     }
 
     for (const cap of capabilities) {
-      if (!checkDuplicate((cap as { type: string }).type, (cap as { id: string }).id, skill.name)) {
+      const capType = (cap as { type: string }).type;
+      const capId = (cap as { id: string }).id;
+
+      if (capType === "toolbar") {
+        checkToolbarPositionConflict((cap as SkillToolbarCapability).position, skill.name);
+      }
+      if (capType === "page") {
+        checkPageRouteConflict(capId, skill.name);
+      }
+
+      if (!checkDuplicate(capType, capId, skill.name)) {
         mergeCapability(cap, skill, {
           navItems,
           pages,
@@ -202,7 +264,7 @@ function mergeCapability(
   switch (cap.type) {
     case "page":
       target.pages.push({
-        id: cap.id,
+        id: namespaceId(skill.name, cap.id),
         title: cap.title,
         componentType: cap.componentType,
         componentConfig: cap.componentConfig as Record<string, unknown>,
@@ -214,7 +276,7 @@ function mergeCapability(
       break;
     case "panel":
       target.panels.push({
-        id: cap.id,
+        id: namespaceId(skill.name, cap.id),
         title: cap.title,
         componentType: cap.componentType,
         componentConfig: cap.componentConfig as Record<string, unknown>,
@@ -228,51 +290,62 @@ function mergeCapability(
       break;
     case "navigation":
       target.navItems.push({
-        id: cap.id,
+        id: namespaceId(skill.name, cap.id),
         label: cap.title,
         icon: cap.icon,
-        pageId: cap.pageId,
+        pageId: namespaceId(skill.name, cap.pageId),
         position: cap.position ?? 0,
         skillName: skill.name,
       });
       break;
     case "toolbar":
       target.toolbarButtons.push({
-        id: cap.id,
+        id: namespaceId(skill.name, cap.id),
         icon: cap.icon,
         tooltip: cap.tooltip || cap.title || "",
         position: cap.position,
         priority: cap.priority ?? 10,
-        onClick: cap.onClick,
-        menu: cap.menu,
+        onClick: rewriteHandlerActions(cap.onClick, skill.name),
+        menu: cap.menu?.map((m) => ({
+          ...m,
+          actions: rewriteHandlerActions(m.actions, skill.name),
+        })),
         skillName: skill.name,
       });
       break;
-    case "chatCommand":
+    case "chatCommand": {
+      const rewrittenActions = rewriteHandlerActions(cap.actions || [], skill.name);
+      const handlerKey = namespaceId(skill.name, cap.commandName);
       target.chatCommands.push({
         name: cap.commandName,
         description: cap.description,
         icon: cap.icon,
         mode: cap.mode,
-        actions: cap.actions,
+        actions: rewrittenActions,
         skillName: skill.name,
       });
+      target.handlers[handlerKey] = {
+        mode: cap.mode,
+        description: cap.description,
+        actions: rewrittenActions,
+      };
       break;
+    }
     case "statusBar":
       target.statusBarItems.push({
-        id: cap.id,
+        id: namespaceId(skill.name, cap.id),
         alignment: cap.alignment,
         priority: cap.priority ?? 10,
         text: cap.text,
         icon: cap.icon,
         dynamicText: cap.dynamicText,
-        onClick: cap.onClick,
+        onClick: cap.onClick ? rewriteHandlerActions(cap.onClick, skill.name) : undefined,
         skillName: skill.name,
       });
       break;
     case "settings":
       target.settingsSections.push({
-        id: cap.id,
+        id: namespaceId(skill.name, cap.id),
         title: cap.title,
         icon: cap.icon,
         settingsGroup: cap.settingsGroup,

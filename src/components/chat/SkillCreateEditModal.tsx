@@ -19,7 +19,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({ open, onClos
       const values = await form.validateFields();
       setLoading(true);
       const result = await createSkill(values.name, values.description || "", values.content);
-      message.success(result);
+      message.success(result.message);
       form.resetFields();
       onClose();
     } catch (e: unknown) {

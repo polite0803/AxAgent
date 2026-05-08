@@ -1,5 +1,6 @@
 import { useSettingsStore } from "@/stores";
 import { Divider, InputNumber, Select, Slider, Switch } from "antd";
+import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
 /** 类型安全地获取/设置扩展配置项（尚未加入 AppSettings 类型） */
@@ -18,24 +19,25 @@ function useExtSetting<T>(key: string, defaultVal: T): [T, (v: T) => void] {
 // ---------------------------------------------------------------------------
 
 function BashValidationSection() {
+  const { t } = useTranslation();
   const [dangerous, setDangerous] = useExtSetting("bash_validate_dangerous", true);
   const [network, setNetwork] = useExtSetting("bash_validate_network", true);
   const [timeout, setTimeout_] = useExtSetting("bash_timeout_secs", 120);
 
   return (
-    <SettingsGroup title="Bash 命令安全验证">
+    <SettingsGroup title={t("advanced.bashSecurity", "Bash 命令安全验证")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>启用危险命令检测</span>
+        <span>{t("advanced.dangerousCmdDetect", "启用危险命令检测")}</span>
         <Switch checked={dangerous} onChange={setDangerous} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>启用网络命令检测</span>
+        <span>{t("advanced.networkCmdDetect", "启用网络命令检测")}</span>
         <Switch checked={network} onChange={setNetwork} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>命令超时（秒）</span>
+        <span>{t("advanced.cmdTimeout", "命令超时（秒）")}</span>
         <InputNumber min={5} max={600} value={timeout} onChange={(v) => v && setTimeout_(v)} style={{ width: 80 }} />
       </div>
     </SettingsGroup>
@@ -47,21 +49,22 @@ function BashValidationSection() {
 // ---------------------------------------------------------------------------
 
 function PermissionEnforcerSection() {
+  const { t } = useTranslation();
   const [permMode, setPermMode] = useExtSetting("permission_mode", "default");
   const [writeConfirm, setWriteConfirm] = useExtSetting("permission_write_confirm", true);
   const [netConfirm, setNetConfirm] = useExtSetting("permission_network_confirm", true);
   const [shellConfirm, setShellConfirm] = useExtSetting("permission_shell_confirm", true);
 
   return (
-    <SettingsGroup title="权限执行策略">
+    <SettingsGroup title={t("advanced.permissionStrategy", "权限执行策略")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>默认权限模式</span>
+        <span>{t("advanced.defaultPermission", "默认权限模式")}</span>
         <Select
           value={permMode}
           options={[
-            { value: "default", label: "默认（每次询问）" },
-            { value: "accept_edits", label: "接受编辑" },
-            { value: "full_access", label: "完全访问" },
+            { value: "default", label: t("advanced.perm.default", "默认（每次询问）") },
+            { value: "accept_edits", label: t("advanced.perm.acceptEdits", "接受编辑") },
+            { value: "full_access", label: t("advanced.perm.fullAccess", "完全访问") },
           ]}
           onChange={setPermMode}
           style={{ width: 150 }}
@@ -69,17 +72,17 @@ function PermissionEnforcerSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>文件写入需确认</span>
+        <span>{t("advanced.fileWriteConfirm", "文件写入需确认")}</span>
         <Switch checked={writeConfirm} onChange={setWriteConfirm} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>网络请求需确认</span>
+        <span>{t("advanced.networkConfirm", "网络请求需确认")}</span>
         <Switch checked={netConfirm} onChange={setNetConfirm} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>Shell 执行需确认</span>
+        <span>{t("advanced.shellConfirm", "Shell 执行需确认")}</span>
         <Switch checked={shellConfirm} onChange={setShellConfirm} />
       </div>
     </SettingsGroup>

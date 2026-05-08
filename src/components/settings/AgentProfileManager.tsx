@@ -100,16 +100,20 @@ export function AgentProfileManager() {
         { path: selected },
       );
       if (res.imported > 0) {
-        message.success(`成功导入 ${res.imported} 个角色`);
+        message.success(t("agentProfile.importSuccess", "成功导入 {{count}} 个角色", { count: res.imported }));
       }
       if (res.skipped > 0 || res.errors.length > 0) {
         message.warning(
-          `跳过 ${res.skipped} 个，${res.errors.length} 个错误: ${res.errors.slice(0, 3).join("; ")}`,
+          t("agentProfile.importSkipped", "跳过 {{count}} 个，{{errors}} 个错误: {{detail}}", {
+            count: res.skipped,
+            errors: res.errors.length,
+            detail: res.errors.slice(0, 3).join("; "),
+          }),
         );
       }
       await loadRoles();
     } catch (e) {
-      message.error(`导入角色失败: ${String(e)}`);
+      message.error(t("agentProfile.importFailed", "导入角色失败: {{error}}", { error: String(e) }));
     } finally {
       setImportingRoles(false);
     }
@@ -255,7 +259,7 @@ export function AgentProfileManager() {
             onClick={handleImportRoles}
             loading={importingRoles}
           >
-            导入角色
+            {t("agentProfile.import", "导入角色")}
           </Button>
         </Space>
       </div>
@@ -412,14 +416,14 @@ export function AgentProfileManager() {
             />
           </div>
           <div>
-            <Text type="secondary" style={{ fontSize: 11 }}>Expert (领域知识)</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>{t("agentProfile.expertLabel", "Expert (领域知识)")}</Text>
             <Select
               size="small"
               style={{ width: "100%" }}
               value={form.expertId ?? ""}
               onChange={(v) => setForm({ ...form, expertId: v || undefined })}
               options={[
-                { value: "", label: "无" },
+                { value: "", label: t("agentProfile.none", "无") },
                 ...expertOptions,
               ]}
               allowClear

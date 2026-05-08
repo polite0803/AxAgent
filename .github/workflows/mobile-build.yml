@@ -289,11 +289,6 @@ jobs:
           cd src-tauri
           npx tauri ios init
 
-      - name: Install iOS dependencies (cargo build)
-        run: |
-          cd src-tauri
-          cargo build --release --target aarch64-apple-ios
-
       - name: Build iOS IPA
         run: |
           cd src-tauri

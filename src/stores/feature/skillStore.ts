@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import type { MarketplaceSkill, Skill, SkillDetail, SkillProposal, SkillUpdateInfo } from "@/types";
+import type { MarketplaceSkill, Skill, SkillCreateCheckResult, SkillDetail, SkillProposal, SkillUpdateInfo } from "@/types";
 import { create } from "zustand";
 
 interface SkillState {
@@ -27,12 +27,16 @@ interface SkillState {
   loadMoreMarketplace: () => Promise<void>;
   checkUpdates: () => Promise<SkillUpdateInfo[]>;
   clearSelectedSkill: () => void;
-  // P1: Self-evolution skill management
-  createSkill: (name: string, description: string, content: string) => Promise<string>;
+  createSkill: (name: string, description: string, content: string) => Promise<SkillCreateCheckResult>;
   patchSkill: (name: string, content: string) => Promise<string>;
   editSkill: (name: string, content: string) => Promise<string>;
   loadSkillProposals: () => Promise<SkillProposal[]>;
   createSkillFromProposal: (name: string, description: string, content: string) => Promise<string>;
+}
+
+async function syncExtensionStore(): Promise<void> {
+  const { useSkillExtensionStore } = await import("@/stores");
+  useSkillExtensionStore.getState().fetchSkills();
 }
 
 export const useSkillStore = create<SkillState>((set, get) => ({
@@ -80,9 +84,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       } else {
         triggerOnDisable(name).catch((e) => console.error("onDisable 失败:", e));
       }
-      // 同步刷新扩展 store
-      const { useSkillExtensionStore } = await import("@/stores");
-      useSkillExtensionStore.getState().fetchSkills();
+      syncExtensionStore();
     } catch (e) {
       console.error("切换 skill 状态失败:", e);
       set({
@@ -101,23 +103,29 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     set({
       marketplaceSkills: get().marketplaceSkills.map(s => s.repo === source ? { ...s, installed: true } : s),
     });
-    // 生命周期钩子
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
     triggerOnInstall(name).catch((e) => console.error("onInstall failed:", e));
+    syncExtensionStore();
     return name;
   },
 
   uninstallSkill: async (name: string) => {
-    // 卸载前先触发钩子
     const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
-    triggerOnUninstall(name).catch((e) => console.error("onUninstall failed:", e));
+    await triggerOnUninstall(name).catch((e) => console.error("onUninstall failed:", e));
     await invoke("uninstall_skill", { name });
     set({ skills: get().skills.filter(s => s.name !== name) });
+    syncExtensionStore();
   },
 
   uninstallSkillGroup: async (group: string) => {
+    const groupSkills = get().skills.filter(s => s.group === group);
+    const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
+    for (const skill of groupSkills) {
+      await triggerOnUninstall(skill.name).catch((e) => console.error(`onUninstall for ${skill.name} failed:`, e));
+    }
     await invoke("uninstall_skill_group", { group });
     set({ skills: get().skills.filter(s => s.group !== group) });
+    syncExtensionStore();
   },
 
   openSkillsDir: async () => {
@@ -189,36 +197,35 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 
   clearSelectedSkill: () => set({ selectedSkill: null }),
 
-  // P1: Self-evolution skill management
   createSkill: async (name: string, description: string, content: string) => {
-    const result = await invoke<string>("skill_create", { name, description, content });
-    await get().loadSkills();
-    const { triggerOnInstall } = await import("@/lib/skillLifecycle");
-    triggerOnInstall(name).catch((e) => console.error("onInstall 失败:", e));
-    // 同步刷新扩展 store
-    const { useSkillExtensionStore } = await import("@/stores");
-    useSkillExtensionStore.getState().fetchSkills();
+    const result = await invoke<SkillCreateCheckResult>("skill_create", { name, description, content });
+    if (result.can_create) {
+      await get().loadSkills();
+      const { triggerOnInstall } = await import("@/lib/skillLifecycle");
+      triggerOnInstall(name).catch((e) => console.error("onInstall 失败:", e));
+      syncExtensionStore();
+    }
     return result;
   },
 
   patchSkill: async (name: string, content: string) => {
     const result = await invoke<string>("skill_patch", { name, content });
     await get().getSkill(name);
-    // 刷新扩展 store
-    const { useSkillExtensionStore } = await import("@/stores");
-    useSkillExtensionStore.getState().fetchSkills();
+    const { triggerSkillReload } = await import("@/lib/skillLifecycle");
+    triggerSkillReload(name).catch((e) => console.error("skillReload 失败:", e));
+    syncExtensionStore();
     return result;
   },
 
   editSkill: async (name: string, content: string) => {
     const result = await invoke<string>("skill_edit", { name, content });
     await get().getSkill(name);
-    const { useSkillExtensionStore } = await import("@/stores");
-    useSkillExtensionStore.getState().fetchSkills();
+    const { triggerSkillReload } = await import("@/lib/skillLifecycle");
+    triggerSkillReload(name).catch((e) => console.error("skillReload 失败:", e));
+    syncExtensionStore();
     return result;
   },
 
-  // P1: Skill proposals from trajectory analysis
   loadSkillProposals: async () => {
     const proposals = await invoke<SkillProposal[]>("get_skill_proposals");
     set({ skillProposals: proposals });
@@ -231,6 +238,9 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     set((s) => ({
       skillProposals: s.skillProposals.filter((p) => p.suggested_name !== name),
     }));
+    const { triggerOnInstall } = await import("@/lib/skillLifecycle");
+    triggerOnInstall(name).catch((e) => console.error("onInstall 失败:", e));
+    syncExtensionStore();
     return result;
   },
 }));

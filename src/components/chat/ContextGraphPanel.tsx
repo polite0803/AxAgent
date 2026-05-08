@@ -183,7 +183,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     if (modelName) {
       const modelLabel = providerName ? `${providerName} / ${modelName}` : modelName;
       nodes.push({ id: "model", type: "model", label: modelLabel });
-      edges.push({ source: "conversation", target: "model", label: "使用" });
+      edges.push({ source: "conversation", target: "model", label: t("chat.contextGraph.edges.uses", "使用") });
     }
 
     // Knowledge bases
@@ -191,7 +191,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const kb = knowledgeBases.find((k: any) => k.id === kbId);
       const label = kb?.name || kbId.slice(0, 12);
       nodes.push({ id: `kb:${kbId}`, type: "knowledge", label, detail: kb?.description });
-      edges.push({ source: "conversation", target: `kb:${kbId}`, label: "检索" });
+      edges.push({ source: "conversation", target: `kb:${kbId}`, label: t("chat.contextGraph.edges.retrieves", "检索") });
     }
 
     // Memory namespaces
@@ -199,7 +199,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const ns = memoryNamespaces.find((n: any) => n.id === nsId);
       const label = ns?.name || nsId.slice(0, 12);
       nodes.push({ id: `mem:${nsId}`, type: "memory", label });
-      edges.push({ source: "conversation", target: `mem:${nsId}`, label: "读写" });
+      edges.push({ source: "conversation", target: `mem:${nsId}`, label: t("chat.contextGraph.edges.readWrite", "读写") });
     }
 
     // MCP servers
@@ -207,13 +207,13 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const srv = mcpServers.find((s: any) => s.id === srvId);
       const label = srv?.name || srvId.slice(0, 12);
       nodes.push({ id: `mcp:${srvId}`, type: "mcp", label });
-      edges.push({ source: "conversation", target: `mcp:${srvId}`, label: "调用" });
+      edges.push({ source: "conversation", target: `mcp:${srvId}`, label: t("chat.contextGraph.edges.calls", "调用") });
     }
 
     // Search
     if (searchEnabled) {
-      nodes.push({ id: "search", type: "search", label: t("chat.context.search", "联网搜索") });
-      edges.push({ source: "conversation", target: "search", label: "搜索" });
+      nodes.push({ id: "search", type: "search", label: t("chat.contextGraph.legend.search", "联网搜索") });
+      edges.push({ source: "conversation", target: "search", label: t("chat.contextGraph.edges.searches", "搜索") });
     }
 
     // Skills
@@ -221,7 +221,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const sk = installedSkills.find((s: any) => s.id === skillId);
       const label = sk?.name || skillId.slice(0, 12);
       nodes.push({ id: `skill:${skillId}`, type: "skill", label });
-      edges.push({ source: "conversation", target: `skill:${skillId}`, label: "启用" });
+      edges.push({ source: "conversation", target: `skill:${skillId}`, label: t("chat.contextGraph.edges.enables", "启用") });
     }
 
     return { nodes, edges };
@@ -293,7 +293,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
             {t("chat.contextGraph.title", "上下文图谱")}
           </Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {totalSources} 个上下文源
+            {t("chat.contextGraph.sourceCount", "{{count}} 个上下文源", { count: totalSources })}
           </Typography.Text>
           {/* Inline source pills when collapsed — compact one-line overview */}
           {collapsed && totalSources > 0 && (
@@ -324,7 +324,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                 if (mcpServerIds.length > 1) {
                   pills.push({ label: `+${mcpServerIds.length - 1}`, color: nodeTypeStyles.mcp.border });
                 }
-                if (searchEnabled) { pills.push({ label: "搜索", color: nodeTypeStyles.search.border }); }
+                if (searchEnabled) { pills.push({ label: t("chat.contextGraph.legend.search", "搜索"), color: nodeTypeStyles.search.border }); }
                 for (const skillId of enabledSkillIds.slice(0, 1)) {
                   const sk = installedSkills.find((s: any) => s.id === skillId);
                   pills.push({ label: (sk?.name || skillId).slice(0, 10), color: nodeTypeStyles.skill.border });
@@ -368,14 +368,14 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                   }}
                 >
                   {style.icon} {type === "conversation"
-                    ? "对话"
+                    ? t("chat.contextGraph.legend.conversation", "对话")
                     : type === "model"
-                    ? "模型"
+                    ? t("chat.contextGraph.legend.model", "模型")
                     : type === "knowledge"
-                    ? "知识"
+                    ? t("chat.contextGraph.legend.knowledge", "知识")
                     : type === "memory"
-                    ? "记忆"
-                    : "MCP"}
+                    ? t("chat.contextGraph.legend.memory", "记忆")
+                    : t("chat.contextGraph.legend.mcp", "MCP")}
                 </span>
               ))}
             </div>

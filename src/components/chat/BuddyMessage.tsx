@@ -1,6 +1,7 @@
 import type { BuddyMessage as BuddyMessageType } from "@/stores/feature/buddyStore";
 import { Typography } from "antd";
 import { useMemo } from "react";
+import React from "react";
 
 const { Text } = Typography;
 
@@ -30,7 +31,7 @@ interface BuddyMessageBubbleProps {
   buddyName: string;
 }
 
-export function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMessageBubbleProps) {
+export const BuddyMessageBubble = React.memo(function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMessageBubbleProps) {
   const colors = useMemo(() => moodColors[message.mood], [message.mood]);
   const moodLabel = moodLabels[message.mood];
 
@@ -45,7 +46,6 @@ export function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMess
         maxWidth: 260,
       }}
     >
-      {/* 头部：emoji + 名字 + 心情标签 */}
       <div
         style={{
           display: "flex",
@@ -72,10 +72,15 @@ export function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMess
         </Text>
       </div>
 
-      {/* 消息正文 */}
       <Text style={{ fontSize: 13, color: "#333", lineHeight: 1.5 }}>
         {message.text}
       </Text>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  return prevProps.message.text === nextProps.message.text
+    && prevProps.message.mood === nextProps.message.mood
+    && prevProps.message.timestamp === nextProps.message.timestamp
+    && prevProps.buddyEmoji === nextProps.buddyEmoji
+    && prevProps.buddyName === nextProps.buddyName;
+});

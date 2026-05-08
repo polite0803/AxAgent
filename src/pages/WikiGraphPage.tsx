@@ -154,7 +154,7 @@ export function WikiGraphPage() {
     const now = Date.now();
     const note = await createNote({
       vaultId: wikiIdFromUrl,
-      title: `新笔记 ${new Date(now).toLocaleString("zh-CN")}`,
+      title: `${t("wiki.newNoteDefault", "New Note")} ${new Date(now).toLocaleString("zh-CN")}`,
       filePath: `/new-note-${now}.md`,
       content: "",
       author: "user",
@@ -170,13 +170,13 @@ export function WikiGraphPage() {
   const handleCreateLinkedNote = useCallback(
     async (sourceNodeId: string) => {
       const sourceNode = graphData?.nodes.find((n) => n.id === sourceNodeId);
-      const title = sourceNode ? `关联: ${sourceNode.title}` : "新关联笔记";
+      const title = sourceNode ? `${t("wiki.linkedPrefix", "Related")}: ${sourceNode.title}` : t("wiki.linkedNoteTitle", "New Linked Note");
       const now = Date.now();
       const note = await createNote({
         vaultId: wikiIdFromUrl,
         title,
         filePath: `/linked-note-${now}.md`,
-        content: sourceNode ? `相关: [[${sourceNode.title}]]` : "",
+        content: sourceNode ? `${t("wiki.linkedRef", "Related")}: [[${sourceNode.title}]]` : "",
         author: "user",
       });
       if (note) {

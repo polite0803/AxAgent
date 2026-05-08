@@ -1,7 +1,6 @@
 import { invoke } from "@/lib/invoke";
-import type { AgenticAction, DeclarativeActionType, SkillCommandAction } from "@/types";
-
-// ── 类型 ──
+import { isStoreReadCovered, isStoreWriteCovered } from "@/lib/skillPermissions";
+import type { AgenticAction, DeclarativeActionType, SkillCommandAction, SkillPermissions } from "@/types";
 
 export interface ActionContext {
   skillName: string;
@@ -9,7 +8,7 @@ export interface ActionContext {
   conversationId?: string;
   pageParams?: Record<string, string>;
   triggerEvent?: Event;
-  /** 内部：chain 递归深度计数器 */
+  permissions?: SkillPermissions;
   _chainDepth?: number;
 }
 
@@ -29,10 +28,54 @@ export interface ToolCallRecord {
 
 export type DeclarativeExecutor = (action: DeclarativeActionType, ctx: ActionContext) => Promise<ActionResult>;
 
-// ── Action Router ──
-
-/** chain action 最大递归深度 */
 const MAX_CHAIN_DEPTH = 20;
+
+const VALID_ACTION_TYPES = new Set<string>([
+  "invoke", "navigate", "emit", "store", "function", "handler", "chain",
+]);
+
+interface ActionSchemaRule {
+  requiredFields: string[];
+  fieldTypes: Record<string, "string" | "object" | "array">;
+}
+
+const ACTION_SCHEMAS: Record<string, ActionSchemaRule> = {
+  invoke:   { requiredFields: ["command"], fieldTypes: { command: "string", args: "object" } },
+  navigate: { requiredFields: ["path"],    fieldTypes: { path: "string" } },
+  emit:     { requiredFields: ["event"],   fieldTypes: { event: "string", payload: "object" } },
+  store:    { requiredFields: ["storeName", "operation"], fieldTypes: { storeName: "string", operation: "string", payload: "object" } },
+  function: { requiredFields: ["name"],    fieldTypes: { name: "string", args: "array" } },
+  handler:  { requiredFields: ["name"],    fieldTypes: { name: "string", args: "object" } },
+  chain:    { requiredFields: ["actions"], fieldTypes: { actions: "array" } },
+};
+
+function validateAction(action: DeclarativeActionType): string | null {
+  if (!VALID_ACTION_TYPES.has(action.type)) {
+    return `未知的 action 类型: "${action.type}"，有效类型: ${[...VALID_ACTION_TYPES].join(", ")}`;
+  }
+  const schema = ACTION_SCHEMAS[action.type];
+  if (!schema) { return null; }
+  for (const field of schema.requiredFields) {
+    const value = (action as Record<string, unknown>)[field];
+    if (value === undefined || value === null || value === "") {
+      return `Action "${action.type}" 缺少必需字段 "${field}"`;
+    }
+  }
+  for (const [field, expectedType] of Object.entries(schema.fieldTypes)) {
+    const value = (action as Record<string, unknown>)[field];
+    if (value === undefined || value === null) { continue; }
+    if (expectedType === "string" && typeof value !== "string") {
+      return `Action "${action.type}" 字段 "${field}" 应为 string，实际为 ${typeof value}`;
+    }
+    if (expectedType === "object" && typeof value !== "object") {
+      return `Action "${action.type}" 字段 "${field}" 应为 object，实际为 ${typeof value}`;
+    }
+    if (expectedType === "array" && !Array.isArray(value)) {
+      return `Action "${action.type}" 字段 "${field}" 应为 array，实际为 ${typeof value}`;
+    }
+  }
+  return null;
+}
 
 export class ActionRouter {
   private declarativeExecutors = new Map<string, DeclarativeExecutor>();
@@ -41,12 +84,13 @@ export class ActionRouter {
     this.registerBuiltinExecutors();
   }
 
-  /** 注册自定义声明式执行器 */
   registerDeclarativeExecutor(type: string, executor: DeclarativeExecutor): void {
+    if (!VALID_ACTION_TYPES.has(type) && !type.startsWith("custom:")) {
+      console.warn(`[ActionRouter] 注册非标准 action 类型: "${type}"，建议使用 "custom:" 前缀`);
+    }
     this.declarativeExecutors.set(type, executor);
   }
 
-  /** 执行单个 Action */
   async execute(action: SkillCommandAction, context: ActionContext): Promise<ActionResult> {
     try {
       if (action.mode === "agentic") {
@@ -58,7 +102,6 @@ export class ActionRouter {
     }
   }
 
-  /** 执行 Action 链（顺序执行，前一个的输出合并到上下文） */
   async executeChain(actions: SkillCommandAction[], context: ActionContext, depth = 0): Promise<ActionResult> {
     if (depth > MAX_CHAIN_DEPTH) {
       return { success: false, error: `Action 链超过最大递归深度 ${MAX_CHAIN_DEPTH}` };
@@ -74,17 +117,22 @@ export class ActionRouter {
     return lastResult;
   }
 
-  /** 执行声明式 Action */
   private async executeDeclarative(action: DeclarativeActionType, ctx: ActionContext): Promise<ActionResult> {
+    const validationError = validateAction(action);
+    if (validationError) {
+      return { success: false, error: validationError };
+    }
     const executor = this.declarativeExecutors.get(action.type);
     if (!executor) {
-      return { success: false, error: `未知声明式 action 类型: ${action.type}` };
+      return { success: false, error: `未注册的 action 类型: ${action.type}` };
     }
     return executor(action, ctx);
   }
 
-  /** 执行 Agentic Action */
   private async executeAgentic(action: AgenticAction, ctx: ActionContext): Promise<ActionResult> {
+    if (!action.prompt || action.prompt.trim().length === 0) {
+      return { success: false, error: "Agentic action 缺少 prompt 字段" };
+    }
     const { useConversationStore, useProviderStore } = await import("@/stores");
     const convStore = useConversationStore.getState();
     const providerStore = useProviderStore.getState();
@@ -101,7 +149,6 @@ export class ActionRouter {
 
     try {
       const conv = await convStore.createConversation(title, model.model_id, provider.id);
-      // 将 prompt 作为首条消息发送到 LLM
       await convStore.sendMessage(action.prompt);
       return { success: true, data: { conversationId: conv.id } };
     } catch (e) {
@@ -109,40 +156,52 @@ export class ActionRouter {
     }
   }
 
-  /** 注册内置执行器 */
   private registerBuiltinExecutors(): void {
-    // invoke: 调用 Tauri 后端命令
     this.declarativeExecutors.set("invoke", async (action) => {
       if (action.type !== "invoke") { return { success: false, error: "类型不匹配" }; }
+      if (!action.command) { return { success: false, error: "invoke action 缺少 command" }; }
       const result = await invoke(action.command, action.args || {});
       return { success: true, data: result };
     });
 
-    // navigate: 前端路由跳转
     this.declarativeExecutors.set("navigate", async (action) => {
       if (action.type !== "navigate") { return { success: false, error: "类型不匹配" }; }
       window.location.hash = action.path;
       return { success: true };
     });
 
-    // emit: 发送事件
     this.declarativeExecutors.set("emit", async (action) => {
       if (action.type !== "emit") { return { success: false, error: "类型不匹配" }; }
       window.dispatchEvent(new CustomEvent(action.event, { detail: action.payload }));
       return { success: true };
     });
 
-    // store: 读写 Zustand Store
-    this.declarativeExecutors.set("store", async (action) => {
+    this.declarativeExecutors.set("store", async (action, ctx) => {
       if (action.type !== "store") { return { success: false, error: "类型不匹配" }; }
+      const operation = action.operation;
+      if (operation !== "get" && operation !== "set" && operation !== "update") {
+        return { success: false, error: `未知的 store 操作: ${operation}` };
+      }
+      if (ctx.permissions) {
+        const isRead = operation === "get";
+        const isWrite = operation === "set" || operation === "update";
+        const selector = action.payload && typeof action.payload === "object" && "selector" in (action.payload as Record<string, unknown>)
+          ? String((action.payload as Record<string, unknown>).selector)
+          : undefined;
+        if (isRead && !isStoreReadCovered(action.storeName, selector, ctx.permissions.storeRead ?? [])) {
+          return { success: false, error: `权限不足: 无法读取 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}` };
+        }
+        if (isWrite && !isStoreWriteCovered(action.storeName, selector, ctx.permissions.storeWrite ?? [])) {
+          return { success: false, error: `权限不足: 无法写入 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}` };
+        }
+      }
       const { getStoreRegistry } = await import("./storeRegistry");
       const store = getStoreRegistry().get(action.storeName);
       if (!store) { return { success: false, error: `Store ${action.storeName} 未注册` }; }
-      const result = store[action.operation](action.payload);
+      const result = store[operation](action.payload);
       return { success: true, data: result };
     });
 
-    // function: 执行注册的自定义函数
     this.declarativeExecutors.set("function", async (action) => {
       if (action.type !== "function") { return { success: false, error: "类型不匹配" }; }
       const { getCustomFunction } = await import("./skillActionExecutor");
@@ -152,7 +211,6 @@ export class ActionRouter {
       return { success: true };
     });
 
-    // handler: 引用 handlers 中定义的处理器
     this.declarativeExecutors.set("handler", async (action, ctx) => {
       if (action.type !== "handler") { return { success: false, error: "类型不匹配" }; }
       const { useSkillExtensionStore } = await import("@/stores");
@@ -164,7 +222,6 @@ export class ActionRouter {
       return { success: false, error: `Handler ${action.name} 非声明式` };
     });
 
-    // chain: 嵌套子链（继承父级 skillName，限制递归深度）
     this.declarativeExecutors.set("chain", async (action, ctx) => {
       if (action.type !== "chain") { return { success: false, error: "类型不匹配" }; }
       const depth = (ctx._chainDepth || 0) + 1;
@@ -179,7 +236,6 @@ export class ActionRouter {
   }
 }
 
-/** 全局单例 */
 let _instance: ActionRouter | null = null;
 
 export function getActionRouter(): ActionRouter {

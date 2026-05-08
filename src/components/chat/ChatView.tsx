@@ -74,6 +74,7 @@ import {
   setupAgentEventListeners,
   setupDreamEventListeners,
   setupPlanEventListeners,
+  syncAllStoresToDomain,
   useAgentProfileStore,
   useAgentStore,
   useCompressStore,
@@ -1002,6 +1003,7 @@ function ChatViewInner({ onScrollToReady }: {
     const cleanupAgent = setupAgentEventListeners();
     const cleanupPlan = setupPlanEventListeners();
     const cleanupDream = setupDreamEventListeners();
+    syncAllStoresToDomain();
     return () => {
       cleanupAgent();
       cleanupPlan();

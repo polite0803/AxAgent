@@ -791,6 +791,23 @@ export interface SkillProposal {
   similar_skills: string[];
 }
 
+export interface SkillCreateCheckResult {
+  has_similar: boolean;
+  similar_skills: SkillSimilarInfo[];
+  can_create: boolean;
+  message: string;
+}
+
+export interface SkillSimilarInfo {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  scenarios: string[];
+  success_rate: number;
+  similarity_score: number;
+}
+
 // ── Skill Manifest ──
 
 /** Skill 清单定义（skill-manifest.json 解析后的统一格式） */
@@ -811,21 +828,22 @@ export interface SkillManifest {
 
 /** 权限白名单 */
 export interface SkillPermissions {
-  /** 允许调用的 Tauri 命令列表 */
   commands?: string[];
-  /** 允许发送的事件列表 */
   events?: string[];
-  /** 允许读取的 Zustand Store 名称列表 */
+  /**
+   * 允许读取的 Zustand Store 字段路径列表。
+   * 格式："storeName" (整个 store) 或 "storeName:fieldPath" (特定字段)。
+   * 示例：["preference:theme", "preference:language", "ui"]
+   */
   storeRead?: string[];
-  /** 允许写入的 Zustand Store 名称列表 */
+  /**
+   * 允许写入的 Zustand Store 字段路径列表。
+   * 格式同 storeRead。仅声明 "storeName" 时允许写入整个 store。
+   */
   storeWrite?: string[];
-  /** 允许导航到的路由路径列表 */
   navigate?: string[];
-  /** 允许的网络请求域名列表 */
   network?: string[];
-  /** 文件系统访问权限 */
   filesystem?: { read?: string[]; write?: string[] };
-  /** 允许使用的工具名称列表 */
   tools?: string[];
 }
 

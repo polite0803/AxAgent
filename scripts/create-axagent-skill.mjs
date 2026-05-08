@@ -84,6 +84,9 @@ const manifest = {
     network: [],
     commands: [],
     events: [],
+    storeRead: ["preference:theme", "preference:language"],
+    storeWrite: [],
+    navigate: [],
   },
   dependencies: {},
   frontend: {

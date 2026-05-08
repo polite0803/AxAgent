@@ -7,6 +7,7 @@
  * @module sdk/rpcBridge
  */
 
+import { isStoreReadCovered, isStoreWriteCovered, isWildcardMatch } from "@/lib/skillPermissions";
 import type { HostToSkillMessage, SkillHostApi, SkillHostStore, SkillHostUi, SkillToHostMessage } from "./types";
 
 /** RPC 调用超时时间（毫秒） */
@@ -215,49 +216,24 @@ export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridg
     );
   }
 
-  /** 检查命令权限 */
   function checkCommand(command: string): boolean {
-    if (!permissions.commands || permissions.commands.length === 0) { return false; }
-    return permissions.commands.some((pattern) => {
-      if (pattern.endsWith("*")) {
-        return command.startsWith(pattern.slice(0, -1));
-      }
-      return command === pattern;
-    });
+    return isWildcardMatch(command, permissions.commands ?? []);
   }
 
-  /** 检查事件权限 */
   function checkEvent(event: string): boolean {
-    if (!permissions.events || permissions.events.length === 0) { return false; }
-    return permissions.events.some((pattern) => {
-      if (pattern.endsWith("*")) {
-        return event.startsWith(pattern.slice(0, -1));
-      }
-      return event === pattern;
-    });
+    return isWildcardMatch(event, permissions.events ?? []);
   }
 
-  /** 检查 Store 读权限 */
-  function checkStoreRead(storeName: string): boolean {
-    if (!permissions.storeRead || permissions.storeRead.length === 0) { return false; }
-    return permissions.storeRead.includes(storeName);
+  function checkStoreRead(storeName: string, selector?: string): boolean {
+    return isStoreReadCovered(storeName, selector, permissions.storeRead ?? []);
   }
 
-  /** 检查 Store 写权限 */
-  function checkStoreWrite(storeName: string): boolean {
-    if (!permissions.storeWrite || permissions.storeWrite.length === 0) { return false; }
-    return permissions.storeWrite.includes(storeName);
+  function checkStoreWrite(storeName: string, selector?: string): boolean {
+    return isStoreWriteCovered(storeName, selector, permissions.storeWrite ?? []);
   }
 
-  /** 检查导航权限 */
   function checkNavigate(path: string): boolean {
-    if (!permissions.navigate || permissions.navigate.length === 0) { return false; }
-    return permissions.navigate.some((pattern) => {
-      if (pattern.endsWith("*")) {
-        return path.startsWith(pattern.slice(0, -1));
-      }
-      return path === pattern;
-    });
+    return isWildcardMatch(path, permissions.navigate ?? []);
   }
 
   const rpcHandlers: Record<string, (args?: Record<string, unknown>) => Promise<unknown>> = {
@@ -308,18 +284,26 @@ export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridg
     "store.read": async (args) => {
       const storeName = args?.storeName as string;
       if (!storeName) { throw new Error("Store name is required"); }
-      if (!checkStoreRead(storeName)) {
-        throw new Error(`Permission denied: cannot read store "${storeName}"`);
+      const selector = args?.selector as string | undefined;
+      if (!checkStoreRead(storeName, selector)) {
+        const hint = selector
+          ? `cannot read store "${storeName}" field "${selector}"`
+          : `cannot read store "${storeName}" (field-level permission required)`;
+        throw new Error(`Permission denied: ${hint}`);
       }
-      return store.read(storeName, args?.selector as string | undefined);
+      return store.read(storeName, selector);
     },
     "store.write": async (args) => {
       const storeName = args?.storeName as string;
       if (!storeName) { throw new Error("Store name is required"); }
-      if (!checkStoreWrite(storeName)) {
-        throw new Error(`Permission denied: cannot write store "${storeName}"`);
+      const selector = args?.selector as string | undefined;
+      if (!checkStoreWrite(storeName, selector)) {
+        const hint = selector
+          ? `cannot write store "${storeName}" field "${selector}"`
+          : `cannot write store "${storeName}" (field-level permission required)`;
+        throw new Error(`Permission denied: ${hint}`);
       }
-      await store.write(storeName, args?.value);
+      await store.write(storeName, args?.value, selector);
       return undefined;
     },
   };

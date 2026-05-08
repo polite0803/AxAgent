@@ -3,6 +3,7 @@
 //! This module provides a unified error hierarchy for the entire application,
 //! with support for error propagation, context addition, and serialization.
 
+use std::collections::HashMap;
 use thiserror::Error;
 
 /// Unified error type for AxAgent application
@@ -87,6 +88,13 @@ pub enum AxAgentError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Structured error: {message}")]
+    StructuredError {
+        context: ErrorContext,
+        source: Box<dyn std::error::Error + Send + Sync>,
+        message: String,
+    },
 }
 
 impl AxAgentError {
@@ -161,6 +169,82 @@ impl AxAgentError {
                 context: format!("{}: {}", ctx, context),
             },
             _ => self,
+        }
+    }
+
+    /// Wraps the error with structured context
+    pub fn with_context(self, context: ErrorContext) -> Self {
+        let message = self.to_string();
+        AxAgentError::StructuredError {
+            context,
+            source: Box::new(self),
+            message,
+        }
+    }
+
+    /// Returns the machine-readable error code for this error
+    pub fn error_code(&self) -> ErrorCode {
+        match self {
+            AxAgentError::Database(_) => ErrorCode::InternalError,
+            AxAgentError::Provider(_) => ErrorCode::LLMProviderError,
+            AxAgentError::Gateway(_) => ErrorCode::NetworkError,
+            AxAgentError::Crypto(_) => ErrorCode::InternalError,
+            AxAgentError::NotFound(_) => ErrorCode::ResourceExhaustionError,
+            AxAgentError::Validation(_) => ErrorCode::ValidationError,
+            AxAgentError::Io(_) => ErrorCode::InternalError,
+            AxAgentError::Config(_) => ErrorCode::ConfigurationError,
+            AxAgentError::Timeout(_) => ErrorCode::NetworkError,
+            AxAgentError::Workflow { .. } => ErrorCode::AgentError,
+            AxAgentError::Agent { .. } => ErrorCode::AgentError,
+            AxAgentError::Execution { .. } => ErrorCode::ToolExecutionError,
+            AxAgentError::Internal(_) => ErrorCode::InternalError,
+            AxAgentError::StructuredError { context, .. } => {
+                ErrorCode::from_component(&context.component)
+            }
+        }
+    }
+
+    /// Generates a serializable error report for telemetry/logging
+    pub fn to_report(&self) -> ErrorReport {
+        let mut source_chain = Vec::new();
+        let mut current: Option<&dyn std::error::Error> = Some(self);
+
+        while let Some(err) = current {
+            source_chain.push(err.to_string());
+            current = err.source();
+        }
+
+        let (context, message) = match self {
+            AxAgentError::StructuredError {
+                context, message, ..
+            } => (context.clone(), message.clone()),
+            _ => (
+                ErrorContext::builder()
+                    .component("unknown")
+                    .operation("unknown")
+                    .build(),
+                self.to_string(),
+            ),
+        };
+
+        ErrorReport {
+            error_code: self.error_code(),
+            message,
+            context,
+            source_chain,
+            timestamp: chrono::Utc::now(),
+            recoverable: self.is_recoverable(),
+        }
+    }
+
+    /// Returns true if the error is potentially recoverable via retry
+    pub fn is_recoverable(&self) -> bool {
+        match self {
+            AxAgentError::Timeout(_) => true,
+            AxAgentError::Gateway(_) => true,
+            AxAgentError::Provider(msg) => msg.contains("rate limit") || msg.contains("timeout"),
+            AxAgentError::StructuredError { context, .. } => context.retry_count < 3,
+            _ => false,
         }
     }
 }
@@ -240,6 +324,144 @@ impl HealthCheckError {
             _ => HealthCheckError::Transient(format!("HTTP error {}: {}", status, body)),
         }
     }
+}
+
+/// Machine-readable error codes for categorizing errors
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ErrorCode {
+    AgentError,
+    ToolExecutionError,
+    LLMProviderError,
+    PlanGenerationError,
+    StateTransitionError,
+    ResourceExhaustionError,
+    NetworkError,
+    ValidationError,
+    ConfigurationError,
+    InternalError,
+}
+
+impl ErrorCode {
+    fn from_component(component: &str) -> Self {
+        match component.to_lowercase().as_str() {
+            "agent" => ErrorCode::AgentError,
+            "tool" | "runtime" => ErrorCode::ToolExecutionError,
+            "llm" | "provider" => ErrorCode::LLMProviderError,
+            "plan" => ErrorCode::PlanGenerationError,
+            "state" => ErrorCode::StateTransitionError,
+            "resource" => ErrorCode::ResourceExhaustionError,
+            "network" | "gateway" => ErrorCode::NetworkError,
+            "validation" => ErrorCode::ValidationError,
+            "config" => ErrorCode::ConfigurationError,
+            _ => ErrorCode::InternalError,
+        }
+    }
+}
+
+impl std::fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCode::AgentError => write!(f, "AGENT_ERROR"),
+            ErrorCode::ToolExecutionError => write!(f, "TOOL_EXECUTION_ERROR"),
+            ErrorCode::LLMProviderError => write!(f, "LLM_PROVIDER_ERROR"),
+            ErrorCode::PlanGenerationError => write!(f, "PLAN_GENERATION_ERROR"),
+            ErrorCode::StateTransitionError => write!(f, "STATE_TRANSITION_ERROR"),
+            ErrorCode::ResourceExhaustionError => write!(f, "RESOURCE_EXHAUSTION_ERROR"),
+            ErrorCode::NetworkError => write!(f, "NETWORK_ERROR"),
+            ErrorCode::ValidationError => write!(f, "VALIDATION_ERROR"),
+            ErrorCode::ConfigurationError => write!(f, "CONFIGURATION_ERROR"),
+            ErrorCode::InternalError => write!(f, "INTERNAL_ERROR"),
+        }
+    }
+}
+
+/// Structured context for error reporting and telemetry
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ErrorContext {
+    pub session_id: Option<String>,
+    pub component: String,
+    pub operation: String,
+    pub retry_count: u32,
+    pub metadata: HashMap<String, String>,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+impl ErrorContext {
+    /// Creates a new ErrorContextBuilder for ergonomic construction
+    pub fn builder() -> ErrorContextBuilder {
+        ErrorContextBuilder::default()
+    }
+}
+
+/// Builder for constructing ErrorContext instances
+#[derive(Debug, Default)]
+pub struct ErrorContextBuilder {
+    session_id: Option<String>,
+    component: Option<String>,
+    operation: Option<String>,
+    retry_count: u32,
+    metadata: HashMap<String, String>,
+}
+
+impl ErrorContextBuilder {
+    /// Sets the session ID for this error context
+    pub fn session_id<S: Into<String>>(mut self, session_id: S) -> Self {
+        self.session_id = Some(session_id.into());
+        self
+    }
+
+    /// Sets the component name (e.g., "agent", "runtime", "gateway")
+    pub fn component<S: Into<String>>(mut self, component: S) -> Self {
+        self.component = Some(component.into());
+        self
+    }
+
+    /// Sets the operation name (e.g., "tool_execution", "llm_call", "plan_generation")
+    pub fn operation<S: Into<String>>(mut self, operation: S) -> Self {
+        self.operation = Some(operation.into());
+        self
+    }
+
+    /// Sets the retry count for this error
+    pub fn retry_count(mut self, retry_count: u32) -> Self {
+        self.retry_count = retry_count;
+        self
+    }
+
+    /// Sets the metadata hashmap for this error context
+    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = metadata;
+        self
+    }
+
+    /// Adds a single key-value pair to the metadata
+    pub fn metadata_entry<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
+        self.metadata.insert(key.into(), value.into());
+        self
+    }
+
+    /// Builds the ErrorContext instance
+    pub fn build(self) -> ErrorContext {
+        ErrorContext {
+            session_id: self.session_id,
+            component: self.component.unwrap_or_else(|| "unknown".to_string()),
+            operation: self.operation.unwrap_or_else(|| "unknown".to_string()),
+            retry_count: self.retry_count,
+            metadata: self.metadata,
+            timestamp: chrono::Utc::now(),
+        }
+    }
+}
+
+/// Serializable error report for telemetry and logging
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ErrorReport {
+    pub error_code: ErrorCode,
+    pub message: String,
+    pub context: ErrorContext,
+    pub source_chain: Vec<String>,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub recoverable: bool,
 }
 
 pub type Result<T> = std::result::Result<T, AxAgentError>;

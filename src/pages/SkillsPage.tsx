@@ -51,6 +51,7 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
+import type { TFunction } from "i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -144,7 +145,7 @@ function SkillCard({
   onOpenDir: (path: string) => void;
   onEditFrontend: (name: string) => void;
   onExport?: (name: string) => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: TFunction;
 }) {
   const hasManifest = !!(skill.manifest?.capabilities?.length);
   return (
@@ -169,11 +170,11 @@ function SkillCard({
             <Tag>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                 {SOURCE_ICONS[skill.source] ?? <Radio size={14} />}
-                {SOURCE_LABELS[skill.source] ?? (skill.source)}
+                {t(SOURCE_LABELS[skill.source] ?? skill.source)}
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
-            {hasManifest && <Tag color="blue" style={{ margin: 0 }}>含 UI 扩展</Tag>}
+            {hasManifest && <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI", { defaultValue: "含 UI 扩展" })}</Tag>}
           </div>
           <Paragraph
             type="secondary"
@@ -202,7 +203,7 @@ function SkillCard({
             size="small"
             icon={<LayoutPanelTop size={14} color={CHAT_ICON_COLORS.Trash2} />}
             onClick={() => onEditFrontend(skill.name)}
-            title={hasManifest ? "编辑前端扩展" : "添加前端扩展"}
+            title={hasManifest ? t("skill.editFrontend", { defaultValue: "编辑前端扩展" }) : t("skill.addFrontend", { defaultValue: "添加前端扩展" })}
           />
           {onExport && (
             <Button
@@ -210,7 +211,7 @@ function SkillCard({
               size="small"
               icon={<Upload size={14} />}
               onClick={() => onExport(skill.name)}
-              title="导出为可发布格式"
+              title={t("skill.exportPublishable", { defaultValue: "导出为可发布格式" })}
             />
           )}
           {skill.source !== "builtin" && (
@@ -246,7 +247,7 @@ function MarketplaceCard({
   onInstall: (repo: string, target: string) => void;
   onDetail: (repo: string) => void;
   installing: string | null;
-  t: (key: string) => string;
+  t: TFunction;
   source: string;
 }) {
   const githubUrl = `https://github.com/${skill.repo}`;
@@ -475,9 +476,9 @@ export function SkillsPage() {
       a.download = `${result.skill_name}-v${result.version}-export.json`;
       a.click();
       URL.revokeObjectURL(url);
-      messageApi.success(`技能 "${name}" 已导出`);
+      messageApi.success(t("skill.exported", { defaultValue: "技能已导出" }));
     } catch (e) {
-      messageApi.error(`导出失败: ${String(e)}`);
+      messageApi.error(t("skill.exportFailed", { defaultValue: "导出失败" }));
     }
   }, [messageApi]);
 
@@ -516,7 +517,7 @@ export function SkillsPage() {
     setDecomposePreviewOpen(false);
     setDecomposeRequest(null);
     loadSkills();
-    messageApi.success(t("skills.decomposeSuccess", "Atomic skills extracted successfully"));
+    messageApi.success(t("skills.decomposeSuccess", { defaultValue: "Atomic skills extracted successfully" }));
   }, [loadSkills, messageApi, t]);
 
   const handleUninstall = useCallback(async (name: string) => {
@@ -624,12 +625,12 @@ export function SkillsPage() {
           <Button
             onClick={() => setCreateModalOpen(true)}
           >
-            {t("skill.create", "Create Skill")}
+            {t("skill.create", { defaultValue: "Create Skill" })}
           </Button>
           <Button
             icon={<Lightbulb size={14} color={CHAT_ICON_COLORS.Lightbulb} />}
             onClick={() => setProposalPanelOpen(true)}
-            title={t("skill.proposal.title", "Skill Proposals")}
+            title={t("skill.proposal.title", { defaultValue: "Skill Proposals" })}
           />
         </Space.Compact>
         <Tabs

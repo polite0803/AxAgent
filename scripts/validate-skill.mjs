@@ -165,6 +165,45 @@ if (manifest) {
     if (manifest.permissions.commands && !Array.isArray(manifest.permissions.commands)) {
       addError("permissions.commands 必须是数组");
     }
+    if (manifest.permissions.storeRead && !Array.isArray(manifest.permissions.storeRead)) {
+      addError("permissions.storeRead 必须是数组");
+    }
+    if (manifest.permissions.storeWrite && !Array.isArray(manifest.permissions.storeWrite)) {
+      addError("permissions.storeWrite 必须是数组");
+    }
+    if (Array.isArray(manifest.permissions.storeRead)) {
+      for (const perm of manifest.permissions.storeRead) {
+        if (typeof perm !== "string") {
+          addError(`permissions.storeRead 中的 "${perm}" 不是字符串`);
+        } else if (perm.includes(":") && perm.split(":").length !== 2) {
+          addWarn(`permissions.storeRead 中的 "${perm}" 格式不标准，应为 "storeName" 或 "storeName:fieldPath"`);
+        }
+      }
+    }
+    if (Array.isArray(manifest.permissions.storeWrite)) {
+      for (const perm of manifest.permissions.storeWrite) {
+        if (typeof perm !== "string") {
+          addError(`permissions.storeWrite 中的 "${perm}" 不是字符串`);
+        } else if (perm.includes(":") && perm.split(":").length !== 2) {
+          addWarn(`permissions.storeWrite 中的 "${perm}" 格式不标准，应为 "storeName" 或 "storeName:fieldPath"`);
+        }
+      }
+      const writeStores = new Set(
+        manifest.permissions.storeWrite
+          .filter((p) => typeof p === "string")
+          .map((p) => p.split(":")[0]),
+      );
+      const readStores = new Set(
+        (manifest.permissions.storeRead || [])
+          .filter((p) => typeof p === "string")
+          .map((p) => p.split(":")[0]),
+      );
+      for (const ws of writeStores) {
+        if (!readStores.has(ws)) {
+          addWarn(`permissions.storeWrite 声明了 "${ws}" 的写权限但未声明读权限`);
+        }
+      }
+    }
   }
 }
 

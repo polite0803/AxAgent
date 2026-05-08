@@ -1,7 +1,8 @@
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import { Progress, Spin, Tag, theme, Typography } from "antd";
 import { Wrench } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -9,27 +10,25 @@ interface AgentProgressBarProps {
   conversationId: string;
 }
 
-/** 工具名称友好显示映射 */
-const TOOL_DISPLAY_NAMES: Record<string, string> = {
-  read: "FileRead",
-  write: "FileWrite",
-  edit: "FileEdit",
-  bash: "Bash",
-  file_read: "读取文件",
-  file_write: "写入文件",
-  file_edit: "编辑文件",
-  search: "搜索",
-  grep: "文本搜索",
-  glob: "文件查找",
-  web_fetch: "网页抓取",
-  web_search: "网络搜索",
-  task: "子任务",
-  mcp: "MCP 工具",
-};
-
-function getToolDisplayName(toolName: string): string {
+function getToolDisplayName(toolName: string, t: (key: string, fallback: string) => string): string {
   const lower = toolName.toLowerCase();
-  for (const [key, display] of Object.entries(TOOL_DISPLAY_NAMES)) {
+  const map: Record<string, string> = {
+    read: "FileRead",
+    write: "FileWrite",
+    edit: "FileEdit",
+    bash: "Bash",
+    file_read: t("progressBar.tool.fileRead", "读取文件"),
+    file_write: t("progressBar.tool.fileWrite", "写入文件"),
+    file_edit: t("progressBar.tool.fileEdit", "编辑文件"),
+    search: t("progressBar.tool.search", "搜索"),
+    grep: t("progressBar.tool.grep", "文本搜索"),
+    glob: t("progressBar.tool.glob", "文件查找"),
+    web_fetch: t("progressBar.tool.webFetch", "网页抓取"),
+    web_search: t("progressBar.tool.webSearch", "网络搜索"),
+    task: t("progressBar.tool.task", "子任务"),
+    mcp: t("progressBar.tool.mcp", "MCP 工具"),
+  };
+  for (const [key, display] of Object.entries(map)) {
     if (lower.includes(key)) {
       return display;
     }
@@ -47,9 +46,14 @@ function getToolDisplayName(toolName: string): string {
 export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   conversationId,
 }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const currentToolCall = useExecutionStore((s) => s.currentToolCall);
   const isExecuting = useExecutionStore((s) => s.isActive(conversationId));
+
+  const displayName = useMemo(() => {
+    return currentToolCall ? getToolDisplayName(currentToolCall.toolName, t) : null;
+  }, [currentToolCall?.toolName, currentToolCall?.toolUseId, t]);
 
   // 用于动画过渡：当工具切换时短暂闪烁
   const [lastToolName, setLastToolName] = useState<string | null>(null);
@@ -69,10 +73,6 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   if (!active) {
     return null;
   }
-
-  const displayName = currentToolCall
-    ? getToolDisplayName(currentToolCall.toolName)
-    : null;
 
   const elapsed = currentToolCall
     ? Math.round((Date.now() - currentToolCall.startedAt) / 1000)
@@ -109,7 +109,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
           }}
         >
           <Wrench size={10} style={{ marginRight: 4, verticalAlign: "middle" }} />
-          正在执行: {displayName}
+          {t("progressBar.executing", "正在执行: {name}", { name: displayName })}
         </Tag>
       )}
 

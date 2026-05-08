@@ -20,15 +20,7 @@ fn skills_dir() -> PathBuf {
 }
 
 fn all_skills_dirs() -> Vec<PathBuf> {
-    let home = home_dir();
-    vec![
-        axagent_home().join("skills"),
-        home.join(".claude").join("skills"),
-        home.join(".trae").join("skills"),
-        home.join(".codebuddy").join("skills"),
-        home.join(".workbuddy").join("skills"),
-        home.join(".agents").join("skills"),
-    ]
+    axagent_core::skill_dirs::all_skills_dirs()
 }
 
 fn create_plugin_manager_with_skill_dirs() -> Result<PluginManager, String> {

@@ -87,6 +87,7 @@
     "stream-markdown": "^0.0.15",
     "stream-markdown-parser": "^0.0.91",
     "stream-monaco": "^0.0.40",
+    "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

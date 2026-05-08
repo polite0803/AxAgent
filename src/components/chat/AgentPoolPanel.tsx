@@ -6,6 +6,7 @@ const _EMPTY: never[] = [];
 import { AlertTriangle, ChevronDown, ChevronRight, Clock, SkipForward } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useScrollToMessage } from "./ScrollToMessageContext";
 import "./AgentPoolPanel.css";
 
@@ -80,12 +81,13 @@ function getTypeLabel(type: string): string {
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: AgentPoolItem["status"] }) {
+  const { t } = useTranslation();
   const config: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-    pending: { icon: <Clock size={13} />, color: "#8c8c8c", label: "等待" },
-    running: { icon: <LoadingOutlined spin style={{ fontSize: 13 }} />, color: "#1890ff", label: "运行" },
-    completed: { icon: <CheckCircleOutlined style={{ fontSize: 13 }} />, color: "#52c41a", label: "完成" },
-    failed: { icon: <CloseCircleOutlined style={{ fontSize: 13 }} />, color: "#ff4d4f", label: "失败" },
-    cancelled: { icon: <SkipForward size={13} />, color: "#faad14", label: "取消" },
+    pending: { icon: <Clock size={13} />, color: "#8c8c8c", label: t("agentPool.status.pending", "等待") },
+    running: { icon: <LoadingOutlined spin style={{ fontSize: 13 }} />, color: "#1890ff", label: t("agentPool.status.running", "运行") },
+    completed: { icon: <CheckCircleOutlined style={{ fontSize: 13 }} />, color: "#52c41a", label: t("agentPool.status.completed", "完成") },
+    failed: { icon: <CloseCircleOutlined style={{ fontSize: 13 }} />, color: "#ff4d4f", label: t("agentPool.status.failed", "失败") },
+    cancelled: { icon: <SkipForward size={13} />, color: "#faad14", label: t("agentPool.status.cancelled", "取消") },
   };
   const c = config[status] || config.pending;
   return (
@@ -101,6 +103,7 @@ function StatusBadge({ status }: { status: AgentPoolItem["status"] }) {
 // ---------------------------------------------------------------------------
 
 function WorkerMessageLog({ messages }: { messages?: WorkerMessage[] }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   if (!messages || messages.length === 0) { return null; }
 
@@ -115,7 +118,7 @@ function WorkerMessageLog({ messages }: { messages?: WorkerMessage[] }) {
         }}
       >
         {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        消息日志 ({messages.length})
+        {t("agentPool.messageLog", "消息日志 ({count})", { count: messages.length })}
       </button>
       {expanded && (
         <div className="worker-msg-log__list">
@@ -144,6 +147,7 @@ function WorkerMessageLog({ messages }: { messages?: WorkerMessage[] }) {
 // ---------------------------------------------------------------------------
 
 function PoolItemCard({ item }: { item: AgentPoolItem }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { scrollTo } = useScrollToMessage();
   const color = getTypeColor(item.type, item.agentType);
@@ -223,7 +227,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
         )}
         {item.attempts !== undefined && item.maxRetries !== undefined && (
           <span className="pool-item__attempts">
-            尝试 {item.attempts}/{item.maxRetries}
+            {t("agentPool.attempts", "尝试 {attempts}/{maxRetries}", { attempts: item.attempts, maxRetries: item.maxRetries })}
           </span>
         )}
       </div>
@@ -234,7 +238,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
       {/* 子会话跳转 */}
       {item.type === "sub_agent" && isCompleted && item.childConversationId && (
         <div className="pool-item__action">
-          查看子会话 <RightOutlined />
+          {t("agentPool.viewSubSession", "查看子会话")} <RightOutlined />
         </div>
       )}
     </div>
@@ -246,6 +250,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
 // ---------------------------------------------------------------------------
 
 function PoolSummaryBar({ summary }: { summary: AgentPoolSummary }) {
+  const { t } = useTranslation();
   if (summary.total === 0) { return null; }
 
   return (
@@ -263,17 +268,17 @@ function PoolSummaryBar({ summary }: { summary: AgentPoolSummary }) {
         <div className="pool-summary__counts">
           {summary.running > 0 && (
             <span className="pool-summary__count pool-summary__count--running">
-              {summary.running} 运行
+              {summary.running} {t("agentPool.running", "运行")}
             </span>
           )}
           {summary.pending > 0 && (
             <span className="pool-summary__count pool-summary__count--pending">
-              {summary.pending} 等待
+              {summary.pending} {t("agentPool.pending", "等待")}
             </span>
           )}
           {summary.failed > 0 && (
             <span className="pool-summary__count pool-summary__count--failed">
-              {summary.failed} 失败
+              {summary.failed} {t("agentPool.failed", "失败")}
             </span>
           )}
         </div>

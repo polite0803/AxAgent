@@ -64,6 +64,45 @@ pub enum TaskStatus {
     Blocked,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanVersion {
+    pub version: u32,
+    pub plan: Plan,
+    pub created_at: i64,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplanReason {
+    StepFailed { task_id: String, error: String },
+    NewDependencyDiscovered { task_id: String, dependency: String },
+    GoalChanged { old_goal: String, new_goal: String },
+    ResourceConstraint { constraint: String },
+    ManualIntervention { reason: String },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ReplanAction {
+    Retry { task_id: String, modified_parameters: Option<serde_json::Value> },
+    Skip { task_id: String, reason: String },
+    Insert { phase_id: String, task: PlannedTask, position: usize },
+    Remove { task_id: String, reason: String },
+    Reorder { task_id: String, new_position: usize },
+    AddPhase { phase: Phase, position: usize },
+    ModifyTask { task_id: String, modifications: serde_json::Value },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplanRecord {
+    pub version: u32,
+    pub timestamp: i64,
+    pub reason: ReplanReason,
+    pub actions: Vec<ReplanAction>,
+    pub completed_steps: Vec<String>,
+    pub failed_steps: Vec<String>,
+    pub pending_steps: Vec<String>,
+}
+
 #[allow(clippy::type_complexity)]
 pub struct HierarchicalPlanner {
     current_plan: Option<Plan>,
@@ -71,6 +110,9 @@ pub struct HierarchicalPlanner {
     on_task_start: Option<Box<dyn Fn(&str, &PlannedTask) + Send + Sync>>,
     on_task_complete: Option<Box<dyn Fn(&str, &PlannedTask) + Send + Sync>>,
     on_task_fail: Option<Box<dyn Fn(&str, &PlannedTask) + Send + Sync>>,
+    plan_versions: Vec<PlanVersion>,
+    replan_history: Vec<ReplanRecord>,
+    current_version: u32,
 }
 
 impl HierarchicalPlanner {
@@ -81,6 +123,9 @@ impl HierarchicalPlanner {
             on_task_start: None,
             on_task_complete: None,
             on_task_fail: None,
+            plan_versions: Vec::new(),
+            replan_history: Vec::new(),
+            current_version: 0,
         }
     }
 
@@ -98,6 +143,14 @@ impl HierarchicalPlanner {
             created_at: now_timestamp(),
             updated_at: now_timestamp(),
         };
+        let plan_clone = plan.clone();
+        self.plan_versions.push(PlanVersion {
+            version: 0,
+            plan: plan_clone,
+            created_at: now_timestamp(),
+            description: "Initial plan".to_string(),
+        });
+        self.current_version = 0;
         self.current_plan = Some(plan);
         self.current_plan.as_ref().unwrap()
     }
@@ -359,6 +412,267 @@ impl HierarchicalPlanner {
             pending_tasks,
             percentage,
         }
+    }
+
+    pub fn get_replan_history(&self) -> &[ReplanRecord] {
+        &self.replan_history
+    }
+
+    pub fn get_plan_versions(&self) -> &[PlanVersion] {
+        &self.plan_versions
+    }
+
+    pub fn replan(
+        &mut self,
+        reason: ReplanReason,
+        actions: Vec<ReplanAction>,
+    ) -> Result<ReplanRecord, String> {
+        if self.current_plan.is_none() {
+            return Err("No plan created".to_string());
+        }
+
+        let completed_steps = self.collect_completed_steps();
+        let failed_steps = self.collect_failed_steps();
+        let pending_steps = self.collect_pending_steps();
+
+        let current_version = self.current_version;
+
+        self.apply_replan_actions(&actions)?;
+
+        if let Some(ref mut plan) = self.current_plan {
+            plan.updated_at = now_timestamp();
+
+            let plan_clone = plan.clone();
+            let new_version = current_version + 1;
+            self.plan_versions.push(PlanVersion {
+                version: new_version,
+                plan: plan_clone,
+                created_at: now_timestamp(),
+                description: format!("Replan: {:?}", reason),
+            });
+            self.current_version = new_version;
+
+            let record = ReplanRecord {
+                version: new_version,
+                timestamp: now_timestamp(),
+                reason: reason.clone(),
+                actions,
+                completed_steps,
+                failed_steps,
+                pending_steps,
+            };
+
+            self.replan_history.push(record.clone());
+
+            Ok(record)
+        } else {
+            Err("No plan created".to_string())
+        }
+    }
+
+    pub fn rollback(&mut self, target_version: u32) -> Result<&Plan, String> {
+        let version_entry = self
+            .plan_versions
+            .iter()
+            .find(|v| v.version == target_version)
+            .ok_or_else(|| format!("Version {} not found", target_version))?;
+
+        let restored_plan = version_entry.plan.clone();
+        self.current_plan = Some(restored_plan);
+        self.current_version = target_version;
+
+        let plan = self.current_plan.as_mut().ok_or("No plan created")?;
+        plan.updated_at = now_timestamp();
+
+        Ok(plan)
+    }
+
+    pub fn get_completed_steps(&self) -> Vec<String> {
+        self.collect_completed_steps()
+    }
+
+    pub fn get_failed_steps(&self) -> Vec<String> {
+        self.collect_failed_steps()
+    }
+
+    pub fn get_pending_steps(&self) -> Vec<String> {
+        self.collect_pending_steps()
+    }
+
+    fn collect_completed_steps(&self) -> Vec<String> {
+        let plan = match &self.current_plan {
+            Some(p) => p,
+            None => return vec![],
+        };
+
+        plan.phases
+            .iter()
+            .flat_map(|phase| {
+                phase
+                    .tasks
+                    .iter()
+                    .filter(|t| t.status == TaskStatus::Completed)
+                    .map(|t| t.id.clone())
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    fn collect_failed_steps(&self) -> Vec<String> {
+        let plan = match &self.current_plan {
+            Some(p) => p,
+            None => return vec![],
+        };
+
+        plan.phases
+            .iter()
+            .flat_map(|phase| {
+                phase
+                    .tasks
+                    .iter()
+                    .filter(|t| t.status == TaskStatus::Failed)
+                    .map(|t| t.id.clone())
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    fn collect_pending_steps(&self) -> Vec<String> {
+        let plan = match &self.current_plan {
+            Some(p) => p,
+            None => return vec![],
+        };
+
+        plan.phases
+            .iter()
+            .flat_map(|phase| {
+                phase
+                    .tasks
+                    .iter()
+                    .filter(|t| {
+                        t.status == TaskStatus::Pending
+                            || t.status == TaskStatus::Blocked
+                            || t.status == TaskStatus::InProgress
+                    })
+                    .map(|t| t.id.clone())
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    fn apply_replan_actions(&mut self, actions: &[ReplanAction]) -> Result<(), String> {
+        let plan = self.current_plan.as_mut().ok_or("No plan created")?;
+
+        for action in actions {
+            match action {
+                ReplanAction::Retry {
+                    task_id,
+                    modified_parameters,
+                } => {
+                    for phase in &mut plan.phases {
+                        for task in &mut phase.tasks {
+                            if task.id == *task_id {
+                                task.status = TaskStatus::Pending;
+                                task.retry_count = 0;
+                                task.error = None;
+                                if let Some(params) = modified_parameters {
+                                    task.parameters = params.clone();
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                ReplanAction::Skip { task_id, reason: _ } => {
+                    for phase in &mut plan.phases {
+                        for task in &mut phase.tasks {
+                            if task.id == *task_id {
+                                task.status = TaskStatus::Skipped;
+                                break;
+                            }
+                        }
+                    }
+                }
+                ReplanAction::Insert {
+                    phase_id,
+                    task,
+                    position,
+                } => {
+                    for phase in &mut plan.phases {
+                        if phase.id == *phase_id {
+                            let pos = *position.min(&phase.tasks.len());
+                            phase.tasks.insert(pos, task.clone());
+                            break;
+                        }
+                    }
+                }
+                ReplanAction::Remove { task_id, reason: _ } => {
+                    for phase in &mut plan.phases {
+                        phase.tasks.retain(|t| t.id != *task_id);
+                    }
+                }
+                ReplanAction::Reorder {
+                    task_id,
+                    new_position,
+                } => {
+                    for phase in &mut plan.phases {
+                        if let Some(pos) =
+                            phase.tasks.iter().position(|t| t.id == *task_id)
+                        {
+                            let task = phase.tasks.remove(pos);
+                            let task_count = phase.tasks.len();
+                            let new_pos = new_position.min(&task_count);
+                            phase.tasks.insert(*new_pos, task);
+                            break;
+                        }
+                    }
+                }
+                ReplanAction::AddPhase { phase, position } => {
+                    let pos = *position.min(&plan.phases.len());
+                    plan.phases.insert(pos, phase.clone());
+                }
+                ReplanAction::ModifyTask {
+                    task_id,
+                    modifications,
+                } => {
+                    for phase in &mut plan.phases {
+                        for task in &mut phase.tasks {
+                            if task.id == *task_id {
+                                if let Some(desc) = modifications.get("description") {
+                                    if let Some(desc_str) = desc.as_str() {
+                                        task.description = desc_str.to_string();
+                                    }
+                                }
+                                if let Some(params) = modifications.get("parameters") {
+                                    task.parameters = params.clone();
+                                }
+                                if let Some(retries) = modifications.get("max_retries") {
+                                    if let Some(retries_num) = retries.as_u64() {
+                                        task.max_retries = retries_num as u32;
+                                    }
+                                }
+                                if let Some(role) = modifications.get("assigned_role") {
+                                    if let Some(role_str) = role.as_str() {
+                                        task.assigned_role = Some(role_str.to_string());
+                                    }
+                                }
+                                if let Some(deps) = modifications.get("dependencies") {
+                                    if let Some(deps_arr) = deps.as_array() {
+                                        task.dependencies = deps_arr
+                                            .iter()
+                                            .filter_map(|d| d.as_str().map(String::from))
+                                            .collect();
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn unblock_dependent_tasks(&mut self, completed_task_id: &str) -> Result<(), String> {
@@ -787,5 +1101,501 @@ mod tests {
         planner.mark_task_failed(&task_id, "timeout again").unwrap();
         let plan = planner.get_plan().unwrap();
         assert_eq!(plan.phases[0].tasks[0].status, TaskStatus::Failed);
+    }
+
+    #[test]
+    fn test_plan_version_tracking() {
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![TaskBuilder::new("Task 1", "shell").build()],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        assert_eq!(planner.get_plan_versions().len(), 1);
+        assert_eq!(planner.get_plan_versions()[0].version, 0);
+        assert_eq!(planner.current_version, 0);
+    }
+
+    #[test]
+    fn test_replan_retry_failed_step() {
+        let mut planner = HierarchicalPlanner::new();
+        let task = TaskBuilder::new("Flaky task", "shell")
+            .with_max_retries(2)
+            .build();
+        let task_id = task.id.clone();
+
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        planner.start_execution().unwrap();
+        planner.mark_task_started(&task_id).unwrap();
+        planner.mark_task_failed(&task_id, "timeout").unwrap();
+        planner.mark_task_started(&task_id).unwrap();
+        planner.mark_task_failed(&task_id, "timeout again").unwrap();
+
+        let failed = planner.get_failed_steps();
+        assert_eq!(failed.len(), 1);
+        assert_eq!(failed[0], task_id);
+
+        let reason = ReplanReason::StepFailed {
+            task_id: task_id.clone(),
+            error: "timeout again".to_string(),
+        };
+
+        let actions = vec![ReplanAction::Retry {
+            task_id: task_id.clone(),
+            modified_parameters: Some(serde_json::json!({"timeout_ms": 30000})),
+        }];
+
+        let record = planner.replan(reason, actions).unwrap();
+
+        assert_eq!(record.version, 1);
+        assert!(matches!(record.reason, ReplanReason::StepFailed { .. }));
+        assert_eq!(record.completed_steps.len(), 0);
+        assert_eq!(record.failed_steps.len(), 1);
+
+        let plan = planner.get_plan().unwrap();
+        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).unwrap();
+        assert_eq!(task.status, TaskStatus::Pending);
+        assert_eq!(task.retry_count, 0);
+        assert_eq!(task.error, None);
+
+        assert_eq!(planner.get_plan_versions().len(), 2);
+        assert_eq!(planner.current_version, 1);
+        assert_eq!(planner.get_replan_history().len(), 1);
+    }
+
+    #[test]
+    fn test_replan_skip_impossible_step() {
+        let task1 = TaskBuilder::new("Task 1", "shell").build();
+        let task2 = TaskBuilder::new("Task 2", "shell").build();
+
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task1, task2],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        planner.start_execution().unwrap();
+
+        let reason = ReplanReason::ResourceConstraint {
+            constraint: "External API rate limit exceeded".to_string(),
+        };
+
+        let task1_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let actions = vec![ReplanAction::Skip {
+            task_id: task1_id.clone(),
+            reason: "API rate limited, skipping for now".to_string(),
+        }];
+
+        planner.replan(reason, actions).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        let task = plan.phases[0].tasks.iter().find(|t| t.id == task1_id).unwrap();
+        assert_eq!(task.status, TaskStatus::Skipped);
+    }
+
+    #[test]
+    fn test_replan_insert_new_step() {
+        let task = TaskBuilder::new("Deploy app", "shell").build();
+
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Deploy".to_string(),
+                description: "Deploy phase".to_string(),
+                tasks: vec![task],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let phase_id = planner.get_plan().unwrap().phases[0].id.clone();
+
+        let new_task = TaskBuilder::new("Run migration", "shell")
+            .with_dependencies(vec![])
+            .build();
+
+        let reason = ReplanReason::NewDependencyDiscovered {
+            task_id: "deploy".to_string(),
+            dependency: "database migration".to_string(),
+        };
+
+        let actions = vec![ReplanAction::Insert {
+            phase_id: phase_id.clone(),
+            task: new_task,
+            position: 0,
+        }];
+
+        planner.replan(reason, actions).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        let phase = plan.phases.iter().find(|p| p.id == phase_id).unwrap();
+        assert_eq!(phase.tasks.len(), 2);
+        assert_eq!(phase.tasks[0].description, "Run migration");
+        assert_eq!(phase.tasks[1].description, "Deploy app");
+    }
+
+    #[test]
+    fn test_replan_add_phase() {
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let new_phase = Phase {
+            id: "p2".to_string(),
+            name: "Phase 2".to_string(),
+            description: "Inserted phase".to_string(),
+            tasks: vec![TaskBuilder::new("New task", "shell").build()],
+            dependencies: vec!["p1".to_string()],
+            status: PhaseStatus::Pending,
+        };
+
+        let reason = ReplanReason::GoalChanged {
+            old_goal: "Test plan".to_string(),
+            new_goal: "Extended plan".to_string(),
+        };
+
+        let actions = vec![ReplanAction::AddPhase {
+            phase: new_phase,
+            position: 1,
+        }];
+
+        planner.replan(reason, actions).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        assert_eq!(plan.phases.len(), 2);
+        assert_eq!(plan.phases[1].name, "Phase 2");
+    }
+
+    #[test]
+    fn test_replan_modify_task() {
+        let task = TaskBuilder::new("Task 1", "shell")
+            .with_max_retries(1)
+            .with_role("developer")
+            .build();
+
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+
+        let reason = ReplanReason::ManualIntervention {
+            reason: "Increase retries and change role".to_string(),
+        };
+
+        let modifications = serde_json::json!({
+            "max_retries": 5,
+            "assigned_role": "senior_developer",
+            "description": "Updated task description"
+        });
+
+        let actions = vec![ReplanAction::ModifyTask {
+            task_id: task_id.clone(),
+            modifications,
+        }];
+
+        planner.replan(reason, actions).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).unwrap();
+        assert_eq!(task.max_retries, 5);
+        assert_eq!(task.assigned_role, Some("senior_developer".to_string()));
+        assert_eq!(task.description, "Updated task description");
+    }
+
+    #[test]
+    fn test_replan_remove_task() {
+        let task1 = TaskBuilder::new("Task 1", "shell").build();
+        let task2 = TaskBuilder::new("Task 2", "shell").build();
+
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task1, task2],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let task1_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+
+        let reason = ReplanReason::StepFailed {
+            task_id: task1_id.clone(),
+            error: "Obsolete requirement".to_string(),
+        };
+
+        let actions = vec![ReplanAction::Remove {
+            task_id: task1_id.clone(),
+            reason: "No longer needed".to_string(),
+        }];
+
+        planner.replan(reason, actions).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        assert_eq!(plan.phases[0].tasks.len(), 1);
+        assert!(plan.phases[0].tasks.iter().all(|t| t.id != task1_id));
+    }
+
+    #[test]
+    fn test_replan_reorder_tasks() {
+        let task1 = TaskBuilder::new("Task 1", "shell").build();
+        let task2 = TaskBuilder::new("Task 2", "shell").build();
+
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task1, task2],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let task2_id = planner.get_plan().unwrap().phases[0].tasks[1].id.clone();
+
+        let reason = ReplanReason::NewDependencyDiscovered {
+            task_id: task2_id.clone(),
+            dependency: "task1 should run after task2".to_string(),
+        };
+
+        let actions = vec![ReplanAction::Reorder {
+            task_id: task2_id.clone(),
+            new_position: 0,
+        }];
+
+        planner.replan(reason, actions).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        assert_eq!(plan.phases[0].tasks[0].id, task2_id);
+    }
+
+    #[test]
+    fn test_rollback_plan() {
+        let mut planner = HierarchicalPlanner::new();
+        let task = TaskBuilder::new("Task 1", "shell").build();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let reason = ReplanReason::ManualIntervention {
+            reason: "Test rollback".to_string(),
+        };
+
+        let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let actions = vec![ReplanAction::Remove {
+            task_id: task_id.clone(),
+            reason: "Testing".to_string(),
+        }];
+
+        planner.replan(reason, actions).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        assert_eq!(plan.phases[0].tasks.len(), 0);
+
+        planner.rollback(0).unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        assert_eq!(plan.phases[0].tasks.len(), 1);
+        assert_eq!(planner.current_version, 0);
+    }
+
+    #[test]
+    fn test_rollback_nonexistent_version() {
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let result = planner.rollback(999);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_replan_history_accumulation() {
+        let mut planner = HierarchicalPlanner::new();
+        let task = TaskBuilder::new("Task 1", "shell").build();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+
+        planner
+            .replan(
+                ReplanReason::StepFailed {
+                    task_id: task_id.clone(),
+                    error: "error1".to_string(),
+                },
+                vec![ReplanAction::Retry {
+                    task_id: task_id.clone(),
+                    modified_parameters: None,
+                }],
+            )
+            .unwrap();
+
+        planner
+            .replan(
+                ReplanReason::ManualIntervention {
+                    reason: "manual".to_string(),
+                },
+                vec![ReplanAction::Skip {
+                    task_id: task_id.clone(),
+                    reason: "skip".to_string(),
+                }],
+            )
+            .unwrap();
+
+        assert_eq!(planner.get_replan_history().len(), 2);
+        assert_eq!(planner.get_replan_history()[0].version, 1);
+        assert_eq!(planner.get_replan_history()[1].version, 2);
+    }
+
+    #[test]
+    fn test_get_step_status_methods() {
+        let task1 = TaskBuilder::new("Task 1", "shell").build();
+        let task2 = TaskBuilder::new("Task 2", "shell").build();
+
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task1, task2],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        let completed = planner.get_completed_steps();
+        assert_eq!(completed.len(), 0);
+
+        let failed = planner.get_failed_steps();
+        assert_eq!(failed.len(), 0);
+
+        let pending = planner.get_pending_steps();
+        assert_eq!(pending.len(), 0);
+    }
+
+    #[test]
+    fn test_multiple_replans_preserve_completed_work() {
+        let task1 = TaskBuilder::new("Task 1", "shell").build();
+        let task2 = TaskBuilder::new("Task 2", "shell").build();
+        let task1_id = task1.id.clone();
+
+        let mut planner = HierarchicalPlanner::new();
+        planner.create_plan(
+            "Test plan",
+            vec![Phase {
+                id: "p1".to_string(),
+                name: "Phase 1".to_string(),
+                description: "First phase".to_string(),
+                tasks: vec![task1, task2],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+        );
+
+        planner.start_execution().unwrap();
+        planner
+            .mark_task_completed(&task1_id, serde_json::json!({"done": true}))
+            .unwrap();
+
+        let task2_id = planner.get_plan().unwrap().phases[0].tasks[1].id.clone();
+
+        planner
+            .replan(
+                ReplanReason::StepFailed {
+                    task_id: task2_id.clone(),
+                    error: "failed".to_string(),
+                },
+                vec![ReplanAction::Retry {
+                    task_id: task2_id.clone(),
+                    modified_parameters: None,
+                }],
+            )
+            .unwrap();
+
+        let plan = planner.get_plan().unwrap();
+        let t1 = plan.phases[0].tasks.iter().find(|t| t.id == task1_id).unwrap();
+        assert_eq!(t1.status, TaskStatus::Completed);
+        assert_eq!(t1.result, Some(serde_json::json!({"done": true})));
     }
 }

@@ -16,6 +16,7 @@ import {
 } from "antd";
 import { Link2, Plus, Power, RefreshCw, Server } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
@@ -24,6 +25,7 @@ const STORAGE_KEY = "acp_base_url";
 const DEFAULT_BASE_URL = "http://localhost:9876";
 
 export function AcpSettings() {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem(STORAGE_KEY) || DEFAULT_BASE_URL);
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -55,14 +57,14 @@ export function AcpSettings() {
       const ok = await client.healthCheck();
       setConnected(ok);
       if (ok) {
-        message.success("连接成功");
+        message.success(t("acp.connected", "连接成功"));
         refreshSessions();
       } else {
-        message.error("无法连接到 ACP 服务端");
+        message.error(t("acp.connectFailed", "无法连接到 ACP 服务端"));
       }
     } catch {
       setConnected(false);
-      message.error("连接失败，请检查地址是否正确");
+      message.error(t("acp.connectFailedCheck", "连接失败，请检查地址是否正确"));
     } finally {
       setChecking(false);
     }
@@ -71,13 +73,13 @@ export function AcpSettings() {
   // 创建会话
   const handleCreateSession = async () => {
     if (!workDir.trim()) {
-      message.warning("请输入工作目录");
+      message.warning(t("acp.workdirRequired", "请输入工作目录"));
       return;
     }
     setCreating(true);
     try {
       await createSession({ workDir: workDir.trim() });
-      message.success("会话已创建");
+      message.success(t("acp.sessionCreated", "会话已创建"));
       setWorkDir("");
     } catch {
       // error from hook already set
@@ -90,16 +92,16 @@ export function AcpSettings() {
   const handleCloseSession = async (sessionId: string) => {
     try {
       await closeSession(sessionId);
-      message.success("会话已关闭");
+      message.success(t("acp.sessionClosed", "会话已关闭"));
     } catch {
-      message.error("关闭会话失败");
+      message.error(t("acp.closeSessionFailed", "关闭会话失败"));
     }
   };
 
   // 状态颜色和文本
   const statusConfig = () => {
     if (connected === null) {
-      return { color: "default", text: "未检测", dot: <Badge status="default" /> };
+      return { color: "default", text: t("acp.notDetected", "未检测"), dot: <Badge status="default" /> };
     }
     if (connected) {
       return {
@@ -119,10 +121,10 @@ export function AcpSettings() {
 
   return (
     <div className="p-6 pb-12" style={{ overflowY: "auto" }} data-os-scrollbar>
-      <SettingsGroup title="ACP 服务端连接">
+      <SettingsGroup title={t("acp.serverTitle", "ACP 服务端连接")}>
         <div style={{ padding: "6px 0" }} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Server size={14} /> 服务端地址
+            <Server size={14} /> {t("acp.serverAddress", "服务端地址")}
           </span>
           <Input
             value={baseUrl}
@@ -135,7 +137,7 @@ export function AcpSettings() {
         <Divider style={{ margin: "4px 0" }} />
         <div style={{ padding: "6px 0" }} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Link2 size={14} /> 连接状态
+            <Link2 size={14} /> {t("acp.connectionStatus", "连接状态")}
           </span>
           <Space size={8}>
             <Badge
@@ -156,7 +158,7 @@ export function AcpSettings() {
               loading={checking}
               onClick={handleTestConnection}
             >
-              测试连接
+              {t("acp.testConnection", "测试连接")}
             </Button>
           </Space>
         </div>
@@ -172,22 +174,22 @@ export function AcpSettings() {
               color: token.colorError,
             }}
           >
-            无法连接到 ACP 服务端，请确认服务已启动且地址正确。
+            {t("acp.serverNotReachable", "无法连接到 ACP 服务端，请确认服务已启动且地址正确。")}
           </div>
         )}
       </SettingsGroup>
 
       {/* 创建会话 */}
-      <SettingsGroup title="创建会话">
+      <SettingsGroup title={t("acp.createSessionTitle", "创建会话")}>
         <div style={{ padding: "6px 0" }} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Plus size={14} /> 工作目录
+            <Plus size={14} /> {t("acp.workdir", "工作目录")}
           </span>
           <Space size={8}>
             <Input
               value={workDir}
               onChange={(e) => setWorkDir(e.target.value)}
-              placeholder="请输入项目工作目录路径"
+              placeholder={t("acp.workdirPlaceholder", "请输入项目工作目录路径")}
               style={{ width: 280 }}
               size="small"
             />
@@ -199,7 +201,7 @@ export function AcpSettings() {
               onClick={handleCreateSession}
               disabled={connected !== true}
             >
-              创建会话
+              {t("acp.createSession", "创建会话")}
             </Button>
           </Space>
         </div>
@@ -207,7 +209,7 @@ export function AcpSettings() {
 
       {/* 活跃会话列表 */}
       <SettingsGroup
-        title={`活跃会话 (${sessions.length})`}
+        title={`${t("acp.activeSessions", "活跃会话")} (${sessions.length})`}
         extra={
           <Button
             size="small"
@@ -216,21 +218,21 @@ export function AcpSettings() {
             loading={loading}
             disabled={connected !== true}
           >
-            刷新
+            {t("acp.refresh", "刷新")}
           </Button>
         }
       >
         {connected !== true
           ? (
             <Empty
-              description="请先测试连接"
+              description={t("acp.testFirst", "请先测试连接")}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )
           : sessions.length === 0
           ? (
             <Empty
-              description="暂无活跃会话"
+              description={t("acp.noSessions", "暂无活跃会话")}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )
@@ -243,13 +245,13 @@ export function AcpSettings() {
                   actions={[
                     <Popconfirm
                       key="close"
-                      title="确认关闭此会话?"
+                      title={t("acp.confirmClose", "确认关闭此会话?")}
                       onConfirm={() => handleCloseSession(s.sessionId)}
-                      okText="确认"
-                      cancelText="取消"
+                      okText={t("common.confirm", "确认")}
+                      cancelText={t("common.cancel", "取消")}
                     >
                       <Button size="small" type="text" danger icon={<Power size={13} />}>
-                        关闭
+                        {t("acp.close", "关闭")}
                       </Button>
                     </Popconfirm>,
                   ]}

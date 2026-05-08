@@ -2,6 +2,7 @@ import { Button, Empty, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Code, Play, Terminal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -61,6 +62,7 @@ interface HookExecutionLogProps {
 }
 
 export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<HookExecutionRecord[]>([]);
   const [filterEvent, setFilterEvent] = useState<string | undefined>(undefined);
 
@@ -92,7 +94,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
 
   const columns: ColumnsType<HookExecutionRecord> = [
     {
-      title: "时间",
+      title: t("hookLog.column.time", "时间"),
       dataIndex: "timestamp",
       key: "timestamp",
       width: 170,
@@ -103,7 +105,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       ),
     },
     {
-      title: "事件名",
+      title: t("hookLog.column.event", "事件名"),
       dataIndex: "event",
       key: "event",
       width: 160,
@@ -115,7 +117,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       ),
     },
     {
-      title: "工具名",
+      title: t("hookLog.column.tool", "工具名"),
       dataIndex: "toolName",
       key: "toolName",
       width: 130,
@@ -134,7 +136,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
           ),
     },
     {
-      title: "命令",
+      title: t("hookLog.column.command", "命令"),
       dataIndex: "command",
       key: "command",
       ellipsis: true,
@@ -148,7 +150,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       ),
     },
     {
-      title: "状态",
+      title: t("hookLog.column.status", "状态"),
       dataIndex: "status",
       key: "status",
       width: 80,
@@ -156,17 +158,17 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
         status === "success"
           ? (
             <Tag color="success" style={{ fontSize: 11 }}>
-              成功
+              {t("hookLog.success", "成功")}
             </Tag>
           )
           : (
             <Tag color="error" style={{ fontSize: 11 }}>
-              失败
+              {t("hookLog.failed", "失败")}
             </Tag>
           ),
     },
     {
-      title: "输出摘要",
+      title: t("hookLog.column.outputSummary", "输出摘要"),
       dataIndex: "outputSummary",
       key: "outputSummary",
       ellipsis: true,
@@ -194,12 +196,12 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       >
         <Space size={8}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            按事件过滤：
+            {t("hookLog.filterLabel", "按事件过滤：")}
           </Text>
           <Select
             allowClear
             size="small"
-            placeholder="全部事件"
+            placeholder={t("hookLog.allEvents", "全部事件")}
             value={filterEvent}
             onChange={(val) => setFilterEvent(val)}
             options={eventOptions}
@@ -208,7 +210,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
         </Space>
         <Space size={8}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            共 {filteredLogs.length} 条记录
+            {t("hookLog.recordCount", "共 {{count}} 条记录", { count: filteredLogs.length })}
           </Text>
           {logs.length > 0 && (
             <Button
@@ -217,7 +219,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
               icon={<Trash2 size={13} />}
               onClick={handleClearAll}
             >
-              清空日志
+              {t("hookLog.clear", "清空日志")}
             </Button>
           )}
         </Space>
@@ -227,9 +229,9 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       {filteredLogs.length === 0
         ? (
           <Empty
-            description={logs.length === 0 ? "暂无 Hook 执行记录" : "无匹配的记录"}
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+              description={logs.length === 0 ? t("hookLog.emptyStatus", "暂无 Hook 执行记录") : t("hookLog.emptyFiltered", "无匹配的记录")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
         )
         : (
           <Table

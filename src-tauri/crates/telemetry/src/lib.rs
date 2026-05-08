@@ -13,15 +13,21 @@ pub mod collector;
 pub mod event;
 pub mod exporter;
 pub mod metrics;
+pub mod otel;
 pub mod span;
 pub mod storage;
+pub mod structured_logging;
 pub mod tracer;
 
 pub use collector::*;
 pub use exporter::*;
 pub use metrics::*;
+pub use otel::{OtelConfig, OtelProviders};
 pub use span::*;
 pub use storage::*;
+pub use structured_logging::{
+    clear_context, generate_trace_id, get_session_id, get_trace_id, set_session_id, set_trace_id,
+};
 pub use tracer::*;
 
 pub const DEFAULT_ANTHROPIC_VERSION: &str = "2023-06-01";

@@ -39,3 +39,27 @@ sha2 = "0.10"
 tempfile = "3"
 tauri = { version = "2", features = ["test"] }
 axagent-migration = { path = "../migration" }
+
+[[test]]
+name = "agent_integration_tests"
+path = "tests/agent_integration_tests.rs"
+
+[[test]]
+name = "recovery_tests"
+path = "tests/recovery_tests.rs"
+
+[[test]]
+name = "planner_tests"
+path = "tests/planner_tests.rs"
+
+[[test]]
+name = "error_recovery_tests"
+path = "tests/error_recovery_tests.rs"
+
+[[test]]
+name = "coordinator_tests"
+path = "tests/coordinator_tests.rs"
+
+[[test]]
+name = "react_engine_tests"
+path = "tests/react_engine_tests.rs"

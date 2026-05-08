@@ -236,7 +236,7 @@ fn create_sync_engine(
 ) -> Option<Arc<SyncEngine>> {
     #[cfg(mobile)]
     {
-        let cloud_config = load_cloud_storage_config(sea_db, app_settings)?;
+        let cloud_config = load_cloud_storage_config(_sea_db, _app_settings)?;
         let backend = cloud_config.create_backend().ok()?;
         let device_id = hostname_or_uuid();
         let profile_name = cloud_config.profile_name.clone();

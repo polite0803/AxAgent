@@ -46,6 +46,9 @@ export function SkillSandboxContainer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { token: themeToken } = antdTheme.useToken();
+  const currentTheme: "light" | "dark" = themeToken.colorBgBase === "#ffffff" ? "light" : "dark";
+
   const entry = (componentConfig.entry as string) || "index.html";
   const props = (componentConfig.props as Record<string, unknown>) || {};
 
@@ -90,27 +93,46 @@ export function SkillSandboxContainer({
   };
 
   const hostStore: SkillHostStore = {
-    read: async <T = unknown>(storeName: string, _selector?: string): Promise<T> => {
-      const stores = await import("@/stores");
-      const storeMap: Record<string, unknown> = {
-        preference: stores.usePreferenceStore?.getState(),
-        conversation: stores.useConversationStore?.getState(),
-        ui: stores.useUIStore?.getState(),
-        skill: stores.useSkillStore?.getState(),
-      };
-      const store = storeMap[storeName];
-      if (!store) { throw new Error(`Store "${storeName}" 未找到`); }
-      return store as T;
+    read: async <T = unknown>(storeName: string, selector?: string): Promise<T> => {
+      const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
+      await initStoreRegistry();
+      const registry = getStoreRegistry();
+      const accessor = registry.get(storeName);
+      if (!accessor) { throw new Error(`Store "${storeName}" 未找到`); }
+      const state = accessor.get() as Record<string, unknown>;
+      if (selector) {
+        const parts = selector.split(".");
+        let result: unknown = state;
+        for (const part of parts) {
+          if (result && typeof result === "object" && part in (result as Record<string, unknown>)) {
+            result = (result as Record<string, unknown>)[part];
+          } else {
+            return undefined as T;
+          }
+        }
+        return structuredClone(result) as T;
+      }
+      return structuredClone(state) as T;
     },
-    write: async (storeName: string, value: unknown): Promise<void> => {
-      const stores = await import("@/stores");
-      const storeMap: Record<string, { setState: (partial: unknown) => void }> = {
-        preference: stores.usePreferenceStore as unknown as { setState: (partial: unknown) => void },
-        ui: stores.useUIStore as unknown as { setState: (partial: unknown) => void },
-      };
-      const store = storeMap[storeName];
-      if (!store?.setState) { throw new Error(`Store "${storeName}" 不可写`); }
-      store.setState(value);
+    write: async (storeName: string, value: unknown, selector?: string): Promise<void> => {
+      const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
+      await initStoreRegistry();
+      const registry = getStoreRegistry();
+      const accessor = registry.get(storeName);
+      if (!accessor) { throw new Error(`Store "${storeName}" 不可写`); }
+      if (selector && typeof value === "object" && value !== null) {
+        const partial: Record<string, unknown> = {};
+        const parts = selector.split(".");
+        let current = partial;
+        for (let i = 0; i < parts.length - 1; i++) {
+          current[parts[i]] = {};
+          current = current[parts[i]] as Record<string, unknown>;
+        }
+        current[parts[parts.length - 1]] = value;
+        accessor.set(partial);
+      } else {
+        accessor.set(value);
+      }
     },
   };
 
@@ -181,6 +203,7 @@ export function SkillSandboxContainer({
           apiBridgeRef.current = apiBridge;
 
           bridge.sendLifecycle("mount", props);
+          bridge.emitEvent("theme-change", { theme: hostUi.getTheme() });
 
           if (loadTimerRef.current) {
             clearTimeout(loadTimerRef.current);
@@ -227,6 +250,12 @@ export function SkillSandboxContainer({
       if (loadTimerRef.current) { clearTimeout(loadTimerRef.current); }
     };
   }, [loadSandbox]);
+
+  useEffect(() => {
+    if (bridgeRef.current) {
+      bridgeRef.current.emitEvent("theme-change", { theme: currentTheme });
+    }
+  }, [currentTheme]);
 
   if (error) {
     return (

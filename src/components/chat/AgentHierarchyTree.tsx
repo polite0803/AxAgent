@@ -8,6 +8,7 @@ import { BranchesOutlined, CaretRightOutlined, RobotOutlined } from "@ant-design
 import { Tag, Tree, Typography } from "antd";
 import type { DataNode } from "antd/es/tree";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -16,11 +17,11 @@ interface AgentHierarchyTreeProps {
 }
 
 // 将 AgentPoolItem 转换为 Tree DataNode
-function toTreeNode(item: AgentPoolItem, allItems: AgentPoolItem[]): DataNode {
+function toTreeNode(item: AgentPoolItem, allItems: AgentPoolItem[], t: (key: string, fallback: string) => string): DataNode {
   const isFork = (item as { isFork?: boolean }).isFork;
   const children = allItems
     .filter((child) => child.dependsOn?.includes(item.id))
-    .map((child) => toTreeNode(child, allItems));
+    .map((child) => toTreeNode(child, allItems, t));
 
   return {
     key: item.id,
@@ -41,11 +42,11 @@ function toTreeNode(item: AgentPoolItem, allItems: AgentPoolItem[]): DataNode {
           style={{ fontSize: 10, lineHeight: "16px", margin: 0 }}
         >
           {item.status === "running"
-            ? "运行中"
+            ? t("agentHierarchy.running", "运行中")
             : item.status === "completed"
-            ? "完成"
+            ? t("agentHierarchy.completed", "完成")
             : item.status === "failed"
-            ? "失败"
+            ? t("agentHierarchy.failed", "失败")
             : item.status}
         </Tag>
         {item.agentType && item.agentType !== "general-purpose" && (
@@ -60,17 +61,16 @@ function toTreeNode(item: AgentPoolItem, allItems: AgentPoolItem[]): DataNode {
 }
 
 export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) {
+  const { t } = useTranslation();
   const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
 
   const treeData = useMemo(() => {
-    // 找根节点（没有 dependsOn 或 dependsOn 为空的节点）
     const roots = pool.filter((item) => !item.dependsOn || item.dependsOn.length === 0);
     if (roots.length === 0 && pool.length > 0) {
-      // 如果所有节点都有依赖，取前两个作为根
-      return pool.slice(0, 2).map((item) => toTreeNode(item, pool));
+      return pool.slice(0, 2).map((item) => toTreeNode(item, pool, t));
     }
-    return roots.map((item) => toTreeNode(item, pool));
-  }, [pool]);
+    return roots.map((item) => toTreeNode(item, pool, t));
+  }, [pool, t]);
 
   if (treeData.length === 0) { return null; }
 
@@ -78,8 +78,8 @@ export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) 
     <div style={{ padding: "8px 12px", borderBottom: "1px solid #f0f0f0", background: "#fafafa" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
         <BranchesOutlined style={{ fontSize: 13, color: "#722ed1" }} />
-        <Text style={{ fontSize: 12, fontWeight: 600 }}>Agent 层级</Text>
-        <Text type="secondary" style={{ fontSize: 11 }}>({pool.length} 个)</Text>
+        <Text style={{ fontSize: 12, fontWeight: 600 }}>{t("agentHierarchy.title", "Agent 层级")}</Text>
+        <Text type="secondary" style={{ fontSize: 11 }}>{t("agentHierarchy.count", "({count} 个)", { count: pool.length })}</Text>
       </div>
       {treeData.length > 0 && (
         <Tree

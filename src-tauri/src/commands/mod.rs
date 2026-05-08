@@ -1,5 +1,6 @@
 pub mod agency_expert;
 pub mod agent;
+pub mod agent_advanced;
 pub mod agent_analytics;
 pub mod agent_insight;
 pub mod agent_nudge;
@@ -10,15 +11,18 @@ pub mod artifacts;
 pub mod background_tasks;
 pub mod backup;
 pub mod branches;
+#[cfg(not(mobile))]
 pub mod browser;
 pub mod chart_generator;
 pub mod cloud_workspace;
+#[cfg(not(mobile))]
 pub mod computer_control;
 pub mod context_sources;
 pub mod conversation_categories;
 pub mod conversations;
 pub mod conversations_search;
 pub mod dashboard;
+#[cfg(not(mobile))]
 pub mod desktop;
 pub mod dream;
 pub mod evaluator;
@@ -51,6 +55,7 @@ pub mod quickbar;
 pub mod rl;
 pub mod sandbox;
 pub mod scheduled_task;
+#[cfg(not(mobile))]
 pub mod screen_vision;
 pub mod search;
 pub mod session;
@@ -60,6 +65,7 @@ pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;
 pub mod storage;
+#[cfg(not(mobile))]
 pub mod terminal;
 pub mod theme;
 pub mod tool_recommender;

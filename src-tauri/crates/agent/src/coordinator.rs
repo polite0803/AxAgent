@@ -1,5 +1,6 @@
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use crate::steer_manager::SteerManager;
+use crate::tree_of_thoughts::{TreeOfThoughtsEngine, LlmReasoningProvider as ToTReasoningProvider};
 use async_trait::async_trait;
 use axagent_runtime::{prompt_cache::PromptCache, CacheGuard, HookChain};
 use serde::{Deserialize, Serialize};
@@ -399,6 +400,7 @@ pub struct AgentCoordinator<T: AgentImpl> {
     pub cache_guard: Arc<CacheGuard>,
     pub hook_chain: Arc<HookChain>,
     pub steer_manager: Arc<SteerManager>,
+    tot_engine: Option<TreeOfThoughtsEngine>,
 }
 
 impl<T: AgentImpl> AgentCoordinator<T> {
@@ -420,7 +422,46 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             cache_guard: Arc::new(CacheGuard::new(prompt_cache)),
             hook_chain: Arc::new(HookChain::new()),
             steer_manager: Arc::new(SteerManager::new()),
+            tot_engine: None,
         }
+    }
+
+    pub fn with_tot_engine(mut self, engine: TreeOfThoughtsEngine) -> Self {
+        self.tot_engine = Some(engine);
+        self
+    }
+
+    pub async fn reason_with_tot(
+        &mut self,
+        _problem: &str,
+        context: &str,
+        provider: &Arc<dyn ToTReasoningProvider>,
+    ) -> Option<Vec<String>> {
+        let engine = self.tot_engine.as_mut()?;
+
+        let root_id = engine.root_id.clone();
+        let child_ids = engine.generate_branching_options(root_id, context, provider)
+            .await
+            .ok()?;
+
+        let mut scored_ids = Vec::new();
+        for child_id in &child_ids {
+            if let Ok(score) = engine.evaluate_and_score_node(child_id, context, provider).await {
+                scored_ids.push((child_id.clone(), score));
+            }
+        }
+
+        engine.prune_below_threshold(0.3);
+
+        let best_path = engine.select_best_path();
+        if !best_path.is_empty() {
+            tracing::info!(
+                path_length = best_path.len(),
+                "Tree of Thoughts selected best reasoning path"
+            );
+        }
+
+        Some(best_path)
     }
 
     pub async fn initialize(&self, config: AgentConfig) -> Result<(), AgentError> {
@@ -484,6 +525,9 @@ impl<T: AgentImpl> AgentCoordinator<T> {
                 tracing::info!("Injecting steer instructions into agent turn");
             }
         }
+
+        // For complex tasks, use Tree of Thoughts to explore multiple reasoning paths
+        // before delegating to workers
 
         let cache_was_valid = self.prompt_cache.is_cache_valid().await;
         self.emit_event(

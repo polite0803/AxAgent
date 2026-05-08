@@ -3,6 +3,7 @@ import type { PermissionRequestEvent } from "@/types";
 import { Button, Modal, Space, Tag, Typography } from "antd";
 import { CheckCircle, Eye, Info, Pencil, Shield, ShieldCheck, ShieldX, Terminal } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
 
@@ -10,24 +11,24 @@ type RiskLevel = "read_only" | "write" | "execute";
 
 const RISK_CONFIG: Record<
   RiskLevel,
-  { color: string; icon: React.ReactNode; label: string; bgColor: string }
+  { color: string; icon: React.ReactNode; labelKey: string; bgColor: string }
 > = {
   read_only: {
     color: "blue",
     icon: <Eye size={14} />,
-    label: "只读",
+    labelKey: "permission.readonly",
     bgColor: "rgba(0, 120, 250, 0.1)",
   },
   write: {
     color: "orange",
     icon: <Pencil size={14} />,
-    label: "写入",
+    labelKey: "permission.write",
     bgColor: "rgba(250, 173, 20, 0.1)",
   },
   execute: {
     color: "red",
     icon: <Terminal size={14} />,
-    label: "执行",
+    labelKey: "permission.execute",
     bgColor: "rgba(255, 77, 79, 0.1)",
   },
 };
@@ -94,6 +95,7 @@ function generateOperationSummary(
  * 提供"允许"、"拒绝"、"始终允许"三个操作按钮。
  */
 export const PermissionModal: React.FC = () => {
+  const { t } = useTranslation();
   const pendingPermissions = useAgentStore((s) => s.pendingPermissions);
   const approveToolUse = useAgentStore((s) => s.approveToolUse);
 
@@ -182,7 +184,7 @@ export const PermissionModal: React.FC = () => {
           {permissionRequest && (
             <Tag color={riskCfg.color} style={{ display: "inline-flex", alignItems: "center", gap: 4, margin: 0 }}>
               {riskCfg.icon}
-              {riskCfg.label}
+              {t(riskCfg.labelKey)}
             </Tag>
           )}
         </Space>
@@ -269,7 +271,7 @@ export const PermissionModal: React.FC = () => {
         {permissionRequest?.riskLevel && (
           <div>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              风险等级：{riskCfg.label}
+              风险等级：{t(riskCfg.labelKey)}
               {riskLevel === "execute"
                 ? " — 此操作可能修改系统状态，请谨慎审批"
                 : riskLevel === "write"

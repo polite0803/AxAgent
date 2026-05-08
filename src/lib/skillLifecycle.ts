@@ -1,16 +1,20 @@
 import { invoke } from "@/lib/invoke";
-import type { SkillCommandAction, SkillLifecycleHooks, SkillManifest } from "@/types";
+import type { SkillCommandAction, SkillLifecycleHooks, SkillManifest, SkillPermissions } from "@/types";
 import { getActionRouter } from "./actionRouter";
 
-/** 生命周期钩子缓存（5 分钟 TTL） */
-const lifecycleCache = new Map<string, { hooks: SkillLifecycleHooks | null; ts: number }>();
+interface LifecycleCacheEntry {
+  hooks: SkillLifecycleHooks | null;
+  permissions: SkillPermissions | undefined;
+  ts: number;
+}
+
+const lifecycleCache = new Map<string, LifecycleCacheEntry>();
 const LIFECYCLE_CACHE_TTL_MS = 5 * 60 * 1000;
 
-/** 从 skill 目录读取 manifest.json 并提取生命周期钩子 */
-async function readLifecycleHooks(skillName: string): Promise<SkillLifecycleHooks | null> {
+async function readLifecycleData(skillName: string): Promise<{ hooks: SkillLifecycleHooks | null; permissions: SkillPermissions | undefined }> {
   const cached = lifecycleCache.get(skillName);
   if (cached && Date.now() - cached.ts < LIFECYCLE_CACHE_TTL_MS) {
-    return cached.hooks;
+    return { hooks: cached.hooks, permissions: cached.permissions };
   }
 
   try {
@@ -18,10 +22,11 @@ async function readLifecycleHooks(skillName: string): Promise<SkillLifecycleHook
       name: skillName,
     });
     const hooks = detail?.manifest?.lifecycle ?? null;
-    lifecycleCache.set(skillName, { hooks, ts: Date.now() });
-    return hooks;
+    const permissions = detail?.manifest?.permissions;
+    lifecycleCache.set(skillName, { hooks, permissions, ts: Date.now() });
+    return { hooks, permissions };
   } catch {
-    return null;
+    return { hooks: null, permissions: undefined };
   }
 }
 
@@ -30,48 +35,43 @@ export function invalidateLifecycleCache(skillName: string): void {
   lifecycleCache.delete(skillName);
 }
 
-/** 执行生命周期钩子 */
-async function executeHooks(actions: SkillCommandAction[], skillName: string): Promise<void> {
+async function executeHooks(actions: SkillCommandAction[], skillName: string, permissions?: SkillPermissions): Promise<void> {
   if (!actions || actions.length === 0) { return; }
   const router = getActionRouter();
   for (const action of actions) {
     try {
-      await router.execute(action, { skillName });
+      await router.execute(action, { skillName, permissions });
     } catch (e) {
       console.error(`[Lifecycle] Hook execution failed for ${skillName}:`, e);
     }
   }
 }
 
-/** 技能安装后触发 onInstall */
 export async function triggerOnInstall(skillName: string): Promise<void> {
-  const hooks = await readLifecycleHooks(skillName);
+  const { hooks, permissions } = await readLifecycleData(skillName);
   if (hooks?.onInstall) {
-    await executeHooks(hooks.onInstall, skillName);
+    await executeHooks(hooks.onInstall, skillName, permissions);
   }
 }
 
-/** 技能启用时触发 onEnable */
 export async function triggerOnEnable(skillName: string): Promise<void> {
-  const hooks = await readLifecycleHooks(skillName);
+  const { hooks, permissions } = await readLifecycleData(skillName);
   if (hooks?.onEnable) {
-    await executeHooks(hooks.onEnable, skillName);
+    await executeHooks(hooks.onEnable, skillName, permissions);
   }
 }
 
-/** 技能禁用时触发 onDisable */
 export async function triggerOnDisable(skillName: string): Promise<void> {
-  const hooks = await readLifecycleHooks(skillName);
+  const { hooks, permissions } = await readLifecycleData(skillName);
   if (hooks?.onDisable) {
-    await executeHooks(hooks.onDisable, skillName);
+    await executeHooks(hooks.onDisable, skillName, permissions);
   }
 }
 
-/** 技能卸载前触发 onUninstall */
 export async function triggerOnUninstall(skillName: string): Promise<void> {
-  const hooks = await readLifecycleHooks(skillName);
+  const { hooks, permissions } = await readLifecycleData(skillName);
   if (hooks?.onUninstall) {
-    await executeHooks(hooks.onUninstall, skillName);
+    await executeHooks(hooks.onUninstall, skillName, permissions);
   }
 }
 

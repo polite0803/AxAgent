@@ -169,3 +169,99 @@ jobs:
 
       - name: Run E2E tests
         run: npm run test:e2e
+
+  # ── 安全审计：cargo audit ──────────────────────────────
+  cargo-audit:
+    name: Security Audit
+    needs: [should-run-heavy]
+    if: needs.should-run-heavy.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run cargo audit
+        run: cargo audit --manifest-path src-tauri/Cargo.toml
+
+  # ── 测试覆盖率 ─────────────────────────────────────────
+  test-coverage:
+    name: Test Coverage
+    needs: [should-run-heavy]
+    if: needs.should-run-heavy.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v2'
+          key: 'ubuntu-2404-coverage'
+          workspaces: src-tauri -> target
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev libgtk-3-dev libpipewire-0.3-dev \
+            libwayland-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev protobuf-compiler
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+
+      - name: Generate coverage report
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info --manifest-path src-tauri/Cargo.toml
+
+      - name: Check coverage threshold (≥50%)
+        run: |
+          TOTAL_LF=$(grep -oP '^LF:\K\d+' lcov.info | awk '{s+=$1}END{print s}')
+          TOTAL_LH=$(grep -oP '^LH:\K\d+' lcov.info | awk '{s+=$1}END{print s}')
+          if [ "$TOTAL_LF" -eq 0 ]; then
+            echo "::error::No lines found in coverage report"
+            exit 1
+          fi
+          COVERAGE=$(echo "scale=2; $TOTAL_LH * 100 / $TOTAL_LF" | bc)
+          echo "Line coverage: ${COVERAGE}% (${TOTAL_LH}/${TOTAL_LF})"
+          THRESHOLD=50
+          PASS=$(echo "$COVERAGE >= $THRESHOLD" | bc)
+          if [ "$PASS" -eq 0 ]; then
+            echo "::error::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+            exit 1
+          fi
+          echo "::notice::Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: lcov.info
+          retention-days: 14
+
+  # ── 依赖许可证检查：cargo deny ─────────────────────────
+  cargo-deny:
+    name: License Check
+    needs: [should-run-heavy]
+    if: needs.should-run-heavy.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+
+      - name: Run cargo deny check
+        run: cargo deny check --manifest-path src-tauri/Cargo.toml

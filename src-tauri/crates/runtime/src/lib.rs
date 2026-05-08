@@ -11,6 +11,7 @@
 pub mod adversarial_debate;
 pub mod agent_orchestrator;
 pub mod agent_roles;
+pub mod api_docs;
 pub mod api_server;
 mod bash;
 pub mod bash_validation;
@@ -64,6 +65,7 @@ mod permissions;
 pub mod plugin_hooks;
 pub mod plugin_lifecycle;
 mod policy_engine;
+pub mod priority_scheduler;
 pub mod profile;
 pub mod profile_manager;
 mod prompt;
@@ -111,6 +113,7 @@ mod trust_resolver;
 mod usage;
 pub mod worker_boot;
 
+pub use api_docs::{ApiDocGenerator, OpenApiSpec};
 pub use bash::{execute_bash, BashCommandInput, BashCommandOutput};
 pub use bootstrap::{BootstrapPhase, BootstrapPlan};
 pub use branch_lock::{detect_branch_lock_collisions, BranchLockCollision, BranchLockIntent};
@@ -211,6 +214,7 @@ pub use plugin_lifecycle::{
     DegradedMode, DiscoveryResult, PluginHealthcheck, PluginLifecycle, PluginLifecycleEvent,
     PluginState, ResourceInfo, ServerHealth, ServerStatus, ToolInfo,
 };
+pub use priority_scheduler::{PriorityScheduler, ScheduledTask, SchedulerConfig, TaskPriority};
 pub use policy_engine::{
     evaluate, DiffScope, GreenLevel, LaneBlocker, LaneContext, PolicyAction, PolicyCondition,
     PolicyEngine, PolicyRule, ReconcileReason, ReviewStatus,

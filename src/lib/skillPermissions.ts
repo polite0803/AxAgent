@@ -22,6 +22,34 @@ const DEFAULT_PERMISSIONS: Required<SkillPermissions> = {
   tools: [],
 };
 
+function parseStorePerm(pattern: string): { storeName: string; fieldPath?: string } {
+  const colonIdx = pattern.indexOf(":");
+  if (colonIdx === -1) {
+    return { storeName: pattern };
+  }
+  return { storeName: pattern.slice(0, colonIdx), fieldPath: pattern.slice(colonIdx + 1) };
+}
+
+export function isStoreReadCovered(storeName: string, fieldPath: string | undefined, perms: string[]): boolean {
+  return perms.some((pattern) => {
+    const parsed = parseStorePerm(pattern);
+    if (parsed.storeName !== storeName) { return false; }
+    if (!parsed.fieldPath) { return true; }
+    if (!fieldPath) { return false; }
+    return fieldPath === parsed.fieldPath || fieldPath.startsWith(parsed.fieldPath + ".");
+  });
+}
+
+export function isStoreWriteCovered(storeName: string, fieldPath: string | undefined, perms: string[]): boolean {
+  return perms.some((pattern) => {
+    const parsed = parseStorePerm(pattern);
+    if (parsed.storeName !== storeName) { return false; }
+    if (!parsed.fieldPath) { return true; }
+    if (!fieldPath) { return false; }
+    return fieldPath === parsed.fieldPath || fieldPath.startsWith(parsed.fieldPath + ".");
+  });
+}
+
 /**
  * 在 Skill 加载时校验权限声明（前置白名单）。
  *
@@ -61,6 +89,14 @@ export function validateSkillPermissions(
     violations.push("WARN: 声明了 storeWrite 但未声明 storeRead");
   }
 
+  const writeStores = new Set(perms.storeWrite.map((p) => parseStorePerm(p).storeName));
+  const readStores = new Set(perms.storeRead.map((p) => parseStorePerm(p).storeName));
+  for (const ws of writeStores) {
+    if (!readStores.has(ws)) {
+      violations.push(`WARN: 声明了 storeWrite:${ws} 但未声明 storeRead:${ws}`);
+    }
+  }
+
   // 校验 network 权限：若声明了 network 但沙箱已删除 fetch/XHR，给出提示
   if (perms.network.length > 0) {
     violations.push("WARN: network 权限已声明，但沙箱环境默认禁用 fetch/XHR");
@@ -80,7 +116,7 @@ export function validateSkillPermissions(
  * @param target 待匹配字符串
  * @param patterns 模式列表，支持 "read_*" 后缀通配符
  */
-function isWildcardMatch(target: string, patterns: string[]): boolean {
+export function isWildcardMatch(target: string, patterns: string[]): boolean {
   return patterns.some((pattern) => {
     if (pattern.endsWith("*")) {
       return target.startsWith(pattern.slice(0, -1));
