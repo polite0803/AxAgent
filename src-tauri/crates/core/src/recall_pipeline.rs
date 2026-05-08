@@ -106,7 +106,9 @@ impl<'a> RecallPipeline<'a> {
                             access_count = cached_entry.access_count,
                             "Semantic cache hit in recall pipeline"
                         );
-                        if let Ok(cached_results) = serde_json::from_str::<Vec<RecallResult>>(&cached_entry.result) {
+                        if let Ok(cached_results) =
+                            serde_json::from_str::<Vec<RecallResult>>(&cached_entry.result)
+                        {
                             return Ok(cached_results);
                         }
                     }
@@ -212,7 +214,8 @@ impl<'a> RecallPipeline<'a> {
             if let Ok(mut cache_guard) = cache.lock() {
                 if cache_guard.is_enabled() && !results.is_empty() {
                     if let Ok(serialized) = serde_json::to_string(&results) {
-                        let chunk_ids: Vec<String> = results.iter().map(|r| r.file_path.clone()).collect();
+                        let chunk_ids: Vec<String> =
+                            results.iter().map(|r| r.file_path.clone()).collect();
                         let best_score = results.first().map(|r| r.combined_score).unwrap_or(0.0);
                         cache_guard.insert_by_text(
                             query.to_string(),

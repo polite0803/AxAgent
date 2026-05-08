@@ -371,14 +371,8 @@ impl SemanticCache {
 
         self.index.add_entry(&key, &query_embedding);
 
-        let entry = CacheEntry::new(
-            query_embedding,
-            query_text,
-            result,
-            chunk_ids,
-            score,
-            ttl_secs,
-        );
+        let entry =
+            CacheEntry::new(query_embedding, query_text, result, chunk_ids, score, ttl_secs);
 
         if self.entries.len() >= self.max_entries {
             let evicted = self.invalidate_least_used(1);
@@ -514,7 +508,9 @@ impl SemanticCache {
         let mut best_similarity = 0.0f32;
 
         for entry in self.entries.values() {
-            if is_expired(entry) { continue; }
+            if is_expired(entry) {
+                continue;
+            }
             let text_sim = text_similarity(query_text, &entry.query_text);
             if text_sim >= self.similarity_threshold && text_sim > best_similarity {
                 best_similarity = text_sim;
@@ -557,9 +553,8 @@ impl SemanticCache {
     pub fn save_to_disk(&self, path: &Path) -> Result<()> {
         info!(path = ?path, "Saving semantic cache to disk");
 
-        let json = serde_json::to_string_pretty(&self.entries).map_err(|e| {
-            AxAgentError::Internal(format!("Failed to serialize cache: {}", e))
-        })?;
+        let json = serde_json::to_string_pretty(&self.entries)
+            .map_err(|e| AxAgentError::Internal(format!("Failed to serialize cache: {}", e)))?;
 
         std::fs::write(path, json).map_err(|e| {
             AxAgentError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
@@ -593,10 +588,8 @@ impl SemanticCache {
             AxAgentError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
         })?;
 
-        let entries: HashMap<String, CacheEntry> =
-            serde_json::from_str(&json).map_err(|e| {
-                AxAgentError::Internal(format!("Failed to deserialize cache: {}", e))
-            })?;
+        let entries: HashMap<String, CacheEntry> = serde_json::from_str(&json)
+            .map_err(|e| AxAgentError::Internal(format!("Failed to deserialize cache: {}", e)))?;
 
         let loaded = entries.len();
         self.entries.extend(entries);
@@ -694,7 +687,9 @@ fn text_similarity(a: &str, b: &str) -> f32 {
     let intersection = a_words.intersection(&b_words).count();
     let union = a_words.union(&b_words).count();
 
-    if union == 0 { return 0.0; }
+    if union == 0 {
+        return 0.0;
+    }
     intersection as f32 / union as f32
 }
 
@@ -801,14 +796,7 @@ mod tests {
         let embedding1 = create_test_embedding(0.5);
         let embedding2 = create_test_embedding(-0.5);
 
-        cache.insert(
-            embedding1,
-            "query1".to_string(),
-            "result1".to_string(),
-            vec![],
-            0.9,
-            3600,
-        );
+        cache.insert(embedding1, "query1".to_string(), "result1".to_string(), vec![], 0.9, 3600);
 
         let result = cache.search(&embedding2);
         assert!(result.is_none());
@@ -890,7 +878,9 @@ mod tests {
         let evicted = cache.invalidate_least_used(1);
         assert_eq!(evicted, 1);
         assert_eq!(cache.entries.len(), 1);
-        assert!(cache.entries.contains_key(&embedding_hash(&create_test_embedding(0.2))));
+        assert!(cache
+            .entries
+            .contains_key(&embedding_hash(&create_test_embedding(0.2))));
     }
 
     #[test]
@@ -921,14 +911,7 @@ mod tests {
         let mut cache = SemanticCache::new(0.95, 100);
 
         let embedding = create_test_embedding(0.5);
-        cache.insert(
-            embedding.clone(),
-            "q1".to_string(),
-            "r1".to_string(),
-            vec![],
-            0.9,
-            3600,
-        );
+        cache.insert(embedding.clone(), "q1".to_string(), "r1".to_string(), vec![], 0.9, 3600);
 
         cache.search(&embedding);
         cache.search(&create_test_embedding(-0.5));
@@ -1018,14 +1001,7 @@ mod tests {
         let mut cache = SemanticCache::new(0.95, 100);
         let embedding = create_test_embedding(0.5);
 
-        cache.insert(
-            embedding.clone(),
-            "q1".to_string(),
-            "r1".to_string(),
-            vec![],
-            0.9,
-            3600,
-        );
+        cache.insert(embedding.clone(), "q1".to_string(), "r1".to_string(), vec![], 0.9, 3600);
 
         cache.search(&embedding);
         cache.search(&embedding);

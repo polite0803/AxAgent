@@ -29,7 +29,9 @@ pub use plugin_sdk::{
     PluginToolDef, PluginToolResult,
 };
 pub use recorder::ToolExecutionRecorder;
-pub use sandbox::{SecuritySandbox, SandboxConfig, SandboxPlatform, SandboxViolation, SandboxViolationType};
+pub use sandbox::{
+    SandboxConfig, SandboxPlatform, SandboxViolation, SandboxViolationType, SecuritySandbox,
+};
 pub use stats::{StatCategory, ToolMetadata, ToolUsageStats};
 
 use async_trait::async_trait;

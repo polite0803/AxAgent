@@ -96,12 +96,18 @@ impl SecuritySandbox {
                     resource: path.display().to_string(),
                     message: format!("Path '{}' is in denied list", path.display()),
                 });
-                return SandboxResult { allowed: false, violations };
+                return SandboxResult {
+                    allowed: false,
+                    violations,
+                };
             }
         }
 
         if !self.config.allowed_paths.is_empty() {
-            let is_allowed = self.config.allowed_paths.iter()
+            let is_allowed = self
+                .config
+                .allowed_paths
+                .iter()
                 .any(|allowed| path.starts_with(allowed));
             if !is_allowed {
                 violations.push(SandboxViolation {
@@ -109,11 +115,17 @@ impl SecuritySandbox {
                     resource: path.display().to_string(),
                     message: format!("Path '{}' is not in allowed list", path.display()),
                 });
-                return SandboxResult { allowed: false, violations };
+                return SandboxResult {
+                    allowed: false,
+                    violations,
+                };
             }
         }
 
-        SandboxResult { allowed: true, violations }
+        SandboxResult {
+            allowed: true,
+            violations,
+        }
     }
 
     pub fn check_command(&self, command: &str) -> SandboxResult {
@@ -132,7 +144,9 @@ impl SecuritySandbox {
             }
         }
 
-        if !self.config.allowed_commands.is_empty() && !self.config.allowed_commands.contains(&base_cmd.to_string()) {
+        if !self.config.allowed_commands.is_empty()
+            && !self.config.allowed_commands.contains(&base_cmd.to_string())
+        {
             return SandboxResult {
                 allowed: false,
                 violations: vec![SandboxViolation {
@@ -143,7 +157,10 @@ impl SecuritySandbox {
             };
         }
 
-        SandboxResult { allowed: true, violations: Vec::new() }
+        SandboxResult {
+            allowed: true,
+            violations: Vec::new(),
+        }
     }
 
     pub fn check_network(&self) -> SandboxResult {
@@ -157,12 +174,17 @@ impl SecuritySandbox {
                 }],
             }
         } else {
-            SandboxResult { allowed: true, violations: Vec::new() }
+            SandboxResult {
+                allowed: true,
+                violations: Vec::new(),
+            }
         }
     }
 
     pub fn check_env_var(&self, var_name: &str) -> SandboxResult {
-        if !self.config.env_whitelist.is_empty() && !self.config.env_whitelist.contains(&var_name.to_string()) {
+        if !self.config.env_whitelist.is_empty()
+            && !self.config.env_whitelist.contains(&var_name.to_string())
+        {
             return SandboxResult {
                 allowed: false,
                 violations: vec![SandboxViolation {
@@ -172,7 +194,10 @@ impl SecuritySandbox {
                 }],
             };
         }
-        SandboxResult { allowed: true, violations: Vec::new() }
+        SandboxResult {
+            allowed: true,
+            violations: Vec::new(),
+        }
     }
 
     pub fn get_platform_recommendations(&self) -> Vec<String> {
@@ -180,21 +205,26 @@ impl SecuritySandbox {
 
         match self.platform {
             SandboxPlatform::Linux => {
-                recommendations.push("Consider using seccomp-bpf for syscall filtering".to_string());
-                recommendations.push("Consider using namespaces for filesystem isolation".to_string());
+                recommendations
+                    .push("Consider using seccomp-bpf for syscall filtering".to_string());
+                recommendations
+                    .push("Consider using namespaces for filesystem isolation".to_string());
                 recommendations.push("Consider using cgroups for resource limits".to_string());
-            }
+            },
             SandboxPlatform::Windows => {
-                recommendations.push("Consider using AppContainer for process isolation".to_string());
+                recommendations
+                    .push("Consider using AppContainer for process isolation".to_string());
                 recommendations.push("Consider using Job Objects for resource limits".to_string());
-            }
+            },
             SandboxPlatform::MacOS => {
-                recommendations.push("Consider using sandbox-exec for process isolation".to_string());
-                recommendations.push("Consider using Seatbelt profiles for access control".to_string());
-            }
+                recommendations
+                    .push("Consider using sandbox-exec for process isolation".to_string());
+                recommendations
+                    .push("Consider using Seatbelt profiles for access control".to_string());
+            },
             SandboxPlatform::Unknown => {
                 recommendations.push("Platform-specific sandboxing not available".to_string());
-            }
+            },
         }
 
         recommendations

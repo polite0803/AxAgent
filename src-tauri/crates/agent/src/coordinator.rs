@@ -1,6 +1,6 @@
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use crate::steer_manager::SteerManager;
-use crate::tree_of_thoughts::{TreeOfThoughtsEngine, LlmReasoningProvider as ToTReasoningProvider};
+use crate::tree_of_thoughts::{LlmReasoningProvider as ToTReasoningProvider, TreeOfThoughtsEngine};
 use async_trait::async_trait;
 use axagent_runtime::{prompt_cache::PromptCache, CacheGuard, HookChain};
 use serde::{Deserialize, Serialize};
@@ -440,13 +440,17 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let engine = self.tot_engine.as_mut()?;
 
         let root_id = engine.root_id.clone();
-        let child_ids = engine.generate_branching_options(root_id, context, provider)
+        let child_ids = engine
+            .generate_branching_options(root_id, context, provider)
             .await
             .ok()?;
 
         let mut scored_ids = Vec::new();
         for child_id in &child_ids {
-            if let Ok(score) = engine.evaluate_and_score_node(child_id, context, provider).await {
+            if let Ok(score) = engine
+                .evaluate_and_score_node(child_id, context, provider)
+                .await
+            {
                 scored_ids.push((child_id.clone(), score));
             }
         }

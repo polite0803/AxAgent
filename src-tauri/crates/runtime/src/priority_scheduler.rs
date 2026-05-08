@@ -1,6 +1,6 @@
-use std::collections::BinaryHeap;
-use std::cmp::Ordering;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskPriority {
@@ -51,7 +51,8 @@ impl PartialOrd for ScheduledTask {
 
 impl Ord for ScheduledTask {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.priority.cmp(&other.priority)
+        self.priority
+            .cmp(&other.priority)
             .then_with(|| other.deadline.cmp(&self.deadline))
             .then_with(|| other.created_at.cmp(&self.created_at))
     }
@@ -122,7 +123,8 @@ impl PriorityScheduler {
             if self.total_allocated + task.resource_weight > self.config.total_resource_capacity {
                 if self.config.preempt_enabled {
                     if let Some(preempted) = self.try_preempt(&task) {
-                        self.running_tasks.retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
+                        self.running_tasks
+                            .retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
                         self.total_allocated = self.running_tasks.iter().map(|(_, w)| *w).sum();
                         continue;
                     }
@@ -132,7 +134,8 @@ impl PriorityScheduler {
 
             let task = self.waiting_queue.pop().unwrap();
             self.total_allocated += task.resource_weight;
-            self.running_tasks.push((task.clone(), task.resource_weight));
+            self.running_tasks
+                .push((task.clone(), task.resource_weight));
             scheduled.push(task);
         }
 
@@ -146,7 +149,9 @@ impl PriorityScheduler {
             return None;
         }
 
-        let mut preemptible: Vec<&(ScheduledTask, f64)> = self.running_tasks.iter()
+        let mut preemptible: Vec<&(ScheduledTask, f64)> = self
+            .running_tasks
+            .iter()
             .filter(|(t, _)| t.is_preemptible && t.priority < incoming.priority)
             .collect();
 

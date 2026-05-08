@@ -200,7 +200,7 @@ impl AxAgentError {
             AxAgentError::Internal(_) => ErrorCode::InternalError,
             AxAgentError::StructuredError { context, .. } => {
                 ErrorCode::from_component(&context.component)
-            }
+            },
         }
     }
 

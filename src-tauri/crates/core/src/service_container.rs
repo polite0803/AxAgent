@@ -24,7 +24,10 @@ impl ServiceContainer {
         let type_id = TypeId::of::<T>();
         let wrapped_factory: ServiceFactory =
             Box::new(move || Box::new(factory()) as Box<dyn Any + Send + Sync>);
-        self.factories.write().unwrap().insert(type_id, wrapped_factory);
+        self.factories
+            .write()
+            .unwrap()
+            .insert(type_id, wrapped_factory);
     }
 
     pub fn register_instance<T: 'static + Send + Sync + ?Sized>(&self, instance: Arc<T>) {
@@ -45,10 +48,7 @@ impl ServiceContainer {
         if let Some(factory) = self.factories.read().unwrap().get(&type_id) {
             let instance = factory();
             let result = instance.downcast_ref::<Arc<T>>().cloned();
-            self.instances
-                .write()
-                .unwrap()
-                .insert(type_id, instance);
+            self.instances.write().unwrap().insert(type_id, instance);
             return result;
         }
 

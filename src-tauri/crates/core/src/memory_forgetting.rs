@@ -84,16 +84,12 @@ impl MemoryForgettingEngine {
     }
 
     pub fn reinforce(&self, entry: &mut MemoryEntry) {
-        entry.memory_strength =
-            (entry.memory_strength + self.config.reinforcement_factor).min(1.0);
+        entry.memory_strength = (entry.memory_strength + self.config.reinforcement_factor).min(1.0);
         entry.last_accessed_at = Utc::now();
         entry.access_count += 1;
     }
 
-    pub fn evaluate_forgetting(
-        &self,
-        entries: &[MemoryEntry],
-    ) -> (Vec<String>, Vec<MemoryEntry>) {
+    pub fn evaluate_forgetting(&self, entries: &[MemoryEntry]) -> (Vec<String>, Vec<MemoryEntry>) {
         let mut to_forget = Vec::new();
         let mut to_retain = Vec::new();
 
@@ -142,7 +138,11 @@ impl MemoryForgettingEngine {
         let total = entries.len();
         let (to_forget, retained) = self.evaluate_forgetting(entries);
         let avg_strength = if total > 0 {
-            entries.iter().map(|e| self.calculate_strength(e)).sum::<f64>() / total as f64
+            entries
+                .iter()
+                .map(|e| self.calculate_strength(e))
+                .sum::<f64>()
+                / total as f64
         } else {
             0.0
         };
@@ -193,11 +193,7 @@ mod tests {
         let engine = MemoryForgettingEngine::with_default_config();
         let entry = make_entry("1", 0.1, 720, 0);
         let strength = engine.calculate_strength(&entry);
-        assert!(
-            strength < 0.2,
-            "Old unimportant memory should have low strength: {}",
-            strength
-        );
+        assert!(strength < 0.2, "Old unimportant memory should have low strength: {}", strength);
     }
 
     #[test]
@@ -243,10 +239,7 @@ mod tests {
     #[test]
     fn test_get_stats() {
         let engine = MemoryForgettingEngine::with_default_config();
-        let entries = vec![
-            make_entry("1", 0.9, 1, 5),
-            make_entry("2", 0.1, 720, 0),
-        ];
+        let entries = vec![make_entry("1", 0.9, 1, 5), make_entry("2", 0.1, 720, 0)];
         let stats = engine.get_stats(&entries);
         assert_eq!(stats.total_evaluated, 2);
         assert!(stats.average_strength > 0.0);

@@ -88,11 +88,7 @@ pub struct TreeOfThoughtsEngine {
 }
 
 impl TreeOfThoughtsEngine {
-    pub fn new(
-        branching_factor: usize,
-        max_depth: usize,
-        evaluation_threshold: f64,
-    ) -> Self {
+    pub fn new(branching_factor: usize, max_depth: usize, evaluation_threshold: f64) -> Self {
         let root_id = format!("node_0");
         let mut tree = HashMap::new();
         tree.insert(
@@ -173,10 +169,7 @@ impl TreeOfThoughtsEngine {
         };
 
         if parent_depth >= self.max_depth {
-            debug!(
-                "Max depth {} reached for node {}",
-                self.max_depth, parent_id
-            );
+            debug!("Max depth {} reached for node {}", self.max_depth, parent_id);
             return Ok(vec![]);
         }
 
@@ -218,19 +211,18 @@ approach, perspective, or sub-problem decomposition. Be concise and focused.",
                         truncate_string(&parent_content, 80),
                         truncate_string(context, 100),
                     )
-                }
+                },
             };
 
-            let mut child_node = ThoughtNode::new(
-                child_id.clone(),
-                thought_content,
-                Some(parent_id.clone()),
-            );
+            let mut child_node =
+                ThoughtNode::new(child_id.clone(), thought_content, Some(parent_id.clone()));
 
             let tokens = estimate_tokens(&child_node.content);
             trace!(
                 "Generated child node {} with {} tokens from parent {}",
-                child_id, tokens, parent_id
+                child_id,
+                tokens,
+                parent_id
             );
 
             child_node.evaluation_score = 0.0;
@@ -259,13 +251,10 @@ approach, perspective, or sub-problem decomposition. Be concise and focused.",
         context: &str,
         llm_client: &Arc<dyn LlmReasoningProvider>,
     ) -> Result<f64, AxAgentError> {
-        let node = self
-            .tree
-            .get(node_id)
-            .ok_or_else(|| AxAgentError::Agent {
-                source: None,
-                context: format!("Node '{}' not found for evaluation", node_id),
-            })?;
+        let node = self.tree.get(node_id).ok_or_else(|| AxAgentError::Agent {
+            source: None,
+            context: format!("Node '{}' not found for evaluation", node_id),
+        })?;
 
         let path_to_node = self.get_path_to_root(node_id);
         let path_summary: String = path_to_node
@@ -296,15 +285,18 @@ Respond with only a number between 0.0 and 1.0.",
                 score_str
                     .parse::<f64>()
                     .unwrap_or_else(|_| {
-                        let digits: String = score_str.chars().filter(|c| c.is_ascii_digit() || *c == '.').collect();
+                        let digits: String = score_str
+                            .chars()
+                            .filter(|c| c.is_ascii_digit() || *c == '.')
+                            .collect();
                         digits.parse::<f64>().unwrap_or(0.5)
                     })
                     .clamp(0.0, 1.0)
-            }
+            },
             Err(e) => {
                 warn!("LLM evaluation failed for node {}: {}", node_id, e);
                 self.heuristic_evaluate(node)
-            }
+            },
         };
 
         debug!("Node {} evaluated with score: {:.3}", node_id, score);
@@ -331,7 +323,11 @@ Respond with only a number between 0.0 and 1.0.",
                 || node.content.contains("however")
                 || node.content.contains("first")
                 || node.content.contains("next");
-            if has_structure { 0.4 } else { 0.2 }
+            if has_structure {
+                0.4
+            } else {
+                0.2
+            }
         };
 
         (length_score + diversity_score + structure_score).clamp(0.0, 1.0)
@@ -359,9 +355,7 @@ Respond with only a number between 0.0 and 1.0.",
         let node_ids: Vec<String> = self.tree.keys().cloned().collect();
         for node_id in node_ids {
             if let Some(node) = self.tree.get(&node_id) {
-                if node.status == ThoughtStatus::Generated
-                    && node.evaluation_score < threshold
-                {
+                if node.status == ThoughtStatus::Generated && node.evaluation_score < threshold {
                     pruned.push(node_id.clone());
                 }
             }
@@ -371,8 +365,14 @@ Respond with only a number between 0.0 and 1.0.",
             if let Some(node) = self.tree.get_mut(node_id) {
                 node.status = ThoughtStatus::Pruned;
             }
-            debug!("Pruned node {} (score: {:.3})", node_id,
-                self.tree.get(node_id).map(|n| n.evaluation_score).unwrap_or(0.0));
+            debug!(
+                "Pruned node {} (score: {:.3})",
+                node_id,
+                self.tree
+                    .get(node_id)
+                    .map(|n| n.evaluation_score)
+                    .unwrap_or(0.0)
+            );
         }
 
         debug!("Pruned {} nodes below threshold {}", pruned.len(), threshold);
@@ -421,7 +421,9 @@ Respond with only a number between 0.0 and 1.0.",
                         .get(b.as_str())
                         .map(|n| n.evaluation_score)
                         .unwrap_or(0.0);
-                    score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
+                    score_a
+                        .partial_cmp(&score_b)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 })
                 .unwrap();
 
@@ -621,7 +623,11 @@ impl DefaultToTReasoningProvider {
         Self::with_llm(adapter, ctx, model)
     }
 
-    async fn call_llm(&self, system_prompt: &str, user_prompt: &str) -> Result<String, AxAgentError> {
+    async fn call_llm(
+        &self,
+        system_prompt: &str,
+        user_prompt: &str,
+    ) -> Result<String, AxAgentError> {
         if let (Some(adapter), Some(ctx)) = (&self.adapter, &self.ctx) {
             let request = ChatRequest {
                 model: self.model.clone(),
@@ -717,7 +723,11 @@ impl ProviderAdapterBridge {
         ctx: ProviderRequestContext,
         model: String,
     ) -> Self {
-        Self { adapter, ctx, model }
+        Self {
+            adapter,
+            ctx,
+            model,
+        }
     }
 }
 
@@ -923,12 +933,14 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let child1_id = engine.next_node_id();
-        let mut child1 = ThoughtNode::new(child1_id.clone(), "weak branch".to_string(), Some(root_id.clone()));
+        let mut child1 =
+            ThoughtNode::new(child1_id.clone(), "weak branch".to_string(), Some(root_id.clone()));
         child1.evaluation_score = 0.3;
         child1.status = ThoughtStatus::Explored;
 
         let child2_id = engine.next_node_id();
-        let mut child2 = ThoughtNode::new(child2_id.clone(), "strong branch".to_string(), Some(root_id.clone()));
+        let mut child2 =
+            ThoughtNode::new(child2_id.clone(), "strong branch".to_string(), Some(root_id.clone()));
         child2.evaluation_score = 0.9;
         child2.status = ThoughtStatus::Explored;
 
@@ -951,7 +963,8 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let pruned_id = engine.next_node_id();
-        let mut pruned = ThoughtNode::new(pruned_id.clone(), "pruned".to_string(), Some(root_id.clone()));
+        let mut pruned =
+            ThoughtNode::new(pruned_id.clone(), "pruned".to_string(), Some(root_id.clone()));
         pruned.status = ThoughtStatus::Pruned;
         pruned.evaluation_score = 0.1;
 
@@ -978,12 +991,14 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let low_id = engine.next_node_id();
-        let mut low = ThoughtNode::new(low_id.clone(), "low score".to_string(), Some(root_id.clone()));
+        let mut low =
+            ThoughtNode::new(low_id.clone(), "low score".to_string(), Some(root_id.clone()));
         low.evaluation_score = 0.2;
         low.status = ThoughtStatus::Generated;
 
         let high_id = engine.next_node_id();
-        let mut high = ThoughtNode::new(high_id.clone(), "high score".to_string(), Some(root_id.clone()));
+        let mut high =
+            ThoughtNode::new(high_id.clone(), "high score".to_string(), Some(root_id.clone()));
         high.evaluation_score = 0.8;
         high.status = ThoughtStatus::Generated;
 
@@ -1008,7 +1023,11 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let low_explored_id = engine.next_node_id();
-        let mut low_explored = ThoughtNode::new(low_explored_id.clone(), "low but explored".to_string(), Some(root_id.clone()));
+        let mut low_explored = ThoughtNode::new(
+            low_explored_id.clone(),
+            "low but explored".to_string(),
+            Some(root_id.clone()),
+        );
         low_explored.evaluation_score = 0.1;
         low_explored.status = ThoughtStatus::Explored;
 
@@ -1019,10 +1038,7 @@ mod tests {
 
         let pruned = engine.prune_below_threshold(0.5);
         assert!(pruned.is_empty());
-        assert_eq!(
-            engine.tree.get(&low_explored_id).unwrap().status,
-            ThoughtStatus::Explored
-        );
+        assert_eq!(engine.tree.get(&low_explored_id).unwrap().status, ThoughtStatus::Explored);
     }
 
     #[test]
@@ -1031,12 +1047,17 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let child_id = engine.next_node_id();
-        let mut child = ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
+        let mut child =
+            ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
         child.evaluation_score = 0.5;
         child.status = ThoughtStatus::Explored;
 
         let grandchild_id = engine.next_node_id();
-        let grandchild = ThoughtNode::new(grandchild_id.clone(), "grandchild".to_string(), Some(child_id.clone()));
+        let grandchild = ThoughtNode::new(
+            grandchild_id.clone(),
+            "grandchild".to_string(),
+            Some(child_id.clone()),
+        );
 
         if let Some(root) = engine.tree.get_mut(&root_id) {
             root.add_child(child_id.clone());
@@ -1069,7 +1090,8 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let child_id = engine.next_node_id();
-        let mut child = ThoughtNode::new(child_id.clone(), "child content".to_string(), Some(root_id.clone()));
+        let mut child =
+            ThoughtNode::new(child_id.clone(), "child content".to_string(), Some(root_id.clone()));
         child.evaluation_score = 0.7;
         child.status = ThoughtStatus::Explored;
 
@@ -1091,12 +1113,7 @@ mod tests {
         let mut engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         let root_id = engine.root_id.clone();
 
-        engine.add_tool_result(
-            &root_id,
-            "search".to_string(),
-            "found results".to_string(),
-            false,
-        );
+        engine.add_tool_result(&root_id, "search".to_string(), "found results".to_string(), false);
 
         let node = engine.get_node(&root_id).unwrap();
         assert_eq!(node.tool_calls.len(), 1);
@@ -1119,11 +1136,13 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let explored_id = engine.next_node_id();
-        let mut explored = ThoughtNode::new(explored_id.clone(), "explored".to_string(), Some(root_id.clone()));
+        let mut explored =
+            ThoughtNode::new(explored_id.clone(), "explored".to_string(), Some(root_id.clone()));
         explored.status = ThoughtStatus::Explored;
 
         let pruned_id = engine.next_node_id();
-        let mut pruned = ThoughtNode::new(pruned_id.clone(), "pruned".to_string(), Some(root_id.clone()));
+        let mut pruned =
+            ThoughtNode::new(pruned_id.clone(), "pruned".to_string(), Some(root_id.clone()));
         pruned.status = ThoughtStatus::Pruned;
 
         if let Some(root) = engine.tree.get_mut(&root_id) {
@@ -1147,7 +1166,8 @@ mod tests {
         let leaf1 = ThoughtNode::new(leaf1_id.clone(), "leaf1".to_string(), Some(root_id.clone()));
 
         let leaf2_id = engine.next_node_id();
-        let mut leaf2 = ThoughtNode::new(leaf2_id.clone(), "leaf2".to_string(), Some(root_id.clone()));
+        let mut leaf2 =
+            ThoughtNode::new(leaf2_id.clone(), "leaf2".to_string(), Some(root_id.clone()));
         leaf2.status = ThoughtStatus::Pruned;
 
         if let Some(root) = engine.tree.get_mut(&root_id) {
@@ -1191,7 +1211,8 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let child_id = engine.next_node_id();
-        let mut child = ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
+        let mut child =
+            ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
         child.evaluation_score = 0.8;
         child.status = ThoughtStatus::Explored;
 
@@ -1235,7 +1256,8 @@ mod tests {
         let leaf1 = ThoughtNode::new(leaf1_id.clone(), "leaf1".to_string(), Some(root_id.clone()));
 
         let child_id = engine.next_node_id();
-        let mut child = ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
+        let mut child =
+            ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
 
         let leaf2_id = engine.next_node_id();
         let leaf2 = ThoughtNode::new(leaf2_id.clone(), "leaf2".to_string(), Some(child_id.clone()));
@@ -1262,7 +1284,11 @@ mod tests {
         let mut engine = TreeOfThoughtsEngine::new(3, 1, 0.3);
 
         let child_id = engine.next_node_id();
-        let child = ThoughtNode::new(child_id.clone(), "child at max".to_string(), Some(engine.root_id.clone()));
+        let child = ThoughtNode::new(
+            child_id.clone(),
+            "child at max".to_string(),
+            Some(engine.root_id.clone()),
+        );
         if let Some(root) = engine.tree.get_mut(&engine.root_id) {
             root.add_child(child_id.clone());
         }
@@ -1284,7 +1310,9 @@ mod tests {
         root.status = ThoughtStatus::Pruned;
 
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
-        let result = engine.generate_branching_options(root_id, "test", &provider).await;
+        let result = engine
+            .generate_branching_options(root_id, "test", &provider)
+            .await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
@@ -1293,7 +1321,9 @@ mod tests {
     async fn test_evaluate_thought_nonexistent_node() {
         let engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
-        let result = engine.evaluate_thought("nonexistent", "test", &provider).await;
+        let result = engine
+            .evaluate_thought("nonexistent", "test", &provider)
+            .await;
         assert!(result.is_err());
     }
 
@@ -1348,7 +1378,9 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
-        let score = engine.evaluate_and_score_node(&root_id, "test context", &provider).await;
+        let score = engine
+            .evaluate_and_score_node(&root_id, "test context", &provider)
+            .await;
         assert!(score.is_ok());
         let s = score.unwrap();
         assert!(s >= 0.0 && s <= 1.0);

@@ -83,13 +83,35 @@ pub enum ReplanReason {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReplanAction {
-    Retry { task_id: String, modified_parameters: Option<serde_json::Value> },
-    Skip { task_id: String, reason: String },
-    Insert { phase_id: String, task: PlannedTask, position: usize },
-    Remove { task_id: String, reason: String },
-    Reorder { task_id: String, new_position: usize },
-    AddPhase { phase: Phase, position: usize },
-    ModifyTask { task_id: String, modifications: serde_json::Value },
+    Retry {
+        task_id: String,
+        modified_parameters: Option<serde_json::Value>,
+    },
+    Skip {
+        task_id: String,
+        reason: String,
+    },
+    Insert {
+        phase_id: String,
+        task: PlannedTask,
+        position: usize,
+    },
+    Remove {
+        task_id: String,
+        reason: String,
+    },
+    Reorder {
+        task_id: String,
+        new_position: usize,
+    },
+    AddPhase {
+        phase: Phase,
+        position: usize,
+    },
+    ModifyTask {
+        task_id: String,
+        modifications: serde_json::Value,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -582,7 +604,7 @@ impl HierarchicalPlanner {
                             }
                         }
                     }
-                }
+                },
                 ReplanAction::Skip { task_id, reason: _ } => {
                     for phase in &mut plan.phases {
                         for task in &mut phase.tasks {
@@ -592,7 +614,7 @@ impl HierarchicalPlanner {
                             }
                         }
                     }
-                }
+                },
                 ReplanAction::Insert {
                     phase_id,
                     task,
@@ -605,20 +627,18 @@ impl HierarchicalPlanner {
                             break;
                         }
                     }
-                }
+                },
                 ReplanAction::Remove { task_id, reason: _ } => {
                     for phase in &mut plan.phases {
                         phase.tasks.retain(|t| t.id != *task_id);
                     }
-                }
+                },
                 ReplanAction::Reorder {
                     task_id,
                     new_position,
                 } => {
                     for phase in &mut plan.phases {
-                        if let Some(pos) =
-                            phase.tasks.iter().position(|t| t.id == *task_id)
-                        {
+                        if let Some(pos) = phase.tasks.iter().position(|t| t.id == *task_id) {
                             let task = phase.tasks.remove(pos);
                             let task_count = phase.tasks.len();
                             let new_pos = new_position.min(&task_count);
@@ -626,11 +646,11 @@ impl HierarchicalPlanner {
                             break;
                         }
                     }
-                }
+                },
                 ReplanAction::AddPhase { phase, position } => {
                     let pos = *position.min(&plan.phases.len());
                     plan.phases.insert(pos, phase.clone());
-                }
+                },
                 ReplanAction::ModifyTask {
                     task_id,
                     modifications,
@@ -668,7 +688,7 @@ impl HierarchicalPlanner {
                             }
                         }
                     }
-                }
+                },
             }
         }
 
@@ -1171,7 +1191,11 @@ mod tests {
         assert_eq!(record.failed_steps.len(), 1);
 
         let plan = planner.get_plan().unwrap();
-        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).unwrap();
+        let task = plan.phases[0]
+            .tasks
+            .iter()
+            .find(|t| t.id == task_id)
+            .unwrap();
         assert_eq!(task.status, TaskStatus::Pending);
         assert_eq!(task.retry_count, 0);
         assert_eq!(task.error, None);
@@ -1214,7 +1238,11 @@ mod tests {
         planner.replan(reason, actions).unwrap();
 
         let plan = planner.get_plan().unwrap();
-        let task = plan.phases[0].tasks.iter().find(|t| t.id == task1_id).unwrap();
+        let task = plan.phases[0]
+            .tasks
+            .iter()
+            .find(|t| t.id == task1_id)
+            .unwrap();
         assert_eq!(task.status, TaskStatus::Skipped);
     }
 
@@ -1342,7 +1370,11 @@ mod tests {
         planner.replan(reason, actions).unwrap();
 
         let plan = planner.get_plan().unwrap();
-        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).unwrap();
+        let task = plan.phases[0]
+            .tasks
+            .iter()
+            .find(|t| t.id == task_id)
+            .unwrap();
         assert_eq!(task.max_retries, 5);
         assert_eq!(task.assigned_role, Some("senior_developer".to_string()));
         assert_eq!(task.description, "Updated task description");
@@ -1594,7 +1626,11 @@ mod tests {
             .unwrap();
 
         let plan = planner.get_plan().unwrap();
-        let t1 = plan.phases[0].tasks.iter().find(|t| t.id == task1_id).unwrap();
+        let t1 = plan.phases[0]
+            .tasks
+            .iter()
+            .find(|t| t.id == task1_id)
+            .unwrap();
         assert_eq!(t1.status, TaskStatus::Completed);
         assert_eq!(t1.result, Some(serde_json::json!({"done": true})));
     }

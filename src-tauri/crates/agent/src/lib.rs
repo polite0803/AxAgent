@@ -17,8 +17,8 @@ pub mod context_files;
 pub mod coordinator;
 pub mod credibility_evaluator;
 pub mod deep_research;
-pub mod error_classifier;
 pub mod environment_probe;
+pub mod error_classifier;
 pub mod error_recovery_engine;
 pub mod evaluator;
 pub mod event_bus;
@@ -104,8 +104,8 @@ pub use credibility_evaluator::{
     CredibilityAssessment, CredibilityEvaluator, CredibilityFactor, CredibilityRanking,
     CredibilityScore, FactorDimension,
 };
-pub use error_classifier::{ClassifiedError, ErrorClassifier, ErrorType};
 pub use environment_probe::{EnvironmentProbe, EnvironmentSnapshot, FileInfo, ProbeConfig};
+pub use error_classifier::{ClassifiedError, ErrorClassifier, ErrorType};
 pub use error_recovery_engine::{
     ErrorRecoveryEngine, RecoveryConfig, RecoveryContext, RecoveryEvent,
 };
@@ -133,7 +133,7 @@ pub use health_checker::{
 };
 pub use hierarchical_planner::{
     HierarchicalPlanner, Phase, PhaseStatus, Plan, PlanBuilder, PlanProgress, PlanStatus,
-    PlannedTask, PlanVersion, ReplanAction, ReplanRecord, ReplanReason, TaskBuilder, TaskStatus,
+    PlanVersion, PlannedTask, ReplanAction, ReplanReason, ReplanRecord, TaskBuilder, TaskStatus,
 };
 pub use insight_generator::{Insight, InsightCategory, InsightGenerator, InsightStats};
 // 所有工具相关类型已统一在 axagent-tools，此处重导出保持兼容
@@ -526,12 +526,9 @@ pub use trajectory_recorder::{
 };
 pub use tree_of_thoughts::{
     DefaultToTReasoningProvider, LlmReasoningProvider as ToTLlmReasoningProvider,
-    ProviderAdapterBridge, ThoughtNode, ThoughtStatus, ToTStateSummary,
-    TreeOfThoughtsEngine,
+    ProviderAdapterBridge, ThoughtNode, ThoughtStatus, ToTStateSummary, TreeOfThoughtsEngine,
 };
-pub use verification_agent::{
-    VerificationAgent,
-};
+pub use verification_agent::VerificationAgent;
 pub use web_search::{WebSearchConfig, WebSearchProvider, WebSearchProviderBuilder};
 
 pub use ingest_pipeline::{

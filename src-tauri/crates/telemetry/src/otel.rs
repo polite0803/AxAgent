@@ -1,8 +1,8 @@
-use opentelemetry_sdk::trace::TracerProvider as SdkTracerProvider;
-use opentelemetry_sdk::metrics::SdkMeterProvider;
-use opentelemetry_sdk::Resource;
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::metrics::SdkMeterProvider;
+use opentelemetry_sdk::trace::TracerProvider as SdkTracerProvider;
+use opentelemetry_sdk::Resource;
 use std::sync::Arc;
 
 pub struct OtelConfig {

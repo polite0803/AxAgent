@@ -104,12 +104,15 @@ impl ApiDocGenerator {
                     schemas: HashMap::new(),
                     security_schemes: {
                         let mut schemes = HashMap::new();
-                        schemes.insert("BearerAuth".to_string(), SecuritySchemeObject {
-                            scheme_type: "http".to_string(),
-                            scheme: Some("bearer".to_string()),
-                            bearer_format: Some("JWT".to_string()),
-                            description: Some("API key authentication".to_string()),
-                        });
+                        schemes.insert(
+                            "BearerAuth".to_string(),
+                            SecuritySchemeObject {
+                                scheme_type: "http".to_string(),
+                                scheme: Some("bearer".to_string()),
+                                bearer_format: Some("JWT".to_string()),
+                                description: Some("API key authentication".to_string()),
+                            },
+                        );
                         schemes
                     },
                 }),
@@ -118,7 +121,8 @@ impl ApiDocGenerator {
     }
 
     pub fn add_operation(&mut self, path: &str, method: &str, operation: OperationObject) {
-        self.spec.paths
+        self.spec
+            .paths
             .entry(path.to_string())
             .or_insert_with(HashMap::new)
             .insert(method.to_lowercase(), operation);
@@ -172,22 +176,29 @@ impl ApiDocGenerator {
     }
 
     pub fn add_models_endpoint(&mut self) {
-        self.add_operation("/v1/models", "get", OperationObject {
-            summary: "List available models".to_string(),
-            description: Some("Get a list of all available AI models".to_string()),
-            operation_id: "listModels".to_string(),
-            tags: vec!["Models".to_string()],
-            parameters: vec![],
-            request_body: None,
-            responses: {
-                let mut responses = HashMap::new();
-                responses.insert("200".to_string(), ResponseObject {
-                    description: "List of models".to_string(),
-                    content: HashMap::new(),
-                });
-                responses
+        self.add_operation(
+            "/v1/models",
+            "get",
+            OperationObject {
+                summary: "List available models".to_string(),
+                description: Some("Get a list of all available AI models".to_string()),
+                operation_id: "listModels".to_string(),
+                tags: vec!["Models".to_string()],
+                parameters: vec![],
+                request_body: None,
+                responses: {
+                    let mut responses = HashMap::new();
+                    responses.insert(
+                        "200".to_string(),
+                        ResponseObject {
+                            description: "List of models".to_string(),
+                            content: HashMap::new(),
+                        },
+                    );
+                    responses
+                },
             },
-        });
+        );
     }
 
     pub fn add_schema(&mut self, name: &str, schema: serde_json::Value) {
@@ -200,16 +211,19 @@ impl ApiDocGenerator {
         let mut gen = Self::new("AxAgent Gateway", env!("CARGO_PKG_VERSION"));
         gen.add_chat_completion();
         gen.add_models_endpoint();
-        gen.add_schema("ChatMessage", serde_json::json!({
-            "type": "object",
-            "required": ["role", "content"],
-            "properties": {
-                "role": {"type": "string", "enum": ["system", "user", "assistant", "tool"]},
-                "content": {"type": "string"},
-                "name": {"type": "string"},
-                "tool_calls": {"type": "array"},
-            }
-        }));
+        gen.add_schema(
+            "ChatMessage",
+            serde_json::json!({
+                "type": "object",
+                "required": ["role", "content"],
+                "properties": {
+                    "role": {"type": "string", "enum": ["system", "user", "assistant", "tool"]},
+                    "content": {"type": "string"},
+                    "name": {"type": "string"},
+                    "tool_calls": {"type": "array"},
+                }
+            }),
+        );
         gen.build()
     }
 
@@ -249,21 +263,25 @@ mod tests {
     #[test]
     fn test_add_custom_operation() {
         let mut gen = ApiDocGenerator::new("Test", "1.0.0");
-        gen.add_operation("/v1/custom", "get", OperationObject {
-            summary: "Custom endpoint".to_string(),
-            description: None,
-            operation_id: "customEndpoint".to_string(),
-            tags: vec!["Custom".to_string()],
-            parameters: vec![ParameterObject {
-                name: "id".to_string(),
-                location: "query".to_string(),
-                description: "Item ID".to_string(),
-                required: false,
-                schema: Some(serde_json::json!({"type": "string"})),
-            }],
-            request_body: None,
-            responses: HashMap::new(),
-        });
+        gen.add_operation(
+            "/v1/custom",
+            "get",
+            OperationObject {
+                summary: "Custom endpoint".to_string(),
+                description: None,
+                operation_id: "customEndpoint".to_string(),
+                tags: vec!["Custom".to_string()],
+                parameters: vec![ParameterObject {
+                    name: "id".to_string(),
+                    location: "query".to_string(),
+                    description: "Item ID".to_string(),
+                    required: false,
+                    schema: Some(serde_json::json!({"type": "string"})),
+                }],
+                request_body: None,
+                responses: HashMap::new(),
+            },
+        );
 
         let spec = gen.build();
         assert!(spec.paths.contains_key("/v1/custom"));

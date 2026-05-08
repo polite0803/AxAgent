@@ -10,17 +10,14 @@ use axagent_agent::error_recovery_engine::{ErrorRecoveryEngine, RecoveryConfig, 
 use axagent_agent::hierarchical_planner::{
     HierarchicalPlanner, PlanBuilder, ReplanAction, ReplanReason, TaskBuilder, TaskStatus,
 };
-use axagent_agent::react_engine::{
-    LlmReasoningProvider, ReActEngine, ReActError, ReActResult,
-};
+use axagent_agent::react_engine::{LlmReasoningProvider, ReActEngine, ReActError, ReActResult};
+use axagent_agent::reasoning_state::{ActionType, ReActConfig, ReasoningContext};
+use axagent_agent::recovery_strategies::{RecoveryAttempt, RecoveryResult, RecoveryStrategy};
+use axagent_agent::thought_chain::Action;
 use axagent_agent::thought_chain::ThoughtChain;
 use axagent_agent::tree_of_thoughts::{
-    LlmReasoningProvider as ToTLlmReasoningProvider,
-    ThoughtStatus, TreeOfThoughtsEngine,
+    LlmReasoningProvider as ToTLlmReasoningProvider, ThoughtStatus, TreeOfThoughtsEngine,
 };
-use axagent_agent::reasoning_state::{ActionType, ReActConfig, ReasoningContext};
-use axagent_agent::thought_chain::Action;
-use axagent_agent::recovery_strategies::{RecoveryAttempt, RecoveryResult, RecoveryStrategy};
 use axagent_core::error::AxAgentError;
 use std::sync::Arc;
 use std::time::Duration;
@@ -48,7 +45,7 @@ impl Clone for MockReasoningProvider {
             analyze_response: self.analyze_response.clone(),
             reflect_response: self.reflect_response.clone(),
             call_index: std::sync::atomic::AtomicUsize::new(
-                self.call_index.load(std::sync::atomic::Ordering::SeqCst)
+                self.call_index.load(std::sync::atomic::Ordering::SeqCst),
             ),
             should_fail: self.should_fail,
         }
@@ -92,7 +89,11 @@ impl MockReasoningProvider {
 
 #[async_trait]
 impl LlmReasoningProvider for MockReasoningProvider {
-    async fn analyze(&self, _input: &str, _context: &ReasoningContext) -> Result<String, ReActError> {
+    async fn analyze(
+        &self,
+        _input: &str,
+        _context: &ReasoningContext,
+    ) -> Result<String, ReActError> {
         if self.should_fail {
             return Err(ReActError::LlmReasoningError("Mock LLM failure".to_string()));
         }
@@ -196,10 +197,7 @@ impl MockToTProvider {
     }
 
     fn with_eval_scores(mut self, scores: Vec<f64>) -> Self {
-        self.evaluate_responses = scores
-            .iter()
-            .map(|s| format!("{}", s))
-            .collect();
+        self.evaluate_responses = scores.iter().map(|s| format!("{}", s)).collect();
         self
     }
 
@@ -343,8 +341,7 @@ mod test_react_engine_lifecycle {
         assert!(result.iterations > 0, "Engine should complete at least one iteration");
         if result.success {
             assert!(
-                !result.final_response.is_empty()
-                    || result.context.current_goal.is_some(),
+                !result.final_response.is_empty() || result.context.current_goal.is_some(),
                 "Success result should have response or goal"
             );
         }
@@ -621,16 +618,18 @@ mod test_hierarchical_planner_dynamic_replanning {
         let executable = planner.get_next_executable_tasks();
         let task3_id = executable[0].id.clone();
         planner.mark_task_started(&task3_id).unwrap();
-        let mark_result = planner
-            .mark_task_failed(&task3_id, "Simulated failure on task 3");
+        let mark_result = planner.mark_task_failed(&task3_id, "Simulated failure on task 3");
         assert!(mark_result.is_ok(), "mark_task_failed failed: {:?}", mark_result);
 
-        let all_tasks: Vec<_> = planner.get_plan().unwrap()
-            .phases.iter()
+        let all_tasks: Vec<_> = planner
+            .get_plan()
+            .unwrap()
+            .phases
+            .iter()
             .flat_map(|p| p.tasks.iter())
             .map(|t| (t.id.clone(), format!("{:?}", t.status), t.retry_count))
             .collect();
-        
+
         let failed_steps = planner.get_failed_steps();
         assert!(
             failed_steps.contains(&task3_id),
@@ -672,9 +671,13 @@ mod test_hierarchical_planner_dynamic_replanning {
 
         let task3_id = planner.get_next_executable_tasks()[0].id.clone();
         planner.mark_task_started(&task3_id).unwrap();
-        planner.mark_task_failed(&task3_id, "Connection timeout").unwrap();
+        planner
+            .mark_task_failed(&task3_id, "Connection timeout")
+            .unwrap();
         planner.mark_task_started(&task3_id).unwrap();
-        planner.mark_task_failed(&task3_id, "Connection timeout again").unwrap();
+        planner
+            .mark_task_failed(&task3_id, "Connection timeout again")
+            .unwrap();
 
         let completed_before = planner.get_completed_steps();
         assert_eq!(completed_before.len(), 2);
@@ -832,7 +835,10 @@ mod test_hierarchical_planner_dynamic_replanning {
                 "Phase",
                 "Test skip and insert",
                 vec![],
-                vec![make_task("Task 1", "action1"), make_task("Task 2", "action2")],
+                vec![
+                    make_task("Task 1", "action1"),
+                    make_task("Task 2", "action2"),
+                ],
             )
             .build(&mut planner);
 
@@ -1138,10 +1144,7 @@ mod test_tree_of_thoughts_reasoning {
             .generate_branching_options(level2[0].clone(), "Level 3", &provider)
             .await
             .unwrap();
-        assert!(
-            level3.is_empty(),
-            "Should not generate children beyond max_depth"
-        );
+        assert!(level3.is_empty(), "Should not generate children beyond max_depth");
     }
 
     #[tokio::test]
@@ -1220,10 +1223,8 @@ mod test_error_recovery_with_context {
     fn test_error_context_classification() {
         let classifier = ErrorClassifier::new();
 
-        let classified = classifier.classify_with_context(
-            "connection timeout",
-            Some("During database query".to_string()),
-        );
+        let classified = classifier
+            .classify_with_context("connection timeout", Some("During database query".to_string()));
 
         assert_eq!(classified.error_type, ErrorType::Transient);
         assert_eq!(classified.original_error, "connection timeout");
@@ -1245,21 +1246,15 @@ mod test_error_recovery_with_context {
 
         for (error_msg, expected_code) in cases {
             let classified = classifier.classify_with_context(error_msg, None);
-            assert_eq!(
-                classified.error_code, expected_code,
-                "Failed for: {}",
-                error_msg
-            );
+            assert_eq!(classified.error_code, expected_code, "Failed for: {}", error_msg);
         }
     }
 
     #[test]
     fn test_to_report_generates_valid_error_report() {
         let classifier = ErrorClassifier::new();
-        let classified = classifier.classify_with_context(
-            "HTTP 500 internal error",
-            Some("During API call".to_string()),
-        );
+        let classified = classifier
+            .classify_with_context("HTTP 500 internal error", Some("During API call".to_string()));
 
         assert_eq!(classified.error_type, ErrorType::Unrecoverable);
         assert_eq!(classified.error_code, Some("500".to_string()));
@@ -1595,10 +1590,7 @@ mod test_agent_coordinator_lifecycle {
         assert_eq!(loaded.completed_task_ids.len(), 2);
         assert_eq!(loaded.label, checkpoint.label);
 
-        assert_eq!(
-            loaded.state["progress"],
-            serde_json::json!(0.4)
-        );
+        assert_eq!(loaded.state["progress"], serde_json::json!(0.4));
     }
 
     #[tokio::test]
@@ -1832,10 +1824,7 @@ mod test_tool_call_flow {
             llm_prompt: Some("Synthesize this".to_string()),
             requires_confirmation: false,
         };
-        let synthesize_result = executor
-            .execute(synthesize_action, "conv-1")
-            .await
-            .unwrap();
+        let synthesize_result = executor.execute(synthesize_action, "conv-1").await.unwrap();
         assert!(synthesize_result.is_success());
     }
 
@@ -1918,11 +1907,7 @@ mod test_tool_call_flow {
         ];
 
         for err in non_retryable {
-            assert!(
-                !err.is_retryable(),
-                "Expected {:?} to NOT be retryable",
-                err
-            );
+            assert!(!err.is_retryable(), "Expected {:?} to NOT be retryable", err);
         }
     }
 

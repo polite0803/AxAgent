@@ -20,9 +20,7 @@ pub fn set_trace_id(trace_id: String) {
 }
 
 pub fn get_trace_id() -> Option<String> {
-    CURRENT_TRACE_ID.with(|tid| {
-        tid.borrow().clone()
-    })
+    CURRENT_TRACE_ID.with(|tid| tid.borrow().clone())
 }
 
 pub fn set_session_id(session_id: String) {
@@ -32,14 +30,16 @@ pub fn set_session_id(session_id: String) {
 }
 
 pub fn get_session_id() -> Option<String> {
-    CURRENT_SESSION_ID.with(|sid| {
-        sid.borrow().clone()
-    })
+    CURRENT_SESSION_ID.with(|sid| sid.borrow().clone())
 }
 
 pub fn clear_context() {
-    CURRENT_TRACE_ID.with(|tid| { *tid.borrow_mut() = None; });
-    CURRENT_SESSION_ID.with(|sid| { *sid.borrow_mut() = None; });
+    CURRENT_TRACE_ID.with(|tid| {
+        *tid.borrow_mut() = None;
+    });
+    CURRENT_SESSION_ID.with(|sid| {
+        *sid.borrow_mut() = None;
+    });
 }
 
 #[macro_export]

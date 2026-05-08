@@ -551,7 +551,10 @@ impl ReActEngine {
         self
     }
 
-    pub fn with_planner(mut self, planner: Arc<tokio::sync::Mutex<crate::hierarchical_planner::HierarchicalPlanner>>) -> Self {
+    pub fn with_planner(
+        mut self,
+        planner: Arc<tokio::sync::Mutex<crate::hierarchical_planner::HierarchicalPlanner>>,
+    ) -> Self {
         self.planner = Some(planner);
         self
     }
