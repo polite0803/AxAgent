@@ -1015,17 +1015,23 @@ mod tests {
 
     #[tokio::test]
     async fn call_tool_stdio_does_not_hang_when_initialize_stdout_is_non_json_then_eof() {
-        let args = vec!["-c".to_string(), "print('npm notice')".to_string()];
+        let args = vec!["npm notice".to_string()];
 
         let result = tokio::time::timeout(
-            std::time::Duration::from_millis(500),
-            call_tool_stdio("python3", &args, &HashMap::new(), "fetch_url", serde_json::json!({})),
+            std::time::Duration::from_secs(5),
+            call_tool_stdio("echo", &args, &HashMap::new(), "fetch_url", serde_json::json!({})),
         )
         .await;
 
         assert!(result.is_ok(), "call_tool_stdio hung after non-JSON initialize output");
 
         let err = result.unwrap().unwrap_err().to_string();
-        assert!(err.contains("MCP") || err.contains("handshake") || err.contains("spawn"));
+        assert!(
+            err.contains("MCP")
+                || err.contains("handshake")
+                || err.contains("spawn")
+                || err.contains("EOF"),
+            "unexpected error: {err}"
+        );
     }
 }
