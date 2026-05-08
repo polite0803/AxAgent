@@ -605,40 +605,7 @@ where
                 break;
             }
 
-            // 批量执行所有工具调用（通过 ToolExecutor::execute_batch，支持并发编排）
-            let batch_requests: Vec<(String, String, String)> = pending_tool_uses
-                .iter()
-                .map(|(id, name, input)| (id.clone(), name.clone(), input.clone()))
-                .collect();
-
-            let executor = self.tool_executor.clone();
-            let batch_results = {
-                let mut guard = executor.lock().unwrap();
-                guard.execute_batch(&batch_requests)
-            };
-
-            let mut batch_done: std::collections::HashSet<String> =
-                std::collections::HashSet::new();
-
-            for (tid, tname, result) in batch_results {
-                batch_done.insert(tid.clone());
-                let output = result
-                    .as_ref()
-                    .map_or_else(|e| e.to_string(), |o| o.clone());
-                let is_err = result.is_err();
-                let post_hook =
-                    self.run_post_tool_use_hook(&tname, "", &output, is_err, Some(&tid));
-                let msg = ConversationMessage::tool_result(&tid, &tname, &output, is_err);
-                self.session.push_message(msg.clone()).ok();
-                tool_results.push(msg);
-                let _ = post_hook;
-            }
-
             for (tool_use_id, tool_name, input) in pending_tool_uses {
-                // 跳过已在批量执行中处理的工具
-                if batch_done.contains(&tool_use_id) {
-                    continue;
-                }
                 // Detect repeated identical tool calls to prevent infinite loops.
                 let input_hash = {
                     use std::hash::Hasher;

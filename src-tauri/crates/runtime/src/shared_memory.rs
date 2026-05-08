@@ -245,7 +245,7 @@ impl SharedMemoryPool {
         let mut notified = Vec::new();
 
         for (pattern, agents) in &self.subscribers {
-            if full_key.contains(pattern) || pattern == "*" {
+            if pattern == "*" || glob_match(pattern, key) || glob_match(pattern, &full_key) {
                 notified.extend(agents.clone());
             }
         }
@@ -584,6 +584,33 @@ fn current_timestamp() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
+}
+
+fn glob_match(pattern: &str, text: &str) -> bool {
+    let p: Vec<char> = pattern.chars().collect();
+    let t: Vec<char> = text.chars().collect();
+    glob_match_inner(&p, &t, 0, 0)
+}
+
+fn glob_match_inner(p: &[char], t: &[char], pi: usize, ti: usize) -> bool {
+    if pi == p.len() {
+        return ti == t.len();
+    }
+    if p[pi] == '*' {
+        for i in ti..=t.len() {
+            if glob_match_inner(p, t, pi + 1, i) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if ti == t.len() {
+        return false;
+    }
+    if p[pi] == '?' || p[pi] == t[ti] {
+        return glob_match_inner(p, t, pi + 1, ti + 1);
+    }
+    false
 }
 
 #[cfg(test)]

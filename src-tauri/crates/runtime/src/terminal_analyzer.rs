@@ -94,7 +94,7 @@ impl TerminalAnalyzer {
             ),
             (r"(?mi)cannot\s+find\s+", TerminalErrorType::CompilationError),
             (r"(?mi)mismatched\s+types?", TerminalErrorType::CompilationError),
-            (r"(?mi)^FAILED\s+\(", TerminalErrorType::TestFailure),
+            (r"(?mi)^FAILED\b", TerminalErrorType::TestFailure),
             (r"(?mi)test\s+result:\s+FAILED", TerminalErrorType::TestFailure),
             (r"(?mi)panic!\(", TerminalErrorType::RuntimeError),
             (r"(?mi)thread\s+'[^']*'\s+panicked", TerminalErrorType::RuntimeError),
