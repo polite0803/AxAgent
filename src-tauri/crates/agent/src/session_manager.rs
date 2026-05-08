@@ -289,7 +289,10 @@ impl SessionManager {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis() as u64;
-        self.session_last_access.lock().await.insert(session_id.clone(), now);
+        self.session_last_access
+            .lock()
+            .await
+            .insert(session_id.clone(), now);
 
         let mut conv_index = self.conversation_index.lock().await;
         conv_index.insert(conversation_id, session_id);
