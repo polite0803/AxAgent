@@ -15,7 +15,10 @@ allow = [
     "Unicode-3.0",
     "MPL-2.0",
     "OpenSSL",
-    "BSD-3-Clause-No-Nuclear-License",
+    "AGPL-3.0-only",
+    "BSL-1.0",
+    "NCSA",
+    "CDLA-Permissive-2.0",
 ]
 
 [[licenses.clarify]]
