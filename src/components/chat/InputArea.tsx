@@ -1821,7 +1821,9 @@ export function InputArea() {
       {/* Main input container */}
       <div
         ref={containerRef}
+        className="ax-cyber-border"
         style={{
+          position: "relative",
           border: "1px solid var(--border-color)",
           borderRadius: 16,
           backgroundColor: token.colorBgContainer,
@@ -2457,6 +2459,11 @@ export function InputArea() {
                   title={activeConversation?.session_type === "workflow"
                       && activeConversation?.workflow_status === "completed"
                     ? t("chat.workflow.sessionCompletedHint")
+                    : undefined}
+                  style={value.trim() && !streaming
+                    && !(activeConversation?.session_type === "workflow"
+                      && activeConversation?.workflow_status === "completed")
+                    ? { boxShadow: "0 0 12px rgba(0,240,255,0.3)" }
                     : undefined}
                 />
               )}

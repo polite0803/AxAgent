@@ -263,19 +263,19 @@ function AssistantFooter({
             {msg.prompt_tokens != null && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <ArrowUp size={10} />
-                {formatTokenCount(msg.prompt_tokens)} {t("chat.tokens")}
+                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(msg.prompt_tokens)}</span> {t("chat.tokens")}
               </span>
             )}
             {msg.completion_tokens != null && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <ArrowDown size={10} />
-                {formatTokenCount(msg.completion_tokens)} {t("chat.tokens")}
+                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(msg.completion_tokens)}</span> {t("chat.tokens")}
               </span>
             )}
             {totalTokens > 0 && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <Coins size={10} />
-                {t("chat.totalTokens")}: {formatTokenCount(totalTokens)}
+                {t("chat.totalTokens")}: <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(totalTokens)}</span>
               </span>
             )}
             {msg.tokens_per_second != null && (
@@ -2586,7 +2586,7 @@ function ChatViewInner({ onScrollToReady }: {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="ax-cyber-grid flex flex-col h-full min-h-0">
       {/* Bubble style overrides */}
       <style>
         {`
@@ -2908,7 +2908,7 @@ function ChatViewInner({ onScrollToReady }: {
               )
               : (
                 <div className="flex flex-col items-center justify-center h-full" style={{ padding: "0 24px" }}>
-                  <Typography.Title level={3} style={{ marginBottom: 24, fontWeight: 500 }}>
+                  <Typography.Title level={3} className="ax-neon-text" style={{ marginBottom: 24, fontWeight: 500 }}>
                     {greetingText}
                   </Typography.Title>
                   <Prompts

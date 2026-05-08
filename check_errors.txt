@@ -1,0 +1,17 @@
+    Blocking waiting for file lock on build directory
+   Compiling find-msvc-tools v0.1.9
+   Compiling cc v1.2.60
+   Compiling displaydoc v0.2.5
+   Compiling siphasher v1.0.2
+    Checking stable_deref_trait v1.2.1
+    Checking scopeguard v1.2.0
+   Compiling typenum v1.19.0
+    Checking lock_api v0.4.14
+   Compiling thiserror v2.0.18
+error: failed to run custom build command for `thiserror v2.0.18`
+
+Caused by:
+  could not execute process `D:\OneManager\AxAgent\src-tauri\target\debug\build\thiserror-47ca5c8819c93b12\build-script-build` (never executed)
+
+Caused by:
+  另一个程序正在使用此文件，进程无法访问。 (os error 32)

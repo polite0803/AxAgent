@@ -8,7 +8,9 @@ export type ThemePreset =
   | "light-professional"
   | "light-minimal"
   | "paperclip-dark"
-  | "paperclip-light";
+  | "paperclip-light"
+  | "cyberpunk-dark"
+  | "cyberpunk-light";
 
 interface PresetColors {
   bgBase: string;
@@ -82,6 +84,26 @@ const PRESETS: Record<ThemePreset, PresetColors> = {
     borderRadiusBias: 0,
     shadowStyle: "border-only",
   },
+  "cyberpunk-dark": {
+    bgBase: "#0a0a12",
+    bgElevated: "#12121f",
+    borderColor: "#1e1e3a",
+    textPrimary: "rgba(224,224,255,0.92)",
+    textSecondary: "rgba(160,160,210,0.7)",
+    primaryColor: "#00f0ff",
+    borderRadiusBias: -2,
+    shadowStyle: "glow",
+  },
+  "cyberpunk-light": {
+    bgBase: "#f0f0f8",
+    bgElevated: "#ffffff",
+    borderColor: "#c8c8e0",
+    textPrimary: "rgba(10,10,30,0.92)",
+    textSecondary: "rgba(80,80,140,0.7)",
+    primaryColor: "#7b2ff7",
+    borderRadiusBias: -2,
+    shadowStyle: "soft-light",
+  },
 };
 
 const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
@@ -91,6 +113,8 @@ const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
   "light-minimal": false,
   "paperclip-dark": true,
   "paperclip-light": false,
+  "cyberpunk-dark": true,
+  "cyberpunk-light": false,
 };
 
 function resolveShadow(preset: PresetColors): { boxShadow: string; boxShadowSecondary: string } {
@@ -102,8 +126,8 @@ function resolveShadow(preset: PresetColors): { boxShadow: string; boxShadowSeco
       };
     case "glow":
       return {
-        boxShadow: "0 2px 12px 0 rgba(168,85,247,0.15), 0 1px 4px -1px rgba(168,85,247,0.1)",
-        boxShadowSecondary: "0 6px 24px -2px rgba(168,85,247,0.2), 0 3px 10px -4px rgba(168,85,247,0.15)",
+        boxShadow: "0 2px 12px 0 rgba(0,240,255,0.12), 0 1px 4px -1px rgba(0,240,255,0.08)",
+        boxShadowSecondary: "0 6px 24px -2px rgba(0,240,255,0.18), 0 3px 10px -4px rgba(0,240,255,0.12)",
       };
     case "soft-light":
       return {

@@ -694,8 +694,8 @@ mod tests {
         let id_prefix = citation.id[..8].to_string();
         tracker.add_citation(citation).await;
 
-        let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
+        let builder = ReferenceBuilder::new(tracker);
         let inline = builder
             .build_inline_citations(&citations, ReferenceFormat::Markdown)
             .await;
@@ -710,8 +710,8 @@ mod tests {
         let id_clone = citation.id.clone();
         tracker.add_citation(citation).await;
 
-        let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
+        let builder = ReferenceBuilder::new(tracker);
         let inline = builder
             .build_inline_citations(&citations, ReferenceFormat::Html)
             .await;
@@ -726,8 +726,8 @@ mod tests {
             Citation::new("https://example.com".to_string(), "Title".to_string(), SourceType::Web);
         tracker.add_citation(citation).await;
 
-        let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
+        let builder = ReferenceBuilder::new(tracker);
         let inline = builder
             .build_inline_citations(&citations, ReferenceFormat::BibTeX)
             .await;
@@ -744,8 +744,8 @@ mod tests {
         );
         tracker.add_citation(citation).await;
 
-        let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
+        let builder = ReferenceBuilder::new(tracker);
         let footnotes = builder.build_footnote_references(&citations).await;
         assert!(footnotes.contains("Footnote Title"));
         assert!(footnotes.contains("https://example.com"));
@@ -769,8 +769,8 @@ mod tests {
             ))
             .await;
 
-        let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
+        let builder = ReferenceBuilder::new(tracker);
         let footnotes = builder.build_footnote_references(&citations).await;
         assert!(footnotes.contains("1."));
         assert!(footnotes.contains("2."));

@@ -10,6 +10,8 @@ import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
 
 const THEME_PRESETS: { key: ThemePreset; label: string; bg: string; accent: string }[] = [
+  { key: "cyberpunk-dark", label: "Cyberpunk Dark", bg: "#0a0a12", accent: "#00f0ff" },
+  { key: "cyberpunk-light", label: "Cyberpunk Light", bg: "#f0f0f8", accent: "#7b2ff7" },
   { key: "paperclip-dark", label: "Paperclip Dark", bg: "#18181b", accent: "#a1a1aa" },
   { key: "paperclip-light", label: "Paperclip Light", bg: "#fafafa", accent: "#71717a" },
   { key: "dark-elegance", label: "Dark Elegance", bg: "#141414", accent: "#1677ff" },
@@ -63,7 +65,7 @@ export function DisplaySettings() {
           <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
           <div style={{ display: "flex", gap: 6 }}>
             {THEME_PRESETS.map((preset) => {
-              const isActive = (settings.theme_preset || "paperclip-dark") === preset.key;
+              const isActive = (settings.theme_preset || "cyberpunk-dark") === preset.key;
               return (
                 <Tooltip key={preset.key} title={preset.label}>
                   <div

@@ -12,6 +12,14 @@
   --color-primary: #a1a1aa;
   --color-fill-alter: rgba(255, 255, 255, 0.03);
   --font-size-base: 14px;
+  --neon-cyan: #00f0ff;
+  --neon-magenta: #ff00e5;
+  --neon-purple: #7b2ff7;
+  --neon-green: #39ff14;
+  --cyber-grid-color: rgba(0, 240, 255, 0.03);
+  --cyber-glow-sm: 0 0 8px rgba(0, 240, 255, 0.15);
+  --cyber-glow-md: 0 0 16px rgba(0, 240, 255, 0.2), 0 0 4px rgba(0, 240, 255, 0.1);
+  --cyber-glow-lg: 0 0 24px rgba(0, 240, 255, 0.25), 0 0 8px rgba(0, 240, 255, 0.15), 0 0 2px rgba(0, 240, 255, 0.1);
 }
 
 html,
@@ -54,19 +62,19 @@ button,
 
 /* ── Animation system ─────────────────────────────────────────────── */
 
-/* Page enter: fade + slight slide */
+/* Page enter: fade + slight slide + blur */
 @keyframes ax-page-enter {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 .ax-page-transition {
-  animation: ax-page-enter 0.12s ease-out;
+  animation: ax-page-enter 0.2s ease-out;
 }
 
 /* Message slide-up (applied by ChatView) */
 @keyframes ax-message-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
 /* Button press feedback */
@@ -85,26 +93,151 @@ button {
 .ax-skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-fill-alter, rgba(255,255,255,0.04)) 25%,
-    var(--color-fill-alter, rgba(255,255,255,0.08)) 50%,
-    var(--color-fill-alter, rgba(255,255,255,0.04)) 75%
+    rgba(0, 240, 255, 0.03) 25%,
+    rgba(0, 240, 255, 0.08) 50%,
+    rgba(0, 240, 255, 0.03) 75%
   );
   background-size: 200% 100%;
   animation: ax-shimmer 1.5s ease-in-out infinite;
   border-radius: 4px;
 }
 
+/* ── Cyberpunk visual effects ─────────────────────────────────────── */
+@keyframes ax-neon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes ax-scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes ax-glitch-1 {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  20% { clip-path: inset(20% 0 60% 0); transform: translate(-2px, 1px); }
+  40% { clip-path: inset(40% 0 30% 0); transform: translate(2px, -1px); }
+  60% { clip-path: inset(60% 0 10% 0); transform: translate(-1px, 2px); }
+  80% { clip-path: inset(10% 0 70% 0); transform: translate(1px, -2px); }
+}
+
+@keyframes ax-border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes ax-cyber-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.ax-cyber-fade-in {
+  animation: ax-cyber-fade-in 0.3s ease-out;
+}
+
+/* Neon text glow for active states */
+.ax-neon-text {
+  text-shadow: 0 0 7px var(--neon-cyan), 0 0 14px rgba(0, 240, 255, 0.3);
+}
+
+/* Cyberpunk border gradient animation */
+.ax-cyber-border {
+  position: relative;
+}
+.ax-cyber-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--neon-cyan),
+    var(--neon-purple),
+    var(--neon-magenta),
+    var(--neon-cyan)
+  );
+  background-size: 300% 300%;
+  animation: ax-border-flow 4s ease infinite;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.ax-cyber-border:hover::before,
+.ax-cyber-border:focus-within::before {
+  opacity: 1;
+}
+
+/* Scanline overlay for cyberpunk atmosphere */
+.ax-scanline-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 240, 255, 0.015) 2px,
+    rgba(0, 240, 255, 0.015) 4px
+  );
+  z-index: 1;
+}
+
+/* Cyberpunk grid background */
+.ax-cyber-grid {
+  background-image:
+    linear-gradient(var(--cyber-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cyber-grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
 /* Subtle card lift on hover */
 .ax-card-lift {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .ax-card-lift:hover {
   transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.08);
 }
 
 /* ── Sidebar: fixed-width Linear-style ────────────────────────────── */
 .ax-sidebar {
   overflow: hidden;
+  position: relative;
+}
+
+.ax-sidebar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--neon-cyan, #00f0ff) 20%,
+    var(--neon-purple, #7b2ff7) 50%,
+    var(--neon-magenta, #ff00e5) 80%,
+    transparent 100%
+  );
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .ax-nav-label {
@@ -125,20 +258,21 @@ button {
   height: 0;
   border-radius: 0 3px 3px 0;
   background: var(--color-primary, #a1a1aa);
-  transition: height 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
 }
 .ax-nav-item-active .ax-nav-indicator {
   height: 24px;
+  box-shadow: 0 0 8px var(--neon-cyan, #00f0ff), 0 0 2px var(--neon-cyan, #00f0ff);
 }
 
 /* Sidebar section group header */
 .ax-sidebar-section-header {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 600;
   padding: 12px 12px 4px;
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -323,7 +457,7 @@ b, strong, th,
 
 .axagent-input-textarea {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-color: rgba(0, 240, 255, 0.18) transparent;
 }
 
 .axagent-input-textarea::-webkit-scrollbar {
@@ -335,24 +469,24 @@ b, strong, th,
 }
 
 .axagent-input-textarea::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(0, 240, 255, 0.18);
   border-radius: 999px;
 }
 
 .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(0, 240, 255, 0.28);
 }
 
 html[data-theme="light"] .axagent-input-textarea {
-  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+  scrollbar-color: rgba(123, 47, 247, 0.18) transparent;
 }
 
 html[data-theme="light"] .axagent-input-textarea::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(123, 47, 247, 0.18);
 }
 
 html[data-theme="light"] .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(123, 47, 247, 0.28);
 }
 
 /* ── OverlayScrollbars custom theme ────────────────────────────────── */
@@ -365,25 +499,25 @@ html[data-theme="light"] .axagent-input-textarea::-webkit-scrollbar-thumb:hover 
   --os-track-bg-hover: transparent;
   --os-track-bg-active: transparent;
   --os-handle-border-radius: 3px;
-  --os-handle-bg: rgba(255, 255, 255, 0.08);
-  --os-handle-bg-hover: rgba(255, 255, 255, 0.18);
-  --os-handle-bg-active: rgba(255, 255, 255, 0.28);
+  --os-handle-bg: rgba(0, 240, 255, 0.08);
+  --os-handle-bg-hover: rgba(0, 240, 255, 0.18);
+  --os-handle-bg-active: rgba(0, 240, 255, 0.28);
   --os-handle-perpendicular-size: 100%;
   --os-handle-perpendicular-size-hover: 100%;
   --os-handle-perpendicular-size-active: 100%;
 }
 html[data-theme="light"] .os-theme-axagent {
-  --os-handle-bg: rgba(0, 0, 0, 0.08);
-  --os-handle-bg-hover: rgba(0, 0, 0, 0.18);
-  --os-handle-bg-active: rgba(0, 0, 0, 0.28);
+  --os-handle-bg: rgba(123, 47, 247, 0.08);
+  --os-handle-bg-hover: rgba(123, 47, 247, 0.18);
+  --os-handle-bg-active: rgba(123, 47, 247, 0.28);
 }
 
 /* ── Chat scroll indicator ─────────────────────────────────────────── */
 .chat-scroll-indicator {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 240, 255, 0.12);
 }
 html[data-theme="light"] .chat-scroll-indicator {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(123, 47, 247, 0.12);
 }
 
 /* Custom action item hover style */
@@ -397,7 +531,8 @@ html[data-theme="light"] .chat-scroll-indicator {
   transition: all 0.2s ease-in-out;
 }
 .axagent-action-item:hover {
-  background: var(--ant-color-bg-text-hover, rgba(255, 255, 255, 0.08));
+  background: rgba(0, 240, 255, 0.08);
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.1);
 }
 
 /* Ant Design style overrides */
@@ -443,8 +578,8 @@ svg.lucide {
 }
 
 .gateway-quick-connect-card.ant-card:hover {
-  border-color: var(--color-primary) !important;
-  box-shadow: none !important;
+  border-color: var(--neon-cyan, #00f0ff) !important;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.12) !important;
   transform: none !important;
 }
 
@@ -468,9 +603,11 @@ svg.lucide {
   inset: -2px;
   border-radius: 50%;
   border: 2px solid transparent;
-  border-top-color: var(--color-primary, #1677ff);
+  border-top-color: var(--neon-cyan, #00f0ff);
+  border-right-color: var(--neon-purple, #7b2ff7);
   animation: model-tag-spin 1s linear infinite;
   pointer-events: none;
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.3);
 }
 
 .model-tag-pending {
@@ -567,17 +704,23 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   padding-left: 12px;
   padding-right: 12px;
   gap: 10px;
-  transition: background-color 0.12s ease-in-out;
+  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   background-color: transparent;
+  border: none;
+  font-family: inherit;
+  text-align: left;
 }
 .ax-nav-item:hover {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 0 0 12px rgba(0, 240, 255, 0.04);
 }
 .ax-nav-item-active {
   background-color: var(--ant-color-primary-bg, rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 0 16px rgba(0, 240, 255, 0.06);
 }
 .ax-nav-item-active:hover {
   background-color: var(--ant-color-primary-bg, rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 0 16px rgba(0, 240, 255, 0.06);
 }
 
 /* ── TitleBar button hover via CSS ──────── */
@@ -592,10 +735,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   cursor: pointer;
   border: none;
   background-color: transparent;
-  transition: background-color 0.12s ease-in-out, color 0.12s ease-in-out;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .ax-titlebar-btn:hover {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.1);
 }
 
 .ax-titlebar-winctrl {
@@ -608,7 +752,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   background: transparent;
   cursor: pointer;
   outline: none;
-  transition: background-color 0.12s ease-in-out, color 0.12s ease-in-out;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
 }
 .ax-titlebar-winctrl:hover {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
@@ -617,6 +761,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .ax-titlebar-winctrl--close:hover {
   background-color: #e81123;
   color: #ffffff;
+  box-shadow: 0 0 12px rgba(232, 17, 35, 0.4);
 }
 
 /* ── Sidebar user avatar hover via CSS ──────── */
@@ -628,11 +773,16 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   border-radius: 6px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.12s ease-in-out;
+  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   background-color: transparent;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
 }
 .ax-sidebar-user:hover {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 0 0 12px rgba(0, 240, 255, 0.04);
 }
 
 /* ── Sidebar collapse toggle hover via CSS ──────── */
@@ -644,11 +794,14 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   margin-bottom: 8px;
   cursor: pointer;
   border-radius: 6px;
-  transition: background-color 0.12s ease-in-out;
+  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   background-color: transparent;
+  border: none;
+  font-family: inherit;
 }
 .ax-sidebar-toggle:hover {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.08);
 }
 
 /* ── Responsive: sidebar auto-collapse on small screens ──────── */

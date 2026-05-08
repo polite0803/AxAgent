@@ -36,6 +36,7 @@ export function AppHeader() {
 
   return (
     <div
+      className="ax-cyber-border"
       style={{
         height: 40,
         minHeight: 40,
@@ -45,13 +46,16 @@ export function AppHeader() {
         padding: "0 16px",
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
         backgroundColor: "transparent",
+        position: "relative",
       }}
     >
       <span
+        className={labelKey ? "" : ""}
         style={{
           fontSize: 13,
-          fontWeight: 500,
+          fontWeight: 600,
           color: token.colorText,
+          letterSpacing: "0.04em",
         }}
       >
         {labelKey ? t(labelKey) : t("nav.app")}
@@ -60,14 +64,9 @@ export function AppHeader() {
         <button
           type="button"
           onClick={toggleHelp}
+          className="ax-titlebar-btn"
+          aria-label={t("help.title")}
           style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            padding: 4,
-            borderRadius: 4,
-            display: "inline-flex",
-            alignItems: "center",
             color: token.colorTextQuaternary,
           }}
         >

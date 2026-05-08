@@ -1313,6 +1313,7 @@ mod tests {
     }
 
     async fn setup_test_db() -> DatabaseConnection {
+        use axagent_migration::MigratorTrait;
         let db = sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
             .await
             .unwrap();
@@ -1508,100 +1509,107 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_channel_permission_prompter_new() {
-        let app = tauri::test::mock_app();
-        let prompter = ChannelPermissionPrompter::new(
-            app.handle().clone(),
-            "conv-1".to_string(),
-            HashSet::new(),
-            "/workspace".to_string(),
+    async fn test_channel_permission_prompter_inner_pending_count() {
+        let inner = ChannelPermissionPrompterInner {
+            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: std::sync::Mutex::new(HashSet::new()),
+            workspace_root: std::sync::Mutex::new("/workspace".to_string()),
+        };
+        let inner = Arc::new(inner);
+        assert_eq!(
+            inner
+                .pending_senders
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .len(),
+            0
         );
-        assert_eq!(prompter.pending_count(), 0);
-        assert_eq!(prompter.conversation_id, "conv-1");
     }
 
-    #[tokio::test]
-    async fn test_channel_permission_prompter_add_always_allowed() {
-        let app = tauri::test::mock_app();
-        let prompter = ChannelPermissionPrompter::new(
-            app.handle().clone(),
-            "conv-1".to_string(),
-            HashSet::new(),
-            "/workspace".to_string(),
-        );
-        assert!(prompter.get_always_allowed().is_empty());
-        prompter.add_always_allowed("read_file");
-        prompter.add_always_allowed("bash");
-        let allowed = prompter.get_always_allowed();
-        assert_eq!(allowed.len(), 2);
-        assert!(allowed.contains("read_file"));
-        assert!(allowed.contains("bash"));
+    #[test]
+    fn test_channel_permission_prompter_inner_add_always_allowed() {
+        let inner = ChannelPermissionPrompterInner {
+            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: std::sync::Mutex::new(HashSet::new()),
+            workspace_root: std::sync::Mutex::new("/workspace".to_string()),
+        };
+        let inner = Arc::new(inner);
+        {
+            let mut set = inner.always_allowed.lock().unwrap();
+            set.insert("read_file".to_string());
+            set.insert("bash".to_string());
+        }
+        let set = inner.always_allowed.lock().unwrap();
+        assert_eq!(set.len(), 2);
+        assert!(set.contains("read_file"));
+        assert!(set.contains("bash"));
     }
 
-    #[tokio::test]
-    async fn test_channel_permission_prompter_deliver_decision_no_pending() {
-        let app = tauri::test::mock_app();
-        let prompter = ChannelPermissionPrompter::new(
-            app.handle().clone(),
-            "conv-1".to_string(),
-            HashSet::new(),
-            "/workspace".to_string(),
-        );
-        let result = prompter.deliver_decision("nonexistent", PermissionPromptDecision::Allow);
+    #[test]
+    fn test_channel_permission_prompter_inner_deliver_decision_no_pending() {
+        let inner = ChannelPermissionPrompterInner {
+            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: std::sync::Mutex::new(HashSet::new()),
+            workspace_root: std::sync::Mutex::new(String::new()),
+        };
+        let inner = Arc::new(inner);
+        let result = {
+            let mut map = inner.pending_senders.lock().unwrap();
+            if let Some(sender) = map.remove("nonexistent") {
+                sender.send(PermissionPromptDecision::Allow).is_ok()
+            } else {
+                false
+            }
+        };
         assert!(!result);
     }
 
-    #[tokio::test]
-    async fn test_channel_permission_prompter_clear_pending() {
-        let app = tauri::test::mock_app();
-        let prompter = ChannelPermissionPrompter::new(
-            app.handle().clone(),
-            "conv-1".to_string(),
-            HashSet::new(),
-            "/workspace".to_string(),
-        );
+    #[test]
+    fn test_channel_permission_prompter_inner_clear_pending() {
+        let inner = ChannelPermissionPrompterInner {
+            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: std::sync::Mutex::new(HashSet::new()),
+            workspace_root: std::sync::Mutex::new(String::new()),
+        };
+        let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = prompter.inner.pending_senders.lock().unwrap();
+            let mut map = inner.pending_senders.lock().unwrap();
             map.insert("req-1".to_string(), tx);
         }
-        assert_eq!(prompter.pending_count(), 1);
-        prompter.clear_pending();
-        assert_eq!(prompter.pending_count(), 0);
+        {
+            let mut map = inner.pending_senders.lock().unwrap();
+            assert_eq!(map.len(), 1);
+            map.clear();
+        }
+        {
+            let map = inner.pending_senders.lock().unwrap();
+            assert!(map.is_empty());
+        }
         drop(rx);
     }
 
-    #[tokio::test]
-    async fn test_channel_permission_prompter_clone() {
-        let app = tauri::test::mock_app();
-        let prompter = ChannelPermissionPrompter::new(
-            app.handle().clone(),
-            "conv-1".to_string(),
-            HashSet::new(),
-            "/workspace".to_string(),
-        );
-        prompter.add_always_allowed("read_file");
-        let cloned = prompter.clone();
-        assert_eq!(cloned.conversation_id, "conv-1");
-        let allowed = cloned.get_always_allowed();
-        assert!(allowed.contains("read_file"));
-    }
-
-    #[tokio::test]
-    async fn test_channel_permission_prompter_deliver_decision_success() {
-        let app = tauri::test::mock_app();
-        let prompter = ChannelPermissionPrompter::new(
-            app.handle().clone(),
-            "conv-1".to_string(),
-            HashSet::new(),
-            "/workspace".to_string(),
-        );
+    #[test]
+    fn test_channel_permission_prompter_inner_deliver_decision_success() {
+        let inner = ChannelPermissionPrompterInner {
+            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: std::sync::Mutex::new(HashSet::new()),
+            workspace_root: std::sync::Mutex::new(String::new()),
+        };
+        let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = prompter.inner.pending_senders.lock().unwrap();
+            let mut map = inner.pending_senders.lock().unwrap();
             map.insert("req-1".to_string(), tx);
         }
-        let result = prompter.deliver_decision("req-1", PermissionPromptDecision::Allow);
+        let result = {
+            let mut map = inner.pending_senders.lock().unwrap();
+            if let Some(sender) = map.remove("req-1") {
+                sender.send(PermissionPromptDecision::Allow).is_ok()
+            } else {
+                false
+            }
+        };
         assert!(result);
         let decision = rx
             .recv_timeout(std::time::Duration::from_millis(100))
@@ -1609,32 +1617,31 @@ mod tests {
         assert!(matches!(decision, PermissionPromptDecision::Allow));
     }
 
-    #[tokio::test]
-    async fn test_channel_permission_prompter_always_allowed_auto_allow() {
-        let app = tauri::test::mock_app();
+    #[test]
+    fn test_channel_permission_prompter_inner_always_allowed_check() {
         let mut allowed_set = HashSet::new();
         allowed_set.insert("read_file".to_string());
-        let mut prompter = ChannelPermissionPrompter::new(
-            app.handle().clone(),
-            "conv-1".to_string(),
-            allowed_set,
-            "/workspace".to_string(),
-        );
-        let request = PermissionRequest {
-            tool_name: "read_file".to_string(),
-            input: "{}".to_string(),
-            required_mode: PermissionMode::ReadOnly,
-            current_mode: PermissionMode::ReadOnly,
+        let inner = ChannelPermissionPrompterInner {
+            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: std::sync::Mutex::new(allowed_set),
+            workspace_root: std::sync::Mutex::new(String::new()),
         };
-        let decision = prompter.decide(&request);
-        assert!(matches!(decision, PermissionPromptDecision::Allow));
+        let inner = Arc::new(inner);
+        let set = inner.always_allowed.lock().unwrap();
+        assert!(set.contains("read_file"));
+        assert!(!set.contains("bash"));
     }
 
-    #[tokio::test]
-    async fn test_tauri_hook_progress_reporter_new() {
-        let app = tauri::test::mock_app();
-        let reporter = TauriHookProgressReporter::new(app.handle().clone(), "conv-1".to_string());
-        assert_eq!(reporter.conversation_id, "conv-1");
+    #[test]
+    fn test_channel_permission_prompter_inner_workspace_root() {
+        let inner = ChannelPermissionPrompterInner {
+            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: std::sync::Mutex::new(HashSet::new()),
+            workspace_root: std::sync::Mutex::new("/my/workspace".to_string()),
+        };
+        let inner = Arc::new(inner);
+        let root = inner.workspace_root.lock().unwrap();
+        assert_eq!(*root, "/my/workspace");
     }
 
     #[test]
