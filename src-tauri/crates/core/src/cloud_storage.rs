@@ -123,10 +123,7 @@ impl S3ProviderPreset {
 
     /// Returns true if this provider requires path-style addressing.
     pub fn default_use_path_style(&self) -> bool {
-        match self {
-            Self::Minio | Self::SeaweedFs | Self::Custom => true,
-            _ => false,
-        }
+        matches!(self, Self::Minio | Self::SeaweedFs | Self::Custom)
     }
 
     /// All available presets for UI dropdown.
@@ -186,6 +183,7 @@ impl S3Backend {
         format!("{}.{}", self.config.bucket, endpoint)
     }
 
+    #[allow(dead_code)]
     fn base_url(&self) -> String {
         if self.config.use_path_style {
             format!("{}/{}", self.config.endpoint.trim_end_matches('/'), self.config.bucket)
@@ -751,7 +749,7 @@ impl StorageBackend for WebDavBackend {
             .await
             .map_err(|e| AxAgentError::Gateway(format!("Failed to read response: {}", e)))?;
 
-        let objects = parse_propfind_responses(&text, &prefix)?;
+        let objects = parse_propfind_responses(&text, prefix)?;
         Ok(ListResult {
             objects,
             is_truncated: false,
@@ -1297,12 +1295,8 @@ fn parse_propfind_responses(xml: &str, prefix: &str) -> Result<Vec<StorageObject
                         }
                         // Only include files under the prefix
                         if prefix.is_empty() || href_lower.contains(&prefix.to_lowercase()) {
-                            let file_name = url_decode(
-                                href.split('/')
-                                    .filter(|s| !s.is_empty())
-                                    .last()
-                                    .unwrap_or(""),
-                            );
+                            let file_name =
+                                url_decode(href.split('/').rfind(|s| !s.is_empty()).unwrap_or(""));
                             if !file_name.is_empty() {
                                 let size: i64 = extract_xml_value(block, "getcontentlength")
                                     .and_then(|s| s.parse().ok())

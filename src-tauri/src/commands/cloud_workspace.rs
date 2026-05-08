@@ -1,5 +1,4 @@
 use axagent_core::cloud_storage::S3ProviderPreset;
-use axagent_core::cloud_workspace::CloudDirEntry;
 use axagent_core::sync_conflict::{ConflictResolution, ConflictStrategy};
 use axagent_core::workspace_uri::WorkspaceUri;
 use tauri::State;
@@ -137,7 +136,7 @@ fn build_cloud_workspace(
         .clone();
 
     let cache_base = dirs::cache_dir()
-        .or_else(|| dirs::home_dir())
+        .or_else(dirs::home_dir)
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join(".axagent")
         .join("cloud-cache");
@@ -190,6 +189,21 @@ pub async fn sync_cloud_workspace(
         .await
         .map_err(|e| format!("Failed to sync cloud workspace: {}", e))?;
 
+    // Trigger post-sync indexing
+    let cache_dir = &sync_result.cached_dir;
+    let indexing_report =
+        crate::indexing_triggers::trigger_post_sync_indexing_for_cloud_workspace(cache_dir).await;
+
+    if indexing_report.skipped {
+        tracing::warn!("Post-sync indexing skipped: {:?}", indexing_report.reason);
+    } else {
+        tracing::info!(
+            "Post-sync indexing complete: {} files, {} AST nodes",
+            indexing_report.files_indexed,
+            indexing_report.ast_nodes_indexed
+        );
+    }
+
     Ok(CloudSyncResponse {
         downloaded: sync_result.downloaded,
         uploaded: sync_result.uploaded,
@@ -214,6 +228,21 @@ pub async fn push_cloud_workspace_changes(
         .sync()
         .await
         .map_err(|e| format!("Failed to push changes to cloud: {}", e))?;
+
+    // Trigger post-push indexing to update indexes with local changes
+    let cache_dir = &sync_result.cached_dir;
+    let indexing_report =
+        crate::indexing_triggers::trigger_post_sync_indexing_for_cloud_workspace(cache_dir).await;
+
+    if indexing_report.skipped {
+        tracing::warn!("Post-push indexing skipped: {:?}", indexing_report.reason);
+    } else {
+        tracing::info!(
+            "Post-push indexing complete: {} files, {} AST nodes",
+            indexing_report.files_indexed,
+            indexing_report.ast_nodes_indexed
+        );
+    }
 
     Ok(CloudSyncResponse {
         downloaded: sync_result.downloaded,

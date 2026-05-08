@@ -1,10 +1,12 @@
 use crate::AppState;
 use axagent_agent::{AxAgentApiClient, McpServerConfig, ToolRegistry};
+use axagent_core::cloud_workspace::CloudWorkspace;
 use axagent_core::repo::{conversation, message, provider};
 use axagent_core::types::{
     Attachment, AttachmentInput, ChatTool, ChatToolFunction, McpServer, MessageRole,
     ProviderProxyConfig,
 };
+use axagent_core::workspace_uri::WorkspaceUri;
 use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext};
 use axagent_runtime::workflow_engine::SessionCallback;
 use base64::Engine;
@@ -495,6 +497,8 @@ pub struct AgentGetSessionResponse {
 pub struct AgentEnsureWorkspaceRequest {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
+    #[serde(rename = "workspaceUri")]
+    pub workspace_uri: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -3883,15 +3887,89 @@ pub async fn agent_get_session(
 /// Ensure workspace directory
 #[tauri::command]
 pub async fn agent_ensure_workspace(
-    _app_state: State<'_, AppState>,
+    app_state: State<'_, AppState>,
     _request: AgentEnsureWorkspaceRequest,
 ) -> Result<AgentEnsureWorkspaceResponse, String> {
-    // Create workspace directory on desktop
+    // Get the workspace_uri from app settings
+    let workspace_uri_str = _request.workspace_uri.clone().or_else(|| {
+        // Fallback to settings if not provided in request
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(axagent_core::repo::settings::get_settings(&app_state.sea_db))
+            .ok()
+            .and_then(|s| s.workspace_uri)
+    });
+
+    if let Some(uri_str) = workspace_uri_str {
+        let workspace_uri =
+            WorkspaceUri::parse(&uri_str).map_err(|e| format!("Invalid workspace URI: {}", e))?;
+
+        if workspace_uri.is_cloud() {
+            // Cloud workspace: sync to local cache
+            let backend = app_state
+                .sync_engine
+                .as_ref()
+                .ok_or("Cloud sync engine not available")?
+                .backend
+                .clone();
+
+            let cache_base = dirs::cache_dir()
+                .or_else(dirs::home_dir)
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+                .join(".axagent")
+                .join("cloud-cache");
+
+            let device_id = std::env::var("HOSTNAME")
+                .ok()
+                .or_else(|| std::env::var("COMPUTERNAME").ok())
+                .unwrap_or_else(|| "unknown-device".to_string());
+
+            let mut cloud_workspace =
+                CloudWorkspace::new(workspace_uri, backend, cache_base, device_id);
+
+            // Perform sync to ensure files are available locally
+            let sync_result = cloud_workspace
+                .sync()
+                .await
+                .map_err(|e| format!("Failed to sync cloud workspace: {}", e))?;
+
+            info!(
+                "Cloud workspace synced: downloaded={}, uploaded={}, conflicts={}",
+                sync_result.downloaded, sync_result.uploaded, sync_result.pending_conflicts,
+            );
+
+            let workspace_path = cloud_workspace
+                .cache_dir()
+                .to_str()
+                .ok_or_else(|| "Cache path contains invalid UTF-8".to_string())?
+                .to_string();
+
+            return Ok(AgentEnsureWorkspaceResponse { workspace_path });
+        }
+
+        // Local workspace: use the path directly
+        let local_path = workspace_uri
+            .local_path()
+            .ok_or_else(|| "Local workspace URI has invalid path".to_string())?;
+
+        if !local_path.exists() {
+            std::fs::create_dir_all(&local_path).map_err(|e| e.to_string())?;
+        }
+
+        let workspace_path = local_path
+            .to_str()
+            .ok_or_else(|| {
+                format!("Workspace path contains invalid UTF-8: {}", local_path.display())
+            })?
+            .to_string();
+
+        return Ok(AgentEnsureWorkspaceResponse { workspace_path });
+    }
+
+    // No workspace URI configured: create default
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory".to_string())?;
     let desktop_dir = home_dir.join("Desktop");
     let workspace_dir = desktop_dir.join("AxAgent_Workspace");
 
-    // Create directory if it doesn't exist
     if !workspace_dir.exists() {
         std::fs::create_dir_all(&workspace_dir).map_err(|e| e.to_string())?;
     }

@@ -1,16 +1,11 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Represents the type of workspace storage.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 pub enum WorkspaceType {
+    #[default]
     Local,
     Cloud,
-}
-
-impl Default for WorkspaceType {
-    fn default() -> Self {
-        Self::Local
-    }
 }
 
 /// Unified workspace URI supporting local and cloud schemes.
@@ -89,7 +84,7 @@ impl WorkspaceUri {
     }
 
     /// Generate a local cache path for this cloud workspace.
-    pub fn cache_path(&self, cache_base: &PathBuf) -> PathBuf {
+    pub fn cache_path(&self, cache_base: &Path) -> PathBuf {
         if self.is_local() {
             return PathBuf::from(&self.path);
         }
@@ -106,6 +101,15 @@ impl WorkspaceUri {
     /// Build an S3 key prefix for files in this workspace.
     pub fn s3_key_prefix(&self) -> String {
         self.path.trim_start_matches('/').to_string()
+    }
+
+    /// Get the local path for this workspace (only valid for local URIs).
+    pub fn local_path(&self) -> Option<PathBuf> {
+        if self.is_local() {
+            Some(PathBuf::from(&self.path))
+        } else {
+            None
+        }
     }
 }
 

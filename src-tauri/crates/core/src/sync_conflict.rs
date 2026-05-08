@@ -90,10 +90,11 @@ pub enum ConflictResolution {
 }
 
 /// User-configurable conflict resolution strategy
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ConflictStrategy {
     /// Keep whichever version has the latest modification time
+    #[default]
     LatestWins,
     /// Always prefer the local version
     LocalWins,
@@ -101,12 +102,6 @@ pub enum ConflictStrategy {
     RemoteWins,
     /// Mark as conflict and let user decide (creates .conflict file)
     Manual,
-}
-
-impl Default for ConflictStrategy {
-    fn default() -> Self {
-        Self::LatestWins
-    }
 }
 
 // ─── Tombstone (Deletion Tracking) ───────────────────────────────────
@@ -209,7 +204,7 @@ impl SyncState {
 // ─── Sync Report ─────────────────────────────────────────────────────
 
 /// Detailed report of a sync operation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncReport {
     /// Files downloaded from cloud
@@ -240,21 +235,6 @@ pub struct ConflictSummary {
     pub remote_size: i64,
     pub local_modified_at: u64,
     pub remote_modified_at: u64,
-}
-
-impl Default for SyncReport {
-    fn default() -> Self {
-        Self {
-            downloaded: Vec::new(),
-            uploaded: Vec::new(),
-            local_deletions_synced: Vec::new(),
-            remote_deletions_synced: Vec::new(),
-            conflicts_detected: Vec::new(),
-            conflicts_resolved: Vec::new(),
-            pending_conflicts: Vec::new(),
-            duration_ms: 0,
-        }
-    }
 }
 
 // ─── Utility Functions ───────────────────────────────────────────────

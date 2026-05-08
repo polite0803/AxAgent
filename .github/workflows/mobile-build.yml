@@ -138,6 +138,12 @@ jobs:
         with:
           ndk-version: ${{ env.NDK_VERSION }}
 
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 

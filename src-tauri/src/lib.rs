@@ -5,6 +5,7 @@
 mod commands;
 mod context_manager;
 mod indexing;
+mod indexing_triggers;
 mod init;
 mod knowledge_integration;
 mod memory_extract;

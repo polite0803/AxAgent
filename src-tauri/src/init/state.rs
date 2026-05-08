@@ -8,7 +8,7 @@ use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
-use axagent_core::cloud_storage::{CloudStorageConfig, StorageBackend, SyncEngine};
+use axagent_core::cloud_storage::SyncEngine;
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let DatabaseInitResult {
@@ -231,8 +231,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
 }
 
 fn create_sync_engine(
-    sea_db: &sea_orm::DatabaseConnection,
-    app_settings: &axagent_core::types::AppSettings,
+    _sea_db: &sea_orm::DatabaseConnection,
+    _app_settings: &axagent_core::types::AppSettings,
 ) -> Option<Arc<SyncEngine>> {
     #[cfg(mobile)]
     {

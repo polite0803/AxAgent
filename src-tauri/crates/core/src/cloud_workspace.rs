@@ -137,21 +137,21 @@ impl CloudWorkspace {
 
         // Step 5: Process downloads (new/changed remote files)
         for key in &diff.to_download {
-            if self.download_file(&key, &prefix).await? {
+            if self.download_file(key, &prefix).await? {
                 report.downloaded.push(key.clone());
             }
         }
 
         // Step 6: Process uploads (new/changed local files)
         for key in &diff.to_upload {
-            if self.upload_file_with_conflict_check(&key, &prefix).await? {
+            if self.upload_file_with_conflict_check(key, &prefix).await? {
                 report.uploaded.push(key.clone());
             }
         }
 
         // Step 7: Process local deletions (sync to cloud)
         for key in &diff.local_deletions {
-            if self.atomic_delete_remote(&key, &prefix).await? {
+            if self.atomic_delete_remote(key, &prefix).await? {
                 report.local_deletions_synced.push(key.clone());
                 self.sync_state.add_tombstone(key.clone(), None);
             }
@@ -159,7 +159,7 @@ impl CloudWorkspace {
 
         // Step 8: Process remote deletions (sync to local)
         for key in &diff.remote_deletions {
-            if self.delete_local_file(&key)? {
+            if self.delete_local_file(key)? {
                 report.remote_deletions_synced.push(key.clone());
             }
         }
@@ -259,7 +259,7 @@ impl CloudWorkspace {
             return Ok(false);
         }
 
-        let local_data = std::fs::read(&local_file).map_err(|e| {
+        let _local_data = std::fs::read(&local_file).map_err(|e| {
             AxAgentError::Io(std::io::Error::other(format!("Failed to read file: {}", e)))
         })?;
 
@@ -322,7 +322,7 @@ impl CloudWorkspace {
         // Try to get current etag for conditional delete
         let remote_meta = self.backend.head(&remote_key).await.ok();
 
-        if let Some(etag) = remote_meta.and_then(|m| m.etag) {
+        if let Some(_etag) = remote_meta.and_then(|m| m.etag) {
             // Use conditional delete if backend supports it
             // For now, fall back to regular delete
             // TODO: Implement If-Match header in StorageBackend
@@ -334,7 +334,7 @@ impl CloudWorkspace {
 
         // Add tombstone
         let state_ref = &self.sync_state;
-        let last_etag = state_ref
+        let _last_etag = state_ref
             .get_entry(key)
             .and_then(|e| e.last_sync_remote_etag.clone());
 
@@ -635,7 +635,7 @@ impl CloudWorkspace {
         prefix: &str,
     ) -> Result<HashMap<String, RemoteFileInfo>, AxAgentError> {
         let mut files = HashMap::new();
-        let mut continuation_token: Option<String> = None;
+        let mut _continuation_token: Option<String> = None;
 
         loop {
             let list_result = self.backend.list(prefix, 1000).await?;
@@ -669,7 +669,7 @@ impl CloudWorkspace {
             }
 
             if list_result.is_truncated && list_result.continuation_token.is_some() {
-                continuation_token = list_result.continuation_token.clone();
+                _continuation_token = list_result.continuation_token.clone();
             } else {
                 break;
             }
@@ -915,6 +915,7 @@ impl ConflictEntry {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct LocalFileInfo {
     key: String,
     size: i64,
@@ -923,6 +924,7 @@ struct LocalFileInfo {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct RemoteFileInfo {
     key: String,
     etag: Option<String>,

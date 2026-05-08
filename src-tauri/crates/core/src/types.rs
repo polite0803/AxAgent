@@ -815,6 +815,8 @@ pub struct AppSettings {
     pub thought_chain_enabled: bool,
     /// Enable automatic error recovery suggestions.
     pub error_recovery_enabled: bool,
+    /// Cloud workspace URI (supports s3://, webdav://, local://)
+    pub workspace_uri: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -938,6 +940,7 @@ impl Default for AppSettings {
             proactive_nudge_enabled: true,
             thought_chain_enabled: false,
             error_recovery_enabled: true,
+            workspace_uri: None,
         }
     }
 }

@@ -10,5 +10,6 @@ fn main() {
         println!("cargo:warning=Building for mobile target: {}", target);
     }
 
+    println!("cargo::rustc-check-cfg=cfg(mobile)");
     tauri_build::build()
 }
