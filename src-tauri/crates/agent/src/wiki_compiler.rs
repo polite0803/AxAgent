@@ -873,13 +873,19 @@ impl WikiCompiler {
         }
 
         let lower = page.content.to_lowercase();
-        if lower.contains("i don't know")
-            || lower.contains("cannot determine")
-            || lower.contains("i'm not sure")
-            || lower.contains("我无法确定")
-            || lower.contains("我不知道")
-        {
-            score -= 0.4;
+        let uncertain_phrases = [
+            "i don't know",
+            "cannot determine",
+            "i'm not sure",
+            "我无法确定",
+            "我不知道",
+        ];
+        let uncertain_count = uncertain_phrases
+            .iter()
+            .filter(|p| lower.contains(**p))
+            .count();
+        if uncertain_count > 0 {
+            score -= 0.2 * uncertain_count as f64;
         }
 
         let sentence_count = page.content.split('.').count();

@@ -523,6 +523,7 @@ mod test_hierarchical_planner_dynamic_replanning {
         TaskBuilder::new(desc, action).with_max_retries(1).build()
     }
 
+    #[allow(dead_code)]
     fn make_phase(
         name: &str,
         desc: &str,
@@ -1207,7 +1208,7 @@ mod test_tree_of_thoughts_reasoning {
             .evaluate_thought(&root_id, "Failing context", &provider)
             .await
             .unwrap();
-        assert!(eval >= 0.0 && eval <= 1.0);
+        assert!((0.0..=1.0).contains(&eval));
     }
 }
 

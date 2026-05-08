@@ -967,7 +967,7 @@ mod tests {
     #[test]
     fn test_embedding_to_json_uses_dot_decimal() {
         // 确保无论系统 locale 如何，浮点数始终使用 "." 作为小数点
-        let embedding = vec![0.5_f32, -1.25_f32, 3.14159_f32];
+        let embedding = vec![0.5_f32, -1.25_f32, 3.14160_f32];
         let json = VectorStore::embedding_to_json(&embedding);
         // 不应包含逗号作为小数点（非英文 locale 的问题）
         assert!(!json.contains(",5"), "should not use comma as decimal: {json}");

@@ -675,7 +675,7 @@ mod tests {
         let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
         let manager = SchemaManager::new(db);
         assert!(manager.validate_field_type("number", &serde_json::json!(42)));
-        assert!(manager.validate_field_type("number", &serde_json::json!(3.14)));
+        assert!(manager.validate_field_type("number", &serde_json::json!(3.15)));
     }
 
     #[tokio::test]

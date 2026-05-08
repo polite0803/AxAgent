@@ -1327,7 +1327,7 @@ mod tests {
 
     #[test]
     fn test_research_phase_variants() {
-        let phases = vec![
+        let phases = [
             ResearchPhase::InitialSearch,
             ResearchPhase::Analysis,
             ResearchPhase::GapIdentification,

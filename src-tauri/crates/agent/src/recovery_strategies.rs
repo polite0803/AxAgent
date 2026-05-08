@@ -459,7 +459,7 @@ mod tests {
 
     #[test]
     fn test_recovery_adjustment_variants() {
-        let adjustments = vec![
+        let adjustments = [
             RecoveryAdjustment::ReduceConcurrency,
             RecoveryAdjustment::IncreaseTimeout(Duration::from_secs(30)),
             RecoveryAdjustment::UseCache,

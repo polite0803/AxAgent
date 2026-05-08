@@ -101,7 +101,7 @@ fn test_fail_strategy() {
 fn test_recovery_adjustments() {
     use axagent_agent::recovery_strategies::RecoveryAdjustment;
 
-    let adjustments = vec![
+    let adjustments = [
         RecoveryAdjustment::ReduceConcurrency,
         RecoveryAdjustment::IncreaseTimeout(Duration::from_secs(30)),
         RecoveryAdjustment::UseCache,

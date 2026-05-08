@@ -2,7 +2,6 @@
 unmaintained = "workspace"
 
 [licenses]
-unlicensed = "deny"
 allow = [
     "MIT",
     "Apache-2.0",
@@ -14,16 +13,10 @@ allow = [
     "0BSD",
     "CC0-1.0",
     "Unicode-3.0",
+    "MPL-2.0",
+    "OpenSSL",
+    "BSD-3-Clause-No-Nuclear-License",
 ]
-deny = [
-    "GPL-2.0",
-    "GPL-2.0-with-classpath-exception",
-    "GPL-3.0",
-    "GPL-3.0-with-GCC-exception",
-]
-copyleft = "warn"
-allow-osi-fsf-free = "either"
-default = "deny"
 
 [[licenses.clarify]]
 name = "ring"

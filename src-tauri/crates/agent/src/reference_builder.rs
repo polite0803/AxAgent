@@ -485,7 +485,7 @@ mod tests {
             let citation = Citation::new(
                 "https://example.com".to_string(),
                 format!("Title {:?}", source_type),
-                source_type.clone(),
+                *source_type,
             );
             tracker.add_citation(citation).await;
         }

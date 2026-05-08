@@ -206,15 +206,13 @@ mod tests {
     #[test]
     fn test_scan_current_directory() {
         let probe = EnvironmentProbe::with_default_config();
-        let files = probe.scan_directory(std::path::Path::new("."));
-        assert!(!files.is_empty() || true);
+        let _ = probe.scan_directory(std::path::Path::new("."));
     }
 
     #[test]
     fn test_get_environment_variables() {
         let probe = EnvironmentProbe::with_default_config();
-        let vars = probe.get_environment_variables();
-        assert!(vars.contains_key("PATH") || true);
+        let _ = probe.get_environment_variables();
     }
 
     #[test]

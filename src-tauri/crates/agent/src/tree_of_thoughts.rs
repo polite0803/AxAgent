@@ -354,6 +354,9 @@ Respond with only a number between 0.0 and 1.0.",
 
         let node_ids: Vec<String> = self.tree.keys().cloned().collect();
         for node_id in node_ids {
+            if node_id == self.root_id {
+                continue;
+            }
             if let Some(node) = self.tree.get(&node_id) {
                 if node.status == ThoughtStatus::Generated && node.evaluation_score < threshold {
                     pruned.push(node_id.clone());
@@ -1057,13 +1060,13 @@ mod tests {
         if let Some(root) = engine.tree.get_mut(&root_id) {
             root.add_child(child_id.clone());
         }
+        engine.tree.insert(child_id.clone(), child);
         if let Some(node) = engine.tree.get_mut(&child_id) {
             node.add_child(grandchild_id.clone());
         }
-        engine.tree.insert(child_id.clone(), child);
         engine.tree.insert(grandchild_id.clone(), grandchild);
 
-        assert_eq!(engine.total_nodes(), 4);
+        assert_eq!(engine.total_nodes(), 3);
 
         let result = engine.backtrack_to(&child_id);
         assert!(result.is_ok());
@@ -1183,13 +1186,13 @@ mod tests {
         let mut node = ThoughtNode::new("n1".to_string(), "".to_string(), None);
         node.content = "This is a short thought".to_string();
         let score = engine.heuristic_evaluate(&node);
-        assert!(score >= 0.0 && score <= 1.0);
+        assert!((0.0..=1.0).contains(&score));
 
         node.content = "First, we analyze the problem because it is important. \
             Therefore, we must consider all factors. However, next we should verify our approach."
             .to_string();
         let score2 = engine.heuristic_evaluate(&node);
-        assert!(score2 >= 0.0 && score2 <= 1.0);
+        assert!((0.0..=1.0).contains(&score2));
         assert!(score2 > score);
     }
 
@@ -1251,8 +1254,7 @@ mod tests {
         let leaf1 = ThoughtNode::new(leaf1_id.clone(), "leaf1".to_string(), Some(root_id.clone()));
 
         let child_id = engine.next_node_id();
-        let mut child =
-            ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
+        let child = ThoughtNode::new(child_id.clone(), "child".to_string(), Some(root_id.clone()));
 
         let leaf2_id = engine.next_node_id();
         let leaf2 = ThoughtNode::new(leaf2_id.clone(), "leaf2".to_string(), Some(child_id.clone()));
@@ -1261,11 +1263,11 @@ mod tests {
             root.add_child(leaf1_id.clone());
             root.add_child(child_id.clone());
         }
+        engine.tree.insert(leaf1_id.clone(), leaf1);
+        engine.tree.insert(child_id.clone(), child);
         if let Some(node) = engine.tree.get_mut(&child_id) {
             node.add_child(leaf2_id.clone());
         }
-        engine.tree.insert(leaf1_id.clone(), leaf1);
-        engine.tree.insert(child_id.clone(), child);
         engine.tree.insert(leaf2_id.clone(), leaf2);
 
         let leaves = engine.collect_leaves(&root_id);
@@ -1301,7 +1303,7 @@ mod tests {
         let mut engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         let root_id = engine.root_id.clone();
 
-        let mut root = engine.tree.get_mut(&root_id).unwrap();
+        let root = engine.tree.get_mut(&root_id).unwrap();
         root.status = ThoughtStatus::Pruned;
 
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
@@ -1347,7 +1349,7 @@ mod tests {
 
     #[test]
     fn test_tot_state_summary_serialization() {
-        let mut engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
+        let engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         let state = engine.get_current_state();
         let json = serde_json::to_string(&state).unwrap();
         let deserialized: ToTStateSummary = serde_json::from_str(&json).unwrap();
@@ -1378,7 +1380,7 @@ mod tests {
             .await;
         assert!(score.is_ok());
         let s = score.unwrap();
-        assert!(s >= 0.0 && s <= 1.0);
+        assert!((0.0..=1.0).contains(&s));
 
         let node = engine.get_node(&root_id).unwrap();
         assert_eq!(node.status, ThoughtStatus::Explored);

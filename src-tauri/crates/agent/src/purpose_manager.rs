@@ -279,7 +279,8 @@ mod tests {
 
     #[test]
     fn test_template_no_double_replacement_wiki_name() {
-        let content = DEFAULT_PURPOSE_TEMPLATE.replace("{wiki_name}", "{wiki_name}");
+        let content = DEFAULT_PURPOSE_TEMPLATE.replace("{wiki_name}", "__WIKI_NAME_PLACEHOLDER__");
+        let content = content.replace("__WIKI_NAME_PLACEHOLDER__", "{wiki_name}");
         let count = content.matches("{wiki_name}").count();
         assert_eq!(count, 1);
     }

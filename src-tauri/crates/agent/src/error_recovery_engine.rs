@@ -573,7 +573,7 @@ mod tests {
 
     #[test]
     fn test_recovery_event_variants() {
-        let events = vec![
+        let events = [
             RecoveryEvent::RecoveryStarted {
                 error: "e".to_string(),
                 error_type: ErrorType::Transient,

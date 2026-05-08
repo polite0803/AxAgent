@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_vision_task_variants() {
-        let tasks = vec![
+        let tasks = [
             VisionTask::ImageDescription,
             VisionTask::Ocr,
             VisionTask::UiElementDetection,

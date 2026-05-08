@@ -311,7 +311,7 @@ mod tests {
         for _ in 0..100 {
             let delay = policy.next_delay(0);
             let millis = delay.as_millis() as f64;
-            assert!(millis >= 900.0 && millis <= 1100.0);
+            assert!((900.0..=1100.0).contains(&millis));
         }
     }
 

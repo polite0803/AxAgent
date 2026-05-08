@@ -728,7 +728,7 @@ mod tests {
 
     #[test]
     fn test_query_result_sorted_by_relevance() {
-        let mut pages = vec![
+        let mut pages = [
             PageResult {
                 note_id: "1".to_string(),
                 title: "Low".to_string(),

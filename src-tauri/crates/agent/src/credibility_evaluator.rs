@@ -871,7 +871,7 @@ mod tests {
 
     #[test]
     fn test_factor_dimension_variants() {
-        let dims = vec![
+        let dims = [
             FactorDimension::Authority,
             FactorDimension::Consistency,
             FactorDimension::Recency,

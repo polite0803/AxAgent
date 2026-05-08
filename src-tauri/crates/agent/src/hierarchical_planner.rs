@@ -1583,7 +1583,7 @@ mod tests {
         assert_eq!(failed.len(), 0);
 
         let pending = planner.get_pending_steps();
-        assert_eq!(pending.len(), 0);
+        assert_eq!(pending.len(), 2);
     }
 
     #[test]

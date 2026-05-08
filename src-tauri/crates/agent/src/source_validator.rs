@@ -300,9 +300,10 @@ impl SourceValidator {
                     }
                 }
                 score = score.max(0.0);
+                let is_valid = issues.iter().all(|i| i.severity != IssueSeverity::Error);
                 SourceValidationResult {
                     url: url.clone(),
-                    is_valid: score >= 0.5,
+                    is_valid,
                     score,
                     issues,
                     warnings: Vec::new(),

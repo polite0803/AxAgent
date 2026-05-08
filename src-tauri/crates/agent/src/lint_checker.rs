@@ -638,7 +638,7 @@ mod tests {
 
     #[test]
     fn test_lint_issue_type_variants() {
-        let types = vec![
+        let types = [
             LintIssueType::BrokenLink {
                 page: "p".to_string(),
                 link: "l".to_string(),
