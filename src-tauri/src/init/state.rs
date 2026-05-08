@@ -259,7 +259,7 @@ fn load_cloud_storage_config(
         .block_on(axagent_core::repo::settings::get_settings(sea_db))
         .ok()?;
 
-    if !settings.cloud_sync_enabled.unwrap_or(false) {
+    if !settings.cloud_sync_enabled {
         return None;
     }
 
@@ -288,7 +288,7 @@ fn load_cloud_storage_config(
                 username: settings.webdav_username.clone().unwrap_or_default(),
                 password: settings.webdav_password.clone().unwrap_or_default(),
                 path: settings.webdav_path.clone().unwrap_or_default(),
-                accept_invalid_certs: settings.webdav_accept_invalid_certs.unwrap_or(false),
+                accept_invalid_certs: settings.webdav_accept_invalid_certs,
             }),
         s3: settings.s3_endpoint.as_ref().map(|e| S3Config {
             endpoint: e.clone(),
@@ -297,7 +297,7 @@ fn load_cloud_storage_config(
             access_key_id: settings.s3_access_key_id.clone().unwrap_or_default(),
             secret_access_key: settings.s3_secret_access_key.clone().unwrap_or_default(),
             root: settings.s3_root.clone().unwrap_or_default(),
-            use_path_style: settings.s3_use_path_style.unwrap_or(false),
+            use_path_style: settings.s3_use_path_style,
         }),
     };
 

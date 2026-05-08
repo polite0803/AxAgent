@@ -1,6 +1,5 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryEntry {
@@ -168,8 +167,8 @@ mod tests {
             namespace: "test".to_string(),
             importance,
             memory_strength: 1.0,
-            created_at: Utc::now() - Duration::hours(hours_ago),
-            last_accessed_at: Utc::now() - Duration::hours(hours_ago),
+            created_at: Utc::now() - chrono::Duration::hours(hours_ago),
+            last_accessed_at: Utc::now() - chrono::Duration::hours(hours_ago),
             access_count,
             tags: vec![],
             embedding: None,

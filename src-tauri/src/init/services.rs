@@ -8,7 +8,7 @@ pub fn start_background_services(
     app: &tauri::AppHandle,
     state: &AppState,
     app_dir: std::path::PathBuf,
-    tray_language: String,
+    _tray_language: String,
 ) {
     start_auto_backup(app, state, app_dir.clone());
     start_webdav_sync(app, state, app_dir);

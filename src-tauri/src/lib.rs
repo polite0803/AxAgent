@@ -278,7 +278,9 @@ pub fn run() {
             commands::desktop::minimize_window,
             #[cfg(not(mobile))]
             commands::desktop::toggle_maximize_window,
+            #[cfg(not(mobile))]
             commands::quickbar::show_quickbar,
+            #[cfg(not(mobile))]
             commands::quickbar::hide_quickbar,
             commands::dashboard::dashboard_list_plugins,
             commands::dashboard::dashboard_register_plugin,

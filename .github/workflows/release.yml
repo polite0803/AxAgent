@@ -114,6 +114,7 @@ jobs:
           prefix-key: 'v1'
           key: '${{ matrix.os }}-${{ matrix.target }}'
           workspaces: src-tauri -> target
+          cache-targets: ${{ matrix.os != 'windows-latest' }}
 
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-24.04'

@@ -150,6 +150,12 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
 
+      - name: Setup Android NDK toolchain PATH
+        run: |
+          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          echo "$TOOLCHAIN" >> $GITHUB_PATH
+          echo "NDK_TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
+
       - name: Initialize Android project
         run: |
           cd src-tauri

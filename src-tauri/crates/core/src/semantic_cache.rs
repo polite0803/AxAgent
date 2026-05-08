@@ -169,6 +169,7 @@ impl ApproximateIndex {
         }
     }
 
+    #[allow(dead_code)]
     fn remove_entry(&mut self, key: &str) {
         for bucket in &mut self.buckets {
             bucket.entry_keys.retain(|k| k != key);
@@ -556,9 +557,8 @@ impl SemanticCache {
         let json = serde_json::to_string_pretty(&self.entries)
             .map_err(|e| AxAgentError::Internal(format!("Failed to serialize cache: {}", e)))?;
 
-        std::fs::write(path, json).map_err(|e| {
-            AxAgentError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
-        })?;
+        std::fs::write(path, json)
+            .map_err(|e| AxAgentError::Io(std::io::Error::other(e.to_string())))?;
 
         info!(entries = %self.entries.len(), path = ?path, "Semantic cache saved to disk");
         Ok(())
@@ -584,9 +584,8 @@ impl SemanticCache {
             return Ok(());
         }
 
-        let json = std::fs::read_to_string(path).map_err(|e| {
-            AxAgentError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
-        })?;
+        let json = std::fs::read_to_string(path)
+            .map_err(|e| AxAgentError::Io(std::io::Error::other(e.to_string())))?;
 
         let entries: HashMap<String, CacheEntry> = serde_json::from_str(&json)
             .map_err(|e| AxAgentError::Internal(format!("Failed to deserialize cache: {}", e)))?;
@@ -655,7 +654,7 @@ pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
 pub fn embedding_hash(embedding: &[f32]) -> String {
     let mut hasher = Sha256::new();
     for value in embedding {
-        hasher.update(&value.to_le_bytes());
+        hasher.update(value.to_le_bytes());
     }
     let result = hasher.finalize();
     hex::encode(result)
