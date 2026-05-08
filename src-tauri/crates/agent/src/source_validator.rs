@@ -423,9 +423,15 @@ mod tests {
         assert!(!config.check_accessibility);
         assert_eq!(config.max_age_days, Some(365));
         assert_eq!(config.allowed_content_types.len(), 3);
-        assert!(config.allowed_content_types.contains(&"text/html".to_string()));
-        assert!(config.allowed_content_types.contains(&"application/pdf".to_string()));
-        assert!(config.allowed_content_types.contains(&"text/plain".to_string()));
+        assert!(config
+            .allowed_content_types
+            .contains(&"text/html".to_string()));
+        assert!(config
+            .allowed_content_types
+            .contains(&"application/pdf".to_string()));
+        assert!(config
+            .allowed_content_types
+            .contains(&"text/plain".to_string()));
     }
 
     #[test]
@@ -497,7 +503,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_url_known_domain() {
         let validator = SourceValidator::new();
-        let result = validator.validate_url("https://arxiv.org/abs/2103.00001").await;
+        let result = validator
+            .validate_url("https://arxiv.org/abs/2103.00001")
+            .await;
         assert!(result.is_valid);
         assert!(result.score > 0.0);
     }
@@ -507,8 +515,14 @@ mod tests {
         let validator = SourceValidator::new();
         let result = validator.validate_url("not-a-valid-url").await;
         assert!(!result.is_valid);
-        assert!(result.issues.iter().any(|i| i.code == IssueCode::MalformedUrl));
-        assert!(result.issues.iter().any(|i| i.severity == IssueSeverity::Error));
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.code == IssueCode::MalformedUrl));
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.severity == IssueSeverity::Error));
     }
 
     #[tokio::test]
@@ -535,7 +549,9 @@ mod tests {
             is_paywalled: true,
             notes: "Paywalled content".to_string(),
         });
-        let result = validator.validate_url("https://paywalled.com/article").await;
+        let result = validator
+            .validate_url("https://paywalled.com/article")
+            .await;
         assert!(result.warnings.iter().any(|w| w.contains("paywall")));
         assert!(result.score < 1.0);
     }
@@ -550,7 +566,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_url_unknown_valid() {
         let validator = SourceValidator::new();
-        let result = validator.validate_url("https://some-unknown-site.com/page").await;
+        let result = validator
+            .validate_url("https://some-unknown-site.com/page")
+            .await;
         assert!(result.is_valid);
         assert_eq!(result.score, 1.0);
     }
@@ -571,7 +589,10 @@ mod tests {
             "".to_string(),
         );
         let result = validator.validate_content(&content).await;
-        assert!(result.issues.iter().any(|i| i.code == IssueCode::ParseError));
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.code == IssueCode::ParseError));
         assert!(result.score < 1.0);
     }
 
@@ -626,7 +647,13 @@ mod tests {
         );
         let result = validator.validate_content(&content).await;
         assert!(result.is_valid);
-        assert!(result.issues.is_empty() || result.issues.iter().all(|i| i.severity != IssueSeverity::Error));
+        assert!(
+            result.issues.is_empty()
+                || result
+                    .issues
+                    .iter()
+                    .all(|i| i.severity != IssueSeverity::Error)
+        );
     }
 
     #[test]
@@ -675,7 +702,10 @@ mod tests {
     #[test]
     fn test_extract_domain_with_subdomain() {
         let validator = SourceValidator::new();
-        assert_eq!(validator.extract_domain("https://en.wikipedia.org/wiki/Rust"), "en.wikipedia.org");
+        assert_eq!(
+            validator.extract_domain("https://en.wikipedia.org/wiki/Rust"),
+            "en.wikipedia.org"
+        );
     }
 
     #[test]
@@ -698,10 +728,22 @@ mod tests {
     #[test]
     fn test_get_source_type_from_domain_known() {
         let validator = SourceValidator::new();
-        assert_eq!(validator.get_source_type_from_domain("https://arxiv.org/abs/2103"), Some(SourceType::Academic));
-        assert_eq!(validator.get_source_type_from_domain("https://github.com/user/repo"), Some(SourceType::GitHub));
-        assert_eq!(validator.get_source_type_from_domain("https://en.wikipedia.org/wiki/Rust"), Some(SourceType::Wikipedia));
-        assert_eq!(validator.get_source_type_from_domain("https://docs.rs/crate/test"), Some(SourceType::Documentation));
+        assert_eq!(
+            validator.get_source_type_from_domain("https://arxiv.org/abs/2103"),
+            Some(SourceType::Academic)
+        );
+        assert_eq!(
+            validator.get_source_type_from_domain("https://github.com/user/repo"),
+            Some(SourceType::GitHub)
+        );
+        assert_eq!(
+            validator.get_source_type_from_domain("https://en.wikipedia.org/wiki/Rust"),
+            Some(SourceType::Wikipedia)
+        );
+        assert_eq!(
+            validator.get_source_type_from_domain("https://docs.rs/crate/test"),
+            Some(SourceType::Documentation)
+        );
     }
 
     #[test]
@@ -747,13 +789,16 @@ mod tests {
 
     #[test]
     fn test_source_filter_allowed_types_builder() {
-        let filter = SourceFilter::new().allowed_types(vec![SourceType::Academic, SourceType::Wikipedia]);
+        let filter =
+            SourceFilter::new().allowed_types(vec![SourceType::Academic, SourceType::Wikipedia]);
         assert_eq!(filter.allowed_types.len(), 2);
     }
 
     #[test]
     fn test_source_filter_block_domain() {
-        let filter = SourceFilter::new().block_domain("spam.com").block_domain("ads.com");
+        let filter = SourceFilter::new()
+            .block_domain("spam.com")
+            .block_domain("ads.com");
         assert_eq!(filter.blocked_domains.len(), 2);
         assert!(filter.blocked_domains.contains(&"spam.com".to_string()));
         assert!(filter.blocked_domains.contains(&"ads.com".to_string()));

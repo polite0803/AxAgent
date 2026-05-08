@@ -501,7 +501,8 @@ mod tests {
         let tracker = Arc::new(CitationTracker::new());
         let synthesizer = ContentSynthesizer::new(tracker);
 
-        let keywords = synthesizer.extract_keywords("the a an and or but in on at to for of with by from");
+        let keywords =
+            synthesizer.extract_keywords("the a an and or but in on at to for of with by from");
         assert!(keywords.is_empty());
     }
 
@@ -702,9 +703,24 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let sources = vec![
-            SearchResult::new(SourceType::Academic, "url1".to_string(), "A".to_string(), "s".to_string()),
-            SearchResult::new(SourceType::Web, "url2".to_string(), "B".to_string(), "s".to_string()),
-            SearchResult::new(SourceType::Documentation, "url3".to_string(), "C".to_string(), "s".to_string()),
+            SearchResult::new(
+                SourceType::Academic,
+                "url1".to_string(),
+                "A".to_string(),
+                "s".to_string(),
+            ),
+            SearchResult::new(
+                SourceType::Web,
+                "url2".to_string(),
+                "B".to_string(),
+                "s".to_string(),
+            ),
+            SearchResult::new(
+                SourceType::Documentation,
+                "url3".to_string(),
+                "C".to_string(),
+                "s".to_string(),
+            ),
         ];
 
         let stats = synthesizer.generate_source_stats(&sources);
@@ -832,8 +848,18 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let sources = vec![
-            SearchResult::new(SourceType::Academic, "url1".to_string(), "Machine Learning Research".to_string(), "About machine learning algorithms".to_string()),
-            SearchResult::new(SourceType::Web, "url2".to_string(), "Cooking Tips".to_string(), "How to cook pasta".to_string()),
+            SearchResult::new(
+                SourceType::Academic,
+                "url1".to_string(),
+                "Machine Learning Research".to_string(),
+                "About machine learning algorithms".to_string(),
+            ),
+            SearchResult::new(
+                SourceType::Web,
+                "url2".to_string(),
+                "Cooking Tips".to_string(),
+                "How to cook pasta".to_string(),
+            ),
         ];
 
         let filtered = synthesizer.filter_relevant_sources(&sources, "Machine Learning");
@@ -849,7 +875,14 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let sources: Vec<SearchResult> = (0..10)
-            .map(|i| SearchResult::new(SourceType::Web, format!("url{}", i), format!("Research Topic {}", i), format!("About research topic {}", i)))
+            .map(|i| {
+                SearchResult::new(
+                    SourceType::Web,
+                    format!("url{}", i),
+                    format!("Research Topic {}", i),
+                    format!("About research topic {}", i),
+                )
+            })
             .collect();
 
         let filtered = synthesizer.filter_relevant_sources(&sources, "Research Topic");

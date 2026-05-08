@@ -1603,7 +1603,9 @@ mod tests {
         }
         let result = prompter.deliver_decision("req-1", PermissionPromptDecision::Allow);
         assert!(result);
-        let decision = rx.recv_timeout(std::time::Duration::from_millis(100)).unwrap();
+        let decision = rx
+            .recv_timeout(std::time::Duration::from_millis(100))
+            .unwrap();
         assert!(matches!(decision, PermissionPromptDecision::Allow));
     }
 

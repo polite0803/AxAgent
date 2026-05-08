@@ -729,11 +729,33 @@ mod tests {
     #[test]
     fn test_query_result_sorted_by_relevance() {
         let mut pages = vec![
-            PageResult { note_id: "1".to_string(), title: "Low".to_string(), content_snippet: "c".to_string(), relevance_score: 0.3, link_paths: vec![] },
-            PageResult { note_id: "2".to_string(), title: "High".to_string(), content_snippet: "c".to_string(), relevance_score: 0.9, link_paths: vec![] },
-            PageResult { note_id: "3".to_string(), title: "Mid".to_string(), content_snippet: "c".to_string(), relevance_score: 0.6, link_paths: vec![] },
+            PageResult {
+                note_id: "1".to_string(),
+                title: "Low".to_string(),
+                content_snippet: "c".to_string(),
+                relevance_score: 0.3,
+                link_paths: vec![],
+            },
+            PageResult {
+                note_id: "2".to_string(),
+                title: "High".to_string(),
+                content_snippet: "c".to_string(),
+                relevance_score: 0.9,
+                link_paths: vec![],
+            },
+            PageResult {
+                note_id: "3".to_string(),
+                title: "Mid".to_string(),
+                content_snippet: "c".to_string(),
+                relevance_score: 0.6,
+                link_paths: vec![],
+            },
         ];
-        pages.sort_by(|a, b| b.relevance_score.partial_cmp(&a.relevance_score).unwrap_or(std::cmp::Ordering::Equal));
+        pages.sort_by(|a, b| {
+            b.relevance_score
+                .partial_cmp(&a.relevance_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         assert_eq!(pages[0].relevance_score, 0.9);
         assert_eq!(pages[1].relevance_score, 0.6);
         assert_eq!(pages[2].relevance_score, 0.3);
@@ -808,10 +830,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_vector_search() {
         let mock = MockVectorSearch {
-            results: vec![
-                ("note1".to_string(), 0.5),
-                ("note2".to_string(), 0.3),
-            ],
+            results: vec![("note1".to_string(), 0.5), ("note2".to_string(), 0.3)],
         };
         let results = mock.search("wiki1", &[0.1; 128], 10).await.unwrap();
         assert_eq!(results.len(), 2);
@@ -821,10 +840,8 @@ mod tests {
 
     #[test]
     fn test_combined_scoring_vector_ids_dedup() {
-        let vector_results: Vec<(String, f64)> = vec![
-            ("n1".to_string(), 0.5),
-            ("n2".to_string(), 0.3),
-        ];
+        let vector_results: Vec<(String, f64)> =
+            vec![("n1".to_string(), 0.5), ("n2".to_string(), 0.3)];
         let mut keyword_scores: HashMap<String, f64> = HashMap::new();
         keyword_scores.insert("n1".to_string(), 0.8);
         keyword_scores.insert("n2".to_string(), 0.4);

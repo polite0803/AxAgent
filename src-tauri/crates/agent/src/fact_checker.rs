@@ -310,10 +310,7 @@ impl EmbeddingRelevanceCalculator {
         }
     }
 
-    pub fn with_embedding_fn(
-        mut self,
-        fn_impl: EmbeddingFn,
-    ) -> Self {
+    pub fn with_embedding_fn(mut self, fn_impl: EmbeddingFn) -> Self {
         self.embedding_fn = Some(fn_impl);
         self
     }

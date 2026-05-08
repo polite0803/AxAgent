@@ -749,7 +749,9 @@ mod tests {
             score: 0.9,
             warnings: vec![],
         };
-        let assessment_with_val = evaluator.evaluate_with_validation(&result, validation).await;
+        let assessment_with_val = evaluator
+            .evaluate_with_validation(&result, validation)
+            .await;
         assert!(assessment_with_val.validation_result.is_some());
         assert!(assessment_with_val.credibility.overall != assessment_no_val.credibility.overall);
     }

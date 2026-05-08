@@ -137,10 +137,7 @@ function AppInner() {
   // 加载技能前端扩展
   const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
   useEffect(() => {
-    console.log("[启动] 开始调用 list_skills...");
-    fetchSkills().then(() => {
-      console.log("[启动] list_skills 成功");
-    }).catch((e: unknown) => {
+    fetchSkills().catch((e: unknown) => {
       console.warn("[启动] list_skills 失败:", e);
     });
   }, [fetchSkills]);

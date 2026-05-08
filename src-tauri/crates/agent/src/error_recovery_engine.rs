@@ -710,7 +710,9 @@ mod tests {
     async fn test_recover_recoverable_error_all_fail() {
         let engine = ErrorRecoveryEngine::new();
         let result = engine
-            .recover("permission denied", || async { Err::<i32, String>("still denied".to_string()) })
+            .recover("permission denied", || async {
+                Err::<i32, String>("still denied".to_string())
+            })
             .await;
         assert!(!result.success);
     }

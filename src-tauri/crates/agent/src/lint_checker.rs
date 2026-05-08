@@ -719,7 +719,8 @@ mod tests {
     #[tokio::test]
     async fn test_check_frontmatter_missing_title() {
         let checker = make_lint_checker().await;
-        let note = make_note("", "llm", "---\ntitle: \n---\nSome content here that is long enough.");
+        let note =
+            make_note("", "llm", "---\ntitle: \n---\nSome content here that is long enough.");
         let mut issues = Vec::new();
         checker.check_frontmatter(&note, &mut issues);
         assert!(issues.iter().any(|i| i.code == "missing-title"));
@@ -739,7 +740,8 @@ mod tests {
     #[tokio::test]
     async fn test_check_frontmatter_missing_tags_llm() {
         let checker = make_lint_checker().await;
-        let note = make_note("Test Title", "llm", "---\ntitle: Test\n---\nSome content without tags.");
+        let note =
+            make_note("Test Title", "llm", "---\ntitle: Test\n---\nSome content without tags.");
         let mut issues = Vec::new();
         checker.check_frontmatter(&note, &mut issues);
         assert!(issues.iter().any(|i| i.code == "missing-tags"));
@@ -749,7 +751,11 @@ mod tests {
     #[tokio::test]
     async fn test_check_frontmatter_has_tags_no_issue() {
         let checker = make_lint_checker().await;
-        let note = make_note("Test Title", "llm", "---\ntitle: Test\ntags: [AI, ML]\n---\nSome content with tags.");
+        let note = make_note(
+            "Test Title",
+            "llm",
+            "---\ntitle: Test\ntags: [AI, ML]\n---\nSome content with tags.",
+        );
         let mut issues = Vec::new();
         checker.check_frontmatter(&note, &mut issues);
         assert!(!issues.iter().any(|i| i.code == "missing-tags"));
@@ -758,7 +764,8 @@ mod tests {
     #[tokio::test]
     async fn test_check_frontmatter_non_llm_no_missing_tags_issue() {
         let checker = make_lint_checker().await;
-        let note = make_note("Test Title", "user", "---\ntitle: Test\n---\nSome content without tags.");
+        let note =
+            make_note("Test Title", "user", "---\ntitle: Test\n---\nSome content without tags.");
         let mut issues = Vec::new();
         checker.check_frontmatter(&note, &mut issues);
         assert!(!issues.iter().any(|i| i.code == "missing-tags"));
@@ -823,15 +830,24 @@ mod tests {
         let note = make_note("Low Quality", "llm", "The answer is unknown. I am not sure about this. TODO: fill in later. Cannot determine the result. I don't know the answer.");
         let mut issues = Vec::new();
         checker.check_content_quality(&note, &mut issues);
-        let low_quality_issues: Vec<&LintIssue> = issues.iter().filter(|i| i.code == "low-quality-phrase").collect();
+        let low_quality_issues: Vec<&LintIssue> = issues
+            .iter()
+            .filter(|i| i.code == "low-quality-phrase")
+            .collect();
         assert!(!low_quality_issues.is_empty());
-        assert!(low_quality_issues.iter().all(|i| i.severity == IssueSeverity::Warning));
+        assert!(low_quality_issues
+            .iter()
+            .all(|i| i.severity == IssueSeverity::Warning));
     }
 
     #[tokio::test]
     async fn test_check_content_quality_no_wikilinks_llm() {
         let checker = make_lint_checker().await;
-        let note = make_note("No Links", "llm", "This content has no wiki links at all. It is just plain text without any brackets.");
+        let note = make_note(
+            "No Links",
+            "llm",
+            "This content has no wiki links at all. It is just plain text without any brackets.",
+        );
         let mut issues = Vec::new();
         checker.check_content_quality(&note, &mut issues);
         assert!(issues.iter().any(|i| i.code == "no-wikilinks"));
@@ -841,7 +857,11 @@ mod tests {
     #[tokio::test]
     async fn test_check_content_quality_has_links_ok() {
         let checker = make_lint_checker().await;
-        let note = make_note("Has Links", "llm", "This content has [[wiki links]] and [regular links](http://example.com).");
+        let note = make_note(
+            "Has Links",
+            "llm",
+            "This content has [[wiki links]] and [regular links](http://example.com).",
+        );
         let mut issues = Vec::new();
         checker.check_content_quality(&note, &mut issues);
         assert!(!issues.iter().any(|i| i.code == "no-wikilinks"));
@@ -850,7 +870,11 @@ mod tests {
     #[tokio::test]
     async fn test_check_content_quality_non_llm_no_wikilink_warning() {
         let checker = make_lint_checker().await;
-        let note = make_note("User Note", "user", "This content has no wiki links at all. It is just plain text.");
+        let note = make_note(
+            "User Note",
+            "user",
+            "This content has no wiki links at all. It is just plain text.",
+        );
         let mut issues = Vec::new();
         checker.check_content_quality(&note, &mut issues);
         assert!(!issues.iter().any(|i| i.code == "no-wikilinks"));
@@ -882,8 +906,18 @@ mod tests {
     #[test]
     fn test_calculate_score_boundary() {
         let issues = vec![
-            LintIssue { severity: IssueSeverity::Error, code: "e".to_string(), message: "err".to_string(), line: None },
-            LintIssue { severity: IssueSeverity::Warning, code: "w".to_string(), message: "warn".to_string(), line: None },
+            LintIssue {
+                severity: IssueSeverity::Error,
+                code: "e".to_string(),
+                message: "err".to_string(),
+                line: None,
+            },
+            LintIssue {
+                severity: IssueSeverity::Warning,
+                code: "w".to_string(),
+                message: "warn".to_string(),
+                line: None,
+            },
         ];
         let score = LintChecker::calculate_score(&issues);
         assert!((score - 0.6).abs() < f64::EPSILON);
@@ -894,9 +928,24 @@ mod tests {
         let result = LintResult {
             note_id: "n1".to_string(),
             issues: vec![
-                LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err1".to_string(), line: Some(1) },
-                LintIssue { severity: IssueSeverity::Warning, code: "w1".to_string(), message: "warn1".to_string(), line: Some(5) },
-                LintIssue { severity: IssueSeverity::Info, code: "i1".to_string(), message: "info1".to_string(), line: None },
+                LintIssue {
+                    severity: IssueSeverity::Error,
+                    code: "e1".to_string(),
+                    message: "err1".to_string(),
+                    line: Some(1),
+                },
+                LintIssue {
+                    severity: IssueSeverity::Warning,
+                    code: "w1".to_string(),
+                    message: "warn1".to_string(),
+                    line: Some(5),
+                },
+                LintIssue {
+                    severity: IssueSeverity::Info,
+                    code: "i1".to_string(),
+                    message: "info1".to_string(),
+                    line: None,
+                },
             ],
             score: 0.58,
         };
@@ -964,18 +1013,26 @@ mod tests {
         let note_unknown = make_note("T", "llm", "The result is unknown at this time.");
         let mut issues = Vec::new();
         checker.check_content_quality(&note_unknown, &mut issues);
-        assert!(issues.iter().any(|i| i.code == "low-quality-phrase" && i.message.contains("unknown")));
+        assert!(issues
+            .iter()
+            .any(|i| i.code == "low-quality-phrase" && i.message.contains("unknown")));
 
         let note_todo = make_note("T", "llm", "TODO: implement this feature later.");
         let mut issues2 = Vec::new();
         checker.check_content_quality(&note_todo, &mut issues2);
-        assert!(issues2.iter().any(|i| i.code == "low-quality-phrase" && i.message.contains("todo")));
+        assert!(issues2
+            .iter()
+            .any(|i| i.code == "low-quality-phrase" && i.message.contains("todo")));
     }
 
     #[tokio::test]
     async fn test_check_frontmatter_all_present() {
         let checker = make_lint_checker().await;
-        let note = make_note("Good Title", "llm", "---\ntitle: Good Title\ntags: [test]\n---\nContent with [[links]].");
+        let note = make_note(
+            "Good Title",
+            "llm",
+            "---\ntitle: Good Title\ntags: [test]\n---\nContent with [[links]].",
+        );
         let mut issues = Vec::new();
         checker.check_frontmatter(&note, &mut issues);
         assert!(!issues.iter().any(|i| i.code == "missing-title"));
@@ -988,8 +1045,18 @@ mod tests {
         let result = LintResult {
             note_id: "n1".to_string(),
             issues: vec![
-                LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err".to_string(), line: Some(3) },
-                LintIssue { severity: IssueSeverity::Warning, code: "w1".to_string(), message: "warn".to_string(), line: None },
+                LintIssue {
+                    severity: IssueSeverity::Error,
+                    code: "e1".to_string(),
+                    message: "err".to_string(),
+                    line: Some(3),
+                },
+                LintIssue {
+                    severity: IssueSeverity::Warning,
+                    code: "w1".to_string(),
+                    message: "warn".to_string(),
+                    line: None,
+                },
             ],
             score: 0.6,
         };

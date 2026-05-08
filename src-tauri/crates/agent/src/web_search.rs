@@ -756,17 +756,13 @@ mod tests {
 
     #[test]
     fn test_builder_with_timeout() {
-        let provider = WebSearchProviderBuilder::new()
-            .timeout(60)
-            .build();
+        let provider = WebSearchProviderBuilder::new().timeout(60).build();
         assert_eq!(provider.config.timeout_secs, 60);
     }
 
     #[test]
     fn test_builder_with_rate_limit() {
-        let provider = WebSearchProviderBuilder::new()
-            .rate_limit(100)
-            .build();
+        let provider = WebSearchProviderBuilder::new().rate_limit(100).build();
         assert_eq!(provider.config.rate_limit_per_minute, Some(100));
     }
 

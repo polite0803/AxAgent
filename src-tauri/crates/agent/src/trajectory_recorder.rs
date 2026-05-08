@@ -734,7 +734,11 @@ mod tests {
         }
     }
 
-    fn make_tool_result(tool_use_id: &str, tool_name: &str, is_error: bool) -> TrajectoryToolResult {
+    fn make_tool_result(
+        tool_use_id: &str,
+        tool_name: &str,
+        is_error: bool,
+    ) -> TrajectoryToolResult {
         TrajectoryToolResult {
             tool_use_id: tool_use_id.to_string(),
             tool_name: tool_name.to_string(),
@@ -743,10 +747,7 @@ mod tests {
         }
     }
 
-    fn make_trajectory(
-        outcome: TrajectoryOutcome,
-        steps: Vec<TrajectoryStep>,
-    ) -> Trajectory {
+    fn make_trajectory(outcome: TrajectoryOutcome, steps: Vec<TrajectoryStep>) -> Trajectory {
         Trajectory {
             id: uuid::Uuid::new_v4().to_string(),
             session_id: "sess1".into(),
@@ -1018,11 +1019,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_new() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         assert!(recorder.store.is_none());
     }
 
@@ -1034,11 +1031,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_start_and_stop() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("hello").await;
         let traj = recorder.stop_recording().await;
         assert!(!traj.id.is_empty());
@@ -1050,13 +1043,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_record_llm_response() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
-        recorder.record_llm_response("thinking about it", Some("reasoning step")).await;
+        recorder
+            .record_llm_response("thinking about it", Some("reasoning step"))
+            .await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 1);
         assert_eq!(traj.steps[0].content, "thinking about it");
@@ -1065,15 +1056,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_record_tool_call_and_result() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
-        recorder.record_tool_call("read_file", "tc1", r#"{"path":"/tmp"}"#).await;
-        recorder.record_tool_result("tc1", "read_file", "file contents", false).await;
-        recorder.record_llm_response("here is the result", None).await;
+        recorder
+            .record_tool_call("read_file", "tc1", r#"{"path":"/tmp"}"#)
+            .await;
+        recorder
+            .record_tool_result("tc1", "read_file", "file contents", false)
+            .await;
+        recorder
+            .record_llm_response("here is the result", None)
+            .await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 1);
         let step = &traj.steps[0];
@@ -1087,13 +1080,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_no_record_when_not_recording() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "read_file", "result", false).await;
+        recorder
+            .record_tool_result("tc1", "read_file", "result", false)
+            .await;
         recorder.record_llm_response("response", None).await;
         let traj = recorder.stop_recording().await;
         assert!(traj.steps.is_empty());
@@ -1101,14 +1092,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_determine_outcome_success() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder
+            .record_tool_result("tc1", "read_file", "ok", false)
+            .await;
         recorder.record_llm_response("done", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.outcome, TrajectoryOutcome::Success);
@@ -1116,14 +1105,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_determine_outcome_failure_on_error() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("bad_tool", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "bad_tool", "error!", true).await;
+        recorder
+            .record_tool_result("tc1", "bad_tool", "error!", true)
+            .await;
         recorder.record_llm_response("oops", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.outcome, TrajectoryOutcome::Failure);
@@ -1131,11 +1118,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_determine_outcome_failure_on_empty() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.outcome, TrajectoryOutcome::Failure);
@@ -1143,15 +1126,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_compute_quality_success() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
-        recorder.record_llm_response("done", Some("reasoning")).await;
+        recorder
+            .record_tool_result("tc1", "read_file", "ok", false)
+            .await;
+        recorder
+            .record_llm_response("done", Some("reasoning"))
+            .await;
         let traj = recorder.stop_recording().await;
         assert!(traj.quality.overall > 0.0);
         assert!(traj.quality.task_completion > 0.0);
@@ -1162,14 +1145,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_compute_quality_failure() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("bad_tool", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "bad_tool", "err", true).await;
+        recorder
+            .record_tool_result("tc1", "bad_tool", "err", true)
+            .await;
         recorder.record_llm_response("failed", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.quality.task_completion, 0.0);
@@ -1178,11 +1159,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_generate_summary_empty() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.summary, "No steps recorded");
@@ -1190,14 +1167,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_generate_summary_with_steps() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder
+            .record_tool_result("tc1", "read_file", "ok", false)
+            .await;
         recorder.record_llm_response("done", None).await;
         let traj = recorder.stop_recording().await;
         assert!(traj.summary.contains("1 steps"));
@@ -1206,17 +1181,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_multiple_steps() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder
+            .record_tool_result("tc1", "read_file", "ok", false)
+            .await;
         recorder.record_llm_response("step1", None).await;
         recorder.record_tool_call("write_file", "tc2", "{}").await;
-        recorder.record_tool_result("tc2", "write_file", "ok", false).await;
+        recorder
+            .record_tool_result("tc2", "write_file", "ok", false)
+            .await;
         recorder.record_llm_response("step2", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 2);
@@ -1226,11 +1201,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_clears_on_start() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input1").await;
         recorder.record_llm_response("step1", None).await;
         recorder.stop_recording().await;
@@ -1245,7 +1216,8 @@ mod tests {
     #[test]
     fn test_compute_value_score_success() {
         let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
-        let score = TrajectoryRecorder::compute_value_score(0.8, TrajectoryOutcome::Success, &steps);
+        let score =
+            TrajectoryRecorder::compute_value_score(0.8, TrajectoryOutcome::Success, &steps);
         assert!(score > 0.0);
         assert!(score <= 2.0);
     }
@@ -1253,21 +1225,24 @@ mod tests {
     #[test]
     fn test_compute_value_score_failure() {
         let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
-        let score = TrajectoryRecorder::compute_value_score(0.0, TrajectoryOutcome::Failure, &steps);
+        let score =
+            TrajectoryRecorder::compute_value_score(0.0, TrajectoryOutcome::Failure, &steps);
         assert!(score >= -1.0);
     }
 
     #[test]
     fn test_compute_value_score_abandoned() {
         let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
-        let score = TrajectoryRecorder::compute_value_score(0.2, TrajectoryOutcome::Abandoned, &steps);
+        let score =
+            TrajectoryRecorder::compute_value_score(0.2, TrajectoryOutcome::Abandoned, &steps);
         assert!(score >= -1.0);
     }
 
     #[test]
     fn test_compute_value_score_partial() {
         let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
-        let score = TrajectoryRecorder::compute_value_score(0.5, TrajectoryOutcome::Partial, &steps);
+        let score =
+            TrajectoryRecorder::compute_value_score(0.5, TrajectoryOutcome::Partial, &steps);
         assert!(score > 0.0);
     }
 
@@ -1279,11 +1254,7 @@ mod tests {
 
     #[test]
     fn test_trajectory_recorder_with_store_none() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         assert!(recorder.store.is_none());
     }
 
@@ -1353,18 +1324,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_tool_calls_cleared_after_llm_response() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder
+            .record_tool_result("tc1", "read_file", "ok", false)
+            .await;
         recorder.record_llm_response("step1", None).await;
 
         recorder.record_tool_call("write_file", "tc2", "{}").await;
-        recorder.record_tool_result("tc2", "write_file", "ok", false).await;
+        recorder
+            .record_tool_result("tc2", "write_file", "ok", false)
+            .await;
         recorder.record_llm_response("step2", None).await;
 
         let traj = recorder.stop_recording().await;
@@ -1375,13 +1346,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_llm_response_without_tools() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
-        recorder.record_llm_response("just thinking", Some("reasoning")).await;
+        recorder
+            .record_llm_response("just thinking", Some("reasoning"))
+            .await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 1);
         assert!(traj.steps[0].tool_calls.is_none());
@@ -1391,15 +1360,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_trajectory_recorder_quality_clamped() {
-        let recorder = TrajectoryRecorder::new(
-            "sess1".into(),
-            "user1".into(),
-            "test topic".into(),
-        );
+        let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
-        recorder.record_llm_response("done", Some("deep reasoning")).await;
+        recorder
+            .record_tool_result("tc1", "read_file", "ok", false)
+            .await;
+        recorder
+            .record_llm_response("done", Some("deep reasoning"))
+            .await;
         let traj = recorder.stop_recording().await;
         assert!(traj.quality.overall >= 0.0 && traj.quality.overall <= 1.0);
     }

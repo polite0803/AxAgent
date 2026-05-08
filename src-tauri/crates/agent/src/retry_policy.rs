@@ -445,7 +445,8 @@ mod tests {
         let policy = RetryPolicy::new(2)
             .with_base_delay(Duration::from_millis(1))
             .with_jitter(false);
-        let result = with_retry(&policy, || async { Err::<i32, String>("always fails".to_string()) }).await;
+        let result =
+            with_retry(&policy, || async { Err::<i32, String>("always fails".to_string()) }).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             RetryError::Exhausted { attempts, .. } => assert!(attempts > 0),
@@ -458,7 +459,8 @@ mod tests {
         let policy = RetryPolicy::new(5)
             .with_base_delay(Duration::from_millis(1))
             .with_jitter(false);
-        let result = with_retry(&policy, || async { Err::<i32, String>("syntax error".to_string()) }).await;
+        let result =
+            with_retry(&policy, || async { Err::<i32, String>("syntax error".to_string()) }).await;
         assert!(result.is_err());
     }
 

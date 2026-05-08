@@ -919,7 +919,10 @@ mod tests {
         let json = serde_json::to_string(&compat).unwrap();
         let deserialized: Compatibility = serde_json::from_str(&json).unwrap();
         match deserialized {
-            Compatibility::Incompatible { message, migration_steps } => {
+            Compatibility::Incompatible {
+                message,
+                migration_steps,
+            } => {
                 assert_eq!(message, "test message");
                 assert_eq!(migration_steps.len(), 1);
             },

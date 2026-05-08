@@ -503,8 +503,8 @@ mod tests {
 
     #[test]
     fn test_structured_log_entry_with_correlation_id() {
-        let entry = StructuredLogEntry::new(LogLevel::Debug, "msg", "src")
-            .with_correlation_id("corr-123");
+        let entry =
+            StructuredLogEntry::new(LogLevel::Debug, "msg", "src").with_correlation_id("corr-123");
         assert_eq!(entry.correlation_id, Some("corr-123".to_string()));
     }
 

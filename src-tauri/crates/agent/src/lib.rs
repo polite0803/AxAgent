@@ -723,7 +723,12 @@ mod tests {
         if let Some(tool_name) = registry.tool_defs.keys().next().cloned() {
             registry.set_env_json(&tool_name, r#"{"API_KEY":"test"}"#.into());
             assert_eq!(
-                registry.tool_defs.get(&tool_name).unwrap().env_json.as_deref(),
+                registry
+                    .tool_defs
+                    .get(&tool_name)
+                    .unwrap()
+                    .env_json
+                    .as_deref(),
                 Some(r#"{"API_KEY":"test"}"#)
             );
         }
@@ -741,10 +746,7 @@ mod tests {
         let mut registry = LocalToolRegistry::init_from_registry();
         if let Some(tool_name) = registry.tool_defs.keys().next().cloned() {
             registry.set_timeout_secs(&tool_name, 120);
-            assert_eq!(
-                registry.tool_defs.get(&tool_name).unwrap().timeout_secs,
-                Some(120)
-            );
+            assert_eq!(registry.tool_defs.get(&tool_name).unwrap().timeout_secs, Some(120));
         }
     }
 

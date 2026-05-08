@@ -480,7 +480,10 @@ mod tests {
     #[test]
     fn test_insight_category_from_str() {
         assert_eq!(InsightCategory::from_str("error_pattern"), Some(InsightCategory::ErrorPattern));
-        assert_eq!(InsightCategory::from_str("success_pattern"), Some(InsightCategory::SuccessPattern));
+        assert_eq!(
+            InsightCategory::from_str("success_pattern"),
+            Some(InsightCategory::SuccessPattern)
+        );
         assert_eq!(InsightCategory::from_str("optimization"), Some(InsightCategory::Optimization));
         assert_eq!(InsightCategory::from_str("knowledge"), Some(InsightCategory::Knowledge));
         assert_eq!(InsightCategory::from_str("workflow"), Some(InsightCategory::Workflow));
@@ -500,10 +503,7 @@ mod tests {
     fn test_generate_from_reflection_error_pattern() {
         let generator = InsightGenerator::new();
         let reflection = Reflection::new("task-1".to_string())
-            .with_patterns(
-                vec!["Timeout error".to_string()],
-                vec![],
-            );
+            .with_patterns(vec!["Timeout error".to_string()], vec![]);
         let result = generator.generate_from_reflection(&reflection);
         assert!(result.is_some());
         let insight = result.unwrap();
@@ -517,10 +517,7 @@ mod tests {
     fn test_generate_from_reflection_success_pattern() {
         let generator = InsightGenerator::new();
         let reflection = Reflection::new("task-2".to_string())
-            .with_patterns(
-                vec![],
-                vec!["Efficient caching".to_string()],
-            );
+            .with_patterns(vec![], vec!["Efficient caching".to_string()]);
         let result = generator.generate_from_reflection(&reflection);
         assert!(result.is_some());
         let insight = result.unwrap();
@@ -567,10 +564,7 @@ mod tests {
     fn test_generate_from_reflection_both_patterns() {
         let generator = InsightGenerator::new();
         let reflection = Reflection::new("task-6".to_string())
-            .with_patterns(
-                vec!["Error pattern".to_string()],
-                vec!["Reusable pattern".to_string()],
-            );
+            .with_patterns(vec!["Error pattern".to_string()], vec!["Reusable pattern".to_string()]);
         let result = generator.generate_from_reflection(&reflection);
         let insight = result.unwrap();
         assert_eq!(insight.category, InsightCategory::ErrorPattern);
@@ -582,25 +576,33 @@ mod tests {
     async fn test_get_insights_by_category() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(Insight::new(
-            InsightCategory::ErrorPattern,
-            "Error".to_string(),
-            "Content".to_string(),
-            "task-1".to_string(),
-        )).await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::ErrorPattern,
+                "Error".to_string(),
+                "Content".to_string(),
+                "task-1".to_string(),
+            ))
+            .await;
 
-        generator.store_insight(Insight::new(
-            InsightCategory::Knowledge,
-            "Knowledge".to_string(),
-            "Content".to_string(),
-            "task-2".to_string(),
-        )).await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "Knowledge".to_string(),
+                "Content".to_string(),
+                "task-2".to_string(),
+            ))
+            .await;
 
-        let errors = generator.get_insights(Some(InsightCategory::ErrorPattern)).await;
+        let errors = generator
+            .get_insights(Some(InsightCategory::ErrorPattern))
+            .await;
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].category, InsightCategory::ErrorPattern);
 
-        let knowledge = generator.get_insights(Some(InsightCategory::Knowledge)).await;
+        let knowledge = generator
+            .get_insights(Some(InsightCategory::Knowledge))
+            .await;
         assert_eq!(knowledge.len(), 1);
         assert_eq!(knowledge[0].category, InsightCategory::Knowledge);
 
@@ -671,15 +673,29 @@ mod tests {
     async fn test_get_stats_with_data() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(
-            Insight::new(InsightCategory::ErrorPattern, "E1".to_string(), "C1".to_string(), "t1".to_string())
-                .with_confidence(0.8)
-        ).await;
+        generator
+            .store_insight(
+                Insight::new(
+                    InsightCategory::ErrorPattern,
+                    "E1".to_string(),
+                    "C1".to_string(),
+                    "t1".to_string(),
+                )
+                .with_confidence(0.8),
+            )
+            .await;
 
-        generator.store_insight(
-            Insight::new(InsightCategory::Knowledge, "K1".to_string(), "C2".to_string(), "t2".to_string())
-                .with_confidence(0.6)
-        ).await;
+        generator
+            .store_insight(
+                Insight::new(
+                    InsightCategory::Knowledge,
+                    "K1".to_string(),
+                    "C2".to_string(),
+                    "t2".to_string(),
+                )
+                .with_confidence(0.6),
+            )
+            .await;
 
         let stats = generator.get_stats().await;
         assert_eq!(stats.total_insights, 2);
@@ -692,11 +708,21 @@ mod tests {
     async fn test_get_stats_most_used() {
         let generator = InsightGenerator::new();
 
-        let insight1 = Insight::new(InsightCategory::Knowledge, "K1".to_string(), "C1".to_string(), "t1".to_string());
+        let insight1 = Insight::new(
+            InsightCategory::Knowledge,
+            "K1".to_string(),
+            "C1".to_string(),
+            "t1".to_string(),
+        );
         let id1 = insight1.id.clone();
         generator.store_insight(insight1).await;
 
-        let insight2 = Insight::new(InsightCategory::Knowledge, "K2".to_string(), "C2".to_string(), "t2".to_string());
+        let insight2 = Insight::new(
+            InsightCategory::Knowledge,
+            "K2".to_string(),
+            "C2".to_string(),
+            "t2".to_string(),
+        );
         generator.store_insight(insight2).await;
 
         generator.record_insight_usage(&id1).await;
@@ -711,7 +737,12 @@ mod tests {
     async fn test_delete_insight() {
         let generator = InsightGenerator::new();
 
-        let insight = Insight::new(InsightCategory::Knowledge, "Title".to_string(), "Content".to_string(), "t1".to_string());
+        let insight = Insight::new(
+            InsightCategory::Knowledge,
+            "Title".to_string(),
+            "Content".to_string(),
+            "t1".to_string(),
+        );
         let id = insight.id.clone();
         generator.store_insight(insight).await;
 
@@ -733,8 +764,22 @@ mod tests {
     async fn test_clear_all() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(Insight::new(InsightCategory::Knowledge, "K1".to_string(), "C1".to_string(), "t1".to_string())).await;
-        generator.store_insight(Insight::new(InsightCategory::ErrorPattern, "E1".to_string(), "C2".to_string(), "t2".to_string())).await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "K1".to_string(),
+                "C1".to_string(),
+                "t1".to_string(),
+            ))
+            .await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::ErrorPattern,
+                "E1".to_string(),
+                "C2".to_string(),
+                "t2".to_string(),
+            ))
+            .await;
 
         assert_eq!(generator.get_insights(None).await.len(), 2);
 
@@ -750,9 +795,30 @@ mod tests {
     async fn test_get_recent_insights() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(Insight::new(InsightCategory::Knowledge, "K1".to_string(), "C1".to_string(), "t1".to_string())).await;
-        generator.store_insight(Insight::new(InsightCategory::Knowledge, "K2".to_string(), "C2".to_string(), "t2".to_string())).await;
-        generator.store_insight(Insight::new(InsightCategory::Knowledge, "K3".to_string(), "C3".to_string(), "t3".to_string())).await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "K1".to_string(),
+                "C1".to_string(),
+                "t1".to_string(),
+            ))
+            .await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "K2".to_string(),
+                "C2".to_string(),
+                "t2".to_string(),
+            ))
+            .await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "K3".to_string(),
+                "C3".to_string(),
+                "t3".to_string(),
+            ))
+            .await;
 
         let recent = generator.get_recent_insights(2).await;
         assert_eq!(recent.len(), 2);
@@ -769,11 +835,21 @@ mod tests {
     async fn test_get_top_insights() {
         let generator = InsightGenerator::new();
 
-        let insight1 = Insight::new(InsightCategory::Knowledge, "K1".to_string(), "C1".to_string(), "t1".to_string());
+        let insight1 = Insight::new(
+            InsightCategory::Knowledge,
+            "K1".to_string(),
+            "C1".to_string(),
+            "t1".to_string(),
+        );
         let id1 = insight1.id.clone();
         generator.store_insight(insight1).await;
 
-        let insight2 = Insight::new(InsightCategory::Knowledge, "K2".to_string(), "C2".to_string(), "t2".to_string());
+        let insight2 = Insight::new(
+            InsightCategory::Knowledge,
+            "K2".to_string(),
+            "C2".to_string(),
+            "t2".to_string(),
+        );
         generator.store_insight(insight2).await;
 
         generator.record_insight_usage(&id1).await;
@@ -788,15 +864,29 @@ mod tests {
     async fn test_get_high_confidence_insights() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(
-            Insight::new(InsightCategory::Knowledge, "High".to_string(), "C1".to_string(), "t1".to_string())
-                .with_confidence(0.9)
-        ).await;
+        generator
+            .store_insight(
+                Insight::new(
+                    InsightCategory::Knowledge,
+                    "High".to_string(),
+                    "C1".to_string(),
+                    "t1".to_string(),
+                )
+                .with_confidence(0.9),
+            )
+            .await;
 
-        generator.store_insight(
-            Insight::new(InsightCategory::Knowledge, "Low".to_string(), "C2".to_string(), "t2".to_string())
-                .with_confidence(0.3)
-        ).await;
+        generator
+            .store_insight(
+                Insight::new(
+                    InsightCategory::Knowledge,
+                    "Low".to_string(),
+                    "C2".to_string(),
+                    "t2".to_string(),
+                )
+                .with_confidence(0.3),
+            )
+            .await;
 
         let high = generator.get_high_confidence_insights(0.8).await;
         assert_eq!(high.len(), 1);
@@ -820,7 +910,8 @@ mod tests {
     #[test]
     fn test_generate_knowledge_insight() {
         let generator = InsightGenerator::new();
-        let insight = generator.generate_knowledge_insight("Rust", "Rust is a systems programming language");
+        let insight =
+            generator.generate_knowledge_insight("Rust", "Rust is a systems programming language");
 
         assert_eq!(insight.category, InsightCategory::Knowledge);
         assert!(insight.title.contains("Knowledge"));
@@ -856,10 +947,17 @@ mod tests {
     async fn test_search_insights_by_tag() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(
-            Insight::new(InsightCategory::ErrorPattern, "Error".to_string(), "Content".to_string(), "t1".to_string())
-                .with_tags(vec!["network".to_string()])
-        ).await;
+        generator
+            .store_insight(
+                Insight::new(
+                    InsightCategory::ErrorPattern,
+                    "Error".to_string(),
+                    "Content".to_string(),
+                    "t1".to_string(),
+                )
+                .with_tags(vec!["network".to_string()]),
+            )
+            .await;
 
         let results = generator.search_insights("network").await;
         assert_eq!(results.len(), 1);
@@ -869,9 +967,14 @@ mod tests {
     async fn test_search_insights_by_content() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(
-            Insight::new(InsightCategory::Knowledge, "Title".to_string(), "Database optimization techniques".to_string(), "t1".to_string())
-        ).await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "Title".to_string(),
+                "Database optimization techniques".to_string(),
+                "t1".to_string(),
+            ))
+            .await;
 
         let results = generator.search_insights("database").await;
         assert_eq!(results.len(), 1);
@@ -881,9 +984,14 @@ mod tests {
     async fn test_search_insights_case_insensitive() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(
-            Insight::new(InsightCategory::Knowledge, "UPPERCASE Title".to_string(), "Content".to_string(), "t1".to_string())
-        ).await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "UPPERCASE Title".to_string(),
+                "Content".to_string(),
+                "t1".to_string(),
+            ))
+            .await;
 
         let results = generator.search_insights("uppercase").await;
         assert_eq!(results.len(), 1);
@@ -893,9 +1001,14 @@ mod tests {
     async fn test_search_insights_no_match() {
         let generator = InsightGenerator::new();
 
-        generator.store_insight(
-            Insight::new(InsightCategory::Knowledge, "Title".to_string(), "Content".to_string(), "t1".to_string())
-        ).await;
+        generator
+            .store_insight(Insight::new(
+                InsightCategory::Knowledge,
+                "Title".to_string(),
+                "Content".to_string(),
+                "t1".to_string(),
+            ))
+            .await;
 
         let results = generator.search_insights("nonexistent").await;
         assert!(results.is_empty());

@@ -470,7 +470,11 @@ mod tests {
             tool_name: "write_file".to_string(),
             tool_use_id: "tool-123".to_string(),
         };
-        if let AgentEvent::ToolUse { tool_name, tool_use_id } = event {
+        if let AgentEvent::ToolUse {
+            tool_name,
+            tool_use_id,
+        } = event
+        {
             assert_eq!(tool_name, "write_file");
             assert_eq!(tool_use_id, "tool-123");
         }
@@ -482,7 +486,11 @@ mod tests {
             tool_use_id: "tool-456".to_string(),
             is_error: true,
         };
-        if let AgentEvent::ToolResult { tool_use_id, is_error } = event {
+        if let AgentEvent::ToolResult {
+            tool_use_id,
+            is_error,
+        } = event
+        {
             assert_eq!(tool_use_id, "tool-456");
             assert!(is_error);
         }
@@ -558,9 +566,17 @@ mod tests {
         let events = vec![
             AgentEvent::TurnStarted { iteration: 0 },
             AgentEvent::TurnCompleted { iteration: 1 },
-            AgentEvent::ToolUse { tool_name: "t".to_string(), tool_use_id: "id".to_string() },
-            AgentEvent::ToolResult { tool_use_id: "id".to_string(), is_error: false },
-            AgentEvent::Error { error: "e".to_string() },
+            AgentEvent::ToolUse {
+                tool_name: "t".to_string(),
+                tool_use_id: "id".to_string(),
+            },
+            AgentEvent::ToolResult {
+                tool_use_id: "id".to_string(),
+                is_error: false,
+            },
+            AgentEvent::Error {
+                error: "e".to_string(),
+            },
             AgentEvent::ProactiveTick,
         ];
         let cloned = events.clone();

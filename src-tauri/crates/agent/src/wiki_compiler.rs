@@ -929,7 +929,9 @@ fn infer_page_type(title: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_core::types::{ChatResponse, ChatStreamChunk, EmbedRequest, EmbedResponse, Model, TokenUsage};
+    use axagent_core::types::{
+        ChatResponse, ChatStreamChunk, EmbedRequest, EmbedResponse, Model, TokenUsage,
+    };
     use axagent_providers::ProviderAdapter;
     use futures::Stream;
     use std::pin::Pin;
@@ -948,7 +950,11 @@ mod tests {
                 model: "test".to_string(),
                 content: "test".to_string(),
                 thinking: None,
-                usage: TokenUsage { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                usage: TokenUsage {
+                    prompt_tokens: 0,
+                    completion_tokens: 0,
+                    total_tokens: 0,
+                },
                 tool_calls: None,
             })
         }
@@ -957,7 +963,8 @@ mod tests {
             &self,
             _ctx: &ProviderRequestContext,
             _request: ChatRequest,
-        ) -> Pin<Box<dyn Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>> {
+        ) -> Pin<Box<dyn Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>>
+        {
             Box::pin(futures::stream::empty())
         }
 
@@ -973,7 +980,10 @@ mod tests {
             _ctx: &ProviderRequestContext,
             _request: EmbedRequest,
         ) -> axagent_core::error::Result<EmbedResponse> {
-            Ok(EmbedResponse { embeddings: vec![vec![0.0; 128]], dimensions: 128 })
+            Ok(EmbedResponse {
+                embeddings: vec![vec![0.0; 128]],
+                dimensions: 128,
+            })
         }
     }
 

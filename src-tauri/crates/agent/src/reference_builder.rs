@@ -561,16 +561,20 @@ mod tests {
     #[tokio::test]
     async fn test_build_grouped() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "Web Title".to_string(),
-            SourceType::Web,
-        )).await;
-        tracker.add_citation(Citation::new(
-            "https://paper.com".to_string(),
-            "Academic Title".to_string(),
-            SourceType::Academic,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "Web Title".to_string(),
+                SourceType::Web,
+            ))
+            .await;
+        tracker
+            .add_citation(Citation::new(
+                "https://paper.com".to_string(),
+                "Academic Title".to_string(),
+                SourceType::Academic,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let grouped = builder.build_grouped(ReferenceFormat::Markdown).await;
@@ -583,11 +587,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_grouped_html() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Web,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "Title".to_string(),
+                SourceType::Web,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let grouped = builder.build_grouped(ReferenceFormat::Html).await;
@@ -598,11 +604,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_grouped_bibtex() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Academic,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "Title".to_string(),
+                SourceType::Academic,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let grouped = builder.build_grouped(ReferenceFormat::BibTeX).await;
@@ -613,11 +621,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_grouped_apa() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::News,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "Title".to_string(),
+                SourceType::News,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let grouped = builder.build_grouped(ReferenceFormat::APA).await;
@@ -628,11 +638,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_grouped_mla() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Web,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "Title".to_string(),
+                SourceType::Web,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let grouped = builder.build_grouped(ReferenceFormat::MLA).await;
@@ -643,11 +655,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_grouped_chicago() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Web,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "Title".to_string(),
+                SourceType::Web,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let grouped = builder.build_grouped(ReferenceFormat::Chicago).await;
@@ -658,11 +672,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_grouped_json() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Web,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "Title".to_string(),
+                SourceType::Web,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let grouped = builder.build_grouped(ReferenceFormat::Json).await;
@@ -673,34 +689,32 @@ mod tests {
     #[tokio::test]
     async fn test_build_inline_citations_markdown() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        let citation = Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Web,
-        );
+        let citation =
+            Citation::new("https://example.com".to_string(), "Title".to_string(), SourceType::Web);
         let id_prefix = citation.id[..8].to_string();
         tracker.add_citation(citation).await;
 
         let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
-        let inline = builder.build_inline_citations(&citations, ReferenceFormat::Markdown).await;
+        let inline = builder
+            .build_inline_citations(&citations, ReferenceFormat::Markdown)
+            .await;
         assert!(inline.contains(&format!("[^{}]", id_prefix)));
     }
 
     #[tokio::test]
     async fn test_build_inline_citations_html() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        let citation = Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Web,
-        );
+        let citation =
+            Citation::new("https://example.com".to_string(), "Title".to_string(), SourceType::Web);
         let id_clone = citation.id.clone();
         tracker.add_citation(citation).await;
 
         let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
-        let inline = builder.build_inline_citations(&citations, ReferenceFormat::Html).await;
+        let inline = builder
+            .build_inline_citations(&citations, ReferenceFormat::Html)
+            .await;
         assert!(inline.contains(&format!("#ref-{}", id_clone)));
         assert!(inline.contains("<sup>"));
     }
@@ -708,16 +722,15 @@ mod tests {
     #[tokio::test]
     async fn test_build_inline_citations_other_format() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        let citation = Citation::new(
-            "https://example.com".to_string(),
-            "Title".to_string(),
-            SourceType::Web,
-        );
+        let citation =
+            Citation::new("https://example.com".to_string(), "Title".to_string(), SourceType::Web);
         tracker.add_citation(citation).await;
 
         let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
-        let inline = builder.build_inline_citations(&citations, ReferenceFormat::BibTeX).await;
+        let inline = builder
+            .build_inline_citations(&citations, ReferenceFormat::BibTeX)
+            .await;
         assert!(inline.is_empty());
     }
 
@@ -741,16 +754,20 @@ mod tests {
     #[tokio::test]
     async fn test_build_footnote_references_multiple() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://a.com".to_string(),
-            "Title A".to_string(),
-            SourceType::Web,
-        )).await;
-        tracker.add_citation(Citation::new(
-            "https://b.com".to_string(),
-            "Title B".to_string(),
-            SourceType::Academic,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://a.com".to_string(),
+                "Title A".to_string(),
+                SourceType::Web,
+            ))
+            .await;
+        tracker
+            .add_citation(Citation::new(
+                "https://b.com".to_string(),
+                "Title B".to_string(),
+                SourceType::Academic,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let citations = tracker.get_all_citations().await;
@@ -838,12 +855,20 @@ mod tests {
     #[tokio::test]
     async fn test_build_markdown_credibility_levels() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(
-            Citation::new("https://high.com".to_string(), "High".to_string(), SourceType::Academic),
-        ).await;
-        tracker.add_citation(
-            Citation::new("https://low.com".to_string(), "Low".to_string(), SourceType::Forum),
-        ).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://high.com".to_string(),
+                "High".to_string(),
+                SourceType::Academic,
+            ))
+            .await;
+        tracker
+            .add_citation(Citation::new(
+                "https://low.com".to_string(),
+                "Low".to_string(),
+                SourceType::Forum,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let markdown = builder.build(ReferenceFormat::Markdown).await;
@@ -854,12 +879,20 @@ mod tests {
     #[tokio::test]
     async fn test_build_html_credibility_classes() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(
-            Citation::new("https://high.com".to_string(), "High".to_string(), SourceType::Academic),
-        ).await;
-        tracker.add_citation(
-            Citation::new("https://low.com".to_string(), "Low".to_string(), SourceType::Forum),
-        ).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://high.com".to_string(),
+                "High".to_string(),
+                SourceType::Academic,
+            ))
+            .await;
+        tracker
+            .add_citation(Citation::new(
+                "https://low.com".to_string(),
+                "Low".to_string(),
+                SourceType::Forum,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let html = builder.build(ReferenceFormat::Html).await;
@@ -870,11 +903,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_bibtex_news_type() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://news.com".to_string(),
-            "News Title".to_string(),
-            SourceType::News,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://news.com".to_string(),
+                "News Title".to_string(),
+                SourceType::News,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let bibtex = builder.build(ReferenceFormat::BibTeX).await;
@@ -884,11 +919,13 @@ mod tests {
     #[tokio::test]
     async fn test_build_json_structure() {
         let tracker = std::sync::Arc::new(CitationTracker::new());
-        tracker.add_citation(Citation::new(
-            "https://example.com".to_string(),
-            "JSON Title".to_string(),
-            SourceType::GitHub,
-        )).await;
+        tracker
+            .add_citation(Citation::new(
+                "https://example.com".to_string(),
+                "JSON Title".to_string(),
+                SourceType::GitHub,
+            ))
+            .await;
 
         let builder = ReferenceBuilder::new(tracker);
         let json = builder.build(ReferenceFormat::Json).await;
