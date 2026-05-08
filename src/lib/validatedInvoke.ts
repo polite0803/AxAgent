@@ -1,5 +1,5 @@
-import { invoke } from "./invoke";
 import { ZodSchema } from "zod";
+import { invoke } from "./invoke";
 
 type ValidatedInvokeOptions<T> = {
   command: string;
@@ -36,6 +36,5 @@ export async function validatedInvoke<T>({
 }
 
 export function createValidatedInvoker<T>(command: string, schema: ZodSchema<T>, strict = false) {
-  return (args?: Record<string, unknown>) =>
-    validatedInvoke({ command, args: args ?? {}, schema, strict });
+  return (args?: Record<string, unknown>) => validatedInvoke({ command, args: args ?? {}, schema, strict });
 }

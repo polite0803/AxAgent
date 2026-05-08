@@ -1,5 +1,12 @@
 import { invoke } from "@/lib/invoke";
-import type { MarketplaceSkill, Skill, SkillCreateCheckResult, SkillDetail, SkillProposal, SkillUpdateInfo } from "@/types";
+import type {
+  MarketplaceSkill,
+  Skill,
+  SkillCreateCheckResult,
+  SkillDetail,
+  SkillProposal,
+  SkillUpdateInfo,
+} from "@/types";
 import { create } from "zustand";
 
 interface SkillState {

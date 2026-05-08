@@ -170,7 +170,9 @@ export function WikiGraphPage() {
   const handleCreateLinkedNote = useCallback(
     async (sourceNodeId: string) => {
       const sourceNode = graphData?.nodes.find((n) => n.id === sourceNodeId);
-      const title = sourceNode ? `${t("wiki.linkedPrefix", "Related")}: ${sourceNode.title}` : t("wiki.linkedNoteTitle", "New Linked Note");
+      const title = sourceNode
+        ? `${t("wiki.linkedPrefix", "Related")}: ${sourceNode.title}`
+        : t("wiki.linkedNoteTitle", "New Linked Note");
       const now = Date.now();
       const note = await createNote({
         vaultId: wikiIdFromUrl,

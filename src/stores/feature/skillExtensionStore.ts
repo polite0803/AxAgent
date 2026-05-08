@@ -1,6 +1,13 @@
 import { invoke } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
-import type { DeclarativeActionType, Skill, SkillCapability, SkillCommandAction, SkillHandler, SkillToolbarCapability } from "@/types";
+import type {
+  DeclarativeActionType,
+  Skill,
+  SkillCapability,
+  SkillCommandAction,
+  SkillHandler,
+  SkillToolbarCapability,
+} from "@/types";
 import { create } from "zustand";
 
 export interface MergedNavItem {
@@ -155,7 +162,9 @@ function mergeExtensions(skills: Skill[]) {
     if (!seenIds.has(type)) { seenIds.set(type, new Set()); }
     const ids = seenIds.get(type)!;
     if (ids.has(namespacedId)) {
-      console.warn(`[SkillExtension] 重复的 ${type} ID "${id}"（命名空间: ${namespacedId}），技能 "${skillName}" 的 capability 已被跳过`);
+      console.warn(
+        `[SkillExtension] 重复的 ${type} ID "${id}"（命名空间: ${namespacedId}），技能 "${skillName}" 的 capability 已被跳过`,
+      );
       return true;
     }
     ids.add(namespacedId);

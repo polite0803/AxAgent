@@ -29,6 +29,7 @@ import {
   theme,
   Typography,
 } from "antd";
+import type { TFunction } from "i18next";
 import {
   ChevronRight,
   Code,
@@ -51,7 +52,6 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
-import type { TFunction } from "i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -174,7 +174,9 @@ function SkillCard({
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
-            {hasManifest && <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI", { defaultValue: "含 UI 扩展" })}</Tag>}
+            {hasManifest && (
+              <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI", { defaultValue: "含 UI 扩展" })}</Tag>
+            )}
           </div>
           <Paragraph
             type="secondary"
@@ -203,7 +205,9 @@ function SkillCard({
             size="small"
             icon={<LayoutPanelTop size={14} color={CHAT_ICON_COLORS.Trash2} />}
             onClick={() => onEditFrontend(skill.name)}
-            title={hasManifest ? t("skill.editFrontend", { defaultValue: "编辑前端扩展" }) : t("skill.addFrontend", { defaultValue: "添加前端扩展" })}
+            title={hasManifest
+              ? t("skill.editFrontend", { defaultValue: "编辑前端扩展" })
+              : t("skill.addFrontend", { defaultValue: "添加前端扩展" })}
           />
           {onExport && (
             <Button

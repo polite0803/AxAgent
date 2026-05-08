@@ -70,7 +70,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
       // Try to extract JSON from the response
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error(t("agentGenerator.parseJsonError","无法从响应中解析 JSON"));
+        throw new Error(t("agentGenerator.parseJsonError", "无法从响应中解析 JSON"));
       }
 
       const config: GeneratedAgentConfig = JSON.parse(jsonMatch[0]);

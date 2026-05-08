@@ -11,7 +11,9 @@ interface LifecycleCacheEntry {
 const lifecycleCache = new Map<string, LifecycleCacheEntry>();
 const LIFECYCLE_CACHE_TTL_MS = 5 * 60 * 1000;
 
-async function readLifecycleData(skillName: string): Promise<{ hooks: SkillLifecycleHooks | null; permissions: SkillPermissions | undefined }> {
+async function readLifecycleData(
+  skillName: string,
+): Promise<{ hooks: SkillLifecycleHooks | null; permissions: SkillPermissions | undefined }> {
   const cached = lifecycleCache.get(skillName);
   if (cached && Date.now() - cached.ts < LIFECYCLE_CACHE_TTL_MS) {
     return { hooks: cached.hooks, permissions: cached.permissions };
@@ -35,7 +37,11 @@ export function invalidateLifecycleCache(skillName: string): void {
   lifecycleCache.delete(skillName);
 }
 
-async function executeHooks(actions: SkillCommandAction[], skillName: string, permissions?: SkillPermissions): Promise<void> {
+async function executeHooks(
+  actions: SkillCommandAction[],
+  skillName: string,
+  permissions?: SkillPermissions,
+): Promise<void> {
   if (!actions || actions.length === 0) { return; }
   const router = getActionRouter();
   for (const action of actions) {

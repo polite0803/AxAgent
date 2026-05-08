@@ -5,8 +5,8 @@ import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutline
 const _EMPTY: never[] = [];
 import { AlertTriangle, ChevronDown, ChevronRight, Clock, SkipForward } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { useScrollToMessage } from "./ScrollToMessageContext";
 import "./AgentPoolPanel.css";
 
@@ -84,9 +84,21 @@ function StatusBadge({ status }: { status: AgentPoolItem["status"] }) {
   const { t } = useTranslation();
   const config: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
     pending: { icon: <Clock size={13} />, color: "#8c8c8c", label: t("agentPool.status.pending", "等待") },
-    running: { icon: <LoadingOutlined spin style={{ fontSize: 13 }} />, color: "#1890ff", label: t("agentPool.status.running", "运行") },
-    completed: { icon: <CheckCircleOutlined style={{ fontSize: 13 }} />, color: "#52c41a", label: t("agentPool.status.completed", "完成") },
-    failed: { icon: <CloseCircleOutlined style={{ fontSize: 13 }} />, color: "#ff4d4f", label: t("agentPool.status.failed", "失败") },
+    running: {
+      icon: <LoadingOutlined spin style={{ fontSize: 13 }} />,
+      color: "#1890ff",
+      label: t("agentPool.status.running", "运行"),
+    },
+    completed: {
+      icon: <CheckCircleOutlined style={{ fontSize: 13 }} />,
+      color: "#52c41a",
+      label: t("agentPool.status.completed", "完成"),
+    },
+    failed: {
+      icon: <CloseCircleOutlined style={{ fontSize: 13 }} />,
+      color: "#ff4d4f",
+      label: t("agentPool.status.failed", "失败"),
+    },
     cancelled: { icon: <SkipForward size={13} />, color: "#faad14", label: t("agentPool.status.cancelled", "取消") },
   };
   const c = config[status] || config.pending;
@@ -227,7 +239,10 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
         )}
         {item.attempts !== undefined && item.maxRetries !== undefined && (
           <span className="pool-item__attempts">
-            {t("agentPool.attempts", "尝试 {attempts}/{maxRetries}", { attempts: item.attempts, maxRetries: item.maxRetries })}
+            {t("agentPool.attempts", "尝试 {attempts}/{maxRetries}", {
+              attempts: item.attempts,
+              maxRetries: item.maxRetries,
+            })}
           </span>
         )}
       </div>

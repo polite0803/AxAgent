@@ -31,7 +31,13 @@ export type DeclarativeExecutor = (action: DeclarativeActionType, ctx: ActionCon
 const MAX_CHAIN_DEPTH = 20;
 
 const VALID_ACTION_TYPES = new Set<string>([
-  "invoke", "navigate", "emit", "store", "function", "handler", "chain",
+  "invoke",
+  "navigate",
+  "emit",
+  "store",
+  "function",
+  "handler",
+  "chain",
 ]);
 
 interface ActionSchemaRule {
@@ -40,13 +46,16 @@ interface ActionSchemaRule {
 }
 
 const ACTION_SCHEMAS: Record<string, ActionSchemaRule> = {
-  invoke:   { requiredFields: ["command"], fieldTypes: { command: "string", args: "object" } },
-  navigate: { requiredFields: ["path"],    fieldTypes: { path: "string" } },
-  emit:     { requiredFields: ["event"],   fieldTypes: { event: "string", payload: "object" } },
-  store:    { requiredFields: ["storeName", "operation"], fieldTypes: { storeName: "string", operation: "string", payload: "object" } },
-  function: { requiredFields: ["name"],    fieldTypes: { name: "string", args: "array" } },
-  handler:  { requiredFields: ["name"],    fieldTypes: { name: "string", args: "object" } },
-  chain:    { requiredFields: ["actions"], fieldTypes: { actions: "array" } },
+  invoke: { requiredFields: ["command"], fieldTypes: { command: "string", args: "object" } },
+  navigate: { requiredFields: ["path"], fieldTypes: { path: "string" } },
+  emit: { requiredFields: ["event"], fieldTypes: { event: "string", payload: "object" } },
+  store: {
+    requiredFields: ["storeName", "operation"],
+    fieldTypes: { storeName: "string", operation: "string", payload: "object" },
+  },
+  function: { requiredFields: ["name"], fieldTypes: { name: "string", args: "array" } },
+  handler: { requiredFields: ["name"], fieldTypes: { name: "string", args: "object" } },
+  chain: { requiredFields: ["actions"], fieldTypes: { actions: "array" } },
 };
 
 function validateAction(action: DeclarativeActionType): string | null {
@@ -185,14 +194,21 @@ export class ActionRouter {
       if (ctx.permissions) {
         const isRead = operation === "get";
         const isWrite = operation === "set" || operation === "update";
-        const selector = action.payload && typeof action.payload === "object" && "selector" in (action.payload as Record<string, unknown>)
+        const selector = action.payload && typeof action.payload === "object"
+            && "selector" in (action.payload as Record<string, unknown>)
           ? String((action.payload as Record<string, unknown>).selector)
           : undefined;
         if (isRead && !isStoreReadCovered(action.storeName, selector, ctx.permissions.storeRead ?? [])) {
-          return { success: false, error: `权限不足: 无法读取 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}` };
+          return {
+            success: false,
+            error: `权限不足: 无法读取 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}`,
+          };
         }
         if (isWrite && !isStoreWriteCovered(action.storeName, selector, ctx.permissions.storeWrite ?? [])) {
-          return { success: false, error: `权限不足: 无法写入 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}` };
+          return {
+            success: false,
+            error: `权限不足: 无法写入 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}`,
+          };
         }
       }
       const { getStoreRegistry } = await import("./storeRegistry");

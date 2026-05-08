@@ -248,7 +248,7 @@ export function BuddyWidget() {
           {/* 属性条 */}
           <div style={{ marginBottom: 12 }}>
             <Text type="secondary" style={{ fontSize: 12, marginBottom: 6, display: "block" }}>
-            {t("buddy.attributes", "属性")}
+              {t("buddy.attributes", "属性")}
             </Text>
             {attrKeys.map((key) => (
               <div
@@ -280,7 +280,7 @@ export function BuddyWidget() {
           {/* 经验条 */}
           <div style={{ marginBottom: 12 }}>
             <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("buddy.experience", "经验值")}
+              {t("buddy.experience", "经验值")}
             </Text>
             <Progress
               percent={Math.round(

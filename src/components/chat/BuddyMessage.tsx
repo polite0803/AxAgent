@@ -31,56 +31,59 @@ interface BuddyMessageBubbleProps {
   buddyName: string;
 }
 
-export const BuddyMessageBubble = React.memo(function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMessageBubbleProps) {
-  const colors = useMemo(() => moodColors[message.mood], [message.mood]);
-  const moodLabel = moodLabels[message.mood];
+export const BuddyMessageBubble = React.memo(
+  function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMessageBubbleProps) {
+    const colors = useMemo(() => moodColors[message.mood], [message.mood]);
+    const moodLabel = moodLabels[message.mood];
 
-  return (
-    <div
-      style={{
-        background: colors.bg,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 12,
-        padding: "8px 12px",
-        marginBottom: 8,
-        maxWidth: 260,
-      }}
-    >
+    return (
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          marginBottom: 4,
+          background: colors.bg,
+          border: `1px solid ${colors.border}`,
+          borderRadius: 12,
+          padding: "8px 12px",
+          marginBottom: 8,
+          maxWidth: 260,
         }}
       >
-        <Text style={{ fontSize: 14 }}>{buddyEmoji}</Text>
-        <Text style={{ fontSize: 12, color: "#666", fontWeight: 500 }}>
-          {buddyName}
-        </Text>
-        <Text
+        <div
           style={{
-            fontSize: 10,
-            color: colors.border,
-            background: "#fff",
-            padding: "0 6px",
-            borderRadius: 8,
-            lineHeight: "18px",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 4,
           }}
         >
-          {moodLabel}
+          <Text style={{ fontSize: 14 }}>{buddyEmoji}</Text>
+          <Text style={{ fontSize: 12, color: "#666", fontWeight: 500 }}>
+            {buddyName}
+          </Text>
+          <Text
+            style={{
+              fontSize: 10,
+              color: colors.border,
+              background: "#fff",
+              padding: "0 6px",
+              borderRadius: 8,
+              lineHeight: "18px",
+            }}
+          >
+            {moodLabel}
+          </Text>
+        </div>
+
+        <Text style={{ fontSize: 13, color: "#333", lineHeight: 1.5 }}>
+          {message.text}
         </Text>
       </div>
-
-      <Text style={{ fontSize: 13, color: "#333", lineHeight: 1.5 }}>
-        {message.text}
-      </Text>
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  return prevProps.message.text === nextProps.message.text
-    && prevProps.message.mood === nextProps.message.mood
-    && prevProps.message.timestamp === nextProps.message.timestamp
-    && prevProps.buddyEmoji === nextProps.buddyEmoji
-    && prevProps.buddyName === nextProps.buddyName;
-});
+    );
+  },
+  (prevProps, nextProps) => {
+    return prevProps.message.text === nextProps.message.text
+      && prevProps.message.mood === nextProps.message.mood
+      && prevProps.message.timestamp === nextProps.message.timestamp
+      && prevProps.buddyEmoji === nextProps.buddyEmoji
+      && prevProps.buddyName === nextProps.buddyName;
+  },
+);

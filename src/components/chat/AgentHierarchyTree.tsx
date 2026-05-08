@@ -17,7 +17,11 @@ interface AgentHierarchyTreeProps {
 }
 
 // 将 AgentPoolItem 转换为 Tree DataNode
-function toTreeNode(item: AgentPoolItem, allItems: AgentPoolItem[], t: (key: string, fallback: string) => string): DataNode {
+function toTreeNode(
+  item: AgentPoolItem,
+  allItems: AgentPoolItem[],
+  t: (key: string, fallback: string) => string,
+): DataNode {
   const isFork = (item as { isFork?: boolean }).isFork;
   const children = allItems
     .filter((child) => child.dependsOn?.includes(item.id))
@@ -79,7 +83,9 @@ export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
         <BranchesOutlined style={{ fontSize: 13, color: "#722ed1" }} />
         <Text style={{ fontSize: 12, fontWeight: 600 }}>{t("agentHierarchy.title", "Agent 层级")}</Text>
-        <Text type="secondary" style={{ fontSize: 11 }}>{t("agentHierarchy.count", "({count} 个)", { count: pool.length })}</Text>
+        <Text type="secondary" style={{ fontSize: 11 }}>
+          {t("agentHierarchy.count", "({count} 个)", { count: pool.length })}
+        </Text>
       </div>
       {treeData.length > 0 && (
         <Tree

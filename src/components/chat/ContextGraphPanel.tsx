@@ -191,7 +191,11 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const kb = knowledgeBases.find((k: any) => k.id === kbId);
       const label = kb?.name || kbId.slice(0, 12);
       nodes.push({ id: `kb:${kbId}`, type: "knowledge", label, detail: kb?.description });
-      edges.push({ source: "conversation", target: `kb:${kbId}`, label: t("chat.contextGraph.edges.retrieves", "检索") });
+      edges.push({
+        source: "conversation",
+        target: `kb:${kbId}`,
+        label: t("chat.contextGraph.edges.retrieves", "检索"),
+      });
     }
 
     // Memory namespaces
@@ -199,7 +203,11 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const ns = memoryNamespaces.find((n: any) => n.id === nsId);
       const label = ns?.name || nsId.slice(0, 12);
       nodes.push({ id: `mem:${nsId}`, type: "memory", label });
-      edges.push({ source: "conversation", target: `mem:${nsId}`, label: t("chat.contextGraph.edges.readWrite", "读写") });
+      edges.push({
+        source: "conversation",
+        target: `mem:${nsId}`,
+        label: t("chat.contextGraph.edges.readWrite", "读写"),
+      });
     }
 
     // MCP servers
@@ -221,7 +229,11 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const sk = installedSkills.find((s: any) => s.id === skillId);
       const label = sk?.name || skillId.slice(0, 12);
       nodes.push({ id: `skill:${skillId}`, type: "skill", label });
-      edges.push({ source: "conversation", target: `skill:${skillId}`, label: t("chat.contextGraph.edges.enables", "启用") });
+      edges.push({
+        source: "conversation",
+        target: `skill:${skillId}`,
+        label: t("chat.contextGraph.edges.enables", "启用"),
+      });
     }
 
     return { nodes, edges };
@@ -324,7 +336,12 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                 if (mcpServerIds.length > 1) {
                   pills.push({ label: `+${mcpServerIds.length - 1}`, color: nodeTypeStyles.mcp.border });
                 }
-                if (searchEnabled) { pills.push({ label: t("chat.contextGraph.legend.search", "搜索"), color: nodeTypeStyles.search.border }); }
+                if (searchEnabled) {
+                  pills.push({
+                    label: t("chat.contextGraph.legend.search", "搜索"),
+                    color: nodeTypeStyles.search.border,
+                  });
+                }
                 for (const skillId of enabledSkillIds.slice(0, 1)) {
                   const sk = installedSkills.find((s: any) => s.id === skillId);
                   pills.push({ label: (sk?.name || skillId).slice(0, 10), color: nodeTypeStyles.skill.border });

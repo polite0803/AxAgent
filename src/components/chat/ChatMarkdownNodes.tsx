@@ -445,7 +445,9 @@ function ThinkNode(
               userSelect: "none",
             }}
           >
-            {showRawMarkdown ? t("chatMarkdown.toggleRaw", "收起原始内容") : t("chatMarkdown.viewThinking", "查看原始思考")}
+            {showRawMarkdown
+              ? t("chatMarkdown.toggleRaw", "收起原始内容")
+              : t("chatMarkdown.viewThinking", "查看原始思考")}
           </div>
         )}
       </div>

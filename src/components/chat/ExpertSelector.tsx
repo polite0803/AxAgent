@@ -117,7 +117,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       if (result.count > 0) {
         const parts = [t("expertSelector.importSuccess", "成功导入 {{count}} 个专家", { count: result.count })];
         if (result.workflows_created && result.workflows_created > 0) {
-          parts.push(t("expertSelector.importWorkflows", "自动创建 {{count}} 个工作流", { count: result.workflows_created }));
+          parts.push(
+            t("expertSelector.importWorkflows", "自动创建 {{count}} 个工作流", { count: result.workflows_created }),
+          );
         }
         if (result.tools_matched && result.tools_matched > 0) {
           parts.push(t("expertSelector.importTools", "匹配 {{count}} 个工具", { count: result.tools_matched }));
@@ -130,7 +132,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
           t("expertSelector.importErrors", "导入完成，但有 {{count}} 个错误: {{errors}}{{more}}", {
             count: result.errors.length,
             errors: errorPreview,
-            more: result.errors.length > 3 ? t("expertSelector.moreErrors", "等 {{count}} 个错误", { count: result.errors.length }) : "",
+            more: result.errors.length > 3
+              ? t("expertSelector.moreErrors", "等 {{count}} 个错误", { count: result.errors.length })
+              : "",
           }),
           8,
         );
@@ -179,14 +183,20 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
 
   const handleImportFromFolder = async () => {
     try {
-      const folderPath = await openDialog({ directory: true, multiple: false, title: t("expertSelector.selectFolder", "选择专家文件夹") });
+      const folderPath = await openDialog({
+        directory: true,
+        multiple: false,
+        title: t("expertSelector.selectFolder", "选择专家文件夹"),
+      });
       if (!folderPath) { return; }
       setImporting(true);
       const result = await importAgencyExperts(folderPath);
       if (result.count > 0) {
         const parts = [t("expertSelector.importSuccess", "成功导入 {{count}} 个专家", { count: result.count })];
         if (result.workflows_created && result.workflows_created > 0) {
-          parts.push(t("expertSelector.importWorkflows", "自动创建 {{count}} 个工作流", { count: result.workflows_created }));
+          parts.push(
+            t("expertSelector.importWorkflows", "自动创建 {{count}} 个工作流", { count: result.workflows_created }),
+          );
         }
         if (result.tools_matched && result.tools_matched > 0) {
           parts.push(t("expertSelector.importTools", "匹配 {{count}} 个工具", { count: result.tools_matched }));
@@ -199,7 +209,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
           t("expertSelector.importErrors", "导入完成，但有 {{count}} 个错误: {{errors}}{{more}}", {
             count: result.errors.length,
             errors: errorPreview,
-            more: result.errors.length > 3 ? t("expertSelector.moreErrors", "等 {{count}} 个错误", { count: result.errors.length }) : "",
+            more: result.errors.length > 3
+              ? t("expertSelector.moreErrors", "等 {{count}} 个错误", { count: result.errors.length })
+              : "",
           }),
           8,
         );
@@ -214,10 +226,10 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   const handleDeleteExpert = async (role: ExpertRole) => {
     if (role.source === "agency") {
       await deleteAgencyExpert(role.id);
-      app.message.success(t("expertSelector.deleted", "已删除 \"{{name}}\"", { name: role.displayName }));
+      app.message.success(t("expertSelector.deleted", '已删除 "{{name}}"', { name: role.displayName }));
     } else if (role.source === "custom") {
       removeCustomRole(role.id);
-      app.message.success(t("expertSelector.deleted", "已删除 \"{{name}}\"", { name: role.displayName }));
+      app.message.success(t("expertSelector.deleted", '已删除 "{{name}}"', { name: role.displayName }));
     }
   };
 
@@ -311,15 +323,30 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
           onClick={() => setSortDir((d) => d === "asc" ? "desc" : "asc")}
           title={sortDir === "asc" ? t("expertSelector.sortDir", "升序") : t("expertSelector.sortDirDesc", "降序")}
         />
-        <Button size="small" icon={<Plus size={14} />} onClick={() => setShowAddModal(true)} title={t("expertSelector.newCustomTitle", "新建自定义专家")} />
-        <Button size="small" icon={<FileDown size={14} />} onClick={handleExport} title={t("expertSelector.exportExternal", "导出外部专家")} />
+        <Button
+          size="small"
+          icon={<Plus size={14} />}
+          onClick={() => setShowAddModal(true)}
+          title={t("expertSelector.newCustomTitle", "新建自定义专家")}
+        />
+        <Button
+          size="small"
+          icon={<FileDown size={14} />}
+          onClick={handleExport}
+          title={t("expertSelector.exportExternal", "导出外部专家")}
+        />
         <Button
           size="small"
           icon={<FolderOpen size={14} />}
           onClick={handleImportFromFolder}
           title={t("expertSelector.importFromFolder", "从文件夹导入专家")}
         />
-        <Button size="small" icon={<Download size={14} />} onClick={handleExportCustom} title={t("expertSelector.exportCustom", "导出自定义专家")} />
+        <Button
+          size="small"
+          icon={<Download size={14} />}
+          onClick={handleExportCustom}
+          title={t("expertSelector.exportCustom", "导出自定义专家")}
+        />
       </div>
 
       {/* Import section */}
@@ -500,7 +527,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                                 color="purple"
                                 style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
                               >
-                                {t("expertSelector.workflows", "{{count}} 工作流", { count: role.recommendedWorkflows.length })}
+                                {t("expertSelector.workflows", "{{count}} 工作流", {
+                                  count: role.recommendedWorkflows.length,
+                                })}
                               </Tag>
                             )}
                             {role.recommendedTools && role.recommendedTools.length > 0 && (
@@ -577,15 +606,21 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         {editingExpert && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.name", "名称")}</label>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+                {t("expertSelector.name", "名称")}
+              </label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} size="small" />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.desc", "描述")}</label>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+                {t("expertSelector.desc", "描述")}
+              </label>
               <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} size="small" />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.category", "分类")}</label>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+                {t("expertSelector.category", "分类")}
+              </label>
               <Select
                 value={editCategory}
                 onChange={(v) => setEditCategory(v)}
@@ -595,7 +630,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.prompt", "系统提示词")}</label>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+                {t("expertSelector.prompt", "系统提示词")}
+              </label>
               <Input.TextArea
                 value={editPrompt}
                 onChange={(e) => setEditPrompt(e.target.value)}
@@ -653,7 +690,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.name", "名称")} *</label>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+                {t("expertSelector.name", "名称")} *
+              </label>
               <Input
                 value={newRole.displayName}
                 onChange={(e) => setNewRole((r) => ({ ...r, displayName: e.target.value }))}
@@ -662,7 +701,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               />
             </div>
             <div style={{ width: 60 }}>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.icon", "图标")}</label>
+              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+                {t("expertSelector.icon", "图标")}
+              </label>
               <Input
                 value={newRole.icon}
                 onChange={(e) => setNewRole((r) => ({ ...r, icon: e.target.value }))}
@@ -672,7 +713,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.desc", "描述")}</label>
+            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              {t("expertSelector.desc", "描述")}
+            </label>
             <Input
               value={newRole.description}
               onChange={(e) => setNewRole((r) => ({ ...r, description: e.target.value }))}
@@ -680,7 +723,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.category", "分类")}</label>
+            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              {t("expertSelector.category", "分类")}
+            </label>
             <Select
               value={newRole.category}
               onChange={(v) => setNewRole((r) => ({ ...r, category: v }))}
@@ -690,7 +735,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>{t("expertSelector.prompt", "系统提示词")}</label>
+            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              {t("expertSelector.prompt", "系统提示词")}
+            </label>
             <Input.TextArea
               value={newRole.systemPrompt}
               onChange={(e) => setNewRole((r) => ({ ...r, systemPrompt: e.target.value }))}

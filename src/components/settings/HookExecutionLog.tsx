@@ -229,9 +229,11 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       {filteredLogs.length === 0
         ? (
           <Empty
-              description={logs.length === 0 ? t("hookLog.emptyStatus", "暂无 Hook 执行记录") : t("hookLog.emptyFiltered", "无匹配的记录")}
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
+            description={logs.length === 0
+              ? t("hookLog.emptyStatus", "暂无 Hook 执行记录")
+              : t("hookLog.emptyFiltered", "无匹配的记录")}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
         )
         : (
           <Table

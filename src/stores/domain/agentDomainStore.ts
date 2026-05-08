@@ -781,7 +781,8 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       getConversationSummary: (conversationId) => {
         const state = get();
         const session = state.agentSession[conversationId] || null;
-        const execState = state.executionState[conversationId] || deriveExecutionStateFromExecutionStore(conversationId);
+        const execState = state.executionState[conversationId]
+          || deriveExecutionStateFromExecutionStore(conversationId);
         const planSt = state.planState[conversationId] || derivePlanStateFromPlanStore(conversationId);
 
         const permissionCount = Object.values(state.permissions).filter(
@@ -853,8 +854,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             const execId = state.sdkIdToExecId[tc.toolUseId];
             if (execId) {
               for (const [convId, execSt] of Object.entries(state.executionState)) {
-                if (execSt.currentToolCallToolUseId === tc.toolUseId
-                  || execSt.currentToolCallToolUseId === execId) {
+                if (
+                  execSt.currentToolCallToolUseId === tc.toolUseId
+                  || execSt.currentToolCallToolUseId === execId
+                ) {
                   executingIds.add(convId);
                 }
               }
@@ -975,12 +978,15 @@ export function getDomainStoreAsAgentStoreSnapshot() {
 export function getDomainStoreAsExecutionStoreSnapshot() {
   const domain = useAgentDomainStore.getState();
 
-  const phases: Record<string, "idle" | "planning" | "executing" | "waiting_permission" | "completed" | "failed" | "cancelled"> = {};
+  const phases: Record<
+    string,
+    "idle" | "planning" | "executing" | "waiting_permission" | "completed" | "failed" | "cancelled"
+  > = {};
   const agentStatus: Record<string, string> = {};
   const currentToolCall = domain.toolCalls
     ? Object.values(domain.toolCalls).find(
-        (tc) => tc.executionStatus === "running" || tc.executionStatus === "queued",
-      )
+      (tc) => tc.executionStatus === "running" || tc.executionStatus === "queued",
+    )
     : null;
 
   for (const [convId, execSt] of Object.entries(domain.executionState)) {
@@ -998,11 +1004,11 @@ export function getDomainStoreAsExecutionStoreSnapshot() {
     agentPool: domain.agentPool,
     currentToolCall: currentToolCall
       ? {
-          toolName: currentToolCall.toolName,
-          toolUseId: currentToolCall.toolUseId,
-          conversationId: "",
-          startedAt: 0,
-        }
+        toolName: currentToolCall.toolName,
+        toolUseId: currentToolCall.toolUseId,
+        conversationId: "",
+        startedAt: 0,
+      }
       : null,
   };
 }

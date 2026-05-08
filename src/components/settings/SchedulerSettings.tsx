@@ -776,7 +776,11 @@ export function SchedulerSettings() {
                   <div style={{ marginTop: 8, marginBottom: 8 }}>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t("scheduler.historyTitle", "执行历史")}</Text>
                     {historyMap[task.id]?.length === 0
-                      ? <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>{t("scheduler.noRecords", "暂无记录")}</div>
+                      ? (
+                        <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>
+                          {t("scheduler.noRecords", "暂无记录")}
+                        </div>
+                      )
                       : (
                         <div style={{ maxHeight: 200, overflowY: "auto", marginTop: 4 }}>
                           {(historyMap[task.id] || []).slice(0, 20).map((rec) => (
