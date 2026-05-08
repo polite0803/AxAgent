@@ -244,7 +244,7 @@ function AppRoot() {
       const t0 = performance.now();
 
       if (isTauri()) {
-        const health = await checkIpcHealth();
+        await checkIpcHealth();
       }
 
       try {

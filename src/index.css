@@ -598,6 +598,27 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
 }
 
+.ax-titlebar-winctrl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.12s ease-in-out, color 0.12s ease-in-out;
+}
+.ax-titlebar-winctrl:hover {
+  background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+  color: var(--ant-color-text-base);
+}
+.ax-titlebar-winctrl--close:hover {
+  background-color: #e81123;
+  color: #ffffff;
+}
+
 /* ── Sidebar user avatar hover via CSS ──────── */
 .ax-sidebar-user {
   display: flex;

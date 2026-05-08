@@ -388,30 +388,6 @@ export function TitleBar() {
     invoke("toggle_maximize_window");
   }, []);
 
-  const buttonBase: React.CSSProperties = {
-    width: 22,
-    height: 22,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 4,
-    fontSize: 11,
-    cursor: "pointer",
-    border: "none",
-    backgroundColor: "transparent",
-  };
-
-  const hoverHandlers = (baseColor: string) => ({
-    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-      e.currentTarget.style.color = token.colorTextBase;
-    },
-    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.backgroundColor = "transparent";
-      e.currentTarget.style.color = baseColor;
-    },
-  });
-
   return (
     <div
       className="title-bar-drag ax-titlebar-compact"
@@ -662,26 +638,21 @@ export function TitleBar() {
             })`}
           >
             <button
+              className="ax-titlebar-btn"
               data-testid="settings-nav-btn"
               onClick={(e) => {
                 handleSettingsToggle();
-                e.currentTarget.style.backgroundColor = "transparent";
                 e.currentTarget.blur();
               }}
               style={{
-                ...buttonBase,
                 color: isInSettings ? token.colorError : token.colorTextSecondary,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isInSettings
-                  ? token.colorErrorBg
-                  : token.colorFillSecondary;
                 e.currentTarget.style.color = isInSettings
                   ? token.colorError
                   : token.colorTextBase;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
                 e.currentTarget.style.color = isInSettings
                   ? token.colorError
                   : token.colorTextSecondary;
@@ -699,80 +670,23 @@ export function TitleBar() {
           <div className="title-bar-nodrag" style={{ display: "flex", alignItems: "center", marginLeft: 4 }}>
             {/* Minimize */}
             <button
+              className="ax-titlebar-winctrl"
               onClick={handleWindowMinimize}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 46,
-                height: 36,
-                border: "none",
-                background: "transparent",
-                color: token.colorTextSecondary,
-                cursor: "pointer",
-                outline: "none",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-                e.currentTarget.style.color = token.colorTextBase;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = token.colorTextSecondary;
-              }}
+              style={{ color: token.colorTextSecondary }}
             >
               <Minus size={16} />
             </button>
-            {/* Maximize / Restore */}
             <button
+              className="ax-titlebar-winctrl"
               onClick={handleWindowMaximize}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 46,
-                height: 36,
-                border: "none",
-                background: "transparent",
-                color: token.colorTextSecondary,
-                cursor: "pointer",
-                outline: "none",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-                e.currentTarget.style.color = token.colorTextBase;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = token.colorTextSecondary;
-              }}
+              style={{ color: token.colorTextSecondary }}
             >
               {isMaximized ? <RestoreIcon /> : <Square size={14} />}
             </button>
-            {/* Close */}
             <button
+              className="ax-titlebar-winctrl ax-titlebar-winctrl--close"
               onClick={handleWindowClose}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 46,
-                height: 36,
-                border: "none",
-                background: "transparent",
-                color: token.colorTextSecondary,
-                cursor: "pointer",
-                outline: "none",
-                borderRadius: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#e81123";
-                e.currentTarget.style.color = "#ffffff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = token.colorTextSecondary;
-              }}
+              style={{ color: token.colorTextSecondary, borderRadius: 0 }}
             >
               <X size={16} />
             </button>
