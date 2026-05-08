@@ -2,6 +2,7 @@
 name = "axagent-agent"
 version.workspace = true
 edition.workspace = true
+publish = false
 
 [dependencies]
 axagent-core = { path = "../core" }
