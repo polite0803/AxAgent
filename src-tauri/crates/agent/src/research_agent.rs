@@ -740,6 +740,7 @@ impl LlmContentGenerator for DefaultLlmContentGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::research_state::{Citation, ResearchConfig, SearchResult, SourceType};
 
     #[tokio::test]
     async fn test_research_agent_creation() {
@@ -770,22 +771,451 @@ mod tests {
     async fn test_default_llm_generator() {
         let generator = DefaultLlmContentGenerator::new();
 
-        // generate_outline 和 generate_content 在 LLM 不可用时
-        // 会返回 fallback JSON 或 Err，两种情况均接受
         let outline = generator.generate_outline("test", "context").await;
-        // 回退逻辑总是返回 Ok
-
         let content = generator
             .generate_content("test", "outline", "sources")
             .await;
-        // generate_content 在 LLM 不可用时会失败，两种结果都接受
-
         let summary = generator.generate_summary("test", "findings").await;
-        // generate_summary 在 LLM 不可用时会失败，两种结果都接受
 
-        // 至少 outline 在回退时应该成功
         assert!(outline.is_ok(), "outline fallback should succeed");
-        // content 和 summary 可能因无 LLM 而失败
         let _ = (content, summary);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_default() {
+        let agent = ResearchAgent::default();
+        let state = agent.get_state().await;
+        assert_eq!(state.status, ResearchStatus::Pending);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_with_config() {
+        let config = ResearchConfig {
+            max_sources: 10,
+            max_citations: 5,
+            parallel_searches: 3,
+            include_credibility_check: false,
+            report_format: crate::research_state::ReportFormat::Html,
+        };
+        let agent = ResearchAgent::with_config(config);
+        let state = agent.get_state().await;
+        assert_eq!(state.config.max_sources, 10);
+        assert_eq!(state.config.max_citations, 5);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_with_planner() {
+        let planner = SearchPlanner::new();
+        let agent = ResearchAgent::new().with_planner(planner);
+        let state = agent.get_state().await;
+        assert_eq!(state.status, ResearchStatus::Pending);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_with_orchestrator() {
+        let orchestrator = SearchOrchestrator::new();
+        let agent = ResearchAgent::new().with_orchestrator(orchestrator);
+        let state = agent.get_state().await;
+        assert_eq!(state.status, ResearchStatus::Pending);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_start_sets_topic() {
+        let agent = ResearchAgent::new();
+        let id = agent.start("AI safety".to_string()).await.unwrap();
+        assert!(!id.is_empty());
+        let state = agent.get_state().await;
+        assert_eq!(state.topic, "AI safety");
+        assert_eq!(state.status, ResearchStatus::InProgress);
+        assert_eq!(state.current_phase, ResearchPhase::Planning);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_start_twice_errors() {
+        let agent = ResearchAgent::new();
+        agent.start("topic1".to_string()).await.unwrap();
+        let result = agent.start("topic2".to_string()).await;
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ResearchError::AlreadyCompleted));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_execute_not_started() {
+        let agent = ResearchAgent::new();
+        let result = agent.execute_research().await;
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ResearchError::NotStarted));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_subscribe() {
+        let agent = ResearchAgent::new();
+        let mut receiver = agent.subscribe();
+        agent.start("test topic".to_string()).await.unwrap();
+        let event = receiver.try_recv().unwrap();
+        match event {
+            ResearchEvent::Started { topic } => {
+                assert_eq!(topic, "test topic");
+            },
+            _ => panic!("Expected Started event"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_get_progress() {
+        let agent = ResearchAgent::new();
+        let progress = agent.get_progress().await;
+        assert_eq!(progress.phase, ResearchPhase::Planning);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_update_phase_emits_event() {
+        let agent = ResearchAgent::new();
+        let mut receiver = agent.subscribe();
+        agent.start("test".to_string()).await.unwrap();
+        let _ = receiver.try_recv();
+        agent.update_phase(ResearchPhase::Searching).await;
+        let event = receiver.try_recv().unwrap();
+        match event {
+            ResearchEvent::PhaseChanged { from, to } => {
+                assert_eq!(from, ResearchPhase::Planning);
+                assert_eq!(to, ResearchPhase::Searching);
+            },
+            _ => panic!("Expected PhaseChanged event"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_update_phase_same_no_event() {
+        let agent = ResearchAgent::new();
+        let mut receiver = agent.subscribe();
+        agent.start("test".to_string()).await.unwrap();
+        let _ = receiver.try_recv();
+        agent.update_phase(ResearchPhase::Planning).await;
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_planning_phase() {
+        let agent = ResearchAgent::new();
+        agent.start("Rust programming".to_string()).await.unwrap();
+        let plan = agent.planning_phase().await.unwrap();
+        assert!(!plan.queries.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_build_research_context() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Test topic".to_string());
+        state.add_search_result(SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Example Source".to_string(),
+            "A test snippet".to_string(),
+        ));
+        let context = agent.build_research_context(&state);
+        assert!(context.contains("Test topic"));
+        assert!(context.contains("Example Source"));
+        assert!(context.contains("https://example.com"));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_build_research_context_empty() {
+        let agent = ResearchAgent::new();
+        let state = ResearchState::new("Empty topic".to_string());
+        let context = agent.build_research_context(&state);
+        assert!(context.contains("Empty topic"));
+        assert!(context.contains("Number of sources: 0"));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_format_sources_for_llm() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Topic".to_string());
+        state.add_search_result(SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Source Title".to_string(),
+            "Some content".to_string(),
+        ));
+        let formatted = agent.format_sources_for_llm(&state);
+        assert!(formatted.contains("Source Title"));
+        assert!(formatted.contains("https://example.com"));
+        assert!(formatted.contains("web"));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_format_findings_for_llm() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Topic".to_string());
+        state.add_search_result(SearchResult::new(
+            SourceType::Academic,
+            "https://paper.com".to_string(),
+            "Research Paper".to_string(),
+            "Abstract".to_string(),
+        ));
+        let findings = agent.format_findings_for_llm(&state);
+        assert!(findings.contains("Topic"));
+        assert!(findings.contains("Research Paper"));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_generate_content_no_generator() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Test Topic".to_string());
+        state.add_search_result(SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Example".to_string(),
+            "Snippet".to_string(),
+        ));
+        state.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Example".to_string(),
+            SourceType::Web,
+        ));
+        let content = agent.generate_content(&state).await.unwrap();
+        assert!(content.contains("Test Topic"));
+        assert!(content.contains("Example"));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_generate_summary_no_generator() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Summary Topic".to_string());
+        state.add_search_result(SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Example".to_string(),
+            "Snippet".to_string(),
+        ));
+        state.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Example".to_string(),
+            SourceType::Web,
+        ));
+        let summary = agent.generate_summary(&state).await.unwrap();
+        assert!(summary.contains("Summary Topic"));
+        assert!(summary.contains("1"));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_generate_outline_no_generator() {
+        let agent = ResearchAgent::new();
+        let state = ResearchState::new("Outline Topic".to_string());
+        let outline = agent.generate_outline(&state).await.unwrap();
+        assert!(!outline.title.is_empty());
+        assert!(!outline.sections.is_empty());
+        assert!(outline.sections.len() >= 6);
+    }
+
+    #[tokio::test]
+    async fn test_research_error_display() {
+        let err = ResearchError::NotStarted;
+        assert!(err.to_string().contains("not started"));
+
+        let err = ResearchError::AlreadyCompleted;
+        assert!(err.to_string().contains("already completed"));
+
+        let err = ResearchError::Failed("test error".to_string());
+        assert!(err.to_string().contains("test error"));
+
+        let err = ResearchError::PlanningFailed("plan err".to_string());
+        assert!(err.to_string().contains("plan err"));
+
+        let err = ResearchError::SearchFailed("search err".to_string());
+        assert!(err.to_string().contains("search err"));
+
+        let err = ResearchError::ReportGenerationFailed("report err".to_string());
+        assert!(err.to_string().contains("report err"));
+
+        let err = ResearchError::LlmFailed("llm err".to_string());
+        assert!(err.to_string().contains("llm err"));
+    }
+
+    #[tokio::test]
+    async fn test_research_error_invalid_state_transition() {
+        let err = ResearchError::InvalidStateTransition {
+            from: ResearchStatus::Pending,
+            to: ResearchStatus::Completed,
+        };
+        assert!(err.to_string().contains("Invalid state transition"));
+    }
+
+    #[tokio::test]
+    async fn test_research_event_serialization() {
+        let event = ResearchEvent::Started {
+            topic: "test".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("test"));
+
+        let event = ResearchEvent::PhaseChanged {
+            from: ResearchPhase::Planning,
+            to: ResearchPhase::Searching,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("PhaseChanged"));
+
+        let event = ResearchEvent::SourcesFound { count: 5 };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("5"));
+
+        let event = ResearchEvent::CitationAdded {
+            citation_id: "cit-1".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("cit-1"));
+
+        let event = ResearchEvent::ReportGenerated {
+            report_id: "rep-1".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("rep-1"));
+
+        let event = ResearchEvent::Completed;
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("Completed"));
+
+        let event = ResearchEvent::Failed {
+            error: "something went wrong".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("something went wrong"));
+
+        let event = ResearchEvent::Paused;
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("Paused"));
+
+        let event = ResearchEvent::Resumed;
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("Resumed"));
+    }
+
+    #[tokio::test]
+    async fn test_default_llm_content_generator_default() {
+        let generator = DefaultLlmContentGenerator::default();
+        let result = generator.generate_outline("topic", "ctx").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_default_llm_content_generator_no_adapter() {
+        let generator = DefaultLlmContentGenerator::new();
+        let content = generator.generate_content("t", "o", "s").await;
+        assert!(content.is_err());
+        let summary = generator.generate_summary("t", "f").await;
+        assert!(summary.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_extraction_phase_dedup() {
+        let agent = ResearchAgent::new();
+        agent.start("test".to_string()).await.unwrap();
+        {
+            let mut state = agent.state.write().await;
+            state.add_search_result(
+                SearchResult::new(
+                    SourceType::Web,
+                    "https://example.com/page1".to_string(),
+                    "Page 1".to_string(),
+                    "Content 1".to_string(),
+                )
+                .with_relevance(0.9)
+                .with_credibility(0.8),
+            );
+            state.add_search_result(
+                SearchResult::new(
+                    SourceType::Web,
+                    "https://EXAMPLE.COM/page1".to_string(),
+                    "Page 1 Dup".to_string(),
+                    "Content 1 Dup".to_string(),
+                )
+                .with_relevance(0.8)
+                .with_credibility(0.7),
+            );
+        }
+        agent.extraction_phase().await.unwrap();
+        let state = agent.get_state().await;
+        assert_eq!(state.citations.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_analysis_phase() {
+        let agent = ResearchAgent::new();
+        agent.start("test".to_string()).await.unwrap();
+        {
+            let mut state = agent.state.write().await;
+            state.add_citation(Citation::new(
+                "https://a.com".to_string(),
+                "A".to_string(),
+                SourceType::Web,
+            ));
+            state.add_citation(Citation::new(
+                "https://b.com".to_string(),
+                "B".to_string(),
+                SourceType::Academic,
+            ));
+        }
+        agent.analysis_phase().await.unwrap();
+        let state = agent.get_state().await;
+        assert_eq!(state.progress.sources_processed, 2);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_synthesis_phase() {
+        let agent = ResearchAgent::new();
+        agent.start("test".to_string()).await.unwrap();
+        agent.synthesis_phase().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_generate_report() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Report Topic".to_string());
+        state.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Example".to_string(),
+            SourceType::Web,
+        ));
+        let report = agent.generate_report(&state).await.unwrap();
+        assert_eq!(report.topic, "Report Topic");
+        assert!(!report.content.is_empty());
+        assert!(!report.summary.is_empty());
+        assert_eq!(report.citations.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_format_sources_for_llm_many() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Topic".to_string());
+        for i in 0..25 {
+            state.add_search_result(SearchResult::new(
+                SourceType::Web,
+                format!("https://example.com/{}", i),
+                format!("Source {}", i),
+                format!("Snippet {}", i),
+            ));
+        }
+        let formatted = agent.format_sources_for_llm(&state);
+        assert!(formatted.contains("Source 0"));
+        assert!(formatted.contains("Source 19"));
+    }
+
+    #[tokio::test]
+    async fn test_research_agent_build_research_context_many_sources() {
+        let agent = ResearchAgent::new();
+        let mut state = ResearchState::new("Topic".to_string());
+        for i in 0..15 {
+            state.add_search_result(SearchResult::new(
+                SourceType::Web,
+                format!("https://example.com/{}", i),
+                format!("Source {}", i),
+                format!("Snippet {}", i),
+            ));
+        }
+        let context = agent.build_research_context(&state);
+        assert!(context.contains("Source 0"));
+        assert!(context.contains("Source 9"));
     }
 }

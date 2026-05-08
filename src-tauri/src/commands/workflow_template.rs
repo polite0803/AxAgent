@@ -952,7 +952,7 @@ async fn convert_n8n_to_axagent(
             WorkflowNode::Agent(a) => Some(a.base.position.clone()),
             _ => None,
         })
-        .last()
+        .next_back()
         .unwrap_or(Position { x: 250.0, y: 0.0 });
 
     let end_node = WorkflowNode::End(EndNode {

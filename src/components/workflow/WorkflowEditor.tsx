@@ -15,7 +15,7 @@ import {
 import "reactflow/dist/style.css";
 import { SimilarWorkflow, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { Button, message, Modal, Spin } from "antd";
+import { Button, message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { DebugPanel } from "./DebugPanel";
@@ -82,6 +82,7 @@ interface WorkflowEditorProps {
 
 export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onClose }) => {
   const { t } = useTranslation("chat");
+  const { token } = theme.useToken();
   const {
     currentTemplate,
     nodes,
@@ -225,7 +226,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       }
 
       const flowNodes: Node[] = nodes.map((node: WorkflowNode) => {
-        const typeInfo = NODE_TYPE_MAP[node.type] || { labelKey: "", color: "#999" };
+        const typeInfo = NODE_TYPE_MAP[node.type] || { labelKey: "", color: token.colorTextQuaternary };
         const nodeType = NODE_TYPE_MAP[node.type] ? node.type : "base";
 
         let semanticMatch = undefined;
@@ -403,7 +404,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       if (!payload) { return; }
 
       try {
-        const typeInfo = NODE_TYPE_MAP[payload.type] || { labelKey: "", color: "#999" };
+        const typeInfo = NODE_TYPE_MAP[payload.type] || { labelKey: "", color: token.colorTextQuaternary };
 
         // Check if the mouse is within the canvas area
         const canvasEl = document.querySelector(".react-flow");
@@ -665,7 +666,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#1a1a1a" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: token.colorBgContainer }}>
       <EditorHeader
         templateName={currentTemplate?.name || t("workflow.newWorkflow")}
         isDirty={isDirty}
@@ -711,14 +712,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                 snapToGrid
                 snapGrid={[16, 16]}
               >
-                <Background color="#333" gap={16} />
+                <Background color={token.colorBorderSecondary} gap={16} />
                 <Controls />
                 <MiniMap
-                  nodeColor={(node: Node<BaseNodeData>) => node.data?.color || "#999"}
+                  nodeColor={(node: Node<BaseNodeData>) => node.data?.color || token.colorTextQuaternary}
                   maskColor="rgba(0, 0, 0, 0.8)"
                 />
                 {nodes.length === 0 && (
-                  <Panel position="top-center" style={{ textAlign: "center", color: "#666" }}>
+                  <Panel position="top-center" style={{ textAlign: "center", color: token.colorTextSecondary }}>
                     {t("workflow.dragToStart")}
                   </Panel>
                 )}
@@ -733,8 +734,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: "#1a1a1a",
-                  color: "#666",
+                  background: token.colorBgContainer,
+                  color: token.colorTextSecondary,
                 }}
               >
                 <Spin />
@@ -749,8 +750,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         <div
           style={{
             height: 300,
-            background: "#252525",
-            borderTop: "1px solid #333",
+            background: token.colorBgElevated,
+            borderTop: `1px solid ${token.colorBorderSecondary}`,
             display: "flex",
             flexDirection: "column",
           }}
@@ -768,8 +769,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         <div
           style={{
             height: 300,
-            background: "#252525",
-            borderTop: "1px solid #333",
+            background: token.colorBgElevated,
+            borderTop: `1px solid ${token.colorBorderSecondary}`,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",

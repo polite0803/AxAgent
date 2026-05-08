@@ -650,7 +650,7 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
             }
         }
 
-        corroborated.sort_by(|a, b| b.corroboration_count.cmp(&a.corroboration_count));
+        corroborated.sort_by_key(|a| std::cmp::Reverse(a.corroboration_count));
         corroborated
     }
 

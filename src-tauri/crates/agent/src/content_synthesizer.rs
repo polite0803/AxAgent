@@ -388,4 +388,471 @@ mod tests {
         assert_eq!(ContentFormatter::to_anchor("Hello World"), "hello-world");
         assert_eq!(ContentFormatter::to_anchor("Test 123"), "test-123");
     }
+
+    #[tokio::test]
+    async fn test_synthesize_section_with_description() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let section = OutlineSection::new("Introduction".to_string())
+            .with_description("Overview of the research".to_string());
+
+        let content = synthesizer.synthesize_section(&section, &[]).await;
+        assert!(content.contains("## Introduction"));
+        assert!(content.contains("Overview of the research"));
+    }
+
+    #[tokio::test]
+    async fn test_synthesize_section_without_description() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let section = OutlineSection::new("Introduction".to_string());
+
+        let content = synthesizer.synthesize_section(&section, &[]).await;
+        assert!(content.contains("## Introduction"));
+        assert!(!content.contains('*'));
+    }
+
+    #[tokio::test]
+    async fn test_synthesize_section_with_sources() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let section = OutlineSection::new("Machine Learning Research".to_string())
+            .with_description("Overview".to_string());
+
+        let sources = vec![SearchResult::new(
+            SourceType::Academic,
+            "https://arxiv.org/abs/2103.00001".to_string(),
+            "Machine Learning Advances".to_string(),
+            "This paper presents significant advances in machine learning algorithms and their applications to real-world problems.".to_string(),
+        )];
+
+        let content = synthesizer.synthesize_section(&section, &sources).await;
+        assert!(content.contains("## Machine Learning Research"));
+        assert!(content.contains("Sources"));
+    }
+
+    #[tokio::test]
+    async fn test_synthesize_section_without_citations() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker).with_citations(false);
+
+        let section = OutlineSection::new("Introduction".to_string());
+        let content = synthesizer.synthesize_section(&section, &[]).await;
+        assert!(!content.contains("Sources"));
+    }
+
+    #[tokio::test]
+    async fn test_synthesize_batch() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let sections = vec![
+            OutlineSection::new("Introduction".to_string()),
+            OutlineSection::new("Background".to_string()),
+        ];
+
+        let contents = synthesizer.synthesize_batch(&sections, &[]).await;
+        assert_eq!(contents.len(), 2);
+        assert!(contents[0].contains("## Introduction"));
+        assert!(contents[1].contains("## Background"));
+    }
+
+    #[tokio::test]
+    async fn test_generate_summary_empty() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let summary = synthesizer.generate_summary(&[]).await;
+        assert!(summary.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_generate_summary_with_content() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let sections_content = vec![
+            "## Introduction\n\n- This is a very important finding about the research topic that spans multiple lines\n- Another significant discovery that provides insight into the problem domain".to_string(),
+        ];
+
+        let summary = synthesizer.generate_summary(&sections_content).await;
+        assert!(summary.contains("# Summary"));
+    }
+
+    #[test]
+    fn test_extract_keywords() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let keywords = synthesizer.extract_keywords("Machine Learning and Deep Neural Networks");
+        assert!(keywords.contains(&"machine".to_string()));
+        assert!(keywords.contains(&"learning".to_string()));
+        assert!(keywords.contains(&"deep".to_string()));
+        assert!(keywords.contains(&"neural".to_string()));
+        assert!(keywords.contains(&"networks".to_string()));
+        assert!(!keywords.contains(&"and".to_string()));
+    }
+
+    #[test]
+    fn test_extract_keywords_filters_stop_words() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let keywords = synthesizer.extract_keywords("the a an and or but in on at to for of with by from");
+        assert!(keywords.is_empty());
+    }
+
+    #[test]
+    fn test_extract_keywords_filters_short_words() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let keywords = synthesizer.extract_keywords("AI is the best");
+        assert!(!keywords.contains(&"AI".to_string()));
+        assert!(!keywords.contains(&"is".to_string()));
+        assert!(keywords.contains(&"best".to_string()));
+    }
+
+    #[test]
+    fn test_calculate_relevance_with_matching_keywords() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let keywords = vec!["machine".to_string(), "learning".to_string()];
+        let source = SearchResult::new(
+            SourceType::Academic,
+            "https://example.com".to_string(),
+            "Machine Learning Research".to_string(),
+            "About machine learning".to_string(),
+        );
+
+        let score = synthesizer.calculate_relevance(&keywords, &source);
+        assert!(score > 0.2);
+    }
+
+    #[test]
+    fn test_calculate_relevance_with_no_matching_keywords() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let keywords = vec!["quantum".to_string(), "physics".to_string()];
+        let source = SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Cooking Recipes".to_string(),
+            "About cooking".to_string(),
+        );
+
+        let score = synthesizer.calculate_relevance(&keywords, &source);
+        assert!(score < 0.3);
+    }
+
+    #[test]
+    fn test_calculate_relevance_source_type_boost() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let keywords = vec!["test".to_string()];
+        let academic = SearchResult::new(
+            SourceType::Academic,
+            "https://example.com".to_string(),
+            "test".to_string(),
+            "test".to_string(),
+        );
+        let web = SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "test".to_string(),
+            "test".to_string(),
+        );
+
+        let academic_score = synthesizer.calculate_relevance(&keywords, &academic);
+        let web_score = synthesizer.calculate_relevance(&keywords, &web);
+        assert!(academic_score > web_score);
+    }
+
+    #[test]
+    fn test_generate_default_content_introduction() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Introduction");
+        assert!(content.contains("overview"));
+    }
+
+    #[test]
+    fn test_generate_default_content_background() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Background");
+        assert!(content.contains("contextual"));
+    }
+
+    #[test]
+    fn test_generate_default_content_method() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Methodology");
+        assert!(content.contains("methodology"));
+    }
+
+    #[test]
+    fn test_generate_default_content_findings() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Findings");
+        assert!(content.contains("findings"));
+    }
+
+    #[test]
+    fn test_generate_default_content_results() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Results");
+        assert!(content.contains("findings"));
+    }
+
+    #[test]
+    fn test_generate_default_content_discussion() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Discussion");
+        assert!(content.contains("analysis"));
+    }
+
+    #[test]
+    fn test_generate_default_content_conclusion() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Conclusion");
+        assert!(content.contains("future work"));
+    }
+
+    #[test]
+    fn test_generate_default_content_generic() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let content = synthesizer.generate_default_content("Custom Section");
+        assert!(content.contains("Custom Section"));
+    }
+
+    #[test]
+    fn test_extract_key_findings() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let sources = vec![SearchResult::new(
+            SourceType::Academic,
+            "https://example.com".to_string(),
+            "Research".to_string(),
+            "This is a long snippet that contains more than fifty characters and provides detailed information about the findings.".to_string(),
+        )];
+
+        let findings = synthesizer.extract_key_findings(&sources);
+        assert_eq!(findings.len(), 1);
+    }
+
+    #[test]
+    fn test_extract_key_findings_short_snippet() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let sources = vec![SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Short".to_string(),
+            "Short".to_string(),
+        )];
+
+        let findings = synthesizer.extract_key_findings(&sources);
+        assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn test_extract_key_findings_truncation() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let long_snippet = "A".repeat(300);
+        let sources = vec![SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Long".to_string(),
+            long_snippet,
+        )];
+
+        let findings = synthesizer.extract_key_findings(&sources);
+        assert_eq!(findings.len(), 1);
+        assert!(findings[0].ends_with("..."));
+    }
+
+    #[test]
+    fn test_generate_source_stats() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let sources = vec![
+            SearchResult::new(SourceType::Academic, "url1".to_string(), "A".to_string(), "s".to_string()),
+            SearchResult::new(SourceType::Web, "url2".to_string(), "B".to_string(), "s".to_string()),
+            SearchResult::new(SourceType::Documentation, "url3".to_string(), "C".to_string(), "s".to_string()),
+        ];
+
+        let stats = synthesizer.generate_source_stats(&sources);
+        assert!(stats.contains("3 sources"));
+        assert!(stats.contains("1 academic"));
+        assert!(stats.contains("1 web"));
+        assert!(stats.contains("1 documentation"));
+    }
+
+    #[test]
+    fn test_generate_source_stats_empty() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let stats = synthesizer.generate_source_stats(&[]);
+        assert!(stats.contains("0 sources"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_markdown() {
+        let content = "# Title\n\nSome text";
+        let result = ContentFormatter::to_markdown(content);
+        assert_eq!(result, content);
+    }
+
+    #[test]
+    fn test_content_formatter_to_html_h2() {
+        let md = "## Section Title";
+        let html = ContentFormatter::to_html(md);
+        assert!(html.contains("<h2>Section Title</h2>"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_html_h3() {
+        let md = "### Subsection Title";
+        let html = ContentFormatter::to_html(md);
+        assert!(html.contains("<h3>Subsection Title</h3>"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_html_emphasis() {
+        let md = "*emphasized text*";
+        let html = ContentFormatter::to_html(md);
+        assert!(html.contains("<em>emphasized text</em>"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_html_paragraph() {
+        let md = "Just a paragraph";
+        let html = ContentFormatter::to_html(md);
+        assert!(html.contains("<p>Just a paragraph</p>"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_html_empty_lines() {
+        let md = "# Title\n\n\n## Section";
+        let html = ContentFormatter::to_html(md);
+        assert!(html.contains("<h1>Title</h1>"));
+        assert!(html.contains("<h2>Section</h2>"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_plain_text() {
+        let md = "# Title\n\n## Section\n\n- Item 1\n\n*emphasis*\n\nNormal text";
+        let plain = ContentFormatter::to_plain_text(md);
+        assert!(plain.contains("TITLE"));
+        assert!(plain.contains("Section"));
+        assert!(plain.contains("• Item 1"));
+        assert!(plain.contains("emphasis"));
+        assert!(plain.contains("Normal text"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_plain_text_h3() {
+        let md = "### Subsection";
+        let plain = ContentFormatter::to_plain_text(md);
+        assert!(plain.contains("Subsection"));
+    }
+
+    #[test]
+    fn test_content_formatter_add_table_of_contents() {
+        let sections = vec![
+            OutlineSection::new("Introduction".to_string()),
+            OutlineSection::new("Methods".to_string()),
+        ];
+        let content = "## Introduction\n\nSome text\n\n## Methods\n\nMore text";
+        let result = ContentFormatter::add_table_of_contents(content, &sections);
+        assert!(result.contains("# Table of Contents"));
+        assert!(result.contains("[Introduction]"));
+        assert!(result.contains("[Methods]"));
+        assert!(result.contains("---"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_anchor_special_chars() {
+        let anchor = ContentFormatter::to_anchor("Hello, World! Test #1");
+        assert!(anchor.contains("hello"));
+        assert!(anchor.contains("world"));
+        assert!(anchor.contains("test"));
+    }
+
+    #[test]
+    fn test_content_formatter_to_anchor_empty() {
+        let anchor = ContentFormatter::to_anchor("");
+        assert!(anchor.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_with_min_credibility() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker).with_min_credibility(0.8);
+        assert!((synthesizer.min_credibility - 0.8).abs() < f32::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn test_with_citations() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker).with_citations(false);
+        assert!(!synthesizer.include_citations);
+    }
+
+    #[tokio::test]
+    async fn test_filter_relevant_sources() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let sources = vec![
+            SearchResult::new(SourceType::Academic, "url1".to_string(), "Machine Learning Research".to_string(), "About machine learning algorithms".to_string()),
+            SearchResult::new(SourceType::Web, "url2".to_string(), "Cooking Tips".to_string(), "How to cook pasta".to_string()),
+        ];
+
+        let filtered = synthesizer.filter_relevant_sources(&sources, "Machine Learning");
+        assert!(filtered.len() <= 5);
+        if !filtered.is_empty() {
+            assert!(filtered[0].title.contains("Machine Learning"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_filter_relevant_sources_limit() {
+        let tracker = Arc::new(CitationTracker::new());
+        let synthesizer = ContentSynthesizer::new(tracker);
+
+        let sources: Vec<SearchResult> = (0..10)
+            .map(|i| SearchResult::new(SourceType::Web, format!("url{}", i), format!("Research Topic {}", i), format!("About research topic {}", i)))
+            .collect();
+
+        let filtered = synthesizer.filter_relevant_sources(&sources, "Research Topic");
+        assert!(filtered.len() <= 5);
+    }
 }

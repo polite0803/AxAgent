@@ -33,7 +33,6 @@ export function AppHeader() {
   const toggleHelp = useHelpStore((s) => s.toggle);
 
   const labelKey = resolvePageLabel(location.pathname);
-  if (!labelKey) { return null; }
 
   return (
     <div
@@ -55,7 +54,7 @@ export function AppHeader() {
           color: token.colorText,
         }}
       >
-        {t(labelKey)}
+        {labelKey ? t(labelKey) : t("nav.app")}
       </span>
       <Tooltip title={t("help.title", "帮助中心")}>
         <button

@@ -1797,7 +1797,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 addModelNameDirty.current = true;
                 setAddModelName(e.target.value);
               }}
-              placeholder="GPT 5.4 Think"
+              placeholder={t("settings.modelNamePlaceholder")}
             />
           </Form.Item>
           <Form.Item label={t("settings.modelGroup")}>

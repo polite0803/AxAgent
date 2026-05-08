@@ -514,6 +514,36 @@ impl LintChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_core::repo::note::Note;
+
+    fn make_note(title: &str, author: &str, content: &str) -> Note {
+        Note {
+            id: "test-note-id".to_string(),
+            vault_id: "test-vault".to_string(),
+            title: title.to_string(),
+            file_path: "test.md".to_string(),
+            content: content.to_string(),
+            content_hash: "hash".to_string(),
+            author: author.to_string(),
+            page_type: None,
+            source_refs: None,
+            related_pages: None,
+            quality_score: None,
+            last_linted_at: None,
+            last_compiled_at: None,
+            compiled_source_hash: None,
+            user_edited: false,
+            user_edited_at: None,
+            created_at: 0,
+            updated_at: 0,
+            is_deleted: false,
+        }
+    }
+
+    async fn make_lint_checker() -> LintChecker {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        LintChecker::new(Arc::new(db))
+    }
 
     #[test]
     fn test_calculate_score_no_issues() {
@@ -684,5 +714,289 @@ mod tests {
         ];
         let score = LintChecker::calculate_score(&issues);
         assert!((score - 0.1).abs() < f64::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn test_check_frontmatter_missing_title() {
+        let checker = make_lint_checker().await;
+        let note = make_note("", "llm", "---\ntitle: \n---\nSome content here that is long enough.");
+        let mut issues = Vec::new();
+        checker.check_frontmatter(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "missing-title"));
+        assert!(issues.iter().any(|i| i.severity == IssueSeverity::Error));
+    }
+
+    #[tokio::test]
+    async fn test_check_frontmatter_missing_author() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Test Title", "", "---\ntitle: Test\n---\nSome content here.");
+        let mut issues = Vec::new();
+        checker.check_frontmatter(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "missing-author"));
+        assert!(issues.iter().any(|i| i.severity == IssueSeverity::Warning));
+    }
+
+    #[tokio::test]
+    async fn test_check_frontmatter_missing_tags_llm() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Test Title", "llm", "---\ntitle: Test\n---\nSome content without tags.");
+        let mut issues = Vec::new();
+        checker.check_frontmatter(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "missing-tags"));
+        assert!(issues.iter().any(|i| i.severity == IssueSeverity::Info));
+    }
+
+    #[tokio::test]
+    async fn test_check_frontmatter_has_tags_no_issue() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Test Title", "llm", "---\ntitle: Test\ntags: [AI, ML]\n---\nSome content with tags.");
+        let mut issues = Vec::new();
+        checker.check_frontmatter(&note, &mut issues);
+        assert!(!issues.iter().any(|i| i.code == "missing-tags"));
+    }
+
+    #[tokio::test]
+    async fn test_check_frontmatter_non_llm_no_missing_tags_issue() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Test Title", "user", "---\ntitle: Test\n---\nSome content without tags.");
+        let mut issues = Vec::new();
+        checker.check_frontmatter(&note, &mut issues);
+        assert!(!issues.iter().any(|i| i.code == "missing-tags"));
+    }
+
+    #[tokio::test]
+    async fn test_check_structure_too_short() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Short", "llm", "Hi");
+        let mut issues = Vec::new();
+        checker.check_structure(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "content-too-short"));
+        assert!(issues.iter().any(|i| i.severity == IssueSeverity::Warning));
+    }
+
+    #[tokio::test]
+    async fn test_check_structure_too_long() {
+        let checker = make_lint_checker().await;
+        let long_content = "x".repeat(50001);
+        let note = make_note("Long", "llm", &long_content);
+        let mut issues = Vec::new();
+        checker.check_structure(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "content-too-long"));
+        assert!(issues.iter().any(|i| i.severity == IssueSeverity::Info));
+    }
+
+    #[tokio::test]
+    async fn test_check_structure_no_sections() {
+        let checker = make_lint_checker().await;
+        let content = "A".repeat(501);
+        let note = make_note("No Sections", "llm", &content);
+        let mut issues = Vec::new();
+        checker.check_structure(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "no-sections"));
+    }
+
+    #[tokio::test]
+    async fn test_check_structure_has_sections_ok() {
+        let checker = make_lint_checker().await;
+        let content = "## Section 1\n\nSome content here. More content. Even more content.";
+        let note = make_note("Good Structure", "llm", content);
+        let mut issues = Vec::new();
+        checker.check_structure(&note, &mut issues);
+        assert!(!issues.iter().any(|i| i.code == "no-sections"));
+        assert!(!issues.iter().any(|i| i.code == "content-too-short"));
+    }
+
+    #[tokio::test]
+    async fn test_check_structure_short_with_sections_no_short_warning() {
+        let checker = make_lint_checker().await;
+        let content = "## Section\n\nShort but has section.";
+        let note = make_note("Short Sections", "llm", content);
+        let mut issues = Vec::new();
+        checker.check_structure(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "content-too-short"));
+        assert!(!issues.iter().any(|i| i.code == "no-sections"));
+    }
+
+    #[tokio::test]
+    async fn test_check_content_quality_low_quality_phrases() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Low Quality", "llm", "The answer is unknown. I am not sure about this. TODO: fill in later. Cannot determine the result. I don't know the answer.");
+        let mut issues = Vec::new();
+        checker.check_content_quality(&note, &mut issues);
+        let low_quality_issues: Vec<&LintIssue> = issues.iter().filter(|i| i.code == "low-quality-phrase").collect();
+        assert!(!low_quality_issues.is_empty());
+        assert!(low_quality_issues.iter().all(|i| i.severity == IssueSeverity::Warning));
+    }
+
+    #[tokio::test]
+    async fn test_check_content_quality_no_wikilinks_llm() {
+        let checker = make_lint_checker().await;
+        let note = make_note("No Links", "llm", "This content has no wiki links at all. It is just plain text without any brackets.");
+        let mut issues = Vec::new();
+        checker.check_content_quality(&note, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "no-wikilinks"));
+        assert!(issues.iter().any(|i| i.severity == IssueSeverity::Info));
+    }
+
+    #[tokio::test]
+    async fn test_check_content_quality_has_links_ok() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Has Links", "llm", "This content has [[wiki links]] and [regular links](http://example.com).");
+        let mut issues = Vec::new();
+        checker.check_content_quality(&note, &mut issues);
+        assert!(!issues.iter().any(|i| i.code == "no-wikilinks"));
+    }
+
+    #[tokio::test]
+    async fn test_check_content_quality_non_llm_no_wikilink_warning() {
+        let checker = make_lint_checker().await;
+        let note = make_note("User Note", "user", "This content has no wiki links at all. It is just plain text.");
+        let mut issues = Vec::new();
+        checker.check_content_quality(&note, &mut issues);
+        assert!(!issues.iter().any(|i| i.code == "no-wikilinks"));
+    }
+
+    #[test]
+    fn test_lint_issue_type_debug_format() {
+        let issue_type = LintIssueType::BrokenLink {
+            page: "test".to_string(),
+            link: "link".to_string(),
+        };
+        let debug_str = format!("{:?}", issue_type);
+        assert!(debug_str.contains("BrokenLink"));
+    }
+
+    #[test]
+    fn test_issue_severity_serialization() {
+        let error_json = serde_json::to_string(&IssueSeverity::Error).unwrap();
+        assert!(error_json.contains("Error"));
+        let warning_json = serde_json::to_string(&IssueSeverity::Warning).unwrap();
+        assert!(warning_json.contains("Warning"));
+        let info_json = serde_json::to_string(&IssueSeverity::Info).unwrap();
+        assert!(info_json.contains("Info"));
+
+        let deserialized: IssueSeverity = serde_json::from_str(&error_json).unwrap();
+        assert_eq!(deserialized, IssueSeverity::Error);
+    }
+
+    #[test]
+    fn test_calculate_score_boundary() {
+        let issues = vec![
+            LintIssue { severity: IssueSeverity::Error, code: "e".to_string(), message: "err".to_string(), line: None },
+            LintIssue { severity: IssueSeverity::Warning, code: "w".to_string(), message: "warn".to_string(), line: None },
+        ];
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.6).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_lint_result_with_multiple_issues() {
+        let result = LintResult {
+            note_id: "n1".to_string(),
+            issues: vec![
+                LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err1".to_string(), line: Some(1) },
+                LintIssue { severity: IssueSeverity::Warning, code: "w1".to_string(), message: "warn1".to_string(), line: Some(5) },
+                LintIssue { severity: IssueSeverity::Info, code: "i1".to_string(), message: "info1".to_string(), line: None },
+            ],
+            score: 0.58,
+        };
+        assert_eq!(result.issues.len(), 3);
+        assert_eq!(result.issues[0].line, Some(1));
+        assert_eq!(result.issues[1].line, Some(5));
+        assert_eq!(result.issues[2].line, None);
+    }
+
+    #[test]
+    fn test_lint_issue_with_line_number() {
+        let issue = LintIssue {
+            severity: IssueSeverity::Warning,
+            code: "broken-link".to_string(),
+            message: "Broken link at line 10".to_string(),
+            line: Some(10),
+        };
+        assert_eq!(issue.line, Some(10));
+        assert_eq!(issue.code, "broken-link");
+    }
+
+    #[test]
+    fn test_lint_issue_without_line_number() {
+        let issue = LintIssue {
+            severity: IssueSeverity::Error,
+            code: "missing-title".to_string(),
+            message: "Missing title".to_string(),
+            line: None,
+        };
+        assert_eq!(issue.line, None);
+    }
+
+    #[test]
+    fn test_calculate_score_all_warnings() {
+        let issues: Vec<LintIssue> = (0..5)
+            .map(|i| LintIssue {
+                severity: IssueSeverity::Warning,
+                code: format!("w{}", i),
+                message: format!("warn{}", i),
+                line: None,
+            })
+            .collect();
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_calculate_score_all_info() {
+        let issues: Vec<LintIssue> = (0..5)
+            .map(|i| LintIssue {
+                severity: IssueSeverity::Info,
+                code: format!("i{}", i),
+                message: format!("info{}", i),
+                line: None,
+            })
+            .collect();
+        let score = LintChecker::calculate_score(&issues);
+        assert!((score - 0.9).abs() < f64::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn test_check_content_quality_specific_phrases() {
+        let checker = make_lint_checker().await;
+
+        let note_unknown = make_note("T", "llm", "The result is unknown at this time.");
+        let mut issues = Vec::new();
+        checker.check_content_quality(&note_unknown, &mut issues);
+        assert!(issues.iter().any(|i| i.code == "low-quality-phrase" && i.message.contains("unknown")));
+
+        let note_todo = make_note("T", "llm", "TODO: implement this feature later.");
+        let mut issues2 = Vec::new();
+        checker.check_content_quality(&note_todo, &mut issues2);
+        assert!(issues2.iter().any(|i| i.code == "low-quality-phrase" && i.message.contains("todo")));
+    }
+
+    #[tokio::test]
+    async fn test_check_frontmatter_all_present() {
+        let checker = make_lint_checker().await;
+        let note = make_note("Good Title", "llm", "---\ntitle: Good Title\ntags: [test]\n---\nContent with [[links]].");
+        let mut issues = Vec::new();
+        checker.check_frontmatter(&note, &mut issues);
+        assert!(!issues.iter().any(|i| i.code == "missing-title"));
+        assert!(!issues.iter().any(|i| i.code == "missing-author"));
+        assert!(!issues.iter().any(|i| i.code == "missing-tags"));
+    }
+
+    #[test]
+    fn test_lint_result_serialization_roundtrip() {
+        let result = LintResult {
+            note_id: "n1".to_string(),
+            issues: vec![
+                LintIssue { severity: IssueSeverity::Error, code: "e1".to_string(), message: "err".to_string(), line: Some(3) },
+                LintIssue { severity: IssueSeverity::Warning, code: "w1".to_string(), message: "warn".to_string(), line: None },
+            ],
+            score: 0.6,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: LintResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.note_id, result.note_id);
+        assert_eq!(back.issues.len(), result.issues.len());
+        assert!((back.score - result.score).abs() < f64::EPSILON);
     }
 }

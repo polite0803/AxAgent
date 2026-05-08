@@ -110,7 +110,6 @@ impl TrajectoryStore {
                 let active = settings_model::ActiveModel {
                     key: Set(key),
                     value: Set(json),
-                    ..Default::default()
                 };
                 active
                     .insert(self.db.as_ref())
@@ -273,7 +272,6 @@ impl TrajectoryStore {
                 let active = settings_model::ActiveModel {
                     key: Set(index_key.to_string()),
                     value: Set(json),
-                    ..Default::default()
                 };
                 active
                     .insert(self.db.as_ref())
@@ -700,5 +698,717 @@ impl TrajectoryRecorder {
 impl Default for TrajectoryRecorder {
     fn default() -> Self {
         Self::new(uuid::Uuid::new_v4().to_string(), "default".to_string(), "unknown".to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axagent_trajectory::{
+        MessageRole, ToolCall as TrajectoryToolCall, ToolResult as TrajectoryToolResult,
+        Trajectory, TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,
+    };
+
+    fn make_step(
+        role: MessageRole,
+        content: &str,
+        tool_calls: Option<Vec<TrajectoryToolCall>>,
+        tool_results: Option<Vec<TrajectoryToolResult>>,
+        reasoning: Option<&str>,
+    ) -> TrajectoryStep {
+        TrajectoryStep {
+            timestamp_ms: 100,
+            role,
+            content: content.to_string(),
+            reasoning: reasoning.map(|s| s.to_string()),
+            tool_calls,
+            tool_results,
+        }
+    }
+
+    fn make_tool_call(name: &str, id: &str) -> TrajectoryToolCall {
+        TrajectoryToolCall {
+            id: id.to_string(),
+            name: name.to_string(),
+            arguments: "{}".to_string(),
+        }
+    }
+
+    fn make_tool_result(tool_use_id: &str, tool_name: &str, is_error: bool) -> TrajectoryToolResult {
+        TrajectoryToolResult {
+            tool_use_id: tool_use_id.to_string(),
+            tool_name: tool_name.to_string(),
+            output: "ok".to_string(),
+            is_error,
+        }
+    }
+
+    fn make_trajectory(
+        outcome: TrajectoryOutcome,
+        steps: Vec<TrajectoryStep>,
+    ) -> Trajectory {
+        Trajectory {
+            id: uuid::Uuid::new_v4().to_string(),
+            session_id: "sess1".into(),
+            user_id: "user1".into(),
+            topic: "test topic".into(),
+            summary: "test summary".into(),
+            outcome,
+            duration_ms: 5000,
+            quality: TrajectoryQuality::default(),
+            value_score: 0.5,
+            patterns: Vec::new(),
+            steps,
+            rewards: Vec::new(),
+            created_at: Utc::now(),
+            replay_count: 0,
+            last_replay_at: None,
+        }
+    }
+
+    #[test]
+    fn test_trajectory_summary_from_trajectory() {
+        let steps = vec![
+            make_step(
+                MessageRole::Assistant,
+                "hello",
+                Some(vec![make_tool_call("read_file", "tc1")]),
+                None,
+                Some("thinking"),
+            ),
+            make_step(
+                MessageRole::Tool,
+                "result",
+                None,
+                Some(vec![make_tool_result("tc1", "read_file", false)]),
+                None,
+            ),
+        ];
+        let traj = make_trajectory(TrajectoryOutcome::Success, steps);
+        let summary = TrajectorySummary::from(&traj);
+        assert_eq!(summary.id, traj.id);
+        assert_eq!(summary.session_id, "sess1");
+        assert_eq!(summary.topic, "test topic");
+        assert_eq!(summary.outcome, TrajectoryOutcome::Success);
+        assert_eq!(summary.step_count, 2);
+        assert_eq!(summary.tool_call_count, 1);
+        assert_eq!(summary.duration_ms, 5000);
+    }
+
+    #[test]
+    fn test_trajectory_summary_from_empty_trajectory() {
+        let traj = make_trajectory(TrajectoryOutcome::Failure, vec![]);
+        let summary = TrajectorySummary::from(&traj);
+        assert_eq!(summary.step_count, 0);
+        assert_eq!(summary.tool_call_count, 0);
+    }
+
+    #[test]
+    fn test_trajectory_summary_from_multiple_tool_calls() {
+        let steps = vec![
+            make_step(
+                MessageRole::Assistant,
+                "a",
+                Some(vec![make_tool_call("t1", "id1"), make_tool_call("t2", "id2")]),
+                None,
+                None,
+            ),
+            make_step(
+                MessageRole::Assistant,
+                "b",
+                Some(vec![make_tool_call("t3", "id3")]),
+                None,
+                None,
+            ),
+        ];
+        let traj = make_trajectory(TrajectoryOutcome::Success, steps);
+        let summary = TrajectorySummary::from(&traj);
+        assert_eq!(summary.tool_call_count, 3);
+    }
+
+    #[test]
+    fn test_replay_step_fields() {
+        let step = ReplayStep {
+            step_index: 0,
+            timestamp_ms: 100,
+            action: "tool_calls: read_file".into(),
+            result_summary: "1 results".into(),
+            duration_ms: 50,
+        };
+        assert_eq!(step.step_index, 0);
+        assert_eq!(step.timestamp_ms, 100);
+        assert_eq!(step.action, "tool_calls: read_file");
+        assert_eq!(step.result_summary, "1 results");
+        assert_eq!(step.duration_ms, 50);
+    }
+
+    #[test]
+    fn test_replay_step_clone() {
+        let step = ReplayStep {
+            step_index: 1,
+            timestamp_ms: 200,
+            action: "action".into(),
+            result_summary: "summary".into(),
+            duration_ms: 100,
+        };
+        let cloned = step.clone();
+        assert_eq!(cloned.step_index, step.step_index);
+        assert_eq!(cloned.action, step.action);
+    }
+
+    #[test]
+    fn test_replay_result_fields() {
+        let traj = make_trajectory(TrajectoryOutcome::Success, vec![]);
+        let result = ReplayResult {
+            trajectory: traj.clone(),
+            replay_log: vec![ReplayStep {
+                step_index: 0,
+                timestamp_ms: 0,
+                action: "start".into(),
+                result_summary: "begin".into(),
+                duration_ms: 0,
+            }],
+            insights: vec!["insight1".into()],
+        };
+        assert_eq!(result.trajectory.id, traj.id);
+        assert_eq!(result.replay_log.len(), 1);
+        assert_eq!(result.insights.len(), 1);
+    }
+
+    #[test]
+    fn test_replay_comparison_fields() {
+        let comp = ReplayComparison {
+            trajectory_a: TrajectorySummary {
+                id: "a".into(),
+                session_id: "s1".into(),
+                topic: "t1".into(),
+                outcome: TrajectoryOutcome::Success,
+                quality_score: 0.9,
+                duration_ms: 1000,
+                step_count: 5,
+                tool_call_count: 3,
+                created_at: Utc::now(),
+            },
+            trajectory_b: TrajectorySummary {
+                id: "b".into(),
+                session_id: "s2".into(),
+                topic: "t2".into(),
+                outcome: TrajectoryOutcome::Failure,
+                quality_score: 0.3,
+                duration_ms: 2000,
+                step_count: 8,
+                tool_call_count: 6,
+                created_at: Utc::now(),
+            },
+            quality_diff: 0.6,
+            duration_diff_ms: -1000,
+            tool_count_diff: -3,
+            outcome_match: false,
+        };
+        assert!((comp.quality_diff - 0.6).abs() < f64::EPSILON);
+        assert_eq!(comp.duration_diff_ms, -1000);
+        assert_eq!(comp.tool_count_diff, -3);
+        assert!(!comp.outcome_match);
+    }
+
+    #[test]
+    fn test_replay_comparison_outcome_match() {
+        let comp = ReplayComparison {
+            trajectory_a: TrajectorySummary {
+                id: "a".into(),
+                session_id: "s1".into(),
+                topic: "t1".into(),
+                outcome: TrajectoryOutcome::Success,
+                quality_score: 0.9,
+                duration_ms: 1000,
+                step_count: 5,
+                tool_call_count: 3,
+                created_at: Utc::now(),
+            },
+            trajectory_b: TrajectorySummary {
+                id: "b".into(),
+                session_id: "s2".into(),
+                topic: "t2".into(),
+                outcome: TrajectoryOutcome::Success,
+                quality_score: 0.8,
+                duration_ms: 1200,
+                step_count: 4,
+                tool_call_count: 2,
+                created_at: Utc::now(),
+            },
+            quality_diff: 0.1,
+            duration_diff_ms: -200,
+            tool_count_diff: 1,
+            outcome_match: true,
+        };
+        assert!(comp.outcome_match);
+    }
+
+    #[test]
+    fn test_trajectory_summary_serialization() {
+        let summary = TrajectorySummary {
+            id: "id1".into(),
+            session_id: "sess1".into(),
+            topic: "topic1".into(),
+            outcome: TrajectoryOutcome::Success,
+            quality_score: 0.85,
+            duration_ms: 3000,
+            step_count: 10,
+            tool_call_count: 4,
+            created_at: Utc::now(),
+        };
+        let json = serde_json::to_string(&summary).unwrap();
+        let deserialized: TrajectorySummary = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.id, "id1");
+        assert_eq!(deserialized.session_id, "sess1");
+        assert_eq!(deserialized.outcome, TrajectoryOutcome::Success);
+        assert!((deserialized.quality_score - 0.85).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_replay_step_serialization() {
+        let step = ReplayStep {
+            step_index: 2,
+            timestamp_ms: 500,
+            action: "action".into(),
+            result_summary: "summary".into(),
+            duration_ms: 200,
+        };
+        let json = serde_json::to_string(&step).unwrap();
+        let deserialized: ReplayStep = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.step_index, 2);
+        assert_eq!(deserialized.timestamp_ms, 500);
+    }
+
+    #[test]
+    fn test_replay_comparison_serialization() {
+        let comp = ReplayComparison {
+            trajectory_a: TrajectorySummary {
+                id: "a".into(),
+                session_id: "s1".into(),
+                topic: "t1".into(),
+                outcome: TrajectoryOutcome::Success,
+                quality_score: 0.9,
+                duration_ms: 1000,
+                step_count: 5,
+                tool_call_count: 3,
+                created_at: Utc::now(),
+            },
+            trajectory_b: TrajectorySummary {
+                id: "b".into(),
+                session_id: "s2".into(),
+                topic: "t2".into(),
+                outcome: TrajectoryOutcome::Failure,
+                quality_score: 0.3,
+                duration_ms: 2000,
+                step_count: 8,
+                tool_call_count: 6,
+                created_at: Utc::now(),
+            },
+            quality_diff: 0.6,
+            duration_diff_ms: -1000,
+            tool_count_diff: -3,
+            outcome_match: false,
+        };
+        let json = serde_json::to_string(&comp).unwrap();
+        let deserialized: ReplayComparison = serde_json::from_str(&json).unwrap();
+        assert!(!deserialized.outcome_match);
+        assert_eq!(deserialized.tool_count_diff, -3);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_new() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        assert!(recorder.store.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_default() {
+        let recorder = TrajectoryRecorder::default();
+        assert!(recorder.store.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_start_and_stop() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("hello").await;
+        let traj = recorder.stop_recording().await;
+        assert!(!traj.id.is_empty());
+        assert_eq!(traj.session_id, "sess1");
+        assert_eq!(traj.user_id, "user1");
+        assert_eq!(traj.topic, "test topic");
+        assert!(!traj.is_recording);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_record_llm_response() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_llm_response("thinking about it", Some("reasoning step")).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.steps.len(), 1);
+        assert_eq!(traj.steps[0].content, "thinking about it");
+        assert_eq!(traj.steps[0].reasoning.as_deref(), Some("reasoning step"));
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_record_tool_call_and_result() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("read_file", "tc1", r#"{"path":"/tmp"}"#).await;
+        recorder.record_tool_result("tc1", "read_file", "file contents", false).await;
+        recorder.record_llm_response("here is the result", None).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.steps.len(), 1);
+        let step = &traj.steps[0];
+        assert!(step.tool_calls.is_some());
+        assert!(step.tool_results.is_some());
+        assert_eq!(step.tool_calls.as_ref().unwrap().len(), 1);
+        assert_eq!(step.tool_calls.as_ref().unwrap()[0].name, "read_file");
+        assert_eq!(step.tool_results.as_ref().unwrap().len(), 1);
+        assert_eq!(step.tool_results.as_ref().unwrap()[0].tool_name, "read_file");
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_no_record_when_not_recording() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.record_tool_call("read_file", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "read_file", "result", false).await;
+        recorder.record_llm_response("response", None).await;
+        let traj = recorder.stop_recording().await;
+        assert!(traj.steps.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_determine_outcome_success() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("read_file", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("done", None).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.outcome, TrajectoryOutcome::Success);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_determine_outcome_failure_on_error() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("bad_tool", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "bad_tool", "error!", true).await;
+        recorder.record_llm_response("oops", None).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.outcome, TrajectoryOutcome::Failure);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_determine_outcome_failure_on_empty() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.outcome, TrajectoryOutcome::Failure);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_compute_quality_success() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("read_file", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("done", Some("reasoning")).await;
+        let traj = recorder.stop_recording().await;
+        assert!(traj.quality.overall > 0.0);
+        assert!(traj.quality.task_completion > 0.0);
+        assert!(traj.quality.tool_efficiency > 0.0);
+        assert!(traj.quality.reasoning_quality > 0.0);
+        assert!(traj.quality.user_satisfaction > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_compute_quality_failure() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("bad_tool", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "bad_tool", "err", true).await;
+        recorder.record_llm_response("failed", None).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.quality.task_completion, 0.0);
+        assert_eq!(traj.quality.user_satisfaction, 0.1);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_generate_summary_empty() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.summary, "No steps recorded");
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_generate_summary_with_steps() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("read_file", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("done", None).await;
+        let traj = recorder.stop_recording().await;
+        assert!(traj.summary.contains("1 steps"));
+        assert!(traj.summary.contains("1 tool calls"));
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_multiple_steps() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("read_file", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("step1", None).await;
+        recorder.record_tool_call("write_file", "tc2", "{}").await;
+        recorder.record_tool_result("tc2", "write_file", "ok", false).await;
+        recorder.record_llm_response("step2", None).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.steps.len(), 2);
+        assert!(traj.summary.contains("2 steps"));
+        assert!(traj.summary.contains("2 tool calls"));
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_clears_on_start() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input1").await;
+        recorder.record_llm_response("step1", None).await;
+        recorder.stop_recording().await;
+
+        recorder.start_recording("input2").await;
+        recorder.record_llm_response("step2", None).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.steps.len(), 1);
+        assert_eq!(traj.steps[0].content, "step2");
+    }
+
+    #[test]
+    fn test_compute_value_score_success() {
+        let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
+        let score = TrajectoryRecorder::compute_value_score(0.8, TrajectoryOutcome::Success, &steps);
+        assert!(score > 0.0);
+        assert!(score <= 2.0);
+    }
+
+    #[test]
+    fn test_compute_value_score_failure() {
+        let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
+        let score = TrajectoryRecorder::compute_value_score(0.0, TrajectoryOutcome::Failure, &steps);
+        assert!(score >= -1.0);
+    }
+
+    #[test]
+    fn test_compute_value_score_abandoned() {
+        let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
+        let score = TrajectoryRecorder::compute_value_score(0.2, TrajectoryOutcome::Abandoned, &steps);
+        assert!(score >= -1.0);
+    }
+
+    #[test]
+    fn test_compute_value_score_partial() {
+        let steps = vec![make_step(MessageRole::Assistant, "a", None, None, None)];
+        let score = TrajectoryRecorder::compute_value_score(0.5, TrajectoryOutcome::Partial, &steps);
+        assert!(score > 0.0);
+    }
+
+    #[test]
+    fn test_compute_value_score_empty_steps() {
+        let score = TrajectoryRecorder::compute_value_score(0.5, TrajectoryOutcome::Success, &[]);
+        assert!(score > 0.0);
+    }
+
+    #[test]
+    fn test_trajectory_recorder_with_store_none() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        assert!(recorder.store.is_none());
+    }
+
+    #[test]
+    fn test_trajectory_summary_clone() {
+        let summary = TrajectorySummary {
+            id: "id1".into(),
+            session_id: "sess1".into(),
+            topic: "topic1".into(),
+            outcome: TrajectoryOutcome::Success,
+            quality_score: 0.85,
+            duration_ms: 3000,
+            step_count: 10,
+            tool_call_count: 4,
+            created_at: Utc::now(),
+        };
+        let cloned = summary.clone();
+        assert_eq!(cloned.id, summary.id);
+        assert_eq!(cloned.outcome, summary.outcome);
+    }
+
+    #[test]
+    fn test_replay_result_clone() {
+        let traj = make_trajectory(TrajectoryOutcome::Success, vec![]);
+        let result = ReplayResult {
+            trajectory: traj,
+            replay_log: vec![],
+            insights: vec!["insight".into()],
+        };
+        let cloned = result.clone();
+        assert_eq!(cloned.insights.len(), 1);
+    }
+
+    #[test]
+    fn test_replay_comparison_clone() {
+        let comp = ReplayComparison {
+            trajectory_a: TrajectorySummary {
+                id: "a".into(),
+                session_id: "s1".into(),
+                topic: "t1".into(),
+                outcome: TrajectoryOutcome::Success,
+                quality_score: 0.9,
+                duration_ms: 1000,
+                step_count: 5,
+                tool_call_count: 3,
+                created_at: Utc::now(),
+            },
+            trajectory_b: TrajectorySummary {
+                id: "b".into(),
+                session_id: "s2".into(),
+                topic: "t2".into(),
+                outcome: TrajectoryOutcome::Failure,
+                quality_score: 0.3,
+                duration_ms: 2000,
+                step_count: 8,
+                tool_call_count: 6,
+                created_at: Utc::now(),
+            },
+            quality_diff: 0.6,
+            duration_diff_ms: -1000,
+            tool_count_diff: -3,
+            outcome_match: false,
+        };
+        let cloned = comp.clone();
+        assert_eq!(cloned.quality_diff, comp.quality_diff);
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_tool_calls_cleared_after_llm_response() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("read_file", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("step1", None).await;
+
+        recorder.record_tool_call("write_file", "tc2", "{}").await;
+        recorder.record_tool_result("tc2", "write_file", "ok", false).await;
+        recorder.record_llm_response("step2", None).await;
+
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.steps.len(), 2);
+        assert_eq!(traj.steps[0].tool_calls.as_ref().unwrap()[0].name, "read_file");
+        assert_eq!(traj.steps[1].tool_calls.as_ref().unwrap()[0].name, "write_file");
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_llm_response_without_tools() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_llm_response("just thinking", Some("reasoning")).await;
+        let traj = recorder.stop_recording().await;
+        assert_eq!(traj.steps.len(), 1);
+        assert!(traj.steps[0].tool_calls.is_none());
+        assert!(traj.steps[0].tool_results.is_none());
+        assert_eq!(traj.steps[0].content, "just thinking");
+    }
+
+    #[tokio::test]
+    async fn test_trajectory_recorder_quality_clamped() {
+        let recorder = TrajectoryRecorder::new(
+            "sess1".into(),
+            "user1".into(),
+            "test topic".into(),
+        );
+        recorder.start_recording("input").await;
+        recorder.record_tool_call("read_file", "tc1", "{}").await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("done", Some("deep reasoning")).await;
+        let traj = recorder.stop_recording().await;
+        assert!(traj.quality.overall >= 0.0 && traj.quality.overall <= 1.0);
+    }
+
+    #[test]
+    fn test_trajectory_store_debug() {
+        let db: Arc<DatabaseConnection> = Arc::new(unsafe { std::mem::zeroed() });
+        let store = TrajectoryStore::new(db);
+        let debug_str = format!("{:?}", store);
+        assert!(debug_str.contains("TrajectoryStore"));
     }
 }

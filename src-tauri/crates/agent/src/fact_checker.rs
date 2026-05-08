@@ -266,8 +266,7 @@ impl EnhancedRelevanceCalculator {
             return 0.0;
         }
 
-        let ratio = (claim_len.min(source_len) as f32) / (claim_len.max(source_len) as f32);
-        ratio
+        (claim_len.min(source_len) as f32) / (claim_len.max(source_len) as f32)
     }
 }
 
@@ -292,8 +291,10 @@ impl Default for EnhancedRelevanceCalculator {
     }
 }
 
+type EmbeddingFn = Arc<dyn Fn(&str) -> Option<Vec<f32>> + Send + Sync>;
+
 pub struct EmbeddingRelevanceCalculator {
-    embedding_fn: Option<Arc<dyn Fn(&str) -> Option<Vec<f32>> + Send + Sync>>,
+    embedding_fn: Option<EmbeddingFn>,
     fallback: EnhancedRelevanceCalculator,
     embedding_weight: f32,
     text_weight: f32,
@@ -311,7 +312,7 @@ impl EmbeddingRelevanceCalculator {
 
     pub fn with_embedding_fn(
         mut self,
-        fn_impl: Arc<dyn Fn(&str) -> Option<Vec<f32>> + Send + Sync>,
+        fn_impl: EmbeddingFn,
     ) -> Self {
         self.embedding_fn = Some(fn_impl);
         self

@@ -2,6 +2,7 @@ import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
 import { RocketOutlined, SettingOutlined } from "@ant-design/icons";
 import { Button, Card, Divider, Form, message, Select, Slider, Space } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface LoRAConfigForm {
   datasetId: string;
@@ -14,6 +15,7 @@ interface LoRAConfigForm {
 }
 
 export function LoRAConfig() {
+  const { t } = useTranslation();
   const {
     datasets,
     baseModels,
@@ -81,7 +83,7 @@ export function LoRAConfig() {
             label="Dataset"
             rules={[{ required: true, message: "Please select a dataset" }]}
           >
-            <Select placeholder="Select a dataset">
+            <Select placeholder={t("devtools.fineTune.selectDataset")}>
               {datasets.map((dataset) => (
                 <Select.Option key={dataset.id} value={dataset.id}>
                   {dataset.name} ({dataset.num_samples} samples)
@@ -95,7 +97,7 @@ export function LoRAConfig() {
             label="Base Model"
             rules={[{ required: true, message: "Please select a base model" }]}
           >
-            <Select placeholder="Select a base model">
+            <Select placeholder={t("devtools.fineTune.selectBaseModel")}>
               {baseModels.map((model) => (
                 <Select.Option key={model.model_id} value={model.model_id}>
                   {model.name} ({model.size_gb} GB)

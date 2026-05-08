@@ -166,7 +166,7 @@ function SessionShareDialog({
                 <Input
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value)}
-                  placeholder="XXXX-XXXX"
+                  placeholder={t("chat.collaboration.sessionShare.codePlaceholder")}
                   size="middle"
                 />
               </div>

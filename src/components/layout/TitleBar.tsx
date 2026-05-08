@@ -447,21 +447,17 @@ export function TitleBar() {
           {/* Pin Toggle */}
           <Tooltip title={t("desktop.alwaysOnTop")}>
             <button
+              className="ax-titlebar-btn"
               onClick={handlePinToggle}
               style={{
-                ...buttonBase,
                 color: pinned ? token.colorPrimary : token.colorTextSecondary,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = pinned
-                  ? token.colorPrimaryBg
-                  : token.colorFillSecondary;
                 e.currentTarget.style.color = pinned
                   ? token.colorPrimary
                   : token.colorTextBase;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
                 e.currentTarget.style.color = pinned
                   ? token.colorPrimary
                   : token.colorTextSecondary;
@@ -496,8 +492,8 @@ export function TitleBar() {
             destroyOnHidden
           >
             <button
-              style={{ ...buttonBase, color: token.colorTextSecondary }}
-              {...hoverHandlers(token.colorTextSecondary)}
+              className="ax-titlebar-btn"
+              style={{ color: token.colorTextSecondary }}
             >
               <Globe size={12} color={TITLEBAR_ICON_COLORS.Globe} />
             </button>
@@ -604,15 +600,14 @@ export function TitleBar() {
           >
             <Tooltip title={t("titlebar.quickBackup")}>
               <button
+                className="ax-titlebar-btn"
                 style={{
-                  ...buttonBase,
                   color: countdownText ? token.colorPrimary : token.colorTextSecondary,
                   width: countdownText ? "auto" : 28,
                   paddingInline: countdownText ? 4 : 0,
                   gap: 2,
                   fontSize: 11,
                 }}
-                {...hoverHandlers(countdownText ? token.colorPrimary : token.colorTextSecondary)}
               >
                 <CloudUpload size={12} color={TITLEBAR_ICON_COLORS.CloudUpload} />
                 {countdownText && <span>({countdownText})</span>}
@@ -650,8 +645,8 @@ export function TitleBar() {
             destroyOnHidden
           >
             <button
-              style={{ ...buttonBase, color: token.colorTextSecondary }}
-              {...hoverHandlers(token.colorTextSecondary)}
+              className="ax-titlebar-btn"
+              style={{ color: token.colorTextSecondary }}
             >
               <Ellipsis size={12} color={TITLEBAR_ICON_COLORS.GitFork} />
             </button>

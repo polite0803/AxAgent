@@ -18,16 +18,16 @@
 }
 
 .sub-agent-card--completed {
-  border-color: #52c41a30;
+  border-color: color-mix(in srgb, var(--ant-color-success, #52c41a) 19%, transparent);
 }
 
 .sub-agent-card--failed {
-  border-color: #ff4d4f30;
+  border-color: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 19%, transparent);
 }
 
 @keyframes sub-agent-card-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.15); }
-  50% { box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.05); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ant-color-primary, #1890ff) 15%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ant-color-primary, #1890ff) 5%, transparent); }
 }
 
 .sub-agent-card__header {

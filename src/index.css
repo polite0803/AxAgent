@@ -39,9 +39,17 @@ button,
   -webkit-user-select: none;
 }
 
-/* Remove antd focus outline (green border) globally */
 *:focus-visible {
-  outline: none !important;
+  outline: 2px solid var(--color-primary, #a1a1aa);
+  outline-offset: 2px;
+}
+.ant-btn:focus-visible,
+.ant-dropdown-trigger:focus-visible,
+.ant-input:focus-visible,
+.ant-select:focus-visible,
+.ant-switch:focus-visible {
+  outline: 2px solid var(--color-primary, #a1a1aa);
+  outline-offset: 2px;
 }
 
 /* ── Animation system ─────────────────────────────────────────────── */
@@ -298,8 +306,19 @@ b, strong, th,
 }
 
 /* ── Scrollbar styling ────────────────────────────────────────────── */
-* {
-  scrollbar-width: none !important;
+.ax-sidebar,
+.ax-sidebar * {
+  scrollbar-width: none;
+}
+.title-bar-drag,
+.title-bar-drag * {
+  scrollbar-width: none;
+}
+.ant-bubble-list-scroll-box {
+  scrollbar-width: none;
+}
+.ant-conversations-list {
+  scrollbar-width: none;
 }
 
 .axagent-input-textarea {
@@ -521,17 +540,105 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* ── Switch 启用/禁用高对比度 ──────── */
 .ant-switch.ant-switch-checked {
-  background-color: #52c41a !important;
+  background-color: var(--ant-color-primary, #52c41a) !important;
 }
 .ant-switch.ant-switch-checked:hover:not(.ant-switch-disabled) {
-  background-color: #73d13d !important;
+  background-color: var(--ant-color-primary-hover, #73d13d) !important;
 }
 .ant-switch.ant-switch-small.ant-switch-checked {
-  background-color: #52c41a !important;
+  background-color: var(--ant-color-primary, #52c41a) !important;
 }
 .ant-switch:not(.ant-switch-checked) {
   background-color: rgba(0, 0, 0, 0.25) !important;
 }
 :root[data-theme="dark"] .ant-switch:not(.ant-switch-checked) {
   background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── Sidebar nav hover via CSS (replaces JS inline hover) ──────── */
+.ax-nav-item {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  padding-left: 12px;
+  padding-right: 12px;
+  gap: 10px;
+  transition: background-color 0.12s ease-in-out;
+  background-color: transparent;
+}
+.ax-nav-item:hover {
+  background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+}
+.ax-nav-item-active {
+  background-color: var(--ant-color-primary-bg, rgba(255, 255, 255, 0.04));
+}
+.ax-nav-item-active:hover {
+  background-color: var(--ant-color-primary-bg, rgba(255, 255, 255, 0.04));
+}
+
+/* ── TitleBar button hover via CSS ──────── */
+.ax-titlebar-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  transition: background-color 0.12s ease-in-out, color 0.12s ease-in-out;
+}
+.ax-titlebar-btn:hover {
+  background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+}
+
+/* ── Sidebar user avatar hover via CSS ──────── */
+.ax-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.12s ease-in-out;
+  background-color: transparent;
+}
+.ax-sidebar-user:hover {
+  background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+}
+
+/* ── Sidebar collapse toggle hover via CSS ──────── */
+.ax-sidebar-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 32px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.12s ease-in-out;
+  background-color: transparent;
+}
+.ax-sidebar-toggle:hover {
+  background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
+}
+
+/* ── Responsive: sidebar auto-collapse on small screens ──────── */
+@media (max-width: 768px) {
+  .ax-sidebar {
+    width: 56px !important;
+    padding: 12px 4px 12px !important;
+  }
+  .ax-nav-label,
+  .ax-sidebar-section-header,
+  .ax-sidebar-user-name {
+    display: none;
+  }
 }

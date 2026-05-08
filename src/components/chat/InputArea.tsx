@@ -184,6 +184,19 @@ export function InputArea() {
     return convId ? _draftCache.get(convId) || "" : "";
   });
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  const objectUrlsRef = useRef<string[]>([]);
+  const attachmentObjectUrls = useMemo(() => {
+    objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    const urls = attachedFiles.map((f) => URL.createObjectURL(f));
+    objectUrlsRef.current = urls;
+    return urls;
+  }, [attachedFiles]);
+  useEffect(() => {
+    return () => {
+      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
   const [voiceCallVisible, setVoiceCallVisible] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -1161,7 +1174,6 @@ export function InputArea() {
     }
     isSwitchingModeRef.current = true;
     try {
-      console.debug("[ModeSwitch] handleModeSwitch called, activeConversation:", activeConversation?.id);
       if (!activeConversation) {
         if (mode === "agent") {
           messageApi.warning(
@@ -1747,7 +1759,7 @@ export function InputArea() {
                     {isPreviewable
                       ? (
                         <Image
-                          src={URL.createObjectURL(file)}
+                          src={attachmentObjectUrls[idx]}
                           alt={file.name}
                           style={{
                             width: "100%",
@@ -1759,7 +1771,7 @@ export function InputArea() {
                       )
                       : (
                         <img
-                          src={URL.createObjectURL(file)}
+                          src={attachmentObjectUrls[idx]}
                           alt={file.name}
                           style={{
                             width: "100%",

@@ -399,4 +399,502 @@ mod tests {
         assert!(truncated.len() <= 20);
         assert!(truncated.ends_with("..."));
     }
+
+    #[tokio::test]
+    async fn test_build_html() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "HTML Title".to_string(),
+            SourceType::Web,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let html = builder.build(ReferenceFormat::Html).await;
+        assert!(html.contains("<section id=\"references\">"));
+        assert!(html.contains("HTML Title"));
+        assert!(html.contains("https://example.com"));
+        assert!(html.contains("</section>"));
+    }
+
+    #[tokio::test]
+    async fn test_build_bibtex() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "BibTeX Title".to_string(),
+            SourceType::Academic,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let bibtex = builder.build(ReferenceFormat::BibTeX).await;
+        assert!(bibtex.contains("@article"));
+        assert!(bibtex.contains("BibTeX Title"));
+        assert!(bibtex.contains("https://example.com"));
+    }
+
+    #[tokio::test]
+    async fn test_build_bibtex_non_academic() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "Blog Post".to_string(),
+            SourceType::Blog,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let bibtex = builder.build(ReferenceFormat::BibTeX).await;
+        assert!(bibtex.contains("@misc"));
+        assert!(bibtex.contains("Blog Post"));
+    }
+
+    #[tokio::test]
+    async fn test_build_apa() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "APA Title".to_string(),
+            SourceType::Academic,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let apa = builder.build(ReferenceFormat::APA).await;
+        assert!(apa.contains("Journal Article"));
+        assert!(apa.contains("APA Title"));
+        assert!(apa.contains("Retrieved from https://example.com"));
+    }
+
+    #[tokio::test]
+    async fn test_build_apa_source_types() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let types = vec![
+            (SourceType::News, "News Article"),
+            (SourceType::Blog, "Blog Post"),
+            (SourceType::Web, "Web Page"),
+            (SourceType::Documentation, "Technical Documentation"),
+            (SourceType::GitHub, "Repository"),
+            (SourceType::Wikipedia, "Source"),
+            (SourceType::Forum, "Source"),
+            (SourceType::Unknown, "Source"),
+        ];
+        for (source_type, expected_label) in types {
+            let citation = Citation::new(
+                "https://example.com".to_string(),
+                format!("Title {:?}", source_type),
+                source_type,
+            );
+            tracker.add_citation(citation).await;
+        }
+
+        let builder = ReferenceBuilder::new(tracker);
+        let apa = builder.build(ReferenceFormat::APA).await;
+        for (_, expected_label) in types {
+            assert!(apa.contains(expected_label), "APA should contain '{}'", expected_label);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_build_mla() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "MLA Title".to_string(),
+            SourceType::Web,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let mla = builder.build(ReferenceFormat::MLA).await;
+        assert!(mla.contains("MLA Title"));
+        assert!(mla.contains("https://example.com"));
+        assert!(mla.contains("Web."));
+    }
+
+    #[tokio::test]
+    async fn test_build_chicago() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "Chicago Title".to_string(),
+            SourceType::Web,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let chicago = builder.build(ReferenceFormat::Chicago).await;
+        assert!(chicago.contains("Chicago Title"));
+        assert!(chicago.contains("Accessed"));
+        assert!(chicago.contains("https://example.com"));
+    }
+
+    #[tokio::test]
+    async fn test_build_empty_citations() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let builder = ReferenceBuilder::new(tracker);
+
+        let markdown = builder.build(ReferenceFormat::Markdown).await;
+        assert!(markdown.contains("## References"));
+
+        let html = builder.build(ReferenceFormat::Html).await;
+        assert!(html.contains("<section id=\"references\">"));
+
+        let json = builder.build(ReferenceFormat::Json).await;
+        assert_eq!(json, "[]");
+
+        let bibtex = builder.build(ReferenceFormat::BibTeX).await;
+        assert!(bibtex.is_empty());
+
+        let apa = builder.build(ReferenceFormat::APA).await;
+        assert!(apa.is_empty());
+
+        let mla = builder.build(ReferenceFormat::MLA).await;
+        assert!(mla.is_empty());
+
+        let chicago = builder.build(ReferenceFormat::Chicago).await;
+        assert!(chicago.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_build_grouped() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Web Title".to_string(),
+            SourceType::Web,
+        )).await;
+        tracker.add_citation(Citation::new(
+            "https://paper.com".to_string(),
+            "Academic Title".to_string(),
+            SourceType::Academic,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let grouped = builder.build_grouped(ReferenceFormat::Markdown).await;
+        assert!(grouped.contains_key("web"));
+        assert!(grouped.contains_key("academic"));
+        assert!(grouped["web"].contains("Web Title"));
+        assert!(grouped["academic"].contains("Academic Title"));
+    }
+
+    #[tokio::test]
+    async fn test_build_grouped_html() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Web,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let grouped = builder.build_grouped(ReferenceFormat::Html).await;
+        assert!(grouped.contains_key("web"));
+        assert!(grouped["web"].contains("<section"));
+    }
+
+    #[tokio::test]
+    async fn test_build_grouped_bibtex() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Academic,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let grouped = builder.build_grouped(ReferenceFormat::BibTeX).await;
+        assert!(grouped.contains_key("academic"));
+        assert!(grouped["academic"].contains("@article"));
+    }
+
+    #[tokio::test]
+    async fn test_build_grouped_apa() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::News,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let grouped = builder.build_grouped(ReferenceFormat::APA).await;
+        assert!(grouped.contains_key("news"));
+        assert!(grouped["news"].contains("News Article"));
+    }
+
+    #[tokio::test]
+    async fn test_build_grouped_mla() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Web,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let grouped = builder.build_grouped(ReferenceFormat::MLA).await;
+        assert!(grouped.contains_key("web"));
+        assert!(grouped["web"].contains("Web."));
+    }
+
+    #[tokio::test]
+    async fn test_build_grouped_chicago() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Web,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let grouped = builder.build_grouped(ReferenceFormat::Chicago).await;
+        assert!(grouped.contains_key("web"));
+        assert!(grouped["web"].contains("Accessed"));
+    }
+
+    #[tokio::test]
+    async fn test_build_grouped_json() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Web,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let grouped = builder.build_grouped(ReferenceFormat::Json).await;
+        assert!(grouped.contains_key("web"));
+        assert!(grouped["web"].contains("\"title\": \"Title\""));
+    }
+
+    #[tokio::test]
+    async fn test_build_inline_citations_markdown() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Web,
+        );
+        let id_prefix = citation.id[..8].to_string();
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let citations = tracker.get_all_citations().await;
+        let inline = builder.build_inline_citations(&citations, ReferenceFormat::Markdown).await;
+        assert!(inline.contains(&format!("[^{}]", id_prefix)));
+    }
+
+    #[tokio::test]
+    async fn test_build_inline_citations_html() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Web,
+        );
+        let id_clone = citation.id.clone();
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let citations = tracker.get_all_citations().await;
+        let inline = builder.build_inline_citations(&citations, ReferenceFormat::Html).await;
+        assert!(inline.contains(&format!("#ref-{}", id_clone)));
+        assert!(inline.contains("<sup>"));
+    }
+
+    #[tokio::test]
+    async fn test_build_inline_citations_other_format() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "Title".to_string(),
+            SourceType::Web,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let citations = tracker.get_all_citations().await;
+        let inline = builder.build_inline_citations(&citations, ReferenceFormat::BibTeX).await;
+        assert!(inline.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_build_footnote_references() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        let citation = Citation::new(
+            "https://example.com".to_string(),
+            "Footnote Title".to_string(),
+            SourceType::Web,
+        );
+        tracker.add_citation(citation).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let citations = tracker.get_all_citations().await;
+        let footnotes = builder.build_footnote_references(&citations).await;
+        assert!(footnotes.contains("Footnote Title"));
+        assert!(footnotes.contains("https://example.com"));
+    }
+
+    #[tokio::test]
+    async fn test_build_footnote_references_multiple() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://a.com".to_string(),
+            "Title A".to_string(),
+            SourceType::Web,
+        )).await;
+        tracker.add_citation(Citation::new(
+            "https://b.com".to_string(),
+            "Title B".to_string(),
+            SourceType::Academic,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let citations = tracker.get_all_citations().await;
+        let footnotes = builder.build_footnote_references(&citations).await;
+        assert!(footnotes.contains("1."));
+        assert!(footnotes.contains("2."));
+        assert!(footnotes.contains("Title A"));
+        assert!(footnotes.contains("Title B"));
+    }
+
+    #[test]
+    fn test_reference_format_as_str() {
+        assert_eq!(ReferenceFormat::Markdown.as_str(), "markdown");
+        assert_eq!(ReferenceFormat::Html.as_str(), "html");
+        assert_eq!(ReferenceFormat::Json.as_str(), "json");
+        assert_eq!(ReferenceFormat::BibTeX.as_str(), "bibtex");
+        assert_eq!(ReferenceFormat::APA.as_str(), "apa");
+        assert_eq!(ReferenceFormat::MLA.as_str(), "mla");
+        assert_eq!(ReferenceFormat::Chicago.as_str(), "chicago");
+    }
+
+    #[test]
+    fn test_reference_format_equality() {
+        assert_eq!(ReferenceFormat::Markdown, ReferenceFormat::Markdown);
+        assert_ne!(ReferenceFormat::Markdown, ReferenceFormat::Html);
+    }
+
+    #[test]
+    fn test_reference_format_serialization() {
+        let format = ReferenceFormat::BibTeX;
+        let json = serde_json::to_string(&format).unwrap();
+        let deserialized: ReferenceFormat = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, ReferenceFormat::BibTeX);
+    }
+
+    #[test]
+    fn test_format_date_apa() {
+        let date = chrono::Utc::now();
+        let formatted = ReferenceFormatter::format_date_apa(date);
+        assert!(!formatted.is_empty());
+        assert!(formatted.contains(&date.format("%Y").to_string()));
+    }
+
+    #[test]
+    fn test_format_date_mla() {
+        let date = chrono::Utc::now();
+        let formatted = ReferenceFormatter::format_date_mla(date);
+        assert!(!formatted.is_empty());
+    }
+
+    #[test]
+    fn test_format_date_chicago() {
+        let date = chrono::Utc::now();
+        let formatted = ReferenceFormatter::format_date_chicago(date);
+        assert!(!formatted.is_empty());
+        assert!(formatted.contains(&date.format("%Y").to_string()));
+    }
+
+    #[test]
+    fn test_truncate_url_short() {
+        let url = "https://a.co";
+        let truncated = ReferenceFormatter::truncate_url(url, 50);
+        assert_eq!(truncated, url);
+    }
+
+    #[test]
+    fn test_truncate_url_exact_length() {
+        let url = "https://example.com/exact";
+        let truncated = ReferenceFormatter::truncate_url(url, url.len());
+        assert_eq!(truncated, url);
+    }
+
+    #[test]
+    fn test_sanitize_bibtex_empty() {
+        let output = ReferenceFormatter::sanitize_for_bibtex("");
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_sanitize_bibtex_no_special() {
+        let output = ReferenceFormatter::sanitize_for_bibtex("Hello World");
+        assert_eq!(output, "Hello World");
+    }
+
+    #[tokio::test]
+    async fn test_build_markdown_credibility_levels() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(
+            Citation::new("https://high.com".to_string(), "High".to_string(), SourceType::Academic),
+        ).await;
+        tracker.add_citation(
+            Citation::new("https://low.com".to_string(), "Low".to_string(), SourceType::Forum),
+        ).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let markdown = builder.build(ReferenceFormat::Markdown).await;
+        assert!(markdown.contains("[![High Credibility]](high)"));
+        assert!(markdown.contains("[![Low Credibility]](low)"));
+    }
+
+    #[tokio::test]
+    async fn test_build_html_credibility_classes() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(
+            Citation::new("https://high.com".to_string(), "High".to_string(), SourceType::Academic),
+        ).await;
+        tracker.add_citation(
+            Citation::new("https://low.com".to_string(), "Low".to_string(), SourceType::Forum),
+        ).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let html = builder.build(ReferenceFormat::Html).await;
+        assert!(html.contains("credibility-high"));
+        assert!(html.contains("credibility-low"));
+    }
+
+    #[tokio::test]
+    async fn test_build_bibtex_news_type() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://news.com".to_string(),
+            "News Title".to_string(),
+            SourceType::News,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let bibtex = builder.build(ReferenceFormat::BibTeX).await;
+        assert!(bibtex.contains("@article"));
+    }
+
+    #[tokio::test]
+    async fn test_build_json_structure() {
+        let tracker = std::sync::Arc::new(CitationTracker::new());
+        tracker.add_citation(Citation::new(
+            "https://example.com".to_string(),
+            "JSON Title".to_string(),
+            SourceType::GitHub,
+        )).await;
+
+        let builder = ReferenceBuilder::new(tracker);
+        let json = builder.build(ReferenceFormat::Json).await;
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed[0]["title"], "JSON Title");
+        assert_eq!(parsed[0]["type"], "github");
+        assert!(parsed[0]["id"].is_string());
+    }
 }

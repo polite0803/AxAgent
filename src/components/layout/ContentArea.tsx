@@ -3,6 +3,7 @@ import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { useSkillExtensionStore } from "@/stores";
 import { Spin } from "antd";
 import { lazy, Suspense, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Route, Routes, useLocation } from "react-router-dom";
 
 const LazyChatPage = lazy(() => import("@/pages/ChatPage").then((m) => ({ default: m.ChatPage })));
@@ -36,8 +37,9 @@ function PageLoader() {
 }
 
 function SafeLazyPage({ Page }: { Page: React.LazyExoticComponent<any> }) {
+  const { t } = useTranslation();
   return (
-    <PageErrorBoundary title="Page Error">
+    <PageErrorBoundary title={t("error.page")}>
       <Suspense fallback={<PageLoader />}>
         <Page />
       </Suspense>
@@ -49,6 +51,7 @@ function SafeLazyPage({ Page }: { Page: React.LazyExoticComponent<any> }) {
 function SkillRoutePage() {
   const location = useLocation();
   const pages = useSkillExtensionStore((s) => s.pages);
+  const { t } = useTranslation();
 
   const page = useMemo(() => {
     return pages.find((p) => `/skill/${p.skillName}/${p.id}` === location.pathname);
@@ -58,7 +61,7 @@ function SkillRoutePage() {
     return (
       <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
         <Spin size="large" style={{ marginBottom: 16 }} />
-        <div>Loading skill page...</div>
+        <div>{t("skill.loadingPage")}</div>
       </div>
     );
   }

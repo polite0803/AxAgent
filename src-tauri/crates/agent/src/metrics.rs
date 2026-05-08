@@ -412,38 +412,181 @@ macro_rules! log_error {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_metric_type_display() {
+        assert_eq!(MetricType::Counter.to_string(), "counter");
+        assert_eq!(MetricType::Gauge.to_string(), "gauge");
+        assert_eq!(MetricType::Histogram.to_string(), "histogram");
+        assert_eq!(MetricType::Timing.to_string(), "timing");
+    }
+
+    #[test]
+    fn test_metric_type_equality() {
+        assert_eq!(MetricType::Counter, MetricType::Counter);
+        assert_ne!(MetricType::Counter, MetricType::Gauge);
+    }
+
+    #[test]
+    fn test_metric_value_new() {
+        let mv = MetricValue::new("test_metric", 42.0, MetricType::Counter);
+        assert_eq!(mv.name, "test_metric");
+        assert_eq!(mv.value, 42.0);
+        assert_eq!(mv.metric_type, MetricType::Counter);
+        assert!(mv.labels.is_empty());
+    }
+
+    #[test]
+    fn test_metric_value_with_labels() {
+        let mut labels = HashMap::new();
+        labels.insert("key1".to_string(), serde_json::json!("value1"));
+        labels.insert("key2".to_string(), serde_json::json!(42));
+        let mv = MetricValue::new("test", 1.0, MetricType::Gauge).with_labels(labels);
+        assert_eq!(mv.labels.len(), 2);
+        assert_eq!(mv.labels.get("key1").unwrap(), "value1");
+    }
+
+    #[test]
+    fn test_metric_value_serialization() {
+        let mv = MetricValue::new("test_metric", 99.5, MetricType::Timing);
+        let json = serde_json::to_string(&mv).unwrap();
+        let deserialized: MetricValue = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.name, "test_metric");
+        assert_eq!(deserialized.value, 99.5);
+        assert_eq!(deserialized.metric_type, MetricType::Timing);
+    }
+
+    #[test]
+    fn test_log_level_display() {
+        assert_eq!(LogLevel::Trace.to_string(), "TRACE");
+        assert_eq!(LogLevel::Debug.to_string(), "DEBUG");
+        assert_eq!(LogLevel::Info.to_string(), "INFO");
+        assert_eq!(LogLevel::Warn.to_string(), "WARN");
+        assert_eq!(LogLevel::Error.to_string(), "ERROR");
+    }
+
+    #[test]
+    fn test_log_level_equality() {
+        assert_eq!(LogLevel::Info, LogLevel::Info);
+        assert_ne!(LogLevel::Info, LogLevel::Error);
+    }
+
+    #[test]
+    fn test_structured_log_entry_new() {
+        let entry = StructuredLogEntry::new(LogLevel::Info, "test message", "test_source");
+        assert_eq!(entry.level, LogLevel::Info);
+        assert_eq!(entry.message, "test message");
+        assert_eq!(entry.source, "test_source");
+        assert!(entry.fields.is_empty());
+        assert!(entry.correlation_id.is_none());
+    }
+
+    #[test]
+    fn test_structured_log_entry_with_field() {
+        let entry = StructuredLogEntry::new(LogLevel::Warn, "warning msg", "src")
+            .with_field("key1", "value1")
+            .with_field("key2", 42);
+        assert_eq!(entry.fields.len(), 2);
+        assert_eq!(entry.fields.get("key1").unwrap(), "value1");
+        assert_eq!(entry.fields.get("key2").unwrap(), 42);
+    }
+
+    #[test]
+    fn test_structured_log_entry_with_fields() {
+        let mut fields = HashMap::new();
+        fields.insert("a".to_string(), serde_json::json!(1));
+        fields.insert("b".to_string(), serde_json::json!(2));
+        let entry = StructuredLogEntry::new(LogLevel::Error, "err", "src")
+            .with_field("c", 3)
+            .with_fields(fields);
+        assert_eq!(entry.fields.len(), 3);
+    }
+
+    #[test]
+    fn test_structured_log_entry_with_correlation_id() {
+        let entry = StructuredLogEntry::new(LogLevel::Debug, "msg", "src")
+            .with_correlation_id("corr-123");
+        assert_eq!(entry.correlation_id, Some("corr-123".to_string()));
+    }
+
+    #[test]
+    fn test_structured_log_entry_serialization() {
+        let entry = StructuredLogEntry::new(LogLevel::Info, "msg", "src")
+            .with_field("k", "v")
+            .with_correlation_id("id-1");
+        let json = serde_json::to_string(&entry).unwrap();
+        let deserialized: StructuredLogEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.level, LogLevel::Info);
+        assert_eq!(deserialized.message, "msg");
+        assert_eq!(deserialized.correlation_id, Some("id-1".to_string()));
+    }
+
     #[tokio::test]
     async fn test_counter_increment() {
         let collector = MetricsCollector::new();
-
         collector.increment_counter("test_counter", 1.0).await;
         collector.increment_counter("test_counter", 2.0).await;
-
         assert_eq!(collector.get_counter("test_counter").await, 3.0);
     }
 
     #[tokio::test]
-    async fn test_gauge() {
+    async fn test_counter_increment_multiple_names() {
         let collector = MetricsCollector::new();
+        collector.increment_counter("counter_a", 5.0).await;
+        collector.increment_counter("counter_b", 10.0).await;
+        assert_eq!(collector.get_counter("counter_a").await, 5.0);
+        assert_eq!(collector.get_counter("counter_b").await, 10.0);
+    }
 
+    #[tokio::test]
+    async fn test_counter_nonexistent() {
+        let collector = MetricsCollector::new();
+        assert_eq!(collector.get_counter("nonexistent").await, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_counter_increment_by_zero() {
+        let collector = MetricsCollector::new();
+        collector.increment_counter("zero_counter", 0.0).await;
+        assert_eq!(collector.get_counter("zero_counter").await, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_counter_increment_negative() {
+        let collector = MetricsCollector::new();
+        collector.increment_counter("neg_counter", 10.0).await;
+        collector.increment_counter("neg_counter", -3.0).await;
+        assert_eq!(collector.get_counter("neg_counter").await, 7.0);
+    }
+
+    #[tokio::test]
+    async fn test_gauge_set() {
+        let collector = MetricsCollector::new();
         collector.set_gauge("test_gauge", 42.0).await;
         assert_eq!(collector.get_gauge("test_gauge").await, Some(42.0));
+    }
 
+    #[tokio::test]
+    async fn test_gauge_overwrite() {
+        let collector = MetricsCollector::new();
+        collector.set_gauge("test_gauge", 42.0).await;
         collector.set_gauge("test_gauge", 100.0).await;
         assert_eq!(collector.get_gauge("test_gauge").await, Some(100.0));
     }
 
     #[tokio::test]
-    async fn test_timing_stats() {
+    async fn test_gauge_nonexistent() {
         let collector = MetricsCollector::new();
+        assert_eq!(collector.get_gauge("nonexistent").await, None);
+    }
 
-        collector.record_timing("test_timing", 100.0).await;
-        collector.record_timing("test_timing", 200.0).await;
-        collector.record_timing("test_timing", 300.0).await;
-
-        let stats = collector.get_timing_stats("test_timing").await;
+    #[tokio::test]
+    async fn test_record_timing() {
+        let collector = MetricsCollector::new();
+        collector.record_timing("api_call", 100.0).await;
+        collector.record_timing("api_call", 200.0).await;
+        collector.record_timing("api_call", 300.0).await;
+        let stats = collector.get_timing_stats("api_call").await;
         assert!(stats.is_some());
-
         let stats = stats.unwrap();
         assert_eq!(stats.count, 3.0);
         assert_eq!(stats.min, 100.0);
@@ -452,15 +595,252 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_timing_stats_nonexistent() {
+        let collector = MetricsCollector::new();
+        assert!(collector.get_timing_stats("nonexistent").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_timing_stats_median_odd() {
+        let collector = MetricsCollector::new();
+        collector.record_timing("test", 100.0).await;
+        collector.record_timing("test", 200.0).await;
+        collector.record_timing("test", 300.0).await;
+        let stats = collector.get_timing_stats("test").await.unwrap();
+        assert_eq!(stats.median, 200.0);
+    }
+
+    #[tokio::test]
+    async fn test_timing_stats_median_even() {
+        let collector = MetricsCollector::new();
+        collector.record_timing("test", 100.0).await;
+        collector.record_timing("test", 200.0).await;
+        let stats = collector.get_timing_stats("test").await.unwrap();
+        assert_eq!(stats.median, 150.0);
+    }
+
+    #[tokio::test]
+    async fn test_timing_stats_std_dev() {
+        let collector = MetricsCollector::new();
+        collector.record_timing("test", 100.0).await;
+        collector.record_timing("test", 200.0).await;
+        collector.record_timing("test", 300.0).await;
+        let stats = collector.get_timing_stats("test").await.unwrap();
+        assert!(stats.std_dev > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_timing_stats_single_sample() {
+        let collector = MetricsCollector::new();
+        collector.record_timing("single", 42.0).await;
+        let stats = collector.get_timing_stats("single").await.unwrap();
+        assert_eq!(stats.count, 1.0);
+        assert_eq!(stats.min, 42.0);
+        assert_eq!(stats.max, 42.0);
+        assert_eq!(stats.mean, 42.0);
+        assert_eq!(stats.median, 42.0);
+        assert_eq!(stats.std_dev, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_timing_max_samples_limit() {
+        let collector = MetricsCollector::new().with_max_timing_samples(5);
+        for i in 0..10 {
+            collector.record_timing("limited", i as f64).await;
+        }
+        let stats = collector.get_timing_stats("limited").await.unwrap();
+        assert_eq!(stats.count, 5.0);
+        assert_eq!(stats.min, 5.0);
+        assert_eq!(stats.max, 9.0);
+    }
+
+    #[tokio::test]
+    async fn test_get_all_metrics_empty() {
+        let collector = MetricsCollector::new();
+        let metrics = collector.get_all_metrics().await;
+        assert!(metrics.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_all_metrics_with_data() {
+        let collector = MetricsCollector::new();
+        collector.increment_counter("cnt", 5.0).await;
+        collector.set_gauge("gauge", 42.0).await;
+        collector.record_timing("timing", 100.0).await;
+
+        let metrics = collector.get_all_metrics().await;
+        assert!(metrics.contains_key("cnt"));
+        assert!(metrics.contains_key("gauge"));
+        assert!(metrics.contains_key("timing"));
+
+        assert_eq!(metrics.get("cnt").unwrap().metric_type, MetricType::Counter);
+        assert_eq!(metrics.get("gauge").unwrap().metric_type, MetricType::Gauge);
+        assert_eq!(metrics.get("timing").unwrap().metric_type, MetricType::Timing);
+    }
+
+    #[tokio::test]
+    async fn test_get_all_metrics_timing_has_labels() {
+        let collector = MetricsCollector::new();
+        collector.record_timing("api", 100.0).await;
+        collector.record_timing("api", 200.0).await;
+
+        let metrics = collector.get_all_metrics().await;
+        let timing_metric = metrics.get("api").unwrap();
+        assert!(timing_metric.labels.contains_key("count"));
+        assert!(timing_metric.labels.contains_key("min"));
+        assert!(timing_metric.labels.contains_key("max"));
+        assert!(timing_metric.labels.contains_key("median"));
+    }
+
+    #[tokio::test]
     async fn test_reset() {
         let collector = MetricsCollector::new();
-
         collector.increment_counter("test", 1.0).await;
         collector.set_gauge("test", 42.0).await;
+        collector.record_timing("test", 100.0).await;
 
         collector.reset().await;
 
         assert_eq!(collector.get_counter("test").await, 0.0);
         assert!(collector.get_gauge("test").await.is_none());
+        assert!(collector.get_timing_stats("test").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_reset_then_add() {
+        let collector = MetricsCollector::new();
+        collector.increment_counter("test", 10.0).await;
+        collector.reset().await;
+        collector.increment_counter("test", 5.0).await;
+        assert_eq!(collector.get_counter("test").await, 5.0);
+    }
+
+    #[test]
+    fn test_metrics_collector_default() {
+        let collector = MetricsCollector::default();
+        assert_eq!(collector.max_timing_samples, 1000);
+    }
+
+    #[test]
+    fn test_metrics_collector_with_max_timing_samples() {
+        let collector = MetricsCollector::new().with_max_timing_samples(50);
+        assert_eq!(collector.max_timing_samples, 50);
+    }
+
+    #[test]
+    fn test_timed_guard_new() {
+        let guard = TimedGuard::new("test_metric");
+        assert_eq!(guard.metric_name(), "test_metric");
+        assert_eq!(guard.duration_ms(), 0.0);
+    }
+
+    #[test]
+    fn test_timed_guard_finish() {
+        let mut guard = TimedGuard::new("test_metric");
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        guard.finish();
+        assert!(guard.duration_ms() > 0.0);
+    }
+
+    #[test]
+    fn test_timed_guard_drop_auto_finish() {
+        let duration = {
+            let guard = TimedGuard::new("auto_metric");
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            guard.duration_ms()
+        };
+        assert_eq!(duration, 0.0);
+    }
+
+    #[test]
+    fn test_timed_guard_manual_finish_prevents_double() {
+        let mut guard = TimedGuard::new("test");
+        guard.finish();
+        let first = guard.duration_ms();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        guard.finish();
+        let second = guard.duration_ms();
+        assert_eq!(first, second);
+    }
+
+    #[tokio::test]
+    async fn test_record_timing_async() {
+        let collector = MetricsCollector::new();
+        record_timing_async(&collector, "async_timing", 123.0).await;
+        let stats = collector.get_timing_stats("async_timing").await;
+        assert!(stats.is_some());
+        assert_eq!(stats.unwrap().mean, 123.0);
+    }
+
+    #[test]
+    fn test_log_with_fields_info() {
+        let mut fields = HashMap::new();
+        fields.insert("key".to_string(), serde_json::json!("value"));
+        log_with_fields(LogLevel::Info, "test info message", "test_source", fields);
+    }
+
+    #[test]
+    fn test_log_with_fields_error() {
+        let mut fields = HashMap::new();
+        fields.insert("error_code".to_string(), serde_json::json!(500));
+        log_with_fields(LogLevel::Error, "test error message", "error_source", fields);
+    }
+
+    #[test]
+    fn test_log_with_fields_warn() {
+        let mut fields = HashMap::new();
+        fields.insert("warning".to_string(), serde_json::json!("deprecated"));
+        log_with_fields(LogLevel::Warn, "test warn message", "warn_source", fields);
+    }
+
+    #[test]
+    fn test_log_with_fields_debug() {
+        let fields = HashMap::new();
+        log_with_fields(LogLevel::Debug, "test debug message", "debug_source", fields);
+    }
+
+    #[test]
+    fn test_log_with_fields_trace() {
+        let fields = HashMap::new();
+        log_with_fields(LogLevel::Trace, "test trace message", "trace_source", fields);
+    }
+
+    #[test]
+    fn test_timing_stats_serialization() {
+        let stats = TimingStats {
+            count: 5.0,
+            min: 10.0,
+            max: 100.0,
+            mean: 50.0,
+            median: 45.0,
+            std_dev: 15.0,
+        };
+        let json = serde_json::to_string(&stats).unwrap();
+        let deserialized: TimingStats = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.count, 5.0);
+        assert_eq!(deserialized.min, 10.0);
+        assert_eq!(deserialized.max, 100.0);
+        assert_eq!(deserialized.mean, 50.0);
+        assert_eq!(deserialized.median, 45.0);
+        assert_eq!(deserialized.std_dev, 15.0);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_counter_increment() {
+        let collector = std::sync::Arc::new(MetricsCollector::new());
+        let mut handles = vec![];
+
+        for _ in 0..10 {
+            let c = collector.clone();
+            handles.push(tokio::spawn(async move {
+                c.increment_counter("concurrent", 1.0).await;
+            }));
+        }
+
+        for handle in handles {
+            handle.await.unwrap();
+        }
+
+        assert_eq!(collector.get_counter("concurrent").await, 10.0);
     }
 }

@@ -929,6 +929,79 @@ fn infer_page_type(title: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_core::types::{ChatResponse, ChatStreamChunk, EmbedRequest, EmbedResponse, Model, TokenUsage};
+    use axagent_providers::ProviderAdapter;
+    use futures::Stream;
+    use std::pin::Pin;
+
+    struct MockProviderAdapter;
+
+    #[async_trait::async_trait]
+    impl ProviderAdapter for MockProviderAdapter {
+        async fn chat(
+            &self,
+            _ctx: &ProviderRequestContext,
+            _request: ChatRequest,
+        ) -> axagent_core::error::Result<ChatResponse> {
+            Ok(ChatResponse {
+                id: "test".to_string(),
+                model: "test".to_string(),
+                content: "test".to_string(),
+                thinking: None,
+                usage: TokenUsage { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                tool_calls: None,
+            })
+        }
+
+        fn chat_stream(
+            &self,
+            _ctx: &ProviderRequestContext,
+            _request: ChatRequest,
+        ) -> Pin<Box<dyn Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>> {
+            Box::pin(futures::stream::empty())
+        }
+
+        async fn list_models(
+            &self,
+            _ctx: &ProviderRequestContext,
+        ) -> axagent_core::error::Result<Vec<Model>> {
+            Ok(vec![])
+        }
+
+        async fn embed(
+            &self,
+            _ctx: &ProviderRequestContext,
+            _request: EmbedRequest,
+        ) -> axagent_core::error::Result<EmbedResponse> {
+            Ok(EmbedResponse { embeddings: vec![vec![0.0; 128]], dimensions: 128 })
+        }
+    }
+
+    fn make_llm_ctx() -> ProviderRequestContext {
+        ProviderRequestContext {
+            api_key: "test".to_string(),
+            key_id: "test".to_string(),
+            provider_id: "test".to_string(),
+            base_url: None,
+            api_path: None,
+            proxy_config: None,
+            custom_headers: None,
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        }
+    }
+
+    async fn make_compiler() -> WikiCompiler {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        WikiCompiler::new(
+            Arc::new(db),
+            Arc::new(MockProviderAdapter),
+            make_llm_ctx(),
+            "test-model".to_string(),
+        )
+    }
 
     #[test]
     fn test_compiled_page_serialization() {
@@ -1038,6 +1111,8 @@ mod tests {
         assert!(WikiCompiler::is_valid_page_type("log"));
         assert!(WikiCompiler::is_valid_page_type("overview"));
         assert!(!WikiCompiler::is_valid_page_type("invalid"));
+        assert!(!WikiCompiler::is_valid_page_type(""));
+        assert!(!WikiCompiler::is_valid_page_type("note"));
     }
 
     #[test]
@@ -1074,6 +1149,8 @@ mod tests {
         assert_eq!(page_types_heading("comparison"), "Comparisons");
         assert_eq!(page_types_heading("source_summary"), "Source Summaries");
         assert_eq!(page_types_heading("other"), "Other");
+        assert_eq!(page_types_heading("note"), "Other");
+        assert_eq!(page_types_heading(""), "Other");
     }
 
     #[test]
@@ -1082,6 +1159,10 @@ mod tests {
         assert!(schema.contains("Page Types"));
         assert!(schema.contains("concept"));
         assert!(schema.contains("entity"));
+        assert!(schema.contains("comparison"));
+        assert!(schema.contains("source_summary"));
+        assert!(schema.contains("Quality Requirements"));
+        assert!(schema.contains("wikilinks"));
     }
 
     #[test]
@@ -1089,5 +1170,401 @@ mod tests {
         let raw = "```json\n{\"title\": \"Test\u{201c}Quote\u{201d}\", \"content\": \"content\u{2018}single\u{2019}\", \"page_type\": \"concept\", \"source_ids\": []}\n```";
         let result = WikiCompiler::parse_llm_response(raw);
         assert!(result.is_ok() || result.is_err());
+    }
+
+    #[test]
+    fn test_try_markdown_parse_single_section() {
+        let raw = "## Machine Learning\n\nMachine learning is a subset of AI. It involves training models. Models learn from data.";
+        let pages = WikiCompiler::try_markdown_parse(raw);
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].title, "Machine Learning");
+        assert!(pages[0].content.contains("subset of AI"));
+        assert_eq!(pages[0].page_type, "concept");
+        assert!(pages[0].source_ids.is_empty());
+    }
+
+    #[test]
+    fn test_try_markdown_parse_multiple_sections() {
+        let raw = "## React vs Vue\n\nReact and Vue are frameworks.\n\n## Angular\n\nAngular is a framework by Google Inc.";
+        let pages = WikiCompiler::try_markdown_parse(raw);
+        assert_eq!(pages.len(), 2);
+        assert_eq!(pages[0].title, "React vs Vue");
+        assert_eq!(pages[1].title, "Angular");
+    }
+
+    #[test]
+    fn test_try_markdown_parse_no_h2_headers() {
+        let raw = "Just some plain text\nwithout any headers\nnothing to parse here";
+        let pages = WikiCompiler::try_markdown_parse(raw);
+        assert!(pages.is_empty());
+    }
+
+    #[test]
+    fn test_try_markdown_parse_empty_section_skipped() {
+        let raw = "## Empty Section\n\n## Filled Section\n\nThis has content.";
+        let pages = WikiCompiler::try_markdown_parse(raw);
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].title, "Filled Section");
+    }
+
+    #[test]
+    fn test_try_markdown_parse_preserves_content() {
+        let raw = "## Topic\n\nFirst paragraph.\n\nSecond paragraph with [[wikilink]].\n- List item 1\n- List item 2";
+        let pages = WikiCompiler::try_markdown_parse(raw);
+        assert_eq!(pages.len(), 1);
+        assert!(pages[0].content.contains("[[wikilink]]"));
+        assert!(pages[0].content.contains("List item 1"));
+    }
+
+    #[tokio::test]
+    async fn test_calculate_quality_score_short_content() {
+        let compiler = make_compiler().await;
+        let page = CompiledPage {
+            title: "Short".to_string(),
+            content: "Too short".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec![],
+        };
+        let score = compiler.calculate_quality_score(&page).await;
+        assert!(score < 1.0);
+        assert!(score <= 0.6);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_quality_score_no_wikilinks() {
+        let compiler = make_compiler().await;
+        let page = CompiledPage {
+            title: "No Links".to_string(),
+            content: "A sufficiently long content without any wiki links. It has multiple sentences. Each one is clear.".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec![],
+        };
+        let score = compiler.calculate_quality_score(&page).await;
+        assert!(score < 1.0);
+        assert!((score - 0.9).abs() < f64::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_quality_score_uncertain_language_english() {
+        let compiler = make_compiler().await;
+        let page = CompiledPage {
+            title: "Uncertain".to_string(),
+            content: "I don't know the answer. Cannot determine the result. I'm not sure about this. This is a longer content with multiple sentences.".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec![],
+        };
+        let score = compiler.calculate_quality_score(&page).await;
+        assert!(score < 0.5);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_quality_score_uncertain_language_chinese() {
+        let compiler = make_compiler().await;
+        let page = CompiledPage {
+            title: "Chinese Uncertain".to_string(),
+            content: "我无法确定这个结果。我不知道答案。这是一个包含多个句子的长内容。".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec![],
+        };
+        let score = compiler.calculate_quality_score(&page).await;
+        assert!(score < 0.5);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_quality_score_few_sentences() {
+        let compiler = make_compiler().await;
+        let page = CompiledPage {
+            title: "Few Sentences".to_string(),
+            content: "Only two sentences here".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec![],
+        };
+        let score = compiler.calculate_quality_score(&page).await;
+        assert!(score < 1.0);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_quality_score_perfect_page() {
+        let compiler = make_compiler().await;
+        let page = CompiledPage {
+            title: "Great Page".to_string(),
+            content: "This is a well-written page. It covers the topic thoroughly. It includes [[related links]] to other pages. The content is detailed and accurate. Multiple perspectives are considered.".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec!["src1".to_string()],
+        };
+        let score = compiler.calculate_quality_score(&page).await;
+        assert!((score - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_quality_score_combined_deductions() {
+        let compiler = make_compiler().await;
+        let page = CompiledPage {
+            title: "Bad Page".to_string(),
+            content: "I don't know".to_string(),
+            page_type: "concept".to_string(),
+            source_ids: vec![],
+        };
+        let score = compiler.calculate_quality_score(&page).await;
+        assert_eq!(score, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_should_overwrite_non_llm_author() {
+        let compiler = make_compiler().await;
+        let note = Note {
+            id: "n1".to_string(),
+            vault_id: "v1".to_string(),
+            title: "Test".to_string(),
+            file_path: "test.md".to_string(),
+            content: "content".to_string(),
+            content_hash: "hash".to_string(),
+            author: "user".to_string(),
+            page_type: None,
+            source_refs: None,
+            related_pages: None,
+            quality_score: None,
+            last_linted_at: None,
+            last_compiled_at: None,
+            compiled_source_hash: None,
+            user_edited: false,
+            user_edited_at: None,
+            created_at: 0,
+            updated_at: 0,
+            is_deleted: false,
+        };
+        let result = compiler.should_overwrite(&note).await.unwrap();
+        assert!(!result);
+    }
+
+    #[tokio::test]
+    async fn test_should_overwrite_user_edited() {
+        let compiler = make_compiler().await;
+        let note = Note {
+            id: "n1".to_string(),
+            vault_id: "v1".to_string(),
+            title: "Test".to_string(),
+            file_path: "test.md".to_string(),
+            content: "content".to_string(),
+            content_hash: "hash".to_string(),
+            author: "llm".to_string(),
+            page_type: None,
+            source_refs: None,
+            related_pages: None,
+            quality_score: None,
+            last_linted_at: None,
+            last_compiled_at: None,
+            compiled_source_hash: None,
+            user_edited: true,
+            user_edited_at: Some(123),
+            created_at: 0,
+            updated_at: 0,
+            is_deleted: false,
+        };
+        let result = compiler.should_overwrite(&note).await.unwrap();
+        assert!(!result);
+    }
+
+    #[tokio::test]
+    async fn test_should_overwrite_llm_not_edited() {
+        let compiler = make_compiler().await;
+        let note = Note {
+            id: "n1".to_string(),
+            vault_id: "v1".to_string(),
+            title: "Test".to_string(),
+            file_path: "test.md".to_string(),
+            content: "content".to_string(),
+            content_hash: "hash".to_string(),
+            author: "llm".to_string(),
+            page_type: None,
+            source_refs: None,
+            related_pages: None,
+            quality_score: None,
+            last_linted_at: None,
+            last_compiled_at: None,
+            compiled_source_hash: None,
+            user_edited: false,
+            user_edited_at: None,
+            created_at: 0,
+            updated_at: 0,
+            is_deleted: false,
+        };
+        let result = compiler.should_overwrite(&note).await.unwrap();
+        assert!(result);
+    }
+
+    #[tokio::test]
+    async fn test_page_type_dir_all_types() {
+        let compiler = make_compiler().await;
+        assert_eq!(compiler.page_type_dir("concept"), "concepts");
+        assert_eq!(compiler.page_type_dir("entity"), "entities");
+        assert_eq!(compiler.page_type_dir("comparison"), "comparisons");
+        assert_eq!(compiler.page_type_dir("source_summary"), "sources");
+        assert_eq!(compiler.page_type_dir("index"), "");
+        assert_eq!(compiler.page_type_dir("log"), "");
+        assert_eq!(compiler.page_type_dir("overview"), "");
+        assert_eq!(compiler.page_type_dir("unknown"), "pages");
+        assert_eq!(compiler.page_type_dir("note"), "pages");
+    }
+
+    #[test]
+    fn test_parse_llm_response_multiple_json_blocks() {
+        let raw = r#"```json
+{"title": "Page A", "content": "content a with details", "page_type": "concept", "source_ids": ["s1"]}
+```
+
+Some text between blocks
+
+```json
+{"title": "Page B", "content": "content b with info", "page_type": "entity", "source_ids": ["s2"]}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].title, "Page A");
+        assert_eq!(result[1].title, "Page B");
+    }
+
+    #[test]
+    fn test_parse_llm_response_mixed_valid_invalid() {
+        let raw = r#"```json
+{"title": "Valid", "content": "valid content here", "page_type": "concept", "source_ids": []}
+```
+
+```json
+{invalid json here}
+```
+
+```json
+{"title": "Also Valid", "content": "another valid page", "page_type": "entity", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_llm_response_empty_json_block() {
+        let raw = r#"```json
+```
+
+```json
+{"title": "Only Valid", "content": "the only valid one", "page_type": "concept", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].title, "Only Valid");
+    }
+
+    #[test]
+    fn test_parse_llm_response_fallback_to_markdown() {
+        let raw = "## Fallback Topic\n\nThis is content parsed via markdown fallback. It has enough detail.\n\n## Another Topic\n\nMore content here.";
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].title, "Fallback Topic");
+        assert_eq!(result[1].title, "Another Topic");
+    }
+
+    #[test]
+    fn test_parse_llm_response_index_page_type() {
+        let raw = r#"```json
+{"title": "Index", "content": "index content here with links", "page_type": "index", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].page_type, "index");
+    }
+
+    #[test]
+    fn test_parse_llm_response_overview_page_type() {
+        let raw = r#"```json
+{"title": "Overview", "content": "overview content here", "page_type": "overview", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].page_type, "overview");
+    }
+
+    #[test]
+    fn test_infer_page_type_vs_with_period() {
+        assert_eq!(infer_page_type("React vs. Angular"), "comparison");
+    }
+
+    #[test]
+    fn test_infer_page_type_source_keyword() {
+        assert_eq!(infer_page_type("Source Analysis"), "source_summary");
+    }
+
+    #[test]
+    fn test_infer_page_type_article_keyword() {
+        assert_eq!(infer_page_type("Article Review"), "source_summary");
+    }
+
+    #[test]
+    fn test_infer_page_type_default_concept() {
+        assert_eq!(infer_page_type("Quantum Computing"), "concept");
+        assert_eq!(infer_page_type("Design Patterns"), "concept");
+        assert_eq!(infer_page_type(""), "concept");
+    }
+
+    #[test]
+    fn test_default_schema_quality_requirements() {
+        let schema = WikiCompiler::default_schema();
+        assert!(schema.contains("at least 3 sentences"));
+        assert!(schema.contains("wikilinks"));
+        assert!(schema.contains("cite the original source"));
+        assert!(schema.contains("uncertain language"));
+    }
+
+    #[test]
+    fn test_compiled_page_from_json_value() {
+        let json = serde_json::json!({
+            "title": "JSON Page",
+            "content": "content from json",
+            "page_type": "comparison",
+            "source_ids": ["s1", "s2"]
+        });
+        let page: CompiledPage = serde_json::from_value(json).unwrap();
+        assert_eq!(page.title, "JSON Page");
+        assert_eq!(page.page_type, "comparison");
+        assert_eq!(page.source_ids.len(), 2);
+    }
+
+    #[test]
+    fn test_compile_result_with_mixed_data() {
+        let result = CompileResult {
+            new_pages: vec![CompiledPage {
+                title: "New".to_string(),
+                content: "new content".to_string(),
+                page_type: "concept".to_string(),
+                source_ids: vec![],
+            }],
+            updated_pages: vec![CompiledPage {
+                title: "Updated".to_string(),
+                content: "updated content".to_string(),
+                page_type: "entity".to_string(),
+                source_ids: vec!["src1".to_string()],
+            }],
+            errors: vec!["error1".to_string(), "error2".to_string()],
+        };
+        assert_eq!(result.new_pages.len(), 1);
+        assert_eq!(result.updated_pages.len(), 1);
+        assert_eq!(result.errors.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_llm_response_log_page_type() {
+        let raw = r#"```json
+{"title": "Operation Log", "content": "log content here with entries", "page_type": "log", "source_ids": []}
+```"#;
+        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].page_type, "log");
+    }
+
+    #[test]
+    fn test_try_markdown_parse_comparison_title() {
+        let raw = "## Python vs Rust\n\nPython is interpreted. Rust is compiled.";
+        let pages = WikiCompiler::try_markdown_parse(raw);
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].page_type, "comparison");
     }
 }

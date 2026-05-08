@@ -176,59 +176,39 @@ export function Sidebar() {
     const title = shortcutLabel ? `${tooltipText} (${shortcutLabel})` : tooltipText;
 
     return (
-      <Tooltip key={item.key} title={title} placement="right">
-        <div
-          onClick={() => navigate(item.path)}
-          className={isActive ? "ax-nav-item-active" : ""}
-          data-tutorial={item.key === "knowledge" ? "knowledge-nav" : undefined}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: 32,
-            width: "100%",
-            borderRadius: 6,
-            cursor: "pointer",
-            position: "relative",
-            backgroundColor: isActive ? token.colorPrimaryBg : "transparent",
-            paddingLeft: 12,
-            paddingRight: 12,
-            gap: 10,
-            transition: "background-color 0.12s ease-in-out",
-          }}
-          onMouseEnter={(e) => {
-            if (!isActive) {
-              e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isActive) {
-              e.currentTarget.style.backgroundColor = "transparent";
-            }
-          }}
-        >
-          <div className="ax-nav-indicator" />
-          <span style={{ display: "flex", alignItems: "center", flexShrink: 0, width: 20, justifyContent: "center" }}>
-            {item.icon}
+      <button
+        type="button"
+        onClick={() => navigate(item.path)}
+        className={`ax-nav-item${isActive ? " ax-nav-item-active" : ""}`}
+        data-tutorial={item.key === "knowledge" ? "knowledge-nav" : undefined}
+        aria-label={title}
+        aria-current={isActive ? "page" : undefined}
+        style={{
+          backgroundColor: isActive ? token.colorPrimaryBg : undefined,
+        }}
+      >
+        <div className="ax-nav-indicator" />
+        <span style={{ display: "flex", alignItems: "center", flexShrink: 0, width: 20, justifyContent: "center" }}>
+          {item.icon}
+        </span>
+        {!sidebarCollapsed && (
+          <span
+            className="ax-nav-label"
+            style={{
+              fontSize: 13,
+              fontWeight: isActive ? 500 : 400,
+              color: isActive ? token.colorPrimary : token.colorText,
+            }}
+          >
+            {label}
           </span>
-          {!sidebarCollapsed && (
-            <span
-              className="ax-nav-label"
-              style={{
-                fontSize: 13,
-                fontWeight: isActive ? 500 : 400,
-                color: isActive ? token.colorPrimary : token.colorText,
-              }}
-            >
-              {label}
-            </span>
-          )}
-          {shortcutLabel && (
-            <span style={{ marginLeft: "auto", fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 }}>
-              {shortcutLabel}
-            </span>
-          )}
-        </div>
-      </Tooltip>
+        )}
+        {shortcutLabel && (
+          <span style={{ marginLeft: "auto", fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 }}>
+            {shortcutLabel}
+          </span>
+        )}
+      </button>
     );
   };
 
@@ -281,27 +261,16 @@ export function Sidebar() {
       }}
     >
       {/* Collapse toggle */}
-      <div
+      <button
+        type="button"
+        className="ax-sidebar-toggle"
         onClick={toggleSidebar}
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: 32,
-          marginBottom: 8,
-          cursor: "pointer",
-          borderRadius: 6,
-          color: token.colorTextSecondary,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "transparent";
-        }}
+        aria-label={sidebarCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+        aria-expanded={!sidebarCollapsed}
+        style={{ color: token.colorTextSecondary }}
       >
         {sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-      </div>
+      </button>
 
       <nav style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 }}>
         {sections.map((section) => (
@@ -311,46 +280,36 @@ export function Sidebar() {
                 {t(section.labelKey)}
               </div>
             )}
-            {section.items.map((item) => (
-              <Tooltip
-                key={item.key}
-                title={sidebarCollapsed
-                  ? (item.isPlugin ? `${t(item.labelKey)} (${item.pluginName})` : t(item.labelKey))
-                  : ""}
-                placement="right"
-              >
-                {renderNavButton(item)}
-              </Tooltip>
-            ))}
+            {section.items.map((item) => {
+              const label = item.isPlugin ? item.labelKey : t(item.labelKey);
+              const tooltipText = item.isPlugin ? `${label} (${item.pluginName})` : label;
+              return (
+                <Tooltip
+                  key={item.key}
+                  title={sidebarCollapsed ? tooltipText : ""}
+                  placement="right"
+                >
+                  {renderNavButton(item)}
+                </Tooltip>
+              );
+            })}
           </div>
         ))}
       </nav>
 
       <div className="flex-1" />
 
-      <Tooltip title={profile.name || t("userProfile.title")} placement="right">
-        <div
+      <Tooltip title={sidebarCollapsed ? (profile.name || t("userProfile.title")) : ""} placement="right">
+        <button
+          type="button"
+          className="ax-sidebar-user"
           onClick={() => setProfileModalOpen(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 12px",
-            borderRadius: 6,
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-          }}
+          aria-label={t("userProfile.title")}
         >
           {renderUserAvatar()}
           {!sidebarCollapsed && (
             <span
-              className="ax-nav-label"
+              className="ax-sidebar-user-name"
               style={{
                 fontSize: 13,
                 color: token.colorTextSecondary,
@@ -359,7 +318,7 @@ export function Sidebar() {
               {profile.name || t("userProfile.title")}
             </span>
           )}
-        </div>
+        </button>
       </Tooltip>
 
       <UserProfileModal open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />

@@ -6,18 +6,13 @@ use tokio::sync::broadcast;
 
 const BROADCAST_CAPACITY: usize = 256;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub enum EntryPriority {
-    Low,
+    #[default]
     Normal,
+    Low,
     High,
     Critical,
-}
-
-impl Default for EntryPriority {
-    fn default() -> Self {
-        EntryPriority::Normal
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

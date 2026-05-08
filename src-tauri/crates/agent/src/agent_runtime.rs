@@ -427,4 +427,178 @@ mod tests {
         let debug_str = format!("{:?}", err);
         assert!(debug_str.contains("RuntimeError"));
     }
+
+    #[test]
+    fn test_agent_runtime_config_default_role() {
+        let config = AgentRuntimeConfig::default();
+        assert_eq!(config.role, "executor");
+    }
+
+    #[test]
+    fn test_agent_runtime_config_default_max_iterations() {
+        let config = AgentRuntimeConfig::default();
+        assert_eq!(config.max_iterations, 50);
+    }
+
+    #[test]
+    fn test_agent_runtime_config_default_timeout() {
+        let config = AgentRuntimeConfig::default();
+        assert_eq!(config.timeout_secs, 300);
+    }
+
+    #[test]
+    fn test_agent_runtime_config_default_empty_system_prompt() {
+        let config = AgentRuntimeConfig::default();
+        assert!(config.system_prompt.is_empty());
+    }
+
+    #[test]
+    fn test_agent_output_default_response() {
+        let output = AgentOutput {
+            response: String::new(),
+            iterations: 0,
+            tool_call_count: 0,
+        };
+        assert!(output.response.is_empty());
+        assert_eq!(output.iterations, 0);
+        assert_eq!(output.tool_call_count, 0);
+    }
+
+    #[test]
+    fn test_agent_event_tool_use_fields() {
+        let event = AgentEvent::ToolUse {
+            tool_name: "write_file".to_string(),
+            tool_use_id: "tool-123".to_string(),
+        };
+        if let AgentEvent::ToolUse { tool_name, tool_use_id } = event {
+            assert_eq!(tool_name, "write_file");
+            assert_eq!(tool_use_id, "tool-123");
+        }
+    }
+
+    #[test]
+    fn test_agent_event_tool_result_fields() {
+        let event = AgentEvent::ToolResult {
+            tool_use_id: "tool-456".to_string(),
+            is_error: true,
+        };
+        if let AgentEvent::ToolResult { tool_use_id, is_error } = event {
+            assert_eq!(tool_use_id, "tool-456");
+            assert!(is_error);
+        }
+    }
+
+    #[test]
+    fn test_agent_event_error_field() {
+        let event = AgentEvent::Error {
+            error: "API timeout".to_string(),
+        };
+        if let AgentEvent::Error { error } = event {
+            assert_eq!(error, "API timeout");
+        }
+    }
+
+    #[test]
+    fn test_agent_event_turn_started_iteration() {
+        let event = AgentEvent::TurnStarted { iteration: 5 };
+        if let AgentEvent::TurnStarted { iteration } = event {
+            assert_eq!(iteration, 5);
+        }
+    }
+
+    #[test]
+    fn test_agent_event_turn_completed_iteration() {
+        let event = AgentEvent::TurnCompleted { iteration: 10 };
+        if let AgentEvent::TurnCompleted { iteration } = event {
+            assert_eq!(iteration, 10);
+        }
+    }
+
+    #[test]
+    fn test_agent_runtime_error_session_message() {
+        let err = AgentRuntimeError::SessionError("session expired".to_string());
+        let msg = err.to_string();
+        assert!(msg.contains("session expired"));
+    }
+
+    #[test]
+    fn test_agent_runtime_error_tool_message() {
+        let err = AgentRuntimeError::ToolError("tool crashed".to_string());
+        let msg = err.to_string();
+        assert!(msg.contains("tool crashed"));
+    }
+
+    #[test]
+    fn test_agent_output_clone_equality() {
+        let output = AgentOutput {
+            response: "hello".to_string(),
+            iterations: 3,
+            tool_call_count: 2,
+        };
+        let cloned = output.clone();
+        assert_eq!(cloned.response, output.response);
+        assert_eq!(cloned.iterations, output.iterations);
+        assert_eq!(cloned.tool_call_count, output.tool_call_count);
+    }
+
+    #[test]
+    fn test_agent_output_debug_format() {
+        let output = AgentOutput {
+            response: "test".to_string(),
+            iterations: 1,
+            tool_call_count: 0,
+        };
+        let debug = format!("{:?}", output);
+        assert!(debug.contains("test"));
+        assert!(debug.contains("response"));
+    }
+
+    #[test]
+    fn test_agent_event_all_variants_clone() {
+        let events = vec![
+            AgentEvent::TurnStarted { iteration: 0 },
+            AgentEvent::TurnCompleted { iteration: 1 },
+            AgentEvent::ToolUse { tool_name: "t".to_string(), tool_use_id: "id".to_string() },
+            AgentEvent::ToolResult { tool_use_id: "id".to_string(), is_error: false },
+            AgentEvent::Error { error: "e".to_string() },
+            AgentEvent::ProactiveTick,
+        ];
+        let cloned = events.clone();
+        assert_eq!(cloned.len(), 6);
+    }
+
+    #[test]
+    fn test_agent_runtime_error_variants() {
+        let runtime = AgentRuntimeError::RuntimeError("r".to_string());
+        let session = AgentRuntimeError::SessionError("s".to_string());
+        let tool = AgentRuntimeError::ToolError("t".to_string());
+        assert!(runtime.to_string().contains("r"));
+        assert!(session.to_string().contains("s"));
+        assert!(tool.to_string().contains("t"));
+    }
+
+    #[test]
+    fn test_agent_runtime_config_custom_values() {
+        let config = AgentRuntimeConfig {
+            role: "planner".to_string(),
+            system_prompt: "Plan tasks".to_string(),
+            max_iterations: 100,
+            timeout_secs: 600,
+        };
+        assert_eq!(config.role, "planner");
+        assert_eq!(config.system_prompt, "Plan tasks");
+        assert_eq!(config.max_iterations, 100);
+        assert_eq!(config.timeout_secs, 600);
+    }
+
+    #[test]
+    fn test_agent_output_large_values() {
+        let output = AgentOutput {
+            response: "a".repeat(10000),
+            iterations: usize::MAX,
+            tool_call_count: 999,
+        };
+        assert_eq!(output.response.len(), 10000);
+        assert_eq!(output.iterations, usize::MAX);
+    }
 }

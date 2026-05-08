@@ -358,7 +358,6 @@ impl LocalToolRegistry {
                 let active = settings_model::ActiveModel {
                     key: Set(key.to_string()),
                     value: Set(serialized),
-                    ..Default::default()
                 };
                 active.insert(db).await.map_err(|e| e.to_string())?;
             },
@@ -544,3 +543,333 @@ pub use deep_research::{
 };
 
 pub use relevance::{RankedPage, RelevanceConfig, RelevanceEngine};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_local_tool_def_fields() {
+        let def = LocalToolDef {
+            group_id: "g1".into(),
+            group_name: "Group One".into(),
+            tool_name: "tool_a".into(),
+            description: "A test tool".into(),
+            input_schema: serde_json::json!({"type": "object"}),
+            env_json: None,
+            timeout_secs: None,
+        };
+        assert_eq!(def.group_id, "g1");
+        assert_eq!(def.group_name, "Group One");
+        assert_eq!(def.tool_name, "tool_a");
+        assert_eq!(def.description, "A test tool");
+        assert!(def.env_json.is_none());
+        assert!(def.timeout_secs.is_none());
+    }
+
+    #[test]
+    fn test_local_tool_def_with_optional_fields() {
+        let def = LocalToolDef {
+            group_id: "g2".into(),
+            group_name: "Group Two".into(),
+            tool_name: "tool_b".into(),
+            description: "Another tool".into(),
+            input_schema: serde_json::json!({}),
+            env_json: Some(r#"{"KEY":"VAL"}"#.into()),
+            timeout_secs: Some(60),
+        };
+        assert_eq!(def.env_json.as_deref(), Some(r#"{"KEY":"VAL"}"#));
+        assert_eq!(def.timeout_secs, Some(60));
+    }
+
+    #[test]
+    fn test_local_tool_group_fields() {
+        let group = LocalToolGroup {
+            group_id: "g1".into(),
+            group_name: "Group One".into(),
+            enabled: true,
+            tools: vec![],
+        };
+        assert_eq!(group.group_id, "g1");
+        assert_eq!(group.group_name, "Group One");
+        assert!(group.enabled);
+        assert!(group.tools.is_empty());
+    }
+
+    #[test]
+    fn test_local_tool_group_disabled() {
+        let group = LocalToolGroup {
+            group_id: "g2".into(),
+            group_name: "Group Two".into(),
+            enabled: false,
+            tools: vec![LocalToolDef {
+                group_id: "g2".into(),
+                group_name: "Group Two".into(),
+                tool_name: "tool_c".into(),
+                description: "desc".into(),
+                input_schema: serde_json::json!({}),
+                env_json: None,
+                timeout_secs: None,
+            }],
+        };
+        assert!(!group.enabled);
+        assert_eq!(group.tools.len(), 1);
+    }
+
+    #[test]
+    fn test_local_tool_registry_init() {
+        let registry = LocalToolRegistry::init_from_registry();
+        assert!(!registry.flat_tools.is_empty() || !registry.tool_defs.is_empty());
+    }
+
+    #[test]
+    fn test_local_tool_registry_is_enabled_existing() {
+        let registry = LocalToolRegistry::init_from_registry();
+        if let Some(tool_name) = registry.tool_defs.keys().next() {
+            assert!(registry.is_enabled(tool_name));
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_is_enabled_nonexistent() {
+        let registry = LocalToolRegistry::init_from_registry();
+        assert!(!registry.is_enabled("nonexistent_tool_xyz_12345"));
+    }
+
+    #[test]
+    fn test_local_tool_registry_contains_existing() {
+        let registry = LocalToolRegistry::init_from_registry();
+        if let Some(tool_name) = registry.tool_defs.keys().next() {
+            assert!(registry.contains(tool_name));
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_contains_nonexistent() {
+        let registry = LocalToolRegistry::init_from_registry();
+        assert!(!registry.contains("no_such_tool_at_all"));
+    }
+
+    #[test]
+    fn test_local_tool_registry_all_tool_defs() {
+        let registry = LocalToolRegistry::init_from_registry();
+        let defs = registry.all_tool_defs();
+        assert!(!defs.is_empty());
+        for (name, def) in defs {
+            assert_eq!(name, &def.tool_name);
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_all_tool_names() {
+        let registry = LocalToolRegistry::init_from_registry();
+        let names = registry.all_tool_names();
+        assert!(!names.is_empty());
+        for name in &names {
+            assert!(registry.tool_defs.contains_key(name));
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_get_group_id_existing() {
+        let registry = LocalToolRegistry::init_from_registry();
+        if let Some(tool_name) = registry.tool_defs.keys().next() {
+            let gid = registry.get_group_id(tool_name);
+            assert!(gid.is_some());
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_get_group_id_nonexistent() {
+        let registry = LocalToolRegistry::init_from_registry();
+        assert!(registry.get_group_id("nonexistent_tool").is_none());
+    }
+
+    #[test]
+    fn test_local_tool_registry_get_tool_groups() {
+        let registry = LocalToolRegistry::init_from_registry();
+        let groups = registry.get_tool_groups();
+        assert!(!groups.is_empty());
+        for g in &groups {
+            assert!(!g.group_id.is_empty());
+            assert!(!g.tools.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_get_tool_groups_sorted() {
+        let registry = LocalToolRegistry::init_from_registry();
+        let groups = registry.get_tool_groups();
+        let ids: Vec<&str> = groups.iter().map(|g| g.group_id.as_str()).collect();
+        let mut sorted = ids.clone();
+        sorted.sort();
+        assert_eq!(ids, sorted);
+    }
+
+    #[test]
+    fn test_local_tool_registry_get_enabled_chat_tools() {
+        let registry = LocalToolRegistry::init_from_registry();
+        let chat_tools = registry.get_enabled_chat_tools();
+        assert!(!chat_tools.is_empty());
+        for ct in &chat_tools {
+            assert_eq!(ct.r#type, "function");
+            assert!(!ct.function.name.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_set_env_json() {
+        let mut registry = LocalToolRegistry::init_from_registry();
+        if let Some(tool_name) = registry.tool_defs.keys().next().cloned() {
+            registry.set_env_json(&tool_name, r#"{"API_KEY":"test"}"#.into());
+            assert_eq!(
+                registry.tool_defs.get(&tool_name).unwrap().env_json.as_deref(),
+                Some(r#"{"API_KEY":"test"}"#)
+            );
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_set_env_json_nonexistent() {
+        let mut registry = LocalToolRegistry::init_from_registry();
+        registry.set_env_json("nonexistent_tool", r#"{"KEY":"VAL"}"#.into());
+        assert!(!registry.tool_defs.contains_key("nonexistent_tool"));
+    }
+
+    #[test]
+    fn test_local_tool_registry_set_timeout_secs() {
+        let mut registry = LocalToolRegistry::init_from_registry();
+        if let Some(tool_name) = registry.tool_defs.keys().next().cloned() {
+            registry.set_timeout_secs(&tool_name, 120);
+            assert_eq!(
+                registry.tool_defs.get(&tool_name).unwrap().timeout_secs,
+                Some(120)
+            );
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_set_timeout_secs_nonexistent() {
+        let mut registry = LocalToolRegistry::init_from_registry();
+        registry.set_timeout_secs("no_such_tool", 99);
+        assert!(!registry.tool_defs.contains_key("no_such_tool"));
+    }
+
+    #[test]
+    fn test_local_tool_registry_enabled_tool_names() {
+        let registry = LocalToolRegistry::init_from_registry();
+        let enabled = registry.enabled_tool_names();
+        assert!(!enabled.is_empty());
+        for name in &enabled {
+            assert!(registry.is_enabled(name));
+        }
+    }
+
+    #[test]
+    fn test_mcp_registry_new() {
+        let reg = McpRegistry::new();
+        assert!(reg.mcp_tools.is_empty());
+        assert!(reg.mcp_servers.is_empty());
+    }
+
+    #[test]
+    fn test_mcp_registry_default() {
+        let reg = McpRegistry::default();
+        assert!(reg.mcp_tools.is_empty());
+        assert!(reg.mcp_servers.is_empty());
+    }
+
+    #[test]
+    fn test_mcp_registry_with_tools_and_servers() {
+        let mut tools = BTreeMap::new();
+        let mut servers = BTreeMap::new();
+        tools.insert(
+            "t1".into(),
+            McpToolConfig {
+                server_id: "s1".into(),
+                server_name: "server1".into(),
+                tool_name: "tool1".into(),
+                description: "desc".into(),
+                input_schema: serde_json::json!({}),
+            },
+        );
+        servers.insert(
+            "s1".into(),
+            McpServerConfig {
+                server_id: "s1".into(),
+                server_name: "server1".into(),
+                transport: "stdio".into(),
+                command: Some("echo".into()),
+                args_json: None,
+                env_json: None,
+                endpoint: None,
+                execute_timeout_secs: Some(30),
+                connection_pool_size: None,
+                retry_attempts: None,
+                retry_delay_ms: None,
+            },
+        );
+        let reg = McpRegistry::with_tools_and_servers(tools, servers);
+        assert_eq!(reg.mcp_tools.len(), 1);
+        assert_eq!(reg.mcp_servers.len(), 1);
+    }
+
+    #[test]
+    fn test_local_tool_registry_enabled_map_populated() {
+        let registry = LocalToolRegistry::init_from_registry();
+        assert!(!registry.enabled.is_empty());
+        for (gid, is_enabled) in &registry.enabled {
+            assert!(*is_enabled, "Group {} should be enabled by default", gid);
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_group_names_populated() {
+        let registry = LocalToolRegistry::init_from_registry();
+        assert!(!registry.group_names.is_empty());
+        for (gid, gname) in &registry.group_names {
+            assert!(!gname.is_empty(), "Group name for {} should not be empty", gid);
+        }
+    }
+
+    #[test]
+    fn test_local_tool_registry_tool_defs_have_required_fields() {
+        let registry = LocalToolRegistry::init_from_registry();
+        for (name, def) in &registry.tool_defs {
+            assert_eq!(name, &def.tool_name);
+            assert!(!def.group_id.is_empty(), "tool {} missing group_id", name);
+            assert!(!def.description.is_empty(), "tool {} missing description", name);
+        }
+    }
+
+    #[test]
+    fn test_local_tool_def_clone() {
+        let def = LocalToolDef {
+            group_id: "g1".into(),
+            group_name: "Group One".into(),
+            tool_name: "tool_a".into(),
+            description: "desc".into(),
+            input_schema: serde_json::json!({"type": "object"}),
+            env_json: Some("env".into()),
+            timeout_secs: Some(30),
+        };
+        let cloned = def.clone();
+        assert_eq!(cloned.group_id, def.group_id);
+        assert_eq!(cloned.tool_name, def.tool_name);
+        assert_eq!(cloned.env_json, def.env_json);
+        assert_eq!(cloned.timeout_secs, def.timeout_secs);
+    }
+
+    #[test]
+    fn test_local_tool_group_clone() {
+        let group = LocalToolGroup {
+            group_id: "g1".into(),
+            group_name: "Group One".into(),
+            enabled: true,
+            tools: vec![],
+        };
+        let cloned = group.clone();
+        assert_eq!(cloned.group_id, group.group_id);
+        assert_eq!(cloned.enabled, group.enabled);
+    }
+}

@@ -599,4 +599,191 @@ mod tests {
         ];
         assert_eq!(events.len(), 6);
     }
+
+    #[test]
+    fn test_recovery_config_custom() {
+        let config = RecoveryConfig {
+            max_total_attempts: 10,
+            enable_fallback: false,
+            enable_adjustments: false,
+            timeout_per_attempt: Duration::from_secs(60),
+        };
+        assert_eq!(config.max_total_attempts, 10);
+        assert!(!config.enable_fallback);
+        assert!(!config.enable_adjustments);
+        assert_eq!(config.timeout_per_attempt, Duration::from_secs(60));
+    }
+
+    #[test]
+    fn test_recovery_config_serialization() {
+        let config = RecoveryConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        let deserialized: RecoveryConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.max_total_attempts, 5);
+        assert!(deserialized.enable_fallback);
+        assert!(deserialized.enable_adjustments);
+    }
+
+    #[test]
+    fn test_engine_default() {
+        let engine = ErrorRecoveryEngine::default();
+        assert_eq!(engine.config.max_total_attempts, 5);
+    }
+
+    #[test]
+    fn test_classify_error_recoverable() {
+        let engine = ErrorRecoveryEngine::new();
+        let classified = engine.classify_error("permission denied");
+        assert_eq!(classified.error_type, ErrorType::Recoverable);
+    }
+
+    #[test]
+    fn test_classify_error_unknown() {
+        let engine = ErrorRecoveryEngine::new();
+        let classified = engine.classify_error("something weird happened");
+        assert_eq!(classified.error_type, ErrorType::Unknown);
+    }
+
+    #[test]
+    fn test_classify_error_preserves_original() {
+        let engine = ErrorRecoveryEngine::new();
+        let classified = engine.classify_error("connection timeout");
+        assert_eq!(classified.original_error, "connection timeout");
+    }
+
+    #[test]
+    fn test_classify_error_context_none() {
+        let engine = ErrorRecoveryEngine::new();
+        let classified = engine.classify_error("timeout");
+        assert!(classified.context.is_none());
+    }
+
+    #[test]
+    fn test_get_recovery_strategy_unrecoverable() {
+        let engine = ErrorRecoveryEngine::new();
+        let strategy = engine.get_recovery_strategy(ErrorType::Unrecoverable);
+        assert!(matches!(strategy, RecoveryStrategy::Fail));
+    }
+
+    #[test]
+    fn test_get_recovery_strategy_unknown() {
+        let engine = ErrorRecoveryEngine::new();
+        let strategy = engine.get_recovery_strategy(ErrorType::Unknown);
+        assert!(matches!(strategy, RecoveryStrategy::Retry { .. }));
+    }
+
+    #[tokio::test]
+    async fn test_recover_skip_task_error() {
+        let engine = ErrorRecoveryEngine::new();
+        let result = engine
+            .recover("syntax error", || async { Err::<i32, String>("fail".to_string()) })
+            .await;
+        assert!(!result.success);
+        assert!(!result.recovered);
+    }
+
+    #[tokio::test]
+    async fn test_recover_emits_events() {
+        let engine = ErrorRecoveryEngine::new();
+        let mut rx = engine.subscribe();
+        let _ = engine
+            .recover("fatal error: panic", || async { Err::<i32, String>("fail".to_string()) })
+            .await;
+        let event = rx.try_recv();
+        assert!(event.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_recover_recoverable_error_success_after_adjust() {
+        let engine = ErrorRecoveryEngine::new();
+        let mut call_count = 0;
+        let result = engine
+            .recover("permission denied", || {
+                call_count += 1;
+                async move { Ok::<i32, String>(42) }
+            })
+            .await;
+        assert!(result.success);
+    }
+
+    #[tokio::test]
+    async fn test_recover_recoverable_error_all_fail() {
+        let engine = ErrorRecoveryEngine::new();
+        let result = engine
+            .recover("permission denied", || async { Err::<i32, String>("still denied".to_string()) })
+            .await;
+        assert!(!result.success);
+    }
+
+    #[test]
+    fn test_recovery_context_with_task_id() {
+        let ctx = RecoveryContext::new()
+            .with_task_id("task-42".to_string())
+            .build();
+        assert_eq!(ctx.task_id, Some("task-42".to_string()));
+    }
+
+    #[test]
+    fn test_recovery_context_with_error() {
+        let ctx = RecoveryContext::new()
+            .with_error("timeout".to_string())
+            .build();
+        assert_eq!(ctx.original_error, Some("timeout".to_string()));
+    }
+
+    #[test]
+    fn test_recovery_context_chained_builders() {
+        let ctx = RecoveryContext::new()
+            .with_task_id("t1".to_string())
+            .with_error("err".to_string())
+            .build();
+        assert_eq!(ctx.task_id, Some("t1".to_string()));
+        assert_eq!(ctx.original_error, Some("err".to_string()));
+    }
+
+    #[test]
+    fn test_recovery_context_default_values() {
+        let ctx = RecoveryContext::default();
+        assert!(ctx.task_id.is_none());
+        assert!(ctx.original_error.is_none());
+        assert!(ctx.error_type.is_none());
+        assert!(ctx.strategy_used.is_none());
+        assert_eq!(ctx.attempts, 0);
+        assert_eq!(ctx.recovery_time_ms, 0);
+    }
+
+    #[tokio::test]
+    async fn test_recover_with_custom_config() {
+        let config = RecoveryConfig {
+            max_total_attempts: 2,
+            enable_fallback: true,
+            enable_adjustments: true,
+            timeout_per_attempt: Duration::from_secs(5),
+        };
+        let engine = ErrorRecoveryEngine::new().with_config(config);
+        let result = engine
+            .recover("connection timeout", || async { Err::<i32, String>("fail".to_string()) })
+            .await;
+        assert!(!result.success);
+    }
+
+    #[tokio::test]
+    async fn test_recover_success_returns_attempts() {
+        let engine = ErrorRecoveryEngine::new();
+        let result = engine
+            .recover("connection timeout", || async { Ok::<i32, String>(100) })
+            .await;
+        assert!(result.success);
+        assert_eq!(result.attempts_made, 1);
+    }
+
+    #[test]
+    fn test_recovery_event_debug_format() {
+        let event = RecoveryEvent::RecoveryStarted {
+            error: "test".to_string(),
+            error_type: ErrorType::Transient,
+        };
+        let debug = format!("{:?}", event);
+        assert!(debug.contains("RecoveryStarted"));
+    }
 }

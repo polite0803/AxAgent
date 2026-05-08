@@ -263,13 +263,13 @@ function AssistantFooter({
             {msg.prompt_tokens != null && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <ArrowUp size={10} />
-                {formatTokenCount(msg.prompt_tokens)} tokens
+                {formatTokenCount(msg.prompt_tokens)} {t("chat.tokens")}
               </span>
             )}
             {msg.completion_tokens != null && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <ArrowDown size={10} />
-                {formatTokenCount(msg.completion_tokens)} tokens
+                {formatTokenCount(msg.completion_tokens)} {t("chat.tokens")}
               </span>
             )}
             {totalTokens > 0 && (

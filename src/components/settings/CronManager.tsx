@@ -1,6 +1,7 @@
 import { App, Button, Input, Modal, Popconfirm, Switch, Table, Tag, Typography } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
@@ -25,6 +26,7 @@ interface CronManagerProps {
 }
 
 export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProps) {
+  const { t } = useTranslation();
   const { message } = App.useApp();
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -142,11 +144,11 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Daily summary"
+              placeholder={t("settings.cron.namePlaceholder")}
             />
           </div>
           <div>
-            <Text type="secondary">Schedule (cron expression)</Text>
+            <Text type="secondary">{t("settings.cron.schedule")}</Text>
             <Input
               value={schedule}
               onChange={(e) => setSchedule(e.target.value)}
@@ -161,12 +163,12 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
             <Input.TextArea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Generate a daily summary of my inbox"
+              placeholder={t("settings.cron.promptPlaceholder")}
               rows={3}
             />
           </div>
           <div>
-            <Text type="secondary">Platform (optional)</Text>
+            <Text type="secondary">{t("settings.cron.platform")}</Text>
             <Input
               value={platform}
               onChange={(e) => setPlatform(e.target.value)}

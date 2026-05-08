@@ -1,11 +1,13 @@
 import { useRecommendationStore } from "@/stores/devtools/recommendationStore";
 import { Alert, Button, Card, Divider, Input, List, Progress, Space, Spin, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 
 export function ToolRecommendationPanel() {
+  const { t } = useTranslation();
   const {
     recommendations,
     isLoading,
@@ -49,7 +51,7 @@ export function ToolRecommendationPanel() {
           <div>
             <Title level={5}>Task Description</Title>
             <TextArea
-              placeholder="Describe your task (e.g., 'I need to search for information about Rust programming and write it to a file')"
+              placeholder={t("devtools.toolRecommender.taskPlaceholder")}
               value={localTask}
               onChange={(e) => setLocalTask(e.target.value)}
               rows={3}

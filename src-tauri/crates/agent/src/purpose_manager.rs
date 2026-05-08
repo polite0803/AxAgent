@@ -160,4 +160,127 @@ mod tests {
     fn test_default_purpose_template_is_not_empty() {
         assert!(!DEFAULT_PURPOSE_TEMPLATE.is_empty());
     }
+
+    #[test]
+    fn test_template_starts_with_heading() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.starts_with("# "));
+    }
+
+    #[test]
+    fn test_template_has_key_question_placeholders() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("[Key question 1]"));
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("[Key question 2]"));
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("[Key question 3]"));
+    }
+
+    #[test]
+    fn test_template_has_describe_purpose_placeholder() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("[Describe the purpose"));
+    }
+
+    #[test]
+    fn test_template_has_research_scope_placeholder() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("[Define the scope"));
+    }
+
+    #[test]
+    fn test_template_has_thesis_placeholder() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("[As knowledge accumulates"));
+    }
+
+    #[test]
+    fn test_template_has_evolving_notes_placeholder() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("[Record the evolution"));
+    }
+
+    #[test]
+    fn test_template_date_in_evolving_notes() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("- {date}: Initial creation"));
+    }
+
+    #[test]
+    fn test_template_replace_with_empty_wiki_name() {
+        let content = DEFAULT_PURPOSE_TEMPLATE.replace("{wiki_name}", "");
+        assert!(content.starts_with("# "));
+        assert!(!content.contains("{wiki_name}"));
+    }
+
+    #[test]
+    fn test_template_replace_with_special_characters() {
+        let content = DEFAULT_PURPOSE_TEMPLATE
+            .replace("{wiki_name}", "Wiki <>&\"'")
+            .replace("{date}", "2025-01-01");
+        assert!(content.contains("Wiki <>&\"'"));
+        assert!(!content.contains("{wiki_name}"));
+    }
+
+    #[test]
+    fn test_template_replace_with_unicode_wiki_name() {
+        let content = DEFAULT_PURPOSE_TEMPLATE
+            .replace("{wiki_name}", "知识库")
+            .replace("{date}", "2025-01-01");
+        assert!(content.contains("# 知识库"));
+        assert!(!content.contains("{wiki_name}"));
+    }
+
+    #[test]
+    fn test_template_replace_with_long_wiki_name() {
+        let long_name = "A".repeat(1000);
+        let content = DEFAULT_PURPOSE_TEMPLATE.replace("{wiki_name}", &long_name);
+        assert!(content.contains(&long_name));
+        assert!(!content.contains("{wiki_name}"));
+    }
+
+    #[test]
+    fn test_template_date_format_matches_chrono() {
+        let date_str = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        let parsed = chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d");
+        assert!(parsed.is_ok());
+    }
+
+    #[test]
+    fn test_template_multiple_replacements_independent() {
+        let content1 = DEFAULT_PURPOSE_TEMPLATE
+            .replace("{wiki_name}", "Wiki A")
+            .replace("{date}", "2025-01-01");
+        let content2 = DEFAULT_PURPOSE_TEMPLATE
+            .replace("{wiki_name}", "Wiki B")
+            .replace("{date}", "2025-12-31");
+        assert!(content1.contains("# Wiki A"));
+        assert!(content2.contains("# Wiki B"));
+        assert!(content1.contains("2025-01-01"));
+        assert!(content2.contains("2025-12-31"));
+    }
+
+    #[test]
+    fn test_template_sections_order() {
+        let purpose_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Purpose").unwrap();
+        let questions_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Key Questions").unwrap();
+        let scope_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Research Scope").unwrap();
+        let thesis_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Thesis").unwrap();
+        let notes_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Evolving Notes").unwrap();
+
+        assert!(purpose_pos < questions_pos);
+        assert!(questions_pos < scope_pos);
+        assert!(scope_pos < thesis_pos);
+        assert!(thesis_pos < notes_pos);
+    }
+
+    #[test]
+    fn test_purpose_manager_unit_struct() {
+        let _manager = PurposeManager;
+    }
+
+    #[test]
+    fn test_template_has_markdown_list_items() {
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("- [Key question"));
+        assert!(DEFAULT_PURPOSE_TEMPLATE.contains("- {date}:"));
+    }
+
+    #[test]
+    fn test_template_no_double_replacement_wiki_name() {
+        let content = DEFAULT_PURPOSE_TEMPLATE.replace("{wiki_name}", "{wiki_name}");
+        let count = content.matches("{wiki_name}").count();
+        assert_eq!(count, 1);
+    }
 }

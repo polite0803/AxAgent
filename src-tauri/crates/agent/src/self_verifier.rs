@@ -371,11 +371,7 @@ impl RuleBasedValidator {
     fn detect_output_format(&self, output: &str) -> OutputFormat {
         if output.starts_with('{') || output.starts_with('[') {
             if serde_json::from_str::<serde_json::Value>(output).is_ok() {
-                return if output.starts_with('{') {
-                    OutputFormat::Json
-                } else {
-                    OutputFormat::Json
-                };
+                return OutputFormat::Json;
             }
         }
 

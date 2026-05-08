@@ -542,4 +542,407 @@ mod tests {
         let low = CredibilityScore::new(0.3, 0.3, 0.3, 0.3);
         assert!(low.is_low());
     }
+
+    #[test]
+    fn test_credibility_score_weighted_calculation() {
+        let score = CredibilityScore::new(1.0, 1.0, 1.0, 1.0);
+        let expected = 1.0 * 0.30 + 1.0 * 0.25 + 1.0 * 0.20 + 1.0 * 0.25;
+        assert!((score.overall - expected).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_credibility_score_min() {
+        let min = CredibilityScore::min();
+        assert_eq!(min.overall, 0.0);
+        assert_eq!(min.authority, 0.0);
+        assert_eq!(min.consistency, 0.0);
+        assert_eq!(min.recency, 0.0);
+        assert_eq!(min.objectivity, 0.0);
+        assert!(min.is_low());
+    }
+
+    #[test]
+    fn test_credibility_score_max() {
+        let max = CredibilityScore::max();
+        assert_eq!(max.overall, 1.0);
+        assert_eq!(max.authority, 1.0);
+        assert!(max.is_high());
+    }
+
+    #[test]
+    fn test_credibility_score_default() {
+        let default = CredibilityScore::default();
+        assert_eq!(default.overall, 0.0);
+    }
+
+    #[test]
+    fn test_credibility_score_boundary_high() {
+        let score = CredibilityScore::new(0.7, 0.7, 0.7, 0.7);
+        assert!(score.is_high());
+        assert!(!score.is_medium());
+    }
+
+    #[test]
+    fn test_credibility_score_boundary_medium() {
+        let score = CredibilityScore::new(0.4, 0.4, 0.4, 0.4);
+        assert!(!score.is_high());
+        assert!(score.is_medium());
+        assert!(!score.is_low());
+    }
+
+    #[test]
+    fn test_credibility_score_boundary_low() {
+        let score = CredibilityScore::new(0.39, 0.39, 0.39, 0.39);
+        assert!(score.is_low());
+    }
+
+    #[test]
+    fn test_credibility_score_equality() {
+        let a = CredibilityScore::new(0.5, 0.5, 0.5, 0.5);
+        let b = CredibilityScore::new(0.5, 0.5, 0.5, 0.5);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_credibility_score_serialization() {
+        let score = CredibilityScore::new(0.8, 0.7, 0.6, 0.5);
+        let json = serde_json::to_string(&score).unwrap();
+        let deserialized: CredibilityScore = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, score);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_github_source() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::GitHub,
+            "https://github.com/rust-lang/rust".to_string(),
+            "Rust Programming Language".to_string(),
+            "The Rust programming language repository.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.authority > 0.5);
+        assert_eq!(assessment.source_type, SourceType::GitHub);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_news_source() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::News,
+            "https://news.example.com/article".to_string(),
+            "Official report on climate change".to_string(),
+            "According to research shows data indicates the temperature is rising.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.objectivity > 0.6);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_forum_source() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Forum,
+            "https://forum.example.com/thread".to_string(),
+            "Personal experience".to_string(),
+            "I think this is the worst product ever.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.authority < 0.7);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_with_recent_date() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Academic,
+            "https://arxiv.org/abs/test".to_string(),
+            "Recent Paper".to_string(),
+            "A recent study.".to_string(),
+        )
+        .with_published_date("2026-01-01".to_string());
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.recency >= 0.9);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_with_old_date() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Academic,
+            "https://arxiv.org/abs/old".to_string(),
+            "Old Paper".to_string(),
+            "An old study.".to_string(),
+        )
+        .with_published_date("2020-01-01".to_string());
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.recency < 0.7);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_no_date() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "No Date Article".to_string(),
+            "Some content.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!((assessment.credibility.recency - 0.5).abs() < f32::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_invalid_date() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Bad Date".to_string(),
+            "Content.".to_string(),
+        )
+        .with_published_date("not-a-date".to_string());
+        let assessment = evaluator.evaluate(&result).await;
+        assert!((assessment.credibility.recency - 0.5).abs() < f32::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_subjective_content() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Blog,
+            "https://blog.example.com".to_string(),
+            "My Opinion".to_string(),
+            "I believe this is amazing and the best thing ever. In my opinion you should avoid everything else.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.objectivity < 0.7);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_objective_content() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Academic,
+            "https://arxiv.org/abs/test".to_string(),
+            "Research Study".to_string(),
+            "According to the official data, research shows that studies show the results are consistent. Reported findings confirm this.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.objectivity > 0.7);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_with_validation_adjusts_score() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Academic,
+            "https://arxiv.org/abs/test".to_string(),
+            "Validated Paper".to_string(),
+            "A validated study.".to_string(),
+        );
+        let assessment_no_val = evaluator.evaluate(&result).await;
+        let validation = SourceValidationResult {
+            url: result.url.clone(),
+            is_valid: true,
+            issues: vec![],
+            score: 0.9,
+            warnings: vec![],
+        };
+        let assessment_with_val = evaluator.evaluate_with_validation(&result, validation).await;
+        assert!(assessment_with_val.validation_result.is_some());
+        assert!(assessment_with_val.credibility.overall != assessment_no_val.credibility.overall);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_assessment_has_factors() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Test".to_string(),
+            "Content.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert_eq!(assessment.factors.len(), 4);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_assessment_factor_dimensions() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Web,
+            "https://example.com".to_string(),
+            "Test".to_string(),
+            "Content.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        let dimensions: Vec<_> = assessment.factors.iter().map(|f| f.dimension).collect();
+        assert!(dimensions.contains(&FactorDimension::Authority));
+        assert!(dimensions.contains(&FactorDimension::Consistency));
+        assert!(dimensions.contains(&FactorDimension::Recency));
+        assert!(dimensions.contains(&FactorDimension::Objectivity));
+    }
+
+    #[test]
+    fn test_evaluator_with_recency_threshold() {
+        let evaluator = CredibilityEvaluator::new().with_recency_threshold(180);
+        assert_eq!(evaluator.recency_threshold_days, 180);
+    }
+
+    #[test]
+    fn test_evaluator_default() {
+        let evaluator = CredibilityEvaluator::default();
+        assert_eq!(evaluator.recency_threshold_days, 365);
+    }
+
+    #[test]
+    fn test_credibility_ranking_new() {
+        let ranking = CredibilityRanking::new();
+        let assessments = vec![];
+        let result = ranking.rank(assessments);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_credibility_ranking_sorts_by_score() {
+        let ranking = CredibilityRanking::new();
+        let assessments = vec![
+            CredibilityAssessment {
+                source_url: "low".to_string(),
+                source_title: "Low".to_string(),
+                source_type: SourceType::Blog,
+                credibility: CredibilityScore::new(0.3, 0.3, 0.3, 0.3),
+                validation_result: None,
+                assessed_at: Utc::now(),
+                factors: vec![],
+            },
+            CredibilityAssessment {
+                source_url: "high".to_string(),
+                source_title: "High".to_string(),
+                source_type: SourceType::Academic,
+                credibility: CredibilityScore::new(0.9, 0.9, 0.9, 0.9),
+                validation_result: None,
+                assessed_at: Utc::now(),
+                factors: vec![],
+            },
+        ];
+        let ranked = ranking.rank(assessments);
+        assert_eq!(ranked[0].source_url, "high");
+        assert_eq!(ranked[1].source_url, "low");
+    }
+
+    #[test]
+    fn test_credibility_ranking_min_score_filter() {
+        let ranking = CredibilityRanking::new().min_score(0.5);
+        let assessments = vec![
+            CredibilityAssessment {
+                source_url: "low".to_string(),
+                source_title: "Low".to_string(),
+                source_type: SourceType::Blog,
+                credibility: CredibilityScore::new(0.3, 0.3, 0.3, 0.3),
+                validation_result: None,
+                assessed_at: Utc::now(),
+                factors: vec![],
+            },
+            CredibilityAssessment {
+                source_url: "high".to_string(),
+                source_title: "High".to_string(),
+                source_type: SourceType::Academic,
+                credibility: CredibilityScore::new(0.9, 0.9, 0.9, 0.9),
+                validation_result: None,
+                assessed_at: Utc::now(),
+                factors: vec![],
+            },
+        ];
+        let ranked = ranking.rank(assessments);
+        assert_eq!(ranked.len(), 1);
+        assert_eq!(ranked[0].source_url, "high");
+    }
+
+    #[test]
+    fn test_credibility_ranking_default() {
+        let ranking = CredibilityRanking::default();
+        let result = ranking.rank(vec![]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_factor_dimension_variants() {
+        let dims = vec![
+            FactorDimension::Authority,
+            FactorDimension::Consistency,
+            FactorDimension::Recency,
+            FactorDimension::Objectivity,
+        ];
+        assert_eq!(dims.len(), 4);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_wikipedia_source() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Wikipedia,
+            "https://en.wikipedia.org/wiki/Rust".to_string(),
+            "Rust (programming language)".to_string(),
+            "Rust is a systems programming language.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.authority > 0.5);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_documentation_source() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Documentation,
+            "https://docs.rs/tokio".to_string(),
+            "Tokio Documentation".to_string(),
+            "Official docs for the Tokio runtime.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.authority > 0.7);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_web_source() {
+        let evaluator = CredibilityEvaluator::new();
+        let result = SearchResult::new(
+            SourceType::Web,
+            "https://random-site.com".to_string(),
+            "Random Article".to_string(),
+            "Some random content.".to_string(),
+        );
+        let assessment = evaluator.evaluate(&result).await;
+        assert!(assessment.credibility.authority < 0.9);
+    }
+
+    #[test]
+    fn test_credibility_factor_serialization() {
+        let factor = CredibilityFactor {
+            dimension: FactorDimension::Authority,
+            score: 0.85,
+            reasoning: "High authority source".to_string(),
+        };
+        let json = serde_json::to_string(&factor).unwrap();
+        let deserialized: CredibilityFactor = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.dimension, FactorDimension::Authority);
+        assert!((deserialized.score - 0.85).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_credibility_assessment_serialization() {
+        let assessment = CredibilityAssessment {
+            source_url: "https://example.com".to_string(),
+            source_title: "Test".to_string(),
+            source_type: SourceType::Academic,
+            credibility: CredibilityScore::new(0.8, 0.7, 0.6, 0.5),
+            validation_result: None,
+            assessed_at: Utc::now(),
+            factors: vec![],
+        };
+        let json = serde_json::to_string(&assessment).unwrap();
+        let deserialized: CredibilityAssessment = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.source_url, "https://example.com");
+    }
 }

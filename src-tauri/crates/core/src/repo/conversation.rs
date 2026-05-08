@@ -539,8 +539,7 @@ pub async fn archive_to_knowledge_base(
         let final_answer = turn
             .assistant_msgs
             .iter()
-            .filter(|a| a.tool_calls_json.is_none() && !a.msg.content.trim().is_empty())
-            .last()
+            .rfind(|a| a.tool_calls_json.is_none() && !a.msg.content.trim().is_empty())
             .map(|a| a.msg.content.clone())
             .unwrap_or_else(|| {
                 turn.assistant_msgs

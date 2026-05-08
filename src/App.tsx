@@ -28,6 +28,14 @@ import {
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { App as AntdApp, ConfigProvider, Layout, theme } from "antd";
+import deDE from "antd/locale/de_DE";
+import enUS from "antd/locale/en_US";
+import esES from "antd/locale/es_ES";
+import frFR from "antd/locale/fr_FR";
+import jaJP from "antd/locale/ja_JP";
+import koKR from "antd/locale/ko_KR";
+import ptBR from "antd/locale/pt_BR";
+import ruRU from "antd/locale/ru_RU";
 import zhCN from "antd/locale/zh_CN";
 import { enableD2, setDefaultI18nMap } from "markstream-react";
 import { useCallback, useEffect, useRef } from "react";
@@ -234,45 +242,33 @@ function AppRoot() {
   useEffect(() => {
     const init = async () => {
       const t0 = performance.now();
-      console.log(`[启动] useEffect 触发, isTauri=${isTauri()}, timestamp=${Date.now()}`);
 
-      // IPC 通道健康检查
       if (isTauri()) {
         const health = await checkIpcHealth();
-        console.log(`[启动] IPC 健康检查: ok=${health.ok}, detail="${health.detail}"`);
       }
 
       try {
-        console.log("[启动] 开始调用 get_settings...");
         await useSettingsStore.getState().fetchSettings();
-        console.log(`[启动] get_settings 成功 (${Math.round(performance.now() - t0)}ms)`);
       } catch (e) {
         console.warn(`[启动] get_settings 失败 (${Math.round(performance.now() - t0)}ms):`, e);
       }
 
-      // Seed preset workflow templates
       try {
-        console.log("[启动] 开始调用 seed_preset_templates...");
         await invoke("seed_preset_templates");
-        console.log(`[启动] seed_preset_templates 成功 (${Math.round(performance.now() - t0)}ms)`);
       } catch (e) {
         console.warn(`[启动] seed_preset_templates 失败 (${Math.round(performance.now() - t0)}ms):`, e);
       }
 
       if (!isTauri()) {
-        console.log("[启动] 非 Tauri 环境，跳过原生设置");
         return;
       }
       const settings = useSettingsStore.getState().settings;
 
-      // Apply native window settings
       try {
-        console.log("[启动] 开始调用 apply_startup_settings...");
         await invoke("apply_startup_settings", {
           alwaysOnTop: settings.always_on_top ?? false,
           closeToTray: settings.minimize_to_tray ?? false,
         });
-        console.log(`[启动] apply_startup_settings 成功 (${Math.round(performance.now() - t0)}ms)`);
       } catch (e) {
         console.warn(`[启动] apply_startup_settings 失败 (${Math.round(performance.now() - t0)}ms):`, e);
       }
@@ -365,7 +361,23 @@ function AppRoot() {
     <GlobalErrorBoundary>
       <BrowserRouter>
         <ConfigProvider
-          locale={i18n.language === "zh-CN" ? zhCN : undefined}
+          locale={i18n.language === "zh-CN"
+            ? zhCN
+            : i18n.language === "ja"
+            ? jaJP
+            : i18n.language === "ko"
+            ? koKR
+            : i18n.language === "de"
+            ? deDE
+            : i18n.language === "fr"
+            ? frFR
+            : i18n.language === "es"
+            ? esES
+            : i18n.language === "ru"
+            ? ruRU
+            : i18n.language === "pt-BR"
+            ? ptBR
+            : enUS}
           theme={themeConfig}
           modal={{ centered: true, styles: { mask: { backdropFilter: "blur(4px)" } } }}
         >

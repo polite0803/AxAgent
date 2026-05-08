@@ -299,6 +299,7 @@
       "participants": "参与者",
       "session": "会话",
       "sessionShare": {
+        "codePlaceholder": "XXXX-XXXX",
         "copied": "已复制",
         "copy": "复制",
         "enterInviteCode": "输入邀请码",
@@ -1020,6 +1021,7 @@
     "save": "保存",
     "saveSuccess": "保存成功",
     "search": "搜索",
+    "searchPlaceholder": "搜索...",
     "select": "选择",
     "selectAll": "全选",
     "selectDirectory": "选择目录",
@@ -1098,7 +1100,25 @@
     "totalDuration": "总耗时",
     "totalTokens": "总 Tokens",
     "traceId": "Trace ID",
-    "userId": "用户 ID"
+    "userId": "用户 ID",
+    "toolRecommender": {
+      "taskPlaceholder": "描述你的任务（例如：'我需要搜索关于 Rust 编程的信息并写入文件'）"
+    },
+    "fineTune": {
+      "datasetName": "数据集名称",
+      "datasetNamePlaceholder": "输入数据集名称",
+      "description": "描述",
+      "datasetDescPlaceholder": "输入数据集描述",
+      "addSample": "添加样本到数据集",
+      "input": "输入",
+      "inputPlaceholder": "输入文本",
+      "output": "输出",
+      "outputPlaceholder": "输出文本",
+      "systemPromptOptional": "系统提示词（可选）",
+      "systemPromptPlaceholder": "输入系统提示词",
+      "selectDataset": "选择数据集",
+      "selectBaseModel": "选择基础模型"
+    }
   },
   "error": {
     "deleteFailed": "删除失败，请重试",
@@ -1484,7 +1504,8 @@
     "settings": "设置",
     "skills": "技能",
     "wiki": "Wiki",
-    "workflow": "工作流"
+    "workflow": "工作流",
+    "app": "AxAgent"
   },
   "notification": {
     "clear": "清除",
@@ -2372,6 +2393,7 @@
     "modelGroupAuto": "留空时将按模型标识自动生成分组",
     "modelIdRequired": "请先填写模型标识",
     "modelName": "模型名称",
+    "modelNamePlaceholder": "GPT 5.4 Think",
     "modelParams": "模型参数",
     "modelSettings": "模型设置",
     "modelSyncApplied": "模型同步已应用",
@@ -2861,7 +2883,9 @@
     "sectionInfrastructure": "基础设施",
     "sectionPlugins": "插件",
     "sectionTools": "工具",
-    "sectionWork": "工作"
+    "sectionWork": "工作",
+    "expand": "展开侧边栏",
+    "collapse": "收起侧边栏"
   },
   "skill": {
     "content": "技能内容",
@@ -2876,6 +2900,7 @@
     "editTitle": "编辑技能",
     "loadFailed": "技能 \"{{name}}\" 加载失败",
     "loading": "加载技能组件...",
+    "loadingPage": "加载技能页面...",
     "name": "名称",
     "namePlaceholder": "输入名称...",
     "nameRequired": "请输入名称",

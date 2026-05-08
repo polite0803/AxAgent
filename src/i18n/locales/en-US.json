@@ -17,13 +17,16 @@
     "prompts": "Prompts",
     "devTools": "DevTools",
     "workflow": "Workflow",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "app": "AxAgent"
   },
   "sidebar": {
     "sectionWork": "Work",
     "sectionTools": "Tools",
     "sectionInfrastructure": "Infrastructure",
-    "sectionPlugins": "Plugins"
+    "sectionPlugins": "Plugins",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar"
   },
   "knowledge": {
     "commonPanel": "Common Panel",
@@ -624,6 +627,7 @@
       "participants": "Participants",
       "session": "Session",
       "sessionShare": {
+        "codePlaceholder": "XXXX-XXXX",
         "copied": "Copied",
         "copy": "Copy",
         "enterInviteCode": "Enter invite code",
@@ -936,6 +940,7 @@
     "pushSkillsSuccess": "Skills pushed successfully",
     "pushSkillsFailed": "Failed to push skills",
     "modelName": "Model Name",
+    "modelNamePlaceholder": "GPT 5.4 Think",
     "providerName": "Provider",
     "syncStatus": "Sync Status",
     "syncStatusSynced": "Synced",
@@ -1189,6 +1194,7 @@
     "apiKeys": "API Keys",
     "models": "Models",
     "modelName": "Model Name",
+    "modelNamePlaceholder": "GPT 5.4 Think",
     "modelCapabilities": "Capabilities",
     "modelEnabled": "Enabled",
     "modelParams": "Model Parameters",
@@ -2154,6 +2160,7 @@
     "edit": "Edit",
     "create": "Create",
     "search": "Search",
+    "searchPlaceholder": "Search...",
     "loading": "Loading...",
     "noData": "No data",
     "copy": "Copy",
@@ -3503,7 +3510,25 @@
     "attributes": "Attributes",
     "events": "Events",
     "errors": "Errors",
-    "cost": "Cost"
+    "cost": "Cost",
+    "toolRecommender": {
+      "taskPlaceholder": "Describe your task (e.g., 'I need to search for information about Rust programming and write it to a file')"
+    },
+    "fineTune": {
+      "datasetName": "Dataset Name",
+      "datasetNamePlaceholder": "Enter dataset name",
+      "description": "Description",
+      "datasetDescPlaceholder": "Enter dataset description",
+      "addSample": "Add Sample to Dataset",
+      "input": "Input",
+      "inputPlaceholder": "Enter input text",
+      "output": "Output",
+      "outputPlaceholder": "Enter output text",
+      "systemPromptOptional": "System Prompt (optional)",
+      "systemPromptPlaceholder": "Enter system prompt",
+      "selectDataset": "Select a dataset",
+      "selectBaseModel": "Select a base model"
+    }
   },
   "browser": {
     "control": "Browser Control",
@@ -4011,7 +4036,8 @@
     "loadFailed": "Skill \"{{name}}\" load failed",
     "unknownError": "Unknown error",
     "retry": "Retry",
-    "loading": "Loading skill component..."
+    "loading": "Loading skill component...",
+    "loadingPage": "Loading skill page..."
   },
   "tool": {
     "common": {

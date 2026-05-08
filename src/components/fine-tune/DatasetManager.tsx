@@ -2,10 +2,12 @@ import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
 import { DeleteOutlined, FileTextOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Input, message, Modal, Popconfirm, Space, Table } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Column } = Table;
 
 export function DatasetManager() {
+  const { t } = useTranslation();
   const {
     datasets,
     isLoading,
@@ -123,31 +125,31 @@ export function DatasetManager() {
         <Form form={form} onFinish={handleCreateDataset} layout="vertical">
           <Form.Item
             name="name"
-            label="Dataset Name"
+            label={t("devtools.fineTune.datasetName")}
             rules={[{ required: true, message: "Please input dataset name" }]}
           >
-            <Input placeholder="Enter dataset name" />
+            <Input placeholder={t("devtools.fineTune.datasetNamePlaceholder")} />
           </Form.Item>
           <Form.Item
             name="description"
-            label="Description"
+            label={t("devtools.fineTune.description")}
             rules={[{ required: true, message: "Please input description" }]}
           >
-            <Input.TextArea placeholder="Enter dataset description" rows={3} />
+            <Input.TextArea placeholder={t("devtools.fineTune.datasetDescPlaceholder")} rows={3} />
           </Form.Item>
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit">
-                Create
+                {t("common.create")}
               </Button>
-              <Button onClick={() => setCreateModalVisible(false)}>Cancel</Button>
+              <Button onClick={() => setCreateModalVisible(false)}>{t("common.cancel")}</Button>
             </Space>
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Add Sample to Dataset"
+        title={t("devtools.fineTune.addSample")}
         open={addSampleModalVisible}
         onCancel={() => setAddSampleModalVisible(false)}
         footer={null}
@@ -155,20 +157,20 @@ export function DatasetManager() {
         <Form form={sampleForm} onFinish={handleAddSample} layout="vertical">
           <Form.Item
             name="input"
-            label="Input"
+            label={t("devtools.fineTune.input")}
             rules={[{ required: true, message: "Please input the sample input" }]}
           >
-            <Input.TextArea placeholder="Enter input text" rows={3} />
+            <Input.TextArea placeholder={t("devtools.fineTune.inputPlaceholder")} rows={3} />
           </Form.Item>
           <Form.Item
             name="output"
-            label="Output"
+            label={t("devtools.fineTune.output")}
             rules={[{ required: true, message: "Please input the sample output" }]}
           >
-            <Input.TextArea placeholder="Enter output text" rows={3} />
+            <Input.TextArea placeholder={t("devtools.fineTune.outputPlaceholder")} rows={3} />
           </Form.Item>
-          <Form.Item name="systemPrompt" label="System Prompt (optional)">
-            <Input.TextArea placeholder="Enter system prompt" rows={2} />
+          <Form.Item name="systemPrompt" label={t("devtools.fineTune.systemPromptOptional")}>
+            <Input.TextArea placeholder={t("devtools.fineTune.systemPromptPlaceholder")} rows={2} />
           </Form.Item>
           <Form.Item>
             <Space>

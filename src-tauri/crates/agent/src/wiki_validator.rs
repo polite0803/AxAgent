@@ -315,4 +315,263 @@ mod tests {
         };
         assert_eq!(issue.issue_type, ValidationIssueType::OrphanInVectorStore);
     }
+
+    #[test]
+    fn test_validation_issue_type_serialize_deserialize() {
+        let types = vec![
+            ValidationIssueType::HashMismatch,
+            ValidationIssueType::MissingInDatabase,
+            ValidationIssueType::MissingInFilesystem,
+            ValidationIssueType::OrphanInVectorStore,
+        ];
+        for t in &types {
+            let json = serde_json::to_string(t).unwrap();
+            let deserialized: ValidationIssueType = serde_json::from_str(&json).unwrap();
+            assert_eq!(*t, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_validation_issue_all_types() {
+        let issue1 = ValidationIssue {
+            note_id: "n1".to_string(),
+            title: "Note 1".to_string(),
+            issue_type: ValidationIssueType::HashMismatch,
+            message: "Hash mismatch: file=abc, db=def".to_string(),
+        };
+        let issue2 = ValidationIssue {
+            note_id: "n2".to_string(),
+            title: "Note 2".to_string(),
+            issue_type: ValidationIssueType::MissingInDatabase,
+            message: "Note has no wiki_page entry".to_string(),
+        };
+        let issue3 = ValidationIssue {
+            note_id: "n3".to_string(),
+            title: "Note 3".to_string(),
+            issue_type: ValidationIssueType::MissingInFilesystem,
+            message: "File does not exist on filesystem".to_string(),
+        };
+        let issue4 = ValidationIssue {
+            note_id: "n4".to_string(),
+            title: "Note 4".to_string(),
+            issue_type: ValidationIssueType::OrphanInVectorStore,
+            message: "Wiki page references non-existent note".to_string(),
+        };
+        let issues = vec![issue1, issue2, issue3, issue4];
+        assert_eq!(issues.len(), 4);
+        assert_eq!(issues[0].issue_type, ValidationIssueType::HashMismatch);
+        assert_eq!(issues[1].issue_type, ValidationIssueType::MissingInDatabase);
+        assert_eq!(issues[2].issue_type, ValidationIssueType::MissingInFilesystem);
+        assert_eq!(issues[3].issue_type, ValidationIssueType::OrphanInVectorStore);
+    }
+
+    #[test]
+    fn test_validation_report_with_multiple_issues() {
+        let report = ValidationReport {
+            wiki_id: "wiki-multi".to_string(),
+            total_notes: 10,
+            consistent_notes: 6,
+            issues: vec![
+                ValidationIssue {
+                    note_id: "n1".to_string(),
+                    title: "Note 1".to_string(),
+                    issue_type: ValidationIssueType::HashMismatch,
+                    message: "Hash mismatch".to_string(),
+                },
+                ValidationIssue {
+                    note_id: "n2".to_string(),
+                    title: "Note 2".to_string(),
+                    issue_type: ValidationIssueType::MissingInFilesystem,
+                    message: "File missing".to_string(),
+                },
+                ValidationIssue {
+                    note_id: "n3".to_string(),
+                    title: "Note 3".to_string(),
+                    issue_type: ValidationIssueType::OrphanInVectorStore,
+                    message: "Orphan".to_string(),
+                },
+                ValidationIssue {
+                    note_id: "n4".to_string(),
+                    title: "Note 4".to_string(),
+                    issue_type: ValidationIssueType::MissingInDatabase,
+                    message: "No wiki page".to_string(),
+                },
+            ],
+            checked_at: chrono::Utc::now().timestamp(),
+        };
+        assert_eq!(report.issues.len(), 4);
+        assert_eq!(report.total_notes - report.consistent_notes, 4);
+    }
+
+    #[test]
+    fn test_validation_report_serialization_roundtrip() {
+        let report = ValidationReport {
+            wiki_id: "wiki-serde".to_string(),
+            total_notes: 100,
+            consistent_notes: 95,
+            issues: vec![
+                ValidationIssue {
+                    note_id: "n1".to_string(),
+                    title: "Broken Note".to_string(),
+                    issue_type: ValidationIssueType::HashMismatch,
+                    message: "Hash mismatch: file=abc123, db=def456".to_string(),
+                },
+            ],
+            checked_at: 1700000000,
+        };
+        let json = serde_json::to_string(&report).unwrap();
+        let deserialized: ValidationReport = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.wiki_id, "wiki-serde");
+        assert_eq!(deserialized.total_notes, 100);
+        assert_eq!(deserialized.consistent_notes, 95);
+        assert_eq!(deserialized.issues.len(), 1);
+        assert_eq!(deserialized.checked_at, 1700000000);
+    }
+
+    #[test]
+    fn test_validation_issue_note_id_preserved() {
+        let issue = ValidationIssue {
+            note_id: "note-uuid-12345".to_string(),
+            title: "Important Note".to_string(),
+            issue_type: ValidationIssueType::MissingInFilesystem,
+            message: "File does not exist on filesystem".to_string(),
+        };
+        let json = serde_json::to_string(&issue).unwrap();
+        let deserialized: ValidationIssue = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.note_id, "note-uuid-12345");
+        assert_eq!(deserialized.title, "Important Note");
+    }
+
+    #[test]
+    fn test_validation_issue_type_inequality() {
+        assert_ne!(ValidationIssueType::HashMismatch, ValidationIssueType::MissingInDatabase);
+        assert_ne!(ValidationIssueType::MissingInFilesystem, ValidationIssueType::OrphanInVectorStore);
+        assert_ne!(ValidationIssueType::HashMismatch, ValidationIssueType::OrphanInVectorStore);
+    }
+
+    #[test]
+    fn test_validation_report_zero_notes() {
+        let report = ValidationReport {
+            wiki_id: "empty-wiki".to_string(),
+            total_notes: 0,
+            consistent_notes: 0,
+            issues: vec![],
+            checked_at: 0,
+        };
+        assert_eq!(report.total_notes, 0);
+        assert_eq!(report.consistent_notes, 0);
+        assert!(report.issues.is_empty());
+    }
+
+    #[test]
+    fn test_validation_report_all_inconsistent() {
+        let report = ValidationReport {
+            wiki_id: "bad-wiki".to_string(),
+            total_notes: 5,
+            consistent_notes: 0,
+            issues: vec![
+                ValidationIssue {
+                    note_id: "n1".to_string(),
+                    title: "A".to_string(),
+                    issue_type: ValidationIssueType::HashMismatch,
+                    message: "mismatch".to_string(),
+                },
+                ValidationIssue {
+                    note_id: "n2".to_string(),
+                    title: "B".to_string(),
+                    issue_type: ValidationIssueType::MissingInFilesystem,
+                    message: "missing".to_string(),
+                },
+            ],
+            checked_at: 1700000000,
+        };
+        assert_eq!(report.consistent_notes, 0);
+        assert!(report.total_notes > report.consistent_notes);
+    }
+
+    #[test]
+    fn test_validation_issue_debug_format() {
+        let issue = ValidationIssue {
+            note_id: "n1".to_string(),
+            title: "Test".to_string(),
+            issue_type: ValidationIssueType::HashMismatch,
+            message: "msg".to_string(),
+        };
+        let debug = format!("{:?}", issue);
+        assert!(debug.contains("HashMismatch"));
+        assert!(debug.contains("n1"));
+    }
+
+    #[test]
+    fn test_validation_issue_type_debug_format() {
+        let debug = format!("{:?}", ValidationIssueType::HashMismatch);
+        assert!(debug.contains("HashMismatch"));
+        let debug = format!("{:?}", ValidationIssueType::MissingInDatabase);
+        assert!(debug.contains("MissingInDatabase"));
+        let debug = format!("{:?}", ValidationIssueType::MissingInFilesystem);
+        assert!(debug.contains("MissingInFilesystem"));
+        let debug = format!("{:?}", ValidationIssueType::OrphanInVectorStore);
+        assert!(debug.contains("OrphanInVectorStore"));
+    }
+
+    #[test]
+    fn test_validation_report_debug_format() {
+        let report = ValidationReport {
+            wiki_id: "w1".to_string(),
+            total_notes: 3,
+            consistent_notes: 2,
+            issues: vec![],
+            checked_at: 123,
+        };
+        let debug = format!("{:?}", report);
+        assert!(debug.contains("w1"));
+        assert!(debug.contains("3"));
+    }
+
+    #[test]
+    fn test_calculate_content_hash_deterministic() {
+        let hash1 = calculate_content_hash("hello world");
+        let hash2 = calculate_content_hash("hello world");
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_calculate_content_hash_different_content() {
+        let hash1 = calculate_content_hash("hello world");
+        let hash2 = calculate_content_hash("hello universe");
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_calculate_content_hash_empty_string() {
+        let hash = calculate_content_hash("");
+        assert!(!hash.is_empty());
+    }
+
+    #[test]
+    fn test_validation_issue_message_content() {
+        let issue = ValidationIssue {
+            note_id: "n1".to_string(),
+            title: "Test".to_string(),
+            issue_type: ValidationIssueType::HashMismatch,
+            message: "Hash mismatch: file=abc, db=def".to_string(),
+        };
+        assert!(issue.message.contains("file="));
+        assert!(issue.message.contains("db="));
+    }
+
+    #[test]
+    fn test_validation_report_checked_at_timestamp() {
+        let before = chrono::Utc::now().timestamp();
+        let report = ValidationReport {
+            wiki_id: "w1".to_string(),
+            total_notes: 1,
+            consistent_notes: 1,
+            issues: vec![],
+            checked_at: chrono::Utc::now().timestamp(),
+        };
+        let after = chrono::Utc::now().timestamp();
+        assert!(report.checked_at >= before);
+        assert!(report.checked_at <= after);
+    }
 }

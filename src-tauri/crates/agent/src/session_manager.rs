@@ -1311,4 +1311,418 @@ mod tests {
         assert_eq!(deserialized.total_tokens, 150);
         assert!(!deserialized.estimated_from_chars);
     }
+
+    async fn setup_test_db() -> DatabaseConnection {
+        let db = sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
+            .await
+            .unwrap();
+        axagent_migration::Migrator::up(&db, None).await.unwrap();
+        db
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_new() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        assert_eq!(mgr.session_count().await, 0);
+        assert!(!mgr.has_app_handle());
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_set_default_workspace_dir() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()));
+        let default_dir = mgr.default_workspace_dir.lock().unwrap();
+        assert_eq!(*default_dir, Some("/tmp/workspace".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_set_default_workspace_dir_none() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()));
+        mgr.set_default_workspace_dir(None);
+        let default_dir = mgr.default_workspace_dir.lock().unwrap();
+        assert!(default_dir.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_has_app_handle_initially_false() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        assert!(!mgr.has_app_handle());
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_get_session_not_found() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        let result = mgr.get_session("nonexistent").await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_remove_session_not_found() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        let result = mgr.remove_session("nonexistent").await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_create_session() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        let session = mgr
+            .create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        assert_eq!(session.provider_id(), "provider-1");
+        assert_eq!(session.conversation_id(), "conv-1");
+        assert!(session.axagent_session_id().is_some());
+        assert_eq!(mgr.session_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_create_and_get_session() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        let session = mgr
+            .create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        let session_id = session.session().session_id.clone();
+        let retrieved = mgr.get_session(&session_id).await;
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap().provider_id(), "provider-1");
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_create_and_remove_session() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        let session = mgr
+            .create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        let session_id = session.session().session_id.clone();
+        assert_eq!(mgr.session_count().await, 1);
+        let removed = mgr.remove_session(&session_id).await;
+        assert!(removed.is_some());
+        assert_eq!(mgr.session_count().await, 0);
+        assert!(mgr.get_session(&session_id).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_get_or_create_session_new() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        let session = mgr
+            .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        assert_eq!(session.provider_id(), "provider-1");
+        assert_eq!(session.conversation_id(), "conv-1");
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_get_or_create_session_existing() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        let session1 = mgr
+            .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        let session2 = mgr
+            .get_or_create_session("provider-2".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        assert_eq!(session1.session().session_id, session2.session().session_id);
+        assert_eq!(mgr.session_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_clear_session() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        assert_eq!(mgr.session_count().await, 1);
+        mgr.clear_session("conv-1").await;
+        assert_eq!(mgr.session_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_clear_session_nonexistent() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        mgr.clear_session("nonexistent").await;
+        assert_eq!(mgr.session_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_multiple_sessions() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        mgr.create_session("p1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        mgr.create_session("p2".to_string(), "conv-2".to_string())
+            .await
+            .unwrap();
+        mgr.create_session("p3".to_string(), "conv-3".to_string())
+            .await
+            .unwrap();
+        assert_eq!(mgr.session_count().await, 3);
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_conversation_index() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        mgr.create_session("p1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        let conv_index = mgr.conversation_index.lock().await;
+        assert!(conv_index.contains_key("conv-1"));
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_session_last_access_updated() {
+        let db = setup_test_db().await;
+        let mgr = SessionManager::new(db);
+        mgr.create_session("p1".to_string(), "conv-1".to_string())
+            .await
+            .unwrap();
+        let session_id = {
+            let conv_index = mgr.conversation_index.lock().await;
+            conv_index.get("conv-1").cloned().unwrap()
+        };
+        let last_access = mgr.session_last_access.lock().await;
+        assert!(last_access.contains_key(&session_id));
+    }
+
+    #[tokio::test]
+    async fn test_channel_permission_prompter_new() {
+        let app = tauri::test::mock_app();
+        let prompter = ChannelPermissionPrompter::new(
+            app.handle().clone(),
+            "conv-1".to_string(),
+            HashSet::new(),
+            "/workspace".to_string(),
+        );
+        assert_eq!(prompter.pending_count(), 0);
+        assert_eq!(prompter.conversation_id, "conv-1");
+    }
+
+    #[tokio::test]
+    async fn test_channel_permission_prompter_add_always_allowed() {
+        let app = tauri::test::mock_app();
+        let prompter = ChannelPermissionPrompter::new(
+            app.handle().clone(),
+            "conv-1".to_string(),
+            HashSet::new(),
+            "/workspace".to_string(),
+        );
+        assert!(prompter.get_always_allowed().is_empty());
+        prompter.add_always_allowed("read_file");
+        prompter.add_always_allowed("bash");
+        let allowed = prompter.get_always_allowed();
+        assert_eq!(allowed.len(), 2);
+        assert!(allowed.contains("read_file"));
+        assert!(allowed.contains("bash"));
+    }
+
+    #[tokio::test]
+    async fn test_channel_permission_prompter_deliver_decision_no_pending() {
+        let app = tauri::test::mock_app();
+        let prompter = ChannelPermissionPrompter::new(
+            app.handle().clone(),
+            "conv-1".to_string(),
+            HashSet::new(),
+            "/workspace".to_string(),
+        );
+        let result = prompter.deliver_decision("nonexistent", PermissionPromptDecision::Allow);
+        assert!(!result);
+    }
+
+    #[tokio::test]
+    async fn test_channel_permission_prompter_clear_pending() {
+        let app = tauri::test::mock_app();
+        let prompter = ChannelPermissionPrompter::new(
+            app.handle().clone(),
+            "conv-1".to_string(),
+            HashSet::new(),
+            "/workspace".to_string(),
+        );
+        let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
+        {
+            let mut map = prompter.inner.pending_senders.lock().unwrap();
+            map.insert("req-1".to_string(), tx);
+        }
+        assert_eq!(prompter.pending_count(), 1);
+        prompter.clear_pending();
+        assert_eq!(prompter.pending_count(), 0);
+        drop(rx);
+    }
+
+    #[tokio::test]
+    async fn test_channel_permission_prompter_clone() {
+        let app = tauri::test::mock_app();
+        let prompter = ChannelPermissionPrompter::new(
+            app.handle().clone(),
+            "conv-1".to_string(),
+            HashSet::new(),
+            "/workspace".to_string(),
+        );
+        prompter.add_always_allowed("read_file");
+        let cloned = prompter.clone();
+        assert_eq!(cloned.conversation_id, "conv-1");
+        let allowed = cloned.get_always_allowed();
+        assert!(allowed.contains("read_file"));
+    }
+
+    #[tokio::test]
+    async fn test_channel_permission_prompter_deliver_decision_success() {
+        let app = tauri::test::mock_app();
+        let prompter = ChannelPermissionPrompter::new(
+            app.handle().clone(),
+            "conv-1".to_string(),
+            HashSet::new(),
+            "/workspace".to_string(),
+        );
+        let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
+        {
+            let mut map = prompter.inner.pending_senders.lock().unwrap();
+            map.insert("req-1".to_string(), tx);
+        }
+        let result = prompter.deliver_decision("req-1", PermissionPromptDecision::Allow);
+        assert!(result);
+        let decision = rx.recv_timeout(std::time::Duration::from_millis(100)).unwrap();
+        assert!(matches!(decision, PermissionPromptDecision::Allow));
+    }
+
+    #[tokio::test]
+    async fn test_channel_permission_prompter_always_allowed_auto_allow() {
+        let app = tauri::test::mock_app();
+        let mut allowed_set = HashSet::new();
+        allowed_set.insert("read_file".to_string());
+        let mut prompter = ChannelPermissionPrompter::new(
+            app.handle().clone(),
+            "conv-1".to_string(),
+            allowed_set,
+            "/workspace".to_string(),
+        );
+        let request = PermissionRequest {
+            tool_name: "read_file".to_string(),
+            input: "{}".to_string(),
+            required_mode: PermissionMode::ReadOnly,
+            current_mode: PermissionMode::ReadOnly,
+        };
+        let decision = prompter.decide(&request);
+        assert!(matches!(decision, PermissionPromptDecision::Allow));
+    }
+
+    #[tokio::test]
+    async fn test_tauri_hook_progress_reporter_new() {
+        let app = tauri::test::mock_app();
+        let reporter = TauriHookProgressReporter::new(app.handle().clone(), "conv-1".to_string());
+        assert_eq!(reporter.conversation_id, "conv-1");
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_messages_mixed_blocks() {
+        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        let messages = vec![
+            ConversationMessage {
+                role: MessageRole::User,
+                blocks: vec![ContentBlock::Text {
+                    text: "hello".to_string(),
+                }],
+                usage: None,
+            },
+            ConversationMessage {
+                role: MessageRole::Assistant,
+                blocks: vec![
+                    ContentBlock::Text {
+                        text: "response text here".to_string(),
+                    },
+                    ContentBlock::ToolUse {
+                        id: "id-1".to_string(),
+                        name: "bash".to_string(),
+                        input: "{\"command\":\"ls\"}".to_string(),
+                    },
+                ],
+                usage: None,
+            },
+        ];
+        let tokens = estimate_tokens_from_messages(&messages);
+        assert!(tokens > 0);
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_negative_delta() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
+        assert_eq!(breakdown.tokens_delta(), 0);
+    }
+
+    #[test]
+    fn test_token_usage_breakdown_large_values() {
+        let usage = axagent_runtime::TokenUsage {
+            input_tokens: 100000,
+            output_tokens: 50000,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+        };
+        let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
+        assert_eq!(breakdown.total_tokens, 150000);
+        assert_eq!(breakdown.tokens_delta(), 150000);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_content_blocks_empty() {
+        let blocks: Vec<axagent_runtime::ContentBlock> = vec![];
+        assert_eq!(estimate_tokens_from_content_blocks(&blocks), 0);
+    }
+
+    #[test]
+    fn test_estimate_tokens_from_messages_multiple_messages() {
+        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        let messages = vec![
+            ConversationMessage {
+                role: MessageRole::User,
+                blocks: vec![ContentBlock::Text {
+                    text: "first message".to_string(),
+                }],
+                usage: None,
+            },
+            ConversationMessage {
+                role: MessageRole::Assistant,
+                blocks: vec![ContentBlock::Text {
+                    text: "second message".to_string(),
+                }],
+                usage: None,
+            },
+            ConversationMessage {
+                role: MessageRole::User,
+                blocks: vec![ContentBlock::Text {
+                    text: "third message here".to_string(),
+                }],
+                usage: None,
+            },
+        ];
+        let tokens = estimate_tokens_from_messages(&messages);
+        assert!(tokens >= 3);
+    }
 }

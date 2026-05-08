@@ -722,4 +722,256 @@ mod tests {
         let manager = SchemaManager::new(db);
         assert!(manager.validate_field_type("custom", &serde_json::json!("anything")));
     }
+
+    #[tokio::test]
+    async fn test_validate_field_type_date_rfc3339() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("date", &serde_json::json!("2024-01-15T10:30:00Z")));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_date_invalid_type() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("string", &serde_json::json!(42)));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_number_invalid() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("number", &serde_json::json!("not a number")));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_boolean_invalid() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("boolean", &serde_json::json!("not bool")));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_array_invalid() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("array", &serde_json::json!("not array")));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_object_invalid() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("object", &serde_json::json!("not object")));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_tags_with_non_string_items() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(!manager.validate_field_type("tags", &serde_json::json!(["tag1", 2, true])));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_tags_empty_array() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("tags", &serde_json::json!([])));
+    }
+
+    #[tokio::test]
+    async fn test_parse_template_from_schema_only_optional() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        let schema = "---\n?priority: number\n?tags: tags\n---\nContent";
+        let template = manager.parse_template_from_schema(schema);
+        assert!(template.required.is_empty());
+        assert_eq!(template.optional.len(), 2);
+        assert_eq!(template.optional[0].name, "priority");
+        assert_eq!(template.optional[1].name, "tags");
+    }
+
+    #[tokio::test]
+    async fn test_parse_template_from_schema_mixed_fields() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        let schema = "---\ntitle: string\n?priority: number\ndate: date\n?tags: tags\n---\nContent";
+        let template = manager.parse_template_from_schema(schema);
+        assert_eq!(template.required.len(), 2);
+        assert_eq!(template.optional.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_parse_template_from_schema_no_closing_delimiter() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        let schema = "---\ntitle: string\n";
+        let template = manager.parse_template_from_schema(schema);
+        assert_eq!(template.required.len(), 1);
+        assert_eq!(template.required[0].name, "title");
+    }
+
+    #[tokio::test]
+    async fn test_parse_template_from_schema_line_without_colon() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        let schema = "---\ntitle: string\nno colon line\n?tags: tags\n---\n";
+        let template = manager.parse_template_from_schema(schema);
+        assert_eq!(template.required.len(), 1);
+        assert_eq!(template.optional.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_generate_migration_steps() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        let steps = manager.generate_migration_steps("1.0.0", "2.0.0", "schema content");
+        assert_eq!(steps.len(), 4);
+        assert!(steps[0].contains("Backup"));
+        assert!(steps[1].contains("Update"));
+        assert!(steps[2].contains("lint"));
+        assert!(steps[3].contains("auto-fix"));
+    }
+
+    #[test]
+    fn test_parse_version_with_extra_parts() {
+        assert_eq!(parse_version("1.2.3.4"), (1, 2, 3));
+    }
+
+    #[test]
+    fn test_parse_version_with_leading_zeros() {
+        assert_eq!(parse_version("01.02.03"), (1, 2, 3));
+    }
+
+    #[test]
+    fn test_compare_versions_equal_all_zeros() {
+        assert_eq!(compare_versions(&(0, 0, 0), &(0, 0, 0)), 0);
+    }
+
+    #[test]
+    fn test_compare_versions_major_difference() {
+        assert!(compare_versions(&(3, 0, 0), &(2, 9, 9)) > 0);
+        assert!(compare_versions(&(1, 9, 9), &(2, 0, 0)) < 0);
+    }
+
+    #[test]
+    fn test_compare_versions_minor_difference() {
+        assert!(compare_versions(&(1, 5, 0), &(1, 4, 9)) > 0);
+        assert!(compare_versions(&(1, 3, 9), &(1, 4, 0)) < 0);
+    }
+
+    #[test]
+    fn test_compare_versions_patch_difference() {
+        assert!(compare_versions(&(1, 0, 10), &(1, 0, 9)) > 0);
+        assert!(compare_versions(&(1, 0, 1), &(1, 0, 2)) < 0);
+    }
+
+    #[test]
+    fn test_schema_version_with_description_none_serialization() {
+        let sv = SchemaVersion {
+            version: "1.0.0".to_string(),
+            created_at: 0,
+            content_hash: "hash".to_string(),
+            note_count: 0,
+            description: None,
+        };
+        let json = serde_json::to_string(&sv).unwrap();
+        let deserialized: SchemaVersion = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.description.is_none());
+        assert_eq!(deserialized.version, "1.0.0");
+    }
+
+    #[test]
+    fn test_schema_diff_empty_fields() {
+        let diff = SchemaDiff {
+            from_version: "1.0.0".to_string(),
+            to_version: "1.0.0".to_string(),
+            added_fields: vec![],
+            removed_fields: vec![],
+            changed_fields: vec![],
+        };
+        let json = serde_json::to_string(&diff).unwrap();
+        let deserialized: SchemaDiff = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.added_fields.is_empty());
+        assert!(deserialized.removed_fields.is_empty());
+        assert!(deserialized.changed_fields.is_empty());
+    }
+
+    #[test]
+    fn test_field_def_no_description() {
+        let fd = FieldDef {
+            name: "title".to_string(),
+            field_type: "string".to_string(),
+            description: None,
+        };
+        let json = serde_json::to_string(&fd).unwrap();
+        let deserialized: FieldDef = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.description.is_none());
+        assert_eq!(deserialized.name, "title");
+    }
+
+    #[test]
+    fn test_compatibility_serialization_roundtrip() {
+        let compat = Compatibility::Incompatible {
+            message: "test message".to_string(),
+            migration_steps: vec!["step1".to_string()],
+        };
+        let json = serde_json::to_string(&compat).unwrap();
+        let deserialized: Compatibility = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            Compatibility::Incompatible { message, migration_steps } => {
+                assert_eq!(message, "test message");
+                assert_eq!(migration_steps.len(), 1);
+            },
+            Compatibility::Compatible => panic!("Expected Incompatible"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_schema_manager_new() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        let cache = manager.cache.read().await;
+        assert!(cache.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_string_with_number() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("string", &serde_json::json!(42)));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_string_with_bool() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("string", &serde_json::json!(true)));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_string_with_array() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("string", &serde_json::json!([1, 2])));
+    }
+
+    #[tokio::test]
+    async fn test_validate_field_type_string_with_object() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        assert!(manager.validate_field_type("string", &serde_json::json!({"key": "value"})));
+    }
+
+    #[tokio::test]
+    async fn test_parse_template_from_schema_whitespace_handling() {
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let manager = SchemaManager::new(db);
+        let schema = "---\n  title  :   string  \n  ?date  :   date  \n---\n";
+        let template = manager.parse_template_from_schema(schema);
+        assert_eq!(template.required.len(), 1);
+        assert_eq!(template.optional.len(), 1);
+        assert_eq!(template.required[0].name, "title");
+        assert_eq!(template.optional[0].name, "date");
+    }
 }

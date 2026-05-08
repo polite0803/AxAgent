@@ -37,7 +37,7 @@
 .pool-summary__fill {
   height: 100%;
   border-radius: 2px;
-  background: #52c41a;
+  background: var(--ant-color-success, #52c41a);
   transition: width 0.4s ease;
 }
 
@@ -54,18 +54,18 @@
 }
 
 .pool-summary__count--running {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.1);
+  color: var(--ant-color-primary, #1890ff);
+  background: color-mix(in srgb, var(--ant-color-primary, #1890ff) 10%, transparent);
 }
 
 .pool-summary__count--pending {
-  color: #8c8c8c;
-  background: rgba(140, 140, 140, 0.1);
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  background: color-mix(in srgb, var(--ant-color-text-tertiary, #8c8c8c) 10%, transparent);
 }
 
 .pool-summary__count--failed {
-  color: #ff4d4f;
-  background: rgba(255, 77, 79, 0.1);
+  color: var(--ant-color-error, #ff4d4f);
+  background: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 10%, transparent);
 }
 
 /* ── 条目卡片 ────────────────────────────────────────────── */
@@ -95,16 +95,16 @@
 }
 
 .pool-item--completed {
-  border-color: rgba(82, 196, 26, 0.2);
+  border-color: color-mix(in srgb, var(--ant-color-success, #52c41a) 20%, transparent);
 }
 
 .pool-item--failed {
-  border-color: rgba(255, 77, 79, 0.2);
+  border-color: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 20%, transparent);
 }
 
 @keyframes pool-item-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.12); }
-  50% { box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.04); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ant-color-primary, #1890ff) 12%, transparent); }
+  50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-primary, #1890ff) 4%, transparent); }
 }
 
 /* 头部 */
@@ -162,7 +162,7 @@
 
 .pool-item__error {
   font-size: 11px;
-  color: #ff4d4f;
+  color: var(--ant-color-error, #ff4d4f);
   padding-left: 23px;
   margin-top: 2px;
   display: flex;
@@ -258,19 +258,19 @@
 }
 
 .worker-msg-log__entry--progress {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.06);
+  color: var(--ant-color-primary, #1890ff);
+  background: color-mix(in srgb, var(--ant-color-primary, #1890ff) 6%, transparent);
 }
 
 .worker-msg-log__entry--result,
 .worker-msg-log__entry--completion {
-  color: #52c41a;
-  background: rgba(82, 196, 26, 0.06);
+  color: var(--ant-color-success, #52c41a);
+  background: color-mix(in srgb, var(--ant-color-success, #52c41a) 6%, transparent);
 }
 
 .worker-msg-log__entry--error {
-  color: #ff4d4f;
-  background: rgba(255, 77, 79, 0.06);
+  color: var(--ant-color-error, #ff4d4f);
+  background: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 6%, transparent);
 }
 
 .worker-msg-log__type {
