@@ -5,24 +5,20 @@ use tauri::{
     tray::TrayIconBuilder,
     AppHandle, Manager,
 };
-use tokio::sync::RwLock;
 
 const TRAY_ID: &str = "axagent-tray";
 
-/// 托盘标签由前端 i18n 系统通过 `set_tray_labels` 命令传入
-static TRAY_LABELS: LazyLock<RwLock<(String, String)>> =
-    LazyLock::new(|| RwLock::new(("显示主窗口".to_string(), "退出".to_string())));
+static TRAY_LABELS: LazyLock<std::sync::RwLock<(String, String)>> =
+    LazyLock::new(|| std::sync::RwLock::new(("显示主窗口".to_string(), "退出".to_string())));
 
-/// 前端调用：设置托盘菜单标签文本
 #[tauri::command]
 pub fn set_tray_labels(app: AppHandle, show_label: String, quit_label: String) {
-    *TRAY_LABELS.blocking_write() = (show_label.clone(), quit_label.clone());
-    // 同步更新已存在的托盘菜单
+    *TRAY_LABELS.write().unwrap() = (show_label.clone(), quit_label.clone());
     let _ = sync_tray_menu(&app);
 }
 
 fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::Error>> {
-    let (show_label, quit_label) = TRAY_LABELS.blocking_read().clone();
+    let (show_label, quit_label) = TRAY_LABELS.read().unwrap().clone();
     let show = MenuItem::with_id(app, "show", &show_label, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", &quit_label, true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &quit])?;

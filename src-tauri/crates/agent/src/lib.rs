@@ -791,8 +791,8 @@ mod tests {
                 server_id: "s1".into(),
                 server_name: "server1".into(),
                 tool_name: "tool1".into(),
-                description: "desc".into(),
-                input_schema: serde_json::json!({}),
+                description: Some("desc".into()),
+                input_schema: Some(serde_json::json!({})),
             },
         );
         servers.insert(

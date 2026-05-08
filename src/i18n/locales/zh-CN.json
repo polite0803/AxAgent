@@ -1531,6 +1531,8 @@
     "executeApproved": "执行已批准步骤",
     "executing": "执行中",
     "historyTitle": "计划历史",
+    "noPlans": "暂无计划",
+    "noPlansHint": "切换到先规划再执行策略以创建计划",
     "reject": "拒绝计划",
     "rejectStep": "拒绝此步骤",
     "resume": "恢复",

@@ -721,18 +721,8 @@ function ChatViewInner({ onScrollToReady }: {
 
   // Pre-load Shiki themes into the singleton highlighter when theme settings change
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log("[AxAgent Theme Debug] themes changed:", {
-        codeBlockDarkTheme,
-        codeBlockLightTheme,
-        codeBlockThemes,
-        isDarkMode,
-      });
-    }
     if (codeBlockThemes.length > 0) {
-      registerHighlight({ themes: codeBlockThemes as import("@shikijs/types").ThemeInput[] }).catch((err) => {
-        console.error("[AxAgent Theme Debug] registerHighlight failed:", err);
-      });
+      registerHighlight({ themes: codeBlockThemes as import("@shikijs/types").ThemeInput[] }).catch(() => {});
     }
   }, [codeBlockThemes, codeBlockDarkTheme, codeBlockLightTheme, isDarkMode]);
 
@@ -3035,6 +3025,7 @@ function ChatViewInner({ onScrollToReady }: {
       {/* Agent status bar — 通用状态文本 + 执行进度指示器 */}
       {currentAgentStatus && (
         <div
+          data-testid="agent-status"
           style={{
             display: "flex",
             alignItems: "center",

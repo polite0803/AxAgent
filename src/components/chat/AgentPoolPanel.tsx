@@ -294,7 +294,16 @@ interface AgentPoolPanelProps {
 
 export function AgentPoolPanel({ conversationId, visible = true }: AgentPoolPanelProps) {
   const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
-  const summary = useExecutionStore((s) => s.getPoolSummary(conversationId));
+
+  const summary = useMemo(() => {
+    const total = pool.length;
+    const running = pool.filter((a) => a.status === "running").length;
+    const completed = pool.filter((a) => a.status === "completed").length;
+    const pending = pool.filter((a) => a.status === "pending").length;
+    const failed = pool.filter((a) => a.status === "failed").length;
+    const pctComplete = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, running, completed, pending, failed, pctComplete };
+  }, [pool]);
 
   // 按依赖关系排序：无依赖的在前，有依赖的在后
   const sorted = useMemo(() => {

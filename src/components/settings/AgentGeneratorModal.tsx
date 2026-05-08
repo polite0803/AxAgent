@@ -125,7 +125,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
       onCancel={handleClose}
       footer={null}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
       {!result
         ? (

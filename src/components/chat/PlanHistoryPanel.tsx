@@ -95,7 +95,7 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
           </span>
         }
         placement="right"
-        width={380}
+        size={380}
         open={open}
         onClose={() => setOpen(false)}
         styles={{ body: { padding: 0 } }}

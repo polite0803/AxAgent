@@ -379,7 +379,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
-          tabPosition="top"
+          tabPlacement="top"
           size="small"
           items={tabItems}
           style={{ height: "100%" }}

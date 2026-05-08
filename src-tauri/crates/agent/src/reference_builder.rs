@@ -481,18 +481,18 @@ mod tests {
             (SourceType::Forum, "Source"),
             (SourceType::Unknown, "Source"),
         ];
-        for (source_type, expected_label) in types {
+        for (source_type, _expected_label) in &types {
             let citation = Citation::new(
                 "https://example.com".to_string(),
                 format!("Title {:?}", source_type),
-                source_type,
+                source_type.clone(),
             );
             tracker.add_citation(citation).await;
         }
 
         let builder = ReferenceBuilder::new(tracker);
         let apa = builder.build(ReferenceFormat::APA).await;
-        for (_, expected_label) in types {
+        for (_, expected_label) in &types {
             assert!(apa.contains(expected_label), "APA should contain '{}'", expected_label);
         }
     }

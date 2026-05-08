@@ -2307,7 +2307,9 @@
     "stepsApproved": "steps approved",
     "reviewing": "Reviewing",
     "executing": "Executing",
-    "historyTitle": "Plan History"
+    "historyTitle": "Plan History",
+    "noPlans": "No plans yet",
+    "noPlansHint": "Switch to Plan First strategy to create one"
   },
   "multiAgent": {
     "title": "Multi-Agent Status",

@@ -3,6 +3,7 @@
   "name": "AxAgent Wiki Clipper",
   "version": "1.0.0",
   "description": "Clip web pages to your AxAgent LLM Wiki",
+  "author": "刘小平",
   "permissions": [
     "activeTab",
     "storage",

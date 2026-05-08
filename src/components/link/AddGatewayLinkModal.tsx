@@ -65,7 +65,7 @@ export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps)
       okText={t("common.add")}
       cancelText={t("common.cancel")}
       width={480}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}

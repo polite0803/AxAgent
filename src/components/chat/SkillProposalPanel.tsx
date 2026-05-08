@@ -149,7 +149,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({ open, on
       onCancel={onClose}
       footer={null}
       width={720}
-      destroyOnClose
+      destroyOnHidden
     >
       {loading
         ? (

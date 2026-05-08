@@ -172,44 +172,45 @@ function AppInner() {
   }, [updateCheckInterval, checkForUpdate]);
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: token.colorBgContainer }}>
-      {isQuickBar ? <ContentArea /> : (
-        <>
-          <SkillPanels />
-          <TitleBar />
-          <AppHeader />
-          <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-          <GlobalCopyMenu />
-          <Layout
-            hasSider={!isInSettings}
-            className="flex-1 overflow-hidden"
-            style={{ backgroundColor: "transparent" }}
-          >
-            {!isInSettings && (
-              <div
-                style={{
-                  backgroundColor: "transparent",
-                  borderRight: "1px solid var(--border-color)",
-                  flexShrink: 0,
-                }}
-              >
-                <Sidebar />
-              </div>
-            )}
-            <Content className="overflow-hidden">
-              <div className="ax-page-transition" style={{ height: "100%" }} key={location.key}>
-                <ContentArea />
-              </div>
-            </Content>
-          </Layout>
-        </>
-      )}
-      {/* Buddy 陪伴系统 — 全局浮动组件 */}
+    <>
+      <div className="flex flex-col h-screen" style={{ backgroundColor: token.colorBgContainer }}>
+        {isQuickBar ? <ContentArea /> : (
+          <>
+            <SkillPanels />
+            <TitleBar />
+            <AppHeader />
+            <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+            <GlobalCopyMenu />
+            <Layout
+              hasSider={!isInSettings}
+              className="flex-1 overflow-hidden"
+              style={{ backgroundColor: "transparent" }}
+            >
+              {!isInSettings && (
+                <div
+                  style={{
+                    backgroundColor: "transparent",
+                    borderRight: "1px solid var(--border-color)",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sidebar />
+                </div>
+              )}
+              <Content className="overflow-hidden">
+                <div className="ax-page-transition" style={{ height: "100%" }} key={location.key}>
+                  <ContentArea />
+                </div>
+              </Content>
+            </Layout>
+          </>
+        )}
+      </div>
       <WelcomeWizard />
       <InteractiveTutorial />
       <HelpPanel />
       <BuddyWidget />
-    </div>
+    </>
   );
 }
 

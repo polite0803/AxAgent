@@ -206,8 +206,8 @@ export function WelcomeWizard() {
                   : t("onboarding.noKeysDetected", "未检测到 API Key")}
               </Text>
             </div>
-            {detectedKeys.map((k) => (
-              <div key={k.envVar} style={{ paddingLeft: 24, marginTop: 4, fontSize: 12 }}>
+            {detectedKeys.map((k, i) => (
+              <div key={`${k.envVar}-${i}`} style={{ paddingLeft: 24, marginTop: 4, fontSize: 12 }}>
                 <Text type="secondary">
                   {k.providerType}: {k.prefix}
                 </Text>

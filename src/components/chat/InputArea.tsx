@@ -2439,6 +2439,7 @@ export function InputArea() {
                   shape="circle"
                   size="small"
                   danger
+                  data-testid="stop-generation-btn"
                   icon={<Square size={14} />}
                   onClick={handleCancel}
                 />

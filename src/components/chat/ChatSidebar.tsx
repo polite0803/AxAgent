@@ -1853,7 +1853,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             {t("chat.archive")}
           </Button>,
         ]}
-        destroyOnClose
+        destroyOnHidden
       >
         <Radio.Group
           value={selectedKbId}

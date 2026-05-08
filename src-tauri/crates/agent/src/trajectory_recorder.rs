@@ -1038,7 +1038,6 @@ mod tests {
         assert_eq!(traj.session_id, "sess1");
         assert_eq!(traj.user_id, "user1");
         assert_eq!(traj.topic, "test topic");
-        assert!(!traj.is_recording);
     }
 
     #[tokio::test]

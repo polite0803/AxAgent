@@ -1243,7 +1243,7 @@ mod tests {
             related_concepts: vec!["Borrowing".to_string(), "Lifetime".to_string()],
         };
         let json = serde_json::to_string(&concept).unwrap();
-        let deserialized: ConceptMention = serde_json::from_str(&json).unwrap();
+        let _deserialized: ConceptMention = serde_json::from_str(&json).unwrap();
         assert_eq!(concept.related_concepts.len(), 2);
     }
 

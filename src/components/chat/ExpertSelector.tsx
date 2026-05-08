@@ -564,7 +564,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         okText="保存"
         cancelText="取消"
         width={560}
-        destroyOnClose
+        destroyOnHidden
       >
         {editingExpert && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -640,7 +640,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         okText="创建"
         cancelText="取消"
         width={520}
-        destroyOnClose
+        destroyOnHidden
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 12 }}>

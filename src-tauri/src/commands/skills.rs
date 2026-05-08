@@ -115,10 +115,10 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
         .await
         .map_err(|e| e.to_string())?;
 
-    let result: Vec<SkillInfo> = plugins
-        .summaries()
-        .into_iter()
-        .map(|p| {
+    let result: Vec<SkillInfo> = {
+        let mut seen: std::collections::HashMap<String, SkillInfo> =
+            std::collections::HashMap::new();
+        for p in plugins.summaries().into_iter() {
             let enabled = !disabled.contains(&p.metadata.name);
             let manifest = p
                 .metadata
@@ -127,7 +127,7 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
                 .map(|root| root.join("skill-manifest.json"))
                 .and_then(|path| std::fs::read_to_string(&path).ok())
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok());
-            SkillInfo {
+            let info = SkillInfo {
                 name: p.metadata.name.clone(),
                 description: p.metadata.description.clone(),
                 author: None,
@@ -145,9 +145,14 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
                 when_to_use: None,
                 group: None,
                 manifest,
+            };
+            let existing = seen.get(&info.name);
+            if existing.is_none() || info.source == "axagent" {
+                seen.insert(info.name.clone(), info);
             }
-        })
-        .collect();
+        }
+        seen.into_values().collect()
+    };
 
     Ok(result)
 }

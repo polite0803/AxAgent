@@ -753,7 +753,7 @@ export function SkillsPage() {
             <>
               {groupedSkills.ungrouped.map((skill) => (
                 <SkillCard
-                  key={skill.name}
+                  key={`${skill.name}-${skill.source}`}
                   skill={skill}
                   onToggle={handleToggle}
                   onDetail={handleDetail}
@@ -834,7 +834,7 @@ export function SkillsPage() {
                         <div style={{ padding: "4px 0" }}>
                           {groupSkills.map((skill) => (
                             <SkillCard
-                              key={skill.name}
+                              key={`${skill.name}-${skill.source}`}
                               skill={skill}
                               onToggle={handleToggle}
                               onDetail={handleDetail}

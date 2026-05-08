@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { useConversationStore } from "@/stores";
-import { message, theme } from "antd";
+import { App, theme } from "antd";
 import { BoxSelect, Bug, ClipboardPaste, Copy, Scissors, TextCursorInput } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 export function GlobalCopyMenu() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { message: messageApi } = App.useApp();
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
   const [inChatMessages, setInChatMessages] = useState(false);
@@ -116,7 +117,7 @@ export function GlobalCopyMenu() {
     const text = selectedTextRef.current;
     if (text) {
       void navigator.clipboard.writeText(text);
-      message.success(t("common.copySuccess"));
+      messageApi.success(t("common.copySuccess"));
     }
     setMenuPos(null);
   }, [t]);

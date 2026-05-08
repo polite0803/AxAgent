@@ -79,6 +79,8 @@ enum Conversations {
     EnabledMcpServerIds,
     EnabledKnowledgeBaseIds,
     EnabledMemoryNamespaceIds,
+    EnabledWikiIds,
+    AgentProfileId,
     CreatedAt,
     UpdatedAt,
     ContextCompression,
@@ -560,6 +562,9 @@ enum Wikis {
     NoteCount,
     SourceCount,
     EmbeddingProvider,
+    EmbeddingDimensions,
+    RetrievalThreshold,
+    RetrievalTopK,
     CreatedAt,
     UpdatedAt,
 }
@@ -1003,6 +1008,13 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("[]"),
                     )
+                    .col(
+                        ColumnDef::new(Conversations::EnabledWikiIds)
+                            .text()
+                            .not_null()
+                            .default("[]"),
+                    )
+                    .col(ColumnDef::new(Conversations::AgentProfileId).text().null())
                     .col(
                         ColumnDef::new(Conversations::CreatedAt)
                             .integer()
@@ -3079,6 +3091,9 @@ impl MigrationTrait for Migration {
                             .default(0),
                     )
                     .col(ColumnDef::new(Wikis::EmbeddingProvider).string().null())
+                    .col(ColumnDef::new(Wikis::EmbeddingDimensions).integer().null())
+                    .col(ColumnDef::new(Wikis::RetrievalThreshold).float().null())
+                    .col(ColumnDef::new(Wikis::RetrievalTopK).integer().null())
                     .col(ColumnDef::new(Wikis::CreatedAt).integer().not_null())
                     .col(ColumnDef::new(Wikis::UpdatedAt).integer().not_null())
                     .to_owned(),

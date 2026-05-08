@@ -58,7 +58,7 @@ export function CreateTeamModal({
       confirmLoading={loading}
       okText="创建团队"
       cancelText="取消"
-      destroyOnClose
+      destroyOnHidden
       width={560}
     >
       <Form

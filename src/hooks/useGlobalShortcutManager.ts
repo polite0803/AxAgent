@@ -127,6 +127,17 @@ export function useGlobalShortcutManager() {
             message: "Attempting to register global shortcut.",
           });
           try {
+            if (await isRegistered(accelerator)) {
+              pushDiagnostic({
+                phase: "register",
+                level: "info",
+                action,
+                shortcut: accelerator,
+                message: "Shortcut already registered, unregistering before re-register.",
+              });
+              const { unregister } = await import("@tauri-apps/plugin-global-shortcut");
+              await unregister(accelerator);
+            }
             await register(accelerator, async (event) => {
               if (event.state !== "Pressed") { return; }
               pushDiagnostic({

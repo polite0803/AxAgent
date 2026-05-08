@@ -499,7 +499,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
       onCancel={handleClose}
       footer={null}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
       <Tabs
         activeKey={activeTab}

@@ -785,7 +785,7 @@ export function SettingsPanel() {
       <Tabs
         defaultActiveKey="general"
         items={tabItems}
-        tabPosition="top"
+        tabPlacement="top"
         style={{ padding: "0 24px" }}
         tabBarStyle={{ marginBottom: 0 }}
         onChange={() => {

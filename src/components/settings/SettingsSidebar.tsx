@@ -242,7 +242,7 @@ export function SettingsSidebar() {
           activeKey={activeTab}
           onChange={handleTabChange}
           items={tabItems}
-          tabPosition="left"
+          tabPlacement="start"
           tabBarStyle={{ width: tabBarWidth, flexShrink: 0, transition: "width 0.05s" }}
           style={{ height: "100%", flex: 1 }}
         />

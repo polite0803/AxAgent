@@ -12,12 +12,14 @@ interface TrajectoryReplayProps {
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4] as const;
 
+const _EMPTY_TRAJECTORIES: never[] = [];
+
 export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const fetchList = useExecutionStore((s) => s.fetchTrajectoryList);
   const fetchDetail = useExecutionStore((s) => s.fetchTrajectoryDetail);
-  const trajectories = useExecutionStore((s) => s.trajectoriesByConversation[conversationId] ?? []);
+  const trajectories = useExecutionStore((s) => s.trajectoriesByConversation[conversationId] || _EMPTY_TRAJECTORIES);
   const loadingList = useExecutionStore((s) => s.loadingTrajectories);
   const details = useExecutionStore((s) => s.trajectoryDetails);
 

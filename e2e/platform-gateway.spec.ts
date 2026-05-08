@@ -18,12 +18,11 @@ test.describe("Platform Gateway Configuration", () => {
     await page.goto("/settings/platform");
     await page.waitForTimeout(2000);
 
-    // Check for platform-related UI elements
     const pageContent = page.locator("body");
     await expect(pageContent).toBeVisible();
   });
 
-  test("should toggle Telegram integration", async ({ page }) => {
+  test("should toggle Telegram integration when available", async ({ page }) => {
     const telegramToggle = page.locator('[data-testid="telegram-toggle"]');
     if (await telegramToggle.isVisible({ timeout: 3000 }).catch(() => false)) {
       const isChecked = await telegramToggle.isChecked();
@@ -33,7 +32,7 @@ test.describe("Platform Gateway Configuration", () => {
     }
   });
 
-  test("should enter Telegram bot token", async ({ page }) => {
+  test("should enter Telegram bot token when available", async ({ page }) => {
     const tokenInput = page.locator('[data-testid="telegram-bot-token"]');
     if (await tokenInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await tokenInput.fill("test_bot_token_12345");
@@ -41,7 +40,7 @@ test.describe("Platform Gateway Configuration", () => {
     }
   });
 
-  test("should toggle Discord integration", async ({ page }) => {
+  test("should toggle Discord integration when available", async ({ page }) => {
     const discordToggle = page.locator('[data-testid="discord-toggle"]');
     if (await discordToggle.isVisible({ timeout: 3000 }).catch(() => false)) {
       const isChecked = await discordToggle.isChecked();

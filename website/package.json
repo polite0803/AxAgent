@@ -1,6 +1,10 @@
 {
   "name": "axagent-website",
   "private": true,
+  "version": "1.4.2",
+  "description": "AxAgent Website",
+  "author": "刘小平 <polite0803@outlook.com>",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vitepress dev docs",

@@ -15,6 +15,8 @@ interface AgentExecutionPanelProps {
   onToggleCompact?: () => void;
 }
 
+const _EMPTY_POOL: never[] = [];
+
 export function AgentExecutionPanel({
   conversationId,
   compactMode = false,
@@ -22,7 +24,7 @@ export function AgentExecutionPanel({
 }: AgentExecutionPanelProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const poolItems = useExecutionStore((s) => s.agentPool[conversationId] ?? []);
+  const poolItems = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY_POOL);
 
   const poolSummary = useMemo(() => {
     if (poolItems.length === 0) { return null; }
@@ -117,7 +119,7 @@ export function AgentExecutionPanel({
       <Tabs
         className="agent-exec-panel__tabs"
         defaultActiveKey="pool"
-        destroyInactiveTabPane
+        destroyOnHidden
         size="small"
         style={{ flex: 1, display: "flex", flexDirection: "column" }}
         tabBarStyle={{ margin: "0 12px", flexShrink: 0 }}

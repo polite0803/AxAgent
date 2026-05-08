@@ -38,14 +38,13 @@ export function ChatPage() {
   const [rightPanelWidth, setRightPanelWidth] = useState(RIGHT_PANEL_DEFAULT);
   const [rightDragging, setRightDragging] = useState(false);
 
-  // 折叠切换 — 同步持久化到 settings
   const toggleRightPanel = useCallback(() => {
-    setRightPanelCollapsed((prev) => {
-      const next = !prev;
-      saveSettings({ agent_panel_compact: next });
-      return next;
-    });
-  }, [saveSettings]);
+    setRightPanelCollapsed((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    saveSettings({ agent_panel_compact: rightPanelCollapsed });
+  }, [rightPanelCollapsed, saveSettings]);
 
   // ChatView 暴露的 scroll 能力，供右侧面板点击跳转消息使用
   const [scrollApi, setScrollApi] = useState<ChatViewScrollApi | null>(null);
@@ -294,8 +293,9 @@ export function ChatPage() {
             style={{
               position: "absolute",
               top: 8,
-              left: rightPanelCollapsed ? "50%" : 8,
-              transform: rightPanelCollapsed ? "translateX(-50%)" : "none",
+              right: rightPanelCollapsed ? "50%" : 8,
+              left: rightPanelCollapsed ? "50%" : undefined,
+              transform: rightPanelCollapsed ? "translateX(50%)" : "none",
               zIndex: 5,
               width: 28,
               height: 28,
