@@ -266,4 +266,4 @@ jobs:
 
       - name: Run cargo deny check
         working-directory: src-tauri
-        run: cargo deny check
+        run: cargo deny check licenses bans sources
