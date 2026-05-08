@@ -1101,6 +1101,8 @@
     "forceMaxTokens": "إجبار الحد الأقصى للرموز",
     "thinkingParamStyle": "نمط معلمة التفكير",
     "thinkingParamStyleNone": "عدم الإرسال (none)",
+    "requestDelayMs": "تأخير الطلب",
+    "requestDelayMsHint": "عدد المللي ثانية للانتظار قبل كل استدعاء API، يُستخدم لتجنب حدود المعدل (مثل أخطاء 429)",
     "defaultProvider": "المزوّد الافتراضي",
     "selectProvider": "← اختر مزوّداً",
     "noProviders": "لا يوجد مزوّدون",

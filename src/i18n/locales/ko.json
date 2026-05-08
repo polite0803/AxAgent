@@ -1136,6 +1136,8 @@
     "forceMaxTokens": "최대 토큰 강제",
     "thinkingParamStyle": "사고 매개변수 스타일",
     "thinkingParamStyleNone": "전송하지 않음 (none)",
+    "requestDelayMs": "요청 지연",
+    "requestDelayMsHint": "API 호출 전 대기할 밀리초 수, 속도 제한(예: 429 오류) 방지에 사용",
     "defaultProvider": "기본 공급자",
     "selectProvider": "← 공급자를 선택하세요",
     "noProviders": "공급자 없음",

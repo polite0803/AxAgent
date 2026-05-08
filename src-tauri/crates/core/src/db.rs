@@ -57,13 +57,25 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
 }
 
 pub fn default_db_path() -> String {
+    #[cfg(mobile)]
+    let home = dirs::data_dir()
+        .or_else(|| dirs::home_dir())
+        .expect("Could not determine home directory");
+    #[cfg(not(mobile))]
     let home = dirs::home_dir().expect("Could not determine home directory");
+
     let path = home.join(".axagent").join("data").join("axagent.db");
     path.to_string_lossy().to_string()
 }
 
 pub fn profile_db_path(profile_name: &str) -> String {
+    #[cfg(mobile)]
+    let home = dirs::data_dir()
+        .or_else(|| dirs::home_dir())
+        .expect("Could not determine home directory");
+    #[cfg(not(mobile))]
     let home = dirs::home_dir().expect("Could not determine home directory");
+
     let path = home
         .join(".axagent")
         .join("profiles")

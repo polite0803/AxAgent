@@ -11,8 +11,19 @@ mod memory_extract;
 mod paths;
 mod semantic_cache;
 mod smart_router;
+
+#[cfg(not(mobile))]
 mod tray;
+#[cfg(not(mobile))]
 mod window_state;
+
+#[cfg(mobile)]
+mod tray {
+    use tauri::Manager;
+    #[tauri::command]
+    pub fn set_tray_labels(_app: tauri::AppHandle, _show_label: String, _quit_label: String) {
+    }
+}
 
 #[cfg(target_os = "windows")]
 mod windows_utils;
@@ -290,6 +301,13 @@ pub fn run() {
             commands::files_page::reveal_attachment_file,
             commands::files_page::save_avatar_file,
             commands::files_page::open_attachment_file,
+            commands::cloud_workspace::list_cloud_provider_presets,
+            commands::cloud_workspace::list_cloud_directory,
+            commands::cloud_workspace::sync_cloud_workspace,
+            commands::cloud_workspace::push_cloud_workspace_changes,
+            commands::cloud_workspace::get_cloud_conflicts,
+            commands::cloud_workspace::resolve_cloud_conflict,
+            commands::cloud_workspace::set_cloud_conflict_strategy,
             commands::storage::get_storage_inventory,
             commands::storage::open_storage_directory,
             commands::storage::validate_documents_root,
@@ -801,6 +819,7 @@ pub fn run() {
 
             let app_dir = state.app_data_dir.clone();
 
+            #[cfg(not(mobile))]
             if let Some(main_window) = app.get_webview_window("main") {
                 #[cfg(target_os = "windows")]
                 {
@@ -831,7 +850,29 @@ pub fn run() {
                 }
             }
 
+            #[cfg(mobile)]
+            if let Some(ref sync_engine) = state.sync_engine {
+                tracing::info!("[mobile] Starting cloud sync engine...");
+                let engine = sync_engine.clone();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    rt.block_on(async {
+                        match engine.full_sync().await {
+                            Ok(result) => {
+                                let dl = result.pending_downloads.len();
+                                let ul = result.pending_uploads.len();
+                                tracing::info!("[mobile] Initial sync complete: {} pending downloads, {} pending uploads", dl, ul);
+                            },
+                            Err(e) => {
+                                tracing::warn!("[mobile] Initial sync failed (non-critical): {}", e);
+                            },
+                        }
+                    });
+                }).join().expect("Mobile sync thread panicked");
+            }
+
             let state = app.state::<AppState>();
+            #[cfg(not(mobile))]
             let tray_language = {
                 let db = state.sea_db.clone();
                 std::thread::spawn(move || {
@@ -841,6 +882,8 @@ pub fn run() {
                         .unwrap_or_else(|_| "en".to_string())
                 }).join().expect("Tray language thread panicked")
             };
+            #[cfg(mobile)]
+            let tray_language = "en".to_string();
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 
             Ok(())
@@ -850,27 +893,30 @@ pub fn run() {
                 use std::sync::atomic::Ordering;
                 match event {
                     tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_) => {
-                        let app = window.app_handle();
-                        let state = app.state::<AppState>();
-                        let maximized = window.is_maximized().unwrap_or(false);
-                        let fullscreen = window.is_fullscreen().unwrap_or(false);
-                        let scale_factor = window.scale_factor().unwrap_or(1.0);
-                        let prev = window_state::load_window_state(&state.app_data_dir);
-                        if maximized || fullscreen {
-                            if let Some(mut prev) = prev {
-                                prev.maximized = maximized;
-                                prev.fullscreen = fullscreen;
-                                let _ = window_state::save_window_state(&state.app_data_dir, prev);
+                        #[cfg(not(mobile))]
+                        {
+                            let app = window.app_handle();
+                            let state = app.state::<AppState>();
+                            let maximized = window.is_maximized().unwrap_or(false);
+                            let fullscreen = window.is_fullscreen().unwrap_or(false);
+                            let scale_factor = window.scale_factor().unwrap_or(1.0);
+                            let prev = window_state::load_window_state(&state.app_data_dir);
+                            if maximized || fullscreen {
+                                if let Some(mut prev) = prev {
+                                    prev.maximized = maximized;
+                                    prev.fullscreen = fullscreen;
+                                    let _ = window_state::save_window_state(&state.app_data_dir, prev);
+                                }
+                            } else if let (Ok(size), Ok(pos)) = (window.inner_size(), window.outer_position()) {
+                                let logical_w = size.width as f64 / scale_factor;
+                                let logical_h = size.height as f64 / scale_factor;
+                                let logical_x = pos.x as f64 / scale_factor;
+                                let logical_y = pos.y as f64 / scale_factor;
+                                let _ = window_state::save_window_state(&state.app_data_dir, window_state::PersistedWindowState {
+                                    width: logical_w, height: logical_h, maximized: false, fullscreen: false,
+                                    x: Some(logical_x), y: Some(logical_y),
+                                });
                             }
-                        } else if let (Ok(size), Ok(pos)) = (window.inner_size(), window.outer_position()) {
-                            let logical_w = size.width as f64 / scale_factor;
-                            let logical_h = size.height as f64 / scale_factor;
-                            let logical_x = pos.x as f64 / scale_factor;
-                            let logical_y = pos.y as f64 / scale_factor;
-                            let _ = window_state::save_window_state(&state.app_data_dir, window_state::PersistedWindowState {
-                                width: logical_w, height: logical_h, maximized: false, fullscreen: false,
-                                x: Some(logical_x), y: Some(logical_y),
-                            });
                         }
                     }
                     tauri::WindowEvent::CloseRequested { api, .. } => {

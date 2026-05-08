@@ -1,0 +1,372 @@
+# AxAgent Mobile CI/CD
+# 
+# Triggers:
+#   - Tag push (v*.*.*) → Build Android APK/AAB + iOS IPA
+#   - Manual dispatch → Build with custom settings
+#
+# Requirements (GitHub Secrets):
+#   - KEYSTORE_FILE: Base64-encoded Android keystore
+#   - KEYSTORE_PASSWORD: Keystore password
+#   - KEY_ALIAS: Key alias in keystore
+#   - KEY_PASSWORD: Key password
+#   - APPLE_CERTIFICATE: Base64-encoded p12 certificate
+#   - APPLE_CERTIFICATE_PASSWORD: Certificate password
+#   - APPLE_CERTIFICATE_P12_PASSWORD: Same as above
+#   - APPLE_ID: Apple Developer account email
+#   - APPLE_PASSWORD: App-specific password (not account password)
+#   - APPLE_TEAM_ID: Apple Developer Team ID
+#   - TAURI_SIGNING_PRIVATE_KEY: Tauri updater signing key
+#
+# Output:
+#   - Android: APK (debuggable) + AAB (Play Store)
+#   - iOS: IPA (signed for App Store or ad-hoc)
+
+name: Mobile Build (Android/iOS)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        type: choice
+        required: true
+        default: 'android'
+        options:
+          - 'android'
+          - 'ios'
+          - 'both'
+      android_abi:
+        description: 'Android ABI'
+        type: choice
+        required: true
+        default: 'arm64-v8a'
+        options:
+          - 'arm64-v8a'
+          - 'armeabi-v7a'
+          - 'x86_64'
+          - 'all'
+      ios_target:
+        description: 'iOS target'
+        type: choice
+        required: true
+        default: 'aarch64-apple-ios'
+        options:
+          - 'aarch64-apple-ios'
+          - 'aarch64-apple-ios-sim'
+          - 'x86_64-apple-ios'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: short
+  NDK_VERSION: '27.0.12077973'
+
+jobs:
+  # ── Shared: Check version ──────────────────────────────
+  check-version:
+    name: Check Version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Validate tag vs package.json
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PKG_VERSION="v$(jq -r .version package.json)"
+          if [[ "$TAG" != "$PKG_VERSION" ]]; then
+            echo "❌ Tag $TAG does not match package.json $PKG_VERSION"
+            exit 1
+          fi
+          echo "✅ Version $TAG is consistent"
+
+  # ── Android Build ──────────────────────────────────────
+  build-android:
+    name: Build Android (${{ matrix.abi }})
+    needs: [check-version]
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.build_type == 'android' || github.event.inputs.build_type == 'both'))
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: ${{ fromJson(github.event_name == 'workflow_dispatch' && github.event.inputs.android_abi != 'all' && format('["{0}"]', github.event.inputs.android_abi) || '["arm64-v8a", "armeabi-v7a", "x86_64"]') }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || matrix.abi == 'armeabi-v7a' && 'armv7-linux-androideabi' || 'x86_64-linux-android' }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v1-android'
+          key: 'ubuntu-22.04-${{ matrix.abi }}'
+          workspaces: src-tauri -> target
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '27.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Initialize Android project
+        run: |
+          cd src-tauri
+          cargo tauri android init
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Setup keystore
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p src-tauri/gen/android/app
+          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/app/release.jks
+          echo "KEYSTORE_FILE=${{ github.workspace }}/src-tauri/gen/android/app/release.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build Android APK
+        run: |
+          cd src-tauri
+          cargo tauri android build \
+            --target ${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }} \
+            --apk \
+            ${{ github.event_name == 'push' && '--release' || '' }}
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Build Android AAB (for Play Store)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && matrix.abi == 'arm64-v8a'
+        run: |
+          cd src-tauri
+          cargo tauri android build \
+            --target aarch64 \
+            --aab \
+            --release
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Rename APK
+        run: |
+          TAG="${GITHUB_REF_NAME:-dev}"
+          cd src-tauri/target
+          
+          # Find the APK file
+          APK=$(find . -name "*.apk" -type f | head -1)
+          if [ -n "$APK" ]; then
+            ABI="${{ matrix.abi }}"
+            NEW_NAME="AxAgent_${TAG}_android-${ABI}.apk"
+            cp "$APK" "../$NEW_NAME"
+            echo "APK_PATH=src-tauri/$NEW_NAME" >> $GITHUB_ENV
+          fi
+
+      - name: Rename AAB
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && matrix.abi == 'arm64-v8a'
+        run: |
+          TAG="${GITHUB_REF_NAME:-dev}"
+          cd src-tauri/target
+          
+          # Find the AAB file
+          AAB=$(find . -name "*.aab" -type f | head -1)
+          if [ -n "$AAB" ]; then
+            NEW_NAME="AxAgent_${TAG}_android-play-store.aab"
+            cp "$AAB" "../$NEW_NAME"
+            echo "AAB_PATH=src-tauri/$NEW_NAME" >> $GITHUB_ENV
+          fi
+
+      - name: Upload APK to release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && env.APK_PATH
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ${{ env.APK_PATH }}
+
+      - name: Upload AAB to release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && env.AAB_PATH
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ${{ env.AAB_PATH }}
+
+      - name: Upload APK as artifact (for manual runs)
+        if: github.event_name == 'workflow_dispatch' && env.APK_PATH
+        uses: actions/upload-artifact@v4
+        with:
+          name: axagent-android-${{ matrix.abi }}-apk
+          path: ${{ env.APK_PATH }}
+          retention-days: 30
+
+  # ── iOS Build ─────────────────────────────────────────
+  build-ios:
+    name: Build iOS
+    needs: [check-version]
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.build_type == 'ios' || github.event.inputs.build_type == 'both'))
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v1-ios'
+          key: 'macos-14-aarch64-apple-ios'
+          workspaces: src-tauri -> target
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Install Protoc
+        run: brew install protobuf
+
+      - name: Initialize iOS project
+        run: |
+          cd src-tauri
+          cargo tauri ios init
+
+      - name: Install iOS dependencies (cargo build)
+        run: |
+          cd src-tauri
+          cargo build --release --target aarch64-apple-ios
+
+      - name: Build iOS IPA
+        run: |
+          cd src-tauri
+          cargo tauri ios build \
+            --target aarch64-apple-ios \
+            --export-method ${{ github.event_name == 'push' && 'app-store' || 'ad-hoc' }} \
+            --no-bundler
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Find and rename IPA
+        run: |
+          TAG="${GITHUB_REF_NAME:-dev}"
+          cd src-tauri/target/aarch64-apple-ios/release
+          
+          # Find the IPA or app bundle
+          IPA=$(find . -name "*.ipa" -type f | head -1)
+          APP_BUNDLE=$(find . -name "*.app" -type d | head -1)
+          
+          if [ -n "$IPA" ]; then
+            NEW_NAME="AxAgent_${TAG}_ios.ipa"
+            cp "$IPA" "../../../$NEW_NAME"
+            echo "IPA_PATH=src-tauri/$NEW_NAME" >> $GITHUB_ENV
+          elif [ -n "$APP_BUNDLE" ]; then
+            # Package .app into .ipa
+            mkdir -p Payload
+            cp -r "$APP_BUNDLE" Payload/
+            zip -r "AxAgent_${TAG}_ios.ipa" Payload
+            mv "AxAgent_${TAG}_ios.ipa" "../../../"
+            echo "IPA_PATH=src-tauri/AxAgent_${TAG}_ios.ipa" >> $GITHUB_ENV
+            rm -rf Payload
+          fi
+
+      - name: Upload IPA to release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && env.IPA_PATH
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ${{ env.IPA_PATH }}
+
+      - name: Upload IPA as artifact (for manual runs)
+        if: github.event_name == 'workflow_dispatch' && env.IPA_PATH
+        uses: actions/upload-artifact@v4
+        with:
+          name: axagent-ios-ipa
+          path: ${{ env.IPA_PATH }}
+          retention-days: 30
+
+  # ── Summary ───────────────────────────────────────────
+  build-summary:
+    name: Build Summary
+    needs: [build-android, build-ios]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check build status
+        run: |
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          ANDROID_STATUS="${{ needs.build-android.result }}"
+          IOS_STATUS="${{ needs.build-ios.result }}"
+          
+          echo "- **Android**: ${ANDROID_STATUS}" >> $GITHUB_STEP_SUMMARY
+          echo "- **iOS**: ${IOS_STATUS}" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "$ANDROID_STATUS" == "success" || "$IOS_STATUS" == "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Build completed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Some builds failed. Check the logs for details." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

@@ -82,6 +82,7 @@ export interface ModelParamOverrides {
   no_system_role?: boolean;
   force_max_tokens?: boolean;
   thinking_param_style?: string;
+  request_delay_ms?: number;
 }
 
 // === Conversation & Message ===
@@ -519,6 +520,18 @@ export interface AppSettings {
   thought_chain_enabled?: boolean;
   /** Enable automatic error recovery suggestions */
   error_recovery_enabled?: boolean;
+  /** Cloud workspace URI (supports s3://, webdav://, local://) */
+  workspace_uri?: string | null;
+  /** Cloud backend type: "s3" | "webdav" | null */
+  cloud_backend?: string | null;
+  /** S3 provider preset key (e.g., "Aws", "TencentCos", "Custom") */
+  s3_provider_preset?: string | null;
+  /** S3 secret access key */
+  s3_secret_access_key?: string | null;
+  /** WebDAV password */
+  webdav_password?: string | null;
+  /** Cloud sync enabled flag */
+  cloud_sync_enabled?: boolean;
 }
 
 // === Streaming ===

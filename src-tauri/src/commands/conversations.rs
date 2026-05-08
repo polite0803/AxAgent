@@ -1601,6 +1601,7 @@ fn spawn_stream_task(
     use_max_completion_tokens: Option<bool>,
     force_max_tokens: Option<bool>,
     thinking_param_style: Option<String>,
+    request_delay_ms: Option<u64>,
     settings: AppSettings,
     master_key: [u8; 32],
     cancel_flag: Arc<AtomicBool>,
@@ -1688,6 +1689,13 @@ fn spawn_stream_task(
                     iteration
                 );
                 break;
+            }
+
+            // Apply request delay to avoid rate limits (per-model configuration)
+            if let Some(delay_ms) = request_delay_ms {
+                if delay_ms > 0 && iteration > 0 {
+                    tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                }
             }
 
             let request = ChatRequest {
@@ -2165,6 +2173,9 @@ pub async fn send_message(
     let thinking_param_style = model_param_overrides
         .as_ref()
         .and_then(|p| p.thinking_param_style.clone());
+    let request_delay_ms = model_param_overrides
+        .as_ref()
+        .and_then(|p| p.request_delay_ms);
 
     // 4. Build ChatRequest from conversation messages
     let db_messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
@@ -2594,6 +2605,7 @@ pub async fn send_message(
         use_max_completion_tokens,
         force_max_tokens,
         thinking_param_style,
+        request_delay_ms,
         global_settings,
         state.master_key,
         cancel_flag,
@@ -2931,6 +2943,9 @@ pub async fn regenerate_message(
     let thinking_param_style = regen_model_overrides
         .as_ref()
         .and_then(|p| p.thinking_param_style.clone());
+    let regen_request_delay_ms = regen_model_overrides
+        .as_ref()
+        .and_then(|p| p.request_delay_ms);
 
     // Convert system messages to user messages if model doesn't support system role
     if no_system_role {
@@ -2967,6 +2982,7 @@ pub async fn regenerate_message(
         use_max_completion_tokens,
         force_max_tokens,
         thinking_param_style,
+        regen_request_delay_ms,
         global_settings,
         state.master_key,
         cancel_flag,
@@ -3284,6 +3300,9 @@ pub async fn regenerate_with_model(
     let thinking_param_style = rwm_overrides
         .as_ref()
         .and_then(|p| p.thinking_param_style.clone());
+    let rwm_request_delay_ms = rwm_overrides
+        .as_ref()
+        .and_then(|p| p.request_delay_ms);
 
     if no_system_role {
         for msg in &mut chat_messages {
@@ -3365,6 +3384,7 @@ pub async fn regenerate_with_model(
         use_max_completion_tokens,
         force_max_tokens,
         thinking_param_style,
+        rwm_request_delay_ms,
         global_settings,
         state.master_key,
         cancel_flag,

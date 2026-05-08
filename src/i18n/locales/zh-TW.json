@@ -1096,6 +1096,8 @@
     "forceMaxTokens": "強制 Max Tokens",
     "thinkingParamStyle": "思維參數風格",
     "thinkingParamStyleNone": "不發送（none）",
+    "requestDelayMs": "請求延時",
+    "requestDelayMsHint": "每次呼叫 API 前等待的毫秒數，用於避免觸發速率限制（如 429 錯誤）",
     "defaultProvider": "預設供應商",
     "selectProvider": "← 請選擇一個供應商",
     "noProviders": "暫無供應商",

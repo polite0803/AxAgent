@@ -41,11 +41,21 @@ pub fn documents_root() -> PathBuf {
 }
 
 /// The platform default documents root: `~/Documents/axagent/`.
-/// 在无头环境（CI/Docker/无图形界面Linux）下优雅降级到 home 目录
+/// On mobile (iOS/Android), falls back to the app sandbox data directory.
+/// In headless environments (CI/Docker/headless Linux), degrades to home directory.
 pub fn default_documents_root() -> PathBuf {
-    dirs::document_dir()
-        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
-        .join("axagent")
+    #[cfg(mobile)]
+    {
+        dirs::data_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+            .join("axagent")
+    }
+    #[cfg(not(mobile))]
+    {
+        dirs::document_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+            .join("axagent")
+    }
 }
 
 /// Returns the typed subdirectory for a given MIME type.

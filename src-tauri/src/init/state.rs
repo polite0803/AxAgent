@@ -8,6 +8,7 @@ use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
+use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine, StorageBackend};
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let DatabaseInitResult {
@@ -104,6 +105,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         ));
 
     rt.block_on(platform_manager.set_message_callback(platform_bridge.clone()));
+
+    let sync_engine = create_sync_engine(&sea_db, &app_settings);
 
     AppState {
         sea_db: sea_db.clone(),
@@ -223,5 +226,77 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         },
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
         dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
+        sync_engine,
     }
+}
+
+fn create_sync_engine(
+    sea_db: &sea_orm::DatabaseConnection,
+    app_settings: &axagent_core::types::AppSettings,
+) -> Option<Arc<SyncEngine>> {
+    #[cfg(mobile)]
+    {
+        let cloud_config = load_cloud_storage_config(sea_db, app_settings)?;
+        let backend = cloud_config.create_backend().ok()?;
+        let device_id = hostname_or_uuid();
+        let profile_name = cloud_config.profile_name.clone();
+        Some(Arc::new(SyncEngine::new(backend, &profile_name, &device_id)))
+    }
+    #[cfg(not(mobile))]
+    {
+        None
+    }
+}
+
+#[cfg(mobile)]
+fn load_cloud_storage_config(
+    sea_db: &sea_orm::DatabaseConnection,
+    _app_settings: &axagent_core::types::AppSettings,
+) -> Option<CloudStorageConfig> {
+    use axagent_core::cloud_storage::{BackendType, SyncMode, S3ProviderPreset, S3Config};
+    let rt = tokio::runtime::Handle::current();
+    let settings = rt.block_on(axagent_core::repo::settings::get_settings(sea_db)).ok()?;
+
+    if !settings.cloud_sync_enabled.unwrap_or(false) {
+        return None;
+    }
+
+    let backend_type = match settings.cloud_backend.as_deref() {
+        Some("s3") => BackendType::S3,
+        Some("webdav") => BackendType::WebDav,
+        _ => return None,
+    };
+
+    let cloud_config = CloudStorageConfig {
+        provider_preset: settings.s3_provider_preset.unwrap_or(S3ProviderPreset::Custom),
+        backend_type,
+        sync_enabled: true,
+        sync_mode: SyncMode::Sync,
+        profile_name: settings.sync_profile_name.clone().unwrap_or_else(|| "default".to_string()),
+        webdav: settings.webdav_host.as_ref().map(|h| axagent_core::cloud_storage::WebDavConfig {
+            host: h.clone(),
+            username: settings.webdav_username.clone().unwrap_or_default(),
+            password: settings.webdav_password.clone().unwrap_or_default(),
+            path: settings.webdav_path.clone().unwrap_or_default(),
+            accept_invalid_certs: settings.webdav_accept_invalid_certs.unwrap_or(false),
+        }),
+        s3: settings.s3_endpoint.as_ref().map(|e| S3Config {
+            endpoint: e.clone(),
+            region: settings.s3_region.clone().unwrap_or_default(),
+            bucket: settings.s3_bucket.clone().unwrap_or_default(),
+            access_key_id: settings.s3_access_key_id.clone().unwrap_or_default(),
+            secret_access_key: settings.s3_secret_access_key.clone().unwrap_or_default(),
+            root: settings.s3_root.clone().unwrap_or_default(),
+            use_path_style: settings.s3_use_path_style.unwrap_or(false),
+        }),
+    };
+
+    Some(cloud_config)
+}
+
+#[cfg(mobile)]
+fn hostname_or_uuid() -> String {
+    std::env::var("HOSTNAME").ok()
+        .or_else(|| std::env::var("COMPUTERNAME").ok())
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string())
 }

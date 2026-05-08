@@ -437,6 +437,8 @@ async fn test_conversation_update_input() {
         enabled_mcp_server_ids: Some(vec!["mcp-a".into(), "mcp-b".into()]),
         enabled_knowledge_base_ids: Some(vec!["kb-a".into()]),
         enabled_memory_namespace_ids: Some(vec!["mem-a".into()]),
+        agent_profile_id: Some(Some("profile-1".into())),
+        enabled_wiki_ids: Some(vec!["wiki-a".into()]),
         context_compression: None,
         category_id: None,
         parent_conversation_id: None,

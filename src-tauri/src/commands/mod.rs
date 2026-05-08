@@ -12,6 +12,7 @@ pub mod backup;
 pub mod branches;
 pub mod browser;
 pub mod chart_generator;
+pub mod cloud_workspace;
 pub mod computer_control;
 pub mod context_sources;
 pub mod conversation_categories;

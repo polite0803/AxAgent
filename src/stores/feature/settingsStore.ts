@@ -111,6 +111,14 @@ const DEFAULT_SETTINGS: AppSettings = {
   proactive_nudge_enabled: true,
   thought_chain_enabled: true,
   error_recovery_enabled: true,
+  // Cloud workspace settings
+  workspace_uri: null,
+  cloud_backend: null,
+  s3_provider_preset: null,
+  s3_secret_access_key: null,
+  webdav_password: null,
+  cloud_sync_enabled: false,
+  s3_use_path_style: false,
 };
 
 export interface GlobalShortcutDiagnostic {

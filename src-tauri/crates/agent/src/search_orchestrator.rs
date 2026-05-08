@@ -290,6 +290,7 @@ mod tests {
             }
         }
 
+        #[allow(dead_code)]
         fn failing(source_type: SourceType) -> Self {
             Self {
                 source_type,

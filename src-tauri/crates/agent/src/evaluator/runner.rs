@@ -382,7 +382,6 @@ mod tests {
         let result = runner.run_benchmark(benchmark).await;
         assert_eq!(result.benchmark_id, "reasoning");
         assert!(!result.task_results.is_empty());
-        assert!(result.duration_ms >= 0);
     }
 
     #[tokio::test]

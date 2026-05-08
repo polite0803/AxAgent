@@ -37,6 +37,8 @@ pub struct AxAgentApiClient {
     use_max_completion_tokens: Option<bool>,
     /// Thinking parameter format: "reasoning_effort" (default) or "enable_thinking" (SiliconFlow).
     thinking_param_style: Option<String>,
+    /// Delay in milliseconds before each API request, used to avoid rate limits.
+    request_delay_ms: Option<u64>,
     /// Optional callback invoked for each streamed event (for real-time Tauri event emission).
     on_event: Option<Arc<StreamEventCallback>>,
     /// Image URLs (data: URLs) to inject into the last user message for multimodal support.
@@ -68,6 +70,7 @@ impl AxAgentApiClient {
             thinking_budget: None,
             use_max_completion_tokens: None,
             thinking_param_style: None,
+            request_delay_ms: None,
             on_event: None,
             image_urls: Vec::new(),
             enable_cache_breakpoints: false,
@@ -92,6 +95,7 @@ impl AxAgentApiClient {
             thinking_budget: None,
             use_max_completion_tokens: None,
             thinking_param_style: None,
+            request_delay_ms: None,
             on_event: None,
             image_urls: Vec::new(),
             enable_cache_breakpoints: false,
@@ -141,6 +145,12 @@ impl AxAgentApiClient {
     /// Set thinking parameter style.
     pub fn with_thinking_param_style(mut self, thinking_param_style: Option<String>) -> Self {
         self.thinking_param_style = thinking_param_style;
+        self
+    }
+
+    /// Set request delay in milliseconds (applied before each API call to avoid rate limits).
+    pub fn with_request_delay_ms(mut self, request_delay_ms: Option<u64>) -> Self {
+        self.request_delay_ms = request_delay_ms;
         self
     }
 
@@ -326,6 +336,18 @@ impl AxAgentApiClient {
 
 impl ApiClient for AxAgentApiClient {
     fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError> {
+        // Apply request delay to avoid rate limits
+        if let Some(delay_ms) = self.request_delay_ms {
+            if delay_ms > 0 {
+                let delay = std::time::Duration::from_millis(delay_ms);
+                if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                    handle.block_on(tokio::time::sleep(delay));
+                } else {
+                    std::thread::sleep(delay);
+                }
+            }
+        }
+
         // Convert Runtime's ApiRequest to AxAgent's ChatRequest
         let chat_messages = Self::convert_messages(&request.messages, &self.image_urls);
 
@@ -444,13 +466,7 @@ mod tests {
 
     #[test]
     fn test_convert_messages_user() {
-        let messages = vec![ConversationMessage {
-            role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: "Hello".to_string(),
-            }],
-            usage: None,
-        }];
+        let messages = make_test_messages();
         let result = AxAgentApiClient::convert_messages(&messages, &[]);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].role, "user");

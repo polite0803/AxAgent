@@ -39,6 +39,7 @@ docx-rs = "0.4"
 roxmltree = "0.20"
 notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
 walkdir = "2"
+md5 = "0.7"
 
 [target.'cfg(windows)'.dependencies]
 xcap = { workspace = true }

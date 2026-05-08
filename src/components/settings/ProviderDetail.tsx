@@ -220,6 +220,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [editNoSystemRole, setEditNoSystemRole] = useState(false);
   const [editForceMaxTokens, setEditForceMaxTokens] = useState(false);
   const [editThinkingParamStyle, setEditThinkingParamStyle] = useState<string>("reasoning_effort");
+  const [editRequestDelayMs, setEditRequestDelayMs] = useState<number | null>(null);
   const [editGroupName, setEditGroupName] = useState<string>("");
   const [iconOverrides, setIconOverrides] = useState<Record<string, string>>({});
   const [apiHostLocal, setApiHostLocal] = useState(provider?.api_host ?? "");
@@ -625,6 +626,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       setEditNoSystemRole(model.param_overrides?.no_system_role ?? false);
       setEditForceMaxTokens(model.param_overrides?.force_max_tokens ?? false);
       setEditThinkingParamStyle(model.param_overrides?.thinking_param_style ?? "reasoning_effort");
+      setEditRequestDelayMs(model.param_overrides?.request_delay_ms ?? null);
       setEditGroupName(model.group_name ?? "");
       setSettingsModalOpen(true);
     },
@@ -642,6 +644,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       no_system_role: editNoSystemRole,
       force_max_tokens: editForceMaxTokens,
       thinking_param_style: editThinkingParamStyle === "reasoning_effort" ? undefined : editThinkingParamStyle,
+      request_delay_ms: editRequestDelayMs ?? undefined,
     };
     const nextCapabilities = sanitizeModelCapabilities(editModelType, editCapabilities);
     try {
@@ -2045,6 +2048,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       ]}
                     />
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: token.colorText }}>
+                      {t("settings.requestDelayMs")}
+                    </span>
+                    <InputNumber
+                      size="small"
+                      style={{ width: 120 }}
+                      min={0}
+                      max={60000}
+                      step={100}
+                      value={editRequestDelayMs}
+                      onChange={(v) => setEditRequestDelayMs(v)}
+                      addonAfter="ms"
+                    />
+                  </div>
+                  {editRequestDelayMs != null && editRequestDelayMs > 0 && (
+                    <div style={{ fontSize: 10, color: token.colorTextSecondary, marginTop: -4 }}>
+                      {t("settings.requestDelayMsHint")}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

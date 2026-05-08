@@ -1136,6 +1136,8 @@
     "forceMaxTokens": "最大トークン数を強制",
     "thinkingParamStyle": "思考パラメータスタイル",
     "thinkingParamStyleNone": "送信しない（none）",
+    "requestDelayMs": "リクエスト遅延",
+    "requestDelayMsHint": "API呼び出し前に待機するミリ秒数。レート制限（429エラーなど）を回避するために使用",
     "defaultProvider": "デフォルトプロバイダー",
     "selectProvider": "← プロバイダーを選択",
     "noProviders": "プロバイダーなし",

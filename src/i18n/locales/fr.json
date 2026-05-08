@@ -1101,6 +1101,8 @@
     "forceMaxTokens": "Forcer les tokens maximum",
     "thinkingParamStyle": "Style de paramètre de réflexion",
     "thinkingParamStyleNone": "Ne pas envoyer (none)",
+    "requestDelayMs": "Délai de requête",
+    "requestDelayMsHint": "Millisecondes d'attente avant chaque appel API, utilisé pour éviter les limites de débit (par exemple, erreurs 429)",
     "defaultProvider": "Fournisseur par défaut",
     "selectProvider": "← Sélectionner un fournisseur",
     "noProviders": "Aucun fournisseur",

@@ -209,6 +209,10 @@ pub struct ModelParamOverrides {
     /// Thinking parameter format for the provider API.
     /// "reasoning_effort" (default/OpenAI) or "enable_thinking" (SiliconFlow).
     pub thinking_param_style: Option<String>,
+    /// Delay in milliseconds before each API request to this model.
+    /// Used to avoid hitting rate limits (e.g. 429 errors) on providers
+    /// with strict per-model rate quotas.
+    pub request_delay_ms: Option<u64>,
 }
 
 // === Conversation & Message ===
@@ -753,6 +757,7 @@ pub struct AppSettings {
     // WebDAV sync settings
     pub webdav_host: Option<String>,
     pub webdav_username: Option<String>,
+    pub webdav_password: Option<String>,
     pub webdav_path: Option<String>,
     pub webdav_accept_invalid_certs: bool,
     pub webdav_sync_enabled: bool,
@@ -764,12 +769,20 @@ pub struct AppSettings {
     pub s3_region: Option<String>,
     pub s3_bucket: Option<String>,
     pub s3_access_key_id: Option<String>,
+    pub s3_secret_access_key: Option<String>,
     pub s3_root: Option<String>,
+    pub s3_provider_preset: Option<crate::cloud_storage::S3ProviderPreset>,
     pub s3_use_path_style: bool,
     pub s3_sync_enabled: bool,
     pub s3_sync_interval_minutes: u32,
     pub s3_max_remote_backups: u32,
     pub s3_include_documents: bool,
+    /// Cloud sync unified switch (mobile mode)
+    pub cloud_sync_enabled: bool,
+    /// Cloud backend selection: "s3" | "webdav"
+    pub cloud_backend: Option<String>,
+    /// Profile name for multi-profile cloud sync
+    pub sync_profile_name: Option<String>,
     /// Closed-loop nudge scheduler enabled.
     pub closed_loop_enabled: bool,
     /// Closed-loop nudge interval in minutes (default 5).
@@ -886,6 +899,7 @@ impl Default for AppSettings {
             auto_backup_max_count: 10,
             webdav_host: None,
             webdav_username: None,
+            webdav_password: None,
             webdav_path: None,
             webdav_accept_invalid_certs: false,
             webdav_sync_enabled: false,
@@ -896,12 +910,17 @@ impl Default for AppSettings {
             s3_region: None,
             s3_bucket: None,
             s3_access_key_id: None,
+            s3_secret_access_key: None,
             s3_root: None,
+            s3_provider_preset: Some(crate::cloud_storage::S3ProviderPreset::Custom),
             s3_use_path_style: false,
             s3_sync_enabled: false,
             s3_sync_interval_minutes: 60,
             s3_max_remote_backups: 10,
             s3_include_documents: false,
+            cloud_sync_enabled: false,
+            cloud_backend: None,
+            sync_profile_name: None,
             closed_loop_enabled: true,
             closed_loop_interval_minutes: 5,
             last_selected_conversation_id: None,

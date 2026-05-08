@@ -707,6 +707,9 @@ pub async fn agent_query(
     let thinking_param_style = model_param_overrides
         .as_ref()
         .and_then(|p| p.thinking_param_style.clone());
+    let request_delay_ms = model_param_overrides
+        .as_ref()
+        .and_then(|p| p.request_delay_ms);
 
     // Resolve effective model parameters: request options → model overrides → defaults
     let effective_temperature = request
@@ -1024,6 +1027,7 @@ pub async fn agent_query(
             .with_thinking_budget(request.thinking_budget)
             .with_use_max_completion_tokens(use_max_completion_tokens)
             .with_thinking_param_style(thinking_param_style)
+            .with_request_delay_ms(request_delay_ms)
             .with_on_event(Box::new(move |event: &axagent_runtime::AssistantEvent| match event {
                 axagent_runtime::AssistantEvent::TextDelta(text) => {
                     let _ = stream_app.emit(
@@ -1069,6 +1073,7 @@ pub async fn agent_query(
             .with_thinking_budget(request.thinking_budget)
             .with_use_max_completion_tokens(use_max_completion_tokens)
             .with_thinking_param_style(thinking_param_style)
+            .with_request_delay_ms(request_delay_ms)
             .with_on_event(Box::new(move |event: &axagent_runtime::AssistantEvent| match event {
                 axagent_runtime::AssistantEvent::TextDelta(text) => {
                     let _ = stream_app.emit(

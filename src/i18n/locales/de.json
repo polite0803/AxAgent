@@ -1061,6 +1061,8 @@
     "forceMaxTokens": "Maximale Token erzwingen",
     "thinkingParamStyle": "Denkparameter-Stil",
     "thinkingParamStyleNone": "Nicht senden (none)",
+    "requestDelayMs": "Anfrageverzögerung",
+    "requestDelayMsHint": "Millisekunden, die vor jedem API-Aufruf gewartet werden sollen, verwendet um Ratenbeschränkungen (z. B. 429-Fehler) zu vermeiden",
     "defaultProvider": "Standard-Anbieter",
     "selectProvider": "← Anbieter auswählen",
     "noProviders": "Keine Anbieter",

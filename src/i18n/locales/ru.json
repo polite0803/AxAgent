@@ -1101,6 +1101,8 @@
     "forceMaxTokens": "Принудительные макс. токены",
     "thinkingParamStyle": "Стиль параметра мышления",
     "thinkingParamStyleNone": "Не отправлять (none)",
+    "requestDelayMs": "Задержка запроса",
+    "requestDelayMsHint": "Миллисекунды ожидания перед каждым вызовом API, используется для предотвращения ограничений частоты (например, ошибок 429)",
     "defaultProvider": "Провайдер по умолчанию",
     "selectProvider": "← Выберите провайдера",
     "noProviders": "Нет провайдеров",

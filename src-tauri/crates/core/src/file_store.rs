@@ -1,32 +1,43 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
 use crate::error::Result;
 use crate::storage_paths::validate_relative_path;
+use crate::cloud_storage::SyncEngine;
 
 pub struct FileStore {
     base_dir: PathBuf,
+    sync_engine: Option<Arc<SyncEngine>>,
 }
 
 pub struct SavedFile {
     pub hash: String,
-    /// Relative path from the documents root (e.g. "images/abc123_photo.jpg")
     pub storage_path: String,
     pub size_bytes: i64,
 }
 
 impl FileStore {
-    /// Creates a FileStore rooted at `~/Documents/axagent/`.
     pub fn new() -> Self {
         Self {
             base_dir: crate::storage_paths::documents_root(),
+            sync_engine: None,
         }
     }
 
-    /// Creates a FileStore with an explicit root directory (useful for testing).
+    pub fn with_sync_engine(root: PathBuf, engine: Option<Arc<SyncEngine>>) -> Self {
+        Self {
+            base_dir: root,
+            sync_engine: engine,
+        }
+    }
+
     pub fn with_root(root: PathBuf) -> Self {
-        Self { base_dir: root }
+        Self {
+            base_dir: root,
+            sync_engine: None,
+        }
     }
 }
 
@@ -37,16 +48,12 @@ impl Default for FileStore {
 }
 
 impl FileStore {
-    /// Validate a storage path for path traversal attempts before using it.
     fn validate_path(&self, storage_path: &str) -> Result<()> {
         validate_relative_path(storage_path).map_err(|msg| {
             crate::error::AxAgentError::Validation(format!("Invalid storage path: {}", msg))
         })
     }
 
-    /// Save file bytes to disk. Returns hash and relative storage path.
-    /// Files are stored under `{base_dir}/{bucket}/{hash_prefix}_{sanitized_name}`
-    /// where bucket is determined by MIME type ("images" or "files").
     pub fn save_file(
         &self,
         data: &[u8],
@@ -62,9 +69,18 @@ impl FileStore {
             std::fs::create_dir_all(parent)?;
         }
 
-        // Deduplication: skip write if file already exists with same hash
         if !abs_path.exists() {
             std::fs::write(&abs_path, data)?;
+        }
+
+        if let Some(ref engine) = self.sync_engine {
+            let key = relative_path.clone();
+            let data_vec = data.to_vec();
+            let mime = mime_type.to_string();
+            let engine = engine.clone();
+            tokio::spawn(async move {
+                let _ = engine.push_file(&key, &data_vec, &mime).await;
+            });
         }
 
         Ok(SavedFile {
@@ -74,32 +90,50 @@ impl FileStore {
         })
     }
 
-    /// Read file bytes from a relative storage path.
     pub fn read_file(&self, storage_path: &str) -> Result<Vec<u8>> {
         self.validate_path(storage_path)?;
         let path = self.resolve_path(storage_path);
-        if !path.exists() {
-            return Err(crate::error::AxAgentError::NotFound(format!(
-                "File not found: {}",
-                storage_path
-            )));
+
+        if path.exists() {
+            return Ok(std::fs::read(&path)?);
         }
-        Ok(std::fs::read(&path)?)
+
+        #[cfg(mobile)]
+        if let Some(ref engine) = self.sync_engine {
+            let rt = tokio::runtime::Handle::current();
+            let fetch_result = rt.block_on(engine.fetch_file(storage_path, &path));
+            if fetch_result.is_ok() {
+                return Ok(std::fs::read(&path)?);
+            }
+        }
+
+        Err(crate::error::AxAgentError::NotFound(format!(
+            "File not found: {}",
+            storage_path
+        )))
     }
 
-    /// Delete a file from storage.
     pub fn delete_file(&self, storage_path: &str) -> Result<()> {
         self.validate_path(storage_path)?;
         let path = self.resolve_path(storage_path);
+
         if path.exists() {
             std::fs::remove_file(&path)?;
         }
+
+        if let Some(ref engine) = self.sync_engine {
+            let key = storage_path.to_string();
+            let engine = engine.clone();
+            tokio::spawn(async move {
+                let _ = engine.backend.delete(&key).await;
+            });
+        }
+
         Ok(())
     }
 
     fn resolve_path(&self, storage_path: &str) -> PathBuf {
         let resolved = self.base_dir.join(storage_path);
-        // Normalize the path to remove any `.` or `..` components
         let normalized = resolved.components().collect::<PathBuf>();
         normalized
     }
