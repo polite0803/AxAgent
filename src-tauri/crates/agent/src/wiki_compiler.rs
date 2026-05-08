@@ -885,7 +885,7 @@ impl WikiCompiler {
             .filter(|p| lower.contains(**p))
             .count();
         if uncertain_count > 0 {
-            score -= 0.2 * uncertain_count as f64;
+            score -= 0.4 + 0.1 * (uncertain_count as f64 - 1.0);
         }
 
         let sentence_count = page.content.split('.').count();
