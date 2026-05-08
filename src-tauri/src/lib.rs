@@ -233,10 +233,15 @@ pub fn run() {
             commands::webhook::webhook_toggle_subscription,
             commands::webhook::webhook_test_subscription,
             commands::webhook::webhook_reload,
+            #[cfg(not(mobile))]
             commands::terminal::git_get_branch,
+            #[cfg(not(mobile))]
             commands::terminal::git_status,
+            #[cfg(not(mobile))]
             commands::terminal::system_get_info,
+            #[cfg(not(mobile))]
             commands::terminal::path_complete,
+            #[cfg(not(mobile))]
             commands::terminal::session_get_status,
             commands::theme::list_themes,
             commands::theme::get_theme,
@@ -249,17 +254,29 @@ pub fn run() {
             commands::profile::profile_delete,
             commands::profile::profile_switch,
             commands::profile::profile_active,
+            #[cfg(not(mobile))]
             commands::desktop::get_desktop_capabilities,
+            #[cfg(not(mobile))]
             commands::desktop::send_desktop_notification,
+            #[cfg(not(mobile))]
             commands::desktop::get_window_state,
+            #[cfg(not(mobile))]
             commands::desktop::set_always_on_top,
+            #[cfg(not(mobile))]
             commands::desktop::set_close_to_tray,
+            #[cfg(not(mobile))]
             commands::desktop::force_quit,
+            #[cfg(not(mobile))]
             commands::desktop::apply_startup_settings,
+            #[cfg(not(mobile))]
             commands::desktop::test_proxy,
+            #[cfg(not(mobile))]
             commands::desktop::open_devtools,
+            #[cfg(not(mobile))]
             commands::desktop::list_system_fonts,
+            #[cfg(not(mobile))]
             commands::desktop::minimize_window,
+            #[cfg(not(mobile))]
             commands::desktop::toggle_maximize_window,
             commands::quickbar::show_quickbar,
             commands::quickbar::hide_quickbar,
@@ -270,22 +287,39 @@ pub fn run() {
             commands::dashboard::dashboard_disable_plugin,
             commands::dashboard::dashboard_render_panel,
             commands::dashboard::dashboard_reload_plugins,
+            #[cfg(not(mobile))]
             commands::computer_control::screen_capture,
+            #[cfg(not(mobile))]
             commands::computer_control::find_ui_elements,
+            #[cfg(not(mobile))]
             commands::computer_control::mouse_click,
+            #[cfg(not(mobile))]
             commands::computer_control::type_text,
+            #[cfg(not(mobile))]
             commands::computer_control::press_key,
+            #[cfg(not(mobile))]
             commands::computer_control::mouse_scroll,
+            #[cfg(not(mobile))]
             commands::browser::browser_navigate,
+            #[cfg(not(mobile))]
             commands::browser::browser_screenshot,
+            #[cfg(not(mobile))]
             commands::browser::browser_click,
+            #[cfg(not(mobile))]
             commands::browser::browser_fill,
+            #[cfg(not(mobile))]
             commands::browser::browser_type,
+            #[cfg(not(mobile))]
             commands::browser::browser_extract_text,
+            #[cfg(not(mobile))]
             commands::browser::browser_extract_all,
+            #[cfg(not(mobile))]
             commands::browser::browser_get_content,
+            #[cfg(not(mobile))]
             commands::browser::browser_wait_for,
+            #[cfg(not(mobile))]
             commands::browser::browser_select,
+            #[cfg(not(mobile))]
             commands::browser::browser_close,
             commands::files::upload_file,
             commands::files::download_file,
@@ -618,10 +652,15 @@ pub fn run() {
             commands::tool_recommender::get_available_tools,
             commands::tool_recommender::get_tools_by_category,
             commands::tool_recommender::record_tool_usage,
+            #[cfg(not(mobile))]
             commands::screen_vision::analyze_screen,
+            #[cfg(not(mobile))]
             commands::screen_vision::find_element_on_screen,
+            #[cfg(not(mobile))]
             commands::screen_vision::suggest_screen_action,
+            #[cfg(not(mobile))]
             commands::screen_vision::click_element_at_position,
+            #[cfg(not(mobile))]
             commands::screen_vision::execute_vision_action,
             // LLM Wiki commands
             commands::llm_wiki::llm_wiki_list,
@@ -698,6 +737,7 @@ pub fn run() {
             // Metrics
             commands::agent_nudge::get_invoke_metrics,
             commands::agent_nudge::proactive_convert_to_nudge,
+            #[cfg(not(mobile))]
             crate::tray::set_tray_labels,
         ])
         .setup(|app| {

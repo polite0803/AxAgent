@@ -1,9 +1,9 @@
 import { getConvIcon } from "@/lib/convIcon";
-import { type TabItem, useConversationStore, useStreamStore, useTabStore } from "@/stores";
+import { type TabItem, useConversationStore, useHelpStore, useStreamStore, useTabStore } from "@/stores";
 import { ModelIcon } from "@lobehub/icons";
 import { Dropdown, theme, Tooltip } from "antd";
 import { Avatar } from "antd";
-import { MessageSquarePlus, X } from "lucide-react";
+import { HelpCircle, MessageSquarePlus, X } from "lucide-react";
 import { Bot } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -183,6 +183,7 @@ interface TabBarProps {
 export function TabBar({ onNewConversation }: TabBarProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
+  const toggleHelp = useHelpStore((s) => s.toggle);
   const tabs = useTabStore((s) => s.tabs);
   const activeTabId = useTabStore((s) => s.activeTabId);
   const setActiveTab = useTabStore((s) => s.setActiveTab);
@@ -310,6 +311,41 @@ export function TabBar({ onNewConversation }: TabBarProps) {
           </div>
         </Tooltip>
       )}
+
+      {/* Help button */}
+      <Tooltip title={t("help.title", "帮助中心")}>
+        <button
+          type="button"
+          onClick={toggleHelp}
+          className="ax-titlebar-btn"
+          aria-label={t("help.title")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 34,
+            height: "100%",
+            cursor: "pointer",
+            color: token.colorTextQuaternary,
+            flexShrink: 0,
+            borderLeft: `1px solid ${token.colorBorderSecondary}`,
+            border: "none",
+            background: "transparent",
+            padding: 0,
+            transition: "color 0.15s, background-color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = token.colorText;
+            e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = token.colorTextQuaternary;
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <HelpCircle size={14} />
+        </button>
+      </Tooltip>
     </div>
   );
 }

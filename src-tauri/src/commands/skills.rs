@@ -160,9 +160,19 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
 #[tauri::command]
 pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<SkillDetail, String> {
     let plugin_manager = create_plugin_manager_with_skill_dirs()?;
-    let plugins = plugin_manager.list_plugins().map_err(|e| e.to_string())?;
+    // Use plugin_registry_report() + into_registry_allowing_failures()
+    // to tolerate individual plugin load failures (e.g. Claude Code format, missing version).
+    let report = plugin_manager
+        .plugin_registry_report()
+        .map_err(|e| e.to_string())?;
+    let failures = report.failures();
+    for f in failures {
+        tracing::warn!("Skill load failure: {f}");
+    }
+    let plugins = report.into_registry_allowing_failures();
 
     let plugin = plugins
+        .summaries()
         .into_iter()
         .find(|p| p.metadata.name == name)
         .ok_or_else(|| format!("Skill '{}' not found", name))?;
@@ -1612,8 +1622,12 @@ pub async fn skill_analyze_frontend(
 ) -> Result<serde_json::Value, String> {
     // 读取技能内容
     let plugin_manager = create_plugin_manager_with_skill_dirs()?;
-    let plugins = plugin_manager.list_plugins().map_err(|e| e.to_string())?;
+    let report = plugin_manager
+        .plugin_registry_report()
+        .map_err(|e| e.to_string())?;
+    let plugins = report.into_registry_allowing_failures();
     let plugin = plugins
+        .summaries()
         .into_iter()
         .find(|p| p.metadata.name == name)
         .ok_or_else(|| format!("Skill '{}' not found", name))?;

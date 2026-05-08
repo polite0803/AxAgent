@@ -12,6 +12,7 @@ pub fn start_background_services(
 ) {
     start_auto_backup(app, state, app_dir.clone());
     start_webdav_sync(app, state, app_dir);
+    #[cfg(not(mobile))]
     start_tray(app, &tray_language);
     start_closed_loop_service(app, state);
     start_insight_generation(state);
@@ -244,6 +245,7 @@ fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
     });
 }
 
+#[cfg(not(mobile))]
 fn start_tray(app: &tauri::AppHandle, tray_language: &str) {
     if let Err(e) = crate::tray::create_tray(app, tray_language) {
         tracing::warn!("Failed to create system tray: {}", e);

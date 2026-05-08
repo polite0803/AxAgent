@@ -112,7 +112,7 @@ export function ChatPage() {
   const updateTabTitle = useTabStore((s) => s.updateTabTitle);
   const tabsInitializedRef = useRef(false);
 
-  // Fetch initial data
+  // 初始数据加载
   useEffect(() => {
     if (conversationCount === 0) {
       fetchConversations();
@@ -122,7 +122,7 @@ export function ChatPage() {
     }
   }, [conversationCount, fetchConversations, fetchProviders, providerCount]);
 
-  // Sync tab titles when conversation titles change
+  // 同步标签标题
   useEffect(() => {
     for (const tab of tabs) {
       const conv = conversations.find((c) => c.id === tab.conversationId);
@@ -136,7 +136,7 @@ export function ChatPage() {
     tabsInitializedRef.current = true;
   }, []);
 
-  // When activeTabId changes, sync the activeConversationId
+  // 当 activeTabId 变化时，同步 activeConversationId
   useEffect(() => {
     if (!activeTabId) {
       if (tabsInitializedRef.current && activeConversationId) {
@@ -150,8 +150,7 @@ export function ChatPage() {
     }
   }, [activeTabId]);
 
-  // When activeConversationId changes from outside (e.g. sidebar click, auto-select),
-  // ensure a tab is open for it
+  // 当 activeConversationId 从外部变化时（如侧边栏点击），确保有对应 tab
   useEffect(() => {
     if (!activeConversationId) { return; }
     const existingTab = tabs.find((t) => t.conversationId === activeConversationId);
@@ -165,7 +164,7 @@ export function ChatPage() {
     }
   }, [activeConversationId]);
 
-  // Handle new conversation from TabBar
+  // TabBar 新建对话
   const handleNewConversation = useCallback(async () => {
     let provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
     let model = provider?.models.find((m) => m.enabled);

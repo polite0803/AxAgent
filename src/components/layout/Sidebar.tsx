@@ -3,11 +3,11 @@ import { NAV_ICON_COLORS } from "@/lib/iconColors";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
-import { useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
+import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar, theme, Tooltip } from "antd";
-import { Database, MessageSquare, Router, Sparkles, User } from "lucide-react";
+import { Database, HelpCircle, MessageSquare, Router, Sparkles, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -94,6 +94,7 @@ export function Sidebar() {
   const skillNavItems = useSkillExtensionStore((s) => s.navItems);
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const toggleHelp = useHelpStore((s) => s.toggle);
 
   const sections = useMemo<SidebarSection[]>(() => {
     const pluginItems: NavItem[] = [];
@@ -298,6 +299,19 @@ export function Sidebar() {
       </nav>
 
       <div className="flex-1" />
+
+      {/* Help button */}
+      <Tooltip title={t("help.title", "帮助中心")} placement="right">
+        <button
+          type="button"
+          className="ax-sidebar-user"
+          onClick={toggleHelp}
+          aria-label={t("help.title")}
+          style={{ justifyContent: "center" }}
+        >
+          <HelpCircle size={20} style={{ color: token.colorTextQuaternary }} />
+        </button>
+      </Tooltip>
 
       <Tooltip title={sidebarCollapsed ? (profile.name || t("userProfile.title")) : ""} placement="right">
         <button
