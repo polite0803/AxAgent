@@ -199,6 +199,7 @@ mod tests {
     fn test_reinforcement_increases_strength() {
         let engine = MemoryForgettingEngine::with_default_config();
         let mut entry = make_entry("1", 0.5, 24, 1);
+        entry.memory_strength = 0.5;
         let before = entry.memory_strength;
         engine.reinforce(&mut entry);
         assert!(entry.memory_strength > before);

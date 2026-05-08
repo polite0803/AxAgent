@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 
 thread_local! {
-    static CURRENT_TRACE_ID: RefCell<Option<String>> = RefCell::new(None);
-    static CURRENT_SESSION_ID: RefCell<Option<String>> = RefCell::new(None);
+    static CURRENT_TRACE_ID: RefCell<Option<String>> = const { RefCell::new(None) };
+    static CURRENT_SESSION_ID: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
 static GLOBAL_TRACE_ID_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);

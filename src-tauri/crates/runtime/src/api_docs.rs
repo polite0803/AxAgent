@@ -124,7 +124,7 @@ impl ApiDocGenerator {
         self.spec
             .paths
             .entry(path.to_string())
-            .or_insert_with(HashMap::new)
+            .or_default()
             .insert(method.to_lowercase(), operation);
     }
 
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn test_generate_default_spec() {
-        let _spec = ApiDocGenerator::generate_default_spec();
+        let spec = ApiDocGenerator::generate_default_spec();
         assert_eq!(spec.openapi, "3.0.3");
         assert!(spec.paths.contains_key("/v1/chat/completions"));
         assert!(spec.paths.contains_key("/v1/models"));
@@ -254,7 +254,7 @@ mod tests {
 
     #[test]
     fn test_to_json() {
-        let spec = ApiDocGenerator::generate_default_spec();
+        let _spec = ApiDocGenerator::generate_default_spec();
         let json = ApiDocGenerator::new("Test", "1.0.0").to_json();
         assert!(json.is_ok());
         assert!(json.unwrap().contains("\"openapi\""));

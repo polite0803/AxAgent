@@ -1,4 +1,5 @@
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::result_large_err)]
 
 pub mod adapter;
 pub mod anthropic;

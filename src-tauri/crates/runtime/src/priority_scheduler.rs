@@ -111,11 +111,8 @@ impl PriorityScheduler {
     pub fn schedule(&mut self) -> Vec<ScheduledTask> {
         let mut scheduled = Vec::new();
 
-        loop {
-            let task = match self.waiting_queue.peek() {
-                Some(t) => t.clone(),
-                None => break,
-            };
+        while let Some(t) = self.waiting_queue.peek() {
+            let task = t.clone();
 
             if self.running_tasks.len() >= self.config.max_concurrent_tasks {
                 break;
@@ -159,7 +156,7 @@ impl PriorityScheduler {
             return None;
         }
 
-        preemptible.sort_by(|a, b| a.0.priority.cmp(&b.0.priority));
+        preemptible.sort_by_key(|a| a.0.priority);
 
         let mut freed = 0.0;
         let mut preempted_ids = Vec::new();

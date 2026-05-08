@@ -13,7 +13,7 @@ pub fn start_background_services(
     start_auto_backup(app, state, app_dir.clone());
     start_webdav_sync(app, state, app_dir);
     #[cfg(not(mobile))]
-    start_tray(app, &tray_language);
+    start_tray(app, &_tray_language);
     start_closed_loop_service(app, state);
     start_insight_generation(state);
     start_pattern_learning(state);

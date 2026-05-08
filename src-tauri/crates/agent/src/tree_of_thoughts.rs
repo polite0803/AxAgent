@@ -89,7 +89,7 @@ pub struct TreeOfThoughtsEngine {
 
 impl TreeOfThoughtsEngine {
     pub fn new(branching_factor: usize, max_depth: usize, evaluation_threshold: f64) -> Self {
-        let root_id = format!("node_0");
+        let root_id = "node_0".to_string();
         let mut tree = HashMap::new();
         tree.insert(
             root_id.clone(),
@@ -387,12 +387,7 @@ Respond with only a number between 0.0 and 1.0.",
         let mut path = vec![self.root_id.clone()];
         let mut current = self.root_id.clone();
 
-        loop {
-            let node = match self.tree.get(&current) {
-                Some(n) => n,
-                None => break,
-            };
-
+        while let Some(node) = self.tree.get(&current) {
             let active_children: Vec<&String> = node
                 .children
                 .iter()
