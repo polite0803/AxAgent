@@ -35,7 +35,7 @@ sysinfo = "0.38"
 axagent-migration = { path = "../migration" }
 quick_cache = "0.4"
 image = { workspace = true }
-which = "7"
+which = "8"
 docx-rs = "0.4"
 roxmltree = "0.20"
 notify = { version = "8", default-features = false, features = ["macos_kqueue"] }

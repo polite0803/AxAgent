@@ -23,7 +23,7 @@ uuid = { version = "1", features = ["v4"] }
 diff = "0.1"
 base64 = "0.22"
 walkdir = "2"
-which = "7"
+which = "8"
 dirs = "5"
 pdf-extract = "0.8"
 parking_lot = "0.12"
