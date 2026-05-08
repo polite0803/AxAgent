@@ -1,7 +1,5 @@
 [advisories]
 unmaintained = "workspace"
-vulnerability = "deny"
-notice = "warn"
 
 [licenses]
 unlicensed = "deny"
