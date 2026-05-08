@@ -263,19 +263,25 @@ function AssistantFooter({
             {msg.prompt_tokens != null && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <ArrowUp size={10} />
-                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(msg.prompt_tokens)}</span> {t("chat.tokens")}
+                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(msg.prompt_tokens)}</span>
+                {" "}
+                {t("chat.tokens")}
               </span>
             )}
             {msg.completion_tokens != null && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <ArrowDown size={10} />
-                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(msg.completion_tokens)}</span> {t("chat.tokens")}
+                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>
+                  {formatTokenCount(msg.completion_tokens)}
+                </span>{" "}
+                {t("chat.tokens")}
               </span>
             )}
             {totalTokens > 0 && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
                 <Coins size={10} />
-                {t("chat.totalTokens")}: <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(totalTokens)}</span>
+                {t("chat.totalTokens")}:{" "}
+                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>{formatTokenCount(totalTokens)}</span>
               </span>
             )}
             {msg.tokens_per_second != null && (

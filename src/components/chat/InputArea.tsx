@@ -2461,8 +2461,8 @@ export function InputArea() {
                     ? t("chat.workflow.sessionCompletedHint")
                     : undefined}
                   style={value.trim() && !streaming
-                    && !(activeConversation?.session_type === "workflow"
-                      && activeConversation?.workflow_status === "completed")
+                      && !(activeConversation?.session_type === "workflow"
+                        && activeConversation?.workflow_status === "completed")
                     ? { boxShadow: "0 0 12px rgba(0,240,255,0.3)" }
                     : undefined}
                 />

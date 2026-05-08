@@ -411,8 +411,21 @@ export function TitleBar() {
       {IS_WINDOWS
         ? (
           <div className="title-bar-nodrag" style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 8 }}>
-            <img src={appLogo} alt={t("app.name")} style={{ width: 18, height: 18, filter: "drop-shadow(0 0 4px rgba(0,240,255,0.3))" }} draggable={false} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: token.colorTextBase, userSelect: "none", letterSpacing: "0.04em" }}>
+            <img
+              src={appLogo}
+              alt={t("app.name")}
+              style={{ width: 18, height: 18, filter: "drop-shadow(0 0 4px rgba(0,240,255,0.3))" }}
+              draggable={false}
+            />
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: token.colorTextBase,
+                userSelect: "none",
+                letterSpacing: "0.04em",
+              }}
+            >
               {t("app.title")}
             </span>
           </div>
