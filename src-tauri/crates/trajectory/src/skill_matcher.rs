@@ -91,7 +91,17 @@ impl KeywordPatterns {
         patterns.insert("skill-creator", vec!["create skill", "new skill", "skill creator"]);
         patterns.insert("stock-analysis", vec!["stock", "finance", "market", "analysis"]);
         patterns.insert("humanizer", vec!["humanize", "ai text", "writing"]);
-        patterns.insert("data-analysis", vec!["data analysis", "visualization", "insights"]);
+        patterns.insert(
+            "data-analysis",
+            vec![
+                "data analysis",
+                "visualization",
+                "insights",
+                "analyze",
+                "compare",
+                "data sets",
+            ],
+        );
         patterns
     }
 }

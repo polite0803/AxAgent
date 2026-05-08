@@ -172,7 +172,7 @@ impl RLEngine {
             }),
         });
 
-        trajectory.rewards.clone_from_slice(&rewards);
+        trajectory.rewards = rewards.clone();
         rewards
     }
 
@@ -506,7 +506,10 @@ mod tests {
         let rewards = engine.compute_rewards(&mut trajectory);
 
         assert!(!rewards.is_empty());
-        let final_reward = rewards.iter().find(|r| r.step_index == 1).unwrap();
+        let final_reward = rewards
+            .iter()
+            .find(|r| r.reward_type == RewardType::TaskCompletion)
+            .unwrap();
         assert!(final_reward.value > 0.0);
     }
 
@@ -519,7 +522,10 @@ mod tests {
         let mut trajectory = create_test_trajectory(TrajectoryOutcome::Failure);
         let rewards = engine.compute_rewards(&mut trajectory);
 
-        let final_reward = rewards.iter().find(|r| r.step_index == 1).unwrap();
+        let final_reward = rewards
+            .iter()
+            .find(|r| r.reward_type == RewardType::TaskCompletion)
+            .unwrap();
         assert!(final_reward.value < 0.0);
     }
 

@@ -388,20 +388,12 @@ impl WorkflowValidator {
 
         if input_lower.contains("trigger") || input_lower.contains("start") {
             "trigger"
-        } else if input_lower.contains("end")
-            || input_lower.contains("finish")
-            || input_lower.contains("output")
-        {
-            "end"
         } else if input_lower.contains("condition")
             || input_lower.contains("branch")
             || input_lower.contains("if")
         {
             "condition"
-        } else if input_lower.contains("parallel")
-            || input_lower.contains("concurrent")
-            || input_lower.contains("branch")
-        {
+        } else if input_lower.contains("parallel") || input_lower.contains("concurrent") {
             "parallel"
         } else if input_lower.contains("loop")
             || input_lower.contains("repeat")
@@ -420,16 +412,19 @@ impl WorkflowValidator {
             "delay"
         } else if input_lower.contains("agent") {
             "agent"
+        } else if input_lower.contains("tool")
+            || input_lower.contains("action")
+            || input_lower.contains("function")
+            || input_lower.contains("email")
+            || input_lower.contains("mail")
+            || input_lower.contains("send")
+        {
+            "tool"
         } else if input_lower.contains("llm")
             || input_lower.contains("model")
             || input_lower.contains("ai")
         {
             "llm"
-        } else if input_lower.contains("tool")
-            || input_lower.contains("action")
-            || input_lower.contains("function")
-        {
-            "tool"
         } else if input_lower.contains("code")
             || input_lower.contains("script")
             || input_lower.contains("python")
@@ -438,6 +433,11 @@ impl WorkflowValidator {
             "code"
         } else if input_lower.contains("skill") || input_lower.contains("atomic") {
             "atomicSkill"
+        } else if input_lower.contains("end")
+            || input_lower.contains("finish")
+            || input_lower.contains("output")
+        {
+            "end"
         } else {
             "tool"
         }

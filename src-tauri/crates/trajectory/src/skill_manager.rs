@@ -7,6 +7,9 @@ use crate::skill::{HermesMetadata, Skill, SkillMetadata};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static SKILL_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillSummary {
@@ -52,6 +55,7 @@ pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
 
     let mut skill = Skill::new(params.name, params.description, params.content, category.clone());
 
+    skill.id = generate_skill_id();
     skill.tags = tags.clone();
     skill.platforms = platforms.clone();
     skill.metadata = SkillMetadata {
@@ -129,17 +133,10 @@ pub fn increment_skill_usage(skill: &mut Skill, success: bool) {
     skill.last_used_at = Some(Utc::now());
 }
 
-#[allow(dead_code)]
 fn generate_skill_id() -> String {
     let timestamp = Utc::now().timestamp_millis();
-    let random: String = (0..8)
-        .map(|_| {
-            let idx = (timestamp % 36) as usize;
-            let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
-            chars[idx] as char
-        })
-        .collect();
-    format!("skill_{}_{}", timestamp, random)
+    let counter = SKILL_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("skill_{}_{}", timestamp, counter)
 }
 
 fn detect_os() -> String {

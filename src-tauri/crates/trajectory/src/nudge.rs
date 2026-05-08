@@ -345,16 +345,28 @@ impl NudgeService {
             None
         };
 
+        let mut found = false;
+
         if let Some(session) = &mut self.session {
             if let Some(nudge) = session.nudges.iter_mut().find(|n| n.id == nudge_id) {
                 nudge.action_taken = Some(action);
                 if let Some(t) = dismiss_time {
                     nudge.dismissed_at = Some(t);
                 }
-                return true;
+                found = true;
             }
         }
-        false
+
+        if found {
+            if let Some(nudge) = self.history.iter_mut().find(|n| n.id == nudge_id) {
+                nudge.action_taken = Some(action);
+                if let Some(t) = dismiss_time {
+                    nudge.dismissed_at = Some(t);
+                }
+            }
+        }
+
+        found
     }
 
     pub fn snooze_nudge(&mut self, nudge_id: &str, until: i64) -> bool {

@@ -728,22 +728,18 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(i, &tool_name)| {
-                let tool_calls = if i == 0 {
-                    Some(vec![ToolCall {
-                        id: format!("call_{}", i),
-                        name: tool_name.to_string(),
-                        arguments: "{}".to_string(),
-                    }])
-                } else {
-                    None
-                };
+                let tool_calls = Some(vec![ToolCall {
+                    id: format!("call_{}", i),
+                    name: tool_name.to_string(),
+                    arguments: "{}".to_string(),
+                }]);
 
-                let tool_results = if i == 1 {
+                let tool_results = if i > 0 {
                     Some(vec![ToolResult {
                         tool_use_id: format!("call_{}", i - 1),
                         tool_name: tool_name.to_string(),
                         output: "result".to_string(),
-                        is_error: if i == 1 { has_error } else { false },
+                        is_error: has_error && i == 1,
                     }])
                 } else {
                     None

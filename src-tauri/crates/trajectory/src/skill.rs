@@ -829,6 +829,7 @@ mod tests {
 
         skill.total_usages = 10;
         skill.successful_usages = 3;
+        skill.success_rate = 0.3;
 
         assert!(skill.needs_improvement(5, 0.5));
         assert!(!skill.needs_improvement(5, 0.2));

@@ -4,6 +4,9 @@
 //! Provides hook lifecycle management for tool use events.
 
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static HOOK_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -83,27 +86,17 @@ pub struct HooksStore {
 
 fn generate_hook_id() -> String {
     let timestamp = chrono::Utc::now().timestamp_millis();
-    let random: String = (0..9)
-        .map(|_| {
-            let idx = (timestamp % 36) as usize;
-            let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
-            chars[idx] as char
-        })
-        .collect();
-    format!("hook_{}_{}", timestamp, random)
+    let counter = HOOK_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("hook_{}_{}", timestamp, counter)
 }
+
+static EXEC_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[allow(dead_code)]
 fn generate_execution_id() -> String {
     let timestamp = chrono::Utc::now().timestamp_millis();
-    let random: String = (0..9)
-        .map(|_| {
-            let idx = (timestamp % 36) as usize;
-            let chars = b"0123456789abcdefghijklmnopqrstuvwxyz";
-            chars[idx] as char
-        })
-        .collect();
-    format!("exec_{}_{}", timestamp, random)
+    let counter = EXEC_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("exec_{}_{}", timestamp, counter)
 }
 
 pub struct HooksService {
