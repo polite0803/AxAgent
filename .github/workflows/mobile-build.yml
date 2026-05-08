@@ -172,8 +172,7 @@ jobs:
           cd src-tauri
           npx tauri android build \
             --target ${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }} \
-            --apk \
-            ${{ github.event_name == 'push' && '--release' || '' }}
+            --apk
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -185,8 +184,7 @@ jobs:
           cd src-tauri
           npx tauri android build \
             --target aarch64 \
-            --aab \
-            --release
+            --aab
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}

@@ -68,6 +68,7 @@ pub mod profile;
 pub mod profile_manager;
 mod prompt;
 pub mod prompt_cache;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod pty;
 pub mod reactive_compact;
 pub mod recovery_recipes;
@@ -100,6 +101,7 @@ pub mod summary_compression;
 pub mod task_packet;
 pub mod task_registry;
 pub mod team_cron_registry;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod terminal;
 pub mod theme_engine;
 pub mod token_budget_predictor;

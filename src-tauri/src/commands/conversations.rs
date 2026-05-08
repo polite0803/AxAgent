@@ -4149,6 +4149,7 @@ mod tests {
             semantic_cache,
             browser_client: Arc::new(tokio::sync::Mutex::new(None)),
             dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
+            sync_engine: None,
         };
 
         let attachments = vec![AttachmentInput {
