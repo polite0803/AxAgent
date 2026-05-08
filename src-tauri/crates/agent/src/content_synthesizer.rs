@@ -69,7 +69,7 @@ impl ContentSynthesizer {
             }
         }
 
-        if self.include_citations {
+        if self.include_citations && !relevant_sources.is_empty() {
             content.push_str("\n\n**Sources:**\n");
             for source in relevant_sources.iter().take(3) {
                 content.push_str(&format!("- [{}]({})\n", source.title, source.url));

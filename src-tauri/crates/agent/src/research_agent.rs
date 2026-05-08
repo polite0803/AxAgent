@@ -941,7 +941,7 @@ mod tests {
         let formatted = agent.format_sources_for_llm(&state);
         assert!(formatted.contains("Source Title"));
         assert!(formatted.contains("https://example.com"));
-        assert!(formatted.contains("web"));
+        assert!(formatted.contains("Web"));
     }
 
     #[tokio::test]

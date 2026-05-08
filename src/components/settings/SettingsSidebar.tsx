@@ -132,6 +132,16 @@ export function SettingsSidebar() {
     return "model";
   });
 
+  // 当 settingsSection 变化时，同步更新 activeTab
+  useEffect(() => {
+    for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
+      if (sections.includes(settingsSection)) {
+        setActiveTab(tab);
+        break;
+      }
+    }
+  }, [settingsSection]);
+
   const handleTabChange = (key: string) => {
     setActiveTab(key);
     // 切换到该 tab 的第一个 section

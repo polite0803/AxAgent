@@ -151,6 +151,10 @@ fn check_cursor_installed() -> bool {
     {
         check_command_exists("cursor")
     }
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    {
+        false
+    }
 }
 
 // ─── Config Paths ───────────────────────────────────────
@@ -196,6 +200,10 @@ fn config_paths(tool: CliTool) -> Result<Vec<PathBuf>> {
             #[cfg(target_os = "linux")]
             {
                 Ok(vec![home.join(".config/Cursor/User/settings.json")])
+            }
+            #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+            {
+                Ok(vec![])
             }
         },
     }

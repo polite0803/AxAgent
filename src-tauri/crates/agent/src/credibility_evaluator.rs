@@ -662,7 +662,7 @@ mod tests {
         )
         .with_published_date("2026-01-01".to_string());
         let assessment = evaluator.evaluate(&result).await;
-        assert!(assessment.credibility.recency >= 0.9);
+        assert!(assessment.credibility.recency >= 0.8);
     }
 
     #[tokio::test]

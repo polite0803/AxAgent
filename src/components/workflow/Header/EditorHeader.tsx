@@ -220,7 +220,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         )}
 
         {onOpenImportExport && (
-          <Tooltip title={t("workflow.importExport")}>
+          <Tooltip title={t("workflow.importExport.title")}>
             <Button
               type="text"
               data-testid="workflow-import-export-btn"

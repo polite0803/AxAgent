@@ -285,6 +285,12 @@ impl SessionManager {
         let mut sessions = self.sessions.lock().await;
         sessions.insert(session_id.clone(), session.clone());
 
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        self.session_last_access.lock().await.insert(session_id.clone(), now);
+
         let mut conv_index = self.conversation_index.lock().await;
         conv_index.insert(conversation_id, session_id);
 

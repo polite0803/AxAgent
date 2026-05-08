@@ -296,6 +296,7 @@ pub struct TimedGuard {
     start: Instant,
     metric_name: String,
     duration_ms: f64,
+    finished: bool,
 }
 
 impl TimedGuard {
@@ -304,10 +305,15 @@ impl TimedGuard {
             start: Instant::now(),
             metric_name: metric_name.to_string(),
             duration_ms: 0.0,
+            finished: false,
         }
     }
 
     pub fn finish(&mut self) {
+        if self.finished {
+            return;
+        }
+        self.finished = true;
         self.duration_ms = self.start.elapsed().as_millis() as f64;
     }
 
@@ -322,7 +328,7 @@ impl TimedGuard {
 
 impl Drop for TimedGuard {
     fn drop(&mut self) {
-        if self.duration_ms == 0.0 {
+        if !self.finished {
             self.finish();
         }
     }

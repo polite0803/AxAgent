@@ -269,18 +269,50 @@ impl SourceValidator {
 
     pub fn get_domain_info(&self, url: &str) -> Option<&DomainInfo> {
         let domain = self.extract_domain(url);
-        self.known_domains.get(&domain)
+        if let Some(info) = self.known_domains.get(&domain) {
+            return Some(info);
+        }
+        let parts: Vec<&str> = domain.split('.').collect();
+        if parts.len() > 2 {
+            let base = parts[parts.len() - 2..].join(".");
+            return self.known_domains.get(&base);
+        }
+        None
     }
 
     pub fn validate_batch(&self, urls: &[String]) -> Vec<SourceValidationResult> {
         urls.iter()
-            .map(|url| tokio::runtime::Handle::current().block_on(self.validate_url(url)))
+            .map(|url| {
+                let domain = self.extract_domain(url);
+                let mut issues = Vec::new();
+                let mut score: f32 = 1.0;
+                if !self.is_valid_url(url) {
+                    issues.push(ValidationIssue {
+                        severity: IssueSeverity::Error,
+                        code: IssueCode::MalformedUrl,
+                        message: format!("URL '{}' is malformed", url),
+                    });
+                    score -= 0.5;
+                }
+                if let Some(domain_info) = self.known_domains.get(&domain) {
+                    if domain_info.is_paywalled {
+                        score -= 0.1;
+                    }
+                }
+                score = score.max(0.0);
+                SourceValidationResult {
+                    url: url.clone(),
+                    is_valid: score >= 0.5,
+                    score,
+                    issues,
+                    warnings: Vec::new(),
+                }
+            })
             .collect()
     }
 
     pub fn get_source_type_from_domain(&self, url: &str) -> Option<SourceType> {
-        let domain = self.extract_domain(url);
-        self.known_domains.get(&domain).map(|info| info.source_type)
+        self.get_domain_info(url).map(|info| info.source_type)
     }
 }
 

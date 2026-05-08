@@ -596,7 +596,13 @@ impl TrajectoryRecorder {
     }
 
     fn determine_outcome(&self, state: &TrajectoryRecorderState) -> TrajectoryOutcome {
-        let has_errors = state.tool_results.iter().any(|r| r.is_error);
+        let has_errors = state.tool_results.iter().any(|r| r.is_error)
+            || state.steps.iter().any(|s| {
+                s.tool_results
+                    .as_ref()
+                    .map(|r| r.iter().any(|tr| tr.is_error))
+                    .unwrap_or(false)
+            });
 
         if has_errors || state.steps.is_empty() {
             TrajectoryOutcome::Failure

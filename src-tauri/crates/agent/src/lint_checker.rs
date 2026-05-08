@@ -805,7 +805,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_structure_has_sections_ok() {
         let checker = make_lint_checker().await;
-        let content = "## Section 1\n\nSome content here. More content. Even more content.";
+        let content = "## Section 1\n\nSome content here. More content. Even more content. And a bit more to reach the minimum threshold for the test.";
         let note = make_note("Good Structure", "llm", content);
         let mut issues = Vec::new();
         checker.check_structure(&note, &mut issues);

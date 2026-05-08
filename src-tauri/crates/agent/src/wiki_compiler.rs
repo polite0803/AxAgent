@@ -864,8 +864,8 @@ impl WikiCompiler {
     pub async fn calculate_quality_score(&self, page: &CompiledPage) -> f64 {
         let mut score = 1.0_f64;
 
-        if page.content.len() < 100 {
-            score -= 0.2;
+        if page.content.len() < 30 {
+            score -= 0.5;
         }
 
         if !page.content.contains("[[") {
@@ -879,12 +879,12 @@ impl WikiCompiler {
             || lower.contains("我无法确定")
             || lower.contains("我不知道")
         {
-            score -= 0.3;
+            score -= 0.4;
         }
 
         let sentence_count = page.content.split('.').count();
         if sentence_count < 3 {
-            score -= 0.1;
+            score -= 0.15;
         }
 
         score.clamp(0.0, 1.0)
