@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
+use crate::cloud_storage::SyncEngine;
 use crate::error::Result;
 use crate::storage_paths::validate_relative_path;
-use crate::cloud_storage::SyncEngine;
 
 pub struct FileStore {
     base_dir: PathBuf,

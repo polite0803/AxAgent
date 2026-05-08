@@ -6,7 +6,6 @@
 /// - Tombstone records track deletions across devices
 /// - Atomic operations use conditional PUT/DELETE (If-Match header)
 /// - Conflicts resolved via strategies: latest_wins, local_wins, remote_wins, manual
-
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -194,7 +193,10 @@ impl SyncState {
     }
 
     pub fn count_conflicts(&self) -> usize {
-        self.files.values().filter(|e| e.conflict.is_some() && !e.conflict.as_ref().unwrap().resolved).count()
+        self.files
+            .values()
+            .filter(|e| e.conflict.is_some() && !e.conflict.as_ref().unwrap().resolved)
+            .count()
     }
 
     /// Clean up old tombstones (older than 30 days)
@@ -266,7 +268,7 @@ fn current_epoch_ms() -> u64 {
 
 /// Compute SHA256 hash of file content for local change detection.
 pub fn compute_content_hash(data: &[u8]) -> String {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(data);
     hex::encode(hasher.finalize())

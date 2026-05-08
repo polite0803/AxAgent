@@ -8,7 +8,6 @@
 /// - `S3ProviderPreset`: built-in endpoint/region config for common providers
 /// - `CloudStorageConfig`: user-facing configuration (WebDAV or S3)
 /// - `SyncManifest`: cloud sync state tracking (version, file list, checksums)
-
 use async_trait::async_trait;
 use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -893,9 +892,9 @@ impl CloudStorageConfig {
                 })?;
                 Ok(Arc::new(WebDavBackend::new(wd.clone())?))
             },
-            BackendType::None => Err(AxAgentError::Gateway(
-                "No storage backend configured".to_string(),
-            )),
+            BackendType::None => {
+                Err(AxAgentError::Gateway("No storage backend configured".to_string()))
+            },
         }
     }
 }
@@ -1063,10 +1062,7 @@ impl SyncEngine {
         match self.backend.head(&db_key).await {
             Ok(meta) => {
                 let local_manifest = self.local_manifest.read().await;
-                let needs_pull = local_manifest
-                    .db_checksum
-                    .as_deref()
-                    != meta.etag.as_deref();
+                let needs_pull = local_manifest.db_checksum.as_deref() != meta.etag.as_deref();
                 drop(local_manifest);
 
                 if needs_pull {
@@ -1087,7 +1083,10 @@ impl SyncEngine {
     /// Push database to cloud.
     pub async fn push_database(&self, data: &[u8]) -> Result<()> {
         let db_key = format!("profiles/{}/db/axagent.db", self.profile_name);
-        let meta = self.backend.put(&db_key, data, "application/x-sqlite3").await?;
+        let meta = self
+            .backend
+            .put(&db_key, data, "application/x-sqlite3")
+            .await?;
 
         let mut manifest = self.local_manifest.write().await;
         manifest.db_checksum = meta.etag.clone();
@@ -1263,10 +1262,7 @@ fn parse_s3_list_response(xml: &str) -> Result<Vec<StorageObjectMeta>> {
     Ok(files)
 }
 
-fn parse_propfind_responses(
-    xml: &str,
-    prefix: &str,
-) -> Result<Vec<StorageObjectMeta>> {
+fn parse_propfind_responses(xml: &str, prefix: &str) -> Result<Vec<StorageObjectMeta>> {
     let mut files = Vec::new();
     let lower = xml.to_lowercase();
     let tag = if lower.contains("<d:response>") {
@@ -1302,7 +1298,10 @@ fn parse_propfind_responses(
                         // Only include files under the prefix
                         if prefix.is_empty() || href_lower.contains(&prefix.to_lowercase()) {
                             let file_name = url_decode(
-                                href.split('/').filter(|s| !s.is_empty()).last().unwrap_or(""),
+                                href.split('/')
+                                    .filter(|s| !s.is_empty())
+                                    .last()
+                                    .unwrap_or(""),
                             );
                             if !file_name.is_empty() {
                                 let size: i64 = extract_xml_value(block, "getcontentlength")

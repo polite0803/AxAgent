@@ -8,7 +8,7 @@ use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
-use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine, StorageBackend};
+use axagent_core::cloud_storage::{CloudStorageConfig, StorageBackend, SyncEngine};
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let DatabaseInitResult {
@@ -253,9 +253,11 @@ fn load_cloud_storage_config(
     sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_core::types::AppSettings,
 ) -> Option<CloudStorageConfig> {
-    use axagent_core::cloud_storage::{BackendType, SyncMode, S3ProviderPreset, S3Config};
+    use axagent_core::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};
     let rt = tokio::runtime::Handle::current();
-    let settings = rt.block_on(axagent_core::repo::settings::get_settings(sea_db)).ok()?;
+    let settings = rt
+        .block_on(axagent_core::repo::settings::get_settings(sea_db))
+        .ok()?;
 
     if !settings.cloud_sync_enabled.unwrap_or(false) {
         return None;
@@ -268,18 +270,26 @@ fn load_cloud_storage_config(
     };
 
     let cloud_config = CloudStorageConfig {
-        provider_preset: settings.s3_provider_preset.unwrap_or(S3ProviderPreset::Custom),
+        provider_preset: settings
+            .s3_provider_preset
+            .unwrap_or(S3ProviderPreset::Custom),
         backend_type,
         sync_enabled: true,
         sync_mode: SyncMode::Sync,
-        profile_name: settings.sync_profile_name.clone().unwrap_or_else(|| "default".to_string()),
-        webdav: settings.webdav_host.as_ref().map(|h| axagent_core::cloud_storage::WebDavConfig {
-            host: h.clone(),
-            username: settings.webdav_username.clone().unwrap_or_default(),
-            password: settings.webdav_password.clone().unwrap_or_default(),
-            path: settings.webdav_path.clone().unwrap_or_default(),
-            accept_invalid_certs: settings.webdav_accept_invalid_certs.unwrap_or(false),
-        }),
+        profile_name: settings
+            .sync_profile_name
+            .clone()
+            .unwrap_or_else(|| "default".to_string()),
+        webdav: settings
+            .webdav_host
+            .as_ref()
+            .map(|h| axagent_core::cloud_storage::WebDavConfig {
+                host: h.clone(),
+                username: settings.webdav_username.clone().unwrap_or_default(),
+                password: settings.webdav_password.clone().unwrap_or_default(),
+                path: settings.webdav_path.clone().unwrap_or_default(),
+                accept_invalid_certs: settings.webdav_accept_invalid_certs.unwrap_or(false),
+            }),
         s3: settings.s3_endpoint.as_ref().map(|e| S3Config {
             endpoint: e.clone(),
             region: settings.s3_region.clone().unwrap_or_default(),
@@ -296,7 +306,8 @@ fn load_cloud_storage_config(
 
 #[cfg(mobile)]
 fn hostname_or_uuid() -> String {
-    std::env::var("HOSTNAME").ok()
+    std::env::var("HOSTNAME")
+        .ok()
         .or_else(|| std::env::var("COMPUTERNAME").ok())
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string())
 }

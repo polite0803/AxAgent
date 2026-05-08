@@ -3300,9 +3300,7 @@ pub async fn regenerate_with_model(
     let thinking_param_style = rwm_overrides
         .as_ref()
         .and_then(|p| p.thinking_param_style.clone());
-    let rwm_request_delay_ms = rwm_overrides
-        .as_ref()
-        .and_then(|p| p.request_delay_ms);
+    let rwm_request_delay_ms = rwm_overrides.as_ref().and_then(|p| p.request_delay_ms);
 
     if no_system_role {
         for msg in &mut chat_messages {

@@ -21,8 +21,7 @@ mod window_state;
 mod tray {
     use tauri::Manager;
     #[tauri::command]
-    pub fn set_tray_labels(_app: tauri::AppHandle, _show_label: String, _quit_label: String) {
-    }
+    pub fn set_tray_labels(_app: tauri::AppHandle, _show_label: String, _quit_label: String) {}
 }
 
 #[cfg(target_os = "windows")]

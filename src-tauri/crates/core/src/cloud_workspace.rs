@@ -12,7 +12,6 @@
 /// 2. `sync()` performs bidirectional sync with conflict detection
 /// 3. Agent operates on local cache transparently
 /// 4. Subsequent `sync()` calls detect and resolve conflicts
-
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,9 +20,9 @@ use std::time::Instant;
 use crate::cloud_storage::StorageBackend;
 use crate::error::AxAgentError;
 use crate::sync_conflict::{
-    compute_content_hash, epoch_ms_to_rfc3339, parse_rfc3339_to_ms,
-    ConflictInfo, ConflictKind, ConflictResolution, ConflictStrategy, ConflictSummary,
-    ConflictVersion, SyncReport, SyncState, TrackedFileEntry,
+    compute_content_hash, epoch_ms_to_rfc3339, parse_rfc3339_to_ms, ConflictInfo, ConflictKind,
+    ConflictResolution, ConflictStrategy, ConflictSummary, ConflictVersion, SyncReport, SyncState,
+    TrackedFileEntry,
 };
 use crate::workspace_uri::WorkspaceUri;
 
@@ -96,7 +95,10 @@ impl CloudWorkspace {
     fn save_sync_state(&self) -> Result<(), AxAgentError> {
         if let Some(parent) = self.state_file.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
-                AxAgentError::Io(std::io::Error::other(format!("Failed to create state dir: {}", e)))
+                AxAgentError::Io(std::io::Error::other(format!(
+                    "Failed to create state dir: {}",
+                    e
+                )))
             })?;
         }
         let data = serde_json::to_vec_pretty(&self.sync_state).map_err(|e| {
@@ -179,10 +181,10 @@ impl CloudWorkspace {
                             report.downloaded.push(conflict_entry.key.clone());
                         }
                     }
-                }
+                },
                 None => {
                     report.pending_conflicts.push(summary);
-                }
+                },
             }
         }
 
@@ -233,7 +235,9 @@ impl CloudWorkspace {
             last_sync_local_hash: Some(local_hash),
             size: obj.size,
             local_modified_at: current_epoch_ms(),
-            last_sync_remote_modified_at: parse_rfc3339_to_ms(&obj.last_modified.clone().unwrap_or_default()),
+            last_sync_remote_modified_at: parse_rfc3339_to_ms(
+                &obj.last_modified.clone().unwrap_or_default(),
+            ),
             locally_deleted: false,
             tombstoned: false,
             conflict: None,
@@ -245,7 +249,11 @@ impl CloudWorkspace {
 
     // ─── File Upload with Conflict Check ────────────────────────────
 
-    async fn upload_file_with_conflict_check(&mut self, key: &str, prefix: &str) -> Result<bool, AxAgentError> {
+    async fn upload_file_with_conflict_check(
+        &mut self,
+        key: &str,
+        prefix: &str,
+    ) -> Result<bool, AxAgentError> {
         let local_file = self.cache_dir.join(key);
         if !local_file.exists() {
             return Ok(false);
@@ -285,7 +293,10 @@ impl CloudWorkspace {
         })?;
 
         let remote_key = format!("{}/{}", prefix.trim_end_matches('/'), key);
-        let meta = self.backend.put(&remote_key, &local_data, "application/octet-stream").await?;
+        let meta = self
+            .backend
+            .put(&remote_key, &local_data, "application/octet-stream")
+            .await?;
 
         let local_hash = compute_content_hash(&local_data);
         let _entry = TrackedFileEntry {
@@ -323,7 +334,9 @@ impl CloudWorkspace {
 
         // Add tombstone
         let state_ref = &self.sync_state;
-        let last_etag = state_ref.get_entry(key).and_then(|e| e.last_sync_remote_etag.clone());
+        let last_etag = state_ref
+            .get_entry(key)
+            .and_then(|e| e.last_sync_remote_etag.clone());
 
         // Note: can't mutate sync_state here (borrow issue), handled by caller
         Ok(true)
@@ -335,7 +348,10 @@ impl CloudWorkspace {
         let local_file = self.cache_dir.join(key);
         if local_file.exists() {
             std::fs::remove_file(&local_file).map_err(|e| {
-                AxAgentError::Io(std::io::Error::other(format!("Failed to delete local file: {}", e)))
+                AxAgentError::Io(std::io::Error::other(format!(
+                    "Failed to delete local file: {}",
+                    e
+                )))
             })?;
             return Ok(true);
         }
@@ -380,7 +396,7 @@ impl CloudWorkspace {
                         // Pure new local file - upload
                         diff.to_upload.insert(key.clone());
                     }
-                }
+                },
                 Some(entry) => {
                     if entry.locally_deleted {
                         // Locally deleted since last sync
@@ -413,13 +429,14 @@ impl CloudWorkspace {
                         }
                     } else {
                         // File exists locally and was tracked
-                        let local_changed = entry.last_sync_local_hash.as_deref() != Some(&local_info.content_hash);
+                        let local_changed =
+                            entry.last_sync_local_hash.as_deref() != Some(&local_info.content_hash);
 
                         let remote_info = remote_files.get(key);
                         let remote_changed = match (remote_info, &entry.last_sync_remote_etag) {
                             (Some(info), Some(last_etag)) => {
                                 info.etag.as_deref() != Some(last_etag)
-                            }
+                            },
                             (Some(_), None) => true,
                             (None, Some(_)) => true, // Remote deleted
                             (None, None) => false,
@@ -428,11 +445,11 @@ impl CloudWorkspace {
                         match (local_changed, remote_changed) {
                             (false, false) => {
                                 // No changes
-                            }
+                            },
                             (true, false) => {
                                 // Only local changed - upload
                                 diff.to_upload.insert(key.clone());
-                            }
+                            },
                             (false, true) => {
                                 // Only remote changed - download
                                 if let Some(info) = remote_info {
@@ -445,7 +462,7 @@ impl CloudWorkspace {
                                 } else {
                                     diff.remote_deletions.insert(key.clone());
                                 }
-                            }
+                            },
                             (true, true) => {
                                 // Both changed - conflict!
                                 if let Some(remote_info) = remote_info {
@@ -462,10 +479,10 @@ impl CloudWorkspace {
                                         resolution: None,
                                     });
                                 }
-                            }
+                            },
                         }
                     }
-                }
+                },
             }
         }
 
@@ -492,16 +509,16 @@ impl CloudWorkspace {
                         ConflictResolution::KeepRemote
                     };
                     conflict.resolved_with(resolution);
-                }
+                },
                 ConflictStrategy::LocalWins => {
                     conflict.resolved_with(ConflictResolution::KeepLocal);
-                }
+                },
                 ConflictStrategy::RemoteWins => {
                     conflict.resolved_with(ConflictResolution::KeepRemote);
-                }
+                },
                 ConflictStrategy::Manual => {
                     // Don't auto-resolve, keep for user
-                }
+                },
             }
         }
 
@@ -510,7 +527,10 @@ impl CloudWorkspace {
 
     // ─── Conflict Handling ──────────────────────────────────────────
 
-    async fn handle_conflict(&mut self, entry: &ConflictEntry) -> Result<ConflictSummary, AxAgentError> {
+    async fn handle_conflict(
+        &mut self,
+        entry: &ConflictEntry,
+    ) -> Result<ConflictSummary, AxAgentError> {
         let resolution = if entry.is_resolved {
             entry.resolution
         } else {
@@ -519,7 +539,7 @@ impl CloudWorkspace {
                 _ => {
                     // Already resolved in three_way_diff
                     entry.resolution
-                }
+                },
             }
         };
 
@@ -567,7 +587,11 @@ impl CloudWorkspace {
         })
     }
 
-    fn create_conflict_marker(&self, key: &str, conflict: &ConflictInfo) -> Result<(), AxAgentError> {
+    fn create_conflict_marker(
+        &self,
+        key: &str,
+        conflict: &ConflictInfo,
+    ) -> Result<(), AxAgentError> {
         let marker_path = self.cache_dir.join(format!("{}.conflict", key));
         if let Some(parent) = marker_path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
@@ -575,12 +599,14 @@ impl CloudWorkspace {
             })?;
         }
 
-        let marker_content = serde_json::to_string_pretty(conflict).map_err(|e| {
-            AxAgentError::Internal(format!("Failed to serialize conflict: {}", e))
-        })?;
+        let marker_content = serde_json::to_string_pretty(conflict)
+            .map_err(|e| AxAgentError::Internal(format!("Failed to serialize conflict: {}", e)))?;
 
         std::fs::write(&marker_path, marker_content).map_err(|e| {
-            AxAgentError::Io(std::io::Error::other(format!("Failed to write conflict marker: {}", e)))
+            AxAgentError::Io(std::io::Error::other(format!(
+                "Failed to write conflict marker: {}",
+                e
+            )))
         })
     }
 
@@ -593,7 +619,10 @@ impl CloudWorkspace {
         // Create copy with .local suffix
         let conflict_path = self.cache_dir.join(format!("{}.local", key));
         std::fs::copy(&local_file, &conflict_path).map_err(|e| {
-            AxAgentError::Io(std::io::Error::other(format!("Failed to create conflict copy: {}", e)))
+            AxAgentError::Io(std::io::Error::other(format!(
+                "Failed to create conflict copy: {}",
+                e
+            )))
         })?;
 
         Ok(())
@@ -601,7 +630,10 @@ impl CloudWorkspace {
 
     // ─── Remote File Listing ────────────────────────────────────────
 
-    async fn list_all_remote_files(&self, prefix: &str) -> Result<HashMap<String, RemoteFileInfo>, AxAgentError> {
+    async fn list_all_remote_files(
+        &self,
+        prefix: &str,
+    ) -> Result<HashMap<String, RemoteFileInfo>, AxAgentError> {
         let mut files = HashMap::new();
         let mut continuation_token: Option<String> = None;
 
@@ -621,15 +653,19 @@ impl CloudWorkspace {
                     continue;
                 }
 
-                let modified_at = parse_rfc3339_to_ms(&item.last_modified.clone().unwrap_or_default());
+                let modified_at =
+                    parse_rfc3339_to_ms(&item.last_modified.clone().unwrap_or_default());
 
-                files.insert(relative.clone(), RemoteFileInfo {
-                    key: relative,
-                    etag: item.etag.clone(),
-                    size: item.size,
-                    modified_at,
-                    exists: true,
-                });
+                files.insert(
+                    relative.clone(),
+                    RemoteFileInfo {
+                        key: relative,
+                        etag: item.etag.clone(),
+                        size: item.size,
+                        modified_at,
+                        exists: true,
+                    },
+                );
             }
 
             if list_result.is_truncated && list_result.continuation_token.is_some() {
@@ -651,10 +687,10 @@ impl CloudWorkspace {
             Ok(obj) => {
                 let list: Vec<String> = serde_json::from_slice(&obj.data).unwrap_or_default();
                 tombstones.extend(list);
-            }
+            },
             Err(_) => {
                 // No tombstones file - that's fine
-            }
+            },
         }
 
         Ok(tombstones)
@@ -710,7 +746,10 @@ impl CloudWorkspace {
                 }
 
                 let metadata = entry.metadata().map_err(|e| {
-                    AxAgentError::Io(std::io::Error::other(format!("Failed to read metadata: {}", e)))
+                    AxAgentError::Io(std::io::Error::other(format!(
+                        "Failed to read metadata: {}",
+                        e
+                    )))
                 })?;
 
                 let data = std::fs::read(&path).map_err(|e| {
@@ -718,18 +757,22 @@ impl CloudWorkspace {
                 })?;
 
                 let content_hash = compute_content_hash(&data);
-                let modified_at = metadata.modified()
+                let modified_at = metadata
+                    .modified()
                     .ok()
                     .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
                     .map(|d| d.as_millis() as u64)
                     .unwrap_or(0);
 
-                files.insert(key.clone(), LocalFileInfo {
-                    key,
-                    size: metadata.len() as i64,
-                    content_hash,
-                    modified_at,
-                });
+                files.insert(
+                    key.clone(),
+                    LocalFileInfo {
+                        key,
+                        size: metadata.len() as i64,
+                        content_hash,
+                        modified_at,
+                    },
+                );
             }
         }
 
@@ -768,7 +811,9 @@ impl CloudWorkspace {
                     });
                 }
             } else if !relative.is_empty() {
-                let has_conflict = self.sync_state.get_entry(relative)
+                let has_conflict = self
+                    .sync_state
+                    .get_entry(relative)
                     .map(|e| e.conflict.as_ref().map(|c| !c.resolved).unwrap_or(false))
                     .unwrap_or(false);
 
@@ -783,9 +828,7 @@ impl CloudWorkspace {
             }
         }
 
-        entries.sort_by(|a, b| {
-            b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name))
-        });
+        entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
 
         Ok(entries)
     }
@@ -806,7 +849,11 @@ impl CloudWorkspace {
     }
 
     /// Resolve a specific conflict.
-    pub fn resolve_conflict(&mut self, key: &str, resolution: ConflictResolution) -> Result<(), AxAgentError> {
+    pub fn resolve_conflict(
+        &mut self,
+        key: &str,
+        resolution: ConflictResolution,
+    ) -> Result<(), AxAgentError> {
         if let Some(entry) = self.sync_state.files.get_mut(key) {
             if let Some(ref mut conflict) = entry.conflict {
                 conflict.resolved = true;
@@ -819,7 +866,9 @@ impl CloudWorkspace {
 
     /// Get pending conflicts.
     pub fn get_pending_conflicts(&self) -> Vec<(&str, &ConflictInfo)> {
-        self.sync_state.files.iter()
+        self.sync_state
+            .files
+            .iter()
             .filter_map(|(key, entry)| {
                 entry.conflict.as_ref().and_then(|c| {
                     if !c.resolved {
