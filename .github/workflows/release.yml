@@ -474,17 +474,24 @@ jobs:
 
       - name: Upload APK and AAB to release
         run: |
-          # Find and upload APK from gen/android outputs
-          APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null | head -1)
+          # Find release APK from gen/android outputs
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk/release -name "*.apk" -type f 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            # Fallback: search all apk directories for release APKs
+            APK=$(find src-tauri/gen/android/app/build/outputs/apk -path "*/release/*" -name "*.apk" -type f 2>/dev/null | head -1)
+          fi
+          
           if [ -n "$APK" ]; then
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${{ github.ref_name }}_android-${ABI}.apk"
             cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
-            echo "Uploading APK: $NEW_NAME"
+            echo "Uploading APK: $NEW_NAME from $APK"
             cd "$GITHUB_WORKSPACE"
             gh release upload "${{ github.ref_name }}" "$NEW_NAME" --clobber
           else
             echo "APK not found in gen/android/outputs/apk"
+            ls -la src-tauri/gen/android/app/build/outputs/apk/ 2>/dev/null || true
+            find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || true
             exit 1
           fi
           
