@@ -481,21 +481,20 @@ jobs:
           if [ -n "$APK" ]; then
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${{ github.ref_name }}_android-${ABI}.apk"
-            cp "$APK" "../../../$NEW_NAME"
-            cd ../..
+            cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
             echo "Uploading APK: $NEW_NAME"
+            cd "$GITHUB_WORKSPACE"
             gh release upload "${{ github.ref_name }}" "$NEW_NAME" --clobber
           fi
           
           # Find and upload AAB (only for arm64-v8a)
           if [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
-            cd src-tauri/target
             AAB=$(find . -name "*.aab" -type f | head -1)
             if [ -n "$AAB" ]; then
               AAB_NAME="AxAgent_${{ github.ref_name }}_android-play-store.aab"
-              cp "$AAB" "../../../$AAB_NAME"
-              cd ../..
+              cp "$AAB" "$GITHUB_WORKSPACE/$AAB_NAME"
               echo "Uploading AAB: $AAB_NAME"
+              cd "$GITHUB_WORKSPACE"
               gh release upload "${{ github.ref_name }}" "$AAB_NAME" --clobber
             fi
           fi
