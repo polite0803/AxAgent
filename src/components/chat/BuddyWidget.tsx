@@ -52,13 +52,20 @@ export function BuddyWidget() {
     snark: t("buddy.attr.snark", "毒舌"),
   }), [t]);
 
-  // 拖动状态
+  // 拖动状态（按钮拖动）
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(savedPosition);
   const dragging = useRef(false);
   const hasDragged = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const currentDragPos = useRef<{ x: number; y: number } | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
+
+  // 面板拖动状态（独立于按钮）
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(null);
+  const panelDragging = useRef(false);
+  const panelHasDragged = useRef(false);
+  const panelDragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const panelCurrentDragPos = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     setDragPos(savedPosition);
@@ -108,6 +115,50 @@ export function BuddyWidget() {
       if (!hasDragged.current) { fn(); }
     };
   }, []);
+
+  // ---- 面板标题栏拖动 ----
+  const clampPanelPos = useCallback((x: number, y: number) => {
+    const panelW = 300;
+    const panelH = 300;
+    return {
+      x: Math.max(0, Math.min(window.innerWidth - panelW, x)),
+      y: Math.max(0, Math.min(window.innerHeight - panelH, y)),
+    };
+  }, []);
+
+  const handlePanelPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) { return; }
+    if ((e.target as HTMLElement).closest("button, input, select, textarea")) { return; }
+    e.stopPropagation();
+    panelDragging.current = true;
+    panelHasDragged.current = false;
+    const currentPos = panelCurrentDragPos.current ?? panelPos ?? { x: 0, y: 0 };
+    panelCurrentDragPos.current = currentPos;
+    panelDragStart.current = { x: e.clientX, y: e.clientY, posX: currentPos.x, posY: currentPos.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [panelPos]);
+
+  const handlePanelPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!panelDragging.current) { return; }
+    const dx = e.clientX - panelDragStart.current.x;
+    const dy = e.clientY - panelDragStart.current.y;
+    if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) { panelHasDragged.current = true; }
+    if (!panelHasDragged.current) { return; }
+    const rawX = panelDragStart.current.posX + dx;
+    const rawY = panelDragStart.current.posY + dy;
+    const clamped = clampPanelPos(rawX, rawY);
+    panelCurrentDragPos.current = clamped;
+    setPanelPos(clamped);
+  }, [clampPanelPos]);
+
+  const handlePanelPointerUp = useCallback(() => {
+    panelDragging.current = false;
+  }, []);
+
+  const panelPosition = panelPos ?? panelDragging.current ? panelCurrentDragPos.current : null;
+  const panelPosStyle = panelPosition
+    ? { left: panelPosition.x, top: panelPosition.y }
+    : {};
 
   // 隐藏时显示微型恢复按钮
   if (!visible) {
@@ -210,7 +261,12 @@ export function BuddyWidget() {
         <Card
           size="small"
           title={
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: 8, cursor: "grab", userSelect: "none" }}
+              onPointerDown={handlePanelPointerDown}
+              onPointerMove={handlePanelPointerMove}
+              onPointerUp={handlePanelPointerUp}
+            >
               <Text style={{ fontSize: 24 }}>{buddy.emoji}</Text>
               <div>
                 <Text strong style={{ fontSize: 15 }}>
@@ -242,6 +298,7 @@ export function BuddyWidget() {
             width: 300,
             boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
             borderRadius: 12,
+            ...panelPosStyle,
           }}
           styles={{ body: { padding: "8px 16px 12px" } }}
         >

@@ -431,7 +431,16 @@ pub async fn save_models(
     input_models: &[Model],
 ) -> Result<()> {
     let provider_id = provider_id.to_string();
-    let input_models = input_models.to_vec();
+
+    // Deduplicate: keep the last occurrence of each model_id
+    let mut seen = std::collections::HashSet::new();
+    let mut deduped: Vec<Model> = Vec::with_capacity(input_models.len());
+    for model in input_models.iter().rev() {
+        if seen.insert(model.model_id.clone()) {
+            deduped.push(model.clone());
+        }
+    }
+    deduped.reverse();
 
     db.transaction::<_, _, sea_orm::DbErr>(|txn| {
         Box::pin(async move {
@@ -440,7 +449,7 @@ pub async fn save_models(
                 .exec(txn)
                 .await?;
 
-            for model in &input_models {
+            for model in &deduped {
                 let capabilities =
                     serde_json::to_string(&model.capabilities).unwrap_or_else(|_| "[]".to_string());
                 let param_overrides = model

@@ -438,14 +438,18 @@ jobs:
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
-      - name: Setup keystore
+      - name: Setup keystore and signing config
         run: |
           mkdir -p src-tauri/gen/android/app
           echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/app/release.jks
-          echo "KEYSTORE_FILE=${{ github.workspace }}/src-tauri/gen/android/app/release.jks" >> $GITHUB_ENV
-          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          
+          # Create keystore.properties for Tauri Gradle signing
+          cat > src-tauri/gen/android/keystore.properties << EOF
+storeFile=app/release.jks
+storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+keyAlias=${{ secrets.KEY_ALIAS }}
+keyPassword=${{ secrets.KEY_PASSWORD }}
+EOF
 
       - name: Build Android APK
         run: |

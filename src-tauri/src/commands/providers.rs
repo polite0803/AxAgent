@@ -302,7 +302,16 @@ pub async fn fetch_remote_models(
                 axagent_core::model_knowledge::get_model_context_window(&model.model_id);
         }
     }
-    Ok(models)
+    // Deduplicate by model_id (keep last occurrence)
+    let mut seen = std::collections::HashSet::new();
+    let mut deduped: Vec<Model> = Vec::with_capacity(models.len());
+    for model in models.into_iter().rev() {
+        if seen.insert(model.model_id.clone()) {
+            deduped.push(model);
+        }
+    }
+    deduped.reverse();
+    Ok(deduped)
 }
 
 /// Test a single model's availability by sending a minimal chat request.

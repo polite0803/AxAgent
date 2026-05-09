@@ -447,8 +447,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     setRefreshing(true);
     try {
       const models = await fetchRemoteModels(providerId);
+      // Deduplicate by model_id (keep last occurrence)
+      const seen = new Map<string, Model>();
+      for (const m of models) {
+        seen.set(m.model_id, m);
+      }
+      const dedupedModels = Array.from(seen.values());
       const existingIds = new Set((provider?.models ?? []).map((m) => m.model_id));
-      const newModels = models.filter((m) => !existingIds.has(m.model_id));
+      const newModels = dedupedModels.filter((m) => !existingIds.has(m.model_id));
       if (newModels.length === 0) {
         message.info(t("settings.noNewModels"));
         return;
@@ -475,12 +481,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     setFetchingAll(true);
     try {
       const remoteModels = await fetchRemoteModels(providerId);
-      if (remoteModels.length === 0) {
+      // Deduplicate by model_id (keep last occurrence)
+      const seen = new Map<string, Model>();
+      for (const m of remoteModels) {
+        seen.set(m.model_id, m);
+      }
+      const dedupedModels = Array.from(seen.values());
+      if (dedupedModels.length === 0) {
         message.info(t("settings.noNewModels"));
         return;
       }
       const existingIds = new Set((provider?.models ?? []).map((m) => m.model_id));
-      setPickerModels(remoteModels);
+      setPickerModels(dedupedModels);
       setPickerSelected(new Set(existingIds));
       setPickerMode("replace");
       setPickerSearch("");
