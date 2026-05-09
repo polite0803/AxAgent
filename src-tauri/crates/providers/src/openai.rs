@@ -89,6 +89,10 @@ struct OpenAIMessage {
     tool_calls: Option<Vec<serde_json::Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_call_id: Option<String>,
+    /// For assistant messages: pass thinking back as reasoning_content when
+    /// the provider requires it (e.g., SiliconFlow, DeepSeek thinking mode).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning_content: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -384,6 +388,81 @@ fn extract_text_content(content: &ChatContent) -> String {
     }
 }
 
+/// Extract thinking content from text that contains `<think>...</think>` blocks.
+/// Returns (visible_text, reasoning_content).
+/// If no <think> blocks are present, reasoning_content is None.
+fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
+    const THINK_OPEN: &str = "<think";
+    const THINK_CLOSE: &str = "</think>";
+
+    let mut result = String::with_capacity(text.len());
+    let mut reasoning_parts: Vec<String> = Vec::new();
+    let mut remaining = text;
+
+    loop {
+        let Some(start) = remaining.find(THINK_OPEN) else {
+            result.push_str(remaining);
+            break;
+        };
+        // Push text before the think block
+        result.push_str(&remaining[..start]);
+        let after_open = &remaining[start..];
+        // Find the end of the opening tag
+        let tag_end = if let Some(close_bracket) = after_open.find('>') {
+            // Check for `</think>` self-closing (empty thinking)
+            if after_open.starts_with("<think") {
+                // Find where </think> starts
+                if let Some(think_close_pos) = after_open.find(THINK_CLOSE) {
+                    // Extract reasoning between > and </think>
+                    let content_start = close_bracket + 1;
+                    let reasoning = after_open[content_start..think_close_pos]
+                        .trim()
+                        .to_string();
+                    if !reasoning.is_empty() {
+                        reasoning_parts.push(reasoning);
+                    }
+                    remaining = &after_open[think_close_pos + THINK_CLOSE.len()..];
+                    continue;
+                }
+            }
+            close_bracket + 1
+        } else {
+            // Malformed tag — treat rest as normal text
+            result.push_str(remaining);
+            break;
+        };
+        // Find closing tag
+        let search_from = tag_end;
+        if let Some(end) = after_open[search_from..].find(THINK_CLOSE) {
+            let reasoning = after_open[search_from..search_from + end]
+                .trim()
+                .to_string();
+            if !reasoning.is_empty() {
+                reasoning_parts.push(reasoning);
+            }
+            remaining = &after_open[search_from + end + THINK_CLOSE.len()..];
+        } else {
+            // No closing tag found — malformed, keep as-is
+            result.push_str(&after_open[search_from..]);
+            break;
+        }
+    }
+
+    let reasoning = if reasoning_parts.is_empty() {
+        None
+    } else {
+        Some(reasoning_parts.join("\n\n"))
+    };
+
+    // Clean up visible text
+    let visible = result.trim().to_string();
+    if visible.is_empty() {
+        (result, reasoning)
+    } else {
+        (visible, reasoning)
+    }
+}
+
 fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
     messages
         .iter()
@@ -394,14 +473,16 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                     content: Some(serde_json::Value::String(extract_text_content(&msg.content))),
                     tool_calls: None,
                     tool_call_id: msg.tool_call_id.clone(),
+                    reasoning_content: None,
                 },
                 "assistant" if msg.tool_calls.is_some() => {
                     let content_text = extract_text_content(&msg.content);
-                    let content = if content_text.is_empty() {
+                    let (visible_text, reasoning) = extract_reasoning_from_text(&content_text);
+                    let content = if visible_text.is_empty() {
                         None
                     } else {
                         Some(match &msg.content {
-                            ChatContent::Text(text) => serde_json::Value::String(text.clone()),
+                            ChatContent::Text(_) => serde_json::Value::String(visible_text),
                             ChatContent::Multipart(parts) => serde_json::Value::Array(
                                 parts
                                     .iter()
@@ -412,7 +493,8 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                                             serde_json::Value::String(part.r#type.clone()),
                                         );
                                         if let Some(text) = &part.text {
-                                            value.insert("text".to_string(), serde_json::Value::String(text.clone()));
+                                            let (v, _) = extract_reasoning_from_text(text);
+                                            value.insert("text".to_string(), serde_json::Value::String(v));
                                         }
                                         if let Some(image_url) = &part.image_url {
                                             value.insert(
@@ -437,6 +519,7 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                             })).collect()
                         }),
                         tool_call_id: None,
+                        reasoning_content: reasoning,
                     }
                 },
                 _ => {
@@ -470,6 +553,7 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                         content: Some(content),
                         tool_calls: None,
                         tool_call_id: None,
+                        reasoning_content: None,
                     }
                 }
             }
