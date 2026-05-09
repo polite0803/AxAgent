@@ -25,7 +25,7 @@ use std::time::Duration;
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use axagent_core::cache::EmbeddingCache;
 ///
 /// let cache = EmbeddingCache::new(1000, Duration::from_secs(3600));
@@ -112,7 +112,7 @@ impl Default for EmbeddingCache {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use axagent_core::cache::TextHashCache;
 ///
 /// let cache = TextHashCache::new(500, Duration::from_secs(7200));

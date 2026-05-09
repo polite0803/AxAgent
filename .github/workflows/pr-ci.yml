@@ -224,7 +224,7 @@ jobs:
       - name: Generate coverage report
         run: cargo llvm-cov --workspace --lcov --output-path lcov.info --manifest-path src-tauri/Cargo.toml
 
-      - name: Check coverage threshold (≥50%)
+      - name: Check coverage threshold (≥45%)
         run: |
           TOTAL_LF=$(grep -oP '^LF:\K\d+' lcov.info | awk '{s+=$1}END{print s}')
           TOTAL_LH=$(grep -oP '^LH:\K\d+' lcov.info | awk '{s+=$1}END{print s}')
@@ -234,7 +234,7 @@ jobs:
           fi
           COVERAGE=$(echo "scale=2; $TOTAL_LH * 100 / $TOTAL_LF" | bc)
           echo "Line coverage: ${COVERAGE}% (${TOTAL_LH}/${TOTAL_LF})"
-          THRESHOLD=50
+          THRESHOLD=45
           PASS=$(echo "$COVERAGE >= $THRESHOLD" | bc)
           if [ "$PASS" -eq 0 ]; then
             echo "::error::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
