@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop-mcp",
+  "description": "MCP bridge capability for desktop only",
+  "windows": ["main", "quickbar"],
+  "permissions": [
+    "mcp-bridge:default"
+  ],
+  "platforms": ["macOS", "windows", "linux"]
+}
