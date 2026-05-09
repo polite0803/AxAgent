@@ -528,33 +528,38 @@ jobs:
         with:
           pattern: android-apk-*
           path: android-apks
+          merge-multiple: true
 
       - name: Download Android AAB artifact
-        if: true
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: android-aab
           path: android-aabs
 
+      - name: List downloaded files
+        run: |
+          echo "=== APK files ==="
+          ls -la android-apks/ 2>/dev/null || echo "No APK directory"
+          find android-apks/ -type f 2>/dev/null || echo "No APK files found"
+          echo "=== AAB files ==="
+          ls -la android-aabs/ 2>/dev/null || echo "No AAB directory"
+          find android-aabs/ -type f 2>/dev/null || echo "No AAB files found"
+
       - name: Upload all Android APKs to release
         run: |
-          for apk in android-apks/*/*.apk; do
-            if [ -f "$apk" ]; then
-              echo "Uploading $apk"
-              gh release upload "${{ github.ref_name }}" "$apk" --clobber
-            fi
+          find android-apks/ -name "*.apk" -type f -print0 | while IFS= read -r -d '' apk; do
+            echo "Uploading $apk"
+            gh release upload "${{ github.ref_name }}" "$apk" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload AAB to release
         run: |
-          for aab in android-aabs/*/*.aab; do
-            if [ -f "$aab" ]; then
-              echo "Uploading $aab"
-              gh release upload "${{ github.ref_name }}" "$aab" --clobber
-            fi
+          find android-aabs/ -name "*.aab" -type f -print0 | while IFS= read -r -d '' aab; do
+            echo "Uploading $aab"
+            gh release upload "${{ github.ref_name }}" "$aab" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
