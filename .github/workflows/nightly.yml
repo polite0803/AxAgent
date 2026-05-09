@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          ref: develop
+          ref: master
 
       - name: Set build timestamp
         id: timestamp
@@ -116,7 +116,7 @@ jobs:
             **Build Time:** ${{ steps.timestamp.outputs.BUILD_TIME }}
             **Commit:** ${{ github.sha }}
 
-            > This is an automated nightly build from the `develop` branch.
+            > This is an automated nightly build from the `master` branch.
             > **Use at your own risk!** This build may be unstable and is not recommended for production use.
           releaseDraft: false
           prerelease: true
@@ -150,7 +150,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          ref: develop
+          ref: master
 
       - name: Set build timestamp
         id: timestamp
