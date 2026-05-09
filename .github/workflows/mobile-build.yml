@@ -210,7 +210,7 @@ jobs:
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${TAG}_android-${ABI}.apk"
             cp "$APK" "../$NEW_NAME"
-            echo "apk-path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
+            echo "apk_path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
           fi
 
       - name: Rename AAB
@@ -225,33 +225,33 @@ jobs:
           if [ -n "$AAB" ]; then
             NEW_NAME="AxAgent_${TAG}_android-play-store.aab"
             cp "$AAB" "../$NEW_NAME"
-            echo "aab-path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
+            echo "aab_path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
           fi
 
       - name: Upload APK to release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.rename-apk.outputs.apk-path
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.rename-apk.outputs.apk_path
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: ${{ steps.rename-apk.outputs.apk-path }}
+          files: ${{ steps.rename-apk.outputs.apk_path }}
 
       - name: Upload AAB to release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.rename-aab.outputs.aab-path
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.rename-aab.outputs.aab_path
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: ${{ steps.rename-aab.outputs.aab-path }}
+          files: ${{ steps.rename-aab.outputs.aab_path }}
 
       - name: Upload APK as artifact (for manual runs)
-        if: github.event_name == 'workflow_dispatch' && steps.rename-apk.outputs.apk-path
+        if: github.event_name == 'workflow_dispatch' && steps.rename-apk.outputs.apk_path
         uses: actions/upload-artifact@v4
         with:
           name: axagent-android-${{ matrix.abi }}-apk
-          path: ${{ steps.rename-apk.outputs.apk-path }}
+          path: ${{ steps.rename-apk.outputs.apk_path }}
           retention-days: 30
 
   # ── iOS Build ─────────────────────────────────────────
