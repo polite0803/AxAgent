@@ -27,6 +27,7 @@ use std::time::Duration;
 ///
 /// ```no_run
 /// use axagent_core::cache::EmbeddingCache;
+/// use std::time::Duration;
 ///
 /// let cache = EmbeddingCache::new(1000, Duration::from_secs(3600));
 /// cache.insert("text_hash".to_string(), vec![0.1, 0.2, 0.3]);
@@ -114,6 +115,7 @@ impl Default for EmbeddingCache {
 ///
 /// ```no_run
 /// use axagent_core::cache::TextHashCache;
+/// use std::time::Duration;
 ///
 /// let cache = TextHashCache::new(500, Duration::from_secs(7200));
 /// cache.insert("document_id".to_string(), "hash_value".to_string());
