@@ -736,8 +736,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       syncFromAgentStore: (data) => {
         set((s) => {
           const executionState = { ...s.executionState };
+          const executingIds = data.executingConversationIds ?? [];
+          const pausedConvs = data.pausedConversations ?? new Set<string>();
 
-          for (const convId of data.executingConversationIds) {
+          for (const convId of executingIds) {
             const existing = executionState[convId] || {
               phase: "idle" as const,
               currentToolCallToolName: null,
@@ -746,7 +748,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             };
             executionState[convId] = {
               ...existing,
-              phase: data.isExecuting[convId] ? "executing" : existing.phase,
+              phase: data.isExecuting?.[convId] ? "executing" : existing.phase,
               currentToolCallToolName: data.currentToolCall?.conversationId === convId
                 ? data.currentToolCall.toolName
                 : existing.currentToolCallToolName,
@@ -761,7 +763,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             toolCalls: { ...s.toolCalls, ...data.toolCalls },
             permissions: { ...s.permissions, ...data.pendingPermissions },
             askUser: { ...s.askUser, ...data.pendingAskUser },
-            pausedConversations: new Set([...s.pausedConversations, ...data.pausedConversations]),
+            pausedConversations: new Set([...s.pausedConversations, ...pausedConvs]),
             agentPool: { ...s.agentPool, ...data.agentPool },
             subAgentCards: { ...s.subAgentCards, ...data.subAgentCards },
             executionState,
