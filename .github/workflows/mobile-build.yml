@@ -303,7 +303,7 @@ jobs:
           cd src-tauri
           npx tauri ios build \
             --target aarch64 \
-            --export-method ${{ github.event_name == 'push' && 'app-store' || 'ad-hoc' }}
+            --export-method ${{ github.event_name == 'push' && 'app-store-connect' || 'ad-hoc' }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
