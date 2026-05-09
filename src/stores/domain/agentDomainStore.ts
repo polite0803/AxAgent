@@ -198,6 +198,17 @@ function derivePlanStateFromPlanStore(conversationId: string): PlanState {
 
 // ── Store implementation ──
 
+/**
+ * Safely extract a Set from a potentially corrupted persisted state.
+ * Zustand persist serializes Set<string> to {}, so on restore it's a plain object.
+ */
+function toPausedSet(v: unknown): Set<string> {
+  if (v instanceof Set) { return v; }
+  if (Array.isArray(v)) { return new Set(v); }
+  if (v && typeof v === "object") { return new Set(Object.keys(v)); }
+  return new Set<string>();
+}
+
 export const useAgentDomainStore = create<AgentDomainStore>()(
   persist(
     (set, get) => ({
@@ -382,7 +393,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
         try {
           await invoke("agent_pause", { conversationId });
           set((s) => {
-            const pausedConversations = new Set(s.pausedConversations);
+            const pausedConversations = toPausedSet(s.pausedConversations);
             pausedConversations.add(conversationId);
             return { pausedConversations };
           });
@@ -395,7 +406,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
         try {
           await invoke("agent_resume", { conversationId });
           set((s) => {
-            const pausedConversations = new Set(s.pausedConversations);
+            const pausedConversations = toPausedSet(s.pausedConversations);
             pausedConversations.delete(conversationId);
             return { pausedConversations };
           });
@@ -763,7 +774,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             toolCalls: { ...s.toolCalls, ...data.toolCalls },
             permissions: { ...s.permissions, ...data.pendingPermissions },
             askUser: { ...s.askUser, ...data.pendingAskUser },
-            pausedConversations: new Set([...s.pausedConversations, ...pausedConvs]),
+            pausedConversations: new Set([...toPausedSet(s.pausedConversations), ...pausedConvs]),
             agentPool: { ...s.agentPool, ...data.agentPool },
             subAgentCards: { ...s.subAgentCards, ...data.subAgentCards },
             executionState,
@@ -813,7 +824,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           planState: planSt,
           pendingPermissionsCount: permissionCount,
           pendingAskUserCount: askUserCount,
-          isPaused: state.pausedConversations.has(conversationId),
+          isPaused: toPausedSet(state.pausedConversations).has(conversationId),
           totalToolCalls: relatedToolCalls.length,
           activeToolCalls,
         };
@@ -1090,7 +1101,7 @@ export function setupAgentDomainEventListeners(): () => void {
   unlisteners.push(
     listen<{ conversationId: string }>("agent-paused", (event) => {
       useAgentDomainStore.setState((s) => {
-        const pausedConversations = new Set(s.pausedConversations);
+        const pausedConversations = toPausedSet(s.pausedConversations);
         pausedConversations.add(event.payload.conversationId);
         return { pausedConversations };
       });
@@ -1100,7 +1111,7 @@ export function setupAgentDomainEventListeners(): () => void {
   unlisteners.push(
     listen<{ conversationId: string }>("agent-resumed", (event) => {
       useAgentDomainStore.setState((s) => {
-        const pausedConversations = new Set(s.pausedConversations);
+        const pausedConversations = toPausedSet(s.pausedConversations);
         pausedConversations.delete(event.payload.conversationId);
         return { pausedConversations };
       });
