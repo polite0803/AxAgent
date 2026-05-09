@@ -456,6 +456,7 @@ describe("WorkflowEditorStore", () => {
       expect(result).toEqual({
         nodes: mockResult.nodes,
         edges: mockResult.edges,
+        explanation: "Generated workflow",
       });
     });
 

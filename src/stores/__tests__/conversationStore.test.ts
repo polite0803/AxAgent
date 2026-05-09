@@ -425,6 +425,7 @@ describe("conversationStore pagination", () => {
             enabled_mcp_server_ids: [],
             enabled_knowledge_base_ids: [],
             enabled_memory_namespace_ids: [],
+            enabled_wiki_ids: [],
           },
         });
 
