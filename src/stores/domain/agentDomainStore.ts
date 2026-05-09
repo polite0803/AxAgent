@@ -416,7 +416,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       },
 
       isPaused: (conversationId) => {
-        return get().pausedConversations.has(conversationId);
+        return toPausedSet(get().pausedConversations).has(conversationId);
       },
 
       // ── AgentPool actions ──
@@ -724,7 +724,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             }
           }
 
-          const pausedConversations = new Set(s.pausedConversations);
+          const pausedConversations = toPausedSet(s.pausedConversations);
           pausedConversations.delete(conversationId);
 
           return {
@@ -885,7 +885,6 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       name: "axagent:agent-domain-store",
       partialize: (state) => ({
         agentSession: state.agentSession,
-        pausedConversations: state.pausedConversations,
         sdkIdToExecId: state.sdkIdToExecId,
       }),
     },
