@@ -198,8 +198,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Rename APK and upload to release
-        id: rename-upload-apk
+      - name: Rename APK for artifact
+        id: rename-apk
         run: |
           TAG="${GITHUB_REF_NAME:-dev}"
           cd src-tauri/target
@@ -210,23 +210,12 @@ jobs:
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${TAG}_android-${ABI}.apk"
             cp "$APK" "../$NEW_NAME"
-            APK_PATH="../$NEW_NAME"
-            
-            # Upload to release if this is a tag push
-            if [ "${{ github.event_name }}" = "push" ] && echo "${{ github.ref }}" | grep -q "^refs/tags/"; then
-              echo "Uploading APK to release: $APK_PATH"
-              gh release upload "$TAG" "$APK_PATH" --clobber
-            else
-              echo "Not a tag push, uploading as artifact instead"
-              echo "apk-path=$APK_PATH" >> $GITHUB_OUTPUT
-            fi
+            echo "apk-path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Rename AAB and upload to release
-        id: rename-upload-aab
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && matrix.abi == 'arm64-v8a'
+      - name: Rename AAB for artifact
+        id: rename-aab
+        if: matrix.abi == 'arm64-v8a'
         run: |
           TAG="${GITHUB_REF_NAME:-dev}"
           cd src-tauri/target
@@ -236,20 +225,23 @@ jobs:
           if [ -n "$AAB" ]; then
             NEW_NAME="AxAgent_${TAG}_android-play-store.aab"
             cp "$AAB" "../$NEW_NAME"
-            AAB_PATH="../$NEW_NAME"
-            
-            echo "Uploading AAB to release: $AAB_PATH"
-            gh release upload "$TAG" "$AAB_PATH" --clobber
+            echo "aab-path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload APK as artifact (for manual runs)
-        if: github.event_name == 'workflow_dispatch' && steps.rename-upload-apk.outputs.apk-path
+      - name: Upload APK as artifact
+        if: steps.rename-apk.outputs.apk-path
         uses: actions/upload-artifact@v4
         with:
           name: axagent-android-${{ matrix.abi }}-apk
-          path: ${{ steps.rename-upload-apk.outputs.apk-path }}
+          path: ${{ steps.rename-apk.outputs.apk-path }}
+          retention-days: 30
+
+      - name: Upload AAB as artifact
+        if: steps.rename-aab.outputs.aab-path && matrix.abi == 'arm64-v8a'
+        uses: actions/upload-artifact@v4
+        with:
+          name: axagent-android-aab
+          path: ${{ steps.rename-aab.outputs.aab-path }}
           retention-days: 30
 
   # ── iOS Build ─────────────────────────────────────────
