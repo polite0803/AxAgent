@@ -1,4 +1,4 @@
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, not(target_os = "android")))]
 use tauri_plugin_mcp_bridge;
 
 pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
@@ -20,7 +20,7 @@ pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<t
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build());
 
-    #[cfg(debug_assertions)]
+    #[cfg(all(debug_assertions, not(target_os = "android")))]
     let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
 
     builder
