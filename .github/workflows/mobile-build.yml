@@ -260,7 +260,7 @@ jobs:
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' && 
        (github.event.inputs.build_type == 'ios' || github.event.inputs.build_type == 'both'))
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
         with:

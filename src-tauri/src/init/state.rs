@@ -8,6 +8,8 @@ use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
+#[cfg(mobile)]
+use axagent_core::cloud_storage::CloudStorageConfig;
 use axagent_core::cloud_storage::SyncEngine;
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
@@ -253,9 +255,7 @@ fn load_cloud_storage_config(
     sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_core::types::AppSettings,
 ) -> Option<CloudStorageConfig> {
-    use axagent_core::cloud_storage::{
-        BackendType, CloudStorageConfig, S3Config, S3ProviderPreset, SyncMode,
-    };
+    use axagent_core::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};
     let rt = tokio::runtime::Handle::current();
     let settings = rt
         .block_on(axagent_core::repo::settings::get_settings(sea_db))
