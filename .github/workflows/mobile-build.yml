@@ -198,8 +198,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Rename APK
-        id: rename-apk
+      - name: Rename APK and upload to release
+        id: rename-upload-apk
         run: |
           TAG="${GITHUB_REF_NAME:-dev}"
           cd src-tauri/target
@@ -210,11 +210,22 @@ jobs:
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${TAG}_android-${ABI}.apk"
             cp "$APK" "../$NEW_NAME"
-            echo "apk_path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
+            APK_PATH="../$NEW_NAME"
+            
+            # Upload to release if this is a tag push
+            if [ "${{ github.event_name }}" = "push" ] && echo "${{ github.ref }}" | grep -q "^refs/tags/"; then
+              echo "Uploading APK to release: $APK_PATH"
+              gh release upload "$TAG" "$APK_PATH" --clobber
+            else
+              echo "Not a tag push, uploading as artifact instead"
+              echo "apk-path=$APK_PATH" >> $GITHUB_OUTPUT
+            fi
           fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Rename AAB
-        id: rename-aab
+      - name: Rename AAB and upload to release
+        id: rename-upload-aab
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && matrix.abi == 'arm64-v8a'
         run: |
           TAG="${GITHUB_REF_NAME:-dev}"
@@ -225,33 +236,20 @@ jobs:
           if [ -n "$AAB" ]; then
             NEW_NAME="AxAgent_${TAG}_android-play-store.aab"
             cp "$AAB" "../$NEW_NAME"
-            echo "aab_path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
+            AAB_PATH="../$NEW_NAME"
+            
+            echo "Uploading AAB to release: $AAB_PATH"
+            gh release upload "$TAG" "$AAB_PATH" --clobber
           fi
-
-      - name: Upload APK to release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.rename-apk.outputs.apk_path
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: ${{ steps.rename-apk.outputs.apk_path }}
-
-      - name: Upload AAB to release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.rename-aab.outputs.aab_path
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: ${{ steps.rename-aab.outputs.aab_path }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload APK as artifact (for manual runs)
-        if: github.event_name == 'workflow_dispatch' && steps.rename-apk.outputs.apk_path
+        if: github.event_name == 'workflow_dispatch' && steps.rename-upload-apk.outputs.apk-path
         uses: actions/upload-artifact@v4
         with:
           name: axagent-android-${{ matrix.abi }}-apk
-          path: ${{ steps.rename-apk.outputs.apk_path }}
+          path: ${{ steps.rename-upload-apk.outputs.apk-path }}
           retention-days: 30
 
   # ── iOS Build ─────────────────────────────────────────
