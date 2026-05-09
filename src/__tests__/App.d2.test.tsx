@@ -125,6 +125,11 @@ vi.mock("@/stores", () => ({
       loading: false,
       fetchInstalled: vi.fn(),
     }),
+  useOnboardingStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      completed: true,
+      setCompleted: vi.fn(),
+    }),
 }));
 
 vi.mock("@/hooks/useKeyboardShortcuts", () => ({
@@ -141,6 +146,7 @@ vi.mock("@/theme/shadcnTheme", () => ({
 
 vi.mock("@/lib/invoke", () => ({
   isTauri: () => false,
+  invoke: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/preloadChatRenderers", () => ({
