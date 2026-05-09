@@ -474,10 +474,8 @@ jobs:
 
       - name: Upload APK and AAB to release
         run: |
-          cd src-tauri/target
-          
-          # Find and upload APK
-          APK=$(find . -name "*.apk" -type f | head -1)
+          # Find and upload APK from gen/android outputs
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null | head -1)
           if [ -n "$APK" ]; then
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${{ github.ref_name }}_android-${ABI}.apk"
@@ -485,17 +483,22 @@ jobs:
             echo "Uploading APK: $NEW_NAME"
             cd "$GITHUB_WORKSPACE"
             gh release upload "${{ github.ref_name }}" "$NEW_NAME" --clobber
+          else
+            echo "APK not found in gen/android/outputs/apk"
+            exit 1
           fi
           
           # Find and upload AAB (only for arm64-v8a)
           if [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
-            AAB=$(find . -name "*.aab" -type f | head -1)
+            AAB=$(find src-tauri/gen/android/app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null | head -1)
             if [ -n "$AAB" ]; then
               AAB_NAME="AxAgent_${{ github.ref_name }}_android-play-store.aab"
               cp "$AAB" "$GITHUB_WORKSPACE/$AAB_NAME"
               echo "Uploading AAB: $AAB_NAME"
               cd "$GITHUB_WORKSPACE"
               gh release upload "${{ github.ref_name }}" "$AAB_NAME" --clobber
+            else
+              echo "AAB not found, uploading APK only"
             fi
           fi
         env:
