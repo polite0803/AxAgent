@@ -106,6 +106,7 @@ pub async fn test_proxy(
 }
 
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub async fn list_system_fonts() -> Result<Vec<String>, String> {
     tokio::task::spawn_blocking(|| {
         let source = font_kit::source::SystemSource::new();

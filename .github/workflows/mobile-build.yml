@@ -272,6 +272,9 @@ jobs:
         with:
           targets: aarch64-apple-ios
 
+      - name: Add iOS Rust target
+        run: rustup target add aarch64-apple-ios
+
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
