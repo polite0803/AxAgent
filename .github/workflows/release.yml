@@ -190,13 +190,12 @@ jobs:
             cp "$APK" "$NEW_NAME"
           fi
 
-      - name: Upload APK to release
-        uses: softprops/action-gh-release@v2
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: src-tauri/target/AxAgent_${{ github.ref_name }}_android-${{ matrix.abi }}.apk
+          name: android-apk-${{ matrix.abi }}
+          path: src-tauri/target/AxAgent_${{ github.ref_name }}_android-${{ matrix.abi }}.apk
+          retention-days: 1
 
       - name: Rename AAB for upload
         if: matrix.abi == 'arm64-v8a'
@@ -208,14 +207,13 @@ jobs:
             cp "$AAB" "$NEW_NAME"
           fi
 
-      - name: Upload AAB to release
+      - name: Upload AAB as artifact
         if: matrix.abi == 'arm64-v8a'
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: src-tauri/target/AxAgent_${{ github.ref_name }}_android-play-store.aab
+          name: android-aab
+          path: src-tauri/target/AxAgent_${{ github.ref_name }}_android-play-store.aab
+          retention-days: 1
 
   # ── Build for macOS / Windows / Linux x86_64 ───────────
   release:
@@ -517,10 +515,54 @@ jobs:
             src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-arm64.deb
             src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-arm64.rpm
 
+  # ── Upload Android APK/AAB to release ──────────────────
+  upload-android-release:
+    name: Upload Android to Release
+    needs: [release, release-linux-arm, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Android APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: android-apk-*
+          path: android-apks
+
+      - name: Download Android AAB artifact
+        if: true
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: android-aab
+          path: android-aabs
+
+      - name: Upload all Android APKs to release
+        run: |
+          for apk in android-apks/*/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "Uploading $apk"
+              gh release upload "${{ github.ref_name }}" "$apk" --clobber
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload AAB to release
+        run: |
+          for aab in android-aabs/*/*.aab; do
+            if [ -f "$aab" ]; then
+              echo "Uploading $aab"
+              gh release upload "${{ github.ref_name }}" "$aab" --clobber
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # ── Publish draft release as latest ────────────────────
   publish-release:
     name: Publish Release
-    needs: [release, release-linux-arm, build-android]
+    needs: [release, release-linux-arm, upload-android-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
