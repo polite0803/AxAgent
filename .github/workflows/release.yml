@@ -472,45 +472,35 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Find and rename APK
+      - name: Upload APK and AAB to release
         run: |
           cd src-tauri/target
+          
+          # Find and upload APK
           APK=$(find . -name "*.apk" -type f | head -1)
           if [ -n "$APK" ]; then
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${{ github.ref_name }}_android-${ABI}.apk"
             cp "$APK" "../../../$NEW_NAME"
-            echo "APK_PATH=${{ github.workspace }}/$NEW_NAME" >> $GITHUB_ENV
+            cd ../..
+            echo "Uploading APK: $NEW_NAME"
+            gh release upload "${{ github.ref_name }}" "$NEW_NAME" --clobber
           fi
-
-      - name: Find and rename AAB
-        if: matrix.abi == 'arm64-v8a'
-        run: |
-          cd src-tauri/target
-          AAB=$(find . -name "*.aab" -type f | head -1)
-          if [ -n "$AAB" ]; then
-            NEW_NAME="AxAgent_${{ github.ref_name }}_android-play-store.aab"
-            cp "$AAB" "../../../$NEW_NAME"
-            echo "AAB_PATH=${{ github.workspace }}/$NEW_NAME" >> $GITHUB_ENV
+          
+          # Find and upload AAB (only for arm64-v8a)
+          if [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
+            cd src-tauri/target
+            AAB=$(find . -name "*.aab" -type f | head -1)
+            if [ -n "$AAB" ]; then
+              AAB_NAME="AxAgent_${{ github.ref_name }}_android-play-store.aab"
+              cp "$AAB" "../../../$AAB_NAME"
+              cd ../..
+              echo "Uploading AAB: $AAB_NAME"
+              gh release upload "${{ github.ref_name }}" "$AAB_NAME" --clobber
+            fi
           fi
-
-      - name: Upload APK to release
-        if: env.APK_PATH
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: ${{ env.APK_PATH }}
-
-      - name: Upload AAB to release
-        if: matrix.abi == 'arm64-v8a' && env.AAB_PATH
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: ${{ env.AAB_PATH }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── Publish draft release as latest ────────────────────
   publish-release:
