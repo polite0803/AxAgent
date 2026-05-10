@@ -68,8 +68,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             .as_ref()
             .map(PathBuf::from),
     );
-    axagent_core::storage_paths::ensure_documents_dirs()
-        .expect("failed to create documents storage dirs (custom root)");
+    axagent_core::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
+        tracing::warn!("Failed to create documents storage dirs (non-critical on mobile): {}", e);
+    });
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
         let db_file_path = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
@@ -87,8 +88,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let memory_service = {
         let ms = axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
             .unwrap_or_else(|e| {
-                tracing::warn!("Failed to create MemoryService: {}", e);
-                panic!("MemoryService is required for application startup");
+                tracing::error!("Failed to create MemoryService: {}", e);
+                panic!("MemoryService is required for application startup: {}", e);
             });
         if let Err(e) = ms.initialize() {
             tracing::warn!("Failed to initialize MemoryService: {}", e);
@@ -221,8 +222,17 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             let cache = rt
                 .block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
                 .unwrap_or_else(|e| {
-                    tracing::error!("Failed to init semantic cache: {}", e);
-                    panic!("Semantic cache initialization failed: {}", e);
+                    tracing::error!(
+                        "Failed to init semantic cache (will use empty fallback): {}",
+                        e
+                    );
+                    let rt2 =
+                        tokio::runtime::Runtime::new().expect("Failed to create fallback runtime");
+                    rt2.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
+                        .unwrap_or_else(|e2| {
+                            tracing::error!("Semantic cache fallback also failed: {}", e2);
+                            panic!("Semantic cache initialization failed: {}", e2);
+                        })
                 });
             Arc::new(tokio::sync::Mutex::new(cache))
         },

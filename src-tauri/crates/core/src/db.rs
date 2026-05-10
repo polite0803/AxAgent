@@ -1,9 +1,14 @@
+#[cfg(mobile)]
+use std::path::PathBuf;
+
 use axagent_migration::MigratorTrait;
 use sea_orm::{
     ColumnTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend,
     EntityTrait, QueryFilter, Statement,
 };
 use tracing::info;
+#[cfg(mobile)]
+use tracing::warn;
 
 use crate::entity::providers;
 use crate::error::Result;
@@ -59,8 +64,17 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
 pub fn default_db_path() -> String {
     #[cfg(mobile)]
     let home = dirs::data_dir()
-        .or_else(|| dirs::home_dir())
-        .expect("Could not determine home directory");
+        .or_else(dirs::home_dir)
+        .or_else(|| {
+            std::env::var("HOME")
+                .ok()
+                .or_else(|| std::env::var("ANDROID_DATA").ok())
+                .map(PathBuf::from)
+        })
+        .unwrap_or_else(|| {
+            tracing::warn!("Could not determine home directory for DB path, using current dir");
+            PathBuf::from(".")
+        });
     #[cfg(not(mobile))]
     let home = dirs::home_dir().expect("Could not determine home directory");
 
@@ -71,8 +85,17 @@ pub fn default_db_path() -> String {
 pub fn profile_db_path(profile_name: &str) -> String {
     #[cfg(mobile)]
     let home = dirs::data_dir()
-        .or_else(|| dirs::home_dir())
-        .expect("Could not determine home directory");
+        .or_else(dirs::home_dir)
+        .or_else(|| {
+            std::env::var("HOME")
+                .ok()
+                .or_else(|| std::env::var("ANDROID_DATA").ok())
+                .map(PathBuf::from)
+        })
+        .unwrap_or_else(|| {
+            tracing::warn!("Could not determine home directory for DB path, using current dir");
+            PathBuf::from(".")
+        });
     #[cfg(not(mobile))]
     let home = dirs::home_dir().expect("Could not determine home directory");
 

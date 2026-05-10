@@ -584,7 +584,16 @@ fn start_user_profile_persistence(state: &AppState) {
             let profile = user_profile.read().await;
             let md_content = profile.to_user_md();
             drop(profile);
-            if let Some(home) = dirs::home_dir() {
+            if let Some(home) = {
+                #[cfg(mobile)]
+                {
+                    dirs::data_dir().or_else(dirs::home_dir)
+                }
+                #[cfg(not(mobile))]
+                {
+                    dirs::home_dir()
+                }
+            } {
                 let user_md_path = home.join(".axagent").join("USER.md");
                 if let Some(parent) = user_md_path.parent() {
                     let _ = std::fs::create_dir_all(parent);
@@ -691,7 +700,16 @@ fn start_skill_evolution(state: &AppState) {
 }
 
 fn start_skill_watcher(app: &tauri::AppHandle) {
-    let home = dirs::home_dir().unwrap_or_default();
+    let home = {
+        #[cfg(mobile)]
+        {
+            dirs::data_dir().or_else(dirs::home_dir).unwrap_or_default()
+        }
+        #[cfg(not(mobile))]
+        {
+            dirs::home_dir().unwrap_or_default()
+        }
+    };
     let skill_dirs: Vec<std::path::PathBuf> = vec![
         home.join(".axagent").join("skills"),
         home.join(".claude").join("skills"),

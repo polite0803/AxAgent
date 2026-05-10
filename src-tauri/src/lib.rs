@@ -37,7 +37,17 @@ pub use app_state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+    if rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .is_err()
+    {
+        if rustls::crypto::ring::default_provider()
+            .install_default()
+            .is_err()
+        {
+            tracing::warn!("No TLS crypto provider available, HTTPS connections may fail");
+        }
+    }
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -773,9 +783,9 @@ pub fn run() {
             let db_result = match std::thread::spawn(|| {
                 let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
                 rt.block_on(init::init_database())
-            }).join().expect("DB init thread panicked") {
-                Ok(result) => result,
-                Err(e) => {
+            }).join() {
+                Ok(Ok(result)) => result,
+                Ok(Err(e)) => {
                     tracing::error!("Database initialization failed: {}", e);
                     #[cfg(target_os = "windows")]
                     {
@@ -783,12 +793,22 @@ pub fn run() {
                     }
                     std::process::exit(1);
                 }
+                Err(e) => {
+                    tracing::error!("DB init thread panicked: {:?}", e);
+                    std::process::exit(1);
+                }
             };
 
             // 在独立线程中运行初始化，避免在 Tauri 的 tokio runtime 内创建嵌套 Runtime
-            let state = std::thread::spawn(move || {
+            let state = match std::thread::spawn(move || {
                 init::state::create_app_state(db_result)
-            }).join().expect("Init thread panicked");
+            }).join() {
+                Ok(s) => s,
+                Err(e) => {
+                    tracing::error!("App state init thread panicked: {:?}", e);
+                    std::process::exit(1);
+                }
+            };
 
             app.manage(state);
 
@@ -803,7 +823,9 @@ pub fn run() {
                     let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db2).await;
                     let _ = commands::scheduled_task::load_tasks_from_db_internal(&sea_db2, &scheduled_svc).await;
                 });
-            }).join().expect("Session reset thread panicked");
+            }).join().unwrap_or_else(|e| {
+                tracing::error!("Session reset thread panicked: {:?}", e);
+            });
 
             // Initialize pricing configuration from pricing.toml
             commands::agent::init_pricing_config(app.handle());
@@ -822,7 +844,9 @@ pub fn run() {
                                     tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
                                         p.preferences.len(), p.expertise.len());
                                 });
-                            }).join().expect("User profile thread panicked");
+                            }).join().unwrap_or_else(|e| {
+                                tracing::error!("User profile thread panicked: {:?}", e);
+                            });
                         }
                     }
                 }
@@ -866,7 +890,9 @@ pub fn run() {
                                 });
                             }
                         });
-                    }).join().expect("Pattern learner thread panicked");
+                    }).join().unwrap_or_else(|e| {
+                        tracing::error!("Pattern learner thread panicked: {:?}", e);
+                    });
                     tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", pattern_count);
                 }
             }
@@ -922,7 +948,9 @@ pub fn run() {
                             },
                         }
                     });
-                }).join().expect("Mobile sync thread panicked");
+                }).join().unwrap_or_else(|e| {
+                    tracing::error!("Mobile sync thread panicked: {:?}", e);
+                });
             }
 
             let state = app.state::<AppState>();
@@ -934,7 +962,10 @@ pub fn run() {
                     rt.block_on(axagent_core::repo::settings::get_settings(&db))
                         .map(|s| s.language)
                         .unwrap_or_else(|_| "en".to_string())
-                }).join().expect("Tray language thread panicked")
+                }).join().unwrap_or_else(|e| {
+                    tracing::error!("Tray language thread panicked: {:?}", e);
+                    "en".to_string()
+                })
             };
             #[cfg(mobile)]
             let tray_language = "en".to_string();
