@@ -22,6 +22,8 @@ pub fn start_background_services(
     start_batch_processing(state);
     start_user_profile_persistence(state);
     start_skill_evolution(state);
+    start_auto_tool_observation(state);
+    start_text_grad_analysis(state);
     start_scheduled_task_executor(state);
     start_platform_adapters(state);
     start_skill_watcher(app);
@@ -470,7 +472,24 @@ fn start_rl_reward_computation(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let rl_engine = state.rl_engine.clone();
     let insight_system = state.insight_system.clone();
+    let process_reward_model = state.process_reward_model.clone();
+    let db = state.sea_db.clone();
+    let master_key = state.master_key;
     tauri::async_runtime::spawn(async move {
+        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+            {
+                let mut rl = rl_engine.write().await;
+                rl.set_llm_judge(Box::new(bridge.clone()));
+            }
+            tracing::info!("[rl] LLM judge injected into RLEngine");
+
+            {
+                let mut prm = process_reward_model.lock().await;
+                prm.set_provider(Box::new(bridge));
+            }
+            tracing::info!("[rl] LLM PRM provider injected into ProcessRewardModel");
+        }
+
         let interval = std::time::Duration::from_secs(20 * 60);
         let mut reward_normalizer = axagent_trajectory::RewardNormalizer::new();
         loop {
@@ -489,6 +508,7 @@ fn start_rl_reward_computation(state: &AppState) {
             let rl = rl_engine.read().await;
             let mut total_rewards = 0;
             let mut total_advantages = 0;
+            let mut total_prm_rewards = 0;
             for trajectory in &mut trajectories {
                 if trajectory.rewards.is_empty() {
                     let mut rewards = rl.compute_rewards(trajectory);
@@ -496,6 +516,25 @@ fn start_rl_reward_computation(state: &AppState) {
                     rl.shape_rewards(&mut rewards);
                     reward_normalizer.normalize(&mut rewards);
                     trajectory.rewards = rewards;
+
+                    {
+                        let prm = process_reward_model.lock().await;
+                        let prm_result = prm.compute_trajectory_rewards(trajectory).await;
+                        if !prm_result.step_rewards.is_empty() {
+                            total_prm_rewards += prm_result.step_rewards.len();
+                            let combined_value =
+                                trajectory.value_score * 0.5 + prm_result.weighted_reward * 0.5;
+                            trajectory.value_score = combined_value;
+                            tracing::debug!(
+                                "[rl] PRM for trajectory {}: aggregate={:.3}, outcome={:.3}, weighted={:.3}",
+                                &trajectory.id[..trajectory.id.len().min(8)],
+                                prm_result.aggregate_reward,
+                                prm_result.outcome_reward,
+                                prm_result.weighted_reward
+                            );
+                        }
+                    }
+
                     let values = rl.estimate_value_function(trajectory);
                     if !values.is_empty() {
                         let advantages = rl.compute_advantages(&trajectory.rewards, &values);
@@ -525,9 +564,10 @@ fn start_rl_reward_computation(state: &AppState) {
             drop(rl);
             if total_rewards > 0 {
                 tracing::info!(
-                    "[rl] Computed {} rewards, {} advantages across {} trajectories",
+                    "[rl] Computed {} rewards, {} advantages, {} PRM step-evals across {} trajectories",
                     total_rewards,
                     total_advantages,
+                    total_prm_rewards,
                     trajectories.len()
                 );
                 let reward_trajectories: Vec<_> = trajectories
@@ -641,7 +681,19 @@ fn start_skill_evolution(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let skill_evolution_engine = state.skill_evolution_engine.clone();
     let insight_system = state.insight_system.clone();
+    let constitution = state.constitution.clone();
+    let intrinsic_motivation = state.intrinsic_motivation.clone();
+    let coevolution_env = state.coevolution_env.clone();
+    let db = state.sea_db.clone();
+    let master_key = state.master_key;
     tauri::async_runtime::spawn(async move {
+        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+            let mut engine = skill_evolution_engine.lock().await;
+            engine.set_llm_provider(std::sync::Arc::new(bridge));
+            drop(engine);
+            tracing::info!("[evolution] LLM provider injected into SkillEvolutionEngine");
+        }
+
         let interval = std::time::Duration::from_secs(45 * 60);
         let success_threshold = 0.5;
         let min_usages = 3;
@@ -678,8 +730,34 @@ fn start_skill_evolution(state: &AppState) {
                     '_,
                     axagent_trajectory::SkillEvolutionEngine,
                 > = skill_evolution_engine.lock().await;
-                let result = engine.run(skill, &test_refs);
+                let result = engine.run(skill, &test_refs).await;
                 if let Some(modification) = result {
+                    if let Err(violations) = constitution.validate_evolution(&modification) {
+                        let has_fatal = violations
+                            .iter()
+                            .any(|v| v.severity == axagent_trajectory::ViolationSeverity::Fatal);
+                        let has_critical = violations
+                            .iter()
+                            .any(|v| v.severity == axagent_trajectory::ViolationSeverity::Critical);
+                        if has_fatal || has_critical {
+                            tracing::warn!(
+                                "[evolution] Constitution blocked skill '{}' evolution: {} violations (fatal={}, critical={})",
+                                skill.name,
+                                violations.len(),
+                                has_fatal,
+                                has_critical
+                            );
+                            continue;
+                        }
+                        tracing::info!(
+                            "[evolution] Constitution warnings for skill '{}' evolution: {:?}",
+                            skill.name,
+                            violations
+                                .iter()
+                                .map(|v| &v.description)
+                                .collect::<Vec<_>>()
+                        );
+                    }
                     if modification
                         .validation_result
                         .as_ref()
@@ -704,6 +782,19 @@ fn start_skill_evolution(state: &AppState) {
                         if let Err(e) = trajectory_storage.save_skill(&updated_skill) {
                             tracing::warn!("[evolution] Failed to save evolved skill: {}", e);
                         }
+
+                        {
+                            let mut im = intrinsic_motivation.lock().await;
+                            for traj in &test_trajectories {
+                                let _intrinsic_reward = im.compute_intrinsic_reward(traj);
+                            }
+                        }
+
+                        {
+                            let mut env = coevolution_env.lock().await;
+                            env.update_performance(modification.confidence);
+                        }
+
                         let mut is = insight_system.write().await;
                         is.add_insight(axagent_trajectory::LearningInsight {
                             id: format!("evo_{}", chrono::Utc::now().timestamp_millis()),
@@ -851,6 +942,165 @@ fn start_memory_decay_tick(state: &AppState) {
             if evicted > 0 {
                 tracing::info!("[memory_decay] Evicted {} expired/decayed memories", evicted);
             }
+        }
+    });
+}
+
+fn start_auto_tool_observation(state: &AppState) {
+    let trajectory_storage = state.trajectory_storage.clone();
+    let auto_tool_creator = state.auto_tool_creator.clone();
+    let db = state.sea_db.clone();
+    let master_key = state.master_key;
+    tauri::async_runtime::spawn(async move {
+        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+            let mut atc = auto_tool_creator.lock().await;
+            atc.set_llm_provider(Box::new(bridge));
+            drop(atc);
+            tracing::info!("[auto_tool] LLM provider injected into AutoToolCreator");
+        }
+
+        let interval = std::time::Duration::from_secs(60 * 60);
+        loop {
+            tokio::time::sleep(interval).await;
+            let trajectories: Vec<axagent_trajectory::Trajectory> =
+                match trajectory_storage.get_trajectories(Some(30)) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        tracing::warn!("[auto_tool] Failed to fetch trajectories: {}", e);
+                        continue;
+                    },
+                };
+
+            let mut atc = auto_tool_creator.lock().await;
+            for trajectory in &trajectories {
+                atc.observe_trajectory(trajectory);
+            }
+
+            let frequent = atc.get_frequent_patterns(3);
+            if !frequent.is_empty() {
+                tracing::info!(
+                    "[auto_tool] Observed {} frequent tool patterns (top: {:?})",
+                    frequent.len(),
+                    &frequent[..frequent.len().min(5)]
+                );
+
+                for (pattern, count) in frequent.iter().take(2) {
+                    if atc
+                        .get_tool(&axagent_trajectory::slugify(pattern))
+                        .is_none()
+                    {
+                        match atc
+                            .create_tool_from_pattern(
+                                pattern,
+                                &format!("Auto-observed pattern ({} occurrences)", count),
+                                vec![],
+                            )
+                            .await
+                        {
+                            Ok(tool) => {
+                                tracing::info!(
+                                    "[auto_tool] Created tool '{}' from pattern '{}' (freq={})",
+                                    tool.name,
+                                    pattern,
+                                    count
+                                );
+                            },
+                            Err(e) => {
+                                tracing::debug!(
+                                    "[auto_tool] Could not create tool from '{}': {}",
+                                    pattern,
+                                    e
+                                );
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+fn start_text_grad_analysis(state: &AppState) {
+    let trajectory_storage = state.trajectory_storage.clone();
+    let text_grad_engine = state.text_grad_engine.clone();
+    let db = state.sea_db.clone();
+    let master_key = state.master_key;
+    tauri::async_runtime::spawn(async move {
+        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+            let mut engine = text_grad_engine.lock().await;
+            engine.set_provider(bridge);
+            drop(engine);
+            tracing::info!("[text_grad] LLM provider injected into TextGradEngine");
+        }
+
+        let interval = std::time::Duration::from_secs(2 * 60 * 60);
+        loop {
+            tokio::time::sleep(interval).await;
+            let trajectories: Vec<axagent_trajectory::Trajectory> =
+                match trajectory_storage.get_trajectories(Some(10)) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        tracing::warn!("[text_grad] Failed to fetch trajectories: {}", e);
+                        continue;
+                    },
+                };
+
+            let mut engine = text_grad_engine.lock().await;
+            for trajectory in &trajectories {
+                if trajectory.steps.len() < 3 {
+                    continue;
+                }
+                let session_id = &trajectory.session_id;
+                let topic = &trajectory.topic;
+
+                for (i, step) in trajectory.steps.iter().enumerate() {
+                    let content_summary: String = step.content.chars().take(200).collect();
+                    let node_id = format!("{}_{}", &session_id[..session_id.len().min(8)], i);
+                    engine.add_node(node_id.clone(), content_summary, Some(format!("step_{}", i)));
+                    if i > 0 {
+                        let prev_id =
+                            format!("{}_{}", &session_id[..session_id.len().min(8)], i - 1);
+                        engine.add_edge(prev_id, node_id, 1.0);
+                    }
+                }
+
+                if !trajectory.steps.is_empty() {
+                    let last_step = trajectory.steps.last().unwrap();
+                    let feedback = match trajectory.outcome {
+                        axagent_trajectory::TrajectoryOutcome::Success => {
+                            format!("Task succeeded: {}", topic)
+                        },
+                        axagent_trajectory::TrajectoryOutcome::Failure => {
+                            format!(
+                                "Task failed: {} - last step: {}",
+                                topic,
+                                &last_step.content.chars().take(100).collect::<String>()
+                            )
+                        },
+                        axagent_trajectory::TrajectoryOutcome::Partial => {
+                            format!("Task partially completed: {}", topic)
+                        },
+                        axagent_trajectory::TrajectoryOutcome::Abandoned => {
+                            format!("Task abandoned: {}", topic)
+                        },
+                    };
+                    let last_id = format!(
+                        "{}_{}",
+                        &session_id[..session_id.len().min(8)],
+                        trajectory.steps.len() - 1
+                    );
+                    let _ = engine.forward();
+                    let _ = engine.backward(&last_id, &feedback).await;
+                }
+            }
+
+            let stats = engine.stats();
+            tracing::info!(
+                "[text_grad] Graph stats: {} nodes, {} edges, {} gradients computed",
+                stats.node_count,
+                stats.edge_count,
+                stats.gradient_count
+            );
         }
     });
 }

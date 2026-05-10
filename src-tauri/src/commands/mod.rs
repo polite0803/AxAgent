@@ -26,6 +26,7 @@ pub mod dashboard;
 pub mod desktop;
 pub mod dream;
 pub mod evaluator;
+pub mod evolution;
 pub(crate) mod file_cleanup;
 pub mod files;
 pub mod files_page;

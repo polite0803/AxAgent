@@ -4,6 +4,7 @@ export { AdvancedSettings } from "./AdvancedSettings";
 export { default as DashboardPluginsSettings } from "./DashboardPluginsSettings";
 export { DataManager } from "./DataManager";
 export { DisplaySettings } from "./DisplaySettings";
+export { EvolutionSettings } from "./EvolutionSettings";
 export { GatewayConfigPanel } from "./GatewayConfigPanel";
 export { GeneralSettings } from "./GeneralSettings";
 export { default as KnowledgeSettings } from "./KnowledgeSettings";

@@ -72,5 +72,14 @@ pub struct AppState {
     pub browser_client:
         Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
     pub dream_consolidator: Arc<axagent_trajectory::DreamConsolidator>,
+    pub text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
+    pub auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
+    pub intrinsic_motivation:
+        Arc<tokio::sync::Mutex<axagent_trajectory::IntrinsicMotivationEngine>>,
+    pub coevolution_env: Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>>,
+    pub constitution: Arc<axagent_trajectory::ImmutableConstitution>,
+    pub process_reward_model: Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>,
+    pub dream_data_provider: Arc<axagent_trajectory::TrajectoryDreamDataProvider>,
+    pub sandbox_executor: Arc<axagent_trajectory::SkillSandboxExecutor>,
     pub sync_engine: Option<Arc<SyncEngine>>,
 }

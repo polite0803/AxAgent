@@ -14,17 +14,23 @@
 #![allow(clippy::manual_strip)]
 
 mod adaptation;
+mod arch_search;
 mod auto_memory;
+mod auto_tool;
 mod batch;
 mod behavior_learner;
 mod behavior_tracker;
+mod coevolution;
 mod compactor;
+mod constitution;
 mod context;
 mod context_predictor;
 mod dream_consolidation;
+mod dream_data_provider;
 mod fts5;
 mod hooks;
 mod insight;
+mod intrinsic_reward;
 mod memory;
 mod memory_provider;
 mod memory_providers;
@@ -34,9 +40,11 @@ mod pattern;
 mod pattern_analyzer;
 mod preference_learner;
 mod proactive_assistant;
+mod process_reward;
 mod reminder_manager;
 mod rl;
 mod rl_trainer;
+mod sandbox_executor;
 mod scheduled_task;
 mod skill;
 mod skill_decomposition;
@@ -54,28 +62,36 @@ mod style_vectorizer;
 mod sub_agent;
 mod suggestion_engine;
 mod task_prefetcher;
+mod text_grad;
 mod training_env;
 mod trajectory;
 mod trajectory_compressor;
 mod user_profile;
 
 pub use adaptation::*;
+pub use arch_search::*;
 pub use auto_memory::*;
+pub use auto_tool::*;
 pub use batch::*;
 pub use behavior_learner::*;
 pub use behavior_tracker::*;
+pub use coevolution::{CoevolutionConfig, CoevolutionEnvironment, DifficultyLevel};
 pub use compactor::{
     verify_compression_integrity, IntegrityCheck, IntegrityCheckResult, MessageRecord,
     SessionCompactor,
 };
+pub use constitution::*;
 pub use context::*;
 pub use dream_consolidation::{
+    ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,
     DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamConsolidator,
-    DreamEventEmitter,
+    DreamEventEmitter, ExperienceRecord, KnowledgeType, ReplaySample, SuggestionType,
 };
+pub use dream_data_provider::TrajectoryDreamDataProvider;
 pub use fts5::*;
 pub use hooks::*;
 pub use insight::*;
+pub use intrinsic_reward::*;
 pub use memory::*;
 pub use memory_provider::{
     MemoryEntry, MemoryProvider, MemoryProviderRegistry, MemoryQuery, MemoryQueryResult, MemoryType,
@@ -87,12 +103,18 @@ pub use nudge::{
 };
 pub use parallel_execution::*;
 pub use preference_learner::*;
+pub use process_reward::*;
 pub use rl::*;
 pub use rl_trainer::{RLTrainer, TrainingEpisode, TrainingReport};
+pub use sandbox_executor::*;
 pub use scheduled_task::*;
 pub use skill::*;
 pub use skill_decomposition::*;
-pub use skill_evolution::*;
+pub use skill_evolution::{
+    DefaultLlmEvolutionProvider, EvolutionConfig, EvolutionStats, LlmEvolutionProvider,
+    LlmMutationFuture, LlmMutationRequest, LlmMutationResponse, ProcedureStep,
+    SandboxValidationResult, SkillEvolutionEngine, SkillGenome,
+};
 pub use skill_manager::*;
 pub use skill_matcher::*;
 pub use skill_proposal::*;
@@ -134,8 +156,8 @@ pub use pattern_analyzer::{
 pub use proactive_assistant::{
     CapabilityType, ContextPrediction, ContextWindow, PredictedIntent, Priority, ProactiveAction,
     ProactiveAssistant, ProactiveCapability, ProactiveConfig, ProactiveSuggestion,
-    RecurrenceFrequency, Reminder, ReminderRecurrence, SuggestionAction, SuggestionType,
-    TriggerCondition, TriggerConditionType,
+    RecurrenceFrequency, Reminder, ReminderRecurrence, SuggestionAction,
+    SuggestionType as ProactiveSuggestionType, TriggerCondition, TriggerConditionType,
 };
 pub use reminder_manager::{
     ReminderError, ReminderManager, ReminderManagerConfig, ReminderNotification, ReminderSchedule,
@@ -148,6 +170,7 @@ pub use suggestion_engine::{
 pub use task_prefetcher::{
     PrefetchResult, PrefetchResults, PrefetchType, PrefetcherConfig, TaskPrefetcher,
 };
+pub use text_grad::*;
 pub use user_profile::{
     calculate_confidence, ExpertiseLevel, ProfileUpdate, UpdateSource, UserProfile,
 };
@@ -174,7 +197,10 @@ pub mod prelude {
         CrossSessionInsight, CrossSessionLearner, DetectedPattern, PatternConfig, PatternLearner,
         PatternStatistics, PatternStep, PatternType,
     };
-    pub use crate::rl::{RLConfig, RLEngine, RLState, RewardNormalizer, RewardWeights};
+    pub use crate::rl::{
+        DefaultLlmJudge, LlmJudge, LlmJudgeFuture, RLConfig, RLEngine, RLState, RewardNormalizer,
+        RewardWeights,
+    };
     pub use crate::scheduled_task::{
         DailySummaryConfig, ScheduledTask, ScheduledTaskService, ScheduledTaskStatus,
         SummaryFormat, TaskConfig, TaskDefinition, TaskRunResult, TaskType,

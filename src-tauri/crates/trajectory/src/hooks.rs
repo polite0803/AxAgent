@@ -331,7 +331,7 @@ mod tests {
 
         assert!(!hook.id.is_empty());
         assert_eq!(hook.command, "echo");
-        assert_eq!(hook.enabled, true);
+        assert!(hook.enabled);
     }
 
     #[test]
@@ -353,7 +353,7 @@ mod tests {
 
         let hook = service.add_hook_command(HookEvent::PreToolUse, "echo".to_string(), None, None);
 
-        assert_eq!(hook.enabled, true);
+        assert!(hook.enabled);
 
         let new_state = service.toggle_hook_enabled(HookEvent::PreToolUse, &hook.id);
         assert_eq!(new_state, Some(false));

@@ -1,10 +1,12 @@
 import {
   AboutPage,
   AcpSettings,
+  AdvancedSettings,
   BackupCenter,
   DashboardPluginsSettings,
   DataManager,
   DisplaySettings,
+  EvolutionSettings,
   GeneralSettings,
   LocalToolSettings,
   McpServerSettings,
@@ -24,7 +26,6 @@ import {
   WebhookSettings,
   WorkflowSettings,
 } from "@/components/settings";
-import { AdvancedSettings } from "@/components/settings/AdvancedSettings";
 import { ConversationSettings } from "@/components/settings/ConversationSettings";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
@@ -62,6 +63,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   advanced: AdvancedSettings,
   promptTemplates: PromptTemplatesSettings,
   acp: AcpSettings,
+  evolution: EvolutionSettings,
 };
 
 export function SettingsPage() {

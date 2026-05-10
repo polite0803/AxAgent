@@ -1,9 +1,10 @@
 use crate::AppState;
+use axagent_trajectory::ProactiveSuggestionType;
 use axagent_trajectory::{
     ContextFeatures, ContextPredictor, PredictionResult as TrajectoryPredictionResult,
     ProactiveAssistant, ProactiveConfig as TrajProactiveConfig,
     ProactiveSuggestion as TrajProactiveSuggestion, Reminder as TrajReminder, ReminderRecurrence,
-    SuggestionAction, SuggestionType,
+    SuggestionAction,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -46,12 +47,12 @@ impl From<&TrajProactiveSuggestion> for ProactiveSuggestion {
         };
 
         let suggestion_type = match s.suggestion_type {
-            SuggestionType::Completion => "Completion",
-            SuggestionType::Refactor => "Refactor",
-            SuggestionType::Documentation => "Documentation",
-            SuggestionType::Test => "Test",
-            SuggestionType::Optimization => "Optimization",
-            SuggestionType::Learning => "Learning",
+            ProactiveSuggestionType::Completion => "Completion",
+            ProactiveSuggestionType::Refactor => "Refactor",
+            ProactiveSuggestionType::Documentation => "Documentation",
+            ProactiveSuggestionType::Test => "Test",
+            ProactiveSuggestionType::Optimization => "Optimization",
+            ProactiveSuggestionType::Learning => "Learning",
         };
 
         let priority = match s.priority {

@@ -13,6 +13,7 @@ import {
   Cloud,
   CloudUpload,
   Database,
+  Dna,
   FileText,
   GitBranch,
   Globe,
@@ -62,6 +63,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   advanced: <SlidersHorizontal size={16} color={SETTINGS_ICON_COLORS.Settings} />,
   promptTemplates: <FileText size={16} color={SETTINGS_ICON_COLORS.FileText} />,
   appConfig: <Bot size={16} color={SETTINGS_ICON_COLORS.Bot} />,
+  evolution: <Dna size={16} color={SETTINGS_ICON_COLORS.Palette} />,
 };
 
 // 分组定义：tab key → 包含的 sections
@@ -71,7 +73,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
   extensions: ["tools", "skillsHub", "dashboardPlugins", "workflow", "appConfig", "userProfile"],
   network: ["proxy", "messageChannels", "webhooks", "acp"],
   data: ["data", "storage", "backup", "scheduler"],
-  system: ["advanced", "about"],
+  system: ["advanced", "evolution", "about"],
 };
 
 // Tab 图标映射

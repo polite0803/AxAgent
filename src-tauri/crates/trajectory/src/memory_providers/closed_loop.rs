@@ -463,8 +463,7 @@ impl ClosedLoopService {
                                 id: format!(
                                     "mem_{}_{}",
                                     now,
-                                    uuid::Uuid::new_v4().to_string().replace('-', "")[..8]
-                                        .to_string()
+                                    &uuid::Uuid::new_v4().to_string().replace('-', "")[..8]
                                 ),
                                 content: auto_action.target.clone(),
                                 memory_type: "memory".to_string(),

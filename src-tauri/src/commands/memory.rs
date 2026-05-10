@@ -1065,10 +1065,7 @@ pub async fn extract_conversation_entities(
     for ext_entity in &result.entities {
         let now = chrono::Utc::now();
         let entity = axagent_trajectory::Entity {
-            id: format!(
-                "ent_{}",
-                uuid::Uuid::new_v4().to_string().replace('-', "")[..12].to_string()
-            ),
+            id: format!("ent_{}", &uuid::Uuid::new_v4().to_string().replace('-', "")[..12]),
             name: ext_entity.name.clone(),
             entity_type: axagent_trajectory::EntityType::from(ext_entity.entity_type.as_str()),
             properties: ext_entity.properties.clone(),
@@ -1147,10 +1144,7 @@ pub async fn extract_conversation_entities(
         };
 
         let rel = axagent_trajectory::Relationship {
-            id: format!(
-                "rel_{}",
-                uuid::Uuid::new_v4().to_string().replace('-', "")[..12].to_string()
-            ),
+            id: format!("rel_{}", &uuid::Uuid::new_v4().to_string().replace('-', "")[..12]),
             source_id,
             target_id,
             relation_type: axagent_trajectory::RelationshipType::from(

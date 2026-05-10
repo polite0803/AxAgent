@@ -674,6 +674,7 @@ pub fn run() {
             commands::rl::rl_train_policy,
             commands::rl::rl_export_model,
             commands::rl::rl_import_model,
+            commands::evolution::get_evolution_stats,
             commands::fine_tune::list_datasets,
             commands::fine_tune::get_dataset,
             commands::fine_tune::create_dataset,

@@ -166,7 +166,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_trajectory::BatchConfig::default(),
         )),
         skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::SkillEvolutionEngine::new(),
+            axagent_trajectory::SkillEvolutionEngine::new().with_sandbox(Arc::new(
+                axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
+            )),
         )),
         skill_proposal_service: Arc::new(TokioRwLock::new(
             axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
@@ -237,7 +239,52 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             Arc::new(tokio::sync::Mutex::new(cache))
         },
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
-        dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
+        dream_consolidator: Arc::new(
+            axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
+                axagent_trajectory::TrajectoryDreamDataProvider::new(
+                    shared_trajectory_storage.clone(),
+                ),
+            )),
+        ),
+        text_grad_engine: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::TextGradEngine::new(
+                axagent_trajectory::ComputationGraph::new(),
+                axagent_trajectory::TextGradConfig::default(),
+            ),
+        )),
+        auto_tool_creator: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::AutoToolCreator::new(
+                axagent_trajectory::AutoToolCreatorConfig::default(),
+                Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
+                Box::new(axagent_trajectory::DefaultSandboxToolTester),
+            ),
+        )),
+        intrinsic_motivation: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::IntrinsicMotivationEngine::new(
+                axagent_trajectory::IntrinsicMotivationConfig::default(),
+            ),
+        )),
+        coevolution_env: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::CoevolutionEnvironment::new(
+                axagent_trajectory::CoevolutionConfig::default(),
+            ),
+        )),
+        constitution: Arc::new(axagent_trajectory::ImmutableConstitution::new(
+            vec![
+                axagent_trajectory::ConstitutionalRule::NoSelfModificationOfReward,
+                axagent_trajectory::ConstitutionalRule::NoCodeExecutionWithoutSandbox,
+                axagent_trajectory::ConstitutionalRule::PreserveUserIntent,
+                axagent_trajectory::ConstitutionalRule::MaxModificationSize(0.5),
+            ],
+            axagent_trajectory::ConstitutionConfig::default(),
+        )),
+        process_reward_model: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"),
+        )),
+        dream_data_provider: Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
+            shared_trajectory_storage.clone(),
+        )),
+        sandbox_executor: Arc::new(axagent_trajectory::SkillSandboxExecutor::with_default_policy()),
         sync_engine,
     }
 }

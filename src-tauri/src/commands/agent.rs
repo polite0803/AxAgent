@@ -5081,7 +5081,7 @@ pub async fn skill_evolution_start(
 
     // Run evolution
     let mut engine = app_state.skill_evolution_engine.lock().await;
-    let result = engine.run(&skill, &test_refs);
+    let result = engine.run(&skill, &test_refs).await;
 
     match result {
         Some(modification) => {

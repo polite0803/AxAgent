@@ -1,0 +1,296 @@
+import { invoke } from "@/lib/invoke";
+import { Badge, Button, Card, Col, Divider, Row, Spin, Statistic, Tag, theme, Tooltip, Typography } from "antd";
+import { Activity, Brain, Dna, FlaskConical, Lightbulb, RefreshCw, Shield, Sparkles, Wrench } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { pushNotification } from "../layout/NotificationBell";
+import { SettingsGroup } from "./SettingsGroup";
+
+const { Text } = Typography;
+
+interface EvolutionEngineStatus {
+  name: string;
+  running: boolean;
+  last_run: string | null;
+  items_processed: number;
+}
+
+interface EvolutionStats {
+  skill_count: number;
+  total_trajectories: number;
+  evolution_engines: EvolutionEngineStatus[];
+  auto_tools_count: number;
+  auto_tool_patterns: string[];
+  text_grad_nodes: number;
+  text_grad_gradients: number;
+  constitution_rules: number;
+  intrinsic_motivation_active: boolean;
+  coevolution_tasks: number;
+  dream_knowledge_count: number;
+  prm_enabled: boolean;
+  sandbox_enabled: boolean;
+  llm_provider_connected: boolean;
+}
+
+const ENGINE_ICONS: Record<string, React.ReactNode> = {
+  "Skill Evolution": <Dna size={16} />,
+  "RL Reward": <Activity size={16} />,
+  "Process Reward Model": <FlaskConical size={16} />,
+  "Auto Tool Creator": <Wrench size={16} />,
+  "TextGrad Engine": <Brain size={16} />,
+  "Dream Consolidator": <Lightbulb size={16} />,
+  "Intrinsic Motivation": <Sparkles size={16} />,
+  "Coevolution": <Dna size={16} />,
+};
+
+function EngineStatusCard({ engine }: { engine: EvolutionEngineStatus }) {
+  const { token } = theme.useToken();
+  const icon = ENGINE_ICONS[engine.name] ?? <Activity size={16} />;
+
+  return (
+    <Card
+      size="small"
+      style={{
+        borderRadius: 8,
+        border: `1px solid ${engine.running ? token.colorSuccessBorder : token.colorBorderSecondary}`,
+        backgroundColor: engine.running ? token.colorSuccessBg : token.colorBgContainer,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span style={{ color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>{icon}</span>
+        <Text strong style={{ fontSize: 13, flex: 1 }}>{engine.name}</Text>
+        <Badge
+          status={engine.running ? "success" : "default"}
+          text={
+            <Text style={{ fontSize: 11, color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>
+              {engine.running ? "Running" : "Idle"}
+            </Text>
+          }
+        />
+      </div>
+      <Text type="secondary" style={{ fontSize: 11 }}>
+        Processed: {engine.items_processed}
+      </Text>
+    </Card>
+  );
+}
+
+function InfrastructureStatus({ stats }: { stats: EvolutionStats }) {
+  const { t } = useTranslation();
+
+  const items = [
+    { label: t("evolution.llmProvider", "LLM Provider"), ok: stats.llm_provider_connected },
+    { label: t("evolution.sandbox", "Sandbox"), ok: stats.sandbox_enabled },
+    { label: t("evolution.prm", "Process Reward"), ok: stats.prm_enabled },
+    { label: t("evolution.intrinsic", "Intrinsic Motivation"), ok: stats.intrinsic_motivation_active },
+  ];
+
+  return (
+    <SettingsGroup title={t("evolution.infrastructure", "Infrastructure Status")}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {items.map((item) => (
+          <Tag
+            key={item.label}
+            color={item.ok ? "success" : "default"}
+            style={{ margin: 0, borderRadius: 6, padding: "2px 10px" }}
+          >
+            {item.ok ? "✓" : "○"} {item.label}
+          </Tag>
+        ))}
+      </div>
+    </SettingsGroup>
+  );
+}
+
+function MetricsOverview({ stats }: { stats: EvolutionStats }) {
+  const { t } = useTranslation();
+
+  return (
+    <SettingsGroup title={t("evolution.metricsOverview", "Metrics Overview")}>
+      <Row gutter={[12, 12]}>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.skillCount", "Skills")}
+            value={stats.skill_count}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.trajectories", "Trajectories")}
+            value={stats.total_trajectories}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.autoTools", "Auto Tools")}
+            value={stats.auto_tools_count}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.dreamKnowledge", "Dream Knowledge")}
+            value={stats.dream_knowledge_count}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+      </Row>
+      <Divider style={{ margin: "12px 0" }} />
+      <Row gutter={[12, 12]}>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.textGradNodes", "TextGrad Nodes")}
+            value={stats.text_grad_nodes}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.textGradGradients", "Gradients")}
+            value={stats.text_grad_gradients}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.constitutionRules", "Constitution Rules")}
+            value={stats.constitution_rules}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={t("evolution.coevolutionTasks", "Coevolution Tasks")}
+            value={stats.coevolution_tasks}
+            valueStyle={{ fontSize: 20 }}
+          />
+        </Col>
+      </Row>
+    </SettingsGroup>
+  );
+}
+
+function AutoToolPatterns({ patterns }: { patterns: string[] }) {
+  const { t } = useTranslation();
+
+  if (patterns.length === 0) { return null; }
+
+  return (
+    <SettingsGroup title={t("evolution.frequentPatterns", "Frequent Tool Patterns")}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {patterns.map((p) => <Tag key={p} style={{ borderRadius: 6, margin: 0 }}>{p}</Tag>)}
+      </div>
+    </SettingsGroup>
+  );
+}
+
+export function EvolutionSettings() {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const [stats, setStats] = useState<EvolutionStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await invoke<EvolutionStats>("get_evolution_stats");
+      setStats(result);
+      const prevCount = stats?.auto_tools_count ?? 0;
+      if (result.auto_tools_count > prevCount) {
+        pushNotification("success", t("evolution.newToolDiscovered", "New auto tool discovered!"));
+      }
+      const prevKnowledge = stats?.dream_knowledge_count ?? 0;
+      if (result.dream_knowledge_count > prevKnowledge) {
+        pushNotification("info", t("evolution.newDreamKnowledge", "New dream knowledge consolidated"));
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [stats, t]);
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div>
+          <Text strong style={{ fontSize: 16 }}>
+            {t("evolution.title", "Self-Evolution System")}
+          </Text>
+          <br />
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {t("evolution.description", "Monitor and manage the autonomous self-evolution engines")}
+          </Text>
+        </div>
+        <Tooltip title={t("evolution.refresh", "Refresh")}>
+          <Button
+            size="small"
+            icon={<RefreshCw size={14} />}
+            onClick={fetchStats}
+            loading={loading}
+            style={{ display: "flex", alignItems: "center", gap: 4 }}
+          >
+            {t("evolution.refresh", "Refresh")}
+          </Button>
+        </Tooltip>
+      </div>
+
+      {error && (
+        <Card size="small" style={{ marginBottom: 12, borderColor: token.colorErrorBorder }}>
+          <Text type="danger" style={{ fontSize: 12 }}>{error}</Text>
+        </Card>
+      )}
+
+      {loading && !stats && (
+        <div style={{ textAlign: "center", padding: 40 }}>
+          <Spin />
+        </div>
+      )}
+
+      {stats && (
+        <>
+          <InfrastructureStatus stats={stats} />
+          <MetricsOverview stats={stats} />
+
+          <SettingsGroup title={t("evolution.engineStatus", "Engine Status")}>
+            <Row gutter={[8, 8]}>
+              {stats.evolution_engines.map((engine) => (
+                <Col span={12} key={engine.name}>
+                  <EngineStatusCard engine={engine} />
+                </Col>
+              ))}
+            </Row>
+          </SettingsGroup>
+
+          <AutoToolPatterns patterns={stats.auto_tool_patterns} />
+
+          <SettingsGroup title={t("evolution.constitutionShield", "Constitution Shield")}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Shield
+                size={16}
+                style={{ color: stats.constitution_rules > 0 ? token.colorSuccess : token.colorTextQuaternary }}
+              />
+              <Text style={{ fontSize: 13 }}>
+                {stats.constitution_rules > 0
+                  ? t("evolution.constitutionActive", "{{count}} immutable rules active", {
+                    count: stats.constitution_rules,
+                  })
+                  : t("evolution.constitutionEmpty", "No constitution rules defined")}
+              </Text>
+            </div>
+          </SettingsGroup>
+        </>
+      )}
+    </div>
+  );
+}

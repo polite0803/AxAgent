@@ -239,6 +239,8 @@ pub enum RewardType {
     ErrorRecovery,
     UserFeedback,
     PatternMatch,
+    LlmReasoningQuality,
+    LlmToolEfficiency,
 }
 
 impl RewardType {
@@ -250,6 +252,8 @@ impl RewardType {
             "error_recovery" => RewardType::ErrorRecovery,
             "user_feedback" => RewardType::UserFeedback,
             "pattern_match" => RewardType::PatternMatch,
+            "llm_reasoning_quality" => RewardType::LlmReasoningQuality,
+            "llm_tool_efficiency" => RewardType::LlmToolEfficiency,
             _ => RewardType::TaskCompletion,
         }
     }
@@ -262,6 +266,8 @@ impl RewardType {
             RewardType::ErrorRecovery => "error_recovery",
             RewardType::UserFeedback => "user_feedback",
             RewardType::PatternMatch => "pattern_match",
+            RewardType::LlmReasoningQuality => "llm_reasoning_quality",
+            RewardType::LlmToolEfficiency => "llm_tool_efficiency",
         }
     }
 }

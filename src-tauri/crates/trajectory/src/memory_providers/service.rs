@@ -31,6 +31,7 @@ impl MemoryTier {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
             "short_term" => Self::ShortTerm,
@@ -105,6 +106,7 @@ impl MemoryNature {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
             "episodic" => Self::Episodic,
@@ -341,11 +343,7 @@ impl MemoryService {
 
         let now = chrono::Utc::now().timestamp();
         let entry = MemoryEntry {
-            id: format!(
-                "mem_{}_{}",
-                now,
-                uuid::Uuid::new_v4().to_string().replace('-', "")[..8].to_string()
-            ),
+            id: format!("mem_{}_{}", now, &uuid::Uuid::new_v4().to_string().replace('-', "")[..8]),
             content: req.content.clone(),
             memory_type: req.target.clone(),
             tier: req.tier,
@@ -761,34 +759,31 @@ impl MemoryService {
             e.into_inner()
         });
 
-        let content_lower = content.to_lowercase();
-        let content_words: Vec<&str> = content_lower
-            .split_whitespace()
-            .filter(|w| w.len() > 2)
+        let content_chars: Vec<char> = content.to_lowercase().chars().collect();
+        let content_bigrams: std::collections::HashSet<String> = content_chars
+            .windows(2)
+            .map(|w| w.iter().collect::<String>())
             .collect();
 
         let mut best_match: Option<(String, f64, String)> = None;
 
-        if !content_words.is_empty() {
+        if !content_bigrams.is_empty() {
             for entry in mem.entries.values() {
                 if entry.memory_type != target {
                     continue;
                 }
-                let entry_lower = entry.content.to_lowercase();
-                let entry_words: Vec<&str> = entry_lower
-                    .split_whitespace()
-                    .filter(|w| w.len() > 2)
+                let entry_chars: Vec<char> = entry.content.to_lowercase().chars().collect();
+                let entry_bigrams: std::collections::HashSet<String> = entry_chars
+                    .windows(2)
+                    .map(|w| w.iter().collect::<String>())
                     .collect();
 
-                if entry_words.is_empty() {
+                if entry_bigrams.is_empty() {
                     continue;
                 }
 
-                let intersection = content_words
-                    .iter()
-                    .filter(|w| entry_words.contains(w))
-                    .count();
-                let union = content_words.len() + entry_words.len() - intersection;
+                let intersection = content_bigrams.intersection(&entry_bigrams).count();
+                let union = content_bigrams.union(&entry_bigrams).count();
                 let similarity = if union > 0 {
                     intersection as f64 / union as f64
                 } else {
@@ -1345,6 +1340,18 @@ impl MemoryService {
         let mut assigned: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut clusters: Vec<MemoryCluster> = Vec::new();
 
+        let bigram_sets: Vec<std::collections::HashSet<String>> = entries
+            .iter()
+            .map(|e| {
+                let chars: Vec<char> = e.content.to_lowercase().chars().collect();
+                let mut set = std::collections::HashSet::new();
+                for w in chars.windows(2) {
+                    set.insert(w.iter().collect::<String>());
+                }
+                set
+            })
+            .collect();
+
         for i in 0..entries.len() {
             if assigned.contains(&entries[i].id) {
                 continue;
@@ -1353,13 +1360,7 @@ impl MemoryService {
             let mut cluster_ids = vec![entries[i].id.clone()];
             assigned.insert(entries[i].id.clone());
 
-            let content_i_lower = entries[i].content.to_lowercase();
-            let words_i: Vec<&str> = content_i_lower
-                .split_whitespace()
-                .filter(|w| w.len() > 2)
-                .collect();
-
-            if words_i.is_empty() {
+            if bigram_sets[i].is_empty() {
                 continue;
             }
 
@@ -1368,18 +1369,12 @@ impl MemoryService {
                     continue;
                 }
 
-                let content_j_lower = entries[j].content.to_lowercase();
-                let words_j: Vec<&str> = content_j_lower
-                    .split_whitespace()
-                    .filter(|w| w.len() > 2)
-                    .collect();
-
-                if words_j.is_empty() {
+                if bigram_sets[j].is_empty() {
                     continue;
                 }
 
-                let intersection = words_i.iter().filter(|w| words_j.contains(w)).count();
-                let union = words_i.len() + words_j.len() - intersection;
+                let intersection = bigram_sets[i].intersection(&bigram_sets[j]).count();
+                let union = bigram_sets[i].union(&bigram_sets[j]).count();
                 let similarity = if union > 0 {
                     intersection as f64 / union as f64
                 } else {

@@ -3,15 +3,18 @@ import { IconEditor } from "@/components/shared/IconEditor";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { invoke } from "@/lib/invoke";
 import { listen } from "@/lib/invoke";
-import { formatImportance, getNatureLabel, getTierColor, getTierLabel } from "@/lib/memoryUtils";
+import { formatImportance, getNatureLabel, getTierColor, getTierLabel, TIER_COLORS } from "@/lib/memoryUtils";
+import type { MemoryNature, MemoryTier as MemoryTierType } from "@/lib/memoryUtils";
 import { useMemoryStore } from "@/stores";
-import type { MemoryItem, MemoryNamespace, MemorySource, MemoryTier as MemoryTierType } from "@/types";
+import type { MemoryItem, MemoryNamespace, MemorySource } from "@/types";
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  Badge,
   Button,
+  Collapse,
   Divider,
   Dropdown,
   Empty,
@@ -21,6 +24,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Progress,
   Spin,
   Table,
   Tag,
@@ -30,13 +34,22 @@ import {
 } from "antd";
 import type { MenuProps } from "antd";
 import {
+  ArrowDown,
   ArrowRightLeft,
+  ArrowUp,
+  Brain,
+  Clock,
+  GitMerge,
   GripVertical,
   MoreHorizontal,
+  Network,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
   Settings,
+  ThumbsDown,
+  ThumbsUp,
   Trash,
   Trash2,
   Zap,
@@ -50,6 +63,74 @@ interface VectorSearchResult {
   chunk_index: number;
   content: string;
   score: number;
+}
+
+interface WorkingMemoryEntry {
+  id: string;
+  content: string;
+  tier: MemoryTierType;
+  importance: number;
+  access_count: number;
+  nature: MemoryNature;
+  tags: string[];
+  created_at: number;
+  provenance: {
+    conversation_id: string | null;
+    message_id: string | null;
+    extraction_method: string;
+  } | null;
+}
+
+interface MemoryCluster {
+  ids: string[];
+  contents: string[];
+  avg_importance: number;
+  best_tier_priority: number;
+}
+
+interface KnowledgeEntity {
+  id: string;
+  name: string;
+  entity_type: string;
+  aliases: string[];
+  mention_count: number;
+  confidence: number;
+}
+
+interface KnowledgeRelationship {
+  id: string;
+  source_id: string;
+  target_id: string;
+  relation_type: string;
+  weight: number;
+}
+
+interface TierStats {
+  memory_count: number;
+  user_count: number;
+  total_tokens: number;
+  tier_counts: Record<string, number>;
+}
+
+interface SearchExplanation {
+  matched_keywords: string[];
+  relevance_score: number;
+  effective_score: number;
+  recency_score: number;
+  total_score: number;
+  reason: string;
+}
+
+interface ExplainedSearchResult {
+  entry: WorkingMemoryEntry;
+  explanation: SearchExplanation;
+}
+
+interface TimeGroupedMemories {
+  today: WorkingMemoryEntry[];
+  this_week: WorkingMemoryEntry[];
+  this_month: WorkingMemoryEntry[];
+  older: WorkingMemoryEntry[];
 }
 
 const SOURCE_TAG_COLOR: Record<MemorySource, string> = {
@@ -239,6 +320,7 @@ function MemoryItemsPanel({
   namespace: MemoryNamespace;
 }) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const { items, loading, loadItems, addItem, deleteItem, updateItem, updateNamespace } = useMemoryStore();
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MemoryItem | null>(null);
@@ -254,7 +336,6 @@ function MemoryItemsPanel({
     retrievalThreshold: undefined as number | undefined,
     retrievalTopK: undefined as number | undefined,
   });
-  // Track original embedding provider for change detection
   const [originalProvider, setOriginalProvider] = useState<string | undefined>(undefined);
 
   // Pending embedding provider change (for confirmation)
@@ -265,14 +346,46 @@ function MemoryItemsPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<VectorSearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [explainedSearch, setExplainedSearch] = useState(false);
+  const [explainedResults, setExplainedResults] = useState<ExplainedSearchResult[]>([]);
 
   // Index status
   const [rebuildingIndex, setRebuildingIndex] = useState(false);
   const rebuildingRef = useRef(false);
 
+  // Working Memory state
+  const [workingMemories, setWorkingMemories] = useState<WorkingMemoryEntry[]>([]);
+  const [workingMemoriesLoading, setWorkingMemoriesLoading] = useState(false);
+
+  // Tier Stats state
+  const [tierStats, setTierStats] = useState<TierStats | null>(null);
+
+  // Find Duplicates state
+  const [duplicatesModalOpen, setDuplicatesModalOpen] = useState(false);
+  const [duplicatesLoading, setDuplicatesLoading] = useState(false);
+  const [clusters, setClusters] = useState<MemoryCluster[]>([]);
+  const [consolidatingIds, setConsolidatingIds] = useState<Set<string>>(new Set());
+
+  // Knowledge Graph state
+  const [knowledgeGraphModalOpen, setKnowledgeGraphModalOpen] = useState(false);
+  const [knowledgeGraphLoading, setKnowledgeGraphLoading] = useState(false);
+  const [entities, setEntities] = useState<KnowledgeEntity[]>([]);
+  const [relationships, setRelationships] = useState<KnowledgeRelationship[]>([]);
+
+  // Timeline state
+  const [timelineModalOpen, setTimelineModalOpen] = useState(false);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineData, setTimelineData] = useState<TimeGroupedMemories | null>(null);
+
   useEffect(() => {
     loadItems(namespace.id);
   }, [namespace.id, loadItems]);
+
+  // Load working memories and tier stats when namespace changes
+  useEffect(() => {
+    loadWorkingMemories();
+    loadTierStats();
+  }, [namespace.id]);
 
   // Listen for indexing events
   useEffect(() => {
@@ -299,6 +412,27 @@ function MemoryItemsPanel({
       unlistenRebuild.then((fn) => fn());
     };
   }, [namespace.id, loadItems]);
+
+  const loadWorkingMemories = async () => {
+    setWorkingMemoriesLoading(true);
+    try {
+      const result = await invoke<WorkingMemoryEntry[]>("search_working_memories", { query: "", limit: 50 });
+      setWorkingMemories(result);
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setWorkingMemoriesLoading(false);
+    }
+  };
+
+  const loadTierStats = async () => {
+    try {
+      const result = await invoke<TierStats>("get_memory_tier_stats");
+      setTierStats(result);
+    } catch {
+      // silently fail - stats are supplementary
+    }
+  };
 
   const handleAddItem = async () => {
     try {
@@ -329,21 +463,138 @@ function MemoryItemsPanel({
   };
 
   const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim() || !namespace.embeddingProvider) { return; }
+    if (!searchQuery.trim()) { return; }
     setSearching(true);
     try {
-      const results = await invoke<VectorSearchResult[]>("search_memory", {
-        namespaceId: namespace.id,
-        query: searchQuery,
-        topK: 5,
-      });
-      setSearchResults([...results].sort((a, b) => a.score - b.score));
+      if (explainedSearch) {
+        const results = await invoke<ExplainedSearchResult[]>("search_memories_explained", {
+          query: searchQuery,
+          limit: 10,
+        });
+        setExplainedResults(results);
+        setSearchResults(null);
+      } else if (namespace.embeddingProvider) {
+        const results = await invoke<VectorSearchResult[]>("search_memory", {
+          namespaceId: namespace.id,
+          query: searchQuery,
+          topK: 5,
+        });
+        setSearchResults([...results].sort((a, b) => a.score - b.score));
+        setExplainedResults([]);
+      }
     } catch (e) {
       messageApi.error(String(e));
     } finally {
       setSearching(false);
     }
-  }, [searchQuery, namespace.id, namespace.embeddingProvider, messageApi]);
+  }, [searchQuery, namespace.id, namespace.embeddingProvider, explainedSearch, messageApi]);
+
+  const handlePromoteMemory = async (memoryId: string) => {
+    try {
+      await invoke("promote_memory_entry", { memoryId });
+      messageApi.success(t("settings.memory.promoteSuccess"));
+      loadItems(namespace.id);
+      loadWorkingMemories();
+      loadTierStats();
+    } catch (e) {
+      messageApi.error(String(e));
+    }
+  };
+
+  const handleDemoteMemory = async (memoryId: string) => {
+    try {
+      await invoke("demote_memory_entry", { memoryId });
+      messageApi.success(t("settings.memory.demoteSuccess"));
+      loadItems(namespace.id);
+      loadWorkingMemories();
+      loadTierStats();
+    } catch (e) {
+      messageApi.error(String(e));
+    }
+  };
+
+  const handleFeedback = async (memoryId: string, feedback: "useful" | "not_useful") => {
+    try {
+      await invoke("submit_memory_feedback", { memoryId, feedback });
+      messageApi.success(t("settings.memory.feedbackSuccess"));
+    } catch (e) {
+      messageApi.error(String(e));
+    }
+  };
+
+  const handleFindDuplicates = async () => {
+    setDuplicatesLoading(true);
+    setDuplicatesModalOpen(true);
+    try {
+      const result = await invoke<MemoryCluster[]>("find_memory_clusters", { similarityThreshold: 0.7 });
+      setClusters(result);
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setDuplicatesLoading(false);
+    }
+  };
+
+  const handleConsolidate = async (cluster: MemoryCluster) => {
+    const key = cluster.ids.join(",");
+    setConsolidatingIds((prev) => new Set(prev).add(key));
+    try {
+      await invoke("consolidate_memory_cluster", { memoryIds: cluster.ids });
+      messageApi.success(t("settings.memory.consolidateSuccess"));
+      loadItems(namespace.id);
+      loadWorkingMemories();
+      loadTierStats();
+      // Refresh duplicates
+      const result = await invoke<MemoryCluster[]>("find_memory_clusters", { similarityThreshold: 0.7 });
+      setClusters(result);
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setConsolidatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
+  const handleKnowledgeGraph = async () => {
+    setKnowledgeGraphLoading(true);
+    setKnowledgeGraphModalOpen(true);
+    try {
+      const result = await invoke<{ entities: KnowledgeEntity[]; relationships: KnowledgeRelationship[] }>(
+        "list_knowledge_graph",
+      );
+      setEntities(result.entities);
+      setRelationships(result.relationships);
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setKnowledgeGraphLoading(false);
+    }
+  };
+
+  const handleTimeline = async () => {
+    setTimelineLoading(true);
+    setTimelineModalOpen(true);
+    try {
+      const result = await invoke<TimeGroupedMemories>("get_memories_time_grouped");
+      setTimelineData(result);
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  const formatAge = (createdAt: number) => {
+    const now = Date.now() / 1000;
+    const diffSec = now - createdAt;
+    if (diffSec < 60) { return t("settings.memory.ageJustNow"); }
+    if (diffSec < 3600) { return t("settings.memory.ageMinutes", { count: Math.floor(diffSec / 60) }); }
+    if (diffSec < 86400) { return t("settings.memory.ageHours", { count: Math.floor(diffSec / 3600) }); }
+    return t("settings.memory.ageDays", { count: Math.floor(diffSec / 86400) });
+  };
 
   const itemColumns = [
     {
@@ -419,9 +670,41 @@ function MemoryItemsPanel({
     },
     {
       key: "actions",
-      width: 120,
+      width: 200,
       render: (_: unknown, record: MemoryItem) => (
         <div className="flex gap-1">
+          <Tooltip title={t("settings.memory.promote")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ArrowUp size={14} />}
+              onClick={() => handlePromoteMemory(record.id)}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.demote")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ArrowDown size={14} />}
+              onClick={() => handleDemoteMemory(record.id)}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.feedbackUseful")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ThumbsUp size={14} />}
+              onClick={() => handleFeedback(record.id, "useful")}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.feedbackNotUseful")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ThumbsDown size={14} />}
+              onClick={() => handleFeedback(record.id, "not_useful")}
+            />
+          </Tooltip>
           <Tooltip title={t("settings.memory.editItem")}>
             <Button
               size="small"
@@ -459,6 +742,94 @@ function MemoryItemsPanel({
           >
             <Button size="small" danger type="text" icon={<Trash2 size={14} />} />
           </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
+  const workingMemoryColumns = [
+    {
+      title: t("settings.memory.itemContent"),
+      dataIndex: "content",
+      key: "content",
+      ellipsis: { showTitle: true },
+      render: (content: string) => (
+        <Typography.Paragraph ellipsis={{ rows: 1 }} style={{ margin: 0, fontSize: 12 }}>
+          {content}
+        </Typography.Paragraph>
+      ),
+    },
+    {
+      title: t("settings.memory.tier"),
+      dataIndex: "tier",
+      key: "tier",
+      width: 80,
+      render: (tier: MemoryTierType) => (
+        <Tag color={getTierColor(tier)} style={{ fontSize: 11 }}>
+          {getTierLabel(tier)}
+        </Tag>
+      ),
+    },
+    {
+      title: t("settings.memory.importance"),
+      dataIndex: "importance",
+      key: "importance",
+      width: 60,
+      render: (importance: number) => <span style={{ fontSize: 12 }}>{formatImportance(importance)}</span>,
+    },
+    {
+      title: t("settings.memory.nature"),
+      dataIndex: "nature",
+      key: "nature",
+      width: 70,
+      render: (nature: MemoryNature) => <Tag style={{ fontSize: 11 }}>{getNatureLabel(nature)}</Tag>,
+    },
+    {
+      title: t("settings.memory.age"),
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 80,
+      render: (createdAt: number) => (
+        <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{formatAge(createdAt)}</span>
+      ),
+    },
+    {
+      key: "actions",
+      width: 120,
+      render: (_: unknown, record: WorkingMemoryEntry) => (
+        <div className="flex gap-1">
+          <Tooltip title={t("settings.memory.promote")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ArrowUp size={12} />}
+              onClick={() => handlePromoteMemory(record.id)}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.demote")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ArrowDown size={12} />}
+              onClick={() => handleDemoteMemory(record.id)}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.feedbackUseful")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ThumbsUp size={12} />}
+              onClick={() => handleFeedback(record.id, "useful")}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.feedbackNotUseful")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ThumbsDown size={12} />}
+              onClick={() => handleFeedback(record.id, "not_useful")}
+            />
+          </Tooltip>
         </div>
       ),
     },
@@ -511,19 +882,98 @@ function MemoryItemsPanel({
         </div>
       </div>
 
+      {/* Working Memory Panel */}
+      <Collapse
+        defaultActiveKey={[]}
+        style={{ marginBottom: 12 }}
+        items={[
+          {
+            key: "working-memory",
+            label: (
+              <div className="flex items-center gap-2">
+                <Brain size={14} style={{ color: token.colorPrimary }} />
+                <span style={{ fontWeight: 500 }}>{t("settings.memory.workingMemory")}</span>
+                <Badge
+                  count={workingMemories.length}
+                  showZero
+                  style={{ backgroundColor: token.colorPrimary }}
+                  size="small"
+                />
+              </div>
+            ),
+            extra: (
+              <Button
+                size="small"
+                type="text"
+                icon={<RefreshCw size={12} />}
+                loading={workingMemoriesLoading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  loadWorkingMemories();
+                }}
+              />
+            ),
+            children: workingMemories.length === 0
+              ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noWorkingMemory")} />
+              : (
+                <Table
+                  dataSource={workingMemories}
+                  columns={workingMemoryColumns}
+                  rowKey="id"
+                  pagination={false}
+                  loading={workingMemoriesLoading}
+                  size="small"
+                  bordered
+                  scroll={{ y: 300 }}
+                />
+              ),
+          },
+        ]}
+      />
+
+      {/* Tier Statistics */}
+      {tierStats && (
+        <div
+          className="flex items-center gap-3 mb-3 px-3 py-2"
+          style={{
+            backgroundColor: token.colorFillQuaternary,
+            borderRadius: token.borderRadius,
+            fontSize: 12,
+          }}
+        >
+          <span style={{ color: token.colorTextSecondary, fontWeight: 500 }}>
+            {t("settings.memory.tierStats")}
+          </span>
+          {(Object.keys(TIER_COLORS) as MemoryTierType[]).map((tier) => (
+            <Tag
+              key={tier}
+              color={getTierColor(tier)}
+              style={{ fontSize: 11, margin: 0 }}
+            >
+              {getTierLabel(tier)}: {tierStats.tier_counts[tier] ?? 0}
+            </Tag>
+          ))}
+          <Divider type="vertical" style={{ margin: "0 4px" }} />
+          <span style={{ color: token.colorTextSecondary }}>
+            {t("settings.memory.totalMemories")}: {tierStats.memory_count}
+          </span>
+          <span style={{ color: token.colorTextSecondary }}>
+            {t("settings.memory.totalTokens")}: {tierStats.total_tokens}
+          </span>
+        </div>
+      )}
+
       {/* Settings Modal */}
       <Modal
         title={t("settings.memory.namespaceSettings")}
         open={settingsOpen}
         onOk={async () => {
           const providerChanged = settingsForm.embeddingProvider !== originalProvider;
-          // If embedding provider changed and was previously set, show confirmation
           if (providerChanged && originalProvider) {
             setPendingProvider(settingsForm.embeddingProvider);
             setProviderConfirmOpen(true);
             return;
           }
-          // Apply all settings
           await updateNamespace(namespace.id, {
             name: settingsForm.name,
             embeddingProvider: settingsForm.embeddingProvider,
@@ -616,7 +1066,6 @@ function MemoryItemsPanel({
           setProviderConfirmOpen(false);
           setPendingProvider(undefined);
           setSettingsOpen(false);
-          // Trigger rebuild
           if (pendingProvider) {
             setRebuildingIndex(true);
             invoke("rebuild_memory_index", { namespaceId: namespace.id }).catch((e) => {
@@ -635,7 +1084,7 @@ function MemoryItemsPanel({
         <p>{t("settings.memory.changeEmbeddingWarning")}</p>
       </Modal>
 
-      {/* Toolbar: add + rebuild on left, search + clear on right */}
+      {/* Toolbar: add + rebuild + sync + find duplicates + knowledge graph on left, search + clear on right */}
       <div className="flex items-center justify-between mb-3 gap-3">
         <div className="flex items-center gap-2">
           <Tooltip title={t("settings.memory.addItem")}>
@@ -691,29 +1140,54 @@ function MemoryItemsPanel({
               <Button icon={<ArrowRightLeft size={14} />} />
             </Tooltip>
           </Popconfirm>
+          <Tooltip title={t("settings.memory.findDuplicates")}>
+            <Button
+              icon={<GitMerge size={14} />}
+              onClick={handleFindDuplicates}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.knowledgeGraph")}>
+            <Button
+              icon={<Network size={14} />}
+              onClick={handleKnowledgeGraph}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.timeline")}>
+            <Button
+              icon={<Clock size={14} />}
+              onClick={handleTimeline}
+            />
+          </Tooltip>
         </div>
         <div className="flex items-center gap-2">
-          {namespace.embeddingProvider && (
-            <>
-              <Input
-                placeholder={t("settings.memory.searchPlaceholder")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onPressEnter={handleSearch}
-                style={{ width: 200 }}
-                allowClear
-                onClear={() => setSearchResults(null)}
-              />
-              <Tooltip title={t("settings.memory.search")}>
-                <Button
-                  icon={<Search size={14} />}
-                  loading={searching}
-                  onClick={handleSearch}
-                  disabled={!searchQuery.trim()}
-                />
-              </Tooltip>
-            </>
-          )}
+          <Input
+            placeholder={t("settings.memory.searchPlaceholder")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onPressEnter={handleSearch}
+            style={{ width: 200 }}
+            allowClear
+            onClear={() => {
+              setSearchResults(null);
+              setExplainedResults([]);
+            }}
+          />
+          <Tooltip title={t("settings.memory.explainedSearch")}>
+            <Button
+              size="small"
+              type={explainedSearch ? "primary" : "default"}
+              icon={<Brain size={14} />}
+              onClick={() => setExplainedSearch(!explainedSearch)}
+            />
+          </Tooltip>
+          <Tooltip title={t("settings.memory.search")}>
+            <Button
+              icon={<Search size={14} />}
+              loading={searching}
+              onClick={handleSearch}
+              disabled={!searchQuery.trim() || (!explainedSearch && !namespace.embeddingProvider)}
+            />
+          </Tooltip>
           <Popconfirm
             title={t("settings.memory.clearIndexConfirm")}
             onConfirm={async () => {
@@ -792,6 +1266,362 @@ function MemoryItemsPanel({
               ]}
             />
           )}
+      </Modal>
+
+      {/* Explained Search Results */}
+      <Modal
+        title={`${t("settings.memory.explainedSearchResults")} (${explainedResults.length})`}
+        open={explainedResults.length > 0}
+        onCancel={() => setExplainedResults([])}
+        footer={null}
+        width={800}
+        mask={{ enabled: true, blur: true }}
+      >
+        <div className="flex flex-col gap-3">
+          {explainedResults.map((result, idx) => (
+            <div
+              key={idx}
+              className="p-3"
+              style={{
+                border: "1px solid var(--border-color)",
+                borderRadius: 6,
+              }}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <Typography.Paragraph
+                  ellipsis={{ rows: 2 }}
+                  style={{ margin: 0, fontSize: 13, flex: 1 }}
+                >
+                  {result.entry.content}
+                </Typography.Paragraph>
+                <Tag color={getTierColor(result.entry.tier)} style={{ fontSize: 11, flexShrink: 0 }}>
+                  {getTierLabel(result.entry.tier)}
+                </Tag>
+              </div>
+              <div className="flex items-center gap-3 mb-2">
+                <Tooltip title={`Relevance: ${(result.explanation.relevance_score * 100).toFixed(0)}%`}>
+                  <Progress
+                    percent={Math.round(result.explanation.relevance_score * 100)}
+                    size="small"
+                    style={{ width: 80, margin: 0 }}
+                    strokeColor="#3b82f6"
+                  />
+                </Tooltip>
+                <Tooltip title={`Effective: ${(result.explanation.effective_score * 100).toFixed(0)}%`}>
+                  <Progress
+                    percent={Math.round(result.explanation.effective_score * 100)}
+                    size="small"
+                    style={{ width: 80, margin: 0 }}
+                    strokeColor="#8b5cf6"
+                  />
+                </Tooltip>
+                <Tooltip title={`Recency: ${(result.explanation.recency_score * 100).toFixed(0)}%`}>
+                  <Progress
+                    percent={Math.round(result.explanation.recency_score * 100)}
+                    size="small"
+                    style={{ width: 80, margin: 0 }}
+                    strokeColor="#10b981"
+                  />
+                </Tooltip>
+                <Tag color="gold" style={{ fontSize: 11 }}>
+                  {(result.explanation.total_score * 100).toFixed(0)}%
+                </Tag>
+              </div>
+              {result.explanation.matched_keywords.length > 0 && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {result.explanation.matched_keywords.map((kw, ki) => (
+                    <Tag key={ki} style={{ fontSize: 10 }}>{kw}</Tag>
+                  ))}
+                </div>
+              )}
+              {result.explanation.reason && (
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {result.explanation.reason}
+                </Typography.Text>
+              )}
+            </div>
+          ))}
+        </div>
+      </Modal>
+
+      {/* Find Duplicates Modal */}
+      <Modal
+        title={t("settings.memory.findDuplicates")}
+        open={duplicatesModalOpen}
+        onCancel={() => {
+          setDuplicatesModalOpen(false);
+          setClusters([]);
+        }}
+        footer={null}
+        width={750}
+        mask={{ enabled: true, blur: true }}
+      >
+        {duplicatesLoading
+          ? (
+            <div className="flex items-center justify-center py-8">
+              <Spin />
+            </div>
+          )
+          : clusters.length === 0
+          ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noDuplicates")} />
+          : (
+            <div className="flex flex-col gap-3">
+              {clusters.map((cluster, idx) => (
+                <div
+                  key={idx}
+                  className="flex flex-col gap-2 p-3"
+                  style={{
+                    backgroundColor: token.colorFillQuaternary,
+                    borderRadius: token.borderRadius,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontWeight: 500, fontSize: 13 }}>
+                      {t("settings.memory.clusterLabel", { index: idx + 1, count: cluster.ids.length })}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Tag style={{ fontSize: 11 }}>
+                        {t("settings.memory.avgImportance")}: {(cluster.avg_importance * 100).toFixed(0)}%
+                      </Tag>
+                      <Button
+                        size="small"
+                        type="primary"
+                        icon={<GitMerge size={12} />}
+                        loading={consolidatingIds.has(cluster.ids.join(","))}
+                        onClick={() => handleConsolidate(cluster)}
+                      >
+                        {t("settings.memory.consolidate")}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {cluster.contents.map((content, cIdx) => (
+                      <Typography.Paragraph
+                        key={cIdx}
+                        ellipsis={{ rows: 2 }}
+                        style={{
+                          margin: 0,
+                          fontSize: 12,
+                          paddingLeft: 8,
+                          borderLeft: `2px solid ${token.colorBorder}`,
+                        }}
+                      >
+                        {content}
+                      </Typography.Paragraph>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+      </Modal>
+
+      {/* Knowledge Graph Modal */}
+      <Modal
+        title={t("settings.memory.knowledgeGraph")}
+        open={knowledgeGraphModalOpen}
+        onCancel={() => {
+          setKnowledgeGraphModalOpen(false);
+          setEntities([]);
+          setRelationships([]);
+        }}
+        footer={null}
+        width={800}
+        mask={{ enabled: true, blur: true }}
+      >
+        {knowledgeGraphLoading
+          ? (
+            <div className="flex items-center justify-center py-8">
+              <Spin />
+            </div>
+          )
+          : entities.length === 0 && relationships.length === 0
+          ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noKnowledgeGraph")} />
+          : (
+            <div className="flex flex-col gap-4">
+              {/* Entities Section */}
+              {entities.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{t("settings.memory.entities")}</span>
+                    <Badge count={entities.length} style={{ backgroundColor: token.colorPrimary }} />
+                  </div>
+                  <Table
+                    dataSource={entities}
+                    rowKey="id"
+                    pagination={{ pageSize: 5, size: "small" }}
+                    size="small"
+                    bordered
+                    columns={[
+                      {
+                        title: t("settings.memory.entityName"),
+                        dataIndex: "name",
+                        key: "name",
+                        render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
+                      },
+                      {
+                        title: t("settings.memory.entityType"),
+                        dataIndex: "entity_type",
+                        key: "entity_type",
+                        width: 100,
+                        render: (entityType: string) => <Tag color="blue" style={{ fontSize: 11 }}>{entityType}</Tag>,
+                      },
+                      {
+                        title: t("settings.memory.mentionCount"),
+                        dataIndex: "mention_count",
+                        key: "mention_count",
+                        width: 90,
+                        render: (count: number) => <span style={{ fontSize: 12 }}>{count}</span>,
+                      },
+                      {
+                        title: t("settings.memory.confidence"),
+                        dataIndex: "confidence",
+                        key: "confidence",
+                        width: 120,
+                        render: (confidence: number) => (
+                          <Progress
+                            percent={Math.round(confidence * 100)}
+                            size="small"
+                            format={(pct) => `${pct}%`}
+                          />
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              )}
+              {/* Relationships Section */}
+              {relationships.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{t("settings.memory.relationships")}</span>
+                    <Badge count={relationships.length} style={{ backgroundColor: token.colorPrimary }} />
+                  </div>
+                  <Table
+                    dataSource={relationships.map((r) => ({
+                      ...r,
+                      source_name: entities.find((e) => e.id === r.source_id)?.name ?? r.source_id,
+                      target_name: entities.find((e) => e.id === r.target_id)?.name ?? r.target_id,
+                    }))}
+                    rowKey="id"
+                    pagination={{ pageSize: 5, size: "small" }}
+                    size="small"
+                    bordered
+                    columns={[
+                      {
+                        title: t("settings.memory.source"),
+                        dataIndex: "source_name",
+                        key: "source_name",
+                        render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
+                      },
+                      {
+                        title: t("settings.memory.relationType"),
+                        dataIndex: "relation_type",
+                        key: "relation_type",
+                        width: 120,
+                        render: (relationType: string) => (
+                          <Tag color="purple" style={{ fontSize: 11 }}>{relationType}</Tag>
+                        ),
+                      },
+                      {
+                        title: t("settings.memory.target"),
+                        dataIndex: "target_name",
+                        key: "target_name",
+                        render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
+                      },
+                      {
+                        title: t("settings.memory.weight"),
+                        dataIndex: "weight",
+                        key: "weight",
+                        width: 80,
+                        render: (weight: number) => <span style={{ fontSize: 12 }}>{weight.toFixed(2)}</span>,
+                      },
+                    ]}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+      </Modal>
+
+      {/* Timeline Modal */}
+      <Modal
+        title={t("settings.memory.timeline")}
+        open={timelineModalOpen}
+        onCancel={() => {
+          setTimelineModalOpen(false);
+          setTimelineData(null);
+        }}
+        footer={null}
+        width={700}
+        mask={{ enabled: true, blur: true }}
+      >
+        {timelineLoading
+          ? (
+            <div className="flex items-center justify-center py-8">
+              <Spin />
+            </div>
+          )
+          : !timelineData
+          ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          : (() => {
+            const sections: { key: keyof TimeGroupedMemories; label: string; color: string }[] = [
+              { key: "today", label: t("settings.memory.timelineToday"), color: "#10b981" },
+              { key: "this_week", label: t("settings.memory.timelineThisWeek"), color: "#3b82f6" },
+              { key: "this_month", label: t("settings.memory.timelineThisMonth"), color: "#f59e0b" },
+              { key: "older", label: t("settings.memory.timelineOlder"), color: "#94a3b8" },
+            ];
+            const total = sections.reduce((s, sec) => s + timelineData[sec.key].length, 0);
+            if (total === 0) {
+              return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noTimelineData")} />;
+            }
+            return (
+              <div className="flex flex-col gap-4">
+                {sections.map((sec) => {
+                  const entries = timelineData[sec.key];
+                  if (entries.length === 0) { return null; }
+                  return (
+                    <div key={sec.key}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: sec.color }} />
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{sec.label}</span>
+                        <Badge count={entries.length} style={{ backgroundColor: sec.color }} />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {entries.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="flex items-center gap-2"
+                            style={{
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              backgroundColor: token.colorBgLayout,
+                              fontSize: 13,
+                            }}
+                          >
+                            <Tag
+                              color={getTierColor(entry.tier as MemoryTierType)}
+                              style={{ fontSize: 11, margin: 0, flexShrink: 0 }}
+                            >
+                              {getTierLabel(entry.tier as MemoryTierType)}
+                            </Tag>
+                            <span
+                              style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                            >
+                              {entry.content}
+                            </span>
+                            <span style={{ fontSize: 11, color: token.colorTextSecondary, flexShrink: 0 }}>
+                              {formatImportance(entry.importance)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
       </Modal>
 
       <Table

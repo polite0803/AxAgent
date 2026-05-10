@@ -35,6 +35,7 @@ pub mod ingest_queue;
 pub mod insight_generator;
 pub mod interrupt;
 pub mod lint_checker;
+pub mod llm_bridge;
 pub mod loop_detector;
 pub mod metrics;
 pub mod outline_builder;
@@ -467,6 +468,7 @@ impl Default for McpRegistry {
     }
 }
 
+pub use llm_bridge::{build_llm_bridge_from_db, ProviderLlmBridge};
 pub use loop_detector::{
     LoopDetector, LoopDetectorConfig, LoopWarning, LoopWarningLevel, ToolCallStats,
 };

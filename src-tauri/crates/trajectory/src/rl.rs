@@ -13,6 +13,8 @@ use crate::trajectory::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RLConfig {
@@ -79,14 +81,94 @@ impl RLState {
     }
 }
 
+pub type LlmJudgeFuture<'a> = Pin<Box<dyn Future<Output = Result<f64, String>> + Send + 'a>>;
+
+pub trait LlmJudge: Send + Sync {
+    fn evaluate_reasoning(&self, reasoning: &str, context: &str) -> LlmJudgeFuture<'_>;
+    fn evaluate_tool_efficiency(
+        &self,
+        tool_name: &str,
+        args: &str,
+        result: &str,
+    ) -> LlmJudgeFuture<'_>;
+}
+
+pub struct DefaultLlmJudge;
+
+impl LlmJudge for DefaultLlmJudge {
+    fn evaluate_reasoning(&self, reasoning: &str, _context: &str) -> LlmJudgeFuture<'_> {
+        let length_score = (reasoning.len() as f64 / 500.0).min(1.0) * 0.2;
+
+        let structure_indicators = [
+            "first",
+            "then",
+            "next",
+            "finally",
+            "because",
+            "therefore",
+            "however",
+        ];
+        let structure_count = structure_indicators
+            .iter()
+            .filter(|ind| reasoning.to_lowercase().contains(*ind))
+            .count() as f64;
+        let structure_score = (structure_count / 7.0).min(1.0) * 0.4;
+
+        let has_alternatives = reasoning.to_lowercase().contains("alternative")
+            || reasoning.to_lowercase().contains("option")
+            || reasoning.to_lowercase().contains("could");
+        let alternatives_score = if has_alternatives { 0.2 } else { 0.0 };
+
+        let has_reflection = reasoning.to_lowercase().contains("should")
+            || reasoning.to_lowercase().contains("consider")
+            || reasoning.to_lowercase().contains("might");
+        let reflection_score = if has_reflection { 0.2 } else { 0.0 };
+
+        let score = (length_score + structure_score + alternatives_score + reflection_score)
+            .clamp(0.0, 1.0);
+        Box::pin(async move { Ok(score) })
+    }
+
+    fn evaluate_tool_efficiency(
+        &self,
+        tool_name: &str,
+        args: &str,
+        result: &str,
+    ) -> LlmJudgeFuture<'_> {
+        let name_relevance = if tool_name.is_empty() { 0.3 } else { 0.5 };
+        let args_quality = if args.is_empty() {
+            0.3
+        } else {
+            (args.len() as f64 / 200.0).min(1.0) * 0.3
+        };
+        let result_quality = if result.is_empty() { 0.2 } else { 0.5 };
+        let score = (name_relevance + args_quality + result_quality).clamp(0.0, 1.0);
+        Box::pin(async move { Ok(score) })
+    }
+}
+
 pub struct RLEngine {
     config: RLConfig,
     weights: RewardWeights,
+    llm_judge: Option<Box<dyn LlmJudge>>,
 }
 
 impl RLEngine {
     pub fn new(config: RLConfig, weights: RewardWeights) -> Self {
-        Self { config, weights }
+        Self {
+            config,
+            weights,
+            llm_judge: None,
+        }
+    }
+
+    pub fn with_llm_judge(mut self, judge: Box<dyn LlmJudge>) -> Self {
+        self.llm_judge = Some(judge);
+        self
+    }
+
+    pub fn set_llm_judge(&mut self, judge: Box<dyn LlmJudge>) {
+        self.llm_judge = Some(judge);
     }
 
     pub fn config(&self) -> &RLConfig {
@@ -95,6 +177,10 @@ impl RLEngine {
 
     pub fn weights(&self) -> &RewardWeights {
         &self.weights
+    }
+
+    pub fn llm_judge(&self) -> Option<&dyn LlmJudge> {
+        self.llm_judge.as_ref().map(|j| j.as_ref())
     }
 
     pub fn compute_rewards(&self, trajectory: &mut Trajectory) -> Vec<RewardSignal> {
@@ -130,6 +216,176 @@ impl RLEngine {
                         "quality_score": quality
                     }),
                 });
+            }
+
+            if let Some(ref results) = step.tool_results {
+                let error_recovery = self.compute_error_recovery(steps, i, results);
+                if error_recovery > 0.0 {
+                    step_rewards.push(RewardSignal {
+                        reward_type: RewardType::ErrorRecovery,
+                        value: error_recovery
+                            * self.weights.error_recovery
+                            * self.config.reward_scale,
+                        step_index: i,
+                        timestamp_ms: step.timestamp_ms,
+                        metadata: serde_json::json!({"recovered": true}),
+                    });
+                }
+            }
+
+            for pattern in &trajectory.patterns {
+                step_rewards.push(RewardSignal {
+                    reward_type: RewardType::PatternMatch,
+                    value: 0.05 * self.weights.pattern_match * self.config.reward_scale,
+                    step_index: i,
+                    timestamp_ms: step.timestamp_ms,
+                    metadata: serde_json::json!({"pattern": pattern}),
+                });
+            }
+
+            rewards.extend(step_rewards);
+        }
+
+        let final_reward = self.compute_final_reward(trajectory);
+        rewards.push(RewardSignal {
+            reward_type: RewardType::TaskCompletion,
+            value: final_reward * self.weights.task_completion * self.config.reward_scale,
+            step_index: steps.len().saturating_sub(1),
+            timestamp_ms: steps.last().map(|s| s.timestamp_ms).unwrap_or(0),
+            metadata: serde_json::json!({
+                "outcome": format!("{:?}", trajectory.outcome),
+                "final": true
+            }),
+        });
+
+        trajectory.rewards = rewards.clone();
+        rewards
+    }
+
+    pub async fn compute_rewards_v2(&self, trajectory: &mut Trajectory) -> Vec<RewardSignal> {
+        let mut rewards = Vec::new();
+        let steps = &trajectory.steps;
+
+        for (i, step) in steps.iter().enumerate() {
+            let mut step_rewards = Vec::new();
+
+            if let Some(ref tool_calls) = step.tool_calls {
+                let heuristic_efficiency = self.compute_tool_efficiency(step, tool_calls.len());
+
+                if let Some(ref judge) = self.llm_judge {
+                    let mut llm_scores = Vec::new();
+                    for tc in tool_calls {
+                        let result_str = step
+                            .tool_results
+                            .as_ref()
+                            .and_then(|results| {
+                                results
+                                    .iter()
+                                    .find(|r| r.tool_use_id == tc.id)
+                                    .map(|r| r.output.as_str())
+                            })
+                            .unwrap_or("");
+                        match judge
+                            .evaluate_tool_efficiency(&tc.name, &tc.arguments, result_str)
+                            .await
+                        {
+                            Ok(score) => llm_scores.push(score),
+                            Err(_) => llm_scores.push(heuristic_efficiency),
+                        }
+                    }
+                    let llm_avg = if llm_scores.is_empty() {
+                        heuristic_efficiency
+                    } else {
+                        llm_scores.iter().sum::<f64>() / llm_scores.len() as f64
+                    };
+
+                    step_rewards.push(RewardSignal {
+                        reward_type: RewardType::LlmToolEfficiency,
+                        value: llm_avg * self.weights.tool_efficiency * self.config.reward_scale,
+                        step_index: i,
+                        timestamp_ms: step.timestamp_ms,
+                        metadata: serde_json::json!({
+                            "tool_count": tool_calls.len(),
+                            "llm_score": llm_avg,
+                            "heuristic_score": heuristic_efficiency
+                        }),
+                    });
+
+                    step_rewards.push(RewardSignal {
+                        reward_type: RewardType::ToolEfficiency,
+                        value: heuristic_efficiency
+                            * self.weights.tool_efficiency
+                            * self.config.reward_scale,
+                        step_index: i,
+                        timestamp_ms: step.timestamp_ms,
+                        metadata: serde_json::json!({
+                            "tool_count": tool_calls.len(),
+                            "raw_efficiency": heuristic_efficiency
+                        }),
+                    });
+                } else {
+                    step_rewards.push(RewardSignal {
+                        reward_type: RewardType::ToolEfficiency,
+                        value: heuristic_efficiency
+                            * self.weights.tool_efficiency
+                            * self.config.reward_scale,
+                        step_index: i,
+                        timestamp_ms: step.timestamp_ms,
+                        metadata: serde_json::json!({
+                            "tool_count": tool_calls.len(),
+                            "raw_efficiency": heuristic_efficiency
+                        }),
+                    });
+                }
+            }
+
+            if let Some(ref reasoning) = step.reasoning {
+                let heuristic_quality = self.compute_reasoning_quality(reasoning);
+
+                if let Some(ref judge) = self.llm_judge {
+                    let context = step.content.as_str();
+                    if let Ok(llm_score) = judge.evaluate_reasoning(reasoning, context).await {
+                        step_rewards.push(RewardSignal {
+                            reward_type: RewardType::LlmReasoningQuality,
+                            value: llm_score
+                                * self.weights.reasoning_quality
+                                * self.config.reward_scale,
+                            step_index: i,
+                            timestamp_ms: step.timestamp_ms,
+                            metadata: serde_json::json!({
+                                "reasoning_length": reasoning.len(),
+                                "llm_score": llm_score,
+                                "heuristic_score": heuristic_quality
+                            }),
+                        });
+                    }
+
+                    step_rewards.push(RewardSignal {
+                        reward_type: RewardType::ReasoningQuality,
+                        value: heuristic_quality
+                            * self.weights.reasoning_quality
+                            * self.config.reward_scale,
+                        step_index: i,
+                        timestamp_ms: step.timestamp_ms,
+                        metadata: serde_json::json!({
+                            "reasoning_length": reasoning.len(),
+                            "quality_score": heuristic_quality
+                        }),
+                    });
+                } else {
+                    step_rewards.push(RewardSignal {
+                        reward_type: RewardType::ReasoningQuality,
+                        value: heuristic_quality
+                            * self.weights.reasoning_quality
+                            * self.config.reward_scale,
+                        step_index: i,
+                        timestamp_ms: step.timestamp_ms,
+                        metadata: serde_json::json!({
+                            "reasoning_length": reasoning.len(),
+                            "quality_score": heuristic_quality
+                        }),
+                    });
+                }
             }
 
             if let Some(ref results) = step.tool_results {
@@ -398,6 +654,8 @@ impl RLEngine {
                 RewardType::ErrorRecovery => 0.2 * self.config.entropy_coefficient,
                 RewardType::UserFeedback => 0.1 * self.config.entropy_coefficient,
                 RewardType::PatternMatch => 0.05 * self.config.entropy_coefficient,
+                RewardType::LlmReasoningQuality => self.config.entropy_coefficient * 0.08,
+                RewardType::LlmToolEfficiency => self.config.entropy_coefficient * 0.06,
             };
 
             reward.value += shaping_bonus;

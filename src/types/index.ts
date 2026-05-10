@@ -686,6 +686,7 @@ export type SettingsSection =
   | "advanced"
   | "promptTemplates"
   | "acp"
+  | "evolution"
   | string;
 
 // === Generated Tool ===

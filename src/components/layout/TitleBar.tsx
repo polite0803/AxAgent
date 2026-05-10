@@ -11,6 +11,7 @@ import {
   ArrowDownCircle,
   Bug,
   CloudUpload,
+  Dna,
   Ellipsis,
   Globe,
   MessageSquarePlus,
@@ -33,6 +34,34 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { NotificationBell } from "./NotificationBell";
 
 const IS_WINDOWS = navigator.userAgent.includes("Windows");
+
+interface EvolutionStatus {
+  llm_provider_connected: boolean;
+  skill_count: number;
+  auto_tools_count: number;
+}
+
+function useEvolutionStatus() {
+  const [status, setStatus] = useState<EvolutionStatus | null>(null);
+  useEffect(() => {
+    if (!isTauri()) { return; }
+    const fetch = () => {
+      invoke<EvolutionStatus>("get_evolution_stats")
+        .then((s) =>
+          setStatus({
+            llm_provider_connected: s.llm_provider_connected,
+            skill_count: s.skill_count,
+            auto_tools_count: s.auto_tools_count,
+          })
+        )
+        .catch(() => {});
+    };
+    fetch();
+    const id = setInterval(fetch, 60000);
+    return () => clearInterval(id);
+  }, []);
+  return status;
+}
 
 /** Standard Windows "restore down" icon: two overlapping rectangles */
 const RestoreIcon = () => (
@@ -168,6 +197,7 @@ export function TitleBar() {
   const [popoverWebDavCountdown, setPopoverWebDavCountdown] = useState<string | null>(null);
 
   const { backupSettings, loadBackupSettings } = useBackupStore();
+  const evolutionStatus = useEvolutionStatus();
 
   const fmtCountdown = (ms: number) => {
     if (ms <= 0) { return t("titlebar.now"); }
@@ -428,6 +458,21 @@ export function TitleBar() {
             >
               {t("app.title")}
             </span>
+            {evolutionStatus && evolutionStatus.llm_provider_connected && (
+              <Tooltip title={t("titlebar.evolutionActive", "Self-Evolution Active")}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    marginLeft: 4,
+                    color: token.colorSuccess,
+                    animation: "pulse-glow 2s ease-in-out infinite",
+                  }}
+                >
+                  <Dna size={12} />
+                </span>
+              </Tooltip>
+            )}
           </div>
         )
         : <div />}

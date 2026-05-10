@@ -551,8 +551,10 @@ mod tests {
 
     #[test]
     fn test_auto_add_high_confidence() {
-        let mut config = NudgeConfig::default();
-        config.auto_add_high_confidence = true;
+        let config = NudgeConfig {
+            auto_add_high_confidence: true,
+            ..Default::default()
+        };
         let mut service = NudgeService::with_config(config);
         service.start_session("test_session".to_string());
 
