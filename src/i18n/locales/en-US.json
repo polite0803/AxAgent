@@ -4649,6 +4649,7 @@
     },
     "noConfig": "No config available",
     "viewConfig": "Config",
+    "view": "View",
     "disabled": "Disabled",
     "tab": {
       "all": "All",

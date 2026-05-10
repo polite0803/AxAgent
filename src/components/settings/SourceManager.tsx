@@ -1,9 +1,10 @@
 import { useSourceStore } from "@/stores";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
 import { Button, Col, Descriptions, Empty, Input, List, Modal, Row, Spin, Tabs, Tag, theme, Typography } from "antd";
-import { BookOpen, Brain, Network, Search, Settings } from "lucide-react";
+import { BookOpen, Brain, Eye, Network, Search, Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 const { Text } = Typography;
 
@@ -98,21 +99,54 @@ function SourceListItem({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const navigate = useNavigate();
+
+  const handleView = useCallback(() => {
+    switch (source.containerType) {
+      case "wiki":
+        navigate(`/wiki/${source.id}`);
+        break;
+      case "knowledge":
+        navigate(`/knowledge`);
+        break;
+      case "memory":
+        navigate(`/knowledge`);
+        break;
+      default:
+        break;
+    }
+  }, [source.containerType, source.id, navigate]);
+
+  const actions = [
+    <Button
+      key="config"
+      type="text"
+      size="small"
+      icon={<Settings size={14} />}
+      onClick={() => onViewConfig(source)}
+    >
+      {t("sourceManager.viewConfig")}
+    </Button>,
+  ];
+
+  if (source.containerType === "wiki" || source.containerType === "knowledge" || source.containerType === "memory") {
+    actions.unshift(
+      <Button
+        key="view"
+        type="text"
+        size="small"
+        icon={<Eye size={14} />}
+        onClick={handleView}
+      >
+        {t("sourceManager.view")}
+      </Button>,
+    );
+  }
 
   return (
     <List.Item
       style={{ padding: `${token.paddingSM}px ${token.padding}px` }}
-      actions={[
-        <Button
-          key="config"
-          type="text"
-          size="small"
-          icon={<Settings size={14} />}
-          onClick={() => onViewConfig(source)}
-        >
-          {t("sourceManager.viewConfig")}
-        </Button>,
-      ]}
+      actions={actions}
     >
       <List.Item.Meta
         title={

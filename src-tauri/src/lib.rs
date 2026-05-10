@@ -88,12 +88,8 @@ pub fn run() {
                 .with_max_level(log::LevelFilter::Info)
                 .with_tag("AxAgent"),
         );
-        tracing_subscriber::fmt()
-            .with_env_filter(
-                tracing_subscriber::EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-            )
-            .init();
+        // Bridge tracing -> log facade -> logcat
+        let _ = tracing_log::LogTracer::init();
         tracing::info!("AxAgent starting on Android (tracing -> logcat)");
     }
     #[cfg(not(target_os = "android"))]
