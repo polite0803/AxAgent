@@ -421,9 +421,13 @@ pub async fn index_source(
     let config = container.source_config();
     let embedding_provider = match &config.embedding_provider {
         Some(p) => p.clone(),
-        None => return Err(axagent_core::error::AxAgentError::Provider(
-            format!("{} '{}' has no embedding provider configured", container.container_type_str(), container.id)
-        )),
+        None => {
+            return Err(axagent_core::error::AxAgentError::Provider(format!(
+                "{} '{}' has no embedding provider configured",
+                container.container_type_str(),
+                container.id
+            )))
+        },
     };
     let dimensions = config.embedding_dimensions.map(|d| d as usize);
 
@@ -435,29 +439,50 @@ pub async fn index_source(
 
             if let (Some(sp), Some(mt)) = (source_path, mime_type) {
                 index_knowledge_document(
-                    db, master_key, vector_store,
-                    &container.id, item_id, sp, mt,
-                    &embedding_provider, chunk_size, chunk_overlap, separator,
-                ).await
+                    db,
+                    master_key,
+                    vector_store,
+                    &container.id,
+                    item_id,
+                    sp,
+                    mt,
+                    &embedding_provider,
+                    chunk_size,
+                    chunk_overlap,
+                    separator,
+                )
+                .await
             } else {
                 Err(axagent_core::error::AxAgentError::Provider(
-                    "KnowledgeBase indexing requires source_path and mime_type".to_string()
+                    "KnowledgeBase indexing requires source_path and mime_type".to_string(),
                 ))
             }
         },
         axagent_core::rag::ContainerType::Memory => {
             index_memory_item(
-                db, master_key, vector_store,
-                &container.id, item_id, content,
-                &embedding_provider, dimensions,
-            ).await
+                db,
+                master_key,
+                vector_store,
+                &container.id,
+                item_id,
+                content,
+                &embedding_provider,
+                dimensions,
+            )
+            .await
         },
         axagent_core::rag::ContainerType::WikiVault => {
             index_wiki_note(
-                db, master_key, vector_store,
-                &container.id, item_id, content,
-                &embedding_provider, dimensions,
-            ).await
+                db,
+                master_key,
+                vector_store,
+                &container.id,
+                item_id,
+                content,
+                &embedding_provider,
+                dimensions,
+            )
+            .await
         },
     }
 }

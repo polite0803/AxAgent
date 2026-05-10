@@ -121,31 +121,40 @@ pub async fn wiki_notes_get_backlinks(
         .await
         .map_err(|e| e.to_string())?;
 
-    let target_note = axagent_core::repo::note::get_note(&state.sea_db, &note_id).await.ok();
+    let target_note = axagent_core::repo::note::get_note(&state.sea_db, &note_id)
+        .await
+        .ok();
     let target_title = target_note.as_ref().map(|n| n.title.as_str()).unwrap_or("");
 
     let mut map: std::collections::HashMap<String, BacklinkInfo> = std::collections::HashMap::new();
 
     for link in &links {
-        let source_note = match axagent_core::repo::note::get_note(&state.sea_db, &link.source_note_id).await {
-            Ok(n) => n,
-            Err(_) => continue,
-        };
+        let source_note =
+            match axagent_core::repo::note::get_note(&state.sea_db, &link.source_note_id).await {
+                Ok(n) => n,
+                Err(_) => continue,
+            };
 
         let snippets = extract_link_context_snippets(&source_note.content, target_title, 80);
 
-        let entry = map.entry(link.source_note_id.clone()).or_insert_with(|| BacklinkInfo {
-            note_id: link.source_note_id.clone(),
-            title: source_note.title.clone(),
-            snippets: Vec::new(),
-        });
+        let entry = map
+            .entry(link.source_note_id.clone())
+            .or_insert_with(|| BacklinkInfo {
+                note_id: link.source_note_id.clone(),
+                title: source_note.title.clone(),
+                snippets: Vec::new(),
+            });
         entry.snippets.extend(snippets);
     }
 
     Ok(map.into_values().collect())
 }
 
-fn extract_link_context_snippets(content: &str, target_title: &str, context_chars: usize) -> Vec<String> {
+fn extract_link_context_snippets(
+    content: &str,
+    target_title: &str,
+    context_chars: usize,
+) -> Vec<String> {
     if target_title.is_empty() {
         return Vec::new();
     }
@@ -653,9 +662,16 @@ pub async fn wiki_note_restore_version(
         .await
         .map_err(|e| e.to_string())?;
 
-    wiki::create_version(&state.sea_db, &note.vault_id, &note.id, &note.title, &note.content, &note.author)
-        .await
-        .map_err(|e| e.to_string())?;
+    wiki::create_version(
+        &state.sea_db,
+        &note.vault_id,
+        &note.id,
+        &note.title,
+        &note.content,
+        &note.author,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     let input = UpdateNoteInput {
         title: Some(version.title.clone()),
@@ -694,10 +710,7 @@ pub async fn wiki_template_create(
 }
 
 #[tauri::command]
-pub async fn wiki_template_delete(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn wiki_template_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
     wiki::delete_wiki_template(&state.sea_db, &id)
         .await
         .map_err(|e| e.to_string())
@@ -722,11 +735,8 @@ pub async fn wiki_note_create_from_template(
 
     let note_title = title.unwrap_or_else(|| template.name.clone());
     let now = chrono::Utc::now().timestamp();
-    let file_path = format!(
-        "templates/{}-{}.md",
-        template.name.replace(' ', "_").to_lowercase(),
-        now
-    );
+    let file_path =
+        format!("templates/{}-{}.md", template.name.replace(' ', "_").to_lowercase(), now);
 
     let input = CreateNoteInput {
         vault_id: vault_id.clone(),
@@ -754,10 +764,7 @@ pub async fn wiki_create_daily_note(
     match axagent_core::repo::note::get_note_by_path(&state.sea_db, &vault_id, &file_path).await {
         Ok(note) => Ok(note),
         Err(_) => {
-            let content = format!(
-                "# {}\n\n## Tasks\n\n## Notes\n\n## Ideas\n",
-                today
-            );
+            let content = format!("# {}\n\n## Tasks\n\n## Notes\n\n## Ideas\n", today);
 
             let input = CreateNoteInput {
                 vault_id: vault_id.clone(),
@@ -847,8 +854,11 @@ pub async fn wiki_import_obsidian_vault(
             .get("tags")
             .and_then(|v| {
                 if v.is_sequence() {
-                    v.as_sequence()
-                        .map(|seq| seq.iter().filter_map(|item| item.as_str().map(String::from)).collect())
+                    v.as_sequence().map(|seq| {
+                        seq.iter()
+                            .filter_map(|item| item.as_str().map(String::from))
+                            .collect()
+                    })
                 } else if v.is_string() {
                     v.as_str()
                         .map(|s| s.split(',').map(|t| t.trim().to_string()).collect())
@@ -897,7 +907,11 @@ pub async fn wiki_import_obsidian_vault(
     })
 }
 
-fn collect_md_files(base: &std::path::Path, current: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+fn collect_md_files(
+    base: &std::path::Path,
+    current: &std::path::Path,
+    files: &mut Vec<std::path::PathBuf>,
+) {
     if let Ok(entries) = std::fs::read_dir(current) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -929,7 +943,9 @@ fn parse_frontmatter(raw: &str) -> (serde_yaml::Value, String) {
     };
 
     let yaml_str = &rest[..end];
-    let body = rest[end + 3..].trim_start_matches('\n').trim_start_matches('\r');
+    let body = rest[end + 3..]
+        .trim_start_matches('\n')
+        .trim_start_matches('\r');
 
     let frontmatter = match serde_yaml::from_str::<serde_yaml::Value>(yaml_str) {
         Ok(v) => v,
@@ -1207,7 +1223,8 @@ fn format_timestamp(ts: i64) -> String {
 }
 
 fn escape_yaml_string(s: &str) -> String {
-    if s.contains(':') || s.contains('#') || s.contains('"') || s.contains('\'') || s.contains('\n') {
+    if s.contains(':') || s.contains('#') || s.contains('"') || s.contains('\'') || s.contains('\n')
+    {
         format!("\"{}\"", s.replace('"', "\\\""))
     } else {
         s.to_string()

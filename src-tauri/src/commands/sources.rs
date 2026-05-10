@@ -61,7 +61,7 @@ async fn fetch_all_sources(
                 for kb in kbs {
                     sources.push(UnifiedSource::from(KnowledgeContainer::from_knowledge_base(&kb)));
                 }
-            }
+            },
             Err(e) => tracing::warn!("Failed to list knowledge bases: {}", e),
         }
     }
@@ -72,7 +72,7 @@ async fn fetch_all_sources(
                 for ns in nss {
                     sources.push(UnifiedSource::from(KnowledgeContainer::from_memory_ns(&ns)));
                 }
-            }
+            },
             Err(e) => tracing::warn!("Failed to list memory namespaces: {}", e),
         }
     }
@@ -83,7 +83,7 @@ async fn fetch_all_sources(
                 for w in wikis {
                     sources.push(UnifiedSource::from(KnowledgeContainer::from_wiki(&w)));
                 }
-            }
+            },
             Err(e) => tracing::warn!("Failed to list wikis: {}", e),
         }
     }
@@ -127,7 +127,7 @@ pub async fn get_source_config(
                 retrieval_threshold: w.retrieval_threshold,
                 retrieval_top_k: w.retrieval_top_k,
             }
-        }
+        },
         _ => return Err(format!("Unknown container type: {}", container_type)),
     };
 
@@ -164,7 +164,14 @@ pub async fn search_all_sources(
         .collect();
 
     let result = crate::indexing::collect_rag_context(
-        db, master_key, vector_store, &kb_ids, &mem_ids, &wiki_ids, &query, top_k,
+        db,
+        master_key,
+        vector_store,
+        &kb_ids,
+        &mem_ids,
+        &wiki_ids,
+        &query,
+        top_k,
     )
     .await;
 

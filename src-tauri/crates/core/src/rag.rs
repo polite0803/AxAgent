@@ -525,29 +525,23 @@ async fn resolve_source_config(
     container_id: &str,
 ) -> (usize, f32, Option<usize>) {
     let config = match source_type {
-        RAGSourceType::Memory => {
-            crate::repo::memory::get_namespace(db, container_id)
-                .await
-                .ok()
-                .map(|ns| ns.source_config())
-        },
-        RAGSourceType::Wiki => {
-            crate::repo::wiki::get_wiki(db, container_id)
-                .await
-                .ok()
-                .map(|w| crate::types::SourceConfig {
-                    embedding_provider: w.embedding_provider.clone(),
-                    embedding_dimensions: w.embedding_dimensions,
-                    retrieval_threshold: w.retrieval_threshold,
-                    retrieval_top_k: w.retrieval_top_k,
-                })
-        },
-        RAGSourceType::Knowledge => {
-            crate::repo::knowledge::get_knowledge_base(db, container_id)
-                .await
-                .ok()
-                .map(|kb| kb.source_config())
-        },
+        RAGSourceType::Memory => crate::repo::memory::get_namespace(db, container_id)
+            .await
+            .ok()
+            .map(|ns| ns.source_config()),
+        RAGSourceType::Wiki => crate::repo::wiki::get_wiki(db, container_id)
+            .await
+            .ok()
+            .map(|w| crate::types::SourceConfig {
+                embedding_provider: w.embedding_provider.clone(),
+                embedding_dimensions: w.embedding_dimensions,
+                retrieval_threshold: w.retrieval_threshold,
+                retrieval_top_k: w.retrieval_top_k,
+            }),
+        RAGSourceType::Knowledge => crate::repo::knowledge::get_knowledge_base(db, container_id)
+            .await
+            .ok()
+            .map(|kb| kb.source_config()),
     };
 
     match config {
@@ -612,7 +606,8 @@ pub async fn collect_rag_context(
 
         // Resolve per-source search parameters (top_k, threshold, dimensions)
         let (source_top_k, threshold, dims) = {
-            let (sk, th, d) = resolve_source_config(db, &src_ref.source_type, &src_ref.container_id).await;
+            let (sk, th, d) =
+                resolve_source_config(db, &src_ref.source_type, &src_ref.container_id).await;
             (if sk > 0 { sk } else { top_k }, th, d)
         };
 

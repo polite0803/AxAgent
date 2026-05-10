@@ -380,7 +380,7 @@ impl WikiCompiler {
                             source.title,
                             e
                         );
-                    }
+                    },
                 },
                 Err(e) => {
                     tracing::warn!(
@@ -390,7 +390,7 @@ impl WikiCompiler {
                         source.title,
                         e
                     );
-                }
+                },
             }
         }
 
@@ -457,10 +457,10 @@ impl WikiCompiler {
                             }
                         }
                     }
-                }
+                },
                 std::collections::hash_map::Entry::Vacant(entry) => {
                     entry.insert(page);
-                }
+                },
             }
         }
 
@@ -1080,10 +1080,7 @@ impl WikiCompiler {
         score.clamp(0.0, 1.0)
     }
 
-    pub async fn compile_wiki_incremental(
-        &self,
-        wiki_id: &str,
-    ) -> Result<CompileResult, String> {
+    pub async fn compile_wiki_incremental(&self, wiki_id: &str) -> Result<CompileResult, String> {
         let wiki = wikis::Entity::find_by_id(wiki_id)
             .one(self.db.as_ref())
             .await
@@ -1101,23 +1098,20 @@ impl WikiCompiler {
         }
 
         let cache_path = std::path::Path::new(&wiki.root_path).join(".compile_cache.json");
-        let cached_hashes: std::collections::HashMap<String, String> =
-            if cache_path.exists() {
-                let data = tokio::fs::read_to_string(&cache_path)
-                    .await
-                    .unwrap_or_default();
-                serde_json::from_str(&data).unwrap_or_default()
-            } else {
-                std::collections::HashMap::new()
-            };
+        let cached_hashes: std::collections::HashMap<String, String> = if cache_path.exists() {
+            let data = tokio::fs::read_to_string(&cache_path)
+                .await
+                .unwrap_or_default();
+            serde_json::from_str(&data).unwrap_or_default()
+        } else {
+            std::collections::HashMap::new()
+        };
 
         let changed_source_ids: Vec<String> = all_sources
             .iter()
-            .filter(|s| {
-                match cached_hashes.get(&s.id) {
-                    Some(cached_hash) => *cached_hash != s.content_hash,
-                    None => true,
-                }
+            .filter(|s| match cached_hashes.get(&s.id) {
+                Some(cached_hash) => *cached_hash != s.content_hash,
+                None => true,
             })
             .map(|s| s.id.clone())
             .collect();
@@ -1206,12 +1200,14 @@ impl WikiCompiler {
         match self.llm_adapter.chat(&self.llm_ctx, request).await {
             Ok(response) => {
                 let raw = response.content.trim();
-                raw.parse::<f64>().ok().map(|score| (score / 10.0).clamp(0.0, 1.0))
-            }
+                raw.parse::<f64>()
+                    .ok()
+                    .map(|score| (score / 10.0).clamp(0.0, 1.0))
+            },
             Err(e) => {
                 tracing::warn!("LLM quality evaluation failed: {}", e);
                 None
-            }
+            },
         }
     }
 
@@ -1250,12 +1246,10 @@ fn detect_content_language(content: &str) -> &'static str {
             || ('\u{F900}'..='\u{FAFF}').contains(&ch)
         {
             chinese_count += 1;
-        } else if ('\u{3040}'..='\u{309F}').contains(&ch)
-            || ('\u{30A0}'..='\u{30FF}').contains(&ch)
+        } else if ('\u{3040}'..='\u{309F}').contains(&ch) || ('\u{30A0}'..='\u{30FF}').contains(&ch)
         {
             japanese_count += 1;
-        } else if ('\u{AC00}'..='\u{D7AF}').contains(&ch)
-            || ('\u{1100}'..='\u{11FF}').contains(&ch)
+        } else if ('\u{AC00}'..='\u{D7AF}').contains(&ch) || ('\u{1100}'..='\u{11FF}').contains(&ch)
         {
             korean_count += 1;
         } else if ch.is_ascii_alphabetic() {
@@ -2020,7 +2014,9 @@ Some text between blocks
 
     #[test]
     fn test_split_into_chunks_long_content() {
-        let content: String = (0..200).map(|i| format!("Line {} content here.\n", i)).collect();
+        let content: String = (0..200)
+            .map(|i| format!("Line {} content here.\n", i))
+            .collect();
         let chunks = WikiCompiler::split_into_chunks(&content, 6000, 500);
         assert!(chunks.len() > 1);
         let total_len: usize = chunks.iter().map(|c| c.len()).sum();

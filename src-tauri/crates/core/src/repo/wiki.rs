@@ -219,10 +219,7 @@ pub async fn create_version(
     Ok(model_to_version(model))
 }
 
-pub async fn list_versions(
-    db: &DatabaseConnection,
-    note_id: &str,
-) -> Result<Vec<NoteVersion>> {
+pub async fn list_versions(db: &DatabaseConnection, note_id: &str) -> Result<Vec<NoteVersion>> {
     let models = wiki_page_versions::Entity::find()
         .filter(wiki_page_versions::Column::NoteId.eq(note_id))
         .order_by(wiki_page_versions::Column::CreatedAt, Order::Desc)
@@ -308,7 +305,10 @@ fn model_to_template(m: wiki_templates::Model) -> WikiTemplate {
     }
 }
 
-pub async fn list_wiki_templates(db: &DatabaseConnection, wiki_id: &str) -> Result<Vec<WikiTemplate>> {
+pub async fn list_wiki_templates(
+    db: &DatabaseConnection,
+    wiki_id: &str,
+) -> Result<Vec<WikiTemplate>> {
     let models = wiki_templates::Entity::find()
         .filter(wiki_templates::Column::WikiId.eq(wiki_id))
         .order_by(wiki_templates::Column::Name, Order::Asc)
@@ -318,7 +318,10 @@ pub async fn list_wiki_templates(db: &DatabaseConnection, wiki_id: &str) -> Resu
     Ok(models.into_iter().map(model_to_template).collect())
 }
 
-pub async fn create_wiki_template(db: &DatabaseConnection, input: CreateWikiTemplateInput) -> Result<WikiTemplate> {
+pub async fn create_wiki_template(
+    db: &DatabaseConnection,
+    input: CreateWikiTemplateInput,
+) -> Result<WikiTemplate> {
     let now = chrono::Utc::now().timestamp();
     let id = gen_id();
 
@@ -349,9 +352,7 @@ pub async fn get_wiki_template(db: &DatabaseConnection, id: &str) -> Result<Wiki
 }
 
 pub async fn delete_wiki_template(db: &DatabaseConnection, id: &str) -> Result<()> {
-    wiki_templates::Entity::delete_by_id(id)
-        .exec(db)
-        .await?;
+    wiki_templates::Entity::delete_by_id(id).exec(db).await?;
 
     Ok(())
 }

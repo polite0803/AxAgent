@@ -66,6 +66,7 @@ pub mod shell;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;
+pub mod sources;
 pub mod storage;
 #[cfg(not(mobile))]
 pub mod terminal;
@@ -76,7 +77,6 @@ pub mod user_profile;
 pub mod webdav;
 pub mod webhook;
 pub mod wiki;
-pub mod sources;
 pub mod work_engine;
 pub mod workflow_ai;
 pub mod workflow_template;

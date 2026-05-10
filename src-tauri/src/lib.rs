@@ -83,8 +83,8 @@ pub fn run() {
     // ── 日志 / tracing ──
     #[cfg(target_os = "android")]
     {
-        let android_layer = tracing_android::layer("AxAgent")
-            .expect("Failed to initialize Android logcat layer");
+        let android_layer =
+            tracing_android::layer("AxAgent").expect("Failed to initialize Android logcat layer");
         tracing_subscriber::registry()
             .with(android_layer)
             .with(
