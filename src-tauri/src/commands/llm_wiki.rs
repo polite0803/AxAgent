@@ -373,15 +373,48 @@ pub async fn llm_wiki_query(
     state: State<'_, AppState>,
     input: QueryInput,
 ) -> Result<QueryResultOutput, String> {
-    let engine = query_engine::QueryEngine::new(Arc::new(state.sea_db.clone()));
+    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &input.wiki_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
     let ctx = query_engine::QueryContext {
-        query: input.query,
+        query: input.query.clone(),
         wiki_id: input.wiki_id,
         limit: input.limit.unwrap_or(10),
         offset: input.offset.unwrap_or(0),
     };
 
-    let result = engine.query(&ctx).await?;
+    let engine = query_engine::QueryEngine::new(Arc::new(state.sea_db.clone()));
+
+    let result = if let Some(ref ep) = wiki.embedding_provider {
+        match generate_query_embedding(&state, ep, &input.query, wiki.embedding_dimensions).await {
+            Ok(embedding) => {
+                let vs = Arc::new(WikiVectorSearchAdapter {
+                    vector_store: state.vector_store.clone(),
+                });
+                let engine = engine.with_vector_store(vs);
+                match engine.query_with_embedding(&ctx, &embedding).await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        tracing::warn!(
+                            "query_with_embedding failed, falling back to keyword: {}",
+                            e
+                        );
+                        engine.query(&ctx).await?
+                    },
+                }
+            },
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to generate query embedding, falling back to keyword: {}",
+                    e
+                );
+                engine.query(&ctx).await?
+            },
+        }
+    } else {
+        engine.query(&ctx).await?
+    };
 
     Ok(QueryResultOutput {
         pages: result
@@ -397,6 +430,58 @@ pub async fn llm_wiki_query(
             .collect(),
         total: result.total,
     })
+}
+
+async fn generate_query_embedding(
+    state: &AppState,
+    embedding_provider: &str,
+    query: &str,
+    dimensions: Option<i32>,
+) -> Result<Vec<f32>, String> {
+    let embed_fn = crate::indexing::ProviderEmbedFn;
+    let dims = dimensions.map(|d| d as usize);
+    let embed_response = axagent_core::rag::AsyncEmbedFn::generate(
+        &embed_fn,
+        &state.sea_db,
+        &state.master_key,
+        embedding_provider,
+        vec![query.to_string()],
+        dims,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    embed_response
+        .embeddings
+        .into_iter()
+        .next()
+        .ok_or_else(|| "No query embedding returned".to_string())
+}
+
+struct WikiVectorSearchAdapter {
+    vector_store: Arc<axagent_core::vector_store::VectorStore>,
+}
+
+#[async_trait::async_trait]
+impl query_engine::VectorSearch for WikiVectorSearchAdapter {
+    async fn search(
+        &self,
+        wiki_id: &str,
+        query_embedding: &[f32],
+        top_k: usize,
+    ) -> Result<Vec<(String, f64)>, String> {
+        let collection_id = format!("wiki_{}", wiki_id);
+        let results = self
+            .vector_store
+            .search(&collection_id, query_embedding.to_vec(), top_k)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(results
+            .into_iter()
+            .map(|r| (r.document_id, r.score as f64))
+            .collect())
+    }
 }
 
 #[tauri::command]
@@ -635,7 +720,14 @@ pub async fn wiki_sync_process_pending(
         am.status = Set("processing".to_string());
         am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
 
-        match process_sync_event(&state.sea_db, &state.master_key, &item_clone).await {
+        match process_sync_event(
+            &state.sea_db,
+            &state.master_key,
+            state.vector_store.as_ref(),
+            &item_clone,
+        )
+        .await
+        {
             Ok(_) => {
                 let mut am = item_clone.clone().into_active_model();
                 am.status = Set("completed".to_string());
@@ -723,7 +815,13 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
     am.status = Set("processing".to_string());
     am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
 
-    let result = process_sync_event(&state.sea_db, &state.master_key, &model_clone).await;
+    let result = process_sync_event(
+        &state.sea_db,
+        &state.master_key,
+        state.vector_store.as_ref(),
+        &model_clone,
+    )
+    .await;
 
     match result {
         Ok(_) => {
@@ -746,26 +844,55 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
 
 async fn process_sync_event(
     db: &sea_orm::DatabaseConnection,
-    _master_key: &[u8; 32],
+    master_key: &[u8; 32],
+    vector_store: &axagent_core::vector_store::VectorStore,
     model: &wiki_sync_queue::Model,
 ) -> Result<(), axagent_core::error::AxAgentError> {
     match model.event_type.as_str() {
         "note_created" | "note_updated" => {
             let note = axagent_core::repo::note::get_note(db, &model.target_id).await?;
-            tracing::info!(
-                "Sync: indexing note '{}' to vector store for wiki {}",
-                note.title,
-                model.wiki_id
-            );
-            Ok(())
+
+            let wiki = axagent_core::repo::wiki::get_wiki(db, &model.wiki_id).await?;
+            match &wiki.embedding_provider {
+                Some(embedding_provider) => {
+                    let dimensions = wiki.embedding_dimensions.map(|d| d as usize);
+                    tracing::info!(
+                        "Sync: indexing note '{}' to vector store for wiki {}",
+                        note.title,
+                        model.wiki_id
+                    );
+                    crate::indexing::index_wiki_note(
+                        db,
+                        master_key,
+                        vector_store,
+                        &model.wiki_id,
+                        &model.target_id,
+                        &note.content,
+                        embedding_provider,
+                        dimensions,
+                    )
+                    .await
+                },
+                None => {
+                    tracing::info!(
+                        "Sync: skipping vector indexing for note '{}' in wiki {} (no embedding_provider configured)",
+                        note.title,
+                        model.wiki_id
+                    );
+                    Ok(())
+                },
+            }
         },
         "note_deleted" => {
+            let collection_id = axagent_core::rag::collection_id("wiki", &model.wiki_id);
             tracing::info!(
                 "Sync: removing note {} from vector store for wiki {}",
                 model.target_id,
                 model.wiki_id
             );
-            Ok(())
+            vector_store
+                .delete_document_embeddings(&collection_id, &model.target_id)
+                .await
         },
         "source_ingested" => {
             tracing::info!("Sync: source {} ingested for wiki {}", model.target_id, model.wiki_id);
@@ -781,7 +908,8 @@ async fn process_sync_event(
         },
         "wiki_deleted" => {
             tracing::info!("Sync: wiki {} deleted, cleaning up", model.wiki_id);
-            Ok(())
+            let collection_id = axagent_core::rag::collection_id("wiki", &model.wiki_id);
+            vector_store.delete_collection(&collection_id).await
         },
         _ => {
             tracing::warn!("Sync: unknown event type '{}'", model.event_type);

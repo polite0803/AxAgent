@@ -365,6 +365,49 @@ pub async fn index_memory_item(
     .await
 }
 
+/// Index a single wiki note: chunk text → embed → store in vector DB.
+///
+/// Uses the `FromText` chunk strategy since note content is already plain text.
+/// The collection name follows the pattern `wiki_{wiki_id}`.
+pub async fn index_wiki_note(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    wiki_id: &str,
+    note_id: &str,
+    content: &str,
+    embedding_provider: &str,
+    dimensions: Option<usize>,
+) -> Result<()> {
+    let strategy = ChunkStrategy::FromText {
+        text: content.to_string(),
+        chunk_size: axagent_core::text_chunker::DEFAULT_CHUNK_SIZE,
+        overlap: axagent_core::text_chunker::DEFAULT_OVERLAP,
+        separator: None,
+    };
+
+    let chunks = rag::prepare_chunks(note_id, &strategy)?;
+
+    if chunks.is_empty() {
+        return Ok(());
+    }
+
+    let chunk_texts: Vec<String> = chunks.iter().map(|(_, text, _)| text.clone()).collect();
+    let embed_response =
+        generate_embeddings(db, master_key, embedding_provider, chunk_texts, dimensions).await?;
+
+    rag::index(
+        vector_store,
+        "wiki",
+        wiki_id,
+        note_id,
+        content,
+        embed_response.embeddings,
+        chunks,
+    )
+    .await
+}
+
 // ── Search (delegates to rag::search) ────────────────────────────────────────
 
 /// Search knowledge base vectors for relevant content.

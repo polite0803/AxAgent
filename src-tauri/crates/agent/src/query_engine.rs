@@ -90,42 +90,48 @@ impl QueryEngine {
             .await
             .map_err(|e| e.to_string())?;
 
-        let mut scored: Vec<(axagent_core::repo::note::Note, f64)> = Vec::new();
-
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
-        for note_model in db_notes {
-            let note = axagent_core::repo::note::model_to_note(note_model);
-            let mut score = 0.0_f64;
-            let content_lower = note.content.to_lowercase();
-            let title_lower = note.title.to_lowercase();
+        let all_notes: Vec<axagent_core::repo::note::Note> = db_notes
+            .into_iter()
+            .map(axagent_core::repo::note::model_to_note)
+            .collect();
 
-            if title_lower.contains(&query_lower) {
-                score += 1.0;
-            } else if title_lower.starts_with(&query_lower) {
-                score += 0.8;
-            }
+        let avg_dl = if !all_notes.is_empty() {
+            all_notes
+                .iter()
+                .map(|n| n.content.len() as f64)
+                .sum::<f64>()
+                / all_notes.len() as f64
+        } else {
+            1.0
+        };
 
-            let mut word_matches = 0u32;
-            for word in &query_words {
-                if content_lower.contains(word) {
-                    word_matches += 1;
-                }
-            }
-            if !query_words.is_empty() {
-                score += (word_matches as f64 / query_words.len() as f64) * 0.5;
-            }
+        let num_docs = all_notes.len() as f64;
 
-            if let Some(qs) = note.quality_score {
-                score += qs * 0.3;
-            }
+        let mut df: HashMap<&str, f64> = HashMap::new();
+        for word in &query_words {
+            let count = all_notes
+                .iter()
+                .filter(|n| {
+                    n.content.to_lowercase().contains(word) || n.title.to_lowercase().contains(word)
+                })
+                .count() as f64;
+            df.insert(word, count);
+        }
 
-            scored.push((note, score));
+        let mut scored: Vec<(axagent_core::repo::note::Note, f64)> = Vec::new();
+
+        for note in all_notes {
+            let score =
+                compute_bm25_score(&note, &query_lower, &query_words, &df, num_docs, avg_dl);
+            if score > 0.0 {
+                scored.push((note, score));
+            }
         }
 
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        scored.retain(|(_, s)| *s > 0.0);
 
         let total = scored.len();
         let paginated: Vec<_> = scored
@@ -144,11 +150,8 @@ impl QueryEngine {
 
             let link_paths: Vec<String> = links.iter().map(|l| l.target_note_id.clone()).collect();
 
-            let snippet = if note.content.len() > 200 {
-                format!("{}...", &note.content[..200])
-            } else {
-                note.content.clone()
-            };
+            let snippet =
+                extract_snippet_around_match(&note.content, &query_lower, &query_words, 50, 150);
 
             pages.push(PageResult {
                 note_id: note.id,
@@ -191,29 +194,36 @@ impl QueryEngine {
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
+        let all_notes: Vec<axagent_core::repo::note::Note> = db_notes
+            .into_iter()
+            .map(axagent_core::repo::note::model_to_note)
+            .collect();
+
+        let avg_dl = if !all_notes.is_empty() {
+            all_notes
+                .iter()
+                .map(|n| n.content.len() as f64)
+                .sum::<f64>()
+                / all_notes.len() as f64
+        } else {
+            1.0
+        };
+        let num_docs = all_notes.len() as f64;
+
+        let mut df: HashMap<&str, f64> = HashMap::new();
+        for word in &query_words {
+            let count = all_notes
+                .iter()
+                .filter(|n| {
+                    n.content.to_lowercase().contains(word) || n.title.to_lowercase().contains(word)
+                })
+                .count() as f64;
+            df.insert(word, count);
+        }
+
         let mut keyword_scores: HashMap<String, f64> = HashMap::new();
-        for note_model in &db_notes {
-            let note = axagent_core::repo::note::model_to_note(note_model.clone());
-            let mut score = 0.0_f64;
-            let content_lower = note.content.to_lowercase();
-            let title_lower = note.title.to_lowercase();
-
-            if title_lower.contains(&query_lower) {
-                score += 1.0;
-            }
-
-            let mut word_matches = 0u32;
-            for word in &query_words {
-                if content_lower.contains(word) {
-                    word_matches += 1;
-                }
-            }
-            if !query_words.is_empty() {
-                score += (word_matches as f64 / query_words.len() as f64) * 0.5;
-            }
-            if let Some(qs) = note.quality_score {
-                score += qs * 0.3;
-            }
+        for note in &all_notes {
+            let score = compute_bm25_score(note, &query_lower, &query_words, &df, num_docs, avg_dl);
             keyword_scores.insert(note.id.clone(), score);
         }
 
@@ -243,13 +253,8 @@ impl QueryEngine {
             .take(ctx.limit)
             .collect();
 
-        let note_map: HashMap<String, axagent_core::repo::note::Note> = db_notes
-            .into_iter()
-            .map(|m| {
-                let note = axagent_core::repo::note::model_to_note(m);
-                (note.id.clone(), note)
-            })
-            .collect();
+        let note_map: HashMap<String, axagent_core::repo::note::Note> =
+            all_notes.into_iter().map(|n| (n.id.clone(), n)).collect();
 
         let mut pages = Vec::new();
         for (note_id, score) in paginated {
@@ -263,11 +268,13 @@ impl QueryEngine {
                 let link_paths: Vec<String> =
                     links.iter().map(|l| l.target_note_id.clone()).collect();
 
-                let snippet = if note.content.len() > 200 {
-                    format!("{}...", &note.content[..200])
-                } else {
-                    note.content.clone()
-                };
+                let snippet = extract_snippet_around_match(
+                    &note.content,
+                    &query_lower,
+                    &query_words,
+                    50,
+                    150,
+                );
 
                 pages.push(PageResult {
                     note_id: note.id.clone(),
@@ -417,6 +424,97 @@ impl QueryEngine {
 
         Ok(context)
     }
+}
+
+const BM25_K1: f64 = 1.2;
+const BM25_B: f64 = 0.75;
+
+fn compute_bm25_score(
+    note: &axagent_core::repo::note::Note,
+    query_lower: &str,
+    query_words: &[&str],
+    df: &HashMap<&str, f64>,
+    num_docs: f64,
+    avg_dl: f64,
+) -> f64 {
+    let content_lower = note.content.to_lowercase();
+    let title_lower = note.title.to_lowercase();
+    let dl = note.content.len() as f64;
+
+    let mut score = 0.0_f64;
+
+    if title_lower.contains(query_lower) {
+        score += 2.0;
+    } else {
+        for word in query_words {
+            if title_lower.contains(word) {
+                score += 0.8;
+            }
+        }
+    }
+
+    for word in query_words {
+        let tf = content_lower.matches(word).count() as f64;
+        if tf == 0.0 {
+            continue;
+        }
+        let df_val = df.get(word).copied().unwrap_or(0.0);
+        let idf = ((num_docs - df_val + 0.5) / (df_val + 0.5) + 1.0).ln();
+        let tf_norm =
+            (tf * (BM25_K1 + 1.0)) / (tf + BM25_K1 * (1.0 - BM25_B + BM25_B * (dl / avg_dl)));
+        score += idf * tf_norm;
+    }
+
+    if let Some(qs) = note.quality_score {
+        score += qs * 0.3;
+    }
+
+    score
+}
+
+fn extract_snippet_around_match(
+    content: &str,
+    query_lower: &str,
+    query_words: &[&str],
+    context_chars: usize,
+    max_snippet_len: usize,
+) -> String {
+    let content_lower = content.to_lowercase();
+
+    let best_pos = if !query_lower.is_empty() {
+        content_lower.find(query_lower)
+    } else {
+        None
+    };
+
+    let best_pos = best_pos.or_else(|| {
+        query_words
+            .iter()
+            .filter_map(|w| content_lower.find(w))
+            .min()
+    });
+
+    let start = match best_pos {
+        Some(pos) => pos.saturating_sub(context_chars),
+        None => 0,
+    };
+
+    let chars: Vec<char> = content.chars().collect();
+    let total_len = chars.len();
+
+    let start_char = start.min(total_len);
+    let end_char = (start_char + max_snippet_len).min(total_len);
+
+    let mut snippet: String = chars[start_char..end_char].iter().collect();
+
+    if end_char < total_len {
+        snippet.push_str("...");
+    }
+    if start_char > 0 {
+        snippet = format!("...{}", snippet);
+    }
+
+    snippet
 }
 
 #[cfg(test)]

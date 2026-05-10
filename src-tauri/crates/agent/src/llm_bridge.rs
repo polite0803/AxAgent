@@ -115,7 +115,7 @@ impl ProviderLlmBridge {
 }
 
 fn extract_score_from_text(text: &str) -> f64 {
-    let re = regex::Regex::new(r"(\d+\.?\d*)").unwrap();
+    let re = regex::Regex::new(r"(-?\d+\.?\d*)").unwrap();
     re.captures(text)
         .and_then(|cap| cap.get(1))
         .and_then(|m| m.as_str().parse::<f64>().ok())

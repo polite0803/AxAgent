@@ -1,4 +1,6 @@
 use crate::AppState;
+use axagent_core::hybrid_search::{HybridSearchOptions, HybridSearcher};
+use axagent_core::rag::{collection_id, RAGSource, WikiVaultRAG};
 use axagent_core::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
 use axagent_core::types::NoteSearchResult;
 use tauri::{AppHandle, Emitter, State};
@@ -99,35 +101,147 @@ pub async fn wiki_notes_search(
     top_k: Option<usize>,
 ) -> Result<Vec<NoteSearchResult>, String> {
     let top_k = top_k.unwrap_or(10);
-    let notes = axagent_core::repo::note::list_notes(&state.sea_db, &vault_id)
+
+    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &vault_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if let Some(ref _ep) = wiki.embedding_provider {
+        match wiki_notes_search_hybrid(&state, &vault_id, &query, top_k).await {
+            Ok(results) => return Ok(results),
+            Err(e) => {
+                tracing::warn!(
+                    "Hybrid search failed for wiki {}, falling back to keyword: {}",
+                    vault_id,
+                    e
+                );
+            },
+        }
+    }
+
+    wiki_notes_search_keyword(&state, &vault_id, &query, top_k).await
+}
+
+async fn wiki_notes_search_hybrid(
+    state: &AppState,
+    vault_id: &str,
+    query: &str,
+    top_k: usize,
+) -> Result<Vec<NoteSearchResult>, String> {
+    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, vault_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let ep = wiki
+        .embedding_provider
+        .as_ref()
+        .ok_or("No embedding provider")?;
+    let dimensions = wiki.embedding_dimensions.map(|d| d as usize);
+
+    let embed_fn = crate::indexing::ProviderEmbedFn;
+    let embed_response = axagent_core::rag::AsyncEmbedFn::generate(
+        &embed_fn,
+        &state.sea_db,
+        &state.master_key,
+        ep,
+        vec![query.to_string()],
+        dimensions,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let query_embedding = embed_response
+        .embeddings
+        .into_iter()
+        .next()
+        .ok_or_else(|| "No query embedding returned".to_string())?;
+
+    let collection_id = collection_id(WikiVaultRAG.collection_prefix(), vault_id);
+    let searcher = HybridSearcher::new(state.sea_db.clone());
+
+    let options = HybridSearchOptions {
+        vector_weight: 0.7,
+        bm25_weight: 0.3,
+        top_k,
+        min_score: None,
+    };
+
+    let hybrid_results = searcher
+        .hybrid_search(&collection_id, query, query_embedding, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut results = Vec::new();
+    for hybrid_result in &hybrid_results {
+        let note =
+            match axagent_core::repo::note::get_note(&state.sea_db, &hybrid_result.document_id)
+                .await
+            {
+                Ok(n) => n,
+                Err(_) => continue,
+            };
+
+        let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
+        let score = hybrid_result.combined_score as f64;
+
+        results.push(NoteSearchResult {
+            note,
+            snippet,
+            score,
+        });
+    }
+
+    Ok(results)
+}
+
+async fn wiki_notes_search_keyword(
+    state: &AppState,
+    vault_id: &str,
+    query: &str,
+    top_k: usize,
+) -> Result<Vec<NoteSearchResult>, String> {
+    let notes = axagent_core::repo::note::list_notes(&state.sea_db, vault_id)
         .await
         .map_err(|e| e.to_string())?;
 
     let query_lower = query.to_lowercase();
-    let mut results: Vec<NoteSearchResult> = notes
-        .into_iter()
-        .filter_map(|note| {
-            let content_lower = note.content.to_lowercase();
-            if content_lower.contains(&query_lower)
-                || note.title.to_lowercase().contains(&query_lower)
-            {
-                let snippet_start = content_lower.find(&query_lower).unwrap_or(0);
-                let snippet = note
-                    .content
-                    .chars()
-                    .skip(snippet_start.saturating_sub(50))
-                    .take(100)
-                    .collect::<String>();
-                Some(NoteSearchResult {
-                    note,
-                    snippet,
-                    score: 1.0,
-                })
-            } else {
-                None
-            }
-        })
-        .collect();
+    let query_words: Vec<&str> = query_lower.split_whitespace().collect();
+
+    let num_docs = notes.len() as f64;
+    let avg_dl = if !notes.is_empty() {
+        notes.iter().map(|n| n.content.len() as f64).sum::<f64>() / num_docs
+    } else {
+        1.0
+    };
+
+    let mut df: std::collections::HashMap<&str, f64> = std::collections::HashMap::new();
+    for word in &query_words {
+        let count = notes
+            .iter()
+            .filter(|n| {
+                n.content.to_lowercase().contains(word) || n.title.to_lowercase().contains(word)
+            })
+            .count() as f64;
+        df.insert(word, count);
+    }
+
+    let mut results: Vec<NoteSearchResult> = Vec::new();
+
+    for note in notes {
+        let score =
+            compute_note_bm25_score(&note, &query_lower, &query_words, &df, num_docs, avg_dl);
+        if score <= 0.0 {
+            continue;
+        }
+
+        let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
+
+        results.push(NoteSearchResult {
+            note,
+            snippet,
+            score,
+        });
+    }
 
     results.sort_by(|a, b| {
         b.score
@@ -137,6 +251,98 @@ pub async fn wiki_notes_search(
     results.truncate(top_k);
 
     Ok(results)
+}
+
+const BM25_K1: f64 = 1.2;
+const BM25_B: f64 = 0.75;
+
+fn compute_note_bm25_score(
+    note: &Note,
+    query_lower: &str,
+    query_words: &[&str],
+    df: &std::collections::HashMap<&str, f64>,
+    num_docs: f64,
+    avg_dl: f64,
+) -> f64 {
+    let content_lower = note.content.to_lowercase();
+    let title_lower = note.title.to_lowercase();
+    let dl = note.content.len() as f64;
+
+    let mut score = 0.0_f64;
+
+    if title_lower.contains(query_lower) {
+        score += 2.0;
+    } else {
+        for word in query_words {
+            if title_lower.contains(word) {
+                score += 0.8;
+            }
+        }
+    }
+
+    for word in query_words {
+        let tf = content_lower.matches(word).count() as f64;
+        if tf == 0.0 {
+            continue;
+        }
+        let df_val = df.get(word).copied().unwrap_or(0.0);
+        let idf = ((num_docs - df_val + 0.5) / (df_val + 0.5) + 1.0).ln();
+        let tf_norm =
+            (tf * (BM25_K1 + 1.0)) / (tf + BM25_K1 * (1.0 - BM25_B + BM25_B * (dl / avg_dl)));
+        score += idf * tf_norm;
+    }
+
+    if let Some(qs) = note.quality_score {
+        score += qs * 0.3;
+    }
+
+    score
+}
+
+fn extract_highlight_snippet(
+    content: &str,
+    query: &str,
+    context_chars: usize,
+    max_snippet_len: usize,
+) -> String {
+    let content_lower = content.to_lowercase();
+    let query_lower = query.to_lowercase();
+    let query_words: Vec<&str> = query_lower.split_whitespace().collect();
+
+    let best_pos = if !query_lower.is_empty() {
+        content_lower.find(&query_lower)
+    } else {
+        None
+    };
+
+    let best_pos = best_pos.or_else(|| {
+        query_words
+            .iter()
+            .filter_map(|w| content_lower.find(w))
+            .min()
+    });
+
+    let start = match best_pos {
+        Some(pos) => pos.saturating_sub(context_chars),
+        None => 0,
+    };
+
+    let chars: Vec<char> = content.chars().collect();
+    let total_len = chars.len();
+
+    let start_char = start.min(total_len);
+    let end_char = (start_char + max_snippet_len).min(total_len);
+
+    let mut snippet: String = chars[start_char..end_char].iter().collect();
+
+    if end_char < total_len {
+        snippet.push_str("...");
+    }
+    if start_char > 0 {
+        snippet = format!("...{}", snippet);
+    }
+
+    snippet
 }
 
 #[tauri::command]
