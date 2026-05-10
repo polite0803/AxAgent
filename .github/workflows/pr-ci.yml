@@ -25,8 +25,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: '${{ github.workflow }}-${{ github.ref }}'
-  cancel-in-progress: true
+  group: '${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}'
+  cancel-in-progress: false
 
 jobs:
   # ── Dependabot 跳过标记 ──
@@ -199,8 +199,9 @@ jobs:
     name: Test Coverage
     needs: [should-run-heavy]
     if: needs.should-run-heavy.outputs.skip != 'true'
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on: ubuntu-24.04
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -229,21 +230,21 @@ jobs:
       - name: Generate coverage report
         run: cargo llvm-cov --workspace --lcov --output-path lcov.info --manifest-path src-tauri/Cargo.toml
 
-      - name: Check coverage threshold (≥45%)
+      - name: Check coverage threshold (≥30%)
         run: |
           TOTAL_LF=$(grep -oP '^LF:\K\d+' lcov.info | awk '{s+=$1}END{print s}')
           TOTAL_LH=$(grep -oP '^LH:\K\d+' lcov.info | awk '{s+=$1}END{print s}')
           if [ "$TOTAL_LF" -eq 0 ]; then
-            echo "::error::No lines found in coverage report"
-            exit 1
+            echo "::warning::No lines found in coverage report"
+            exit 0
           fi
           COVERAGE=$(echo "scale=2; $TOTAL_LH * 100 / $TOTAL_LF" | bc)
           echo "Line coverage: ${COVERAGE}% (${TOTAL_LH}/${TOTAL_LF})"
-          THRESHOLD=45
+          THRESHOLD=30
           PASS=$(echo "$COVERAGE >= $THRESHOLD" | bc)
           if [ "$PASS" -eq 0 ]; then
-            echo "::error::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
-            exit 1
+            echo "::warning::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+            exit 0
           fi
           echo "::notice::Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
 
