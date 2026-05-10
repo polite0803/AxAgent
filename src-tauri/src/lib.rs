@@ -80,7 +80,7 @@ pub fn run() {
         }
     }
 
-    // ── 日志 / tracing ──
+    // ── 日志 / tracing ─
     #[cfg(target_os = "android")]
     {
         android_logger::init_once(
@@ -88,8 +88,27 @@ pub fn run() {
                 .with_max_level(log::LevelFilter::Info)
                 .with_tag("AxAgent"),
         );
-        // Bridge tracing -> log facade -> logcat
-        let _ = tracing_log::LogTracer::init();
+        // Install tracing subscriber that writes to logcat via log crate
+        struct LogcatWriter;
+        impl std::io::Write for LogcatWriter {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                if let Ok(s) = std::str::from_utf8(buf) {
+                    let s = s.trim();
+                    if !s.is_empty() {
+                        log::info!("{}", s);
+                    }
+                }
+                Ok(buf.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        tracing_subscriber::fmt()
+            .with_writer(LogcatWriter)
+            .with_ansi(false)
+            .with_level(true)
+            .init();
         tracing::info!("AxAgent starting on Android (tracing -> logcat)");
     }
     #[cfg(not(target_os = "android"))]

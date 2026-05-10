@@ -7,12 +7,9 @@ const SEARCH_SEPARATOR = "\n---\n\n";
 export interface SearchSourceTag {
   title: string;
   url: string;
+  credibility?: "high" | "medium" | "low";
 }
 
-/**
- * Format search results + user content into a single enriched message.
- * The LLM sees natural-language context; the UI can parse the hidden marker.
- */
 export function formatSearchContent(
   results: SearchResultItem[],
   userContent: string,
@@ -20,22 +17,48 @@ export function formatSearchContent(
   const sourceTags: SearchSourceTag[] = results.map((r) => ({
     title: r.title,
     url: r.url,
+    credibility: assessCredibility(r.url),
   }));
   const metadata = JSON.stringify({ sources: sourceTags });
 
   let block = `${SEARCH_MARKER_START}${metadata}${SEARCH_MARKER_END}\n`;
-  block += "以下是与问题相关的网络搜索结果，请参考回答：\n\n";
+  block += "以下是与问题相关的网络搜索结果，请参考回答。优先使用高可信度来源，标注来源编号：\n\n";
 
   results.forEach((r, i) => {
-    block += `${i + 1}. **${r.title}** - ${r.url}\n   ${r.content}\n\n`;
+    const cred = assessCredibility(r.url);
+    const credLabel = cred === "high" ? " [高可信度]" : cred === "medium" ? " [中可信度]" : "";
+    block += `${i + 1}. **${r.title}**${credLabel} - ${r.url}\n   ${r.content}\n\n`;
   });
 
   return `${block}${SEARCH_SEPARATOR}${userContent}`;
 }
 
-/**
- * Build a `<web-search>` custom tag for markstream-react rendering.
- */
+function assessCredibility(url: string): "high" | "medium" | "low" {
+  const highDomains = [
+    "github.com", "docs.microsoft.com", "developer.mozilla.org",
+    "python.org", "rust-lang.org", "nodejs.org", "react.dev",
+    "angular.io", "vuejs.org", "tensorflow.org", "pytorch.org",
+    "openai.com", "anthropic.com", "arxiv.org", "wikipedia.org",
+    "stackoverflow.com", "nginx.org", "docker.com", "kubernetes.io",
+  ];
+
+  const mediumDomains = [
+    "medium.com", "dev.to", "hackernoon.com", "reddit.com",
+    "csdn.net", "juejin.cn", "zhihu.com", "segmentfault.com",
+    "infoq.cn", "cnblogs.com",
+  ];
+
+  const urlLower = url.toLowerCase();
+
+  if (highDomains.some((d) => urlLower.includes(d))) {
+    return "high";
+  }
+  if (mediumDomains.some((d) => urlLower.includes(d))) {
+    return "medium";
+  }
+  return "low";
+}
+
 export function buildSearchTag(
   status: "searching" | "done" | "error",
   results?: SearchResultItem[],
@@ -47,7 +70,12 @@ export function buildSearchTag(
     return '<web-search status="error" data-axagent="1"></web-search>';
   }
   const json = JSON.stringify(
-    (results ?? []).map((r) => ({ title: r.title, url: r.url, content: r.content })),
+    (results ?? []).map((r) => ({
+      title: r.title,
+      url: r.url,
+      content: r.content,
+      credibility: assessCredibility(r.url),
+    })),
   );
   return `<web-search status="done" data-axagent="1">\n${json}\n</web-search>\n\n`;
 }
@@ -72,7 +100,6 @@ export function parseSearchContent(content: string): {
     const data = JSON.parse(jsonStr);
     sources = data.sources ?? [];
   } catch {
-    // corrupted marker – treat as no search
   }
 
   const separatorIdx = content.indexOf(SEARCH_SEPARATOR);
@@ -81,4 +108,44 @@ export function parseSearchContent(content: string): {
     : content.substring(markerEndIdx + SEARCH_MARKER_END.length);
 
   return { hasSearch: true, sources, userContent };
+}
+
+export function deduplicateResults(results: SearchResultItem[]): SearchResultItem[] {
+  const seen = new Set<string>();
+  return results.filter((r) => {
+    const key = r.url.toLowerCase().replace(/\/+$/, "");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function sortResultsByRelevance(
+  results: SearchResultItem[],
+  query: string,
+): SearchResultItem[] {
+  const queryTerms = query.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
+
+  return [...results].sort((a, b) => {
+    const scoreA = computeRelevanceScore(a, queryTerms);
+    const scoreB = computeRelevanceScore(b, queryTerms);
+    return scoreB - scoreA;
+  });
+}
+
+function computeRelevanceScore(result: SearchResultItem, queryTerms: string[]): number {
+  const titleLower = result.title.toLowerCase();
+  const contentLower = result.content.toLowerCase();
+
+  let score = 0;
+
+  for (const term of queryTerms) {
+    if (titleLower.includes(term)) score += 3;
+    if (contentLower.includes(term)) score += 1;
+  }
+
+  if (assessCredibility(result.url) === "high") score += 2;
+  if (result.content.length > 100) score += 1;
+
+  return score;
 }

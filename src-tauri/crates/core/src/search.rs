@@ -121,7 +121,7 @@ pub fn expand_search_queries(original: &str) -> QueryExpansion {
     let trimmed = original.trim();
     let has_chinese = trimmed
         .chars()
-        .any(|c| ('\u{4E00}'..='\u{9FFF}').contains(c));
+        .any(|c| ('\u{4E00}'..='\u{9FFF}').contains(&c));
 
     let concise = trimmed
         .split_whitespace()
@@ -478,6 +478,280 @@ pub async fn execute_search_text(
     }
 }
 
+pub async fn execute_iterative_search(
+    provider_type: &str,
+    endpoint: Option<&str>,
+    api_key: &str,
+    query: &str,
+    max_results: i32,
+    timeout_ms: i32,
+    max_rounds: usize,
+) -> Result<SearchResponse> {
+    let start = Instant::now();
+
+    let expansion = expand_search_queries(query);
+    let mut all_results: Vec<SearchResult> = Vec::new();
+    let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut queries_to_try: Vec<String> = expansion.queries.clone();
+
+    for round in 0..max_rounds {
+        let round_queries: Vec<String> = queries_to_try.drain(..).collect();
+        if round_queries.is_empty() {
+            break;
+        }
+
+        for q in &round_queries {
+            match execute_search(provider_type, endpoint, api_key, q, max_results, timeout_ms).await
+            {
+                Ok(resp) if resp.ok => {
+                    for r in resp.results {
+                        let url_key = r.url.trim_end_matches('/').to_lowercase();
+                        if !url_key.is_empty() && seen_urls.insert(url_key) {
+                            all_results.push(r);
+                        }
+                    }
+                }
+                _ => continue,
+            }
+        }
+
+        if all_results.len() >= max_results as usize {
+            break;
+        }
+
+        if round + 1 < max_rounds {
+            let covered_topics = extract_covered_topics(&all_results);
+            let gap_query = generate_gap_query(query, &covered_topics);
+            if !gap_query.is_empty() {
+                queries_to_try.push(gap_query);
+            }
+        }
+    }
+
+    all_results.sort_by(|a, b| {
+        let a_score = a.content.len() as f32 * 0.01 + if !a.url.is_empty() { 1.0 } else { 0.0 };
+        let b_score = b.content.len() as f32 * 0.01 + if !b.url.is_empty() { 1.0 } else { 0.0 };
+        b_score.partial_cmp(&a_score).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    all_results.truncate(max_results as usize);
+
+    let latency = start.elapsed().as_millis() as u64;
+
+    Ok(SearchResponse {
+        ok: true,
+        query: query.to_string(),
+        results: all_results,
+        latency_ms: latency,
+        error: None,
+    })
+}
+
+fn extract_covered_topics(results: &[SearchResult]) -> Vec<String> {
+    let mut words: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+
+    for r in results {
+        for word in r.title.split_whitespace() {
+            let w = word.to_lowercase()
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .collect::<String>();
+            if w.len() > 3 {
+                *words.entry(w).or_insert(0) += 1;
+            }
+        }
+    }
+
+    let mut sorted: Vec<(String, usize)> = words.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.iter().take(10).map(|(w, _)| w.clone()).collect()
+}
+
+fn generate_gap_query(original: &str, covered: &[String]) -> String {
+    if covered.is_empty() {
+        return String::new();
+    }
+
+    let original_words: std::collections::HashSet<String> = original
+        .to_lowercase()
+        .split_whitespace()
+        .map(|w| w.chars().filter(|c| c.is_alphanumeric()).collect())
+        .filter(|w: &String| w.len() > 2)
+        .collect();
+
+    let uncovered: Vec<&str> = original_words
+        .iter()
+        .filter(|w| !covered.iter().any(|c| c.contains(w.as_str())))
+        .map(|s| s.as_str())
+        .collect();
+
+    if uncovered.is_empty() {
+        format!("{} in depth analysis", original)
+    } else {
+        format!("{} {}", uncovered.join(" "), covered.first().unwrap_or(&String::new()))
+    }
+}
+
+pub fn rerank_search_results(query: &str, results: &mut Vec<SearchResult>) {
+    if results.len() <= 1 {
+        return;
+    }
+
+    let query_terms: Vec<String> = query
+        .to_lowercase()
+        .split_whitespace()
+        .map(|w| w.chars().filter(|c| c.is_alphanumeric()).collect())
+        .filter(|w: &String| w.len() > 1)
+        .collect();
+
+    if query_terms.is_empty() {
+        return;
+    }
+
+    let scored: Vec<(SearchResult, f32)> = results
+        .drain(..)
+        .map(|r| {
+            let title_lower = r.title.to_lowercase();
+            let content_lower = r.content.to_lowercase();
+            let _combined = format!("{} {}", title_lower, content_lower);
+
+            let exact_title_matches = query_terms
+                .iter()
+                .filter(|qt| title_lower.contains(qt.as_str()))
+                .count() as f32;
+
+            let content_matches = query_terms
+                .iter()
+                .filter(|qt| content_lower.contains(qt.as_str()))
+                .count() as f32;
+
+            let title_coverage = exact_title_matches / query_terms.len() as f32;
+            let content_coverage = content_matches / query_terms.len() as f32;
+
+            let url_bonus = if !r.url.is_empty() { 0.1 } else { 0.0 };
+
+            let content_bonus = if r.content.len() > 100 {
+                0.1
+            } else if r.content.len() > 50 {
+                0.05
+            } else {
+                0.0
+            };
+
+            let official_bonus = if is_official_source(&r.url) { 0.2 } else { 0.0 };
+
+            let score = title_coverage * 3.0
+                + content_coverage * 1.0
+                + url_bonus
+                + content_bonus
+                + official_bonus;
+
+            (r, score)
+        })
+        .collect();
+
+    let mut sorted = scored;
+    sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    results.extend(sorted.into_iter().map(|(r, _)| r));
+}
+
+fn is_official_source(url: &str) -> bool {
+    let official_domains = [
+        "github.com",
+        "docs.microsoft.com",
+        "developer.mozilla.org",
+        "python.org",
+        "rust-lang.org",
+        "nodejs.org",
+        "react.dev",
+        "angular.io",
+        "vuejs.org",
+        "tensorflow.org",
+        "pytorch.org",
+        "openai.com",
+        "anthropic.com",
+        "arxiv.org",
+        "stackoverflow.com",
+        "wikipedia.org",
+        "nginx.org",
+        "docker.com",
+        "kubernetes.io",
+    ];
+
+    official_domains
+        .iter()
+        .any(|d| url.to_lowercase().contains(d))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CascadeSearchResult {
+    pub query: String,
+    pub local_results: Vec<SearchResult>,
+    pub web_results: Vec<SearchResult>,
+    pub source_used: CascadeSource,
+    pub total_results: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CascadeSource {
+    LocalOnly,
+    WebOnly,
+    LocalAndWeb,
+}
+
+pub fn should_supplement_with_web(
+    local_results: &[SearchResult],
+    query: &str,
+    min_results: usize,
+) -> bool {
+    if local_results.len() >= min_results {
+        let avg_relevance = local_results
+            .iter()
+            .map(|r| if r.content.len() > 100 { 1.0 } else { 0.5 })
+            .sum::<f32>()
+            / local_results.len().max(1) as f32;
+
+        if avg_relevance > 0.7 {
+            return false;
+        }
+    }
+
+    let intent = classify_search_intent(query);
+    matches!(intent, SearchIntent::MustSearch)
+        || (local_results.len() < min_results && matches!(intent, SearchIntent::ShouldSearch))
+}
+
+pub fn merge_local_and_web(
+    local: Vec<SearchResult>,
+    web: Vec<SearchResult>,
+    max_total: usize,
+) -> Vec<SearchResult> {
+    let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut merged = Vec::new();
+
+    for r in &local {
+        let key = r.url.trim_end_matches('/').to_lowercase();
+        if !key.is_empty() {
+            seen_urls.insert(key);
+        }
+        merged.push(r.clone());
+    }
+
+    for r in &web {
+        let key = r.url.trim_end_matches('/').to_lowercase();
+        if !key.is_empty() && seen_urls.contains(&key) {
+            continue;
+        }
+        if !key.is_empty() {
+            seen_urls.insert(key);
+        }
+        merged.push(r.clone());
+    }
+
+    merged.truncate(max_total);
+    merged
+}
+
 pub async fn test_provider(
     provider_type: &str,
     endpoint: Option<&str>,
@@ -765,18 +1039,18 @@ async fn search_bocha(
 // ── DuckDuckGo (fallback, no API key needed) ────────────────
 
 async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchResult>> {
-    // Try Instant Answer API first
-    let api_url = format!(
-        "https://api.duckduckgo.com/?q={}&format=json&no_html=1&skip_disambig=1&t=axagent",
-        urlencoding::encode(query)
-    );
     let client = Client::builder()
-        .user_agent("axagent/1.0")
-        .timeout(std::time::Duration::from_secs(10))
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(20))
         .build()
         .map_err(|e| AxAgentError::Provider(format!("DDG client error: {e}")))?;
 
     let mut results: Vec<SearchResult> = Vec::new();
+
+    let api_url = format!(
+        "https://api.duckduckgo.com/?q={}&format=json&no_html=1&skip_disambig=1&t=axagent",
+        urlencoding::encode(query)
+    );
 
     if let Ok(resp) = client.get(&api_url).send().await {
         if let Ok(json) = resp.json::<serde_json::Value>().await {
@@ -808,26 +1082,77 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
         }
     }
 
-    // HTML fallback if API returned nothing
     if results.is_empty() {
         let html_url =
             format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
-        if let Ok(resp) = client.get(&html_url).send().await {
+
+        let resp = client
+            .get(&html_url)
+            .header("Accept", "text/html,application/xhtml+xml")
+            .header("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8")
+            .send()
+            .await;
+
+        if let Ok(resp) = resp {
             if let Ok(html) = resp.text().await {
-                for part in html
-                    .split("result__snippet")
-                    .skip(1)
+                let title_re = regex::Regex::new(r#"class="result__a"[^>]*>(.*?)</a>"#).unwrap();
+                let snippet_re = regex::Regex::new(r#"class="result__snippet"(?:\s*[^>]*)?>(.*?)</"#).unwrap();
+                let href_re = regex::Regex::new(r#"href="([^"]*)""#).unwrap();
+                let tag_re = regex::Regex::new(r"<[^>]+>").unwrap();
+
+                let title_caps: Vec<String> = title_re
+                    .captures_iter(&html)
+                    .filter_map(|c| c.get(1).map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string()))
+                    .filter(|s| !s.is_empty())
                     .take(max_results as usize)
-                {
-                    if let Some(start) = part.find('>') {
-                        if let Some(end) = part[start + 1..].find("</") {
-                            let text = part[start + 1..start + 1 + end].trim();
-                            if !text.is_empty() {
-                                results.push(SearchResult {
-                                    title: text.chars().take(80).collect(),
-                                    content: text.to_string(),
-                                    url: String::new(),
-                                });
+                    .collect();
+
+                let snippet_caps: Vec<String> = snippet_re
+                    .captures_iter(&html)
+                    .filter_map(|c| c.get(1).map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string()))
+                    .filter(|s| !s.is_empty())
+                    .take(max_results as usize)
+                    .collect();
+
+                let href_caps: Vec<String> = href_re
+                    .captures_iter(&html)
+                    .take(max_results as usize * 3)
+                    .filter_map(|c| c.get(1).map(|m| m.as_str().to_string()))
+                    .filter(|u| u.contains("uddg=") || u.starts_with("http"))
+                    .take(max_results as usize)
+                    .collect();
+
+                let count = title_caps.len().max(snippet_caps.len()).min(max_results as usize);
+                for i in 0..count {
+                    let title = title_caps.get(i).cloned().unwrap_or_default();
+                    let snippet = snippet_caps.get(i).cloned().unwrap_or_default();
+                    let url = href_caps.get(i).cloned().unwrap_or_default();
+
+                    if !title.is_empty() {
+                        results.push(SearchResult {
+                            title,
+                            content: snippet,
+                            url,
+                        });
+                    }
+                }
+
+                if results.is_empty() {
+                    for part in html
+                        .split("result__snippet")
+                        .skip(1)
+                        .take(max_results as usize)
+                    {
+                        if let Some(start) = part.find('>') {
+                            if let Some(end) = part[start + 1..].find("</") {
+                                let text = part[start + 1..start + 1 + end].trim();
+                                if !text.is_empty() {
+                                    results.push(SearchResult {
+                                        title: text.chars().take(80).collect(),
+                                        content: text.to_string(),
+                                        url: String::new(),
+                                    });
+                                }
                             }
                         }
                     }

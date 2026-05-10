@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   ConnectionMode,
-  Controls,
   Edge,
   EdgeLabelRenderer,
   EdgeProps,
@@ -11,21 +10,24 @@ import ReactFlow, {
   Node,
   NodeTypes,
   Panel,
+  ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { Card, Empty, Select, Space, Tag, theme, Tooltip, Typography } from "antd";
+import { Card, Empty, Segmented, Select, Space, Tag, theme, Tooltip, Typography } from "antd";
 import {
   forceCenter,
   forceCollide,
   forceLink,
   forceManyBody,
+  forceRadial,
   forceSimulation,
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
-import { Book, FileText, Hash, Link2 } from "lucide-react";
+import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -56,6 +58,8 @@ export interface GraphData {
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
+
+export type LayoutMode = "force" | "radial" | "hierarchy";
 
 export interface GraphViewProps {
   data: GraphData;
@@ -136,6 +140,70 @@ interface SimLink {
   target: string | SimNode;
 }
 
+function computeLayout(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  mode: LayoutMode,
+  width: number,
+  height: number,
+): Map<string, { x: number; y: number }> {
+  const cx = width / 2;
+  const cy = height / 2;
+  const simNodes: SimNode[] = nodes.map((node) => ({
+    id: node.id,
+    x: node.x ?? Math.random() * width,
+    y: node.y ?? Math.random() * height,
+  }));
+
+  const simLinks: SimLink[] = edges.map((edge) => ({
+    source: edge.source,
+    target: edge.target,
+  }));
+
+  const simulation = forceSimulation<SimulationNodeDatum>(simNodes as SimulationNodeDatum[])
+    .force("collide", forceCollide(70));
+
+  if (mode === "force") {
+    simulation
+      .force(
+        "link",
+        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
+          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
+        ).id((d: SimulationNodeDatum) => (d as SimNode).id).distance(120),
+      )
+      .force("charge", forceManyBody().strength(-250))
+      .force("center", forceCenter(cx, cy));
+  } else if (mode === "radial") {
+    simulation
+      .force(
+        "link",
+        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
+          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
+        ).id((d: SimulationNodeDatum) => (d as SimNode).id).distance(80),
+      )
+      .force("radial", forceRadial(Math.min(width, height) * 0.3, cx, cy).strength(0.8))
+      .force("center", forceCenter(cx, cy));
+  } else {
+    simulation
+      .force(
+        "link",
+        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
+          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
+        ).id((d: SimulationNodeDatum) => (d as SimNode).id).distance(100).strength(0.5),
+      )
+      .force("charge", forceManyBody().strength(-400))
+      .force("center", forceCenter(cx, cy));
+  }
+
+  simulation.tick(300);
+
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const node of simNodes) {
+    positions.set(node.id, { x: node.x, y: node.y });
+  }
+  return positions;
+}
+
 function WikiEdgeComponent({
   id,
   sourceX,
@@ -169,7 +237,6 @@ function WikiEdgeComponent({
           strokeWidth={style.strokeWidth + 2}
           fill="none"
           opacity={0.3}
-          style={{ filter: "url(#wavy-filter)" }}
         />
       )}
       <path
@@ -180,7 +247,8 @@ function WikiEdgeComponent({
         strokeWidth={isSelected ? style.strokeWidth + 0.5 : style.strokeWidth}
         fill="none"
         strokeDasharray={style.dashArray}
-        opacity={isSelected ? 1 : 0.7}
+        opacity={isSelected ? 1 : 0.6}
+        style={{ transition: "stroke 0.3s ease, opacity 0.3s ease" }}
       />
       {style.animated && (
         <path
@@ -235,94 +303,119 @@ const CustomNode = ({
   const isHighlighted = data.isHighlighted !== false;
   const isSelected = data.isSelected || selected;
 
+  const linkSum = data.linkCount + data.backlinkCount;
+  const size = Math.max(120, Math.min(200, 100 + linkSum * 4));
+
   return (
     <Tooltip
       title={
         <div>
           <div style={{ fontWeight: 600 }}>{data.title}</div>
           <div style={{ fontSize: 12, opacity: 0.8 }}>
-            {data.linkCount} outgoing / {data.backlinkCount} incoming
+            →{data.linkCount} outgoing / ←{data.backlinkCount} incoming
           </div>
           <div style={{ fontSize: 11, opacity: 0.6 }}>{data.path}</div>
-          {data.isExpanded && <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>expanded</div>}
         </div>
       }
     >
       <div
+        className="wiki-graph-node"
         style={{
-          padding: "8px 12px",
-          borderRadius: 10,
-          background: `${token.colorBgContainer}ee`,
-          backdropFilter: "blur(8px)",
-          border: `1.5px solid ${isSelected ? nodeColor : `${token.colorBorderSecondary}30`}`,
+          padding: "8px 14px",
+          borderRadius: 12,
+          background: isSelected
+            ? `linear-gradient(135deg, ${token.colorBgContainer}f5, ${token.colorBgContainer}ee)`
+            : `${token.colorBgContainer}ee`,
+          backdropFilter: "blur(12px)",
+          border: `1.5px solid ${isSelected ? nodeColor : `${token.colorBorderSecondary}40`}`,
           boxShadow: isSelected
-            ? `0 0 0 1px ${nodeColor}30, 0 4px 24px ${nodeColor}20, 0 8px 16px rgba(0,0,0,0.08)`
-            : "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
-          opacity: isHighlighted ? 1 : 0.2,
-          minWidth: 120,
-          maxWidth: 200,
+            ? `0 0 0 2px ${nodeColor}25, 0 0 20px ${nodeColor}15, 0 8px 32px rgba(0,0,0,0.1)`
+            : `0 2px 8px rgba(0,0,0,0.04)`,
+          opacity: isHighlighted ? 1 : 0.15,
+          minWidth: size * 0.6,
+          maxWidth: size,
           cursor: "pointer",
-          transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-          transform: isSelected ? "scale(1.03)" : "scale(1)",
+          transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+          transform: isSelected ? "scale(1.05)" : "scale(1)",
+          position: "relative",
+          overflow: "hidden",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "scale(1.04)";
-          e.currentTarget.style.boxShadow = `0 4px 20px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06)`;
+          e.currentTarget.style.transform = "scale(1.06)";
+          e.currentTarget.style.boxShadow =
+            `0 0 0 2px ${nodeColor}30, 0 4px 24px ${nodeColor}20, 0 8px 24px rgba(0,0,0,0.08)`;
+          e.currentTarget.style.borderColor = nodeColor;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.transform = isSelected ? "scale(1.03)" : "scale(1)";
+          e.currentTarget.style.transform = isSelected ? "scale(1.05)" : "scale(1)";
           e.currentTarget.style.boxShadow = isSelected
-            ? `0 0 0 1px ${nodeColor}30, 0 4px 24px ${nodeColor}20, 0 8px 16px rgba(0,0,0,0.08)`
-            : "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)";
+            ? `0 0 0 2px ${nodeColor}25, 0 0 20px ${nodeColor}15, 0 8px 32px rgba(0,0,0,0.1)`
+            : `0 2px 8px rgba(0,0,0,0.04)`;
+          e.currentTarget.style.borderColor = isSelected ? nodeColor : `${token.colorBorderSecondary}40`;
         }}
       >
+        {isSelected && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: `radial-gradient(circle at center, ${nodeColor}08, transparent 70%)`,
+              pointerEvents: "none",
+            }}
+          />
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-          {data.type === "note" && <FileText size={14} style={{ color: nodeColor }} />}
-          {data.type === "concept" && <Hash size={14} style={{ color: nodeColor }} />}
-          {data.type === "entity" && <Book size={14} style={{ color: nodeColor }} />}
-          {data.type === "source" && <Link2 size={14} style={{ color: nodeColor }} />}
-          <Text strong style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis" }}>
-            {data.title}
-          </Text>
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              backgroundColor: nodeColor,
+              boxShadow: `0 0 6px ${nodeColor}60`,
+              flexShrink: 0,
+            }}
+          />
+          <Text strong ellipsis style={{ fontSize: 13, flex: 1, minWidth: 0 }}>{data.title}</Text>
         </div>
-        <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-          {data.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              style={{
-                fontSize: 9,
-                padding: "1px 5px",
-                borderRadius: 999,
-                background: `${nodeColor}14`,
-                color: nodeColor,
-                fontWeight: 500,
-                letterSpacing: "0.02em",
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-          {data.tags.length > 3 && (
-            <span
-              style={{
-                fontSize: 9,
-                padding: "1px 5px",
-                borderRadius: 999,
-                background: `${token.colorBorderSecondary}30`,
-                color: token.colorTextSecondary,
-              }}
-            >
-              +{data.tags.length - 3}
-            </span>
-          )}
-        </div>
+        {data.tags.length > 0 && (
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+            {data.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  fontSize: 9,
+                  padding: "1px 6px",
+                  borderRadius: 999,
+                  background: `${nodeColor}12`,
+                  color: nodeColor,
+                  fontWeight: 500,
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+            {data.tags.length > 3 && (
+              <span
+                style={{
+                  fontSize: 9,
+                  padding: "1px 5px",
+                  borderRadius: 999,
+                  background: `${token.colorBorderSecondary}25`,
+                  color: token.colorTextSecondary,
+                }}
+              >
+                +{data.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            marginTop: 6,
-            fontSize: 11,
-            color: token.colorTextSecondary,
+            marginTop: 4,
+            fontSize: 10,
+            color: token.colorTextTertiary,
           }}
         >
           <span>→{data.linkCount}</span>
@@ -341,7 +434,7 @@ const edgeTypes = {
   wikiEdge: WikiEdgeComponent,
 };
 
-export function GraphView({
+function GraphViewInner({
   data,
   onNodeClick,
   onNodeDoubleClick,
@@ -352,14 +445,16 @@ export function GraphView({
   filters,
   onFiltersChange,
   showMinimap = true,
-  showControls = true,
+  showControls: _showControls = true,
   communities,
 }: GraphViewProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [, setDimensions] = useState({ width: 800, height: 600 });
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("force");
+  const reactFlowInstance = useReactFlow();
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -370,13 +465,11 @@ export function GraphView({
         });
       }
     };
-
     updateDimensions();
     const observer = new ResizeObserver(updateDimensions);
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
-
     return () => observer.disconnect();
   }, []);
 
@@ -401,9 +494,7 @@ export function GraphView({
       const neighbors = neighborMap.get(expandedId);
       if (neighbors) {
         for (const nid of neighbors) {
-          if (!allNodeIds.has(nid)) {
-            ids.add(nid);
-          }
+          if (!allNodeIds.has(nid)) { ids.add(nid); }
         }
       }
     }
@@ -412,24 +503,16 @@ export function GraphView({
 
   const filteredNodes = useMemo(() => {
     return data.nodes.filter((node) => {
-      if (filters?.tags?.length && !node.tags.some((t) => filters.tags!.includes(t))) {
-        return false;
-      }
-      if (filters?.pathPrefix && !node.path.startsWith(filters.pathPrefix)) {
-        return false;
-      }
-      if (filters?.types?.length && !filters.types.includes(node.type)) {
-        return false;
-      }
+      if (filters?.tags?.length && !node.tags.some((ft) => filters.tags!.includes(ft))) { return false; }
+      if (filters?.pathPrefix && !node.path.startsWith(filters.pathPrefix)) { return false; }
+      if (filters?.types?.length && !filters.types.includes(node.type)) { return false; }
       return true;
     });
   }, [data.nodes, filters]);
 
   const visibleNodeIds = useMemo(() => {
     const ids = new Set(filteredNodes.map((n) => n.id));
-    for (const nid of expandedNeighborIds) {
-      ids.add(nid);
-    }
+    for (const nid of expandedNeighborIds) { ids.add(nid); }
     return ids;
   }, [filteredNodes, expandedNeighborIds]);
 
@@ -438,39 +521,8 @@ export function GraphView({
   }, [data.edges, visibleNodeIds]);
 
   const layoutPositions = useMemo(() => {
-    const simNodes: SimNode[] = filteredNodes.map((node) => ({
-      id: node.id,
-      x: node.x ?? Math.random() * 400,
-      y: node.y ?? Math.random() * 400,
-    }));
-
-    const simLinks: SimLink[] = filteredEdges.map((edge) => ({
-      source: edge.source,
-      target: edge.target,
-    }));
-
-    const simulation = forceSimulation<SimulationNodeDatum>(simNodes as SimulationNodeDatum[])
-      .force(
-        "link",
-        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
-          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
-        )
-          .id((d: SimulationNodeDatum) => (d as SimNode).id)
-          .distance(100),
-      )
-      .force("charge", forceManyBody().strength(-200))
-      .force("center", forceCenter(250, 250))
-      .force("collide", forceCollide(60))
-      .stop();
-
-    simulation.tick(300);
-
-    const positions = new Map<string, { x: number; y: number }>();
-    for (const node of simNodes) {
-      positions.set(node.id, { x: node.x, y: node.y });
-    }
-    return positions;
-  }, [filteredNodes, filteredEdges]);
+    return computeLayout(filteredNodes, filteredEdges, layoutMode, dimensions.width, dimensions.height);
+  }, [filteredNodes, filteredEdges, layoutMode, dimensions]);
 
   const initialNodes: Node[] = useMemo(
     () =>
@@ -516,8 +568,9 @@ export function GraphView({
             stroke: style.stroke,
             strokeWidth: style.strokeWidth,
             opacity: hasHighlights
-              ? (highlightedNodeIds?.has(edge.source) && highlightedNodeIds?.has(edge.target) ? 0.8 : 0.1)
-              : 1,
+              ? (highlightedNodeIds?.has(edge.source) && highlightedNodeIds?.has(edge.target) ? 0.8 : 0.08)
+              : 0.6,
+            transition: "opacity 0.4s ease",
           },
           animated: edge.type === "backlink",
         };
@@ -533,6 +586,15 @@ export function GraphView({
     setEdges(initialEdges);
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
+  useEffect(() => {
+    if (reactFlowInstance && initialNodes.length > 0) {
+      const timer = setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.15, duration: 600 });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [layoutMode, reactFlowInstance, initialNodes.length]);
+
   const onNodeClickHandler = useCallback(
     (_: React.MouseEvent, node: Node) => {
       onNodeClick?.(node.id);
@@ -544,11 +606,8 @@ export function GraphView({
     (_: React.MouseEvent, node: Node) => {
       setExpandedNodeIds((prev) => {
         const next = new Set(prev);
-        if (next.has(node.id)) {
-          next.delete(node.id);
-        } else {
-          next.add(node.id);
-        }
+        if (next.has(node.id)) { next.delete(node.id); }
+        else { next.add(node.id); }
         return next;
       });
       onNodeDoubleClick?.(node.id);
@@ -575,9 +634,34 @@ export function GraphView({
     onNodeHover?.(null);
   }, [onNodeHover]);
 
+  const handleFocusSelected = useCallback(() => {
+    if (selectedNodeId && reactFlowInstance) {
+      const node = nodes.find((n) => n.id === selectedNodeId);
+      if (node) {
+        reactFlowInstance.fitView({
+          nodes: [node],
+          padding: 0.4,
+          duration: 500,
+        });
+      }
+    }
+  }, [selectedNodeId, reactFlowInstance, nodes]);
+
+  const handleFitAll = useCallback(() => {
+    reactFlowInstance?.fitView({ padding: 0.15, duration: 600 });
+  }, [reactFlowInstance]);
+
+  const handleZoomIn = useCallback(() => {
+    reactFlowInstance?.zoomIn({ duration: 300 });
+  }, [reactFlowInstance]);
+
+  const handleZoomOut = useCallback(() => {
+    reactFlowInstance?.zoomOut({ duration: 300 });
+  }, [reactFlowInstance]);
+
   const allTags = useMemo(() => {
     const tags = new Set<string>();
-    data.nodes.forEach((n) => n.tags.forEach((t) => tags.add(t)));
+    data.nodes.forEach((n) => n.tags.forEach((ft) => tags.add(ft)));
     return Array.from(tags).sort();
   }, [data.nodes]);
 
@@ -605,27 +689,54 @@ export function GraphView({
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
+        fitViewOptions={{ padding: 0.15, duration: 800 }}
+        minZoom={0.05}
+        maxZoom={4}
+        defaultViewport={{ zoom: 1, x: 0, y: 0 }}
         attributionPosition="bottom-left"
         style={{ background: token.colorBgLayout }}
+        proOptions={{ hideAttribution: true }}
       >
-        {showControls && <Controls />}
+        <Background gap={20} size={1} color={`${token.colorBorderSecondary}40`} />
+
         {showMinimap && (
           <MiniMap
             nodeColor={(n) => {
               const graphNode = data.nodes.find((gn) => gn.id === n.id);
               return graphNode ? getNodeColor(graphNode, communities) : nodeColors.note;
             }}
-            maskColor={`${token.colorBgContainer}cc`}
+            maskColor={`${token.colorBgContainer}aa`}
+            style={{ borderRadius: 8, overflow: "hidden" }}
+            pannable
+            zoomable
           />
         )}
-        <Background gap={16} color={`${token.colorBorderSecondary}`} />
 
         <Panel position="top-left">
-          <Card size="small" style={{ minWidth: 200 }}>
+          <Card
+            size="small"
+            style={{
+              minWidth: 220,
+              borderRadius: 10,
+              backdropFilter: "blur(12px)",
+              background: `${token.colorBgContainer}ee`,
+              border: `1px solid ${token.colorBorderSecondary}40`,
+            }}
+          >
             <Space direction="vertical" size="small" style={{ width: "100%" }}>
-              <Text strong style={{ fontSize: 12 }}>
-                {t("wiki.graph.filters")}
-              </Text>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Text strong style={{ fontSize: 12 }}>{t("wiki.graph.filters")}</Text>
+                <Segmented
+                  size="small"
+                  value={layoutMode}
+                  onChange={(v) => setLayoutMode(v as LayoutMode)}
+                  options={[
+                    { label: "Force", value: "force" },
+                    { label: "Radial", value: "radial" },
+                    { label: "Dense", value: "hierarchy" },
+                  ]}
+                />
+              </div>
               <Select
                 mode="multiple"
                 placeholder={t("wiki.graph.filterByTags")}
@@ -636,9 +747,9 @@ export function GraphView({
                 options={allTags.map((tag) => ({ label: tag, value: tag }))}
                 maxTagCount={3}
               />
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => (
-                  <Tag key={type} color={nodeColors[type]} style={{ fontSize: 11 }}>
+                  <Tag key={type} color={nodeColors[type]} style={{ fontSize: 11, margin: 0 }}>
                     {type}: {data.nodes.filter((n) =>
                       n.type === type
                     ).length}
@@ -664,58 +775,193 @@ export function GraphView({
         </Panel>
 
         <Panel position="top-right">
-          <Card size="small">
+          <Card
+            size="small"
+            style={{
+              borderRadius: 10,
+              backdropFilter: "blur(12px)",
+              background: `${token.colorBgContainer}ee`,
+              border: `1px solid ${token.colorBorderSecondary}40`,
+            }}
+          >
             <Space direction="vertical" size="small">
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {t("wiki.graph.stats")}
-              </Text>
-              <Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>{t("wiki.graph.stats")}</Text>
+              <Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.nodes")}: {filteredNodes.length} / {data.nodes.length}
               </Text>
-              <Text>
+              <Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.edges")}: {filteredEdges.length} / {data.edges.length}
               </Text>
               {expandedNodeIds.size > 0 && (
-                <Text type="secondary" style={{ fontSize: 11 }}>
-                  Expanded: {expandedNodeIds.size}
-                </Text>
+                <Text type="secondary" style={{ fontSize: 11 }}>Expanded: {expandedNodeIds.size}</Text>
               )}
               {hasHighlights && (
-                <Text type="secondary" style={{ fontSize: 11 }}>
-                  Highlighted: {highlightedNodeIds!.size}
-                </Text>
+                <Text type="secondary" style={{ fontSize: 11 }}>Highlighted: {highlightedNodeIds!.size}</Text>
               )}
             </Space>
           </Card>
         </Panel>
 
         <Panel position="bottom-right">
-          <Card size="small" style={{ padding: "4px 8px" }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10 }}>
-              {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
-                const s = edgeTypeStyles[et];
-                return (
-                  <span key={et} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <svg width="20" height="6">
-                      <line
-                        x1="0"
-                        y1="3"
-                        x2="20"
-                        y2="3"
-                        stroke={s.stroke}
-                        strokeWidth={s.strokeWidth}
-                        strokeDasharray={s.dashArray}
-                      />
-                    </svg>
-                    <span style={{ color: s.stroke }}>{edgeTypeLabels[et]}</span>
-                  </span>
-                );
-              })}
-            </div>
-          </Card>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <Card
+              size="small"
+              style={{
+                borderRadius: 10,
+                backdropFilter: "blur(12px)",
+                background: `${token.colorBgContainer}ee`,
+                border: `1px solid ${token.colorBorderSecondary}40`,
+                padding: "4px 8px",
+              }}
+            >
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10 }}>
+                {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
+                  const s = edgeTypeStyles[et];
+                  return (
+                    <span key={et} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <svg width="20" height="6">
+                        <line
+                          x1="0"
+                          y1="3"
+                          x2="20"
+                          y2="3"
+                          stroke={s.stroke}
+                          strokeWidth={s.strokeWidth}
+                          strokeDasharray={s.dashArray}
+                        />
+                      </svg>
+                      <span style={{ color: s.stroke }}>{edgeTypeLabels[et]}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+        </Panel>
+
+        <Panel position="bottom-center">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "4px 8px",
+              borderRadius: 20,
+              background: `${token.colorBgContainer}ee`,
+              backdropFilter: "blur(12px)",
+              border: `1px solid ${token.colorBorderSecondary}40`,
+            }}
+          >
+            <Tooltip title={t("wiki.graph.zoomIn", "Zoom In")}>
+              <button
+                onClick={handleZoomIn}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  color: token.colorTextSecondary,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = token.colorBgTextHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
+              >
+                <ZoomIn size={16} />
+              </button>
+            </Tooltip>
+            <Tooltip title={t("wiki.graph.zoomOut", "Zoom Out")}>
+              <button
+                onClick={handleZoomOut}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  color: token.colorTextSecondary,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = token.colorBgTextHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
+              >
+                <ZoomOut size={16} />
+              </button>
+            </Tooltip>
+            <Tooltip title={t("wiki.graph.fitView", "Fit View")}>
+              <button
+                onClick={handleFitAll}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  color: token.colorTextSecondary,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = token.colorBgTextHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
+              >
+                <Maximize2 size={16} />
+              </button>
+            </Tooltip>
+            {selectedNodeId && (
+              <Tooltip title={t("wiki.graph.focusSelected", "Focus Selected")}>
+                <button
+                  onClick={handleFocusSelected}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 4,
+                    borderRadius: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    color: token.colorPrimary,
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = token.colorBgTextHover;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "none";
+                  }}
+                >
+                  <Minimize2 size={16} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
         </Panel>
       </ReactFlow>
     </div>
+  );
+}
+
+export function GraphView(props: GraphViewProps) {
+  return (
+    <ReactFlowProvider>
+      <GraphViewInner {...props} />
+    </ReactFlowProvider>
   );
 }
 

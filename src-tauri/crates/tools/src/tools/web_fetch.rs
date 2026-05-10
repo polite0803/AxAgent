@@ -149,7 +149,7 @@ fn html_to_text(html: &str) -> String {
 
     let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
     for nid in noise_ids {
-        if let Some(node) = doc.tree.get_mut(nid) {
+        if let Some(mut node) = doc.tree.get_mut(nid) {
             node.detach();
         }
     }

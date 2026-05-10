@@ -91,6 +91,8 @@ impl Tool for WebSearchTool {
         });
         all_results.truncate(10);
 
+        axagent_core::search::rerank_search_results(query, &mut all_results);
+
         if all_results.is_empty() {
             return Ok(ToolResult::success(format!("No search results found for '{}'", query)));
         }
@@ -181,7 +183,7 @@ fn extract_page_text(html: &str) -> String {
 
     let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
     for nid in noise_ids {
-        if let Some(node) = doc.tree.get_mut(nid) {
+        if let Some(mut node) = doc.tree.get_mut(nid) {
             node.detach();
         }
     }
