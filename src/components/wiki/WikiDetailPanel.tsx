@@ -454,7 +454,7 @@ export function WikiDetailPanel({
 function highlightWikilink(snippet: string, linkText: string) {
   const linkPattern = `[[${linkText}]]`;
   const parts = snippet.split(linkPattern);
-  if (parts.length === 1) return <span>{snippet}</span>;
+  if (parts.length === 1) { return <span>{snippet}</span>; }
 
   return (
     <span>

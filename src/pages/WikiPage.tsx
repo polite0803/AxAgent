@@ -1,4 +1,4 @@
-import { TagAggregationPanel, extractTagsFromContent } from "@/components/wiki/TagAggregationPanel";
+import { extractTagsFromContent, TagAggregationPanel } from "@/components/wiki/TagAggregationPanel";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import { NoteSearchResult } from "@/types";
@@ -374,7 +374,10 @@ export function WikiPage() {
         title={t("wiki.importObsidian", "Import Obsidian Vault")}
         open={importModalOpen}
         onOk={handleImport}
-        onCancel={() => { setImportModalOpen(false); setImportPath(""); }}
+        onCancel={() => {
+          setImportModalOpen(false);
+          setImportPath("");
+        }}
         okText={t("wiki.startImport", "Import")}
         okButtonProps={{ loading: importing, disabled: !importPath.trim() }}
       >

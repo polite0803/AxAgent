@@ -47,18 +47,22 @@ function DiffView({ oldContent, newContent }: { oldContent: string; newContent: 
   return (
     <div
       className="text-xs font-mono overflow-auto"
-      style={{ maxHeight: 300, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius, padding: 8 }}
+      style={{
+        maxHeight: 300,
+        border: `1px solid ${token.colorBorderSecondary}`,
+        borderRadius: token.borderRadius,
+        padding: 8,
+      }}
     >
       {diffLines.map((dl, i) => (
         <div
           key={i}
           style={{
-            backgroundColor:
-              dl.type === "added"
-                ? token.colorSuccessBg
-                : dl.type === "removed"
-                  ? token.colorErrorBg
-                  : "transparent",
+            backgroundColor: dl.type === "added"
+              ? token.colorSuccessBg
+              : dl.type === "removed"
+              ? token.colorErrorBg
+              : "transparent",
             textDecoration: dl.type === "removed" ? "line-through" : "none",
             opacity: dl.type === "removed" ? 0.7 : 1,
             whiteSpace: "pre-wrap",
@@ -151,103 +155,115 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
       width={520}
       styles={{ body: { padding: 0 } }}
     >
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Spin size="large" />
-        </div>
-      ) : versions.length === 0 ? (
-        <div className="py-12">
-          <Empty description={t("wiki.noVersions", "No version history")} />
-        </div>
-      ) : (
-        <div className="flex flex-col h-full">
-          <List
-            className="flex-1 overflow-auto"
-            dataSource={versions}
-            renderItem={(version) => (
-              <List.Item
-                style={{
-                  cursor: "pointer",
-                  backgroundColor: selectedVersion?.id === version.id ? token.colorPrimaryBg : "transparent",
-                  padding: "8px 16px",
-                  borderLeft: selectedVersion?.id === version.id ? `3px solid ${token.colorPrimary}` : "3px solid transparent",
-                }}
-                onClick={() => handleSelectVersion(version)}
-                actions={[
-                  <Tooltip key="diff" title={t("wiki.compareDiff", "Compare diff")}>
-                    <Button
-                      size="small"
-                      type={diffVersion?.id === version.id ? "primary" : "text"}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDiff(version);
-                      }}
-                    >
-                      Diff
-                    </Button>
-                  </Tooltip>,
-                  <Popconfirm
-                    key="restore"
-                    title={t("wiki.confirmRestore", "Restore this version?")}
-                    onConfirm={() => handleRestore(version.id)}
-                    okText={t("wiki.restore", "Restore")}
-                  >
-                    <Button
-                      size="small"
-                      icon={<RollbackOutlined />}
-                      loading={restoring}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {t("wiki.restore", "Restore")}
-                    </Button>
-                  </Popconfirm>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={
-                    <span className="text-sm">
-                      <Text type="secondary" className="text-xs">
-                        {formatTimestamp(version.createdAt)}
-                      </Text>
-                      <Text
-                        className="ml-2 text-xs font-mono"
-                        style={{ color: token.colorTextQuaternary }}
+      {loading
+        ? (
+          <div className="flex items-center justify-center py-12">
+            <Spin size="large" />
+          </div>
+        )
+        : versions.length === 0
+        ? (
+          <div className="py-12">
+            <Empty description={t("wiki.noVersions", "No version history")} />
+          </div>
+        )
+        : (
+          <div className="flex flex-col h-full">
+            <List
+              className="flex-1 overflow-auto"
+              dataSource={versions}
+              renderItem={(version) => (
+                <List.Item
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor: selectedVersion?.id === version.id ? token.colorPrimaryBg : "transparent",
+                    padding: "8px 16px",
+                    borderLeft: selectedVersion?.id === version.id
+                      ? `3px solid ${token.colorPrimary}`
+                      : "3px solid transparent",
+                  }}
+                  onClick={() => handleSelectVersion(version)}
+                  actions={[
+                    <Tooltip key="diff" title={t("wiki.compareDiff", "Compare diff")}>
+                      <Button
+                        size="small"
+                        type={diffVersion?.id === version.id ? "primary" : "text"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDiff(version);
+                        }}
                       >
-                        {shortHash(version.contentHash)}
-                      </Text>
-                    </span>
-                  }
-                  description={
-                    <span className="text-xs">
-                      {version.author} &middot; {version.title}
-                    </span>
-                  }
-                />
-              </List.Item>
+                        Diff
+                      </Button>
+                    </Tooltip>,
+                    <Popconfirm
+                      key="restore"
+                      title={t("wiki.confirmRestore", "Restore this version?")}
+                      onConfirm={() => handleRestore(version.id)}
+                      okText={t("wiki.restore", "Restore")}
+                    >
+                      <Button
+                        size="small"
+                        icon={<RollbackOutlined />}
+                        loading={restoring}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {t("wiki.restore", "Restore")}
+                      </Button>
+                    </Popconfirm>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={
+                      <span className="text-sm">
+                        <Text type="secondary" className="text-xs">
+                          {formatTimestamp(version.createdAt)}
+                        </Text>
+                        <Text
+                          className="ml-2 text-xs font-mono"
+                          style={{ color: token.colorTextQuaternary }}
+                        >
+                          {shortHash(version.contentHash)}
+                        </Text>
+                      </span>
+                    }
+                    description={
+                      <span className="text-xs">
+                        {version.author} &middot; {version.title}
+                      </span>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+
+            {selectedVersion && !diffVersion && (
+              <div
+                className="border-t p-3"
+                style={{
+                  maxHeight: 300,
+                  overflow: "auto",
+                  backgroundColor: token.colorBgContainer,
+                  borderColor: token.colorBorderSecondary,
+                }}
+              >
+                <Text className="text-xs font-mono" style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                  {selectedVersion.content}
+                </Text>
+              </div>
             )}
-          />
 
-          {selectedVersion && !diffVersion && (
-            <div
-              className="border-t p-3"
-              style={{ maxHeight: 300, overflow: "auto", backgroundColor: token.colorBgContainer, borderColor: token.colorBorderSecondary }}
-            >
-              <Text className="text-xs font-mono" style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
-                {selectedVersion.content}
-              </Text>
-            </div>
-          )}
-
-          {diffVersion && selectedVersion && (
-            <div className="border-t p-3" style={{ borderColor: token.colorBorderSecondary }}>
-              <Text className="text-xs mb-2 block" type="secondary">
-                {t("wiki.diffLabel", "Diff")}: {shortHash(diffVersion.contentHash)} → {shortHash(selectedVersion.contentHash)}
-              </Text>
-              <DiffView oldContent={diffVersion.content} newContent={selectedVersion.content} />
-            </div>
-          )}
-        </div>
-      )}
+            {diffVersion && selectedVersion && (
+              <div className="border-t p-3" style={{ borderColor: token.colorBorderSecondary }}>
+                <Text className="text-xs mb-2 block" type="secondary">
+                  {t("wiki.diffLabel", "Diff")}: {shortHash(diffVersion.contentHash)} →{" "}
+                  {shortHash(selectedVersion.contentHash)}
+                </Text>
+                <DiffView oldContent={diffVersion.content} newContent={selectedVersion.content} />
+              </div>
+            )}
+          </div>
+        )}
     </Drawer>
   );
 }

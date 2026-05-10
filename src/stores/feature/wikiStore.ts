@@ -1,5 +1,17 @@
 import { invoke } from "@/lib/invoke";
-import type { BacklinkInfo, CreateNoteInput, CreateWikiTemplateInput, ExportStats, ImportStats, Note, NoteLink, NoteSearchResult, NoteVersion, UpdateNoteInput, WikiTemplate } from "@/types";
+import type {
+  BacklinkInfo,
+  CreateNoteInput,
+  CreateWikiTemplateInput,
+  ExportStats,
+  ImportStats,
+  Note,
+  NoteLink,
+  NoteSearchResult,
+  NoteVersion,
+  UpdateNoteInput,
+  WikiTemplate,
+} from "@/types";
 import { create } from "zustand";
 
 interface WikiState {

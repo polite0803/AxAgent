@@ -16,8 +16,6 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Card, Empty, Select, Space, Tag, theme, Tooltip, Typography } from "antd";
-import { Book, FileText, Hash, Link2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import {
   forceCenter,
   forceCollide,
@@ -27,6 +25,8 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
+import { Book, FileText, Hash, Link2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -98,7 +98,10 @@ const communityPalette = [
   "#7AA153",
 ];
 
-const edgeTypeStyles: Record<GraphEdgeType, { stroke: string; strokeWidth: number; dashArray: string | undefined; animated: boolean }> = {
+const edgeTypeStyles: Record<
+  GraphEdgeType,
+  { stroke: string; strokeWidth: number; dashArray: string | undefined; animated: boolean }
+> = {
   link: { stroke: "#d9d9d9", strokeWidth: 1, dashArray: undefined, animated: false },
   backlink: { stroke: "#1890ff", strokeWidth: 2, dashArray: undefined, animated: true },
   reference: { stroke: "#52c41a", strokeWidth: 1.5, dashArray: "8,4", animated: false },
@@ -241,9 +244,7 @@ const CustomNode = ({
             {data.linkCount} outgoing / {data.backlinkCount} incoming
           </div>
           <div style={{ fontSize: 11, opacity: 0.6 }}>{data.path}</div>
-          {data.isExpanded && (
-            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>expanded</div>
-          )}
+          {data.isExpanded && <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>expanded</div>}
         </div>
       }
     >
@@ -384,8 +385,8 @@ export function GraphView({
   const neighborMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
     for (const edge of data.edges) {
-      if (!map.has(edge.source)) map.set(edge.source, new Set());
-      if (!map.has(edge.target)) map.set(edge.target, new Set());
+      if (!map.has(edge.source)) { map.set(edge.source, new Set()); }
+      if (!map.has(edge.target)) { map.set(edge.target, new Set()); }
       map.get(edge.source)!.add(edge.target);
       map.get(edge.target)!.add(edge.source);
     }
@@ -451,7 +452,9 @@ export function GraphView({
     const simulation = forceSimulation<SimulationNodeDatum>(simNodes as SimulationNodeDatum[])
       .force(
         "link",
-        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
+        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
+          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
+        )
           .id((d: SimulationNodeDatum) => (d as SimNode).id)
           .distance(100),
       )
@@ -487,7 +490,16 @@ export function GraphView({
           },
         };
       }),
-    [filteredNodes, layoutPositions, onNodeHover, hasHighlights, highlightedNodeIds, selectedNodeId, communities, expandedNodeIds],
+    [
+      filteredNodes,
+      layoutPositions,
+      onNodeHover,
+      hasHighlights,
+      highlightedNodeIds,
+      selectedNodeId,
+      communities,
+      expandedNodeIds,
+    ],
   );
 
   const initialEdges: Edge[] = useMemo(
@@ -686,7 +698,10 @@ export function GraphView({
                   <span key={et} style={{ display: "flex", alignItems: "center", gap: 3 }}>
                     <svg width="20" height="6">
                       <line
-                        x1="0" y1="3" x2="20" y2="3"
+                        x1="0"
+                        y1="3"
+                        x2="20"
+                        y2="3"
                         stroke={s.stroke}
                         strokeWidth={s.strokeWidth}
                         strokeDasharray={s.dashArray}

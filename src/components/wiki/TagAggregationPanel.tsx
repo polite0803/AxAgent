@@ -79,7 +79,9 @@ export function TagAggregationPanel({ notes, onTagClick, activeTag }: TagAggrega
           <Tag
             key={tag}
             color={activeTag === tag ? token.colorPrimary : undefined}
-            style={activeTag === tag ? { cursor: "pointer" } : { cursor: "pointer", borderColor: token.colorBorder, background: "transparent" }}
+            style={activeTag === tag
+              ? { cursor: "pointer" }
+              : { cursor: "pointer", borderColor: token.colorBorder, background: "transparent" }}
             onClick={() => onTagClick(tag)}
           >
             {tag} <span style={{ opacity: 0.6, fontSize: 10 }}>{count}</span>

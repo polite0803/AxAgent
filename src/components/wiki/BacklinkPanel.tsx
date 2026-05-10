@@ -1,9 +1,9 @@
-import type { BacklinkInfo } from "@/types";
 import { useWikiStore } from "@/stores/feature/wikiStore";
+import type { BacklinkInfo } from "@/types";
+import { Empty, List, Spin, theme, Typography } from "antd";
 import { ArrowLeftRight, ChevronDown, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Empty, List, Spin, theme, Typography } from "antd";
 
 const { Text, Paragraph } = Typography;
 
@@ -15,7 +15,7 @@ interface BacklinkPanelProps {
 function highlightWikilink(snippet: string, linkText: string) {
   const linkPattern = `[[${linkText}]]`;
   const parts = snippet.split(linkPattern);
-  if (parts.length === 1) return <span>{snippet}</span>;
+  if (parts.length === 1) { return <span>{snippet}</span>; }
 
   return (
     <span>
@@ -51,14 +51,14 @@ export function BacklinkPanel({ noteId, onNavigateToNote }: BacklinkPanelProps) 
   const [collapsed, setCollapsed] = useState(false);
 
   const loadBacklinks = useCallback(async () => {
-    if (!noteId) return;
+    if (!noteId) { return; }
     setLoading(true);
     const [bl, note] = await Promise.all([
       getNoteBacklinks(noteId),
       getNote(noteId),
     ]);
     setBacklinks(bl);
-    if (note) setNoteTitle(note.title);
+    if (note) { setNoteTitle(note.title); }
     setLoading(false);
   }, [noteId, getNoteBacklinks, getNote]);
 
