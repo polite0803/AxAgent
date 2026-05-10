@@ -2014,11 +2014,15 @@ Some text between blocks
 
     #[test]
     fn test_split_into_chunks_long_content() {
-        let content: String = (0..200)
-            .map(|i| format!("Line {} content here.\n", i))
+        let content: String = (0..500)
+            .map(|i| format!("Line {} content here with more text to increase length.\n", i))
             .collect();
         let chunks = WikiCompiler::split_into_chunks(&content, 6000, 500);
-        assert!(chunks.len() > 1);
+        assert!(
+            chunks.len() > 1,
+            "Expected multiple chunks for long content, got {}",
+            chunks.len()
+        );
         let total_len: usize = chunks.iter().map(|c| c.len()).sum();
         assert!(total_len >= content.len());
     }
