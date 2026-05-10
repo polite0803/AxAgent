@@ -510,7 +510,7 @@ pub async fn execute_iterative_search(
                             all_results.push(r);
                         }
                     }
-                }
+                },
                 _ => continue,
             }
         }
@@ -531,7 +531,9 @@ pub async fn execute_iterative_search(
     all_results.sort_by(|a, b| {
         let a_score = a.content.len() as f32 * 0.01 + if !a.url.is_empty() { 1.0 } else { 0.0 };
         let b_score = b.content.len() as f32 * 0.01 + if !b.url.is_empty() { 1.0 } else { 0.0 };
-        b_score.partial_cmp(&a_score).unwrap_or(std::cmp::Ordering::Equal)
+        b_score
+            .partial_cmp(&a_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
     all_results.truncate(max_results as usize);
 
@@ -551,7 +553,8 @@ fn extract_covered_topics(results: &[SearchResult]) -> Vec<String> {
 
     for r in results {
         for word in r.title.split_whitespace() {
-            let w = word.to_lowercase()
+            let w = word
+                .to_lowercase()
                 .chars()
                 .filter(|c| c.is_alphanumeric())
                 .collect::<String>();
@@ -1096,20 +1099,27 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
         if let Ok(resp) = resp {
             if let Ok(html) = resp.text().await {
                 let title_re = regex::Regex::new(r#"class="result__a"[^>]*>(.*?)</a>"#).unwrap();
-                let snippet_re = regex::Regex::new(r#"class="result__snippet"(?:\s*[^>]*)?>(.*?)</"#).unwrap();
+                let snippet_re =
+                    regex::Regex::new(r#"class="result__snippet"(?:\s*[^>]*)?>(.*?)</"#).unwrap();
                 let href_re = regex::Regex::new(r#"href="([^"]*)""#).unwrap();
                 let tag_re = regex::Regex::new(r"<[^>]+>").unwrap();
 
                 let title_caps: Vec<String> = title_re
                     .captures_iter(&html)
-                    .filter_map(|c| c.get(1).map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string()))
+                    .filter_map(|c| {
+                        c.get(1)
+                            .map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string())
+                    })
                     .filter(|s| !s.is_empty())
                     .take(max_results as usize)
                     .collect();
 
                 let snippet_caps: Vec<String> = snippet_re
                     .captures_iter(&html)
-                    .filter_map(|c| c.get(1).map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string()))
+                    .filter_map(|c| {
+                        c.get(1)
+                            .map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string())
+                    })
                     .filter(|s| !s.is_empty())
                     .take(max_results as usize)
                     .collect();
@@ -1122,7 +1132,10 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                     .take(max_results as usize)
                     .collect();
 
-                let count = title_caps.len().max(snippet_caps.len()).min(max_results as usize);
+                let count = title_caps
+                    .len()
+                    .max(snippet_caps.len())
+                    .min(max_results as usize);
                 for i in 0..count {
                     let title = title_caps.get(i).cloned().unwrap_or_default();
                     let snippet = snippet_caps.get(i).cloned().unwrap_or_default();
