@@ -135,29 +135,36 @@ impl Tool for WebFetchTool {
 }
 
 fn html_to_text(html: &str) -> String {
-    // 使用 scraper 解析
-    let document = scraper::Html::parse_document(html);
+    let mut doc = scraper::Html::parse_document(html);
 
-    // 移除 script 和 style
-    let _selector = scraper::Selector::parse("script, style, nav, footer, header").unwrap();
-    let mut text = String::new();
+    let noise_sel = scraper::Selector::parse(
+        "script, style, nav, footer, header, aside, iframe, noscript, svg, form, \
+         button, input, select, textarea, [role='navigation'], [role='banner'], \
+         [role='contentinfo'], [role='complementary'], .sidebar, .nav, .menu, \
+         .footer, .header, .ad, .ads, .advertisement, .cookie, .popup, .modal, \
+         .overlay, #sidebar, #nav, #footer, #header, #menu, .social, .share, \
+         .related, .comments"
+    ).unwrap();
 
-    // 优先提取 <main>, <article> 或 <body>
-    let main_sel = scraper::Selector::parse("main, article, body").unwrap();
-    if let Some(main) = document.select(&main_sel).next() {
-        for node in main.text() {
-            text.push_str(node);
-        }
-    } else {
-        for node in document.root_element().text() {
-            text.push_str(node);
+    let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
+    for nid in noise_ids {
+        if let Some(node) = doc.tree.get_mut(nid) {
+            node.detach();
         }
     }
 
-    // 清理多余空白
+    let content_sel = scraper::Selector::parse(
+        "main, article, [role='main'], [role='article'], .content, .post, \
+         .article, .entry, #content, #main, .main-content, .post-content, \
+         .article-content, .entry-content"
+    ).unwrap();
+
+    let root = doc.select(&content_sel).next().unwrap_or_else(|| doc.root_element());
+
+    let text: String = root.text().collect::<Vec<_>>().join(" ");
+
     let cleaned = text
-        .lines()
-        .filter(|l| !l.trim().is_empty())
+        .split_whitespace()
         .collect::<Vec<_>>()
         .join("\n");
 

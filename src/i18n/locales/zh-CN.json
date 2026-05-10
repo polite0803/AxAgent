@@ -4614,6 +4614,11 @@
       "memory": "记忆",
       "wiki": "Wiki"
     },
+    "typeDesc": {
+      "knowledge": "RAG 向量知识库，支持文档导入与语义检索",
+      "memory": "AI 长期记忆，自动存储与召回对话关键信息",
+      "wiki": "结构化知识图谱，支持笔记关联与可视化"
+    },
     "configTitle": "数据源配置",
     "config": {
       "provider": "嵌入模型",
@@ -4624,6 +4629,7 @@
     "noConfig": "暂无配置信息",
     "viewConfig": "配置",
     "view": "进入",
+    "viewAll": "查看全部",
     "disabled": "已禁用",
     "tab": {
       "all": "全部",
@@ -4633,6 +4639,28 @@
     },
     "searchPlaceholder": "搜索数据源...",
     "search": "搜索",
-    "empty": "暂无数据源"
+    "empty": "暂无数据源",
+    "stats": {
+      "knowledgeBases": "知识库",
+      "documents": "文档",
+      "namespaces": "命名空间",
+      "memoryItems": "记忆条目",
+      "wikis": "Wiki",
+      "notes": "笔记",
+      "wikiSources": "数据源",
+      "vectorReady": "向量就绪"
+    },
+    "knowledge": {
+      "title": "知识库源",
+      "recentBases": "最近知识库"
+    },
+    "memory": {
+      "title": "记忆源",
+      "namespaces": "命名空间"
+    },
+    "wiki": {
+      "title": "Wiki 源",
+      "wikiList": "Wiki 列表"
+    }
   }
 }

@@ -4640,6 +4640,11 @@
       "memory": "Memory",
       "wiki": "Wiki"
     },
+    "typeDesc": {
+      "knowledge": "RAG vector knowledge base with document import and semantic search",
+      "memory": "AI long-term memory for automatic storage and recall of key conversation info",
+      "wiki": "Structured knowledge graph with note linking and visualization"
+    },
     "configTitle": "Source Config",
     "config": {
       "provider": "Embedding Provider",
@@ -4650,6 +4655,7 @@
     "noConfig": "No config available",
     "viewConfig": "Config",
     "view": "View",
+    "viewAll": "View All",
     "disabled": "Disabled",
     "tab": {
       "all": "All",
@@ -4659,6 +4665,28 @@
     },
     "searchPlaceholder": "Search sources...",
     "search": "Search",
-    "empty": "No sources found"
+    "empty": "No sources found",
+    "stats": {
+      "knowledgeBases": "Knowledge Bases",
+      "documents": "Documents",
+      "namespaces": "Namespaces",
+      "memoryItems": "Memory Items",
+      "wikis": "Wikis",
+      "notes": "Notes",
+      "wikiSources": "Sources",
+      "vectorReady": "Vector Ready"
+    },
+    "knowledge": {
+      "title": "Knowledge Sources",
+      "recentBases": "Recent Knowledge Bases"
+    },
+    "memory": {
+      "title": "Memory Sources",
+      "namespaces": "Namespaces"
+    },
+    "wiki": {
+      "title": "Wiki Sources",
+      "wikiList": "Wiki List"
+    }
   }
 }

@@ -1,17 +1,70 @@
+import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
+import { useKnowledgeStore } from "@/stores";
+import { useLlmWikiStore, type Wiki } from "@/stores/feature/llmWikiStore";
+import { useMemoryStore } from "@/stores/feature/memoryStore";
 import { useSourceStore } from "@/stores";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
-import { Button, Col, Descriptions, Empty, Input, List, Modal, Row, Spin, Tabs, Tag, theme, Typography } from "antd";
-import { BookOpen, Brain, Eye, Network, Search, Settings } from "lucide-react";
+import {
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Divider,
+  Empty,
+  Form,
+  Input,
+  message,
+  Modal,
+  Popconfirm,
+  Row,
+  Spin,
+  Statistic,
+  Tabs,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
+import {
+  BookOpen,
+  Brain,
+  Database,
+  Eye,
+  FolderPlus,
+  GitGraph,
+  Layers,
+  Network,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
-const TYPE_META: Record<string, { color: string; icon: React.ReactNode; labelKey: string }> = {
-  knowledge: { color: "blue", icon: <BookOpen size={14} />, labelKey: "sourceManager.type.knowledge" },
-  memory: { color: "purple", icon: <Brain size={14} />, labelKey: "sourceManager.type.memory" },
-  wiki: { color: "green", icon: <Network size={14} />, labelKey: "sourceManager.type.wiki" },
+const TYPE_META: Record<string, { color: string; icon: React.ReactNode; labelKey: string; descKey: string }> = {
+  knowledge: {
+    color: "blue",
+    icon: <Database size={16} />,
+    labelKey: "sourceManager.type.knowledge",
+    descKey: "sourceManager.typeDesc.knowledge",
+  },
+  memory: {
+    color: "purple",
+    icon: <Brain size={16} />,
+    labelKey: "sourceManager.type.memory",
+    descKey: "sourceManager.typeDesc.memory",
+  },
+  wiki: {
+    color: "green",
+    icon: <Network size={16} />,
+    labelKey: "sourceManager.type.wiki",
+    descKey: "sourceManager.typeDesc.wiki",
+  },
 };
 
 function TypeBadge({ containerType }: { containerType: string }) {
@@ -57,6 +110,7 @@ function SourceConfigModal({
       open={open}
       onCancel={onClose}
       footer={null}
+      width={520}
       title={
         <span>
           <Settings size={16} style={{ marginRight: token.marginXS, verticalAlign: "middle" }} />
@@ -90,7 +144,166 @@ function SourceConfigModal({
   );
 }
 
-function SourceListItem({
+function CreateKnowledgeBaseModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const createBase = useKnowledgeStore((s) => s.createBase);
+  const [form] = Form.useForm();
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    try {
+      const values = await form.validateFields();
+      setCreating(true);
+      await createBase(values);
+      form.resetFields();
+      onClose();
+    } catch {
+      // validation
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={t("settings.knowledge.add")}
+      open={open}
+      onOk={handleCreate}
+      onCancel={() => { form.resetFields(); onClose(); }}
+      confirmLoading={creating}
+      mask={{ enabled: true, blur: true }}
+    >
+      <Form form={form} layout="vertical">
+        <Form.Item name="name" label={t("settings.knowledge.name")} rules={[{ required: true }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item
+          name="embeddingProvider"
+          label={t("settings.knowledge.embeddingModel")}
+          rules={[{ required: true, message: t("settings.knowledge.embeddingModelPlaceholder") }]}
+        >
+          <EmbeddingModelSelect
+            value={form.getFieldValue("embeddingProvider")}
+            onChange={(val) => form.setFieldValue("embeddingProvider", val)}
+            placeholder={t("settings.knowledge.embeddingModelPlaceholder")}
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+function CreateMemoryNamespaceModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const createNamespace = useMemoryStore((s) => s.createNamespace);
+  const [form] = Form.useForm();
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    try {
+      const values = await form.validateFields();
+      setCreating(true);
+      await createNamespace(values.name, "global", values.embeddingProvider);
+      form.resetFields();
+      onClose();
+    } catch {
+      // validation
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={t("settings.memory.addNamespace")}
+      open={open}
+      onOk={handleCreate}
+      onCancel={() => { form.resetFields(); onClose(); }}
+      confirmLoading={creating}
+      mask={{ enabled: true, blur: true }}
+    >
+      <Form form={form} layout="vertical">
+        <Form.Item name="name" label={t("settings.memory.namespaceName")} rules={[{ required: true }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item
+          name="embeddingProvider"
+          label={t("settings.memory.embeddingModel")}
+          rules={[{ required: true, message: t("settings.memory.embeddingModelPlaceholder") }]}
+        >
+          <EmbeddingModelSelect
+            value={form.getFieldValue("embeddingProvider")}
+            onChange={(val) => form.setFieldValue("embeddingProvider", val)}
+            placeholder={t("settings.memory.embeddingModelPlaceholder")}
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+function CreateWikiModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const createWiki = useLlmWikiStore((s) => s.createWiki);
+  const [form] = Form.useForm();
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    try {
+      const values = await form.validateFields();
+      setCreating(true);
+      await createWiki(values.name, values.rootPath, values.description);
+      form.resetFields();
+      onClose();
+    } catch {
+      // validation
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={t("wiki.llm.createWiki")}
+      open={open}
+      onOk={handleCreate}
+      onCancel={() => { form.resetFields(); onClose(); }}
+      confirmLoading={creating}
+    >
+      <Form form={form} layout="vertical">
+        <Form.Item name="name" label={t("wiki.wiki.name")} rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}>
+          <Input placeholder={t("wiki.llm.namePlaceholder")} />
+        </Form.Item>
+        <Form.Item name="rootPath" label={t("wiki.wiki.rootPath")} rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}>
+          <Input placeholder={t("wiki.llm.pathPlaceholder")} />
+        </Form.Item>
+        <Form.Item name="description" label={t("wiki.wiki.description")}>
+          <Input.TextArea placeholder={t("wiki.llm.descriptionPlaceholder")} />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+function SourceCard({
   source,
   onViewConfig,
 }: {
@@ -100,6 +313,7 @@ function SourceListItem({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
+  const meta = TYPE_META[source.containerType];
 
   const handleView = useCallback(() => {
     switch (source.containerType) {
@@ -117,85 +331,541 @@ function SourceListItem({
     }
   }, [source.containerType, source.id, navigate]);
 
-  const actions = [
-    <Button
-      key="config"
-      type="text"
-      size="small"
-      icon={<Settings size={14} />}
-      onClick={() => onViewConfig(source)}
-    >
-      {t("sourceManager.viewConfig")}
-    </Button>,
-  ];
-
-  if (source.containerType === "wiki" || source.containerType === "knowledge" || source.containerType === "memory") {
-    actions.unshift(
-      <Button
-        key="view"
-        type="text"
-        size="small"
-        icon={<Eye size={14} />}
-        onClick={handleView}
-      >
-        {t("sourceManager.view")}
-      </Button>,
-    );
-  }
-
   return (
-    <List.Item
-      style={{ padding: `${token.paddingSM}px ${token.padding}px` }}
-      actions={actions}
+    <Card
+      hoverable
+      size="small"
+      style={{ borderRadius: token.borderRadiusLG, overflow: "hidden" }}
+      styles={{
+        body: { padding: `${token.paddingSM}px ${token.padding}px` },
+      }}
     >
-      <List.Item.Meta
-        title={
-          <span>
-            {source.name}
-            {!source.enabled && (
-              <Tag color="default" style={{ marginLeft: token.marginXS }}>
-                {t("sourceManager.disabled")}
-              </Tag>
-            )}
-          </span>
-        }
-        description={
-          <span>
+      <div className="flex items-start gap-3">
+        <div
+          className="shrink-0 flex items-center justify-center"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: token.borderRadius,
+            backgroundColor: meta ? `${token[`${meta.color}6` as keyof typeof token]}` : token.colorFillQuaternary,
+            color: meta ? token[`${meta.color}1` as keyof typeof token] as string : token.colorTextSecondary,
+          }}
+        >
+          {meta?.icon ?? <Layers size={16} />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Text strong ellipsis style={{ fontSize: 14, flex: 1 }}>{source.name}</Text>
+            {!source.enabled && <Tag color="default" style={{ fontSize: 10 }}>{t("sourceManager.disabled")}</Tag>}
+          </div>
+          <div className="flex items-center gap-2 mb-2">
             <TypeBadge containerType={source.containerType} />
-            {source.description && (
-              <Text type="secondary" style={{ marginLeft: token.marginXS }}>
-                {source.description}
+            {source.embeddingProvider && (
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {source.embeddingProvider}
+                {source.embeddingDimensions ? ` · ${source.embeddingDimensions}d` : ""}
               </Text>
             )}
-          </span>
-        }
-      />
-      {source.embeddingProvider && (
-        <div style={{ textAlign: "right" }}>
-          <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-            {source.embeddingProvider}
-            {source.embeddingDimensions ? ` · ${source.embeddingDimensions}d` : ""}
-          </Text>
+          </div>
+          {source.description && (
+            <Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ fontSize: 12, marginBottom: 8 }}>
+              {source.description}
+            </Paragraph>
+          )}
+          <div className="flex items-center gap-1">
+            <Button size="small" type="primary" ghost icon={<Eye size={12} />} onClick={handleView}>
+              {t("sourceManager.view")}
+            </Button>
+            <Button size="small" type="text" icon={<Settings size={12} />} onClick={() => onViewConfig(source)}>
+              {t("sourceManager.viewConfig")}
+            </Button>
+          </div>
         </div>
-      )}
-    </List.Item>
+      </div>
+    </Card>
   );
 }
 
-function SourceManager() {
+function KnowledgeTab({
+  onViewConfig,
+}: {
+  onViewConfig: (s: UnifiedSource) => void;
+}) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const { sources, loading, fetchSources, searchAllSources } = useSourceStore();
+  const navigate = useNavigate();
+  const { bases, loadBases } = useKnowledgeStore();
+  const knowledgeSources = useSourceStore((s) => s.knowledgeSources());
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("all");
+  useEffect(() => { loadBases(); }, [loadBases]);
+
+  const totalDocs = bases.length;
+  const configuredCount = knowledgeSources.filter((s) => s.embeddingProvider).length;
+
+  return (
+    <div>
+      <Row gutter={[16, 16]} style={{ marginBottom: token.marginLG }}>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.knowledgeBases")}
+              value={bases.length}
+              prefix={<Database size={16} style={{ color: token.colorPrimary }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.documents")}
+              value={totalDocs}
+              prefix={<BookOpen size={16} style={{ color: token.colorInfo }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.vectorReady")}
+              value={configuredCount}
+              suffix={`/ ${knowledgeSources.length}`}
+              prefix={<Zap size={16} style={{ color: token.colorSuccess }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+        <Text strong style={{ fontSize: 15 }}>{t("sourceManager.knowledge.title")}</Text>
+        <div className="flex items-center gap-2">
+          <Button size="small" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+            {t("settings.knowledge.add")}
+          </Button>
+        </div>
+      </div>
+
+      {knowledgeSources.length === 0
+        ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("sourceManager.empty")}
+            style={{ padding: 40 }}
+          >
+            <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+              {t("settings.knowledge.add")}
+            </Button>
+          </Empty>
+        )
+        : (
+          <Row gutter={[12, 12]}>
+            {knowledgeSources.map((source) => (
+              <Col key={source.id} xs={24} sm={12} lg={8}>
+                <SourceCard source={source} onViewConfig={onViewConfig} />
+              </Col>
+            ))}
+          </Row>
+        )}
+
+      {bases.length > 0 && (
+        <>
+          <Divider style={{ margin: `${token.marginLG}px 0` }} />
+          <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+            <Text strong style={{ fontSize: 15 }}>{t("sourceManager.knowledge.recentBases")}</Text>
+            <Button size="small" type="link" onClick={() => navigate("/knowledge")}>
+              {t("sourceManager.viewAll")}
+            </Button>
+          </div>
+          <Row gutter={[12, 12]}>
+            {bases.slice(0, 6).map((base) => (
+              <Col key={base.id} xs={24} sm={12} lg={8}>
+                <Card
+                  hoverable
+                  size="small"
+                  style={{ borderRadius: token.borderRadiusLG }}
+                  onClick={() => navigate("/knowledge")}
+                  styles={{ body: { padding: token.paddingSM } }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="shrink-0 flex items-center justify-center"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: token.borderRadius,
+                        backgroundColor: token.blue1,
+                        color: token.blue6,
+                      }}
+                    >
+                      <Database size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Text strong ellipsis style={{ fontSize: 13 }}>{base.name}</Text>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Tag color={base.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
+                          {base.embeddingProvider ? t("settings.knowledge.vectorReady") : t("settings.knowledge.vectorNotConfigured")}
+                        </Tag>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
+
+      <CreateKnowledgeBaseModal open={createOpen} onClose={() => setCreateOpen(false)} />
+    </div>
+  );
+}
+
+function MemoryTab({
+  onViewConfig,
+}: {
+  onViewConfig: (s: UnifiedSource) => void;
+}) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const navigate = useNavigate();
+  const { namespaces, loadNamespaces } = useMemoryStore();
+  const memorySources = useSourceStore((s) => s.memorySources());
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => { loadNamespaces(); }, [loadNamespaces]);
+
+  const configuredCount = memorySources.filter((s) => s.embeddingProvider).length;
+  const totalItems = namespaces.length;
+
+  return (
+    <div>
+      <Row gutter={[16, 16]} style={{ marginBottom: token.marginLG }}>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.namespaces")}
+              value={namespaces.length}
+              prefix={<Brain size={16} style={{ color: token.colorPrimary }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.memoryItems")}
+              value={totalItems}
+              prefix={<Sparkles size={16} style={{ color: token.colorPrimary }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.vectorReady")}
+              value={configuredCount}
+              suffix={`/ ${memorySources.length}`}
+              prefix={<Zap size={16} style={{ color: token.colorSuccess }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+        <Text strong style={{ fontSize: 15 }}>{t("sourceManager.memory.title")}</Text>
+        <div className="flex items-center gap-2">
+          <Button size="small" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+            {t("settings.memory.addNamespace")}
+          </Button>
+        </div>
+      </div>
+
+      {memorySources.length === 0
+        ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("sourceManager.empty")}
+            style={{ padding: 40 }}
+          >
+            <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+              {t("settings.memory.addNamespace")}
+            </Button>
+          </Empty>
+        )
+        : (
+          <Row gutter={[12, 12]}>
+            {memorySources.map((source) => (
+              <Col key={source.id} xs={24} sm={12} lg={8}>
+                <SourceCard source={source} onViewConfig={onViewConfig} />
+              </Col>
+            ))}
+          </Row>
+        )}
+
+      {namespaces.length > 0 && (
+        <>
+          <Divider style={{ margin: `${token.marginLG}px 0` }} />
+          <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+            <Text strong style={{ fontSize: 15 }}>{t("sourceManager.memory.namespaces")}</Text>
+            <Button size="small" type="link" onClick={() => navigate("/knowledge")}>
+              {t("sourceManager.viewAll")}
+            </Button>
+          </div>
+          <Row gutter={[12, 12]}>
+            {namespaces.slice(0, 6).map((ns) => (
+              <Col key={ns.id} xs={24} sm={12} lg={8}>
+                <Card
+                  hoverable
+                  size="small"
+                  style={{ borderRadius: token.borderRadiusLG }}
+                  onClick={() => navigate("/knowledge")}
+                  styles={{ body: { padding: token.paddingSM } }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="shrink-0 flex items-center justify-center"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: token.borderRadius,
+                        backgroundColor: token.purple1,
+                        color: token.purple6,
+                      }}
+                    >
+                      <Brain size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Text strong ellipsis style={{ fontSize: 13 }}>{ns.name}</Text>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Tag color={ns.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
+                          {ns.embeddingProvider ? t("settings.memory.vectorReady") : t("settings.memory.vectorNotConfigured")}
+                        </Tag>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
+
+      <CreateMemoryNamespaceModal open={createOpen} onClose={() => setCreateOpen(false)} />
+    </div>
+  );
+}
+
+function WikiTab({
+  onViewConfig,
+}: {
+  onViewConfig: (s: UnifiedSource) => void;
+}) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const { wikis, loadWikis } = useLlmWikiStore();
+  const wikiSources = useSourceStore((s) => s.wikiSources());
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => { loadWikis(); }, [loadWikis]);
+
+  const totalNotes = wikis.reduce((sum, w) => sum + (w.noteCount ?? 0), 0);
+  const totalSources = wikis.reduce((sum, w) => sum + (w.sourceCount ?? 0), 0);
+
+  return (
+    <div>
+      <Row gutter={[16, 16]} style={{ marginBottom: token.marginLG }}>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.wikis")}
+              value={wikis.length}
+              prefix={<Network size={16} style={{ color: token.colorPrimary }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.notes")}
+              value={totalNotes}
+              prefix={<BookOpen size={16} style={{ color: token.colorPrimary }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+            <Statistic
+              title={t("sourceManager.stats.wikiSources")}
+              value={totalSources}
+              prefix={<FolderPlus size={16} style={{ color: token.colorWarning }} />}
+              valueStyle={{ fontSize: 24 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+        <Text strong style={{ fontSize: 15 }}>{t("sourceManager.wiki.title")}</Text>
+        <div className="flex items-center gap-2">
+          <Button size="small" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+            {t("wiki.llm.createWiki")}
+          </Button>
+        </div>
+      </div>
+
+      {wikiSources.length === 0 && wikis.length === 0
+        ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("sourceManager.empty")}
+            style={{ padding: 40 }}
+          >
+            <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+              {t("wiki.llm.createWiki")}
+            </Button>
+          </Empty>
+        )
+        : (
+          <>
+            {wikiSources.length > 0 && (
+              <Row gutter={[12, 12]} style={{ marginBottom: wikiSources.length > 0 && wikis.length > 0 ? token.marginMD : 0 }}>
+                {wikiSources.map((source) => (
+                  <Col key={source.id} xs={24} sm={12} lg={8}>
+                    <SourceCard source={source} onViewConfig={onViewConfig} />
+                  </Col>
+                ))}
+              </Row>
+            )}
+
+            {wikis.length > 0 && (
+              <>
+                {wikiSources.length > 0 && <Divider style={{ margin: `${token.marginLG}px 0` }} />}
+                <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+                  <Text strong style={{ fontSize: 15 }}>{t("sourceManager.wiki.wikiList")}</Text>
+                </div>
+                <Row gutter={[12, 12]}>
+                  {wikis.map((wiki) => (
+                    <Col key={wiki.id} xs={24} sm={12} lg={8}>
+                      <WikiCard wiki={wiki} />
+                    </Col>
+                  ))}
+                </Row>
+              </>
+            )}
+          </>
+        )}
+
+      <CreateWikiModal open={createOpen} onClose={() => setCreateOpen(false)} />
+    </div>
+  );
+}
+
+function WikiCard({ wiki }: { wiki: Wiki }) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const navigate = useNavigate();
+  const deleteWiki = useLlmWikiStore((s) => s.deleteWiki);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleDelete = async () => {
+    try {
+      await deleteWiki(wiki.id);
+      messageApi.success(t("wiki.llm.deleteSuccess"));
+    } catch (e) {
+      messageApi.error(String(e));
+    }
+  };
+
+  return (
+    <>
+      {contextHolder}
+      <Card
+        hoverable
+        size="small"
+        style={{ borderRadius: token.borderRadiusLG }}
+        styles={{ body: { padding: token.paddingSM } }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="shrink-0 flex items-center justify-center"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: token.borderRadius,
+              backgroundColor: token.green1,
+              color: token.green6,
+            }}
+          >
+            <Network size={16} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Text strong ellipsis style={{ fontSize: 14, flex: 1 }}>{wiki.name}</Text>
+              <Tag color="blue" style={{ fontSize: 10 }}>v{wiki.schemaVersion}</Tag>
+            </div>
+            <div className="flex items-center gap-3 mb-2">
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {wiki.noteCount ?? 0} {t("sourceManager.stats.notes")}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {wiki.sourceCount ?? 0} {t("sourceManager.stats.wikiSources")}
+              </Text>
+            </div>
+            {wiki.description && (
+              <Paragraph type="secondary" ellipsis={{ rows: 1 }} style={{ fontSize: 12, marginBottom: 8 }}>
+                {wiki.description}
+              </Paragraph>
+            )}
+            <div className="flex items-center gap-1">
+              <Button
+                size="small"
+                type="primary"
+                ghost
+                icon={<Eye size={12} />}
+                onClick={() => navigate(`/wiki/${wiki.id}`)}
+              >
+                {t("sourceManager.view")}
+              </Button>
+              <Button
+                size="small"
+                type="text"
+                icon={<GitGraph size={12} />}
+                onClick={() => navigate(`/wiki/${wiki.id}`)}
+              >
+                {t("wiki.graph.title")}
+              </Button>
+              <Popconfirm
+                title={t("wiki.llm.confirmDelete")}
+                onConfirm={handleDelete}
+              >
+                <Button size="small" type="text" danger icon={<Trash2 size={12} />} />
+              </Popconfirm>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function AllSourcesTab({
+  onViewConfig,
+}: {
+  onViewConfig: (s: UnifiedSource) => void;
+}) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const { sources, loading, searchAllSources } = useSourceStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<UnifiedSource[] | null>(null);
-  const [configSource, setConfigSource] = useState<UnifiedSource | null>(null);
-
-  useEffect(() => {
-    fetchSources();
-  }, [fetchSources]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
@@ -214,21 +884,80 @@ function SourceManager() {
     }
   }, [searchQuery, searchAllSources, sources]);
 
-  const filteredSources = (() => {
-    const list = searchResults ?? sources;
-    if (activeTab === "all") { return list; }
-    return list.filter((s) => s.containerType === activeTab);
-  })();
+  const displaySources = searchResults ?? sources;
 
-  const tabItems = [
-    { key: "all", label: t("sourceManager.tab.all"), children: undefined as React.ReactNode | undefined },
-    { key: "knowledge", label: t("sourceManager.tab.knowledge"), children: undefined },
-    { key: "memory", label: t("sourceManager.tab.memory"), children: undefined },
-    { key: "wiki", label: t("sourceManager.tab.wiki"), children: undefined },
-  ];
+  const knowledgeCount = sources.filter((s) => s.containerType === "knowledge").length;
+  const memoryCount = sources.filter((s) => s.containerType === "memory").length;
+  const wikiCount = sources.filter((s) => s.containerType === "wiki").length;
 
   return (
-    <div style={{ padding: token.paddingLG }}>
+    <div>
+      <Row gutter={[16, 16]} style={{ marginBottom: token.marginLG }}>
+        <Col span={8}>
+          <Card
+            hoverable
+            size="small"
+            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder }}
+            styles={{ body: { padding: token.paddingSM } }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center justify-center"
+                style={{ width: 40, height: 40, borderRadius: token.borderRadius, backgroundColor: token.blue1, color: token.blue6 }}
+              >
+                <Database size={18} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>{t("sourceManager.type.knowledge")}</Text>
+                <div><Text strong style={{ fontSize: 22 }}>{knowledgeCount}</Text></div>
+              </div>
+            </div>
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card
+            hoverable
+            size="small"
+            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder }}
+            styles={{ body: { padding: token.paddingSM } }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center justify-center"
+                style={{ width: 40, height: 40, borderRadius: token.borderRadius, backgroundColor: token.purple1, color: token.purple6 }}
+              >
+                <Brain size={18} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>{t("sourceManager.type.memory")}</Text>
+                <div><Text strong style={{ fontSize: 22 }}>{memoryCount}</Text></div>
+              </div>
+            </div>
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card
+            hoverable
+            size="small"
+            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder }}
+            styles={{ body: { padding: token.paddingSM } }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center justify-center"
+                style={{ width: 40, height: 40, borderRadius: token.borderRadius, backgroundColor: token.green1, color: token.green6 }}
+              >
+                <Network size={18} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>{t("sourceManager.type.wiki")}</Text>
+                <div><Text strong style={{ fontSize: 22 }}>{wikiCount}</Text></div>
+              </div>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
       <Row gutter={[12, 12]} style={{ marginBottom: token.marginMD }}>
         <Col flex="auto">
           <Input
@@ -248,25 +977,85 @@ function SourceManager() {
         </Col>
       </Row>
 
+      <Spin spinning={loading}>
+        {displaySources.length === 0
+          ? <Empty description={t("sourceManager.empty")} style={{ padding: 40 }} />
+          : (
+            <Row gutter={[12, 12]}>
+              {displaySources.map((source) => (
+                <Col key={source.id} xs={24} sm={12} lg={8}>
+                  <SourceCard source={source} onViewConfig={onViewConfig} />
+                </Col>
+              ))}
+            </Row>
+          )}
+      </Spin>
+    </div>
+  );
+}
+
+function SourceManager() {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const { fetchSources } = useSourceStore();
+  const [activeTab, setActiveTab] = useState("all");
+  const [configSource, setConfigSource] = useState<UnifiedSource | null>(null);
+
+  useEffect(() => { fetchSources(); }, [fetchSources]);
+
+  const tabItems = [
+    {
+      key: "all",
+      label: (
+        <span className="flex items-center gap-1">
+          <Layers size={14} />
+          {t("sourceManager.tab.all")}
+        </span>
+      ),
+    },
+    {
+      key: "knowledge",
+      label: (
+        <span className="flex items-center gap-1">
+          <Database size={14} />
+          {t("sourceManager.tab.knowledge")}
+        </span>
+      ),
+    },
+    {
+      key: "memory",
+      label: (
+        <span className="flex items-center gap-1">
+          <Brain size={14} />
+          {t("sourceManager.tab.memory")}
+        </span>
+      ),
+    },
+    {
+      key: "wiki",
+      label: (
+        <span className="flex items-center gap-1">
+          <Network size={14} />
+          {t("sourceManager.tab.wiki")}
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: token.paddingLG }}>
       <Tabs
         activeKey={activeTab}
-        onChange={(key) => {
-          setActiveTab(key);
-          setSearchResults(null);
-          setSearchQuery("");
-        }}
+        onChange={setActiveTab}
         items={tabItems.map((tab) => ({
           ...tab,
           children: (
-            <Spin spinning={loading}>
-              {filteredSources.length === 0 ? <Empty description={t("sourceManager.empty")} /> : (
-                <List
-                  bordered
-                  dataSource={filteredSources}
-                  renderItem={(source) => <SourceListItem source={source} onViewConfig={setConfigSource} />}
-                />
-              )}
-            </Spin>
+            <>
+              {tab.key === "all" && <AllSourcesTab onViewConfig={setConfigSource} />}
+              {tab.key === "knowledge" && <KnowledgeTab onViewConfig={setConfigSource} />}
+              {tab.key === "memory" && <MemoryTab onViewConfig={setConfigSource} />}
+              {tab.key === "wiki" && <WikiTab onViewConfig={setConfigSource} />}
+            </>
           ),
         }))}
       />

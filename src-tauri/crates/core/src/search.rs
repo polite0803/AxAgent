@@ -107,6 +107,142 @@ pub fn default_endpoint(provider_type: &str) -> &'static str {
     }
 }
 
+// ── Query rewriting & expansion ─────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryExpansion {
+    pub original: String,
+    pub queries: Vec<String>,
+}
+
+pub fn expand_search_queries(original: &str) -> QueryExpansion {
+    let mut queries = vec![original.to_string()];
+
+    let trimmed = original.trim();
+    let has_chinese = trimmed.chars().any(|c| ('\u{4E00}'..='\u{9FFF}').contains(c));
+
+    let concise = trimmed
+        .split_whitespace()
+        .filter(|w| {
+            let wl = w.to_lowercase();
+            !wl.starts_with("请")
+                && !wl.starts_with("帮")
+                && !wl.starts_with("怎么")
+                && !wl.starts_with("如何")
+                && !wl.starts_with("什么")
+                && !wl.starts_with("为什么")
+                && wl != "的"
+                && wl != "了"
+                && wl != "吗"
+                && wl != "呢"
+                && wl != "the"
+                && wl != "a"
+                && wl != "an"
+                && wl != "is"
+                && wl != "are"
+                && wl != "what"
+                && wl != "how"
+                && wl != "why"
+                && wl != "does"
+                && wl != "can"
+                && wl != "please"
+                && wl != "tell"
+                && wl != "me"
+                && wl != "about"
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    if concise != trimmed && !concise.is_empty() {
+        queries.push(concise);
+    }
+
+    if has_chinese {
+        let english_terms: Vec<String> = extract_technical_terms_chinese(trimmed);
+        if !english_terms.is_empty() {
+            queries.push(english_terms.join(" "));
+        }
+    } else {
+        let words: Vec<&str> = trimmed.split_whitespace().collect();
+        if words.len() >= 3 {
+            let core: String = words.iter().take(4).cloned().collect::<Vec<_>>().join(" ");
+            if core != trimmed {
+                queries.push(core);
+            }
+        }
+    }
+
+    queries.push(format!("{} 教程 文档", trimmed));
+    queries.push(format!("{} 最新 2025", trimmed));
+
+    queries.dedup();
+    queries.truncate(5);
+
+    QueryExpansion {
+        original: original.to_string(),
+        queries,
+    }
+}
+
+fn extract_technical_terms_chinese(text: &str) -> Vec<String> {
+    let technical_map: &[(&str, &str)] = &[
+        ("人工智能", "artificial intelligence AI"),
+        ("机器学习", "machine learning ML"),
+        ("深度学习", "deep learning"),
+        ("大模型", "large language model LLM"),
+        ("语言模型", "language model"),
+        ("二次开发", "SDK development API"),
+        ("开发文档", "developer documentation API docs"),
+        ("接口文档", "API documentation"),
+        ("架构设计", "architecture design"),
+        ("数据库", "database"),
+        ("前端", "frontend"),
+        ("后端", "backend"),
+        ("微服务", "microservices"),
+        ("容器", "container Docker"),
+        ("部署", "deployment"),
+        ("性能优化", "performance optimization"),
+        ("搜索引擎", "search engine"),
+        ("推荐系统", "recommendation system"),
+        ("自然语言处理", "NLP natural language processing"),
+        ("计算机视觉", "computer vision CV"),
+    ];
+
+    let mut terms = Vec::new();
+    for (cn, en) in technical_map {
+        if text.contains(cn) {
+            terms.push(en.to_string());
+        }
+    }
+
+    for word in text.split_whitespace() {
+        if word.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.') {
+            if word.len() > 2 {
+                terms.push(word.to_string());
+            }
+        }
+    }
+
+    terms.dedup();
+    terms
+}
+
+pub fn rewrite_query_prompt(original_query: &str) -> String {
+    format!(
+        "You are a search query optimizer. Given the user's original question, generate 3-5 optimized search queries that will return the best results.\n\n\
+         Rules:\n\
+         - Each query should be concise and focused on specific keywords\n\
+         - Remove filler words and conversational language\n\
+         - Add technical terms where appropriate\n\
+         - Include both broad and specific queries\n\
+         - If the question is in Chinese, also generate English queries for key technical terms\n\
+         - Each query should target a different aspect or angle of the question\n\n\
+         Original question: {}\n\n\
+         Respond with ONLY a JSON array of strings, e.g.: [\"query1\", \"query2\", \"query3\"]",
+        original_query
+    )
+}
+
 // ── Main search dispatch (unified entry point) ──────────────
 
 /// Unified search: tries configured provider first, falls back to DDG.
