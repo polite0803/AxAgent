@@ -70,7 +70,9 @@ impl Tool for WebSearchTool {
         let mut seen_urls: HashSet<String> = HashSet::new();
 
         for q in &queries {
-            if let Ok(resp) = axagent_core::search::execute_search("ddg", None, "", q, 5, 15000).await {
+            if let Ok(resp) =
+                axagent_core::search::execute_search("ddg", None, "", q, 5, 15000).await
+            {
                 if resp.ok {
                     for r in resp.results {
                         let url_key = r.url.trim_end_matches('/').to_lowercase();
@@ -90,10 +92,7 @@ impl Tool for WebSearchTool {
         all_results.truncate(10);
 
         if all_results.is_empty() {
-            return Ok(ToolResult::success(format!(
-                "No search results found for '{}'",
-                query
-            )));
+            return Ok(ToolResult::success(format!("No search results found for '{}'", query)));
         }
 
         let brief: Vec<String> = all_results
@@ -147,14 +146,12 @@ impl Tool for WebSearchTool {
                                 } else {
                                     text
                                 };
-                                enriched.push_str(&format!(
-                                    "### Source: {}\n\n{}\n\n",
-                                    url, truncated
-                                ));
+                                enriched
+                                    .push_str(&format!("### Source: {}\n\n{}\n\n", url, truncated));
                                 fetched += 1;
                             }
                         }
-                    }
+                    },
                     _ => continue,
                 }
             }
@@ -196,7 +193,15 @@ fn extract_page_text(html: &str) -> String {
     )
     .unwrap();
 
-    let root = doc.select(&content_sel).next().unwrap_or_else(|| doc.root_element());
+    let root = doc
+        .select(&content_sel)
+        .next()
+        .unwrap_or_else(|| doc.root_element());
 
-    root.text().collect::<Vec<_>>().join(" ").split_whitespace().collect::<Vec<_>>().join(" ")
+    root.text()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }

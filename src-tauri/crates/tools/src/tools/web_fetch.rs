@@ -143,8 +143,9 @@ fn html_to_text(html: &str) -> String {
          [role='contentinfo'], [role='complementary'], .sidebar, .nav, .menu, \
          .footer, .header, .ad, .ads, .advertisement, .cookie, .popup, .modal, \
          .overlay, #sidebar, #nav, #footer, #header, #menu, .social, .share, \
-         .related, .comments"
-    ).unwrap();
+         .related, .comments",
+    )
+    .unwrap();
 
     let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
     for nid in noise_ids {
@@ -156,17 +157,18 @@ fn html_to_text(html: &str) -> String {
     let content_sel = scraper::Selector::parse(
         "main, article, [role='main'], [role='article'], .content, .post, \
          .article, .entry, #content, #main, .main-content, .post-content, \
-         .article-content, .entry-content"
-    ).unwrap();
+         .article-content, .entry-content",
+    )
+    .unwrap();
 
-    let root = doc.select(&content_sel).next().unwrap_or_else(|| doc.root_element());
+    let root = doc
+        .select(&content_sel)
+        .next()
+        .unwrap_or_else(|| doc.root_element());
 
     let text: String = root.text().collect::<Vec<_>>().join(" ");
 
-    let cleaned = text
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join("\n");
+    let cleaned = text.split_whitespace().collect::<Vec<_>>().join("\n");
 
     cleaned
 }

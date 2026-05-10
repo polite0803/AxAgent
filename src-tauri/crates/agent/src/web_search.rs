@@ -329,9 +329,10 @@ impl SearchProvider for WebSearchProvider {
             .map_err(|e| crate::search_provider::ExtractError::FetchError(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(crate::search_provider::ExtractError::FetchError(
-                format!("HTTP {}", response.status()),
-            ));
+            return Err(crate::search_provider::ExtractError::FetchError(format!(
+                "HTTP {}",
+                response.status()
+            )));
         }
 
         let content_type = response
@@ -398,8 +399,9 @@ impl SearchProvider for WebSearchProvider {
              [role='contentinfo'], [role='complementary'], .sidebar, .nav, .menu, \
              .footer, .header, .ad, .ads, .advertisement, .cookie, .popup, .modal, \
              .overlay, #sidebar, #nav, #footer, #header, #menu, .social, .share, \
-             .related, .comments"
-        ).unwrap();
+             .related, .comments",
+        )
+        .unwrap();
 
         let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
 
@@ -412,10 +414,14 @@ impl SearchProvider for WebSearchProvider {
         let content_sel = scraper::Selector::parse(
             "main, article, [role='main'], [role='article'], .content, .post, \
              .article, .entry, #content, #main, .main-content, .post-content, \
-             .article-content, .entry-content"
-        ).unwrap();
+             .article-content, .entry-content",
+        )
+        .unwrap();
 
-        let root = doc.select(&content_sel).next().unwrap_or_else(|| doc.root_element());
+        let root = doc
+            .select(&content_sel)
+            .next()
+            .unwrap_or_else(|| doc.root_element());
 
         let body_text: String = root.text().collect::<Vec<_>>().join(" ");
 
@@ -425,10 +431,7 @@ impl SearchProvider for WebSearchProvider {
     }
 
     fn clean_extracted_text(text: &str) -> String {
-        let cleaned: String = text
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        let cleaned: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
 
         if cleaned.len() > 80_000 {
             format!("{}...\n[Content truncated at 80000 chars]", &cleaned[..80_000])
@@ -441,7 +444,11 @@ impl SearchProvider for WebSearchProvider {
         let sample = &text[..text.len().min(500)];
         let cjk_count = sample
             .chars()
-            .filter(|c| ('\u{4E00}'..='\u{9FFF}').contains(c) || ('\u{3040}'..='\u{309F}').contains(c) || ('\u{AC00}'..='\u{D7AF}').contains(c))
+            .filter(|c| {
+                ('\u{4E00}'..='\u{9FFF}').contains(c)
+                    || ('\u{3040}'..='\u{309F}').contains(c)
+                    || ('\u{AC00}'..='\u{D7AF}').contains(c)
+            })
             .count();
         let total = sample.chars().count().max(1);
         if cjk_count as f32 / total as f32 > 0.3 {

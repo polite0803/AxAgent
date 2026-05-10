@@ -147,21 +147,74 @@ impl ContentSynthesizer {
             return self.generate_default_content(section_title);
         }
 
-        let mut synthesis = String::new();
+        let source_materials: Vec<String> = sources
+            .iter()
+            .enumerate()
+            .take(5)
+            .map(|(i, s)| {
+                format!(
+                    "[Source {}] Title: {}\nURL: {}\nContent: {}",
+                    i + 1,
+                    s.title,
+                    s.url,
+                    if s.snippet.len() > 500 {
+                        format!("{}...", &s.snippet[..500])
+                    } else {
+                        s.snippet.clone()
+                    }
+                )
+            })
+            .collect();
 
-        synthesis.push_str("Based on the analysis of available sources:\n\n");
-
-        let key_findings = self.extract_key_findings(sources);
-        for finding in key_findings {
-            synthesis.push_str(&format!("- {}\n", finding));
-        }
-
-        synthesis.push_str("\n\n");
-
-        let stats = self.generate_source_stats(sources);
-        synthesis.push_str(&format!("*{}*\n", stats));
+        let synthesis = format!(
+            "Based on the analysis of {} sources:\n\n{}\n\n{}",
+            sources.len(),
+            source_materials.join("\n\n"),
+            self.generate_source_stats(sources)
+        );
 
         synthesis
+    }
+
+    pub fn build_synthesis_prompt(&self, sources: &[SearchResult], section_title: &str) -> String {
+        if sources.is_empty() {
+            return String::new();
+        }
+
+        let source_materials: Vec<String> = sources
+            .iter()
+            .enumerate()
+            .take(5)
+            .map(|(i, s)| {
+                format!(
+                    "[Source {}] Title: {}\nURL: {}\nContent: {}",
+                    i + 1,
+                    s.title,
+                    s.url,
+                    if s.snippet.len() > 800 {
+                        format!("{}...", &s.snippet[..800])
+                    } else {
+                        s.snippet.clone()
+                    }
+                )
+            })
+            .collect();
+
+        format!(
+            "You are a research synthesis expert. Based on the following sources, write a comprehensive and well-structured section about: {}\n\n\
+             Requirements:\n\
+             - Synthesize information from multiple sources, don't just list them\n\
+             - Identify key findings, agreements, and contradictions between sources\n\
+             - Use clear, professional language\n\
+             - Include specific data points and facts from the sources\n\
+             - If sources disagree, present multiple viewpoints\n\
+             - Do not fabricate information not present in the sources\n\n\
+             Sources:\n{}\n\n\
+             Write the synthesized content for the section '{}':",
+            section_title,
+            source_materials.join("\n\n"),
+            section_title
+        )
     }
 
     fn extract_key_findings(&self, sources: &[SearchResult]) -> Vec<String> {

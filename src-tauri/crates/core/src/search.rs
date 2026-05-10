@@ -119,7 +119,9 @@ pub fn expand_search_queries(original: &str) -> QueryExpansion {
     let mut queries = vec![original.to_string()];
 
     let trimmed = original.trim();
-    let has_chinese = trimmed.chars().any(|c| ('\u{4E00}'..='\u{9FFF}').contains(c));
+    let has_chinese = trimmed
+        .chars()
+        .any(|c| ('\u{4E00}'..='\u{9FFF}').contains(c));
 
     let concise = trimmed
         .split_whitespace()
@@ -216,7 +218,10 @@ fn extract_technical_terms_chinese(text: &str) -> Vec<String> {
     }
 
     for word in text.split_whitespace() {
-        if word.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.') {
+        if word
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+        {
             if word.len() > 2 {
                 terms.push(word.to_string());
             }
@@ -255,32 +260,104 @@ pub fn classify_search_intent(query: &str) -> SearchIntent {
     let q_trimmed = q.trim();
 
     let must_patterns = [
-        "最新", "今天", "昨天", "本周", "近期", "当前", "实时", "即时",
-        "latest", "recent", "current", "today", "yesterday", "now",
-        "新闻", "消息", "快讯", "news", "headline",
-        "股价", "汇率", "天气", "比分", "stock", "weather", "score",
-        "2025", "2024", "2026",
-        "发生了什么", "what happened",
-        "正在", "ongoing", "live",
-        "上线", "发布", "更新", "released", "updated", "launched",
+        "最新",
+        "今天",
+        "昨天",
+        "本周",
+        "近期",
+        "当前",
+        "实时",
+        "即时",
+        "latest",
+        "recent",
+        "current",
+        "today",
+        "yesterday",
+        "now",
+        "新闻",
+        "消息",
+        "快讯",
+        "news",
+        "headline",
+        "股价",
+        "汇率",
+        "天气",
+        "比分",
+        "stock",
+        "weather",
+        "score",
+        "2025",
+        "2024",
+        "2026",
+        "发生了什么",
+        "what happened",
+        "正在",
+        "ongoing",
+        "live",
+        "上线",
+        "发布",
+        "更新",
+        "released",
+        "updated",
+        "launched",
     ];
 
     let no_search_patterns = [
-        "什么是", "定义", "解释一下", "什么意思", "概念",
-        "what is", "define", "explain", "meaning of", "definition of",
-        "怎么写", "如何实现", "代码示例", "how to write", "code example",
-        "计算", "公式", "calculate", "formula",
-        "翻译", "translate",
-        "语法", "grammar", "syntax",
+        "什么是",
+        "定义",
+        "解释一下",
+        "什么意思",
+        "概念",
+        "what is",
+        "define",
+        "explain",
+        "meaning of",
+        "definition of",
+        "怎么写",
+        "如何实现",
+        "代码示例",
+        "how to write",
+        "code example",
+        "计算",
+        "公式",
+        "calculate",
+        "formula",
+        "翻译",
+        "translate",
+        "语法",
+        "grammar",
+        "syntax",
     ];
 
     let should_patterns = [
-        "对比", "比较", "区别", "哪个好", "vs", "compare", "difference",
-        "推荐", "建议", "选择", "recommend", "suggest",
-        "最好的", "最佳", "top", "best",
-        "教程", "指南", "tutorial", "guide",
-        "文档", "手册", "documentation", "manual",
-        "如何", "怎么", "how to", "how do",
+        "对比",
+        "比较",
+        "区别",
+        "哪个好",
+        "vs",
+        "compare",
+        "difference",
+        "推荐",
+        "建议",
+        "选择",
+        "recommend",
+        "suggest",
+        "最好的",
+        "最佳",
+        "top",
+        "best",
+        "教程",
+        "指南",
+        "tutorial",
+        "guide",
+        "文档",
+        "手册",
+        "documentation",
+        "manual",
+        "如何",
+        "怎么",
+        "how to",
+        "how do",
     ];
 
     for pat in &must_patterns {
