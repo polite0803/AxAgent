@@ -570,6 +570,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     }
     // Clear streaming state and expire unresolved permissions
     get().expirePendingPermissions(event.conversationId);
+    get().clearStatus(event.conversationId);
     set((s) => {
       const isExecuting = { ...s.isExecuting };
       delete isExecuting[event.conversationId];
@@ -942,6 +943,26 @@ export function setupAgentEventListeners(): () => void {
   unlisteners.push(
     listen<AgentRateLimitEvent>("agent-rate-limit", (event) => {
       store.handleRateLimit(event.payload);
+    }),
+  );
+
+  // ── Agent 生命周期事件（清理 agentStatus、isExecuting、currentToolCall 等） ─
+
+  unlisteners.push(
+    listen<AgentDoneEvent>("agent-done", (event) => {
+      store.handleDone(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<AgentErrorEvent>("agent-error", (event) => {
+      store.handleError(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<AgentCancelledEvent>("agent-cancelled", (event) => {
+      store.handleCancelled(event.payload);
     }),
   );
 

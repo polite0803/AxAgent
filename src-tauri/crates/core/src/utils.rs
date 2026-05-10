@@ -30,8 +30,15 @@ pub fn language_code_to_name(code: &str) -> &str {
 
 pub fn build_output_language_directive(language_code: &str) -> String {
     let lang_name = language_code_to_name(language_code);
+    // For Chinese specifically, add extra emphasis on thinking in Chinese
+    // because many models default to English for reasoning
+    let thinking_emphasis = if lang_name == "Chinese" {
+        "\nCRITICAL: Your internal reasoning process (thinking) must ALSO be in Chinese. When you use <think> tags or any thinking/reasoning mode, write ALL your thoughts, analysis, and problem-solving steps in Chinese. Never switch to English for thinking — use Chinese throughout your entire cognitive process."
+    } else {
+        ""
+    };
     format!(
-        "{tag}\nIMPORTANT: You MUST respond in {lang_name}. All your output, including explanations, tool call reasoning, summaries, and any text directed to the user, must be written in {lang_name}. This is a strict requirement — do not switch to any other language unless the user explicitly asks you to.\n</output-language>",
+        "{tag}\nIMPORTANT: You MUST respond entirely in {lang_name}. All your output, including explanations, tool call reasoning, summaries, and any text directed to the user, must be written in {lang_name}. This is a strict requirement — do not switch to any other language unless the user explicitly asks you to.{thinking_emphasis}\n</output-language>",
         tag = OUTPUT_LANGUAGE_TAG,
         lang_name = lang_name,
     )

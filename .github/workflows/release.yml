@@ -442,16 +442,9 @@ jobs:
         run: |
           mkdir -p src-tauri/gen/android/app
           echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/app/release.jks
-
-          # Create keystore.properties for Tauri Gradle signing
-          cat > src-tauri/gen/android/keystore.properties << EOF
-storeFile=app/release.jks
-storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-keyAlias=${{ secrets.KEY_ALIAS }}
-keyPassword=${{ secrets.KEY_PASSWORD }}
-EOF
-
-          # Patch build.gradle.kts to enable APK signing
+          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
+            > src-tauri/gen/android/keystore.properties
           python3 scripts/patch-android-signing.py src-tauri/gen/android/app/build.gradle.kts
 
       - name: Build Android APK

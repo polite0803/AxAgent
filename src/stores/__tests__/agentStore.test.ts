@@ -303,9 +303,13 @@ describe("agentStore event handling", () => {
 
     const cleanup = setupAgentEventListeners();
 
-    // 12 events: tool-use, tool-start, tool-result, permission-request,
-    // ask-user, status, done, error, cancelled, rate-limit, agent-query
-    expect(listen).toHaveBeenCalledTimes(21);
+    // executionStore: 15 listeners (tool-use, tool-start, tool-result, status,
+    //   done, error, cancelled, subagent-card, worker-created, worker-progress,
+    //   worker-completed, worker-failed, workflow-step-start, workflow-step-complete,
+    //   workflow-step-error)
+    // agentStore: 9 listeners (permission-request, ask-user, match-suggestion,
+    //   rate-limit, done, error, cancelled, paused, resumed)
+    expect(listen).toHaveBeenCalledTimes(24);
 
     cleanup();
   });

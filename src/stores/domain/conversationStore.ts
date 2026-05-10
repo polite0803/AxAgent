@@ -23,7 +23,10 @@ import type {
   WorkflowEvent,
 } from "@/types";
 import { create } from "zustand";
+import { useAgentStore } from "../feature/agentStore";
 import { useCategoryStore } from "../feature/categoryStore";
+import { useExecutionStore } from "../feature/executionStore";
+import { usePlanStore } from "../feature/planStore";
 import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "./messageStore";
 import { useMultiModelStore } from "./multiModelStore";
 import {
@@ -645,7 +648,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   deleteConversation: async (id) => {
     try {
+      // If the conversation is currently streaming, cancel it first to clean up stream state
+      if (isConvStreaming(useStreamStore.getState().activeStreams, id)) {
+        useStreamStore.getState().cancelCurrentStream(id);
+      }
       await invoke("delete_conversation", { id });
+      // Clean up other stores for this conversation
+      useAgentStore.getState().clearConversation(id);
+      useExecutionStore.getState().clearConversation(id);
+      usePlanStore.getState().clearActivePlan(id);
+      // dreamStore is global, no per-conversation cleanup needed
       const state = get();
       set({
         conversations: state.conversations.filter((c) => c.id !== id),
@@ -700,6 +712,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   toggleArchive: async (id, feedback?: string) => {
     try {
+      // If the conversation is currently streaming, cancel it first
+      if (isConvStreaming(useStreamStore.getState().activeStreams, id)) {
+        useStreamStore.getState().cancelCurrentStream(id);
+      }
       const conv = get().conversations.find((c) => c.id === id)
         ?? get().archivedConversations.find((c) => c.id === id);
 
@@ -714,6 +730,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         : { id };
 
       const updated = await invoke<Conversation>(command, params);
+      // Clean up other stores when archiving
+      useAgentStore.getState().clearConversation(id);
+      useExecutionStore.getState().clearConversation(id);
+      usePlanStore.getState().clearActivePlan(id);
       if (updated.is_archived) {
         set((s) => ({
           conversations: s.conversations.filter((c) => c.id !== id),
@@ -766,12 +786,25 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   batchDelete: async (ids) => {
     const errors: string[] = [];
+    // Cancel any active streams for the conversations being deleted
+    for (const id of ids) {
+      if (isConvStreaming(useStreamStore.getState().activeStreams, id)) {
+        useStreamStore.getState().cancelCurrentStream(id);
+      }
+    }
     for (const id of ids) {
       try {
         await invoke("delete_conversation", { id });
       } catch (e) {
         errors.push(String(e));
       }
+    }
+    // Clean up other stores for all deleted conversations
+    for (const id of ids) {
+      useAgentStore.getState().clearConversation(id);
+      useExecutionStore.getState().clearConversation(id);
+      usePlanStore.getState().clearActivePlan(id);
+      // dreamStore is global, no per-conversation cleanup needed
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
@@ -783,6 +816,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   batchArchive: async (ids) => {
     const archived: Conversation[] = [];
+    // Cancel any active streams for the conversations being archived
+    for (const id of ids) {
+      if (isConvStreaming(useStreamStore.getState().activeStreams, id)) {
+        useStreamStore.getState().cancelCurrentStream(id);
+      }
+    }
     for (const id of ids) {
       try {
         const conv = get().conversations.find((c) => c.id === id);
@@ -795,6 +834,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         const updated = await invoke<Conversation>(command, params);
         if (updated.is_archived) { archived.push(updated); }
       } catch (_) { /* skip */ }
+    }
+    // Clean up other stores for all archived conversations
+    for (const id of ids) {
+      useAgentStore.getState().clearConversation(id);
+      useExecutionStore.getState().clearConversation(id);
+      usePlanStore.getState().clearActivePlan(id);
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
