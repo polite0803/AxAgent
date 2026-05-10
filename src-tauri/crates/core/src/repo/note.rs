@@ -259,6 +259,29 @@ pub async fn get_note_backlinks(db: &DatabaseConnection, note_id: &str) -> Resul
         .collect())
 }
 
+pub async fn get_note_backlinks_by_vault(
+    db: &DatabaseConnection,
+    vault_id: &str,
+) -> Result<Vec<NoteLink>> {
+    let models = note_backlinks::Entity::find()
+        .filter(note_backlinks::Column::VaultId.eq(vault_id))
+        .all(db)
+        .await?;
+
+    Ok(models
+        .into_iter()
+        .map(|m| NoteLink {
+            id: m.id,
+            vault_id: m.vault_id,
+            source_note_id: m.source_note_id,
+            target_note_id: m.target_note_id,
+            link_text: m.link_text,
+            link_type: m.link_type,
+            created_at: m.created_at,
+        })
+        .collect())
+}
+
 pub async fn create_note_link(
     db: &DatabaseConnection,
     vault_id: &str,

@@ -4,6 +4,9 @@ import ReactFlow, {
   ConnectionMode,
   Controls,
   Edge,
+  EdgeLabelRenderer,
+  EdgeProps,
+  getBezierPath,
   MiniMap,
   Node,
   NodeTypes,
@@ -15,10 +18,21 @@ import "reactflow/dist/style.css";
 import { Card, Empty, Select, Space, Tag, theme, Tooltip, Typography } from "antd";
 import { Book, FileText, Hash, Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
+} from "d3-force";
 
 const { Text } = Typography;
 
 export type GraphNodeType = "note" | "concept" | "entity" | "source";
+
+export type GraphEdgeType = "link" | "backlink" | "reference" | "derived_from" | "contradicts";
 
 export interface GraphNode {
   id: string;
@@ -35,7 +49,7 @@ export interface GraphNode {
 export interface GraphEdge {
   source: string;
   target: string;
-  type: "link" | "backlink";
+  type: GraphEdgeType;
 }
 
 export interface GraphData {
@@ -59,6 +73,7 @@ export interface GraphViewProps {
   onFiltersChange?: (filters: { tags?: string[]; types?: GraphNodeType[] }) => void;
   showMinimap?: boolean;
   showControls?: boolean;
+  communities?: Map<string, number>;
 }
 
 const nodeColors: Record<GraphNodeType, string> = {
@@ -68,6 +83,137 @@ const nodeColors: Record<GraphNodeType, string> = {
   source: "#eb2f96",
 };
 
+const communityPalette = [
+  "#4C72B0",
+  "#DD8452",
+  "#55A868",
+  "#C44E52",
+  "#8172B3",
+  "#937860",
+  "#DA8BC3",
+  "#8C8C8C",
+  "#CCB974",
+  "#64B5CD",
+  "#E18B6C",
+  "#7AA153",
+];
+
+const edgeTypeStyles: Record<GraphEdgeType, { stroke: string; strokeWidth: number; dashArray: string | undefined; animated: boolean }> = {
+  link: { stroke: "#d9d9d9", strokeWidth: 1, dashArray: undefined, animated: false },
+  backlink: { stroke: "#1890ff", strokeWidth: 2, dashArray: undefined, animated: true },
+  reference: { stroke: "#52c41a", strokeWidth: 1.5, dashArray: "8,4", animated: false },
+  derived_from: { stroke: "#fa8c16", strokeWidth: 1.5, dashArray: "2,4", animated: false },
+  contradicts: { stroke: "#ff4d4f", strokeWidth: 2, dashArray: "4,4", animated: false },
+};
+
+const edgeTypeLabels: Record<GraphEdgeType, string> = {
+  link: "link",
+  backlink: "backlink",
+  reference: "ref",
+  derived_from: "derived",
+  contradicts: "contra",
+};
+
+function getNodeColor(node: GraphNode, communities?: Map<string, number>): string {
+  if (communities && communities.has(node.id)) {
+    const communityId = communities.get(node.id)!;
+    return communityPalette[communityId % communityPalette.length];
+  }
+  return nodeColors[node.type] || nodeColors.note;
+}
+
+interface SimNode {
+  id: string;
+  x: number;
+  y: number;
+}
+
+interface SimLink {
+  source: string | SimNode;
+  target: string | SimNode;
+}
+
+function WikiEdgeComponent({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+  selected,
+}: EdgeProps<{ edgeType: GraphEdgeType }>) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
+  const edgeType = data?.edgeType || "link";
+  const style = edgeTypeStyles[edgeType];
+  const isSelected = !!selected;
+
+  return (
+    <>
+      {edgeType === "contradicts" && (
+        <path
+          d={edgePath}
+          stroke={style.stroke}
+          strokeWidth={style.strokeWidth + 2}
+          fill="none"
+          opacity={0.3}
+          style={{ filter: "url(#wavy-filter)" }}
+        />
+      )}
+      <path
+        id={id}
+        className="react-flow__edge-path"
+        d={edgePath}
+        stroke={isSelected ? "#1890ff" : style.stroke}
+        strokeWidth={isSelected ? style.strokeWidth + 0.5 : style.strokeWidth}
+        fill="none"
+        strokeDasharray={style.dashArray}
+        opacity={isSelected ? 1 : 0.7}
+      />
+      {style.animated && (
+        <path
+          d={edgePath}
+          stroke={style.stroke}
+          strokeWidth={style.strokeWidth}
+          fill="none"
+          strokeDasharray="5,5"
+          opacity={0.6}
+        >
+          <animate attributeName="stroke-dashoffset" from="0" to="10" dur="0.5s" repeatCount="indefinite" />
+        </path>
+      )}
+      {edgeType !== "link" && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              fontSize: 9,
+              color: style.stroke,
+              background: "rgba(255,255,255,0.85)",
+              padding: "1px 4px",
+              borderRadius: 3,
+              pointerEvents: "none",
+              fontWeight: 500,
+            }}
+          >
+            {edgeTypeLabels[edgeType]}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+}
+
 const CustomNode = ({
   data,
   selected,
@@ -76,11 +222,13 @@ const CustomNode = ({
     onHover?: (id: string | null) => void;
     isHighlighted?: boolean;
     isSelected?: boolean;
+    color?: string;
+    isExpanded?: boolean;
   };
   selected: boolean;
 }) => {
   const { token } = theme.useToken();
-  const nodeColor = nodeColors[data.type] || nodeColors.note;
+  const nodeColor = data.color || nodeColors[data.type] || nodeColors.note;
   const isHighlighted = data.isHighlighted !== false;
   const isSelected = data.isSelected || selected;
 
@@ -93,6 +241,9 @@ const CustomNode = ({
             {data.linkCount} outgoing / {data.backlinkCount} incoming
           </div>
           <div style={{ fontSize: 11, opacity: 0.6 }}>{data.path}</div>
+          {data.isExpanded && (
+            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>expanded</div>
+          )}
         </div>
       }
     >
@@ -185,6 +336,10 @@ const nodeTypes: NodeTypes = {
   customNode: CustomNode,
 };
 
+const edgeTypes = {
+  wikiEdge: WikiEdgeComponent,
+};
+
 export function GraphView({
   data,
   onNodeClick,
@@ -197,11 +352,13 @@ export function GraphView({
   onFiltersChange,
   showMinimap = true,
   showControls = true,
+  communities,
 }: GraphViewProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [, setDimensions] = useState({ width: 800, height: 600 });
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -224,6 +381,34 @@ export function GraphView({
 
   const hasHighlights = highlightedNodeIds && highlightedNodeIds.size > 0;
 
+  const neighborMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const edge of data.edges) {
+      if (!map.has(edge.source)) map.set(edge.source, new Set());
+      if (!map.has(edge.target)) map.set(edge.target, new Set());
+      map.get(edge.source)!.add(edge.target);
+      map.get(edge.target)!.add(edge.source);
+    }
+    return map;
+  }, [data.edges]);
+
+  const allNodeIds = useMemo(() => new Set(data.nodes.map((n) => n.id)), [data.nodes]);
+
+  const expandedNeighborIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const expandedId of expandedNodeIds) {
+      const neighbors = neighborMap.get(expandedId);
+      if (neighbors) {
+        for (const nid of neighbors) {
+          if (!allNodeIds.has(nid)) {
+            ids.add(nid);
+          }
+        }
+      }
+    }
+    return ids;
+  }, [expandedNodeIds, neighborMap, allNodeIds]);
+
   const filteredNodes = useMemo(() => {
     return data.nodes.filter((node) => {
       if (filters?.tags?.length && !node.tags.some((t) => filters.tags!.includes(t))) {
@@ -239,44 +424,92 @@ export function GraphView({
     });
   }, [data.nodes, filters]);
 
-  const nodeIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
+  const visibleNodeIds = useMemo(() => {
+    const ids = new Set(filteredNodes.map((n) => n.id));
+    for (const nid of expandedNeighborIds) {
+      ids.add(nid);
+    }
+    return ids;
+  }, [filteredNodes, expandedNeighborIds]);
 
   const filteredEdges = useMemo(() => {
-    return data.edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
-  }, [data.edges, nodeIds]);
+    return data.edges.filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
+  }, [data.edges, visibleNodeIds]);
+
+  const layoutPositions = useMemo(() => {
+    const simNodes: SimNode[] = filteredNodes.map((node) => ({
+      id: node.id,
+      x: node.x ?? Math.random() * 400,
+      y: node.y ?? Math.random() * 400,
+    }));
+
+    const simLinks: SimLink[] = filteredEdges.map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+    }));
+
+    const simulation = forceSimulation<SimulationNodeDatum>(simNodes as SimulationNodeDatum[])
+      .force(
+        "link",
+        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
+          .id((d: SimulationNodeDatum) => (d as SimNode).id)
+          .distance(100),
+      )
+      .force("charge", forceManyBody().strength(-200))
+      .force("center", forceCenter(250, 250))
+      .force("collide", forceCollide(60))
+      .stop();
+
+    simulation.tick(300);
+
+    const positions = new Map<string, { x: number; y: number }>();
+    for (const node of simNodes) {
+      positions.set(node.id, { x: node.x, y: node.y });
+    }
+    return positions;
+  }, [filteredNodes, filteredEdges]);
 
   const initialNodes: Node[] = useMemo(
     () =>
-      filteredNodes.map((node) => ({
-        id: node.id,
-        type: "customNode",
-        position: { x: node.x ?? Math.random() * 500, y: node.y ?? Math.random() * 500 },
-        data: {
-          ...node,
-          onHover: onNodeHover,
-          isHighlighted: !hasHighlights || (highlightedNodeIds?.has(node.id) ?? true),
-          isSelected: selectedNodeId === node.id,
-        },
-      })),
-    [filteredNodes, onNodeHover, hasHighlights, highlightedNodeIds, selectedNodeId],
+      filteredNodes.map((node) => {
+        const pos = layoutPositions.get(node.id) ?? { x: node.x ?? 0, y: node.y ?? 0 };
+        return {
+          id: node.id,
+          type: "customNode",
+          position: pos,
+          data: {
+            ...node,
+            onHover: onNodeHover,
+            isHighlighted: !hasHighlights || (highlightedNodeIds?.has(node.id) ?? true),
+            isSelected: selectedNodeId === node.id,
+            color: getNodeColor(node, communities),
+            isExpanded: expandedNodeIds.has(node.id),
+          },
+        };
+      }),
+    [filteredNodes, layoutPositions, onNodeHover, hasHighlights, highlightedNodeIds, selectedNodeId, communities, expandedNodeIds],
   );
 
   const initialEdges: Edge[] = useMemo(
     () =>
-      filteredEdges.map((edge) => ({
-        id: `${edge.source}-${edge.target}`,
-        source: edge.source,
-        target: edge.target,
-        type: "smoothstep",
-        style: {
-          stroke: edge.type === "backlink" ? "#1890ff" : "#d9d9d9",
-          strokeWidth: edge.type === "backlink" ? 2 : 1,
-          opacity: hasHighlights
-            ? (highlightedNodeIds?.has(edge.source) && highlightedNodeIds?.has(edge.target) ? 0.8 : 0.1)
-            : 1,
-        },
-        animated: edge.type === "backlink",
-      })),
+      filteredEdges.map((edge) => {
+        const style = edgeTypeStyles[edge.type] || edgeTypeStyles.link;
+        return {
+          id: `${edge.source}-${edge.target}`,
+          source: edge.source,
+          target: edge.target,
+          type: "wikiEdge",
+          data: { edgeType: edge.type },
+          style: {
+            stroke: style.stroke,
+            strokeWidth: style.strokeWidth,
+            opacity: hasHighlights
+              ? (highlightedNodeIds?.has(edge.source) && highlightedNodeIds?.has(edge.target) ? 0.8 : 0.1)
+              : 1,
+          },
+          animated: edge.type === "backlink",
+        };
+      }),
     [filteredEdges, hasHighlights, highlightedNodeIds],
   );
 
@@ -297,6 +530,15 @@ export function GraphView({
 
   const onNodeDoubleClickHandler = useCallback(
     (_: React.MouseEvent, node: Node) => {
+      setExpandedNodeIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(node.id)) {
+          next.delete(node.id);
+        } else {
+          next.add(node.id);
+        }
+        return next;
+      });
       onNodeDoubleClick?.(node.id);
     },
     [onNodeDoubleClick],
@@ -348,6 +590,7 @@ export function GraphView({
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
         attributionPosition="bottom-left"
@@ -358,7 +601,7 @@ export function GraphView({
           <MiniMap
             nodeColor={(n) => {
               const graphNode = data.nodes.find((gn) => gn.id === n.id);
-              return graphNode ? nodeColors[graphNode.type] : nodeColors.note;
+              return graphNode ? getNodeColor(graphNode, communities) : nodeColors.note;
             }}
             maskColor={`${token.colorBgContainer}cc`}
           />
@@ -390,6 +633,20 @@ export function GraphView({
                   </Tag>
                 ))}
               </div>
+              {communities && communities.size > 0 && (
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+                  <Text type="secondary" style={{ fontSize: 10, width: "100%" }}>Communities</Text>
+                  {Array.from(new Set(communities.values())).slice(0, 8).map((cid) => (
+                    <Tag
+                      key={cid}
+                      color={communityPalette[cid % communityPalette.length]}
+                      style={{ fontSize: 10 }}
+                    >
+                      C{cid}
+                    </Tag>
+                  ))}
+                </div>
+              )}
             </Space>
           </Card>
         </Panel>
@@ -406,12 +663,40 @@ export function GraphView({
               <Text>
                 {t("wiki.graph.edges")}: {filteredEdges.length} / {data.edges.length}
               </Text>
+              {expandedNodeIds.size > 0 && (
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Expanded: {expandedNodeIds.size}
+                </Text>
+              )}
               {hasHighlights && (
                 <Text type="secondary" style={{ fontSize: 11 }}>
                   Highlighted: {highlightedNodeIds!.size}
                 </Text>
               )}
             </Space>
+          </Card>
+        </Panel>
+
+        <Panel position="bottom-right">
+          <Card size="small" style={{ padding: "4px 8px" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10 }}>
+              {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
+                const s = edgeTypeStyles[et];
+                return (
+                  <span key={et} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <svg width="20" height="6">
+                      <line
+                        x1="0" y1="3" x2="20" y2="3"
+                        stroke={s.stroke}
+                        strokeWidth={s.strokeWidth}
+                        strokeDasharray={s.dashArray}
+                      />
+                    </svg>
+                    <span style={{ color: s.stroke }}>{edgeTypeLabels[et]}</span>
+                  </span>
+                );
+              })}
+            </div>
           </Card>
         </Panel>
       </ReactFlow>

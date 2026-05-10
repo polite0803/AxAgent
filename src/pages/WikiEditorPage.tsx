@@ -1,9 +1,12 @@
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
+import { BacklinkPanel } from "@/components/wiki/BacklinkPanel";
+import { VersionHistoryPanel } from "@/components/wiki/VersionHistoryPanel";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { Note } from "@/types";
-import { DeleteOutlined, EyeOutlined, SaveOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DownloadOutlined, EyeOutlined, HistoryOutlined, SaveOutlined } from "@ant-design/icons";
+import { save } from "@tauri-apps/plugin-dialog";
 import { Button, message, Modal, Popconfirm, Select, Spin, theme } from "antd";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -30,7 +33,7 @@ function markdownToHtml(md: string): string {
 export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const { getNote, updateNote, deleteNote, notes, loadNotes } = useWikiStore();
+  const { getNote, updateNote, deleteNote, notes, loadNotes, exportNotePdf } = useWikiStore();
 
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState("");
@@ -40,6 +43,8 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const [hasChanges, setHasChanges] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [wikilinkSelectValue, setWikilinkSelectValue] = useState<string | undefined>(undefined);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [backlinkPanelOpen, setBacklinkPanelOpen] = useState(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string>("");
 
@@ -228,59 +233,124 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         </Popconfirm>
       </div>
 
-      <div className="flex-1 overflow-hidden p-4">
-        <div className="h-full flex flex-col">
-          <div className="mb-2 flex items-center gap-2">
-            <Select
-              showSearch
-              value={wikilinkSelectValue}
-              placeholder={t("wiki.insertLink", "Insert Link")}
-              style={{ width: 200 }}
-              filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
-              options={noteOptions}
-              onChange={handleWikilinkInsert}
-            />
-            <Button
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => setPreviewMode(!previewMode)}
-            >
-              {previewMode ? t("wiki.source", "Source") : t("wiki.preview", "Preview")}
-            </Button>
-            {note.author === "llm" && (
-              <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: token.colorPrimaryBg }}>
-                {t("wiki.llmNote", "LLM Note")}
-              </span>
-            )}
-          </div>
-          {previewMode
-            ? (
-              <div
-                className="flex-1 overflow-auto p-4 rounded-lg"
-                style={{
-                  backgroundColor: token.colorBgContainer,
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  color: token.colorText,
-                  lineHeight: 1.7,
-                }}
-                dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
+      <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-hidden p-4">
+          <div className="h-full flex flex-col">
+            <div className="mb-2 flex items-center gap-2">
+              <Select
+                showSearch
+                value={wikilinkSelectValue}
+                placeholder={t("wiki.insertLink", "Insert Link")}
+                style={{ width: 200 }}
+                filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
+                options={noteOptions}
+                onChange={handleWikilinkInsert}
               />
-            )
-            : (
-              <div
-                className="flex-1 rounded-lg overflow-hidden"
-                style={{ border: `1px solid ${token.colorBorderSecondary}` }}
+              <Button
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => setPreviewMode(!previewMode)}
               >
-                <MonacoEditor
-                  value={content}
-                  language="markdown"
-                  onChange={handleContentChange}
-                  height="100%"
+                {previewMode ? t("wiki.source", "Source") : t("wiki.preview", "Preview")}
+              </Button>
+              <Button
+                size="small"
+                icon={<HistoryOutlined />}
+                onClick={() => setVersionHistoryOpen(true)}
+              >
+                {t("wiki.history", "History")}
+              </Button>
+              <Button
+                size="small"
+                icon={<DownloadOutlined />}
+                onClick={async () => {
+                  try {
+                    const filePath = await save({
+                      defaultPath: `${title || "note"}.html`,
+                      filters: [{ name: "HTML", extensions: ["html"] }],
+                    });
+                    if (filePath) {
+                      const result = await exportNotePdf(noteId, filePath);
+                      if (result) {
+                        message.success(t("wiki.exportedPdf", "Exported to {{path}}", { path: result }));
+                      }
+                    }
+                  } catch {
+                    // User cancelled
+                  }
+                }}
+              >
+                {t("wiki.exportPdf", "Export PDF")}
+              </Button>
+              <Button
+                size="small"
+                type="text"
+                icon={backlinkPanelOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
+                onClick={() => setBacklinkPanelOpen(!backlinkPanelOpen)}
+                title={t("wiki.backlinks", "Backlinks")}
+              />
+              {note.author === "llm" && (
+                <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: token.colorPrimaryBg }}>
+                  {t("wiki.llmNote", "LLM Note")}
+                </span>
+              )}
+            </div>
+            {previewMode
+              ? (
+                <div
+                  className="flex-1 overflow-auto p-4 rounded-lg"
+                  style={{
+                    backgroundColor: token.colorBgContainer,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                    color: token.colorText,
+                    lineHeight: 1.7,
+                  }}
+                  dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
                 />
-              </div>
-            )}
+              )
+              : (
+                <div
+                  className="flex-1 rounded-lg overflow-hidden"
+                  style={{ border: `1px solid ${token.colorBorderSecondary}` }}
+                >
+                  <MonacoEditor
+                    value={content}
+                    language="markdown"
+                    onChange={handleContentChange}
+                    height="100%"
+                  />
+                </div>
+              )}
+          </div>
         </div>
+
+        {backlinkPanelOpen && (
+          <div
+            className="shrink-0 overflow-auto border-l"
+            style={{
+              width: 280,
+              borderColor: token.colorBorderSecondary,
+              backgroundColor: token.colorBgElevated,
+            }}
+          >
+            <BacklinkPanel
+              noteId={noteId}
+              onNavigateToNote={(id) => {
+                if (id !== noteId) {
+                  onBack();
+                }
+              }}
+            />
+          </div>
+        )}
       </div>
+
+      <VersionHistoryPanel
+        noteId={noteId}
+        open={versionHistoryOpen}
+        onClose={() => setVersionHistoryOpen(false)}
+        onRestore={loadNote}
+      />
     </div>
   );
 }

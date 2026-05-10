@@ -1,10 +1,14 @@
+import { TagAggregationPanel, extractTagsFromContent } from "@/components/wiki/TagAggregationPanel";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import { NoteSearchResult } from "@/types";
-import { theme } from "antd";
+import { CalendarOutlined, DownloadOutlined, ImportOutlined, PlusOutlined } from "@ant-design/icons";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { Dropdown, message, Modal, theme } from "antd";
+import type { MenuProps } from "antd";
 import { Button, Empty, Input, List, Space } from "antd";
-import { BookOpen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { BookOpen, FolderOpen } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { WikiEditorPage } from "./WikiEditorPage";
@@ -27,15 +31,26 @@ export function WikiPage() {
     loadNotes,
     searchNotes,
     createNote,
+    createDailyNote,
+    createNoteFromTemplate,
+    loadTemplates,
+    templates,
     setSelectedVaultId,
     setSelectedNoteId,
+    importObsidianVault,
+    exportMarkdown,
+    exportHtml,
   } = useWikiStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<NoteSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [quickCapture, setQuickCapture] = useState("");
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importPath, setImportPath] = useState("");
+  const [importing, setImporting] = useState(false);
 
-  // 集成修复：从 URL 参数获取 wikiId 并作为 vault_id 加载笔记
   useEffect(() => {
     const vaultId = wikiIdFromUrl || DEFAULT_VAULT_ID;
     if (vaultId !== selectedVaultId) {
@@ -46,8 +61,9 @@ export function WikiPage() {
   useEffect(() => {
     if (selectedVaultId) {
       loadNotes(selectedVaultId);
+      loadTemplates(selectedVaultId);
     }
-  }, [selectedVaultId, loadNotes]);
+  }, [selectedVaultId, loadNotes, loadTemplates]);
 
   useEffect(() => {
     if (searchQuery.trim() && selectedVaultId) {
@@ -64,7 +80,20 @@ export function WikiPage() {
     }
   }, [searchQuery, selectedVaultId, searchNotes]);
 
-  const displayNotes = searchQuery.trim() ? searchResults.map((r) => r.note) : notes;
+  const filteredByTag = useCallback(
+    (noteList: typeof notes) => {
+      if (!activeTag) { return noteList; }
+      return noteList.filter((note) => {
+        const tags = extractTagsFromContent(note.content);
+        return tags.includes(activeTag);
+      });
+    },
+    [activeTag],
+  );
+
+  const displayNotes = filteredByTag(
+    searchQuery.trim() ? searchResults.map((r) => r.note) : notes,
+  );
 
   const handleSelectNote = (noteId: string) => {
     setSelectedNoteId(noteId);
@@ -82,10 +111,133 @@ export function WikiPage() {
     });
   };
 
+  const handleDailyNote = async () => {
+    if (!selectedVaultId) { return; }
+    const note = await createDailyNote(selectedVaultId);
+    if (note) {
+      setSelectedNoteId(note.id);
+    }
+  };
+
+  const handleCreateFromTemplate = async (templateId: string) => {
+    if (!selectedVaultId) { return; }
+    const note = await createNoteFromTemplate(selectedVaultId, templateId);
+    if (note) {
+      setSelectedNoteId(note.id);
+    }
+  };
+
+  const handleQuickCapture = async () => {
+    if (!quickCapture.trim() || !selectedVaultId) { return; }
+    const text = quickCapture.trim();
+    const title = text.length > 50 ? text.slice(0, 50) + "..." : text;
+    const now = Date.now();
+    await createNote({
+      vaultId: selectedVaultId,
+      title,
+      filePath: `/inbox/${now}.md`,
+      content: text,
+      author: "user",
+      pageType: "inbox",
+    });
+    setQuickCapture("");
+  };
+
   const handleBack = () => {
     setSelectedNoteId(null);
     setSearchQuery("");
   };
+
+  const handleTagClick = (tag: string) => {
+    setActiveTag((prev) => (prev === tag ? null : tag));
+  };
+
+  const handleBrowseVaultPath = async () => {
+    try {
+      const selected = await open({ directory: true, multiple: false });
+      if (selected) {
+        setImportPath(selected as string);
+      }
+    } catch {
+      // User cancelled
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedVaultId || !importPath.trim()) { return; }
+    setImporting(true);
+    const stats = await importObsidianVault(selectedVaultId, importPath);
+    setImporting(false);
+    if (stats) {
+      message.success(
+        t("wiki.importResult", "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}", {
+          imported: stats.imported,
+          skipped: stats.skipped,
+          failed: stats.failed,
+        }),
+      );
+      setImportModalOpen(false);
+      setImportPath("");
+      loadNotes(selectedVaultId);
+    }
+  };
+
+  const handleExportMarkdown = async () => {
+    if (!selectedVaultId) { return; }
+    try {
+      const filePath = await save({
+        defaultPath: "wiki-export",
+      });
+      if (filePath) {
+        const stats = await exportMarkdown(selectedVaultId, filePath);
+        if (stats) {
+          message.success(
+            t("wiki.exportResult", "Exported: {{exported}}, Failed: {{failed}}", {
+              exported: stats.exported,
+              failed: stats.failed,
+            }),
+          );
+        }
+      }
+    } catch {
+      // User cancelled
+    }
+  };
+
+  const handleExportHtml = async () => {
+    if (!selectedVaultId) { return; }
+    try {
+      const filePath = await save({
+        defaultPath: "wiki-html-export",
+      });
+      if (filePath) {
+        const stats = await exportHtml(selectedVaultId, filePath);
+        if (stats) {
+          message.success(
+            t("wiki.exportResult", "Exported: {{exported}}, Failed: {{failed}}", {
+              exported: stats.exported,
+              failed: stats.failed,
+            }),
+          );
+        }
+      }
+    } catch {
+      // User cancelled
+    }
+  };
+
+  const exportMenuItems: MenuProps["items"] = [
+    {
+      key: "markdown",
+      label: t("wiki.exportMarkdown", "Markdown"),
+      onClick: handleExportMarkdown,
+    },
+    {
+      key: "html",
+      label: t("wiki.exportHtml", "HTML"),
+      onClick: handleExportHtml,
+    },
+  ];
 
   return (
     <div className="h-full flex" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>
@@ -119,6 +271,33 @@ export function WikiPage() {
                       allowClear
                       className="flex-1"
                     />
+                    <Input
+                      placeholder={t("wiki.quickCapture", "Quick capture...")}
+                      value={quickCapture}
+                      onChange={(e) => setQuickCapture(e.target.value)}
+                      onPressEnter={handleQuickCapture}
+                      style={{ width: 200 }}
+                      size="small"
+                    />
+                    <Button
+                      size="small"
+                      icon={<CalendarOutlined />}
+                      onClick={handleDailyNote}
+                    >
+                      {t("wiki.dailyNote", "Today")}
+                    </Button>
+                    <Button
+                      size="small"
+                      icon={<ImportOutlined />}
+                      onClick={() => setImportModalOpen(true)}
+                    >
+                      {t("wiki.import", "Import")}
+                    </Button>
+                    <Dropdown menu={{ items: exportMenuItems }}>
+                      <Button size="small" icon={<DownloadOutlined />}>
+                        {t("wiki.export", "Export")}
+                      </Button>
+                    </Dropdown>
                     {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
                       <Button
                         size="small"
@@ -129,6 +308,28 @@ export function WikiPage() {
                       </Button>
                     )}
                   </div>
+                  <div className="flex items-center gap-2">
+                    {templates.length > 0 && (
+                      <Button
+                        size="small"
+                        icon={<PlusOutlined />}
+                        onClick={() => {
+                          const first = templates[0];
+                          if (first) { handleCreateFromTemplate(first.id); }
+                        }}
+                      >
+                        {t("wiki.fromTemplate", "From Template")}
+                      </Button>
+                    )}
+                    {activeTag && (
+                      <span className="text-xs" style={{ color: token.colorPrimary }}>
+                        {t("wiki.filteredByTag", "Filtered: {{tag}}", { tag: activeTag })}
+                        <Button type="link" size="small" onClick={() => setActiveTag(null)}>
+                          ✕
+                        </Button>
+                      </span>
+                    )}
+                  </div>
                   {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
                     <div className="text-xs" style={{ color: token.colorTextSecondary }}>
                       {t("wiki.viewingWiki", "Viewing Wiki: {{id}}", { id: wikiIdFromUrl })}
@@ -136,6 +337,11 @@ export function WikiPage() {
                   )}
                 </Space>
               </div>
+              <TagAggregationPanel
+                notes={notes}
+                onTagClick={handleTagClick}
+                activeTag={activeTag}
+              />
               <div className="flex-1 overflow-y-auto p-4">
                 {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes", "No notes yet")} /> : (
                   <List
@@ -164,6 +370,34 @@ export function WikiPage() {
           </>
         )
         : <WikiEditorPage noteId={selectedNoteId} onBack={handleBack} />}
+      <Modal
+        title={t("wiki.importObsidian", "Import Obsidian Vault")}
+        open={importModalOpen}
+        onOk={handleImport}
+        onCancel={() => { setImportModalOpen(false); setImportPath(""); }}
+        okText={t("wiki.startImport", "Import")}
+        okButtonProps={{ loading: importing, disabled: !importPath.trim() }}
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-sm" style={{ color: token.colorTextSecondary }}>
+            {t("wiki.importObsidianDesc", "Select an Obsidian vault directory to import all .md files as Wiki notes.")}
+          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              value={importPath}
+              onChange={(e) => setImportPath(e.target.value)}
+              placeholder={t("wiki.vaultPath", "Vault path...")}
+              className="flex-1"
+            />
+            <Button
+              icon={<FolderOpen size={14} />}
+              onClick={handleBrowseVaultPath}
+            >
+              {t("wiki.browse", "Browse")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -219,6 +219,23 @@ impl KnowledgeContainer {
             ContainerType::WikiVault => format!("wiki_{}", self.id),
         }
     }
+
+    pub fn source_config(&self) -> crate::types::SourceConfig {
+        crate::types::SourceConfig {
+            embedding_provider: self.embedding_provider.clone(),
+            embedding_dimensions: self.embedding_dimensions,
+            retrieval_threshold: self.retrieval_threshold,
+            retrieval_top_k: self.retrieval_top_k,
+        }
+    }
+
+    pub fn container_type_str(&self) -> &'static str {
+        match self.container_type {
+            ContainerType::KnowledgeBase => "KnowledgeBase",
+            ContainerType::Memory => "Memory",
+            ContainerType::WikiVault => "WikiVault",
+        }
+    }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -440,6 +457,42 @@ pub async fn collect_knowledge_graph_context(
     context_parts
 }
 
+pub async fn collect_cross_source_graph_context(
+    db: &DatabaseConnection,
+    kb_ids: &[String],
+    wiki_ids: &[String],
+    query: &str,
+    top_k: usize,
+) -> Vec<String> {
+    let mut context_parts = Vec::new();
+
+    let kg_context = collect_knowledge_graph_context(db, kb_ids, query, top_k).await;
+    context_parts.extend(kg_context);
+
+    for wiki_id in wiki_ids {
+        let backlinks = match crate::repo::note::get_note_backlinks_by_vault(db, wiki_id).await {
+            Ok(bl) => bl,
+            Err(_) => continue,
+        };
+
+        if backlinks.is_empty() {
+            continue;
+        }
+
+        let mut section = format!("[Wiki Graph - {}]\n", wiki_id);
+        for bl in backlinks.iter().take(top_k) {
+            section.push_str(&format!("- {} → {}", bl.source_note_id, bl.target_note_id));
+            if !bl.link_text.is_empty() {
+                section.push_str(&format!(" ({})", bl.link_text));
+            }
+            section.push('\n');
+        }
+        context_parts.push(section);
+    }
+
+    context_parts
+}
+
 // ── Context collection ───────────────────────────────────────────────────────
 
 /// A typed RAG source reference for context collection.
@@ -463,6 +516,47 @@ impl RAGSourceRef {
             RAGSourceType::Memory => Box::new(MemoryRAG),
             RAGSourceType::Wiki => Box::new(WikiRAG),
         }
+    }
+}
+
+async fn resolve_source_config(
+    db: &DatabaseConnection,
+    source_type: &RAGSourceType,
+    container_id: &str,
+) -> (usize, f32, Option<usize>) {
+    let config = match source_type {
+        RAGSourceType::Memory => {
+            crate::repo::memory::get_namespace(db, container_id)
+                .await
+                .ok()
+                .map(|ns| ns.source_config())
+        },
+        RAGSourceType::Wiki => {
+            crate::repo::wiki::get_wiki(db, container_id)
+                .await
+                .ok()
+                .map(|w| crate::types::SourceConfig {
+                    embedding_provider: w.embedding_provider.clone(),
+                    embedding_dimensions: w.embedding_dimensions,
+                    retrieval_threshold: w.retrieval_threshold,
+                    retrieval_top_k: w.retrieval_top_k,
+                })
+        },
+        RAGSourceType::Knowledge => {
+            crate::repo::knowledge::get_knowledge_base(db, container_id)
+                .await
+                .ok()
+                .map(|kb| kb.source_config())
+        },
+    };
+
+    match config {
+        Some(c) => (
+            c.retrieval_top_k.map(|v| v as usize).unwrap_or(0),
+            c.retrieval_threshold.unwrap_or(0.0),
+            c.embedding_dimensions.map(|v| v as usize),
+        ),
+        None => (0, 0.0, None),
     }
 }
 
@@ -517,33 +611,9 @@ pub async fn collect_rag_context(
         let source = src_ref.source();
 
         // Resolve per-source search parameters (top_k, threshold, dimensions)
-        let (source_top_k, threshold, dims) = if src_ref.source_type == RAGSourceType::Memory {
-            match crate::repo::memory::get_namespace(db, &src_ref.container_id).await {
-                Ok(ns) => (
-                    ns.retrieval_top_k.map(|v| v as usize).unwrap_or(top_k),
-                    ns.retrieval_threshold.unwrap_or(0.0),
-                    ns.embedding_dimensions.map(|v| v as usize),
-                ),
-                Err(_) => (top_k, 0.0, None),
-            }
-        } else if src_ref.source_type == RAGSourceType::Wiki {
-            match crate::repo::wiki::get_wiki(db, &src_ref.container_id).await {
-                Ok(wiki) => (
-                    wiki.retrieval_top_k.map(|v| v as usize).unwrap_or(top_k),
-                    wiki.retrieval_threshold.unwrap_or(0.0),
-                    wiki.embedding_dimensions.map(|v| v as usize),
-                ),
-                Err(_) => (top_k, 0.0, None),
-            }
-        } else {
-            match crate::repo::knowledge::get_knowledge_base(db, &src_ref.container_id).await {
-                Ok(kb) => (
-                    kb.retrieval_top_k.map(|v| v as usize).unwrap_or(top_k),
-                    kb.retrieval_threshold.unwrap_or(0.0),
-                    kb.embedding_dimensions.map(|v| v as usize),
-                ),
-                Err(_) => (top_k, 0.0, None),
-            }
+        let (source_top_k, threshold, dims) = {
+            let (sk, th, d) = resolve_source_config(db, &src_ref.source_type, &src_ref.container_id).await;
+            (if sk > 0 { sk } else { top_k }, th, d)
         };
 
         let result = search(
@@ -656,7 +726,7 @@ pub async fn collect_rag_context(
         }
     }
 
-    let kg_context = collect_knowledge_graph_context(db, kb_ids, query, top_k).await;
+    let kg_context = collect_cross_source_graph_context(db, kb_ids, wiki_ids, query, top_k).await;
     context_parts.extend(kg_context);
 
     let (deduped_results, deduped_context) =

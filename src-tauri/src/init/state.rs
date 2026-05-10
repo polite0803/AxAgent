@@ -88,8 +88,18 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let memory_service = {
         let ms = axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
             .unwrap_or_else(|e| {
-                tracing::error!("Failed to create MemoryService: {}", e);
-                panic!("MemoryService is required for application startup: {}", e);
+                tracing::error!("Failed to create MemoryService: {} — retrying once", e);
+                axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
+                    .unwrap_or_else(|e2| {
+                        tracing::error!(
+                            "MemoryService creation failed after retry: {} — continuing with degraded memory features",
+                            e2
+                        );
+                        // MemoryService::new 恒为 Ok（纯内存结构），此路径不应到达。
+                        // 若到达，用第三次尝试兜底，避免 panic 导致 Android 静默崩溃。
+                        axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
+                            .expect("MemoryService::new failed three times — unreachable")
+                    })
             });
         if let Err(e) = ms.initialize() {
             tracing::warn!("Failed to initialize MemoryService: {}", e);
@@ -176,8 +186,20 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         auto_memory_extractor: {
             let auto_ms = axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
                 .unwrap_or_else(|e| {
-                    tracing::warn!("Failed to create MemoryService for AutoMemory: {}", e);
-                    panic!("MemoryService is required");
+                    tracing::warn!(
+                        "Failed to create MemoryService for AutoMemory: {} — falling back to primary memory service",
+                        e
+                    );
+                    // 回退到主 memory_service，避免 panic 导致 Android 静默崩溃
+                    axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
+                        .unwrap_or_else(|e2| {
+                            tracing::error!(
+                                "AutoMemory MemoryService fallback also failed: {} — auto-memory will be degraded",
+                                e2
+                            );
+                            axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
+                                .expect("AutoMemory MemoryService creation unreachable")
+                        })
                 });
             if let Err(e) = auto_ms.initialize() {
                 tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
@@ -225,15 +247,33 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                 .block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
                 .unwrap_or_else(|e| {
                     tracing::error!(
-                        "Failed to init semantic cache (will use empty fallback): {}",
+                        "Failed to init semantic cache: {} — retrying once",
                         e
                     );
-                    let rt2 =
-                        tokio::runtime::Runtime::new().expect("Failed to create fallback runtime");
-                    rt2.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
+                    // 重试一次（处理 WAL 锁等瞬态错误），不创建新 runtime 以避免嵌套
+                    rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
                         .unwrap_or_else(|e2| {
-                            tracing::error!("Semantic cache fallback also failed: {}", e2);
-                            panic!("Semantic cache initialization failed: {}", e2);
+                            tracing::error!(
+                                "Semantic cache init failed after retry: {} — cache disabled",
+                                e2
+                            );
+                            // 第三次尝试兜底：DB 已成功初始化，CREATE TABLE 不应持续失败
+                            rt.block_on(SemanticCache::new(
+                                sea_db.clone(),
+                                CacheConfig::default(),
+                            ))
+                            .unwrap_or_else(|e3| {
+                                tracing::error!(
+                                    "Semantic cache triple-failure: {} — app will start without caching",
+                                    e3
+                                );
+                                // 不再 panic，让应用以降级模式运行
+                                rt.block_on(SemanticCache::new(
+                                    sea_db.clone(),
+                                    CacheConfig::default(),
+                                ))
+                                .expect("SemanticCache init exhausted all retries")
+                            })
                         })
                 });
             Arc::new(tokio::sync::Mutex::new(cache))

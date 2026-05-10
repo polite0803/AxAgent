@@ -37,23 +37,72 @@ pub use app_state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // ── 全局 panic hook：确保 panic 信息在进程退出前写入日志 ──
+    std::panic::set_hook(Box::new(|info| {
+        let msg = match (
+            info.payload().downcast_ref::<&str>(),
+            info.payload().downcast_ref::<String>(),
+        ) {
+            (Some(s), _) => s.to_string(),
+            (_, Some(s)) => s.clone(),
+            _ => "unknown panic".to_string(),
+        };
+        let location = info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "unknown location".to_string());
+        tracing::error!(
+            panic.message = %msg,
+            panic.location = %location,
+            "FATAL: process panicked"
+        );
+        // 给日志一点时间刷新到 logcat/stderr
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }));
+
+    // ── TLS crypto provider ──
     if rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .is_err()
     {
-        if rustls::crypto::ring::default_provider()
+        let ring_ok = rustls::crypto::ring::default_provider()
             .install_default()
-            .is_err()
-        {
+            .is_ok();
+        if !ring_ok {
+            #[cfg(target_os = "android")]
+            tracing::error!(
+                "No TLS crypto provider available on Android (aws-lc-rs and ring both failed) — HTTPS will fail"
+            );
+            #[cfg(not(target_os = "android"))]
             tracing::warn!("No TLS crypto provider available, HTTPS connections may fail");
+        } else {
+            tracing::info!("TLS: aws-lc-rs unavailable, using ring fallback");
         }
     }
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
+
+    // ── 日志 / tracing ──
+    #[cfg(target_os = "android")]
+    {
+        let android_layer = tracing_android::layer("AxAgent")
+            .expect("Failed to initialize Android logcat layer");
+        tracing_subscriber::registry()
+            .with(android_layer)
+            .with(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+            )
+            .init();
+        tracing::info!("AxAgent starting on Android (tracing -> logcat)");
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+            )
+            .init();
+    }
 
     axagent_tools::builtin_handlers::init_builtin_handlers();
 
@@ -745,8 +794,25 @@ pub fn run() {
             commands::wiki::wiki_notes_sync_links,
             commands::wiki::wiki_notes_search,
             commands::wiki::get_wiki_graph,
+            commands::wiki::wiki_graph_communities,
             commands::wiki::sync_note_to_knowledge_base,
             commands::wiki::sync_knowledge_document_to_wiki,
+            commands::wiki::wiki_note_versions,
+            commands::wiki::wiki_note_get_version,
+            commands::wiki::wiki_note_restore_version,
+            commands::wiki::wiki_template_list,
+            commands::wiki::wiki_template_create,
+            commands::wiki::wiki_template_delete,
+            commands::wiki::wiki_note_create_from_template,
+            commands::wiki::wiki_create_daily_note,
+            commands::wiki::wiki_import_obsidian_vault,
+            commands::wiki::wiki_export_markdown,
+            commands::wiki::wiki_export_html,
+            commands::wiki::wiki_note_export_pdf,
+            // Unified source management
+            commands::sources::list_all_sources,
+            commands::sources::get_source_config,
+            commands::sources::search_all_sources,
             commands::agency_expert::import_agency_experts,
             commands::agency_expert::list_agency_experts,
             commands::agency_expert::clear_agency_experts,

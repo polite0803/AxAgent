@@ -2547,7 +2547,12 @@ pub async fn send_message(
     };
 
     // 6. Load MCP tools for enabled servers
-    let mcp_ids = enabled_mcp_server_ids.unwrap_or_default();
+    let mcp_ids: Vec<String> = enabled_mcp_server_ids
+        .unwrap_or_default()
+        .into_iter()
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
     // Check if any search provider is configured — auto-include web_search if so
     let has_search_provider =
         axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
@@ -2610,6 +2615,8 @@ pub async fn send_message(
                 }
             }
         }
+        let mut seen = std::collections::HashSet::new();
+        all_tools.retain(|t| seen.insert(t.function.name.clone()));
         if all_tools.is_empty() {
             None
         } else {
@@ -2891,7 +2898,12 @@ pub async fn regenerate_message(
     };
 
     // Load MCP tools for enabled servers
-    let mcp_ids = enabled_mcp_server_ids.unwrap_or_default();
+    let mcp_ids: Vec<String> = enabled_mcp_server_ids
+        .unwrap_or_default()
+        .into_iter()
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
     // Check if any search provider is configured — auto-include web_search
     let has_search_provider =
         axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
@@ -2939,6 +2951,8 @@ pub async fn regenerate_message(
                 }
             }
         }
+        let mut seen = std::collections::HashSet::new();
+        all_tools.retain(|t| seen.insert(t.function.name.clone()));
         if all_tools.is_empty() {
             None
         } else {
@@ -3226,7 +3240,12 @@ pub async fn regenerate_with_model(
         store_response: None,
     };
 
-    let mcp_ids = enabled_mcp_server_ids.unwrap_or_default();
+    let mcp_ids: Vec<String> = enabled_mcp_server_ids
+        .unwrap_or_default()
+        .into_iter()
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
     let has_search_provider =
         axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
             .await
@@ -3273,6 +3292,8 @@ pub async fn regenerate_with_model(
                 }
             }
         }
+        let mut seen = std::collections::HashSet::new();
+        all_tools.retain(|t| seen.insert(t.function.name.clone()));
         if all_tools.is_empty() {
             None
         } else {

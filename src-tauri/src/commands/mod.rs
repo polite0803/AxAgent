@@ -76,6 +76,7 @@ pub mod user_profile;
 pub mod webdav;
 pub mod webhook;
 pub mod wiki;
+pub mod sources;
 pub mod work_engine;
 pub mod workflow_ai;
 pub mod workflow_template;

@@ -23,7 +23,24 @@ pub async fn init_database() -> Result<DatabaseInitResult, String> {
     let key_path = app_dir.join("master.key");
     let master_key = load_or_create_master_key(&key_path, &app_dir)?;
 
-    axagent_core::vector_store::register_sqlite_vec_extension();
+    // 注册 sqlite-vec 扩展。包裹在 catch_unwind 中防止 Android 上可能的 ABI 不兼容
+    // 导致 process abort，取而代之让应用以降级模式（无向量搜索）继续运行。
+    let vec_registration = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        axagent_core::vector_store::register_sqlite_vec_extension();
+    }));
+    if let Err(e) = vec_registration {
+        let msg = if let Some(s) = e.downcast_ref::<String>() {
+            s.clone()
+        } else if let Some(s) = e.downcast_ref::<&str>() {
+            s.to_string()
+        } else {
+            "unknown panic payload".to_string()
+        };
+        tracing::error!(
+            "sqlite-vec extension registration panicked: {} — vector search will be unavailable",
+            msg
+        );
+    }
     axagent_tools::builtin_tools::set_global_db_path(&db_path);
 
     // 直接使用当前 tokio runtime，不再创建嵌套 Runtime

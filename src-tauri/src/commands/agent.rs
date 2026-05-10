@@ -918,11 +918,20 @@ pub async fn agent_query(
         }
     }
 
-    // Inject enabled local tools into chat_tools and tool_registry
-    chat_tools.extend(local_tools.get_enabled_chat_tools());
+    // Inject old builtin tools into chat_tools (unified tools handled separately)
+    let local_chat_tools = local_tools.get_old_builtin_chat_tools();
+    {
+        let existing_names: std::collections::HashSet<String> =
+            chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        for t in local_chat_tools {
+            if !existing_names.contains(&t.function.name) {
+                chat_tools.push(t);
+            }
+        }
+    }
     tool_registry = tool_registry.with_local_tools(local_tools);
 
-    // ── 注入 axagent-tools 统一工具（52个）到 chat_tools ──
+    // ── 注入 axagent-tools 统一工具到 chat_tools ──
     let disabled_set: HashSet<String> = request
         .options
         .as_ref()
@@ -970,8 +979,17 @@ pub async fn agent_query(
         load_skill_tools(&app_state, conversation_scenario.as_deref(), &enabled_skill_ids).await;
     let skill_tools_count = skill_tools.len();
     if !skill_tools.is_empty() {
-        chat_tools.extend(skill_tools);
+        let existing_names: std::collections::HashSet<String> =
+            chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        for t in skill_tools {
+            if !existing_names.contains(&t.function.name) {
+                chat_tools.push(t);
+            }
+        }
     }
+
+    let mut seen = std::collections::HashSet::new();
+    chat_tools.retain(|t| seen.insert(t.function.name.clone()));
 
     info!(
         "[agent] chat_tools registered: {}, tool_registry MCP tools: {:?}",

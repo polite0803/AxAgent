@@ -2,7 +2,7 @@ import type { GraphData, GraphNode } from "@/components/wiki/GraphView";
 import { invoke } from "@/lib/invoke";
 import { useKnowledgeStore } from "@/stores";
 import { useWikiStore } from "@/stores/feature/wikiStore";
-import type { KnowledgeBase, Note, NoteLink } from "@/types";
+import type { BacklinkInfo, KnowledgeBase, Note, NoteLink } from "@/types";
 import { DeleteOutlined, LinkOutlined, SaveOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -56,7 +56,7 @@ export function WikiDetailPanel({
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [links, setLinks] = useState<NoteLink[]>([]);
-  const [backlinks, setBacklinks] = useState<NoteLink[]>([]);
+  const [backlinks, setBacklinks] = useState<BacklinkInfo[]>([]);
   const [linksLoading, setLinksLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("edit");
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -375,10 +375,10 @@ export function WikiDetailPanel({
               </span>
             ),
             children: (
-              <LinkList
-                links={backlinks}
+              <BacklinkList
+                backlinks={backlinks}
                 loading={linksLoading}
-                graphData={graphData}
+                currentNoteTitle={noteTitle}
                 onNavigate={onNavigateToNote}
                 emptyText={t("wiki.noBacklinks", "No backlinks")}
                 token={token}
@@ -448,6 +448,95 @@ export function WikiDetailPanel({
         </div>
       </Modal>
     </div>
+  );
+}
+
+function highlightWikilink(snippet: string, linkText: string) {
+  const linkPattern = `[[${linkText}]]`;
+  const parts = snippet.split(linkPattern);
+  if (parts.length === 1) return <span>{snippet}</span>;
+
+  return (
+    <span>
+      {parts.map((part, i) => (
+        <span key={i}>
+          {part}
+          {i < parts.length - 1 && (
+            <Text
+              strong
+              style={{
+                backgroundColor: "rgba(22,119,255,0.12)",
+                borderRadius: 3,
+                padding: "0 2px",
+              }}
+            >
+              {linkPattern}
+            </Text>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function BacklinkList({
+  backlinks,
+  loading,
+  currentNoteTitle,
+  onNavigate,
+  emptyText,
+  token,
+}: {
+  backlinks: BacklinkInfo[];
+  loading: boolean;
+  currentNoteTitle: string;
+  onNavigate: (nodeId: string) => void;
+  emptyText: string;
+  token: ReturnType<typeof theme.useToken>["token"];
+}) {
+  if (loading) {
+    return <Spin className="flex justify-center mt-8" />;
+  }
+
+  if (backlinks.length === 0) {
+    return <Empty description={emptyText} className="mt-8" />;
+  }
+
+  return (
+    <List
+      dataSource={backlinks}
+      renderItem={(bl) => (
+        <List.Item
+          className="cursor-pointer px-4 py-3 mx-2 my-0.5 rounded-xl transition-all duration-200 hover:shadow-sm"
+          style={{ border: "none" }}
+          onClick={() => onNavigate(bl.noteId)}
+        >
+          <div className="flex items-start gap-3 w-full">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+              style={{ backgroundColor: `${token.colorPrimary}10` }}
+            >
+              <Network size={14} style={{ color: token.colorPrimary }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <Text className="text-sm font-medium truncate block" style={{ color: token.colorPrimary }}>
+                {bl.title}
+              </Text>
+              {bl.snippets.map((snippet, si) => (
+                <Typography.Paragraph
+                  key={si}
+                  className="!mb-1 text-xs leading-relaxed !mt-1"
+                  style={{ color: token.colorTextSecondary }}
+                  ellipsis={{ rows: 2, expandable: false }}
+                >
+                  {highlightWikilink(snippet, currentNoteTitle)}
+                </Typography.Paragraph>
+              ))}
+            </div>
+          </div>
+        </List.Item>
+      )}
+    />
   );
 }
 

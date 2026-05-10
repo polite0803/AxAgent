@@ -1314,6 +1314,17 @@ pub struct KnowledgeBase {
     pub separator: Option<String>,
 }
 
+impl KnowledgeBase {
+    pub fn source_config(&self) -> SourceConfig {
+        SourceConfig {
+            embedding_provider: self.embedding_provider.clone(),
+            embedding_dimensions: self.embedding_dimensions,
+            retrieval_threshold: self.retrieval_threshold,
+            retrieval_top_k: self.retrieval_top_k,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KnowledgeDocument {
@@ -1523,6 +1534,17 @@ pub struct MemoryNamespace {
     pub sort_order: i32,
 }
 
+impl MemoryNamespace {
+    pub fn source_config(&self) -> SourceConfig {
+        SourceConfig {
+            embedding_provider: self.embedding_provider.clone(),
+            embedding_dimensions: self.embedding_dimensions,
+            retrieval_threshold: self.retrieval_threshold,
+            retrieval_top_k: self.retrieval_top_k,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MemoryItem {
@@ -1534,6 +1556,26 @@ pub struct MemoryItem {
     pub index_status: String, // pending | indexing | ready | failed | skipped
     pub index_error: Option<String>,
     pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceConfig {
+    pub embedding_provider: Option<String>,
+    pub embedding_dimensions: Option<i32>,
+    pub retrieval_threshold: Option<f32>,
+    pub retrieval_top_k: Option<i32>,
+}
+
+impl SourceConfig {
+    pub fn default() -> Self {
+        Self {
+            embedding_provider: None,
+            embedding_dimensions: None,
+            retrieval_threshold: None,
+            retrieval_top_k: None,
+        }
+    }
 }
 
 // Artifacts

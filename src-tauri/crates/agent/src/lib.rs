@@ -283,6 +283,36 @@ impl LocalToolRegistry {
             })
             .collect()
     }
+
+    fn is_unified_group(&self, tool_name: &str) -> bool {
+        match self.tool_defs.get(tool_name) {
+            Some(def) => matches!(
+                def.group_id.as_str(),
+                "builtin-file-read"
+                    | "builtin-file-write"
+                    | "builtin-shell"
+                    | "builtin-network"
+                    | "builtin-system-tools"
+                    | "builtin-agent"
+            ),
+            None => false,
+        }
+    }
+
+    pub fn get_old_builtin_chat_tools(&self) -> Vec<axagent_core::types::ChatTool> {
+        self.tool_defs
+            .values()
+            .filter(|d| self.is_enabled(&d.tool_name) && !self.is_unified_group(&d.tool_name))
+            .map(|d| axagent_core::types::ChatTool {
+                r#type: "function".into(),
+                function: axagent_core::types::ChatToolFunction {
+                    name: d.tool_name.clone(),
+                    description: Some(d.description.clone()),
+                    parameters: Some(d.input_schema.clone()),
+                },
+            })
+            .collect()
+    }
     pub fn set_env_json(&mut self, tool_name: &str, env_json: String) {
         if let Some(def) = self.tool_defs.get_mut(tool_name) {
             def.env_json = Some(env_json);

@@ -39,6 +39,7 @@ export function WikiGraphPage() {
   // 图谱数据
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [graphLoading, setGraphLoading] = useState(true);
+  const [communities, setCommunities] = useState<Map<string, number> | null>(null);
 
   // 选中和高亮
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -75,8 +76,17 @@ export function WikiGraphPage() {
   const loadGraphData = useCallback(async () => {
     setGraphLoading(true);
     try {
-      const data = await invoke<GraphData>("get_wiki_graph", { wikiId: wikiIdFromUrl });
+      const [data, communityResult] = await Promise.all([
+        invoke<GraphData>("get_wiki_graph", { wikiId: wikiIdFromUrl }),
+        invoke<{ communities: Record<string, number> }>("wiki_graph_communities", { wikiId: wikiIdFromUrl })
+          .catch(() => null),
+      ]);
       setGraphData(data);
+      if (communityResult?.communities) {
+        setCommunities(new Map(Object.entries(communityResult.communities)));
+      } else {
+        setCommunities(null);
+      }
     } catch (e) {
       message.error(t("wiki.graph.loadError", { error: String(e) }));
     }
@@ -384,6 +394,7 @@ export function WikiGraphPage() {
                 onContextMenu={handleContextMenu}
                 selectedNodeId={selectedNodeId}
                 highlightedNodeIds={highlightedNodeIds}
+                communities={communities ?? undefined}
                 showMinimap
                 showControls
               />

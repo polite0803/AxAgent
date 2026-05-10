@@ -158,6 +158,14 @@ jobs:
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
+          # 添加 ProGuard 规则，防止 R8 minification 剥离 Tauri JNI 桥接类
+          cat > src-tauri/gen/android/app/proguard-rules.pro << 'PROGUARD'
+      -keep class com.tauri.** { *; }
+      -keep class org.tauri.** { *; }
+      -dontwarn com.tauri.**
+      -dontwarn org.tauri.**
+      PROGUARD
+
       - name: Build Android APK
         run: |
           cd src-tauri

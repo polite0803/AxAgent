@@ -41,6 +41,7 @@ pub struct WikiCompiler {
     llm_model: String,
     #[allow(dead_code)]
     quality_threshold: f64,
+    use_llm_quality_eval: bool,
 }
 
 impl WikiCompiler {
@@ -56,7 +57,13 @@ impl WikiCompiler {
             llm_ctx,
             llm_model,
             quality_threshold: 0.5,
+            use_llm_quality_eval: false,
         }
+    }
+
+    pub fn with_llm_quality_eval(mut self, enabled: bool) -> Self {
+        self.use_llm_quality_eval = enabled;
+        self
     }
 
     pub async fn compile(
@@ -208,27 +215,69 @@ impl WikiCompiler {
         schema: &str,
         source_contents: &[(wiki_sources::Model, String)],
     ) -> Result<Vec<CompiledPage>, String> {
-        let sources_text: Vec<String> = source_contents
+        let all_content: String = source_contents
             .iter()
-            .enumerate()
-            .map(|(i, (source, content))| {
-                format!(
-                    "## Source {}: {}\nID: {}\nContent:\n{}\n",
-                    i + 1,
-                    source.title,
-                    source.id,
-                    if content.len() > 8000 {
-                        format!("{}... [truncated]", &content[..8000])
-                    } else {
-                        content.clone()
-                    }
-                )
-            })
-            .collect();
+            .map(|(_, content)| content.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        let language = detect_content_language(&all_content);
 
-        let prompt = format!(
+        let mut all_pages = Vec::new();
+        let mut short_sources = Vec::new();
+
+        for (source, content) in source_contents {
+            if content.len() > 8000 {
+                let chunk_pages = self
+                    .compile_long_source(schema, source, content, &language)
+                    .await?;
+                all_pages.extend(chunk_pages);
+            } else {
+                short_sources.push((source.clone(), content.clone()));
+            }
+        }
+
+        if !short_sources.is_empty() {
+            let sources_text: Vec<String> = short_sources
+                .iter()
+                .enumerate()
+                .map(|(i, (source, content))| {
+                    format!(
+                        "## Source {}: {}\nID: {}\nContent:\n{}\n",
+                        i + 1,
+                        source.title,
+                        source.id,
+                        content
+                    )
+                })
+                .collect();
+
+            let prompt = Self::build_compile_prompt(schema, &sources_text.join("\n\n"), &language);
+            let request = self.build_chat_request(prompt);
+
+            let response = self
+                .llm_adapter
+                .chat(&self.llm_ctx, request)
+                .await
+                .map_err(|e| format!("LLM call failed: {}", e))?;
+
+            let raw_text = response.content;
+            let pages = Self::parse_llm_response(&raw_text)?;
+            all_pages.extend(pages);
+        }
+
+        Self::merge_compiled_sections(all_pages)
+    }
+
+    fn build_compile_prompt(schema: &str, sources_text: &str, language: &str) -> String {
+        let language_instruction = if language == "English" {
+            String::new()
+        } else {
+            format!("\nPlease write the output in {}.\n", language)
+        };
+
+        format!(
             "You are a knowledge engineer. Based on the SCHEMA and source materials below, \
-            compile structured wiki pages.\n\n\
+            compile structured wiki pages.{}\n\n\
             SCHEMA:\n{}\n\n\
             SOURCE MATERIALS:\n{}\n\n\
             OUTPUT INSTRUCTIONS:\n\
@@ -251,11 +300,14 @@ impl WikiCompiler {
             3. All distinct entities found\n\
             4. Comparisons where applicable\n\
             5. Ensure each concept page links to related concepts with [[wikilinks]]",
+            language_instruction,
             schema,
-            sources_text.join("\n\n")
-        );
+            sources_text
+        )
+    }
 
-        let request = ChatRequest {
+    fn build_chat_request(&self, prompt: String) -> ChatRequest {
+        ChatRequest {
             model: self.llm_model.clone(),
             messages: vec![
                 ChatMessage {
@@ -290,16 +342,129 @@ impl WikiCompiler {
             conversation: None,
             previous_response_id: None,
             store: None,
-        };
+        }
+    }
 
-        let response = self
-            .llm_adapter
-            .chat(&self.llm_ctx, request)
-            .await
-            .map_err(|e| format!("LLM call failed: {}", e))?;
+    async fn compile_long_source(
+        &self,
+        schema: &str,
+        source: &wiki_sources::Model,
+        content: &str,
+        language: &str,
+    ) -> Result<Vec<CompiledPage>, String> {
+        let chunks = Self::split_into_chunks(content, 6000, 500);
+        let mut all_pages = Vec::new();
 
-        let raw_text = response.content;
-        Self::parse_llm_response(&raw_text)
+        for (chunk_idx, chunk) in chunks.iter().enumerate() {
+            let sources_text = format!(
+                "## Source {} (Part {}/{}): {}\nID: {}\nContent:\n{}\n",
+                chunk_idx + 1,
+                chunk_idx + 1,
+                chunks.len(),
+                source.title,
+                source.id,
+                chunk
+            );
+
+            let prompt = Self::build_compile_prompt(schema, &sources_text, language);
+            let request = self.build_chat_request(prompt);
+
+            match self.llm_adapter.chat(&self.llm_ctx, request).await {
+                Ok(response) => match Self::parse_llm_response(&response.content) {
+                    Ok(pages) => all_pages.extend(pages),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse chunk {}/{} of source {}: {}",
+                            chunk_idx + 1,
+                            chunks.len(),
+                            source.title,
+                            e
+                        );
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "LLM call failed for chunk {}/{} of source {}: {}",
+                        chunk_idx + 1,
+                        chunks.len(),
+                        source.title,
+                        e
+                    );
+                }
+            }
+        }
+
+        Ok(all_pages)
+    }
+
+    fn split_into_chunks(content: &str, chunk_size: usize, overlap: usize) -> Vec<String> {
+        if content.len() <= chunk_size {
+            return vec![content.to_string()];
+        }
+
+        let mut chunks = Vec::new();
+        let mut start = 0;
+
+        while start < content.len() {
+            let end = (start + chunk_size).min(content.len());
+            let mut chunk_end = end;
+
+            if end < content.len() {
+                if let Some(pos) = content[start..end].rfind('\n') {
+                    chunk_end = start + pos + 1;
+                }
+            }
+
+            chunks.push(content[start..chunk_end].to_string());
+            start = if chunk_end > overlap {
+                chunk_end - overlap
+            } else {
+                chunk_end
+            };
+
+            if start >= content.len() {
+                break;
+            }
+        }
+
+        chunks
+    }
+
+    fn merge_compiled_sections(pages: Vec<CompiledPage>) -> Result<Vec<CompiledPage>, String> {
+        let mut merged: std::collections::HashMap<String, CompiledPage> =
+            std::collections::HashMap::new();
+
+        for page in pages {
+            let key = page.title.to_lowercase().trim().to_string();
+            match merged.entry(key) {
+                std::collections::hash_map::Entry::Occupied(mut entry) => {
+                    let existing = entry.get_mut();
+                    if page.content.len() > existing.content.len() {
+                        let mut merged_ids: std::collections::HashSet<String> =
+                            std::collections::HashSet::new();
+                        for id in &existing.source_ids {
+                            merged_ids.insert(id.clone());
+                        }
+                        for id in &page.source_ids {
+                            merged_ids.insert(id.clone());
+                        }
+                        existing.content = page.content;
+                        existing.source_ids = merged_ids.into_iter().collect();
+                    } else {
+                        for id in &page.source_ids {
+                            if !existing.source_ids.contains(id) {
+                                existing.source_ids.push(id.clone());
+                            }
+                        }
+                    }
+                }
+                std::collections::hash_map::Entry::Vacant(entry) => {
+                    entry.insert(page);
+                }
+            }
+        }
+
+        Ok(merged.into_values().collect())
     }
 
     fn parse_llm_response(raw_text: &str) -> Result<Vec<CompiledPage>, String> {
@@ -454,6 +619,16 @@ impl WikiCompiler {
                 return Ok((note.clone(), false));
             }
 
+            let _ = axagent_core::repo::wiki::create_version(
+                self.db.as_ref(),
+                wiki_id,
+                &note.id,
+                &note.title,
+                &note.content,
+                &note.author,
+            )
+            .await;
+
             let input = UpdateNoteInput {
                 title: Some(page.title.clone()),
                 content: Some(page.content.clone()),
@@ -553,7 +728,14 @@ impl WikiCompiler {
     }
 
     async fn update_quality_score(&self, note: &Note, page: &CompiledPage) -> Result<(), String> {
-        let score = self.calculate_quality_score(page).await;
+        let score = if self.use_llm_quality_eval {
+            match self.evaluate_quality_with_llm(page).await {
+                Some(s) => s,
+                None => self.calculate_quality_score(page).await,
+            }
+        } else {
+            self.calculate_quality_score(page).await
+        };
 
         let wiki_page = wiki_pages::Entity::find()
             .filter(wiki_pages::Column::NoteId.eq(&note.id))
@@ -898,6 +1080,141 @@ impl WikiCompiler {
         score.clamp(0.0, 1.0)
     }
 
+    pub async fn compile_wiki_incremental(
+        &self,
+        wiki_id: &str,
+    ) -> Result<CompileResult, String> {
+        let wiki = wikis::Entity::find_by_id(wiki_id)
+            .one(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+
+        let all_sources = wiki_sources::Entity::find()
+            .filter(wiki_sources::Column::WikiId.eq(wiki_id))
+            .all(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if all_sources.is_empty() {
+            return Err("No sources found for wiki".to_string());
+        }
+
+        let cache_path = std::path::Path::new(&wiki.root_path).join(".compile_cache.json");
+        let cached_hashes: std::collections::HashMap<String, String> =
+            if cache_path.exists() {
+                let data = tokio::fs::read_to_string(&cache_path)
+                    .await
+                    .unwrap_or_default();
+                serde_json::from_str(&data).unwrap_or_default()
+            } else {
+                std::collections::HashMap::new()
+            };
+
+        let changed_source_ids: Vec<String> = all_sources
+            .iter()
+            .filter(|s| {
+                match cached_hashes.get(&s.id) {
+                    Some(cached_hash) => *cached_hash != s.content_hash,
+                    None => true,
+                }
+            })
+            .map(|s| s.id.clone())
+            .collect();
+
+        if changed_source_ids.is_empty() {
+            tracing::info!("Incremental compile: no sources changed, skipping");
+            return Ok(CompileResult {
+                new_pages: Vec::new(),
+                updated_pages: Vec::new(),
+                errors: Vec::new(),
+            });
+        }
+
+        tracing::info!(
+            "Incremental compile: {}/{} sources changed",
+            changed_source_ids.len(),
+            all_sources.len()
+        );
+
+        let result = self.compile(wiki_id, changed_source_ids).await?;
+
+        let mut updated_hashes = cached_hashes;
+        for source in &all_sources {
+            updated_hashes.insert(source.id.clone(), source.content_hash.clone());
+        }
+        if let Some(parent) = cache_path.parent() {
+            let _ = tokio::fs::create_dir_all(parent).await;
+        }
+        let _ = tokio::fs::write(
+            &cache_path,
+            serde_json::to_string_pretty(&updated_hashes).unwrap_or_default(),
+        )
+        .await;
+
+        Ok(result)
+    }
+
+    async fn evaluate_quality_with_llm(&self, page: &CompiledPage) -> Option<f64> {
+        let content_preview = &page.content[..page.content.len().min(4000)];
+        let prompt = format!(
+            "Evaluate the quality of this wiki page on a scale of 1-10. \
+            Consider: completeness, accuracy, readability, and structure.\n\n\
+            Title: {}\n\
+            Page Type: {}\n\
+            Content:\n{}\n\n\
+            Output ONLY a single number between 1 and 10.",
+            page.title, page.page_type, content_preview
+        );
+
+        let request = ChatRequest {
+            model: self.llm_model.clone(),
+            messages: vec![
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: ChatContent::Text(
+                        "You are a wiki quality evaluator. Output ONLY a single integer between 1 and 10."
+                            .to_string(),
+                    ),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    thinking: None,
+                },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: ChatContent::Text(prompt),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    thinking: None,
+                },
+            ],
+            stream: false,
+            temperature: Some(0.1),
+            max_tokens: Some(16),
+            top_p: None,
+            tools: None,
+            thinking_budget: None,
+            use_max_completion_tokens: None,
+            thinking_param_style: None,
+            api_mode: None,
+            instructions: None,
+            conversation: None,
+            previous_response_id: None,
+            store: None,
+        };
+
+        match self.llm_adapter.chat(&self.llm_ctx, request).await {
+            Ok(response) => {
+                let raw = response.content.trim();
+                raw.parse::<f64>().ok().map(|score| (score / 10.0).clamp(0.0, 1.0))
+            }
+            Err(e) => {
+                tracing::warn!("LLM quality evaluation failed: {}", e);
+                None
+            }
+        }
+    }
+
     pub async fn should_overwrite(&self, note: &Note) -> Result<bool, String> {
         if note.author != "llm" {
             return Ok(false);
@@ -919,6 +1236,75 @@ fn page_types_heading(pt: &str) -> &str {
         "source_summary" => "Source Summaries",
         _ => "Other",
     }
+}
+
+fn detect_content_language(content: &str) -> &'static str {
+    let mut chinese_count = 0usize;
+    let mut japanese_count = 0usize;
+    let mut korean_count = 0usize;
+    let mut latin_count = 0usize;
+
+    for ch in content.chars() {
+        if ('\u{4E00}'..='\u{9FFF}').contains(&ch)
+            || ('\u{3400}'..='\u{4DBF}').contains(&ch)
+            || ('\u{F900}'..='\u{FAFF}').contains(&ch)
+        {
+            chinese_count += 1;
+        } else if ('\u{3040}'..='\u{309F}').contains(&ch)
+            || ('\u{30A0}'..='\u{30FF}').contains(&ch)
+        {
+            japanese_count += 1;
+        } else if ('\u{AC00}'..='\u{D7AF}').contains(&ch)
+            || ('\u{1100}'..='\u{11FF}').contains(&ch)
+        {
+            korean_count += 1;
+        } else if ch.is_ascii_alphabetic() {
+            latin_count += 1;
+        }
+    }
+
+    let total_cjk = chinese_count + japanese_count + korean_count;
+    if total_cjk > 0 {
+        if japanese_count > 0 && japanese_count >= chinese_count {
+            return "日本語";
+        }
+        if korean_count > 0 && korean_count > chinese_count {
+            return "한국어";
+        }
+        if chinese_count > 0 {
+            let ratio = chinese_count as f64 / (total_cjk + latin_count) as f64;
+            if ratio > 0.1 {
+                return "中文";
+            }
+        }
+    }
+
+    let lower = content.to_lowercase();
+    let de_markers = [
+        " der ", " die ", " das ", " und ", " ist ", " ein ", " eine ", " nicht ",
+    ];
+    let fr_markers = [
+        " le ", " la ", " les ", " des ", " du ", " un ", " une ", " est ", " pas ",
+    ];
+    let es_markers = [
+        " el ", " los ", " las ", " en ", " un ", " una ", " es ", " no ", " por ",
+    ];
+
+    let de_count = de_markers.iter().filter(|m| lower.contains(**m)).count();
+    let fr_count = fr_markers.iter().filter(|m| lower.contains(**m)).count();
+    let es_count = es_markers.iter().filter(|m| lower.contains(**m)).count();
+
+    if de_count > 3 && de_count >= fr_count && de_count >= es_count {
+        return "Deutsch";
+    }
+    if fr_count > 3 && fr_count >= de_count && fr_count >= es_count {
+        return "Français";
+    }
+    if es_count > 3 && es_count >= de_count && es_count >= fr_count {
+        return "Español";
+    }
+
+    "English"
 }
 
 fn infer_page_type(title: &str) -> String {
@@ -1584,5 +1970,181 @@ Some text between blocks
         let pages = WikiCompiler::try_markdown_parse(raw);
         assert_eq!(pages.len(), 1);
         assert_eq!(pages[0].page_type, "comparison");
+    }
+
+    #[test]
+    fn test_detect_content_language_english() {
+        assert_eq!(detect_content_language("Hello world, this is a test"), "English");
+    }
+
+    #[test]
+    fn test_detect_content_language_chinese() {
+        assert_eq!(detect_content_language("这是一个中文测试内容，用来检测语言"), "中文");
+    }
+
+    #[test]
+    fn test_detect_content_language_japanese() {
+        assert_eq!(detect_content_language("これはテストです。ひらがなとカタカナ"), "日本語");
+    }
+
+    #[test]
+    fn test_detect_content_language_korean() {
+        assert_eq!(detect_content_language("이것은 한국어 테스트입니다"), "한국어");
+    }
+
+    #[test]
+    fn test_detect_content_language_mixed_chinese_english() {
+        let content = "这是一个关于 Machine Learning 的中文文档，包含了很多技术术语。";
+        assert_eq!(detect_content_language(content), "中文");
+    }
+
+    #[test]
+    fn test_detect_content_language_empty() {
+        assert_eq!(detect_content_language(""), "English");
+    }
+
+    #[test]
+    fn test_split_into_chunks_short_content() {
+        let content = "Short content";
+        let chunks = WikiCompiler::split_into_chunks(content, 6000, 500);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0], content);
+    }
+
+    #[test]
+    fn test_split_into_chunks_exact_boundary() {
+        let content = "a".repeat(6000);
+        let chunks = WikiCompiler::split_into_chunks(&content, 6000, 500);
+        assert_eq!(chunks.len(), 1);
+    }
+
+    #[test]
+    fn test_split_into_chunks_long_content() {
+        let content: String = (0..200).map(|i| format!("Line {} content here.\n", i)).collect();
+        let chunks = WikiCompiler::split_into_chunks(&content, 6000, 500);
+        assert!(chunks.len() > 1);
+        let total_len: usize = chunks.iter().map(|c| c.len()).sum();
+        assert!(total_len >= content.len());
+    }
+
+    #[test]
+    fn test_split_into_chunks_preserves_newlines() {
+        let content = "Line 1\nLine 2\nLine 3\n".repeat(2000);
+        let chunks = WikiCompiler::split_into_chunks(&content, 6000, 500);
+        for chunk in &chunks {
+            assert!(chunk.len() <= 6000 + 200);
+        }
+    }
+
+    #[test]
+    fn test_merge_compiled_sections_no_duplicates() {
+        let pages = vec![
+            CompiledPage {
+                title: "Page A".to_string(),
+                content: "Content A".to_string(),
+                page_type: "concept".to_string(),
+                source_ids: vec!["s1".to_string()],
+            },
+            CompiledPage {
+                title: "Page B".to_string(),
+                content: "Content B".to_string(),
+                page_type: "entity".to_string(),
+                source_ids: vec!["s2".to_string()],
+            },
+        ];
+        let merged = WikiCompiler::merge_compiled_sections(pages).unwrap();
+        assert_eq!(merged.len(), 2);
+    }
+
+    #[test]
+    fn test_merge_compiled_sections_duplicates_keeps_longer() {
+        let pages = vec![
+            CompiledPage {
+                title: "ML".to_string(),
+                content: "Short content".to_string(),
+                page_type: "concept".to_string(),
+                source_ids: vec!["s1".to_string()],
+            },
+            CompiledPage {
+                title: "ml".to_string(),
+                content: "Much longer and more detailed content about machine learning".to_string(),
+                page_type: "concept".to_string(),
+                source_ids: vec!["s2".to_string()],
+            },
+        ];
+        let merged = WikiCompiler::merge_compiled_sections(pages).unwrap();
+        assert_eq!(merged.len(), 1);
+        let page = &merged[0];
+        assert!(page.content.contains("Much longer"));
+        assert!(page.source_ids.contains(&"s1".to_string()));
+        assert!(page.source_ids.contains(&"s2".to_string()));
+    }
+
+    #[test]
+    fn test_merge_compiled_sections_merges_source_ids() {
+        let pages = vec![
+            CompiledPage {
+                title: "Topic".to_string(),
+                content: "Long content about topic with many details and explanations".to_string(),
+                page_type: "concept".to_string(),
+                source_ids: vec!["s1".to_string(), "s2".to_string()],
+            },
+            CompiledPage {
+                title: "topic".to_string(),
+                content: "Short".to_string(),
+                page_type: "concept".to_string(),
+                source_ids: vec!["s2".to_string(), "s3".to_string()],
+            },
+        ];
+        let merged = WikiCompiler::merge_compiled_sections(pages).unwrap();
+        assert_eq!(merged.len(), 1);
+        let page = &merged[0];
+        assert!(page.source_ids.contains(&"s1".to_string()));
+        assert!(page.source_ids.contains(&"s2".to_string()));
+        assert!(page.source_ids.contains(&"s3".to_string()));
+    }
+
+    #[test]
+    fn test_build_compile_prompt_english() {
+        let prompt = WikiCompiler::build_compile_prompt("schema", "sources", "English");
+        assert!(prompt.contains("knowledge engineer"));
+        assert!(!prompt.contains("Please write the output in"));
+    }
+
+    #[test]
+    fn test_build_compile_prompt_chinese() {
+        let prompt = WikiCompiler::build_compile_prompt("schema", "sources", "中文");
+        assert!(prompt.contains("Please write the output in 中文"));
+    }
+
+    #[test]
+    fn test_build_compile_prompt_japanese() {
+        let prompt = WikiCompiler::build_compile_prompt("schema", "sources", "日本語");
+        assert!(prompt.contains("Please write the output in 日本語"));
+    }
+
+    #[tokio::test]
+    async fn test_with_llm_quality_eval_default() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        let compiler = WikiCompiler::new(
+            Arc::new(db),
+            Arc::new(MockProviderAdapter),
+            make_llm_ctx(),
+            "test-model".to_string(),
+        );
+        assert!(!compiler.use_llm_quality_eval);
+    }
+
+    #[tokio::test]
+    async fn test_with_llm_quality_eval_enabled() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        let compiler = WikiCompiler::new(
+            Arc::new(db),
+            Arc::new(MockProviderAdapter),
+            make_llm_ctx(),
+            "test-model".to_string(),
+        )
+        .with_llm_quality_eval(true);
+        assert!(compiler.use_llm_quality_eval);
     }
 }

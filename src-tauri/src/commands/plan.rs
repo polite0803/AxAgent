@@ -539,7 +539,16 @@ async fn build_step_tools(
 
     let mut local_tools = axagent_agent::LocalToolRegistry::init_from_registry();
     local_tools.load_enabled_state(db).await;
-    chat_tools.extend(local_tools.get_enabled_chat_tools());
+    let local_chat_tools = local_tools.get_old_builtin_chat_tools();
+    {
+        let existing_names: std::collections::HashSet<String> =
+            chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        for t in local_chat_tools {
+            if !existing_names.contains(&t.function.name) {
+                chat_tools.push(t);
+            }
+        }
+    }
     tool_registry = tool_registry.with_local_tools(local_tools);
 
     tool_registry = tool_registry

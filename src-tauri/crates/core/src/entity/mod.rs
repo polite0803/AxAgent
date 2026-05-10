@@ -72,9 +72,11 @@ pub mod note_links;
 pub mod notes;
 pub mod plans;
 pub mod wiki_operations;
+pub mod wiki_page_versions;
 pub mod wiki_pages;
 pub mod wiki_sources;
 pub mod wiki_sync_queue;
+pub mod wiki_templates;
 pub mod wikis;
 
 pub mod trajectories;
