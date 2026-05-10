@@ -437,7 +437,10 @@ export const useExecutionStore = create<ExecutionStore>()(
       handleDone: (event) => {
         get().transition(event.conversationId, "completed");
         set(
-          (s) => ({ agentStatus: { ...s.agentStatus, [event.conversationId]: "" } }),
+          (s) => ({
+            currentToolCall: s.currentToolCall?.conversationId === event.conversationId ? null : s.currentToolCall,
+            agentStatus: { ...s.agentStatus, [event.conversationId]: "" },
+          }),
           false,
           { type: "agent-done", conversationId: event.conversationId },
         );
@@ -447,6 +450,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         get().transition(event.conversationId, "failed");
         set(
           (s) => ({
+            currentToolCall: s.currentToolCall?.conversationId === event.conversationId ? null : s.currentToolCall,
             agentStatus: { ...s.agentStatus, [event.conversationId]: event.message || "Unknown error" },
           }),
           false,

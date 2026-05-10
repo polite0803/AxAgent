@@ -475,7 +475,7 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                     tool_call_id: msg.tool_call_id.clone(),
                     reasoning_content: None,
                 },
-                "assistant" if msg.tool_calls.is_some() => {
+                "assistant" => {
                     let content_text = extract_text_content(&msg.content);
                     let (visible_text, reasoning) = extract_reasoning_from_text(&content_text);
                     let content = if visible_text.is_empty() {
@@ -521,7 +521,7 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                         tool_call_id: None,
                         reasoning_content: reasoning,
                     }
-                },
+                }
                 _ => {
                     let content = match &msg.content {
                         ChatContent::Text(text) => serde_json::Value::String(text.clone()),
