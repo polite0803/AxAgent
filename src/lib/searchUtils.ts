@@ -35,17 +35,38 @@ export function formatSearchContent(
 
 function assessCredibility(url: string): "high" | "medium" | "low" {
   const highDomains = [
-    "github.com", "docs.microsoft.com", "developer.mozilla.org",
-    "python.org", "rust-lang.org", "nodejs.org", "react.dev",
-    "angular.io", "vuejs.org", "tensorflow.org", "pytorch.org",
-    "openai.com", "anthropic.com", "arxiv.org", "wikipedia.org",
-    "stackoverflow.com", "nginx.org", "docker.com", "kubernetes.io",
+    "github.com",
+    "docs.microsoft.com",
+    "developer.mozilla.org",
+    "python.org",
+    "rust-lang.org",
+    "nodejs.org",
+    "react.dev",
+    "angular.io",
+    "vuejs.org",
+    "tensorflow.org",
+    "pytorch.org",
+    "openai.com",
+    "anthropic.com",
+    "arxiv.org",
+    "wikipedia.org",
+    "stackoverflow.com",
+    "nginx.org",
+    "docker.com",
+    "kubernetes.io",
   ];
 
   const mediumDomains = [
-    "medium.com", "dev.to", "hackernoon.com", "reddit.com",
-    "csdn.net", "juejin.cn", "zhihu.com", "segmentfault.com",
-    "infoq.cn", "cnblogs.com",
+    "medium.com",
+    "dev.to",
+    "hackernoon.com",
+    "reddit.com",
+    "csdn.net",
+    "juejin.cn",
+    "zhihu.com",
+    "segmentfault.com",
+    "infoq.cn",
+    "cnblogs.com",
   ];
 
   const urlLower = url.toLowerCase();
@@ -114,7 +135,7 @@ export function deduplicateResults(results: SearchResultItem[]): SearchResultIte
   const seen = new Set<string>();
   return results.filter((r) => {
     const key = r.url.toLowerCase().replace(/\/+$/, "");
-    if (seen.has(key)) return false;
+    if (seen.has(key)) { return false; }
     seen.add(key);
     return true;
   });
@@ -140,12 +161,12 @@ function computeRelevanceScore(result: SearchResultItem, queryTerms: string[]): 
   let score = 0;
 
   for (const term of queryTerms) {
-    if (titleLower.includes(term)) score += 3;
-    if (contentLower.includes(term)) score += 1;
+    if (titleLower.includes(term)) { score += 3; }
+    if (contentLower.includes(term)) { score += 1; }
   }
 
-  if (assessCredibility(result.url) === "high") score += 2;
-  if (result.content.length > 100) score += 1;
+  if (assessCredibility(result.url) === "high") { score += 2; }
+  if (result.content.length > 100) { score += 1; }
 
   return score;
 }
