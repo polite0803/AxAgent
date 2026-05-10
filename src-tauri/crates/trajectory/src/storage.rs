@@ -772,7 +772,29 @@ impl TrajectoryStorage {
                     id: m.id,
                     content: m.content,
                     memory_type: m.memory_type,
-                    updated_at: 0i64,
+                    tier: crate::memory::MemoryTier::from_str(&m.tier),
+                    importance: m.importance,
+                    access_count: m.access_count as u64,
+                    last_accessed: m
+                        .last_accessed
+                        .as_ref()
+                        .and_then(|s| s.parse::<i64>().ok())
+                        .unwrap_or(0),
+                    decay_rate: m.decay_rate,
+                    created_at: m
+                        .created_at
+                        .as_ref()
+                        .and_then(|s| s.parse::<i64>().ok())
+                        .unwrap_or(0),
+                    updated_at: m.updated_at.parse::<i64>().unwrap_or(0),
+                    expires_at: m.expires_at.as_ref().and_then(|s| s.parse::<i64>().ok()),
+                    nature: crate::memory::MemoryNature::from_str(&m.memory_nature),
+                    provenance: Some(crate::memory::MemoryProvenance {
+                        conversation_id: m.source_conversation_id,
+                        message_id: m.source_message_id,
+                        extraction_method: "unknown".to_string(),
+                    }),
+                    tags: serde_json::from_str(&m.tags).unwrap_or_default(),
                 })
                 .collect())
         })
@@ -780,17 +802,47 @@ impl TrajectoryStorage {
 
     pub fn save_memory(&self, mem: &crate::memory::MemoryEntry) -> Result<()> {
         Self::block_on(async {
+            let _provenance_json = mem
+                .provenance
+                .as_ref()
+                .map(|p| serde_json::to_string(p).unwrap_or_default());
+            let source_conv_id = mem
+                .provenance
+                .as_ref()
+                .and_then(|p| p.conversation_id.clone());
+            let source_msg_id = mem.provenance.as_ref().and_then(|p| p.message_id.clone());
             trajectory_memories::Entity::insert(trajectory_memories::ActiveModel {
                 id: Set(mem.id.clone()),
                 content: Set(mem.content.clone()),
                 memory_type: Set(mem.memory_type.clone()),
                 updated_at: Set(format!("{}", mem.updated_at)),
+                tier: Set(mem.tier.as_str().to_string()),
+                importance: Set(mem.importance),
+                access_count: Set(mem.access_count as i32),
+                last_accessed: Set(Some(format!("{}", mem.last_accessed))),
+                decay_rate: Set(mem.decay_rate),
+                created_at: Set(Some(format!("{}", mem.created_at))),
+                expires_at: Set(mem.expires_at.map(|t| format!("{}", t))),
+                source_conversation_id: Set(source_conv_id),
+                source_message_id: Set(source_msg_id),
+                memory_nature: Set(mem.nature.as_str().to_string()),
+                tags: Set(serde_json::to_string(&mem.tags).unwrap_or_else(|_| "[]".to_string())),
             })
             .on_conflict(
                 sea_orm::sea_query::OnConflict::column(trajectory_memories::Column::Id)
                     .update_columns([
                         trajectory_memories::Column::Content,
                         trajectory_memories::Column::UpdatedAt,
+                        trajectory_memories::Column::Tier,
+                        trajectory_memories::Column::Importance,
+                        trajectory_memories::Column::AccessCount,
+                        trajectory_memories::Column::LastAccessed,
+                        trajectory_memories::Column::DecayRate,
+                        trajectory_memories::Column::ExpiresAt,
+                        trajectory_memories::Column::MemoryNature,
+                        trajectory_memories::Column::Tags,
+                        trajectory_memories::Column::SourceConversationId,
+                        trajectory_memories::Column::SourceMessageId,
                     ])
                     .to_owned(),
             )

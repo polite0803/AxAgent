@@ -609,6 +609,7 @@ pub async fn extract_expert_structure(
             content: ChatContent::Text(system_prompt.to_string()),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         },
         ChatMessage {
             role: "user".to_string(),
@@ -620,6 +621,7 @@ pub async fn extract_expert_structure(
             )),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         },
     ];
 

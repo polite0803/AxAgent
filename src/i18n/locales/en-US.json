@@ -1520,7 +1520,10 @@
       "syncWorkingMemory": "Sync Working Memory",
       "syncWorkingMemoryConfirm": "Sync all working memory entries to this namespace?",
       "syncWorkingMemorySuccess": "Synced {{count}} working memory entries",
-      "syncWorkingMemoryError": "Sync failed: {{error}}"
+      "syncWorkingMemoryError": "Sync failed: {{error}}",
+      "tier": "Tier",
+      "importance": "Importance",
+      "nature": "Nature"
     },
     "desktopIntegration": {
       "title": "Desktop Integration"

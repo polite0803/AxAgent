@@ -655,6 +655,11 @@ pub async fn archive_to_knowledge_base(
     let new_archived = 1;
     let mut am: conversations::ActiveModel = conv.into();
     am.is_archived = Set(new_archived);
+    let new_memory_status = match am.memory_status.as_ref() {
+        s if s == "extracted" => "both",
+        _ => "archived",
+    };
+    am.memory_status = Set(new_memory_status.to_string());
     am.updated_at = Set(now);
     am.update(db).await?;
 

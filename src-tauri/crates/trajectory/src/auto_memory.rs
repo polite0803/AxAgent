@@ -313,11 +313,12 @@ impl AutoMemoryExtractor {
         let mut applied = 0;
 
         for memory in memories {
-            let result = memory_service.add_memory(memory.memory_type.as_str(), &memory.content);
+            let result =
+                memory_service.add_memory_with_dedup(memory.memory_type.as_str(), &memory.content);
             if result.success {
                 applied += 1;
             } else {
-                tracing::warn!("Failed to add memory entry: {}", result.message);
+                tracing::debug!("Memory dedup skipped: {}", result.message);
             }
         }
 

@@ -1131,12 +1131,14 @@ mod tests {
                 content: ChatContent::Text("You are helpful.".to_string()),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
             ChatMessage {
                 role: "user".to_string(),
                 content: ChatContent::Text("Hello".to_string()),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
         ];
 
@@ -1163,12 +1165,14 @@ mod tests {
                     },
                 }]),
                 tool_call_id: None,
+                thinking: None,
             },
             ChatMessage {
                 role: "tool".to_string(),
                 content: ChatContent::Text("Sunny, 72F".to_string()),
                 tool_calls: None,
                 tool_call_id: Some("call_1".to_string()),
+                thinking: None,
             },
         ];
 
@@ -1214,6 +1218,7 @@ mod tests {
                 content: ChatContent::Text("hi".to_string()),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             }],
             stream: false,
             temperature: Some(0.7),
@@ -1244,6 +1249,7 @@ mod tests {
                 content: ChatContent::Text("hi".to_string()),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             }],
             stream: false,
             temperature: None,

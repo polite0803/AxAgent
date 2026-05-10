@@ -3,8 +3,9 @@ import { IconEditor } from "@/components/shared/IconEditor";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { invoke } from "@/lib/invoke";
 import { listen } from "@/lib/invoke";
+import { formatImportance, getNatureLabel, getTierColor, getTierLabel } from "@/lib/memoryUtils";
 import { useMemoryStore } from "@/stores";
-import type { MemoryItem, MemoryNamespace, MemorySource } from "@/types";
+import type { MemoryItem, MemoryNamespace, MemorySource, MemoryTier as MemoryTierType } from "@/types";
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -379,6 +380,41 @@ function MemoryItemsPanel({
         <Tag color={SOURCE_TAG_COLOR[source]}>
           {t(`settings.memory.${source === "auto_extract" ? "autoExtract" : "manual"}`)}
         </Tag>
+      ),
+    },
+    {
+      title: t("settings.memory.tier"),
+      dataIndex: "tier",
+      key: "tier",
+      width: 90,
+      render: (tier: MemoryTierType) => (
+        <Tag color={getTierColor(tier)} style={{ fontSize: 11 }}>
+          {getTierLabel(tier)}
+        </Tag>
+      ),
+    },
+    {
+      title: t("settings.memory.importance"),
+      dataIndex: "importance",
+      key: "importance",
+      width: 70,
+      render: (importance: number) => (
+        <Tooltip title={`${(importance * 100).toFixed(0)}%`}>
+          <span
+            style={{ fontSize: 12, color: importance >= 0.7 ? "#f59e0b" : importance >= 0.4 ? "#3b82f6" : "#94a3b8" }}
+          >
+            {formatImportance(importance)}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      title: t("settings.memory.nature"),
+      dataIndex: "nature",
+      key: "nature",
+      width: 80,
+      render: (nature: string) => (
+        <Tag style={{ fontSize: 11 }}>{getNatureLabel(nature as "episodic" | "semantic")}</Tag>
       ),
     },
     {

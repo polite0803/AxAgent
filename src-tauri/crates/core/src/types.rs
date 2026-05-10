@@ -1019,6 +1019,8 @@ pub struct ChatMessage {
     /// For tool-result messages: the ID of the tool call this responds to
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

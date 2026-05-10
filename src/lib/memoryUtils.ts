@@ -2,9 +2,7 @@ export interface MemoryRetrievedItem {
   content: string;
   score: number;
   document_id: string;
-  /** Chunk ID within the vector store */
   id: string;
-  /** Human-readable document name (knowledge items only) */
   document_name?: string;
 }
 
@@ -19,9 +17,90 @@ export interface RagContextRetrievedEvent {
   sources: MemorySourceResult[];
 }
 
-/**
- * Build a `<knowledge-retrieval>` custom tag for markstream-react rendering.
- */
+export type MemoryTier = "short_term" | "working" | "long_term" | "core";
+export type MemoryNature = "episodic" | "semantic";
+
+export interface MemoryEntry {
+  id: string;
+  content: string;
+  memory_type: string;
+  tier: MemoryTier;
+  importance: number;
+  access_count: number;
+  last_accessed: number;
+  decay_rate: number;
+  created_at: number;
+  updated_at: number;
+  expires_at: number | null;
+  nature: MemoryNature;
+  provenance: {
+    conversation_id: string | null;
+    message_id: string | null;
+    extraction_method: string;
+  } | null;
+  tags: string[];
+}
+
+export interface MemoryUsageStats {
+  memory_count: number;
+  user_count: number;
+  total_tokens: number;
+  tier_counts: Record<string, number>;
+}
+
+export const TIER_LABELS: Record<MemoryTier, string> = {
+  short_term: "短期记忆",
+  working: "工作记忆",
+  long_term: "长期记忆",
+  core: "核心记忆",
+};
+
+export const TIER_COLORS: Record<MemoryTier, string> = {
+  short_term: "#94a3b8",
+  working: "#3b82f6",
+  long_term: "#8b5cf6",
+  core: "#f59e0b",
+};
+
+export const NATURE_LABELS: Record<MemoryNature, string> = {
+  episodic: "情景记忆",
+  semantic: "语义记忆",
+};
+
+export function getTierLabel(tier: MemoryTier): string {
+  return TIER_LABELS[tier] ?? tier;
+}
+
+export function getTierColor(tier: MemoryTier): string {
+  return TIER_COLORS[tier] ?? "#6b7280";
+}
+
+export function getNatureLabel(nature: MemoryNature): string {
+  return NATURE_LABELS[nature] ?? nature;
+}
+
+export function formatImportance(importance: number): string {
+  if (importance >= 0.9) { return "关键"; }
+  if (importance >= 0.7) { return "重要"; }
+  if (importance >= 0.5) { return "一般"; }
+  if (importance >= 0.3) { return "次要"; }
+  return "低";
+}
+
+export function isExpired(entry: MemoryEntry): boolean {
+  if (entry.expires_at == null) { return false; }
+  return Date.now() / 1000 > entry.expires_at;
+}
+
+export function effectiveScore(entry: MemoryEntry): number {
+  const now = Math.floor(Date.now() / 1000);
+  const hoursElapsed = Math.max(0, now - entry.last_accessed) / 3600;
+  const timeDecay = Math.exp(-entry.decay_rate * hoursElapsed);
+  const accessBoost = 1.0 + Math.log(1.0 + entry.access_count);
+  const tierBonus = { short_term: 0.1, working: 0.2, long_term: 0.3, core: 0.4 }[entry.tier] ?? 0.2;
+  return entry.importance * timeDecay * accessBoost + tierBonus;
+}
+
 export function buildKnowledgeTag(
   status: "searching" | "done" | "error",
   sources?: MemorySourceResult[],
@@ -36,9 +115,6 @@ export function buildKnowledgeTag(
   return `<knowledge-retrieval status="done" data-axagent="1">\n${json}\n</knowledge-retrieval>\n\n`;
 }
 
-/**
- * Build a `<memory-retrieval>` custom tag for markstream-react rendering.
- */
 export function buildMemoryTag(
   status: "searching" | "done" | "error",
   sources?: MemorySourceResult[],

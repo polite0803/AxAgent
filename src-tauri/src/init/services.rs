@@ -25,6 +25,8 @@ pub fn start_background_services(
     start_scheduled_task_executor(state);
     start_platform_adapters(state);
     start_skill_watcher(app);
+    start_memory_decay_tick(state);
+    start_memory_maintenance_tick(state);
 }
 
 fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
@@ -84,6 +86,35 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                     }
                 });
                 *handle.lock().await = Some(task);
+            }
+        }
+    });
+}
+
+fn start_memory_maintenance_tick(state: &AppState) {
+    let memory_service = state.memory_service.clone();
+    tauri::async_runtime::spawn(async move {
+        let interval = std::time::Duration::from_secs(7200);
+        loop {
+            tokio::time::sleep(interval).await;
+            let ms = memory_service.read().await;
+            let disambiguation = ms.disambiguate_entities();
+            drop(ms);
+            if disambiguation.merged > 0 {
+                tracing::info!(
+                    "[memory_maintenance] Disambiguated entities: merged {} of {}",
+                    disambiguation.merged,
+                    disambiguation.total
+                );
+            }
+            let ms = memory_service.read().await;
+            let clusters = ms.find_similar_clusters(0.75);
+            drop(ms);
+            if !clusters.is_empty() {
+                tracing::info!(
+                    "[memory_maintenance] Found {} similar memory clusters (potential duplicates)",
+                    clusters.len()
+                );
             }
         }
     });
@@ -803,6 +834,22 @@ fn start_skill_watcher(app: &tauri::AppHandle) {
                     tracing::info!("Skill file watcher stopped");
                     return;
                 },
+            }
+        }
+    });
+}
+
+fn start_memory_decay_tick(state: &AppState) {
+    let memory_service = state.memory_service.clone();
+    tauri::async_runtime::spawn(async move {
+        let interval = std::time::Duration::from_secs(3600);
+        loop {
+            tokio::time::sleep(interval).await;
+            let ms = memory_service.read().await;
+            let evicted = ms.apply_decay_tick();
+            drop(ms);
+            if evicted > 0 {
+                tracing::info!("[memory_decay] Evicted {} expired/decayed memories", evicted);
             }
         }
     });

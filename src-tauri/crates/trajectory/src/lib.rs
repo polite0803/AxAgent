@@ -162,10 +162,9 @@ pub mod prelude {
     };
     pub use crate::fts5::{FTS5Config, FTS5Query, FTS5Result, FTS5Search};
     pub use crate::memory::{
-        AutoAction, ClosedLoopConfig, ClosedLoopService, Entity, EntityType, GraphQuery,
-        MemoryActionResult, MemoryConfig, MemoryEntry, MemoryRegistry, MemoryService, MemoryUsage,
-        NudgeCandidate, PeriodicNudge, Relationship, RelationshipType, SearchResult,
-        SkillUpgradeProposal, WorkingMemory,
+        AutoAction, ClosedLoopConfig, ClosedLoopService, Entity, EntityType, MemoryActionResult,
+        MemoryConfig, MemoryEntry, MemoryRegistry, MemoryService, MemoryUsage, PeriodicNudge,
+        Relationship, RelationshipType, SearchResult, SkillUpgradeProposal, WorkingMemory,
     };
     pub use crate::parallel_execution::{
         ExecutionResult, ExecutionStatus, ExecutionStrategy, ParallelExecution,

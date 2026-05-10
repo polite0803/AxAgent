@@ -115,6 +115,7 @@ impl VisionPipeline {
                 content: ChatContent::Text(task.system_prompt().to_string()),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
             ChatMessage {
                 role: "user".to_string(),
@@ -132,6 +133,7 @@ impl VisionPipeline {
                 ]),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
         ];
 

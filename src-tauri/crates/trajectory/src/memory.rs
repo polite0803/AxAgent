@@ -3,18 +3,21 @@
 //! This module provides a unified memory system that integrates:
 //! - TrajectoryStorage: existing storage for trajectories, skills, patterns
 //! - Entity/Relationship storage: knowledge graph entities
-//! - Working memory: short-term context for prompts
+//! - Working memory: tiered context for prompts (ShortTerm/Working/LongTerm/Core)
 //! - Closed-loop learning: nudges and proactive suggestions
+//! - Memory decay, dedup, and merge
 
 pub use crate::memory_providers::{
     closed_loop::{
         AutoAction, ClosedLoopConfig, ClosedLoopService, MemoryConsolidationTask, PeriodicNudge,
         SkillCreationProposal, SkillUpgradeProposal,
     },
-    entity::{Entity, EntityType, GraphQuery, NudgeCandidate, Relationship, RelationshipType},
+    entity::{Entity, EntityType, Relationship, RelationshipType},
     service::{
-        MemoryActionResult, MemoryConfig, MemoryEntry, MemoryService, MemoryUsage, SearchResult,
-        WorkingMemory,
+        AddMemoryRequest, DisambiguationResult, ExplainedSearchResult, GraphEnhancedResult,
+        MemoryActionResult, MemoryCluster, MemoryConfig, MemoryEntry, MemoryNature,
+        MemoryProvenance, MemoryService, MemoryTier, MemoryUsage, SearchExplanation, SearchResult,
+        TimeGroupedMemories, WorkingMemory,
     },
 };
 
@@ -23,14 +26,15 @@ use std::sync::Arc;
 
 pub struct MemoryRegistry {
     pub storage: Arc<TrajectoryStorage>,
-    pub memory_service: MemoryService,
+    pub memory_service: Arc<MemoryService>,
     pub closed_loop: ClosedLoopService,
 }
 
 impl MemoryRegistry {
     pub fn new(storage: Arc<TrajectoryStorage>) -> anyhow::Result<Self> {
-        let memory_service = MemoryService::new(storage.clone())?;
-        let closed_loop = ClosedLoopService::new(storage.clone());
+        let memory_service = Arc::new(MemoryService::new(storage.clone())?);
+        let closed_loop =
+            ClosedLoopService::new(storage.clone()).with_memory_service(memory_service.clone());
 
         Ok(Self {
             storage,

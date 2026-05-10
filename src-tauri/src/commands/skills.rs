@@ -1806,6 +1806,7 @@ componentType 可选: "Sandbox" (沙箱页面) 或 "Markdown" (纯文档)。
                 }),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             }],
             temperature: Some(0.3),
             top_p: None,

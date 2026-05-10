@@ -256,12 +256,14 @@ impl PlatformBridge {
                 content: axagent_core::types::ChatContent::Text(system_prompt),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
             axagent_core::types::ChatMessage {
                 role: "user".to_string(),
                 content: axagent_core::types::ChatContent::Text(text.to_string()),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
         ];
 

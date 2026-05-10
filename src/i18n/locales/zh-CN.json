@@ -2372,7 +2372,10 @@
       "syncWorkingMemory": "同步工作记忆",
       "syncWorkingMemoryConfirm": "确定将工作记忆中的所有条目同步到此命名空间？",
       "syncWorkingMemorySuccess": "已同步 {{count}} 条工作记忆",
-      "syncWorkingMemoryError": "同步失败：{{error}}"
+      "syncWorkingMemoryError": "同步失败：{{error}}",
+      "tier": "层级",
+      "importance": "重要性",
+      "nature": "性质"
     },
     "messageChannels": "消息渠道",
     "platform": {

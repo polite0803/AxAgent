@@ -129,6 +129,7 @@ pub fn build_context_with_query(
             )),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         });
     }
 
@@ -491,6 +492,7 @@ pub fn build_summary_prompt(request: &SummarizationRequest) -> Vec<ChatMessage> 
         content: ChatContent::Text(instruction.to_string()),
         tool_calls: None,
         tool_call_id: None,
+        thinking: None,
     });
 
     if let Some(ref summary) = request.existing_summary {
@@ -499,6 +501,7 @@ pub fn build_summary_prompt(request: &SummarizationRequest) -> Vec<ChatMessage> 
             content: ChatContent::Text(format!("已有摘要：\n{}", summary)),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         });
     }
 
@@ -536,6 +539,7 @@ pub fn build_summary_prompt(request: &SummarizationRequest) -> Vec<ChatMessage> 
         )),
         tool_calls: None,
         tool_call_id: None,
+        thinking: None,
     });
 
     messages
@@ -553,6 +557,7 @@ pub fn build_summary_prompt_with_custom(
         content: ChatContent::Text(custom_prompt.to_string()),
         tool_calls: None,
         tool_call_id: None,
+        thinking: None,
     });
 
     if let Some(ref summary) = request.existing_summary {
@@ -561,6 +566,7 @@ pub fn build_summary_prompt_with_custom(
             content: ChatContent::Text(format!("已有摘要：\n{}", summary)),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         });
     }
 
@@ -598,6 +604,7 @@ pub fn build_summary_prompt_with_custom(
         )),
         tool_calls: None,
         tool_call_id: None,
+        thinking: None,
     });
 
     messages

@@ -47,6 +47,23 @@ impl HybridSearcher {
         }
     }
 
+    pub async fn ensure_fts5_index(&self, collection_id: &str) -> Result<()> {
+        let safe_name = collection_id.replace('-', "_");
+        let table_name = format!("vec_{}_meta", safe_name);
+        let fts_table = format!("{}_fts", table_name);
+
+        let create_sql = format!(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS {fts_table} USING fts5(id, document_id, content, content='vec_{safe_name}_meta', content_rowid=rowid)"
+        );
+
+        self.db
+            .execute_unprepared(&create_sql)
+            .await
+            .map_err(|e| AxAgentError::Provider(format!("FTS5 index creation failed: {}", e)))?;
+
+        Ok(())
+    }
+
     pub async fn hybrid_search(
         &self,
         collection_id: &str,
@@ -97,13 +114,15 @@ impl HybridSearcher {
             return Ok(vec![]);
         }
 
-        let table_name = format!("vec_{}_meta", collection_id.replace('-', "_"));
+        let safe_name = collection_id.replace('-', "_");
+        let table_name = format!("vec_{}_meta", safe_name);
+        let fts_table = format!("{}_fts", table_name);
 
-        let sql = format!(
-            "SELECT id, document_id, chunk_index, content, 1.0 as bm25_score \
-             FROM {table_name} \
-             WHERE content LIKE '%' || ?1 || '%' \
-             ORDER BY LENGTH(content) ASC \
+        let fts_sql = format!(
+            "SELECT f.id, f.document_id, f.chunk_index, f.content, bm25({fts_table}) as bm25_score \
+             FROM {fts_table} f \
+             WHERE {fts_table} MATCH ?1 \
+             ORDER BY bm25_score \
              LIMIT ?2"
         );
 
@@ -111,11 +130,84 @@ impl HybridSearcher {
             .db
             .query_all_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
+                &fts_sql,
+                vec![sanitized.clone().into(), (top_k as i64).into()],
+            ))
+            .await;
+
+        match rows {
+            Ok(rows) if !rows.is_empty() => {
+                let results: Vec<Bm25Result> = rows
+                    .into_iter()
+                    .filter_map(|row| {
+                        let id: String = row.try_get("", "id").ok()?;
+                        let document_id: String = row.try_get("", "document_id").ok()?;
+                        let chunk_index: i32 = row.try_get("", "chunk_index").ok()?;
+                        let content: String = row.try_get("", "content").ok()?;
+                        let bm25_raw: f64 = row.try_get("", "bm25_score").ok().unwrap_or(0.0);
+                        let bm25_score = (-bm25_raw as f32).max(0.0);
+
+                        Some(Bm25Result {
+                            id,
+                            document_id,
+                            chunk_index,
+                            content,
+                            bm25_score,
+                        })
+                    })
+                    .collect();
+
+                if !results.is_empty() {
+                    return Ok(results);
+                }
+
+                self.bm25_search_fallback(&table_name, &sanitized, top_k)
+                    .await
+            },
+            _ => {
+                self.bm25_search_fallback(&table_name, &sanitized, top_k)
+                    .await
+            },
+        }
+    }
+
+    async fn bm25_search_fallback(
+        &self,
+        table_name: &str,
+        query: &str,
+        top_k: usize,
+    ) -> Result<Vec<Bm25Result>> {
+        let words: Vec<&str> = query.split_whitespace().take(5).collect();
+        if words.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let conditions: Vec<String> = words
+            .iter()
+            .map(|w| format!("content LIKE '%{}%'", w.replace('\'', "''")))
+            .collect();
+        let where_clause = conditions.join(" OR ");
+
+        let sql = format!(
+            "SELECT id, document_id, chunk_index, content, \
+             (CASE WHEN content LIKE '%{}%' THEN 0.5 ELSE 0.1 END) as bm25_score \
+             FROM {table_name} \
+             WHERE {where_clause} \
+             LIMIT ?1",
+            words.first().unwrap_or(&"").replace('\'', "''")
+        );
+
+        let rows = self
+            .db
+            .query_all_raw(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
                 &sql,
-                vec![sanitized.into(), (top_k as i64).into()],
+                vec![(top_k as i64).into()],
             ))
             .await
-            .map_err(|e| AxAgentError::Provider(format!("BM25 search failed: {}", e)))?
+            .map_err(|e| AxAgentError::Provider(format!("BM25 fallback search failed: {}", e)))?;
+
+        let results: Vec<Bm25Result> = rows
             .into_iter()
             .filter_map(|row| {
                 let id: String = row.try_get("", "id").ok()?;
@@ -134,7 +226,7 @@ impl HybridSearcher {
             })
             .collect();
 
-        Ok(rows)
+        Ok(results)
     }
 
     fn merge_results(
@@ -155,7 +247,8 @@ impl HybridSearcher {
         let max_bm25_score = bm25_results
             .iter()
             .map(|r| r.bm25_score)
-            .fold(1f32, f32::max);
+            .fold(1f32, f32::max)
+            .max(1f32);
 
         for vr in vector_results {
             let normalized_vector_score = 1.0 - (vr.score / max_vector_score);
@@ -246,40 +339,30 @@ fn sanitize_fts5_query(query: &str) -> String {
         return String::new();
     }
 
-    let mut sanitized = String::with_capacity(trimmed.len() * 2);
-    let mut in_phrase = false;
-
-    for c in trimmed.chars() {
-        match c {
-            'a'..='z'
-            | 'A'..='Z'
-            | '0'..='9'
-            | ' '
-            | '\t'
-            | '\n'
-            | '-'
-            | '_'
-            | '.'
-            | '@'
-            | '#'
-            | '*' => {
-                sanitized.push(c);
-            },
-            '"' => {
-                in_phrase = !in_phrase;
-                sanitized.push(c);
-            },
-            '(' | ')' => {
-                sanitized.push(c);
-            },
-            _ => {
-                // 保留 Unicode 字母、表意文字（中日韩等），确保非 ASCII 搜索可用
-                if c.is_alphabetic() || c.is_alphanumeric() {
-                    sanitized.push(c);
+    let words: Vec<String> = trimmed
+        .split_whitespace()
+        .filter(|w| w.len() > 1)
+        .map(|w| {
+            let mut clean = String::new();
+            for c in w.chars() {
+                match c {
+                    'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' => clean.push(c),
+                    _ => {
+                        if c.is_alphabetic() || c.is_alphanumeric() {
+                            clean.push(c);
+                        }
+                    },
                 }
-            },
-        }
+            }
+            clean
+        })
+        .filter(|w| !w.is_empty())
+        .take(10)
+        .collect();
+
+    if words.is_empty() {
+        return String::new();
     }
 
-    sanitized
+    words.join(" OR ")
 }

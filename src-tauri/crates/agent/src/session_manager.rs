@@ -335,11 +335,18 @@ impl SessionManager {
 
     /// Clear the session for a given conversation (used when context is cleared).
     pub async fn clear_session(&self, conversation_id: &str) {
-        let mut conv_index = self.conversation_index.lock().await;
-        if let Some(session_id) = conv_index.remove(conversation_id) {
+        let session_id = {
+            let mut conv_index = self.conversation_index.lock().await;
+            conv_index.remove(conversation_id)
+        };
+        if let Some(session_id) = session_id {
             let mut sessions = self.sessions.lock().await;
             sessions.remove(&session_id);
             self.session_last_access.lock().await.remove(&session_id);
+
+            let _ = agent_session::update_agent_session_status(&self.db, &session_id, "idle").await;
+            let _ = agent_session::clear_sdk_context_by_conversation_id(&self.db, conversation_id)
+                .await;
         }
     }
 

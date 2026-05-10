@@ -151,12 +151,14 @@ impl SemanticValidator for LlmSemanticValidator {
                 ),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
             ChatMessage {
                 role: "user".to_string(),
                 content: ChatContent::Text(prompt),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             },
         ];
 

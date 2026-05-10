@@ -13,14 +13,23 @@ export type MemoryNamespace = {
   sortOrder: number;
 };
 
+export type MemoryTier = "short_term" | "working" | "long_term" | "core";
+export type MemoryNature = "episodic" | "semantic";
+
 export type MemoryItem = {
   id: string;
   namespaceId: string;
   title: string;
   content: string;
   source: MemorySource;
-  indexStatus: string; // pending | indexing | ready | failed | skipped
+  indexStatus: string;
   indexError?: string;
+  tier: MemoryTier;
+  importance: number;
+  nature: MemoryNature;
+  tags: string[];
+  accessCount: number;
+  expiresAt?: string;
   updatedAt: string;
 };
 

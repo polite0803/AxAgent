@@ -122,20 +122,3 @@ pub struct Relationship {
     pub weight: f64,
     pub created_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct GraphQuery {
-    pub entity_types: Option<Vec<EntityType>>,
-    pub relationship_types: Option<Vec<RelationshipType>>,
-    pub min_confidence: Option<f64>,
-    pub min_weight: Option<f64>,
-    pub since: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NudgeCandidate {
-    pub entity: Entity,
-    pub reason: String,
-    pub urgency: String,
-    pub suggested_action: Option<String>,
-}

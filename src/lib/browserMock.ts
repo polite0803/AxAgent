@@ -1320,6 +1320,11 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
           content: inputMem.content ?? "",
           source: inputMem.source ?? "manual",
           indexStatus: "pending",
+          tier: "working",
+          importance: 0.5,
+          nature: "semantic",
+          tags: [],
+          accessCount: 0,
           updatedAt: new Date().toISOString(),
         };
         mns3[mni].items = [...(mns3[mni].items || []), item];

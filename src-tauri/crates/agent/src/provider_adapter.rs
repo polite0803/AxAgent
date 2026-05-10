@@ -202,6 +202,7 @@ impl AxAgentApiClient {
                                 content: ChatContent::Text(output.clone()),
                                 tool_calls: None,
                                 tool_call_id: Some(tool_use_id.clone()),
+                                thinking: None,
                             });
                         }
                     }
@@ -242,7 +243,6 @@ impl AxAgentApiClient {
                     result.push(ChatMessage {
                         role: "assistant".to_string(),
                         content: if text_parts.is_empty() && !tool_calls.is_empty() {
-                            // Some providers require non-null content even when tool_calls exist
                             ChatContent::Text(String::new())
                         } else {
                             ChatContent::Text(text_parts)
@@ -253,6 +253,7 @@ impl AxAgentApiClient {
                             Some(tool_calls)
                         },
                         tool_call_id: None,
+                        thinking: None,
                     });
                 },
                 _ => {
@@ -306,6 +307,7 @@ impl AxAgentApiClient {
                         content: chat_content,
                         tool_calls: None,
                         tool_call_id: None,
+                        thinking: None,
                     });
                 },
             }

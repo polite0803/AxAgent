@@ -254,6 +254,7 @@ async fn generate_plan_via_llm(
             content: ChatContent::Text(PLAN_SYSTEM_PROMPT.to_string()),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         },
         ChatMessage {
             role: "user".to_string(),
@@ -263,6 +264,7 @@ async fn generate_plan_via_llm(
             )),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         },
     ];
 

@@ -42,6 +42,8 @@ pub struct Model {
     pub workflow_template_id: Option<String>,
     pub session_type: String,
     pub workflow_status: Option<String>,
+    pub memory_status: String,
+    pub last_memory_extracted_at: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

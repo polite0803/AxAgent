@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::memory_providers::service::{MemoryNature, MemoryTier};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryEntry {
     pub id: String,
@@ -12,6 +14,8 @@ pub struct MemoryEntry {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub last_accessed: chrono::DateTime<chrono::Utc>,
     pub access_count: u64,
+    pub tier: MemoryTier,
+    pub nature: MemoryNature,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,6 +48,7 @@ pub struct MemoryQuery {
     pub tags: Option<Vec<String>>,
     pub limit: usize,
     pub min_importance: Option<f64>,
+    pub tier_filter: Option<MemoryTier>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -377,6 +377,7 @@ pub async fn test_model(
             content: ChatContent::Text("hi".into()),
             tool_calls: None,
             tool_call_id: None,
+            thinking: None,
         }],
         stream: false,
         temperature: None,

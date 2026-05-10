@@ -7,6 +7,8 @@ mod m20240101_000004_init_knowledge;
 mod m20240101_000005_init_trajectory;
 mod m20240101_000006_init_prompt;
 mod m20240101_000007_init_background_tasks;
+mod m20250510_000001_memory_tier_decay;
+mod m20250510_000002_conversation_memory_status;
 
 pub struct Migrator;
 
@@ -21,6 +23,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000005_init_trajectory::Migration),
             Box::new(m20240101_000006_init_prompt::Migration),
             Box::new(m20240101_000007_init_background_tasks::Migration),
+            Box::new(m20250510_000001_memory_tier_decay::Migration),
+            Box::new(m20250510_000002_conversation_memory_status::Migration),
         ]
     }
 }

@@ -1183,6 +1183,20 @@ fn build_assistant_message(
 
     flush_text_block(&mut text, &mut blocks);
 
+    if !thinking.is_empty() {
+        let thinking_text = format!("<think data-axagent=\"1\">\n{}\n</think>", thinking);
+        if let Some(ContentBlock::Text { text }) = blocks.first_mut() {
+            *text = format!("{}\n\n{}", thinking_text, text);
+        } else {
+            blocks.insert(
+                0,
+                ContentBlock::Text {
+                    text: thinking_text,
+                },
+            );
+        }
+    }
+
     if !finished {
         // Stream interrupted — if we have partial content, return it with
         // a recovery marker so the agent loop can continue rather than

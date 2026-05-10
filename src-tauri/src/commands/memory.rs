@@ -3,6 +3,7 @@ use axagent_core::types::*;
 use axagent_providers::{
     registry::ProviderRegistry, resolve_base_url_for_type, ProviderRequestContext,
 };
+use sea_orm::ActiveModelTrait;
 use tauri::{AppHandle, Emitter, State};
 
 fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
@@ -408,6 +409,278 @@ pub async fn rebuild_memory_index(
 }
 
 #[tauri::command]
+pub async fn auto_extract_incremental_memories(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    conversation_id: String,
+) -> Result<serde_json::Value, String> {
+    use axagent_core::entity::conversations;
+    use sea_orm::EntityTrait;
+
+    let conv = conversations::Entity::find_by_id(&conversation_id)
+        .one(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let conv = match conv {
+        Some(c) => c,
+        None => {
+            return Ok(serde_json::json!({"skipped": true, "reason": "conversation not found"}))
+        },
+    };
+
+    match conv.memory_status.as_str() {
+        "archived" | "both" => {
+            return Ok(serde_json::json!({
+                "skipped": true,
+                "reason": format!("conversation already {} - skipping to avoid duplicate", conv.memory_status)
+            }));
+        },
+        _ => {},
+    }
+
+    let default_ns = axagent_core::repo::memory::list_namespaces(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|ns| {
+            ns.name.to_lowercase().contains("auto") || ns.name.to_lowercase().contains("default")
+        });
+
+    let namespace_id = match default_ns {
+        Some(ns) => ns.id,
+        None => {
+            return Ok(
+                serde_json::json!({"skipped": true, "reason": "no default/auto memory namespace found"}),
+            )
+        },
+    };
+
+    let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if messages.len() < 4 {
+        return Ok(serde_json::json!({"skipped": true, "reason": "not enough messages"}));
+    }
+
+    let last_extracted = conv.last_memory_extracted_at.as_deref();
+    let new_messages: Vec<axagent_core::types::Message> = if let Some(_last_ts) = last_extracted {
+        let recent: Vec<_> = messages.into_iter().rev().take(6).collect();
+        recent.into_iter().rev().collect()
+    } else {
+        let recent: Vec<_> = messages.into_iter().rev().take(20).collect();
+        recent.into_iter().rev().collect()
+    };
+
+    let (provider, key_row, model_id, settings) = {
+        let settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+            .await
+            .unwrap_or_default();
+        let provider_id = settings
+            .default_provider_id
+            .as_deref()
+            .ok_or("No default provider configured")?;
+        let model_id = settings
+            .default_model_id
+            .as_deref()
+            .ok_or("No default model configured")?;
+
+        let provider = axagent_core::repo::provider::get_provider(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        (provider, key_row, model_id.to_string(), settings)
+    };
+
+    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        .map_err(|e| e.to_string())?;
+
+    let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key_row.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        api_path: provider.api_path.clone(),
+        proxy_config: proxy,
+        custom_headers: provider
+            .custom_headers
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let registry = ProviderRegistry::create_default();
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = match registry.get(registry_key) {
+        Some(a) => a,
+        None => return Err(format!("Unsupported provider type: {}", registry_key)),
+    };
+
+    let result = crate::memory_extract::extract_incremental_memories(
+        &new_messages,
+        &conversation_id,
+        adapter,
+        &ctx,
+        &model_id,
+    )
+    .await?;
+
+    if result.items.is_empty() {
+        return Ok(serde_json::json!({"extracted": 0, "skipped": false}));
+    }
+
+    let ns_config = axagent_core::repo::memory::get_namespace(&state.sea_db, &namespace_id)
+        .await
+        .ok();
+    let can_vector_dedup = ns_config
+        .as_ref()
+        .and_then(|ns| ns.embedding_provider.clone())
+        .is_some();
+
+    let existing_items = axagent_core::repo::memory::list_items(&state.sea_db, &namespace_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    let existing_contents: std::collections::HashSet<String> = existing_items
+        .iter()
+        .map(|item| item.content.to_lowercase().trim().to_string())
+        .collect();
+
+    let mut saved_count = 0usize;
+    for item in &result.items {
+        let content_lower = item.content.to_lowercase().trim().to_string();
+        if existing_contents.contains(&content_lower) {
+            continue;
+        }
+
+        if can_vector_dedup {
+            let similar =
+                check_semantic_duplicate(&state, &namespace_id, &item.content, ns_config.as_ref())
+                    .await;
+            if let Some(dup_id) = similar {
+                tracing::info!(
+                    "Auto-extract: skipping semantic duplicate (similar to {}): {}",
+                    dup_id,
+                    item.title
+                );
+                continue;
+            }
+        }
+
+        let title = format!("[{}][auto] {}", item.category.as_str(), item.title);
+        let input = CreateMemoryItemInput {
+            namespace_id: namespace_id.clone(),
+            title,
+            content: item.content.clone(),
+            source: Some("auto_extract".to_string()),
+        };
+        if let Ok(mem_item) = axagent_core::repo::memory::add_item(&state.sea_db, input).await {
+            let ns = axagent_core::repo::memory::get_namespace(&state.sea_db, &namespace_id)
+                .await
+                .ok();
+            if let Some(ns) = ns {
+                if let Some(ref embedding_provider) = ns.embedding_provider {
+                    let _ = axagent_core::repo::memory::update_item_index_status(
+                        &state.sea_db,
+                        &mem_item.id,
+                        "indexing",
+                        None,
+                    )
+                    .await;
+
+                    let db = state.sea_db.clone();
+                    let master_key = state.master_key;
+                    let vector_store = state.vector_store.clone();
+                    let item_id = mem_item.id.clone();
+                    let content = mem_item.content.clone();
+                    let ep = embedding_provider.clone();
+                    let ns_id = namespace_id.clone();
+                    let dims = ns.embedding_dimensions.map(|v| v as usize);
+                    let app_clone = app.clone();
+
+                    tokio::spawn(async move {
+                        let res = crate::indexing::index_memory_item(
+                            &db,
+                            &master_key,
+                            &vector_store,
+                            &ns_id,
+                            &item_id,
+                            &content,
+                            &ep,
+                            dims,
+                        )
+                        .await;
+
+                        let (status, err_msg) = match &res {
+                            Ok(_) => ("ready", None),
+                            Err(e) => ("failed", Some(e.to_string())),
+                        };
+                        let _ = axagent_core::repo::memory::update_item_index_status(
+                            &db,
+                            &item_id,
+                            status,
+                            err_msg.as_deref(),
+                        )
+                        .await;
+                        let _ = app_clone.emit(
+                            "memory-item-indexed",
+                            serde_json::json!({
+                                "itemId": item_id,
+                                "success": res.is_ok(),
+                            }),
+                        );
+                    });
+                }
+            }
+            saved_count += 1;
+
+            {
+                let ms = state.memory_service.read().await;
+                let _ = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+                    target: "memory".to_string(),
+                    content: item.content.clone(),
+                    tier: axagent_trajectory::MemoryTier::Working,
+                    importance: item.importance,
+                    nature: match item.nature {
+                        crate::memory_extract::ExtractedNature::Episodic => {
+                            axagent_trajectory::MemoryNature::Episodic
+                        },
+                        crate::memory_extract::ExtractedNature::Semantic => {
+                            axagent_trajectory::MemoryNature::Semantic
+                        },
+                    },
+                    provenance: Some(axagent_trajectory::MemoryProvenance {
+                        conversation_id: Some(conversation_id.clone()),
+                        message_id: None,
+                        extraction_method: "auto_incremental".to_string(),
+                    }),
+                    tags: item.tags.clone(),
+                    expires_at: None,
+                });
+            }
+        }
+    }
+
+    if saved_count > 0 {
+        let _ =
+            update_conversation_memory_status(&state.sea_db, &conversation_id, "extracted").await;
+    }
+
+    Ok(serde_json::json!({
+        "extracted": saved_count,
+        "skipped": false,
+        "namespace_id": namespace_id,
+    }))
+}
+
+#[tauri::command]
 pub async fn clear_memory_index(
     state: State<'_, AppState>,
     namespace_id: String,
@@ -650,6 +923,513 @@ pub async fn reorder_memory_namespaces(
 }
 
 #[tauri::command]
+pub async fn promote_memory_entry(
+    state: State<'_, AppState>,
+    memory_id: String,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let result = ms.promote_memory(&memory_id);
+    Ok(serde_json::to_value(result).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn demote_memory_entry(
+    state: State<'_, AppState>,
+    memory_id: String,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let result = ms.demote_memory(&memory_id);
+    Ok(serde_json::to_value(result).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn add_memory_with_dedup(
+    state: State<'_, AppState>,
+    target: String,
+    content: String,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let result = ms.add_memory_with_dedup(&target, &content);
+    Ok(serde_json::to_value(result).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn apply_memory_decay_tick(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let evicted = ms.apply_decay_tick();
+    Ok(serde_json::json!({ "evicted_count": evicted }))
+}
+
+#[tauri::command]
+pub async fn search_working_memories(
+    state: State<'_, AppState>,
+    query: String,
+    limit: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let results = ms.search_memories(&query, limit.unwrap_or(10));
+    Ok(serde_json::to_value(results).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn update_memory_importance(
+    state: State<'_, AppState>,
+    memory_id: String,
+    delta: f64,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let result = ms.update_importance(&memory_id, delta);
+    Ok(serde_json::to_value(result).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn get_memory_tier_stats(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let usage = ms.get_memory_usage();
+    Ok(serde_json::to_value(usage).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn extract_conversation_entities(
+    state: State<'_, AppState>,
+    conversation_id: String,
+) -> Result<serde_json::Value, String> {
+    let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if messages.len() < 2 {
+        return Ok(serde_json::json!({"entities": [], "relations": []}));
+    }
+
+    let (provider, key_row, model_id, settings) = {
+        let settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+            .await
+            .unwrap_or_default();
+        let provider_id = settings
+            .default_provider_id
+            .as_deref()
+            .ok_or("No default provider configured")?;
+        let model_id = settings
+            .default_model_id
+            .as_deref()
+            .ok_or("No default model configured")?;
+        let provider = axagent_core::repo::provider::get_provider(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        (provider, key_row, model_id.to_string(), settings)
+    };
+
+    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        .map_err(|e| e.to_string())?;
+
+    let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key_row.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        api_path: provider.api_path.clone(),
+        proxy_config: proxy,
+        custom_headers: provider
+            .custom_headers
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let registry = ProviderRegistry::create_default();
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = match registry.get(registry_key) {
+        Some(a) => a,
+        None => return Err(format!("Unsupported provider type: {}", registry_key)),
+    };
+
+    let result =
+        crate::memory_extract::extract_entities_from_messages(&messages, adapter, &ctx, &model_id)
+            .await?;
+
+    let mut saved_entities = 0usize;
+    let mut saved_relations = 0usize;
+
+    for ext_entity in &result.entities {
+        let now = chrono::Utc::now();
+        let entity = axagent_trajectory::Entity {
+            id: format!(
+                "ent_{}",
+                uuid::Uuid::new_v4().to_string().replace('-', "")[..12].to_string()
+            ),
+            name: ext_entity.name.clone(),
+            entity_type: axagent_trajectory::EntityType::from(ext_entity.entity_type.as_str()),
+            properties: ext_entity.properties.clone(),
+            aliases: ext_entity.aliases.clone(),
+            first_seen_at: now,
+            last_seen_at: now,
+            mention_count: 1,
+            confidence: ext_entity.confidence,
+            created_at: Some(now),
+            updated_at: Some(now),
+        };
+
+        let existing = state.memory_service.read().await;
+        let storage = {
+            let ms = &existing;
+            ms.storage()
+        };
+        drop(existing);
+
+        let existing_entities = storage
+            .search_entities(&ext_entity.name, 5)
+            .unwrap_or_default();
+        let already_exists = existing_entities.iter().any(|e| {
+            e.name.to_lowercase() == ext_entity.name.to_lowercase()
+                && e.entity_type
+                    == axagent_trajectory::EntityType::from(ext_entity.entity_type.as_str())
+        });
+
+        if !already_exists {
+            if let Err(e) = storage.save_entity(&entity) {
+                tracing::warn!("Failed to save entity {}: {}", ext_entity.name, e);
+            } else {
+                saved_entities += 1;
+            }
+        } else if let Some(existing) = existing_entities
+            .iter()
+            .find(|e| e.name.to_lowercase() == ext_entity.name.to_lowercase())
+        {
+            let mut updated = existing.clone();
+            updated.mention_count += 1;
+            updated.last_seen_at = now;
+            updated.confidence = updated.confidence.max(ext_entity.confidence);
+            for alias in &ext_entity.aliases {
+                if !updated
+                    .aliases
+                    .iter()
+                    .any(|a| a.to_lowercase() == alias.to_lowercase())
+                {
+                    updated.aliases.push(alias.clone());
+                }
+            }
+            let _ = storage.save_entity(&updated);
+        }
+    }
+
+    let storage = {
+        let ms = state.memory_service.read().await;
+        ms.storage()
+    };
+
+    for ext_rel in &result.relations {
+        let source_entities = storage
+            .search_entities(&ext_rel.source_name, 3)
+            .unwrap_or_default();
+        let target_entities = storage
+            .search_entities(&ext_rel.target_name, 3)
+            .unwrap_or_default();
+
+        let source_id = match source_entities.first() {
+            Some(e) => e.id.clone(),
+            None => continue,
+        };
+        let target_id = match target_entities.first() {
+            Some(e) => e.id.clone(),
+            None => continue,
+        };
+
+        let rel = axagent_trajectory::Relationship {
+            id: format!(
+                "rel_{}",
+                uuid::Uuid::new_v4().to_string().replace('-', "")[..12].to_string()
+            ),
+            source_id,
+            target_id,
+            relation_type: axagent_trajectory::RelationshipType::from(
+                ext_rel.relation_type.as_str(),
+            ),
+            properties: ext_rel.properties.clone(),
+            weight: ext_rel.weight,
+            created_at: chrono::Utc::now(),
+        };
+
+        if let Err(e) = storage.save_relationship(&rel) {
+            tracing::warn!("Failed to save relationship: {}", e);
+        } else {
+            saved_relations += 1;
+        }
+    }
+
+    Ok(serde_json::json!({
+        "entities_extracted": result.entities.len(),
+        "relations_extracted": result.relations.len(),
+        "entities_saved": saved_entities,
+        "relations_saved": saved_relations,
+    }))
+}
+
+#[tauri::command]
+pub async fn graph_search_memories(
+    state: State<'_, AppState>,
+    query: String,
+    limit: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let results = ms.graph_enhanced_search(&query, limit.unwrap_or(10));
+    Ok(serde_json::to_value(results).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn disambiguate_memory_entities(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let result = ms.disambiguate_entities();
+    Ok(serde_json::to_value(result).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn list_knowledge_graph(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let storage = ms.storage();
+    let entities = storage.get_all_entities().map_err(|e| e.to_string())?;
+    let relationships = storage.get_all_relationships().map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({
+        "entities": entities,
+        "relationships": relationships,
+    }))
+}
+
+#[tauri::command]
+pub async fn search_memories_by_time(
+    state: State<'_, AppState>,
+    start_ts: i64,
+    end_ts: i64,
+    limit: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let results = ms.search_memories_by_time_range(start_ts, end_ts, limit.unwrap_or(50));
+    Ok(serde_json::to_value(results).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn get_memories_time_grouped(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let groups = ms.get_memories_grouped_by_time();
+    Ok(serde_json::to_value(groups).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn search_memories_explained(
+    state: State<'_, AppState>,
+    query: String,
+    limit: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let results = ms.search_memories_explained(&query, limit.unwrap_or(10));
+    Ok(serde_json::to_value(results).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn get_memory_provenance(
+    state: State<'_, AppState>,
+    memory_id: String,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let mem = ms.get_working_memory();
+    match mem.entries.get(&memory_id) {
+        Some(entry) => Ok(serde_json::json!({
+            "id": entry.id,
+            "content": entry.content,
+            "tier": entry.tier.as_str(),
+            "importance": entry.importance,
+            "nature": entry.nature.as_str(),
+            "provenance": entry.provenance,
+            "created_at": entry.created_at,
+            "updated_at": entry.updated_at,
+            "access_count": entry.access_count,
+            "last_accessed": entry.last_accessed,
+            "effective_score": entry.effective_score(),
+            "tags": entry.tags,
+        })),
+        None => Err("Memory not found".to_string()),
+    }
+}
+
+#[tauri::command]
+pub async fn find_memory_clusters(
+    state: State<'_, AppState>,
+    similarity_threshold: Option<f64>,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let clusters = ms.find_similar_clusters(similarity_threshold.unwrap_or(0.5));
+    Ok(serde_json::to_value(clusters).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn consolidate_memory_cluster(
+    _app: AppHandle,
+    state: State<'_, AppState>,
+    memory_ids: Vec<String>,
+) -> Result<serde_json::Value, String> {
+    if memory_ids.len() < 2 {
+        return Err("Need at least 2 memories to consolidate".to_string());
+    }
+
+    let ms = state.memory_service.read().await;
+    let mem = ms.get_working_memory();
+
+    let contents: Vec<String> = memory_ids
+        .iter()
+        .filter_map(|id| mem.entries.get(id).map(|e| e.content.clone()))
+        .collect();
+
+    if contents.len() < 2 {
+        return Err("Could not find enough memories for consolidation".to_string());
+    }
+
+    drop(ms);
+
+    let (provider, key_row, model_id, settings) = {
+        let settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+            .await
+            .unwrap_or_default();
+        let provider_id = settings
+            .default_provider_id
+            .as_deref()
+            .ok_or("No default provider configured")?;
+        let model_id = settings
+            .default_model_id
+            .as_deref()
+            .ok_or("No default model configured")?;
+        let provider = axagent_core::repo::provider::get_provider(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        (provider, key_row, model_id.to_string(), settings)
+    };
+
+    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        .map_err(|e| e.to_string())?;
+
+    let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key_row.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        api_path: provider.api_path.clone(),
+        proxy_config: proxy,
+        custom_headers: provider
+            .custom_headers
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let registry = ProviderRegistry::create_default();
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = match registry.get(registry_key) {
+        Some(a) => a,
+        None => return Err(format!("Unsupported provider type: {}", registry_key)),
+    };
+
+    let consolidated =
+        crate::memory_extract::consolidate_memories(&contents, adapter, &ctx, &model_id).await?;
+
+    let ms = state.memory_service.read().await;
+    let result = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+        target: "memory".to_string(),
+        content: consolidated.content,
+        tier: axagent_trajectory::MemoryTier::Working,
+        importance: consolidated.importance,
+        nature: axagent_trajectory::MemoryNature::Semantic,
+        provenance: Some(axagent_trajectory::MemoryProvenance {
+            conversation_id: None,
+            message_id: None,
+            extraction_method: "consolidation".to_string(),
+        }),
+        tags: consolidated.tags,
+        expires_at: None,
+    });
+
+    if result.success {
+        for id in &memory_ids {
+            let ms2 = state.memory_service.read().await;
+            let _ = ms2.remove_memory("memory", id);
+        }
+    }
+
+    Ok(serde_json::to_value(result).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn submit_memory_feedback(
+    state: State<'_, AppState>,
+    memory_id: String,
+    feedback: String,
+) -> Result<serde_json::Value, String> {
+    let ms = state.memory_service.read().await;
+    let result = ms.apply_user_feedback(&memory_id, &feedback);
+    Ok(serde_json::to_value(result).unwrap_or_default())
+}
+
+const SEMANTIC_DEDUP_DISTANCE_THRESHOLD: f32 = 5.0;
+
+async fn check_semantic_duplicate(
+    state: &AppState,
+    namespace_id: &str,
+    content: &str,
+    ns_config: Option<&MemoryNamespace>,
+) -> Option<String> {
+    let ns = ns_config?;
+    let embedding_provider = ns.embedding_provider.as_ref()?;
+    let dimensions = ns.embedding_dimensions.map(|d| d as usize);
+
+    let embed_result = crate::indexing::generate_embeddings(
+        &state.sea_db,
+        &state.master_key,
+        embedding_provider,
+        vec![content.to_string()],
+        dimensions,
+    )
+    .await
+    .ok()?;
+
+    let query_embedding = embed_result.embeddings.into_iter().next()?;
+
+    let collection_name = format!("mem_{}", namespace_id);
+    let search_results = state
+        .vector_store
+        .search(&collection_name, query_embedding, 3)
+        .await
+        .ok()?;
+
+    for result in &search_results {
+        if result.score <= SEMANTIC_DEDUP_DISTANCE_THRESHOLD {
+            return Some(result.id.clone());
+        }
+    }
+
+    None
+}
+
+#[tauri::command]
 pub async fn extract_conversation_memories(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -728,15 +1508,34 @@ pub async fn extract_conversation_memories(
         .map(|item| item.content.to_lowercase().trim().to_string())
         .collect();
 
-    // TODO: Track `last_extracted_at` per conversation to avoid re-extracting
-    // already-processed messages on subsequent calls.
+    let ns_config = axagent_core::repo::memory::get_namespace(&state.sea_db, &namespace_id)
+        .await
+        .ok();
+    let can_vector_dedup = ns_config
+        .as_ref()
+        .and_then(|ns| ns.embedding_provider.clone())
+        .is_some();
 
     let mut saved = Vec::new();
     for item in &result.items {
         let content_lower = item.content.to_lowercase().trim().to_string();
         if existing_contents.contains(&content_lower) {
-            tracing::info!("Skipping duplicate memory: {}", item.title);
+            tracing::info!("Skipping exact duplicate memory: {}", item.title);
             continue;
+        }
+
+        if can_vector_dedup {
+            let similar =
+                check_semantic_duplicate(&state, &namespace_id, &item.content, ns_config.as_ref())
+                    .await;
+            if let Some(dup_id) = similar {
+                tracing::info!(
+                    "Skipping semantic duplicate memory (similar to {}): {}",
+                    dup_id,
+                    item.title
+                );
+                continue;
+            }
         }
 
         let title = format!("[{}] {}", item.category.as_str(), item.title);
@@ -818,6 +1617,32 @@ pub async fn extract_conversation_memories(
                             index_status: "indexing".to_string(),
                             ..mem_item
                         });
+
+                        {
+                            let ms = state.memory_service.read().await;
+                            let _ = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+                                target: "memory".to_string(),
+                                content: item.content.clone(),
+                                tier: axagent_trajectory::MemoryTier::Working,
+                                importance: item.importance,
+                                nature: match item.nature {
+                                    crate::memory_extract::ExtractedNature::Episodic => {
+                                        axagent_trajectory::MemoryNature::Episodic
+                                    },
+                                    crate::memory_extract::ExtractedNature::Semantic => {
+                                        axagent_trajectory::MemoryNature::Semantic
+                                    },
+                                },
+                                provenance: Some(axagent_trajectory::MemoryProvenance {
+                                    conversation_id: Some(conversation_id.clone()),
+                                    message_id: None,
+                                    extraction_method: "manual_extract".to_string(),
+                                }),
+                                tags: item.tags.clone(),
+                                expires_at: None,
+                            });
+                        }
+
                         continue;
                     }
                 }
@@ -833,6 +1658,31 @@ pub async fn extract_conversation_memories(
                     index_status: "skipped".to_string(),
                     ..mem_item
                 });
+
+                {
+                    let ms = state.memory_service.read().await;
+                    let _ = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+                        target: "memory".to_string(),
+                        content: item.content.clone(),
+                        tier: axagent_trajectory::MemoryTier::Working,
+                        importance: item.importance,
+                        nature: match item.nature {
+                            crate::memory_extract::ExtractedNature::Episodic => {
+                                axagent_trajectory::MemoryNature::Episodic
+                            },
+                            crate::memory_extract::ExtractedNature::Semantic => {
+                                axagent_trajectory::MemoryNature::Semantic
+                            },
+                        },
+                        provenance: Some(axagent_trajectory::MemoryProvenance {
+                            conversation_id: Some(conversation_id.clone()),
+                            message_id: None,
+                            extraction_method: "manual_extract".to_string(),
+                        }),
+                        tags: item.tags.clone(),
+                        expires_at: None,
+                    });
+                }
             },
             Err(e) => {
                 tracing::warn!("Failed to save extracted memory: {}", e);
@@ -840,5 +1690,47 @@ pub async fn extract_conversation_memories(
         }
     }
 
+    if !saved.is_empty() {
+        let _ =
+            update_conversation_memory_status(&state.sea_db, &conversation_id, "extracted").await;
+    }
+
     Ok(saved)
+}
+
+async fn update_conversation_memory_status(
+    db: &sea_orm::DatabaseConnection,
+    conversation_id: &str,
+    action: &str,
+) -> Result<(), String> {
+    use axagent_core::entity::conversations;
+    use sea_orm::{EntityTrait, Set};
+
+    let conv = conversations::Entity::find_by_id(conversation_id)
+        .one(db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if let Some(model) = conv {
+        let mut am: conversations::ActiveModel = model.into();
+        let current_status: String = match &am.memory_status {
+            sea_orm::ActiveValue::Set(v) => v.clone(),
+            sea_orm::ActiveValue::Unchanged(v) => v.clone(),
+            _ => "none".to_string(),
+        };
+        let new_status = match (current_status.as_str(), action) {
+            ("none", "extracted") => "extracted",
+            ("archived", "extracted") => "both",
+            ("none", "archived") => "archived",
+            ("extracted", "archived") => "both",
+            (current, "extracted") if !current.starts_with("extract") => "extracted",
+            (current, "archived") if !current.starts_with("archiv") => "archived",
+            _ => &current_status,
+        };
+        am.memory_status = Set(new_status.to_string());
+        am.last_memory_extracted_at = Set(Some(chrono::Utc::now().to_rfc3339()));
+        am.update(db).await.map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }

@@ -2246,6 +2246,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           // the user switches back.
           addPendingConversationRefresh(conversation_id);
         }
+
+        // Auto incremental memory extraction after stream completes
+        import("@/lib/invoke").then(({ invoke }) => {
+          void invoke("auto_extract_incremental_memories", {
+            conversationId: conversation_id,
+          }).catch(() => {});
+          void invoke("extract_conversation_entities", {
+            conversationId: conversation_id,
+          }).catch(() => {});
+        }).catch(() => {});
+
         return;
       }
 

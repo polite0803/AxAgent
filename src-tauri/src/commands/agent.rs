@@ -2620,12 +2620,14 @@ fn create_llm_step_executor(
                         content: axagent_core::types::ChatContent::Text(system_prompt),
                         tool_calls: None,
                         tool_call_id: None,
+                        thinking: None,
                     },
                     axagent_core::types::ChatMessage {
                         role: "user".to_string(),
                         content: axagent_core::types::ChatContent::Text(user_message),
                         tool_calls: None,
                         tool_call_id: None,
+                        thinking: None,
                     },
                 ];
 

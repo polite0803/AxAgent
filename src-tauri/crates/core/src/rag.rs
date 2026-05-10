@@ -659,10 +659,152 @@ pub async fn collect_rag_context(
     let kg_context = collect_knowledge_graph_context(db, kb_ids, query, top_k).await;
     context_parts.extend(kg_context);
 
+    let (deduped_results, deduped_context) =
+        deduplicate_cross_source(source_results, context_parts);
+
     RagContextResult {
-        context_parts,
-        source_results,
+        context_parts: deduped_context,
+        source_results: deduped_results,
     }
+}
+
+// ── Cross-source deduplication ───────────────────────────────────────────────
+
+const DEDUP_JACCARD_THRESHOLD: f64 = 0.65;
+
+fn source_type_priority(source_type: &str) -> u8 {
+    match source_type {
+        "memory" => 4,
+        "wiki" => 3,
+        "knowledge" => 2,
+        _ => 1,
+    }
+}
+
+fn jaccard_similarity(a: &str, b: &str) -> f64 {
+    let a_lower = a.to_lowercase();
+    let b_lower = b.to_lowercase();
+    let a_words: std::collections::HashSet<&str> =
+        a_lower.split_whitespace().filter(|w| w.len() > 2).collect();
+    let b_words: std::collections::HashSet<&str> =
+        b_lower.split_whitespace().filter(|w| w.len() > 2).collect();
+
+    if a_words.is_empty() || b_words.is_empty() {
+        return 0.0;
+    }
+
+    let intersection = a_words.intersection(&b_words).count();
+    let union = a_words.union(&b_words).count();
+
+    if union == 0 {
+        return 0.0;
+    }
+
+    intersection as f64 / union as f64
+}
+
+fn deduplicate_cross_source(
+    source_results: Vec<RagSourceResult>,
+    context_parts: Vec<String>,
+) -> (Vec<RagSourceResult>, Vec<String>) {
+    if source_results.len() <= 1 {
+        return (source_results, context_parts);
+    }
+
+    let all_items: Vec<(usize, usize, &RagRetrievedItem)> = source_results
+        .iter()
+        .enumerate()
+        .flat_map(|(si, src)| {
+            src.items
+                .iter()
+                .enumerate()
+                .map(move |(ii, item)| (si, ii, item))
+        })
+        .collect();
+
+    let mut removed: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+
+    for i in 0..all_items.len() {
+        if removed.contains(&(all_items[i].0, all_items[i].1)) {
+            continue;
+        }
+        for j in (i + 1)..all_items.len() {
+            if removed.contains(&(all_items[j].0, all_items[j].1)) {
+                continue;
+            }
+
+            let (si_a, _, item_a) = all_items[i];
+            let (si_b, ij_b, item_b) = all_items[j];
+
+            let similarity = jaccard_similarity(&item_a.content, &item_b.content);
+            if similarity < DEDUP_JACCARD_THRESHOLD {
+                continue;
+            }
+
+            let pri_a = source_type_priority(&source_results[si_a].source_type);
+            let pri_b = source_type_priority(&source_results[si_b].source_type);
+
+            let remove_j = if pri_a != pri_b {
+                pri_a > pri_b
+            } else {
+                item_a.score <= item_b.score
+            };
+
+            if remove_j {
+                removed.insert((si_b, ij_b));
+            } else {
+                removed.insert((si_a, all_items[i].1));
+                break;
+            }
+        }
+    }
+
+    if removed.is_empty() {
+        return (source_results, context_parts);
+    }
+
+    let deduped_results: Vec<RagSourceResult> = source_results
+        .into_iter()
+        .enumerate()
+        .map(|(si, mut src)| {
+            let removed_indices: std::collections::HashSet<usize> = removed
+                .iter()
+                .filter(|(s, _)| *s == si)
+                .map(|(_, ii)| *ii)
+                .collect();
+            if removed_indices.is_empty() {
+                src
+            } else {
+                src.items = src
+                    .items
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(ii, _)| !removed_indices.contains(ii))
+                    .map(|(_, item)| item)
+                    .collect();
+                src
+            }
+        })
+        .filter(|src| !src.items.is_empty())
+        .collect();
+
+    let mut deduped_context = Vec::new();
+    for src in &deduped_results {
+        let label = match src.source_type.as_str() {
+            "knowledge" => "Knowledge Base Reference",
+            "memory" => "Memory Reference",
+            "wiki" => "Wiki Reference",
+            other => other,
+        };
+        let snippets: Vec<String> = src.items.iter().map(|r| r.content.clone()).collect();
+        deduped_context.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
+    }
+
+    if deduped_context.is_empty() {
+        deduped_context = context_parts;
+    }
+
+    (deduped_results, deduped_context)
 }
 
 // ── Embed function trait ─────────────────────────────────────────────────────

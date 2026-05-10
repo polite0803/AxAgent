@@ -97,6 +97,7 @@ pub struct ClosedLoopService {
     nudges: RwLock<Vec<PeriodicNudge>>,
     is_running: RwLock<bool>,
     skills_dir: Option<PathBuf>,
+    memory_service: Option<Arc<crate::memory_providers::service::MemoryService>>,
 }
 
 impl ClosedLoopService {
@@ -107,7 +108,16 @@ impl ClosedLoopService {
             nudges: RwLock::new(Vec::new()),
             is_running: RwLock::new(false),
             skills_dir: None,
+            memory_service: None,
         }
+    }
+
+    pub fn with_memory_service(
+        mut self,
+        ms: Arc<crate::memory_providers::service::MemoryService>,
+    ) -> Self {
+        self.memory_service = Some(ms);
+        self
     }
 
     pub fn with_skills_dir(mut self, skills_dir: PathBuf) -> Self {
@@ -439,19 +449,44 @@ impl ClosedLoopService {
             if let Some(ref auto_action) = nudge.auto_action {
                 match auto_action.action_type.as_str() {
                     "save_to_memory" => {
-                        let entry = crate::memory::MemoryEntry {
-                            id: format!("mem_{}", uuid::Uuid::new_v4()),
-                            content: auto_action.target.clone(),
-                            memory_type: "memory".to_string(),
-                            updated_at: chrono::Utc::now().timestamp(),
-                        };
-                        if let Err(e) = self.storage.save_memory(&entry) {
-                            tracing::warn!("Failed to auto-save memory: {}", e);
+                        if let Some(ref ms) = self.memory_service {
+                            let result = ms.add_memory_with_dedup("memory", &auto_action.target);
+                            if !result.success {
+                                tracing::debug!(
+                                    "Closed-loop memory dedup skip: {}",
+                                    result.message
+                                );
+                            }
                         } else {
-                            tracing::info!(
-                                "Auto-saved consolidated memory: {:?}",
-                                &auto_action.target[..auto_action.target.len().min(50)]
-                            );
+                            let now = chrono::Utc::now().timestamp();
+                            let entry = crate::memory::MemoryEntry {
+                                id: format!(
+                                    "mem_{}_{}",
+                                    now,
+                                    uuid::Uuid::new_v4().to_string().replace('-', "")[..8]
+                                        .to_string()
+                                ),
+                                content: auto_action.target.clone(),
+                                memory_type: "memory".to_string(),
+                                tier: crate::memory::MemoryTier::Working,
+                                importance: 0.6,
+                                access_count: 0,
+                                last_accessed: now,
+                                decay_rate: 0.02,
+                                created_at: now,
+                                updated_at: now,
+                                expires_at: None,
+                                nature: crate::memory::MemoryNature::Semantic,
+                                provenance: Some(crate::memory::MemoryProvenance {
+                                    conversation_id: None,
+                                    message_id: None,
+                                    extraction_method: "closed_loop".to_string(),
+                                }),
+                                tags: vec!["auto_extract".to_string()],
+                            };
+                            if let Err(e) = self.storage.save_memory(&entry) {
+                                tracing::warn!("Failed to auto-save memory: {}", e);
+                            }
                         }
                     },
                     "create_skill" => {

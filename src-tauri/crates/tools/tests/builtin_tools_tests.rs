@@ -29,6 +29,7 @@ fn test_chat_message_serialization() {
         content: types::ChatContent::Text("Hello".to_string()),
         tool_calls: None,
         tool_call_id: None,
+        thinking: None,
     };
     let json_str = serde_json::to_string(&msg).unwrap();
     assert!(json_str.contains("Hello"));
