@@ -449,12 +449,11 @@ jobs:
 
           # 添加 ProGuard 规则，防止 R8 minification 剥离 Tauri JNI 桥接类
           cat > src-tauri/gen/android/app/proguard-rules.pro << 'PROGUARD'
-      # Keep Tauri JNI bridge classes — stripping them causes crash on launch
-      -keep class com.tauri.** { *; }
-      -keep class org.tauri.** { *; }
-      -dontwarn com.tauri.**
-      -dontwarn org.tauri.**
-      PROGUARD
+          -keep class com.tauri.** { *; }
+          -keep class org.tauri.** { *; }
+          -dontwarn com.tauri.**
+          -dontwarn org.tauri.**
+          PROGUARD
 
       - name: Build Android APK
         run: |
