@@ -16,7 +16,16 @@ impl Tool for WebSearchTool {
     }
 
     fn description(&self) -> &str {
-        "MUST use this to search the internet for current, real-time, or recent information. Call this function whenever the user asks about: today's news, current events, latest developments, stock prices, weather, sports scores, or any topic that requires up-to-date information beyond your knowledge cutoff. Returns relevant web results with titles, snippets, and URLs. Do NOT tell users you cannot access real-time data — use this tool instead."
+        "Search the internet for information. Use this tool ONLY when:\n\
+         - The user asks about current/recent events, news, or real-time data (stock prices, weather, sports)\n\
+         - The question requires information beyond your training data cutoff\n\
+         - The user explicitly asks to search or look something up online\n\
+         - You need to verify or update factual claims that may have changed\n\n\
+         Do NOT use this tool when:\n\
+         - The answer is within your general knowledge (math, coding, general concepts)\n\
+         - The user asks for creative writing, opinions, or advice\n\
+         - The question is about well-established facts that don't change\n\n\
+         Returns web results with titles, snippets, URLs, and extracted page content."
     }
 
     fn input_schema(&self) -> Value {

@@ -1,8 +1,8 @@
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { useKnowledgeStore } from "@/stores";
+import { useSourceStore } from "@/stores";
 import { useLlmWikiStore, type Wiki } from "@/stores/feature/llmWikiStore";
 import { useMemoryStore } from "@/stores/feature/memoryStore";
-import { useSourceStore } from "@/stores";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
 import {
   Button,
@@ -175,7 +175,10 @@ function CreateKnowledgeBaseModal({
       title={t("settings.knowledge.add")}
       open={open}
       onOk={handleCreate}
-      onCancel={() => { form.resetFields(); onClose(); }}
+      onCancel={() => {
+        form.resetFields();
+        onClose();
+      }}
       confirmLoading={creating}
       mask={{ enabled: true, blur: true }}
     >
@@ -230,7 +233,10 @@ function CreateMemoryNamespaceModal({
       title={t("settings.memory.addNamespace")}
       open={open}
       onOk={handleCreate}
-      onCancel={() => { form.resetFields(); onClose(); }}
+      onCancel={() => {
+        form.resetFields();
+        onClose();
+      }}
       confirmLoading={creating}
       mask={{ enabled: true, blur: true }}
     >
@@ -285,14 +291,25 @@ function CreateWikiModal({
       title={t("wiki.llm.createWiki")}
       open={open}
       onOk={handleCreate}
-      onCancel={() => { form.resetFields(); onClose(); }}
+      onCancel={() => {
+        form.resetFields();
+        onClose();
+      }}
       confirmLoading={creating}
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label={t("wiki.wiki.name")} rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}>
+        <Form.Item
+          name="name"
+          label={t("wiki.wiki.name")}
+          rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}
+        >
           <Input placeholder={t("wiki.llm.namePlaceholder")} />
         </Form.Item>
-        <Form.Item name="rootPath" label={t("wiki.wiki.rootPath")} rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}>
+        <Form.Item
+          name="rootPath"
+          label={t("wiki.wiki.rootPath")}
+          rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}
+        >
           <Input placeholder={t("wiki.llm.pathPlaceholder")} />
         </Form.Item>
         <Form.Item name="description" label={t("wiki.wiki.description")}>
@@ -398,7 +415,9 @@ function KnowledgeTab({
   const knowledgeSources = useSourceStore((s) => s.knowledgeSources());
   const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => { loadBases(); }, [loadBases]);
+  useEffect(() => {
+    loadBases();
+  }, [loadBases]);
 
   const totalDocs = bases.length;
   const configuredCount = knowledgeSources.filter((s) => s.embeddingProvider).length;
@@ -506,7 +525,9 @@ function KnowledgeTab({
                       <Text strong ellipsis style={{ fontSize: 13 }}>{base.name}</Text>
                       <div className="flex items-center gap-2 mt-1">
                         <Tag color={base.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
-                          {base.embeddingProvider ? t("settings.knowledge.vectorReady") : t("settings.knowledge.vectorNotConfigured")}
+                          {base.embeddingProvider
+                            ? t("settings.knowledge.vectorReady")
+                            : t("settings.knowledge.vectorNotConfigured")}
                         </Tag>
                       </div>
                     </div>
@@ -535,7 +556,9 @@ function MemoryTab({
   const memorySources = useSourceStore((s) => s.memorySources());
   const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => { loadNamespaces(); }, [loadNamespaces]);
+  useEffect(() => {
+    loadNamespaces();
+  }, [loadNamespaces]);
 
   const configuredCount = memorySources.filter((s) => s.embeddingProvider).length;
   const totalItems = namespaces.length;
@@ -643,7 +666,9 @@ function MemoryTab({
                       <Text strong ellipsis style={{ fontSize: 13 }}>{ns.name}</Text>
                       <div className="flex items-center gap-2 mt-1">
                         <Tag color={ns.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
-                          {ns.embeddingProvider ? t("settings.memory.vectorReady") : t("settings.memory.vectorNotConfigured")}
+                          {ns.embeddingProvider
+                            ? t("settings.memory.vectorReady")
+                            : t("settings.memory.vectorNotConfigured")}
                         </Tag>
                       </div>
                     </div>
@@ -671,7 +696,9 @@ function WikiTab({
   const wikiSources = useSourceStore((s) => s.wikiSources());
   const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => { loadWikis(); }, [loadWikis]);
+  useEffect(() => {
+    loadWikis();
+  }, [loadWikis]);
 
   const totalNotes = wikis.reduce((sum, w) => sum + (w.noteCount ?? 0), 0);
   const totalSources = wikis.reduce((sum, w) => sum + (w.sourceCount ?? 0), 0);
@@ -735,7 +762,10 @@ function WikiTab({
         : (
           <>
             {wikiSources.length > 0 && (
-              <Row gutter={[12, 12]} style={{ marginBottom: wikiSources.length > 0 && wikis.length > 0 ? token.marginMD : 0 }}>
+              <Row
+                gutter={[12, 12]}
+                style={{ marginBottom: wikiSources.length > 0 && wikis.length > 0 ? token.marginMD : 0 }}
+              >
                 {wikiSources.map((source) => (
                   <Col key={source.id} xs={24} sm={12} lg={8}>
                     <SourceCard source={source} onViewConfig={onViewConfig} />
@@ -903,13 +933,21 @@ function AllSourcesTab({
             <div className="flex items-center gap-3">
               <div
                 className="flex items-center justify-center"
-                style={{ width: 40, height: 40, borderRadius: token.borderRadius, backgroundColor: token.blue1, color: token.blue6 }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: token.borderRadius,
+                  backgroundColor: token.blue1,
+                  color: token.blue6,
+                }}
               >
                 <Database size={18} />
               </div>
               <div>
                 <Text type="secondary" style={{ fontSize: 12 }}>{t("sourceManager.type.knowledge")}</Text>
-                <div><Text strong style={{ fontSize: 22 }}>{knowledgeCount}</Text></div>
+                <div>
+                  <Text strong style={{ fontSize: 22 }}>{knowledgeCount}</Text>
+                </div>
               </div>
             </div>
           </Card>
@@ -924,13 +962,21 @@ function AllSourcesTab({
             <div className="flex items-center gap-3">
               <div
                 className="flex items-center justify-center"
-                style={{ width: 40, height: 40, borderRadius: token.borderRadius, backgroundColor: token.purple1, color: token.purple6 }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: token.borderRadius,
+                  backgroundColor: token.purple1,
+                  color: token.purple6,
+                }}
               >
                 <Brain size={18} />
               </div>
               <div>
                 <Text type="secondary" style={{ fontSize: 12 }}>{t("sourceManager.type.memory")}</Text>
-                <div><Text strong style={{ fontSize: 22 }}>{memoryCount}</Text></div>
+                <div>
+                  <Text strong style={{ fontSize: 22 }}>{memoryCount}</Text>
+                </div>
               </div>
             </div>
           </Card>
@@ -945,13 +991,21 @@ function AllSourcesTab({
             <div className="flex items-center gap-3">
               <div
                 className="flex items-center justify-center"
-                style={{ width: 40, height: 40, borderRadius: token.borderRadius, backgroundColor: token.green1, color: token.green6 }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: token.borderRadius,
+                  backgroundColor: token.green1,
+                  color: token.green6,
+                }}
               >
                 <Network size={18} />
               </div>
               <div>
                 <Text type="secondary" style={{ fontSize: 12 }}>{t("sourceManager.type.wiki")}</Text>
-                <div><Text strong style={{ fontSize: 22 }}>{wikiCount}</Text></div>
+                <div>
+                  <Text strong style={{ fontSize: 22 }}>{wikiCount}</Text>
+                </div>
               </div>
             </div>
           </Card>
@@ -1001,7 +1055,9 @@ function SourceManager() {
   const [activeTab, setActiveTab] = useState("all");
   const [configSource, setConfigSource] = useState<UnifiedSource | null>(null);
 
-  useEffect(() => { fetchSources(); }, [fetchSources]);
+  useEffect(() => {
+    fetchSources();
+  }, [fetchSources]);
 
   const tabItems = [
     {
