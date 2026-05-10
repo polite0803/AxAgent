@@ -26,32 +26,53 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      pages_enabled: ${{ steps.check-pages.outputs.enabled }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check if GitHub Pages is enabled
+        id: check-pages
+        continue-on-error: true
+        run: |
+          if gh api repos/${{ github.repository }}/pages --silent 2>/dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GitHub Pages is not enabled for this repository. Skipping deployment."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Node.js
+        if: steps.check-pages.outputs.enabled == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
       - name: Install dependencies
+        if: steps.check-pages.outputs.enabled == 'true'
         run: npm install
         working-directory: website
 
       - name: Build VitePress site
+        if: steps.check-pages.outputs.enabled == 'true'
         run: npm run build
         working-directory: website
 
       - name: Setup Pages
+        if: steps.check-pages.outputs.enabled == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
+        if: steps.check-pages.outputs.enabled == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: website/docs/.vitepress/dist
 
   deploy:
+    if: needs.build.outputs.pages_enabled == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
