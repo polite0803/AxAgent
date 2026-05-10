@@ -6,7 +6,7 @@
   },
   "nav": {
     "chat": "Chat",
-    "knowledge": "Knowledge",
+    "knowledge": "Knowledge Sources",
     "memory": "Memory",
     "link": "Link",
     "gateway": "Gateway",
@@ -59,6 +59,10 @@
     "searchPlaceholder": "Search conversations...",
     "inputPlaceholder": "Type a message...",
     "send": "Send",
+    "sources": {
+      "title": "Knowledge Sources",
+      "empty": "No sources available, please add one in settings first"
+    },
     "welcome": "Start a New Conversation",
     "aiGenerateTitle": "AI Generate Title",
     "welcomeSubtitle": "Choose a model and begin your AI journey",
@@ -278,6 +282,10 @@
       "error": "Knowledge base search failed",
       "resultsCount": "Retrieved {{count}} knowledge items",
       "label": "Knowledge"
+    },
+    "sources": {
+      "title": "Knowledge Sources",
+      "empty": "No sources available. Please add one in settings first"
     },
     "memory": {
       "title": "Memory",
@@ -4625,5 +4633,31 @@
     "noSessions": "No active sessions",
     "confirmClose": "Confirm close this session?",
     "close": "Close"
+  },
+  "sourceManager": {
+    "type": {
+      "knowledge": "Knowledge",
+      "memory": "Memory",
+      "wiki": "Wiki"
+    },
+    "configTitle": "Source Config",
+    "config": {
+      "provider": "Embedding Provider",
+      "dimensions": "Dimensions",
+      "threshold": "Retrieval Threshold",
+      "topK": "Retrieval Top K"
+    },
+    "noConfig": "No config available",
+    "viewConfig": "Config",
+    "disabled": "Disabled",
+    "tab": {
+      "all": "All",
+      "knowledge": "Knowledge",
+      "memory": "Memory",
+      "wiki": "Wiki"
+    },
+    "searchPlaceholder": "Search sources...",
+    "search": "Search",
+    "empty": "No sources found"
   }
 }

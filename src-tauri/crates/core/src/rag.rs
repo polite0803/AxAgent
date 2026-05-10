@@ -532,12 +532,7 @@ async fn resolve_source_config(
         RAGSourceType::Wiki => crate::repo::wiki::get_wiki(db, container_id)
             .await
             .ok()
-            .map(|w| crate::types::SourceConfig {
-                embedding_provider: w.embedding_provider.clone(),
-                embedding_dimensions: w.embedding_dimensions,
-                retrieval_threshold: w.retrieval_threshold,
-                retrieval_top_k: w.retrieval_top_k,
-            }),
+            .map(|w| w.source_config()),
         RAGSourceType::Knowledge => crate::repo::knowledge::get_knowledge_base(db, container_id)
             .await
             .ok()

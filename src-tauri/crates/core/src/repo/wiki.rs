@@ -49,6 +49,17 @@ fn model_to_wiki(m: wikis::Model) -> Wiki {
     }
 }
 
+impl Wiki {
+    pub fn source_config(&self) -> crate::types::SourceConfig {
+        crate::types::SourceConfig {
+            embedding_provider: self.embedding_provider.clone(),
+            embedding_dimensions: self.embedding_dimensions,
+            retrieval_threshold: self.retrieval_threshold,
+            retrieval_top_k: self.retrieval_top_k,
+        }
+    }
+}
+
 pub async fn create_wiki(db: &DatabaseConnection, input: CreateWikiInput) -> Result<Wiki> {
     let now = chrono::Utc::now().timestamp();
     let id = gen_id();

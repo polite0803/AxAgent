@@ -228,7 +228,7 @@ impl WikiCompiler {
         for (source, content) in source_contents {
             if content.len() > 8000 {
                 let chunk_pages = self
-                    .compile_long_source(schema, source, content, &language)
+                    .compile_long_source(schema, source, content, language)
                     .await?;
                 all_pages.extend(chunk_pages);
             } else {
@@ -251,7 +251,7 @@ impl WikiCompiler {
                 })
                 .collect();
 
-            let prompt = Self::build_compile_prompt(schema, &sources_text.join("\n\n"), &language);
+            let prompt = Self::build_compile_prompt(schema, &sources_text.join("\n\n"), language);
             let request = self.build_chat_request(prompt);
 
             let response = self

@@ -516,34 +516,27 @@ pub async fn sync_note_to_knowledge_base(
         .await
         .map_err(|e| e.to_string())?;
 
-    if let Some(ref embedding_provider) = kb.embedding_provider {
+    if kb.embedding_provider.is_some() {
+        let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
         let db = state.sea_db.clone();
         let master_key = state.master_key;
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
         let src_path = source_path.clone();
         let mime = "text/markdown".to_string();
-        let ep = embedding_provider.clone();
-        let chunk_sz = kb.chunk_size;
-        let chunk_ov = kb.chunk_overlap;
-        let kb_id = knowledge_base_id.clone();
         let semaphore = state.indexing_semaphore.clone();
-        let separator = kb.separator.clone();
 
         tokio::spawn(async move {
             let _permit = semaphore.acquire().await;
-            let result = crate::indexing::index_knowledge_document(
+            let result = crate::indexing::index_source(
                 &db,
                 &master_key,
                 &vector_store,
-                &kb_id,
+                &container,
                 &doc_id,
-                &src_path,
-                &mime,
-                &ep,
-                chunk_sz,
-                chunk_ov,
-                separator,
+                "",
+                Some(&src_path),
+                Some(&mime),
             )
             .await;
 
@@ -907,6 +900,7 @@ pub async fn wiki_import_obsidian_vault(
     })
 }
 
+#[allow(clippy::only_used_in_recursion)]
 fn collect_md_files(
     base: &std::path::Path,
     current: &std::path::Path,
@@ -1293,24 +1287,24 @@ fn markdown_to_simple_html(
             continue;
         }
 
-        if trimmed.starts_with("### ") {
+        if let Some(stripped) = trimmed.strip_prefix("### ") {
             if in_list {
                 html.push_str("</ul>\n");
                 in_list = false;
             }
-            html.push_str(&format!("<h3>{}</h3>\n", escape_html(&trimmed[4..])));
-        } else if trimmed.starts_with("## ") {
+            html.push_str(&format!("<h3>{}</h3>\n", escape_html(stripped)));
+        } else if let Some(stripped) = trimmed.strip_prefix("## ") {
             if in_list {
                 html.push_str("</ul>\n");
                 in_list = false;
             }
-            html.push_str(&format!("<h2>{}</h2>\n", escape_html(&trimmed[3..])));
-        } else if trimmed.starts_with("# ") {
+            html.push_str(&format!("<h2>{}</h2>\n", escape_html(stripped)));
+        } else if let Some(stripped) = trimmed.strip_prefix("# ") {
             if in_list {
                 html.push_str("</ul>\n");
                 in_list = false;
             }
-            html.push_str(&format!("<h1>{}</h1>\n", escape_html(&trimmed[2..])));
+            html.push_str(&format!("<h1>{}</h1>\n", escape_html(stripped)));
         } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
             if !in_list {
                 html.push_str("<ul>\n");
@@ -1318,14 +1312,14 @@ fn markdown_to_simple_html(
             }
             let item_text = inline_markdown_to_html(&trimmed[2..], note_titles);
             html.push_str(&format!("<li>{}</li>\n", item_text));
-        } else if trimmed.starts_with("> ") {
+        } else if let Some(stripped) = trimmed.strip_prefix("> ") {
             if in_list {
                 html.push_str("</ul>\n");
                 in_list = false;
             }
             html.push_str(&format!(
                 "<blockquote>{}</blockquote>\n",
-                inline_markdown_to_html(&trimmed[2..], note_titles)
+                inline_markdown_to_html(stripped, note_titles)
             ));
         } else {
             if in_list {
@@ -1459,9 +1453,9 @@ fn replace_inline_links(text: &str) -> String {
             let link_text = &after_bracket[..close_bracket];
             let after_close = &after_bracket[close_bracket + 1..];
 
-            if after_close.starts_with('(') {
-                if let Some(close_paren) = after_close[1..].find(')') {
-                    let url = &after_close[1..close_paren + 1];
+            if let Some(after_open) = after_close.strip_prefix('(') {
+                if let Some(close_paren) = after_open.find(')') {
+                    let url = &after_open[..close_paren];
                     result.push_str(&format!("<a href=\"{}\">{}</a>", url, link_text));
                     remaining = &after_close[close_paren + 2..];
                     continue;

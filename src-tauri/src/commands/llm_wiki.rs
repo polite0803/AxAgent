@@ -853,23 +853,23 @@ async fn process_sync_event(
             let note = axagent_core::repo::note::get_note(db, &model.target_id).await?;
 
             let wiki = axagent_core::repo::wiki::get_wiki(db, &model.wiki_id).await?;
-            match &wiki.embedding_provider {
-                Some(embedding_provider) => {
-                    let dimensions = wiki.embedding_dimensions.map(|d| d as usize);
+            let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+            match &container.embedding_provider {
+                Some(_) => {
                     tracing::info!(
                         "Sync: indexing note '{}' to vector store for wiki {}",
                         note.title,
                         model.wiki_id
                     );
-                    crate::indexing::index_wiki_note(
+                    crate::indexing::index_source(
                         db,
                         master_key,
                         vector_store,
-                        &model.wiki_id,
+                        &container,
                         &model.target_id,
                         &note.content,
-                        embedding_provider,
-                        dimensions,
+                        None,
+                        None,
                     )
                     .await
                 },

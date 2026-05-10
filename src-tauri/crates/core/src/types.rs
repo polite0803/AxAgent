@@ -254,6 +254,49 @@ pub struct Conversation {
     pub updated_at: i64,
 }
 
+impl Conversation {
+    pub fn enabled_sources(&self) -> Vec<SourceRef> {
+        let mut sources = Vec::new();
+        for id in &self.enabled_knowledge_base_ids {
+            sources.push(SourceRef::knowledge(id));
+        }
+        for id in &self.enabled_memory_namespace_ids {
+            sources.push(SourceRef::memory(id));
+        }
+        for id in &self.enabled_wiki_ids {
+            sources.push(SourceRef::wiki(id));
+        }
+        sources
+    }
+
+    pub fn set_enabled_sources(&mut self, sources: &[SourceRef]) {
+        self.enabled_knowledge_base_ids = sources
+            .iter()
+            .filter(|s| s.container_type == "knowledge")
+            .map(|s| s.id.clone())
+            .collect();
+        self.enabled_memory_namespace_ids = sources
+            .iter()
+            .filter(|s| s.container_type == "memory")
+            .map(|s| s.id.clone())
+            .collect();
+        self.enabled_wiki_ids = sources
+            .iter()
+            .filter(|s| s.container_type == "wiki")
+            .map(|s| s.id.clone())
+            .collect();
+    }
+
+    pub fn source_ids_by_type(&self, container_type: &str) -> Vec<String> {
+        match container_type {
+            "knowledge" => self.enabled_knowledge_base_ids.clone(),
+            "memory" => self.enabled_memory_namespace_ids.clone(),
+            "wiki" => self.enabled_wiki_ids.clone(),
+            _ => Vec::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub id: String,
@@ -415,6 +458,28 @@ pub struct UpdateConversationInput {
     pub workflow_template_id: Option<Option<String>>,
     pub session_type: Option<String>,
     pub workflow_status: Option<Option<String>>,
+}
+
+impl UpdateConversationInput {
+    pub fn enabled_sources(&self) -> Vec<SourceRef> {
+        let mut sources = Vec::new();
+        if let Some(ids) = &self.enabled_knowledge_base_ids {
+            for id in ids {
+                sources.push(SourceRef::knowledge(id));
+            }
+        }
+        if let Some(ids) = &self.enabled_memory_namespace_ids {
+            for id in ids {
+                sources.push(SourceRef::memory(id));
+            }
+        }
+        if let Some(ids) = &self.enabled_wiki_ids {
+            for id in ids {
+                sources.push(SourceRef::wiki(id));
+            }
+        }
+        sources
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1556,6 +1621,34 @@ pub struct MemoryItem {
     pub index_status: String, // pending | indexing | ready | failed | skipped
     pub index_error: Option<String>,
     pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceRef {
+    pub container_type: String,
+    pub id: String,
+}
+
+impl SourceRef {
+    pub fn knowledge(id: impl Into<String>) -> Self {
+        SourceRef {
+            container_type: "knowledge".to_string(),
+            id: id.into(),
+        }
+    }
+    pub fn memory(id: impl Into<String>) -> Self {
+        SourceRef {
+            container_type: "memory".to_string(),
+            id: id.into(),
+        }
+    }
+    pub fn wiki(id: impl Into<String>) -> Self {
+        SourceRef {
+            container_type: "wiki".to_string(),
+            id: id.into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

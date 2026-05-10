@@ -59,7 +59,7 @@ const builtinNavItems: NavItem[] = [
   {
     key: "knowledge",
     icon: <Database size={18} color={NAV_ICON_COLORS.Database} />,
-    labelKey: "nav.knowledge",
+    labelKey: "nav.sources",
     path: "/knowledge",
     isPlugin: false,
   },

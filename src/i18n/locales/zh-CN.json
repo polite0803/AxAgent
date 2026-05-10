@@ -471,6 +471,10 @@
       "resultsCount": "检索到 {{count}} 条知识",
       "searching": "正在检索知识库..."
     },
+    "sources": {
+      "title": "知识源",
+      "empty": "暂无可用知识源，请先在设置中添加"
+    },
     "lambda": "λ (TD)",
     "learnedPatterns": "已学习模式",
     "learningInsights": "学习洞察",
@@ -619,6 +623,10 @@
     "selectOneConversation": "请选择一个会话",
     "selected": "已选",
     "send": "发送",
+    "sources": {
+      "title": "知识源",
+      "empty": "暂无可用知识源，请先在设置中添加"
+    },
     "sendMessage": "发送消息",
     "skillEvolution": "技能进化",
     "stats": {
@@ -1519,7 +1527,7 @@
     "devTools": "开发工具",
     "files": "文件",
     "gateway": "网关",
-    "knowledge": "知识库",
+    "knowledge": "知识源",
     "link": "连接",
     "marketplace": "市场",
     "memory": "记忆",
@@ -4599,5 +4607,31 @@
     "noSessions": "暂无活跃会话",
     "confirmClose": "确认关闭此会话?",
     "close": "关闭"
+  },
+  "sourceManager": {
+    "type": {
+      "knowledge": "知识库",
+      "memory": "记忆",
+      "wiki": "Wiki"
+    },
+    "configTitle": "数据源配置",
+    "config": {
+      "provider": "嵌入模型",
+      "dimensions": "维度",
+      "threshold": "检索阈值",
+      "topK": "检索 Top K"
+    },
+    "noConfig": "暂无配置信息",
+    "viewConfig": "配置",
+    "disabled": "已禁用",
+    "tab": {
+      "all": "全部",
+      "knowledge": "知识库",
+      "memory": "记忆",
+      "wiki": "Wiki"
+    },
+    "searchPlaceholder": "搜索数据源...",
+    "search": "搜索",
+    "empty": "暂无数据源"
   }
 }

@@ -95,8 +95,8 @@ pub async fn add_memory_item(
         .await
         .map_err(|e| e.to_string())?;
 
-    if let Some(ref embedding_provider) = ns.embedding_provider {
-        // Set status to indexing
+    if ns.embedding_provider.is_some() {
+        let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
         let _ = axagent_core::repo::memory::update_item_index_status(
             &state.sea_db,
             &item.id,
@@ -110,20 +110,17 @@ pub async fn add_memory_item(
         let vector_store = state.vector_store.clone();
         let item_id = item.id.clone();
         let content = item.content.clone();
-        let ep = embedding_provider.clone();
-        let ns_id = item.namespace_id.clone();
-        let dims = ns.embedding_dimensions.map(|v| v as usize);
 
         tokio::spawn(async move {
-            let result = crate::indexing::index_memory_item(
+            let result = crate::indexing::index_source(
                 &db,
                 &master_key,
                 &vector_store,
-                &ns_id,
+                &container,
                 &item_id,
                 &content,
-                &ep,
-                dims,
+                None,
+                None,
             )
             .await;
 
@@ -211,8 +208,8 @@ pub async fn update_memory_item(
             .await
             .map_err(|e| e.to_string())?;
 
-        if let Some(ref embedding_provider) = ns.embedding_provider {
-            // Set status to indexing
+        if ns.embedding_provider.is_some() {
+            let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
             let _ = axagent_core::repo::memory::update_item_index_status(
                 &state.sea_db,
                 &id,
@@ -226,26 +223,22 @@ pub async fn update_memory_item(
             let vector_store = state.vector_store.clone();
             let item_id = item.id.clone();
             let content = item.content.clone();
-            let ep = embedding_provider.clone();
-            let ns_id = namespace_id.clone();
-            let dims = ns.embedding_dimensions.map(|v| v as usize);
 
             tokio::spawn(async move {
-                // Delete old embedding first
-                let collection_id = format!("mem_{}", ns_id);
+                let collection_id = format!("mem_{}", container.id);
                 let _ = vector_store
                     .delete_document_embeddings(&collection_id, &item_id)
                     .await;
 
-                let result = crate::indexing::index_memory_item(
+                let result = crate::indexing::index_source(
                     &db,
                     &master_key,
                     &vector_store,
-                    &ns_id,
+                    &container,
                     &item_id,
                     &content,
-                    &ep,
-                    dims,
+                    None,
+                    None,
                 )
                 .await;
 
@@ -329,20 +322,20 @@ pub async fn rebuild_memory_index(
         .await
         .map_err(|e| e.to_string())?;
 
-    let embedding_provider = ns
+    let _embedding_provider = ns
         .embedding_provider
+        .as_ref()
         .ok_or("No embedding provider configured")?;
 
-    // Clear existing collection
+    let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
+
     let collection_id = format!("mem_{}", namespace_id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    // Get all items and re-index
     let items = axagent_core::repo::memory::list_items(&state.sea_db, &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    // Set all items to indexing status
     for item in &items {
         let _ = axagent_core::repo::memory::update_item_index_status(
             &state.sea_db,
@@ -356,20 +349,18 @@ pub async fn rebuild_memory_index(
     let db = state.sea_db.clone();
     let master_key = state.master_key;
     let vector_store = state.vector_store.clone();
-    let ep = embedding_provider.clone();
-    let dims = ns.embedding_dimensions.map(|v| v as usize);
 
     tokio::spawn(async move {
         for item in items {
-            let result = crate::indexing::index_memory_item(
+            let result = crate::indexing::index_source(
                 &db,
                 &master_key,
                 &vector_store,
-                &namespace_id,
+                &container,
                 &item.id,
                 &item.content,
-                &ep,
-                dims,
+                None,
+                None,
             )
             .await;
 
@@ -586,7 +577,8 @@ pub async fn auto_extract_incremental_memories(
                 .await
                 .ok();
             if let Some(ns) = ns {
-                if let Some(ref embedding_provider) = ns.embedding_provider {
+                if ns.embedding_provider.is_some() {
+                    let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
                     let _ = axagent_core::repo::memory::update_item_index_status(
                         &state.sea_db,
                         &mem_item.id,
@@ -600,21 +592,18 @@ pub async fn auto_extract_incremental_memories(
                     let vector_store = state.vector_store.clone();
                     let item_id = mem_item.id.clone();
                     let content = mem_item.content.clone();
-                    let ep = embedding_provider.clone();
-                    let ns_id = namespace_id.clone();
-                    let dims = ns.embedding_dimensions.map(|v| v as usize);
                     let app_clone = app.clone();
 
                     tokio::spawn(async move {
-                        let res = crate::indexing::index_memory_item(
+                        let res = crate::indexing::index_source(
                             &db,
                             &master_key,
                             &vector_store,
-                            &ns_id,
+                            &container,
                             &item_id,
                             &content,
-                            &ep,
-                            dims,
+                            None,
+                            None,
                         )
                         .await;
 
@@ -721,9 +710,10 @@ pub async fn reindex_memory_item(
         .await
         .map_err(|e| e.to_string())?;
 
-    let embedding_provider = ns
-        .embedding_provider
-        .ok_or("No embedding provider configured")?;
+    let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
+    if container.embedding_provider.is_none() {
+        return Err("No embedding provider configured".to_string());
+    }
 
     let items = axagent_core::repo::memory::list_items(&state.sea_db, &namespace_id)
         .await
@@ -745,27 +735,24 @@ pub async fn reindex_memory_item(
     let db = state.sea_db.clone();
     let master_key = state.master_key;
     let vector_store = state.vector_store.clone();
-    let ep = embedding_provider.clone();
-    let ns_id = namespace_id.clone();
     let iid = item_id.clone();
     let content = item.content.clone();
-    let dims = ns.embedding_dimensions.map(|v| v as usize);
 
     tokio::spawn(async move {
-        let collection_id = format!("mem_{}", ns_id);
+        let collection_id = format!("mem_{}", container.id);
         let _ = vector_store
             .delete_document_embeddings(&collection_id, &iid)
             .await;
 
-        let result = crate::indexing::index_memory_item(
+        let result = crate::indexing::index_source(
             &db,
             &master_key,
             &vector_store,
-            &ns_id,
+            &container,
             &iid,
             &content,
-            &ep,
-            dims,
+            None,
+            None,
         )
         .await;
 
@@ -828,7 +815,8 @@ pub async fn sync_working_memory_to_namespace(
                     .await
                     .ok();
                 if let Some(ns) = ns {
-                    if let Some(ref embedding_provider) = ns.embedding_provider {
+                    if ns.embedding_provider.is_some() {
+                        let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
                         let _ = axagent_core::repo::memory::update_item_index_status(
                             &state.sea_db,
                             &mem_item.id,
@@ -842,21 +830,18 @@ pub async fn sync_working_memory_to_namespace(
                         let vector_store = state.vector_store.clone();
                         let item_id = mem_item.id.clone();
                         let item_content = mem_item.content.clone();
-                        let ep = embedding_provider.clone();
-                        let ns_id = namespace_id.clone();
-                        let dims = ns.embedding_dimensions.map(|v| v as usize);
                         let app_clone = app.clone();
 
                         tokio::spawn(async move {
-                            let res = crate::indexing::index_memory_item(
+                            let res = crate::indexing::index_source(
                                 &db,
                                 &master_key,
                                 &vector_store,
-                                &ns_id,
+                                &container,
                                 &item_id,
                                 &item_content,
-                                &ep,
-                                dims,
+                                None,
+                                None,
                             )
                             .await;
 
@@ -1545,7 +1530,8 @@ pub async fn extract_conversation_memories(
                     .await
                     .ok();
                 if let Some(ns) = ns {
-                    if let Some(ref embedding_provider) = ns.embedding_provider {
+                    if ns.embedding_provider.is_some() {
+                        let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
                         let _ = axagent_core::repo::memory::update_item_index_status(
                             &state.sea_db,
                             &mem_item.id,
@@ -1559,21 +1545,18 @@ pub async fn extract_conversation_memories(
                         let vector_store = state.vector_store.clone();
                         let item_id = mem_item.id.clone();
                         let content = mem_item.content.clone();
-                        let ep = embedding_provider.clone();
-                        let ns_id = namespace_id.clone();
-                        let dims = ns.embedding_dimensions.map(|v| v as usize);
                         let app_clone = app.clone();
 
                         tokio::spawn(async move {
-                            let res = crate::indexing::index_memory_item(
+                            let res = crate::indexing::index_source(
                                 &db,
                                 &master_key,
                                 &vector_store,
-                                &ns_id,
+                                &container,
                                 &item_id,
                                 &content,
-                                &ep,
-                                dims,
+                                None,
+                                None,
                             )
                             .await;
 

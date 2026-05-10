@@ -40,6 +40,7 @@ import {
   Check,
   CircleOff,
   ClipboardList,
+  Database,
   Eraser,
   ExternalLink,
   File,
@@ -310,21 +311,19 @@ export function InputArea() {
   const loadKnowledgeBases = useKnowledgeStore((s) => s.loadBases);
   const enabledKnowledgeBaseIds = useConversationStore((s) => s.enabledKnowledgeBaseIds);
   const toggleKnowledgeBase = useConversationStore((s) => s.toggleKnowledgeBase);
-  const [kbPopoverOpen, setKbPopoverOpen] = useState(false);
+  const [sourcePopoverOpen, setSourcePopoverOpen] = useState(false);
 
   // Memory state
   const memoryNamespaces = useMemoryStore((s) => s.namespaces);
   const loadMemoryNamespaces = useMemoryStore((s) => s.loadNamespaces);
   const enabledMemoryNamespaceIds = useConversationStore((s) => s.enabledMemoryNamespaceIds);
   const toggleMemoryNamespace = useConversationStore((s) => s.toggleMemoryNamespace);
-  const [memoryPopoverOpen, setMemoryPopoverOpen] = useState(false);
 
   // Wiki vault state
   const wikis = useLlmWikiStore((s) => s.wikis);
   const loadWikis = useLlmWikiStore((s) => s.loadWikis);
   const enabledWikiIds = useConversationStore((s) => s.enabledWikiIds);
   const toggleWiki = useConversationStore((s) => s.toggleWiki);
-  const [wikiPopoverOpen, setWikiPopoverOpen] = useState(false);
 
   // Prompt template state
   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
@@ -900,20 +899,20 @@ export function InputArea() {
     }
   }, [activeConversationId, t]);
 
-  // Knowledge base popover content
-  const kbPopoverContent = useMemo(() => {
-    if (knowledgeBases.length === 0) {
+  const sourcePopoverContent = useMemo(() => {
+    const totalSources = knowledgeBases.length + memoryNamespaces.length + wikis.length;
+    if (totalSources === 0) {
       return (
-        <div style={{ padding: "8px 0", minWidth: 180 }}>
+        <div style={{ padding: "8px 0", minWidth: 200 }}>
           <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
-            {t("chat.knowledge.empty")}
+            {t("chat.sources.empty")}
           </div>
           <Button
             type="link"
             size="small"
             style={{ padding: 0, fontSize: 12 }}
             onClick={() => {
-              setKbPopoverOpen(false);
+              setSourcePopoverOpen(false);
               navigate("/knowledge");
             }}
           >
@@ -923,105 +922,126 @@ export function InputArea() {
       );
     }
     return (
-      <div style={{ minWidth: 180, maxHeight: 300, overflowY: "auto" }}>
-        {knowledgeBases.map((kb) => (
-          <div key={kb.id} style={{ padding: "3px 0" }}>
-            <Checkbox
-              checked={enabledKnowledgeBaseIds.includes(kb.id)}
-              onChange={() => toggleKnowledgeBase(kb.id)}
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                <KnowledgeBaseIcon kb={kb} size={14} />
-                {kb.name}
-              </span>
-            </Checkbox>
-          </div>
-        ))}
-      </div>
-    );
-  }, [knowledgeBases, enabledKnowledgeBaseIds, toggleKnowledgeBase, token, t, navigate]);
-
-  // Memory namespace popover content
-  const memoryPopoverContent = useMemo(() => {
-    if (memoryNamespaces.length === 0) {
-      return (
-        <div style={{ padding: "8px 0", minWidth: 180 }}>
-          <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
-            {t("chat.memory.empty")}
-          </div>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, fontSize: 12 }}
-            onClick={() => {
-              setMemoryPopoverOpen(false);
-              navigate("/memory");
+      <div style={{ minWidth: 220, maxHeight: 400, overflowY: "auto" }}>
+        {knowledgeBases.length > 0 && (
+          <div
+            style={{
+              marginBottom: knowledgeBases.length > 0 && (memoryNamespaces.length > 0 || wikis.length > 0) ? 8 : 0,
             }}
           >
-            {t("chat.mcp.goConfig")}
-          </Button>
-        </div>
-      );
-    }
-    return (
-      <div style={{ minWidth: 180, maxHeight: 300, overflowY: "auto" }}>
-        {memoryNamespaces.map((ns) => (
-          <div key={ns.id} style={{ padding: "3px 0" }}>
-            <Checkbox
-              checked={enabledMemoryNamespaceIds.includes(ns.id)}
-              onChange={() => toggleMemoryNamespace(ns.id)}
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: token.colorTextSecondary,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                marginBottom: 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
             >
-              <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <NamespaceIcon ns={ns} size={16} />
-                {ns.name}
-              </span>
-            </Checkbox>
+              <BookOpen size={11} />
+              {t("chat.knowledge.title")}
+            </div>
+            {knowledgeBases.map((kb) => (
+              <div key={kb.id} style={{ padding: "2px 0" }}>
+                <Checkbox
+                  checked={enabledKnowledgeBaseIds.includes(kb.id)}
+                  onChange={() => toggleKnowledgeBase(kb.id)}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                    <KnowledgeBaseIcon kb={kb} size={14} />
+                    {kb.name}
+                  </span>
+                </Checkbox>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+        {memoryNamespaces.length > 0 && (
+          <div style={{ marginBottom: memoryNamespaces.length > 0 && wikis.length > 0 ? 8 : 0 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: token.colorTextSecondary,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                marginBottom: 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Brain size={11} />
+              {t("chat.memory.title")}
+            </div>
+            {memoryNamespaces.map((ns) => (
+              <div key={ns.id} style={{ padding: "2px 0" }}>
+                <Checkbox
+                  checked={enabledMemoryNamespaceIds.includes(ns.id)}
+                  onChange={() => toggleMemoryNamespace(ns.id)}
+                >
+                  <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <NamespaceIcon ns={ns} size={16} />
+                    {ns.name}
+                  </span>
+                </Checkbox>
+              </div>
+            ))}
+          </div>
+        )}
+        {wikis.length > 0 && (
+          <div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: token.colorTextSecondary,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                marginBottom: 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Library size={11} />
+              {t("chat.wiki.title")}
+            </div>
+            {wikis.map((wiki) => (
+              <div key={wiki.id} style={{ padding: "2px 0" }}>
+                <Checkbox
+                  checked={enabledWikiIds.includes(wiki.id)}
+                  onChange={() => toggleWiki(wiki.id)}
+                >
+                  <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Library size={14} />
+                    {wiki.name}
+                  </span>
+                </Checkbox>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
-  }, [memoryNamespaces, enabledMemoryNamespaceIds, toggleMemoryNamespace, token, t, navigate]);
-
-  // Wiki vault popover content
-  const wikiPopoverContent = useMemo(() => {
-    if (wikis.length === 0) {
-      return (
-        <div style={{ padding: "8px 0", minWidth: 180 }}>
-          <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
-            {t("chat.wiki.empty")}
-          </div>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, fontSize: 12 }}
-            onClick={() => {
-              setWikiPopoverOpen(false);
-              navigate("/llm-wiki");
-            }}
-          >
-            {t("chat.mcp.goConfig")}
-          </Button>
-        </div>
-      );
-    }
-    return (
-      <div style={{ minWidth: 180, maxHeight: 300, overflowY: "auto" }}>
-        {wikis.map((wiki) => (
-          <div key={wiki.id} style={{ padding: "3px 0" }}>
-            <Checkbox
-              checked={enabledWikiIds.includes(wiki.id)}
-              onChange={() => toggleWiki(wiki.id)}
-            >
-              <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <Library size={14} />
-                {wiki.name}
-              </span>
-            </Checkbox>
-          </div>
-        ))}
-      </div>
-    );
-  }, [wikis, enabledWikiIds, toggleWiki, token, t, navigate]);
+  }, [
+    knowledgeBases,
+    memoryNamespaces,
+    wikis,
+    enabledKnowledgeBaseIds,
+    enabledMemoryNamespaceIds,
+    enabledWikiIds,
+    toggleKnowledgeBase,
+    toggleMemoryNamespace,
+    toggleWiki,
+    token,
+    t,
+    navigate,
+  ]);
 
   const handleTemplateSelect = useCallback(
     (_template: { content: string }, filledContent: string) => {
@@ -2126,33 +2146,14 @@ export function InputArea() {
             <Popover
               trigger="click"
               placement="topLeft"
-              content={kbPopoverContent}
+              content={sourcePopoverContent}
               arrow={false}
-              open={kbPopoverOpen}
-              onOpenChange={setKbPopoverOpen}
+              open={sourcePopoverOpen}
+              onOpenChange={setSourcePopoverOpen}
             >
-              <Tooltip title={t("chat.knowledge.title")} open={kbPopoverOpen ? false : undefined}>
-                <Badge count={enabledKnowledgeBaseIds.length} size="small" offset={[-4, 4]} color={token.colorPrimary}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<BookOpen size={14} />}
-                    style={enabledKnowledgeBaseIds.length > 0 ? { color: token.colorPrimary } : undefined}
-                  />
-                </Badge>
-              </Tooltip>
-            </Popover>
-            <Popover
-              trigger="click"
-              placement="topLeft"
-              content={memoryPopoverContent}
-              arrow={false}
-              open={memoryPopoverOpen}
-              onOpenChange={setMemoryPopoverOpen}
-            >
-              <Tooltip title={t("chat.memory.title")} open={memoryPopoverOpen ? false : undefined}>
+              <Tooltip title={t("chat.sources.title")} open={sourcePopoverOpen ? false : undefined}>
                 <Badge
-                  count={enabledMemoryNamespaceIds.length}
+                  count={enabledKnowledgeBaseIds.length + enabledMemoryNamespaceIds.length + enabledWikiIds.length}
                   size="small"
                   offset={[-4, 4]}
                   color={token.colorPrimary}
@@ -2160,32 +2161,11 @@ export function InputArea() {
                   <Button
                     type="text"
                     size="small"
-                    icon={<Brain size={14} />}
-                    style={enabledMemoryNamespaceIds.length > 0 ? { color: token.colorPrimary } : undefined}
-                  />
-                </Badge>
-              </Tooltip>
-            </Popover>
-            <Popover
-              trigger="click"
-              placement="topLeft"
-              content={wikiPopoverContent}
-              arrow={false}
-              open={wikiPopoverOpen}
-              onOpenChange={setWikiPopoverOpen}
-            >
-              <Tooltip title={t("chat.wiki.title")} open={wikiPopoverOpen ? false : undefined}>
-                <Badge
-                  count={enabledWikiIds.length}
-                  size="small"
-                  offset={[-4, 4]}
-                  color={token.colorPrimary}
-                >
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Library size={14} />}
-                    style={enabledWikiIds.length > 0 ? { color: token.colorPrimary } : undefined}
+                    icon={<Database size={14} />}
+                    style={(enabledKnowledgeBaseIds.length + enabledMemoryNamespaceIds.length + enabledWikiIds.length)
+                        > 0
+                      ? { color: token.colorPrimary }
+                      : undefined}
                   />
                 </Badge>
               </Tooltip>

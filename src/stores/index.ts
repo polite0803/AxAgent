@@ -47,6 +47,7 @@ export { useSettingsStore } from "./feature/settingsStore";
 export type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "./feature/settingsStore";
 export { useSkillExtensionStore } from "./feature/skillExtensionStore";
 export { useSkillStore } from "./feature/skillStore";
+export { useSourceStore } from "./feature/sourceStore";
 export { useTerminalStore } from "./feature/terminalStore";
 export { useTopicGroupStore } from "./feature/topicGroupStore";
 export { useTrajectoryStore } from "./feature/trajectoryStore";

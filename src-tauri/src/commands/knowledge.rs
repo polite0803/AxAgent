@@ -89,35 +89,27 @@ pub async fn add_knowledge_document(
         .await
         .map_err(|e| e.to_string())?;
 
-    if let Some(ref embedding_provider) = kb.embedding_provider {
+    if kb.embedding_provider.is_some() {
+        let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
         let db = state.sea_db.clone();
         let master_key = state.master_key;
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
         let src_path = source_path.clone();
         let mime = mime_type.clone();
-        let ep = embedding_provider.clone();
-        let chunk_sz = kb.chunk_size;
-        let chunk_ov = kb.chunk_overlap;
-        let kb_id = base_id.clone();
         let semaphore = state.indexing_semaphore.clone();
-        let separator = kb.separator.clone();
 
         tokio::spawn(async move {
-            // Acquire semaphore permit to limit concurrent indexing tasks
             let _permit = semaphore.acquire().await;
-            let result = crate::indexing::index_knowledge_document(
+            let result = crate::indexing::index_source(
                 &db,
                 &master_key,
                 &vector_store,
-                &kb_id,
+                &container,
                 &doc_id,
-                &src_path,
-                &mime,
-                &ep,
-                chunk_sz,
-                chunk_ov,
-                separator,
+                "",
+                Some(&src_path),
+                Some(&mime),
             )
             .await;
 

@@ -51,9 +51,9 @@ async fn fetch_all_sources(
 ) -> Vec<UnifiedSource> {
     let mut sources = Vec::new();
 
-    let include_kb = container_types.map_or(true, |t| t.contains(&"knowledge".to_string()));
-    let include_mem = container_types.map_or(true, |t| t.contains(&"memory".to_string()));
-    let include_wiki = container_types.map_or(true, |t| t.contains(&"wiki".to_string()));
+    let include_kb = container_types.is_none_or(|t| t.contains(&"knowledge".to_string()));
+    let include_mem = container_types.is_none_or(|t| t.contains(&"memory".to_string()));
+    let include_wiki = container_types.is_none_or(|t| t.contains(&"wiki".to_string()));
 
     if include_kb {
         match axagent_core::repo::knowledge::list_knowledge_bases(db).await {
@@ -88,7 +88,7 @@ async fn fetch_all_sources(
         }
     }
 
-    sources.sort_by(|a, b| a.sort_order.cmp(&b.sort_order));
+    sources.sort_by_key(|a| a.sort_order);
     sources
 }
 
@@ -121,12 +121,7 @@ pub async fn get_source_config(
             let w = axagent_core::repo::wiki::get_wiki(db, &container_id)
                 .await
                 .map_err(|e| e.to_string())?;
-            axagent_core::types::SourceConfig {
-                embedding_provider: w.embedding_provider.clone(),
-                embedding_dimensions: w.embedding_dimensions,
-                retrieval_threshold: w.retrieval_threshold,
-                retrieval_top_k: w.retrieval_top_k,
-            }
+            w.source_config()
         },
         _ => return Err(format!("Unknown container type: {}", container_type)),
     };
