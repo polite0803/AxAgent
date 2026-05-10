@@ -74,6 +74,8 @@ struct GeminiPart {
     function_call: Option<GeminiFunctionCall>,
     #[serde(skip_serializing_if = "Option::is_none")]
     function_response: Option<GeminiFunctionResponse>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    thought: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -220,6 +222,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                     inline_data: None,
                     function_call: None,
                     function_response: None,
+                    thought: None,
                 }],
                 ChatContent::Multipart(parts) => parts
                     .iter()
@@ -230,6 +233,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                                 inline_data: None,
                                 function_call: None,
                                 function_response: None,
+                                thought: None,
                             })
                         } else if let Some(img) = &p.image_url {
                             parse_base64_data_url(&img.url).map(|(mime_type, data)| GeminiPart {
@@ -237,6 +241,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                                 inline_data: Some(GeminiInlineData { mime_type, data }),
                                 function_call: None,
                                 function_response: None,
+                                thought: None,
                             })
                         } else {
                             None
@@ -271,18 +276,30 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                             name: tool_name.to_string(),
                             response: result_value,
                         }),
+                        thought: None,
                     }],
                 });
             },
             "assistant" if msg.tool_calls.is_some() => {
                 let mut parts = Vec::new();
                 let text = extract_text_content(&msg.content);
-                if !text.is_empty() {
+                let (visible_text, reasoning) = crate::openai::extract_reasoning_from_text(&text);
+                if let Some(ref r) = reasoning {
                     parts.push(GeminiPart {
-                        text: Some(text),
+                        text: Some(r.clone()),
                         inline_data: None,
                         function_call: None,
                         function_response: None,
+                        thought: Some(true),
+                    });
+                }
+                if !visible_text.is_empty() {
+                    parts.push(GeminiPart {
+                        text: Some(visible_text),
+                        inline_data: None,
+                        function_call: None,
+                        function_response: None,
+                        thought: None,
                     });
                 }
                 if let Some(ref tcs) = msg.tool_calls {
@@ -297,6 +314,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                                 args,
                             }),
                             function_response: None,
+                            thought: None,
                         });
                     }
                 }
@@ -306,38 +324,66 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                 });
             },
             _ => {
-                let parts = match &msg.content {
-                    ChatContent::Text(text) => vec![GeminiPart {
-                        text: Some(text.clone()),
-                        inline_data: None,
-                        function_call: None,
-                        function_response: None,
-                    }],
-                    ChatContent::Multipart(parts) => parts
-                        .iter()
-                        .filter_map(|p| {
+                let mut parts = Vec::new();
+                match &msg.content {
+                    ChatContent::Text(text) => {
+                        let (visible, reasoning) = crate::openai::extract_reasoning_from_text(text);
+                        if let Some(ref r) = reasoning {
+                            parts.push(GeminiPart {
+                                text: Some(r.clone()),
+                                inline_data: None,
+                                function_call: None,
+                                function_response: None,
+                                thought: Some(true),
+                            });
+                        }
+                        if !visible.is_empty() {
+                            parts.push(GeminiPart {
+                                text: Some(visible),
+                                inline_data: None,
+                                function_call: None,
+                                function_response: None,
+                                thought: None,
+                            });
+                        }
+                    },
+                    ChatContent::Multipart(multipart) => {
+                        for p in multipart {
                             if let Some(text) = &p.text {
-                                Some(GeminiPart {
-                                    text: Some(text.clone()),
-                                    inline_data: None,
-                                    function_call: None,
-                                    function_response: None,
-                                })
+                                let (visible, reasoning) =
+                                    crate::openai::extract_reasoning_from_text(text);
+                                if let Some(ref r) = reasoning {
+                                    parts.push(GeminiPart {
+                                        text: Some(r.clone()),
+                                        inline_data: None,
+                                        function_call: None,
+                                        function_response: None,
+                                        thought: Some(true),
+                                    });
+                                }
+                                if !visible.is_empty() {
+                                    parts.push(GeminiPart {
+                                        text: Some(visible),
+                                        inline_data: None,
+                                        function_call: None,
+                                        function_response: None,
+                                        thought: None,
+                                    });
+                                }
                             } else if let Some(img) = &p.image_url {
-                                parse_base64_data_url(&img.url).map(|(mime_type, data)| {
-                                    GeminiPart {
+                                if let Some((mime_type, data)) = parse_base64_data_url(&img.url) {
+                                    parts.push(GeminiPart {
                                         text: None,
                                         inline_data: Some(GeminiInlineData { mime_type, data }),
                                         function_call: None,
                                         function_response: None,
-                                    }
-                                })
-                            } else {
-                                None
+                                        thought: None,
+                                    });
+                                }
                             }
-                        })
-                        .collect(),
-                };
+                        }
+                    },
+                }
 
                 let role = match msg.role.as_str() {
                     "assistant" => "model",
@@ -485,12 +531,17 @@ impl ProviderAdapter for GeminiAdapter {
             .map(|c| &c.parts);
 
         let mut content = String::new();
+        let mut thinking = String::new();
         let mut tool_calls: Vec<axagent_core::types::ToolCall> = Vec::new();
 
         if let Some(parts) = parts {
             for part in parts {
                 if let Some(ref text) = part.text {
-                    content.push_str(text);
+                    if part.thought == Some(true) {
+                        thinking.push_str(text);
+                    } else {
+                        content.push_str(text);
+                    }
                 }
                 if let Some(ref fc) = part.function_call {
                     tool_calls.push(axagent_core::types::ToolCall {
@@ -515,7 +566,11 @@ impl ProviderAdapter for GeminiAdapter {
             id: simple_id(),
             model: request.model,
             content,
-            thinking: None,
+            thinking: if thinking.is_empty() {
+                None
+            } else {
+                Some(thinking)
+            },
             usage: usage_from_meta(gr.usage_metadata),
             tool_calls: if tool_calls.is_empty() {
                 None
@@ -610,13 +665,18 @@ impl ProviderAdapter for GeminiAdapter {
                                         .map(|c| &c.parts);
 
                                     let mut content: Option<String> = None;
+                                    let mut thinking_chunk: Option<String> = None;
                                     let mut tool_calls_vec: Vec<axagent_core::types::ToolCall> =
                                         Vec::new();
 
                                     if let Some(parts) = parts {
                                         for part in parts {
                                             if let Some(ref text) = part.text {
-                                                content = Some(text.clone());
+                                                if part.thought == Some(true) {
+                                                    thinking_chunk = Some(text.clone());
+                                                } else {
+                                                    content = Some(text.clone());
+                                                }
                                             }
                                             if let Some(ref fc) = part.function_call {
                                                 tool_calls_vec.push(
@@ -659,7 +719,7 @@ impl ProviderAdapter for GeminiAdapter {
 
                                     let _ = tx.unbounded_send(Ok(ChatStreamChunk {
                                         content,
-                                        thinking: None,
+                                        thinking: thinking_chunk,
                                         done: false,
                                         is_final: None,
                                         usage,

@@ -446,9 +446,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     if (id === get().activeConversationId && (!id || !_pendingConversationRefresh.has(id))) {
       return;
     }
+    const prevId = get().activeConversationId;
     incrementActiveMessageLoadSeq();
     if (!id) {
-      if (get().activeConversationId === null) { return; }
+      if (prevId === null) { return; }
+      if (prevId) {
+        useAgentStore.getState().clearConversation(prevId);
+        useExecutionStore.getState().clearConversation(prevId);
+      }
       set({
         activeConversationId: null,
         messages: [],
@@ -464,6 +469,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const conversation = get().conversations.find((item) => item.id === id)
       ?? get().archivedConversations.find((item) => item.id === id);
     const requestSeq = _activeMessageLoadSeq;
+
+    if (prevId && prevId !== id) {
+      useAgentStore.getState().clearConversation(prevId);
+      useExecutionStore.getState().clearConversation(prevId);
+    }
 
     // Check if this conversation had a stream complete while we were away
     const needsRefreshAfterStreamDone = _pendingConversationRefresh.has(id);

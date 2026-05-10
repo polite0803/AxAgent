@@ -391,7 +391,7 @@ fn extract_text_content(content: &ChatContent) -> String {
 /// Extract thinking content from text that contains `<think>...</think>` blocks.
 /// Returns (visible_text, reasoning_content).
 /// If no <think> blocks are present, reasoning_content is None.
-fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
+pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
     const THINK_OPEN: &str = "<think";
     const THINK_CLOSE: &str = "</think>";
 

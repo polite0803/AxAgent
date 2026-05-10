@@ -857,6 +857,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       const { [conversationId]: _rateLimit, ...rateLimitInfo } = s.rateLimitInfo;
       const pausedConversations = new Set(s.pausedConversations);
       pausedConversations.delete(conversationId);
+      const { [conversationId]: _isExec, ...isExecuting } = s.isExecuting;
+      const executingConversationIds = s.executingConversationIds.filter((id) => id !== conversationId);
+      const { [conversationId]: _queryStats, ...queryStats } = s.queryStats;
+      const { [conversationId]: _subAgent, ...subAgentCards } = s.subAgentCards;
       return {
         sessions,
         agentStatus,
@@ -866,6 +870,14 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         sdkIdToExecId,
         rateLimitInfo,
         pausedConversations,
+        isExecuting,
+        executingConversationIds,
+        currentToolCall: s.currentToolCall?.conversationId === conversationId ? null : s.currentToolCall,
+        queryStats,
+        subAgentCards,
+        workflowMatchSuggestion: s.workflowMatchSuggestion?.conversationId === conversationId
+          ? null
+          : s.workflowMatchSuggestion,
       };
     });
   },
