@@ -13,10 +13,12 @@ import {
   useAgentStore,
   useCompressStore,
   useConversationStore,
+  useExecutionStore,
   useGatewayLinkStore,
   useKnowledgeStore,
   useMcpStore,
   useMemoryStore,
+  usePlanStore,
   useProviderStore,
   useSearchStore,
   useSettingsStore,
@@ -334,17 +336,17 @@ export function InputArea() {
   const updateConversation = useConversationStore((s) => s.updateConversation);
   const compressContext = useCompressStore((s) => s.compressContext);
 
+  // Track the last mode choice from the dropdown when no conversation is active.
+  // This allows handleSend to create a conversation in the correct mode
+  // even when the user hasn't created one yet.
+  const pendingModeRef = useRef<"chat" | "agent" | null>(null);
+
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   // Use pendingModeRef when no conversation exists so the UI (mode badge, send routing)
   // correctly reflects the user's last mode dropdown choice.
   const currentMode = activeConversation?.mode
     || pendingModeRef.current
     || "chat";
-
-  // Track the last mode choice from the dropdown when no conversation is active.
-  // This allows handleSend to create a conversation in the correct mode
-  // even when the user hasn't created one yet.
-  const pendingModeRef = useRef<"chat" | "agent" | null>(null);
 
   // Reset pending mode ref when a conversation becomes active
   useEffect(() => {
