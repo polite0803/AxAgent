@@ -139,8 +139,11 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-3-dev libpipewire-0.3-dev libwayland-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev protobuf-compiler
 
-      - name: Run Rust tests
-        run: cargo test --workspace --manifest-path src-tauri/Cargo.toml -- --test-threads=2
+      - name: Run Rust tests (lib crates)
+        run: cargo test --workspace --exclude axagent --manifest-path src-tauri/Cargo.toml -- --test-threads=2
+
+      - name: Run Rust tests (main crate)
+        run: cargo test -p axagent --manifest-path src-tauri/Cargo.toml -- --test-threads=1
 
       - uses: actions/setup-node@v4
         with:
