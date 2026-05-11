@@ -1,0 +1,8666 @@
+[
+  {
+    "key": "acp.activeSessions",
+    "en": "Active Sessions"
+  },
+  {
+    "key": "acp.close",
+    "en": "Close"
+  },
+  {
+    "key": "acp.closeSessionFailed",
+    "en": "Failed to close session"
+  },
+  {
+    "key": "acp.confirmClose",
+    "en": "Confirm close this session?"
+  },
+  {
+    "key": "acp.connected",
+    "en": "Connected successfully"
+  },
+  {
+    "key": "acp.connectFailed",
+    "en": "Unable to connect to ACP server"
+  },
+  {
+    "key": "acp.connectFailedCheck",
+    "en": "Connection failed, please check if the address is correct"
+  },
+  {
+    "key": "acp.connectionStatus",
+    "en": "Connection Status"
+  },
+  {
+    "key": "acp.createSession",
+    "en": "Create Session"
+  },
+  {
+    "key": "acp.createSessionTitle",
+    "en": "Create Session"
+  },
+  {
+    "key": "acp.noSessions",
+    "en": "No active sessions"
+  },
+  {
+    "key": "acp.notDetected",
+    "en": "Not detected"
+  },
+  {
+    "key": "acp.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "acp.serverAddress",
+    "en": "Server Address"
+  },
+  {
+    "key": "acp.serverNotReachable",
+    "en": "Unable to connect to ACP server, please confirm the service is running and the address is correct."
+  },
+  {
+    "key": "acp.serverTitle",
+    "en": "ACP Server Connection"
+  },
+  {
+    "key": "acp.sessionClosed",
+    "en": "Session closed"
+  },
+  {
+    "key": "acp.sessionCreated",
+    "en": "Session created"
+  },
+  {
+    "key": "acp.testConnection",
+    "en": "Test Connection"
+  },
+  {
+    "key": "acp.testFirst",
+    "en": "Please test connection first"
+  },
+  {
+    "key": "acp.workdir",
+    "en": "Working Directory"
+  },
+  {
+    "key": "acp.workdirPlaceholder",
+    "en": "Please enter the project working directory path"
+  },
+  {
+    "key": "acp.workdirRequired",
+    "en": "Please enter a working directory"
+  },
+  {
+    "key": "agent.answerSubmitted",
+    "en": "Answer submitted"
+  },
+  {
+    "key": "agent.askUserSubmitted",
+    "en": "Submitted"
+  },
+  {
+    "key": "agent.askUserSupplementPlaceholder",
+    "en": "Additional input (optional)..."
+  },
+  {
+    "key": "agent.permissionAcceptEditsWarning",
+    "en": "The agent will automatically approve file edit operations without confirmation. Please ensure you understand the potential security risks."
+  },
+  {
+    "key": "agent.permissionAcceptEditsWarningTitle",
+    "en": "⚠️ Accept Edits Mode"
+  },
+  {
+    "key": "agent.permissionFullAccessWarning",
+    "en": "The agent will have full access and can perform any file operation without path restrictions. Please ensure you trust the model and System Prompt used."
+  },
+  {
+    "key": "agent.permissionFullAccessWarningTitle",
+    "en": "⚠️ Full Access Mode"
+  },
+  {
+    "key": "agent.pleaseEnterAnswer",
+    "en": "Please enter your answer"
+  },
+  {
+    "key": "agent.pleaseSelectOption",
+    "en": "Please select an option"
+  },
+  {
+    "key": "agent.questionFromAgent",
+    "en": "Question from Agent"
+  },
+  {
+    "key": "agent.selectOneOption",
+    "en": "Select one option"
+  },
+  {
+    "key": "agent.selectOptions",
+    "en": "Select options"
+  },
+  {
+    "key": "agent.submitAnswer",
+    "en": "Submit answer"
+  },
+  {
+    "key": "agent.submitted",
+    "en": "Eingereicht"
+  },
+  {
+    "key": "agent.submitting",
+    "en": "Submitting..."
+  },
+  {
+    "key": "agent.supplementPlaceholder",
+    "en": "Additional notes (optional)..."
+  },
+  {
+    "key": "agent.typeAnswerPlaceholder",
+    "en": "Type your answer..."
+  },
+  {
+    "key": "agentGenerator.desc",
+    "en": "Describe the agent you need in natural language..."
+  },
+  {
+    "key": "agentGenerator.expand",
+    "en": "Expand"
+  },
+  {
+    "key": "agentGenerator.failed",
+    "en": "Generation failed"
+  },
+  {
+    "key": "agentGenerator.field.desc",
+    "en": "Description"
+  },
+  {
+    "key": "agentGenerator.field.name",
+    "en": "Name"
+  },
+  {
+    "key": "agentGenerator.field.permissions",
+    "en": "Permissions"
+  },
+  {
+    "key": "agentGenerator.field.recommendedModel",
+    "en": "Recommended Model"
+  },
+  {
+    "key": "agentGenerator.field.systemPrompt",
+    "en": "System Prompt"
+  },
+  {
+    "key": "agentGenerator.field.type",
+    "en": "Type"
+  },
+  {
+    "key": "agentGenerator.generate",
+    "en": "Generate Config"
+  },
+  {
+    "key": "agentGenerator.generatedDesc",
+    "en": "Please review and edit before saving"
+  },
+  {
+    "key": "agentGenerator.generatedTitle",
+    "en": "Config generation complete"
+  },
+  {
+    "key": "agentGenerator.generating",
+    "en": "AI is generating agent config..."
+  },
+  {
+    "key": "agentGenerator.missingField",
+    "en": "Missing required field: {{field}}"
+  },
+  {
+    "key": "agentGenerator.parseJsonError",
+    "en": "Failed to parse JSON from response"
+  },
+  {
+    "key": "agentGenerator.placeholder",
+    "en": "e.g., I need an agent specialized in reviewing SQL query security..."
+  },
+  {
+    "key": "agentGenerator.reedit",
+    "en": "Re-edit"
+  },
+  {
+    "key": "agentGenerator.save",
+    "en": "Save Config"
+  },
+  {
+    "key": "agentGenerator.success",
+    "en": "Agent config generated successfully"
+  },
+  {
+    "key": "agentGenerator.title",
+    "en": "Create Agent with Natural Language"
+  },
+  {
+    "key": "agentHierarchy.completed",
+    "en": "Completed"
+  },
+  {
+    "key": "agentHierarchy.count",
+    "en": "({count})"
+  },
+  {
+    "key": "agentHierarchy.failed",
+    "en": "Failed"
+  },
+  {
+    "key": "agentHierarchy.running",
+    "en": "Running"
+  },
+  {
+    "key": "agentHierarchy.title",
+    "en": "Agent Hierarchy"
+  },
+  {
+    "key": "agentPool.attempts",
+    "en": "Attempt {attempts}/{maxRetries}"
+  },
+  {
+    "key": "agentPool.failed",
+    "en": "Failed"
+  },
+  {
+    "key": "agentPool.messageLog",
+    "en": "Message Log ({count})"
+  },
+  {
+    "key": "agentPool.pending",
+    "en": "Pending"
+  },
+  {
+    "key": "agentPool.running",
+    "en": "Running"
+  },
+  {
+    "key": "agentPool.status.cancelled",
+    "en": "Cancelled"
+  },
+  {
+    "key": "agentPool.status.completed",
+    "en": "Completed"
+  },
+  {
+    "key": "agentPool.status.failed",
+    "en": "Failed"
+  },
+  {
+    "key": "agentPool.status.pending",
+    "en": "Pending"
+  },
+  {
+    "key": "agentPool.status.running",
+    "en": "Running"
+  },
+  {
+    "key": "agentPool.viewSubSession",
+    "en": "View Sub-Session"
+  },
+  {
+    "key": "agentProfile.category.business",
+    "en": "Business"
+  },
+  {
+    "key": "agentProfile.category.data",
+    "en": "Data"
+  },
+  {
+    "key": "agentProfile.category.design",
+    "en": "Design"
+  },
+  {
+    "key": "agentProfile.category.development",
+    "en": "Development"
+  },
+  {
+    "key": "agentProfile.category.devops",
+    "en": "DevOps"
+  },
+  {
+    "key": "agentProfile.category.general",
+    "en": "General"
+  },
+  {
+    "key": "agentProfile.category.security",
+    "en": "Security"
+  },
+  {
+    "key": "agentProfile.category.writing",
+    "en": "Writing"
+  },
+  {
+    "key": "agentProfile.expertLabel",
+    "en": "Expert (Domain Knowledge)"
+  },
+  {
+    "key": "agentProfile.import",
+    "en": "Import Roles"
+  },
+  {
+    "key": "agentProfile.importFailed",
+    "en": "Failed to import roles: {{error}}"
+  },
+  {
+    "key": "agentProfile.importSkipped",
+    "en": "Skipped {{count}}, {{errors}} errors: {{detail}}"
+  },
+  {
+    "key": "agentProfile.importSuccess",
+    "en": "Successfully imported {{count}} roles"
+  },
+  {
+    "key": "agentProfile.none",
+    "en": "None"
+  },
+  {
+    "key": "agentStats.pause",
+    "en": "Pause"
+  },
+  {
+    "key": "agentStats.paused",
+    "en": "Paused"
+  },
+  {
+    "key": "agentStats.pending",
+    "en": "pending"
+  },
+  {
+    "key": "agentStats.resume",
+    "en": "Resume"
+  },
+  {
+    "key": "agentStats.running",
+    "en": "Running"
+  },
+  {
+    "key": "agentStats.session",
+    "en": "session(s)"
+  },
+  {
+    "key": "agentStats.tokens",
+    "en": "tokens"
+  },
+  {
+    "key": "agentStats.tool",
+    "en": "tool(s)"
+  },
+  {
+    "key": "app.name",
+    "en": "AxAgent"
+  },
+  {
+    "key": "atomicSkill.created",
+    "en": "Atomic Skill created"
+  },
+  {
+    "key": "atomicSkill.createTitle",
+    "en": "New Atomic Skill"
+  },
+  {
+    "key": "atomicSkill.decomposed",
+    "en": "Decomposed"
+  },
+  {
+    "key": "atomicSkill.descriptionPlaceholder",
+    "en": "Describe the function of this atomic skill"
+  },
+  {
+    "key": "atomicSkill.descriptionRequired",
+    "en": "Please enter a description"
+  },
+  {
+    "key": "atomicSkill.editTitle",
+    "en": "Edit Atomic Skill"
+  },
+  {
+    "key": "atomicSkill.entryRef",
+    "en": "Entry Reference"
+  },
+  {
+    "key": "atomicSkill.entryRefRequired",
+    "en": "Please select or enter an entry reference"
+  },
+  {
+    "key": "atomicSkill.entryType",
+    "en": "Entry Type"
+  },
+  {
+    "key": "atomicSkill.entryTypeBuiltin",
+    "en": "Built-in"
+  },
+  {
+    "key": "atomicSkill.entryTypeLocal",
+    "en": "Local"
+  },
+  {
+    "key": "atomicSkill.entryTypeMcp",
+    "en": "MCP"
+  },
+  {
+    "key": "atomicSkill.entryTypePlugin",
+    "en": "Plugin"
+  },
+  {
+    "key": "atomicSkill.entryTypeRequired",
+    "en": "Please select an entry type"
+  },
+  {
+    "key": "atomicSkill.inputSchema",
+    "en": "Input Schema"
+  },
+  {
+    "key": "atomicSkill.namePlaceholder",
+    "en": "atomic_my_skill"
+  },
+  {
+    "key": "atomicSkill.nameRequired",
+    "en": "Please enter a name"
+  },
+  {
+    "key": "atomicSkill.outputSchema",
+    "en": "Output Schema"
+  },
+  {
+    "key": "atomicSkill.source",
+    "en": "Source"
+  },
+  {
+    "key": "atomicSkill.sourceAtomic",
+    "en": "Atomic"
+  },
+  {
+    "key": "atomicSkill.sourceAutoGenerated",
+    "en": "Auto-Generated"
+  },
+  {
+    "key": "atomicSkill.tagsCommaSeparated",
+    "en": "Tags (comma separated)"
+  },
+  {
+    "key": "atomicSkill.tagsPlaceholder",
+    "en": "tag1, tag2"
+  },
+  {
+    "key": "atomicSkill.undecomposed",
+    "en": "Undecomposed"
+  },
+  {
+    "key": "atomicSkill.updated",
+    "en": "Atomic Skill updated"
+  },
+  {
+    "key": "backup.appVersion",
+    "en": "Version"
+  },
+  {
+    "key": "backup.copies",
+    "en": "copies"
+  },
+  {
+    "key": "backup.description",
+    "en": "Description"
+  },
+  {
+    "key": "backup.format",
+    "en": "Format"
+  },
+  {
+    "key": "backup.status",
+    "en": "Status"
+  },
+  {
+    "key": "backup.webdav.minutes",
+    "en": "min"
+  },
+  {
+    "key": "benchmark.completed",
+    "en": "Benchmark completed"
+  },
+  {
+    "key": "benchmark.emptyHint",
+    "en": "Select a benchmark and click run to start testing"
+  },
+  {
+    "key": "benchmark.error",
+    "en": "Error"
+  },
+  {
+    "key": "benchmark.run",
+    "en": "Run Benchmark"
+  },
+  {
+    "key": "benchmark.runConfig",
+    "en": "Run Configuration"
+  },
+  {
+    "key": "benchmark.runFailed",
+    "en": "Run failed"
+  },
+  {
+    "key": "benchmark.runner",
+    "en": "Benchmark Runner"
+  },
+  {
+    "key": "benchmark.running",
+    "en": "Running..."
+  },
+  {
+    "key": "benchmark.selectBenchmarkFirst",
+    "en": "Please select a benchmark first"
+  },
+  {
+    "key": "benchmark.selection",
+    "en": "Benchmark Selection"
+  },
+  {
+    "key": "browser.clickBody",
+    "en": "Click page body"
+  },
+  {
+    "key": "browser.clickSuccess",
+    "en": "Click successful"
+  },
+  {
+    "key": "browser.close",
+    "en": "Close"
+  },
+  {
+    "key": "browser.closed",
+    "en": "Browser closed"
+  },
+  {
+    "key": "browser.control",
+    "en": "Browser Control"
+  },
+  {
+    "key": "browser.cssSelectorPlaceholder",
+    "en": "CSS Selector (e.g. a, button, input)"
+  },
+  {
+    "key": "browser.elementOperations",
+    "en": "Element Operations"
+  },
+  {
+    "key": "browser.elementsFound",
+    "en": "{{count}} elements found"
+  },
+  {
+    "key": "browser.enterUrl",
+    "en": "Enter URL"
+  },
+  {
+    "key": "browser.extractElements",
+    "en": "Extract elements"
+  },
+  {
+    "key": "browser.fillSuccess",
+    "en": "Fill successful"
+  },
+  {
+    "key": "browser.fillText",
+    "en": "Fill text"
+  },
+  {
+    "key": "browser.greetingResponse",
+    "en": "Hello! I'm AxAgent's browser preview mode..."
+  },
+  {
+    "key": "browser.navigate",
+    "en": "Navigate"
+  },
+  {
+    "key": "browser.navigateSuccess",
+    "en": "Navigate successful"
+  },
+  {
+    "key": "browser.pleaseEnterSelector",
+    "en": "Please enter a selector"
+  },
+  {
+    "key": "browser.quickActions",
+    "en": "Quick actions"
+  },
+  {
+    "key": "browser.screenshot",
+    "en": "Screenshot"
+  },
+  {
+    "key": "browser.screenshotSuccess",
+    "en": "Screenshot successful"
+  },
+  {
+    "key": "buddy.attr.chaos",
+    "en": "Chaos"
+  },
+  {
+    "key": "buddy.attr.debugging",
+    "en": "Debugging"
+  },
+  {
+    "key": "buddy.attr.patience",
+    "en": "Patience"
+  },
+  {
+    "key": "buddy.attr.snark",
+    "en": "Snark"
+  },
+  {
+    "key": "buddy.attr.wisdom",
+    "en": "Wisdom"
+  },
+  {
+    "key": "buddy.attributes",
+    "en": "Attributes"
+  },
+  {
+    "key": "buddy.experience",
+    "en": "Experience"
+  },
+  {
+    "key": "buddy.hideBuddy",
+    "en": "Hide Buddy"
+  },
+  {
+    "key": "buddy.rarity.common",
+    "en": "Common"
+  },
+  {
+    "key": "buddy.rarity.epic",
+    "en": "Epic"
+  },
+  {
+    "key": "buddy.rarity.legendary",
+    "en": "Legendary"
+  },
+  {
+    "key": "buddy.rarity.rare",
+    "en": "Rare"
+  },
+  {
+    "key": "buddy.rarity.uncommon",
+    "en": "Uncommon"
+  },
+  {
+    "key": "buddy.recentMessages",
+    "en": "Recent Messages"
+  },
+  {
+    "key": "buddy.showBuddy",
+    "en": "Show Buddy"
+  },
+  {
+    "key": "buddy.summonBuddy",
+    "en": "Summon Buddy (draggable)"
+  },
+  {
+    "key": "buddy.togglePanel",
+    "en": "Click to expand/collapse (draggable)"
+  },
+  {
+    "key": "chat.agentPanel.collapse",
+    "en": "Collapse to compact view"
+  },
+  {
+    "key": "chat.agentPanel.compactTitle",
+    "en": "Execution Panel"
+  },
+  {
+    "key": "chat.agentPanel.currentTool",
+    "en": "Running: {{name}}"
+  },
+  {
+    "key": "chat.agentPanel.expand",
+    "en": "Expand agent panel"
+  },
+  {
+    "key": "chat.agentPanel.goToEnd",
+    "en": "Go to end"
+  },
+  {
+    "key": "chat.agentPanel.goToStart",
+    "en": "Go to start"
+  },
+  {
+    "key": "chat.agentPanel.loadingTrajectory",
+    "en": "Loading trajectory…"
+  },
+  {
+    "key": "chat.agentPanel.nextStep",
+    "en": "Next step"
+  },
+  {
+    "key": "chat.agentPanel.noActiveTasks",
+    "en": "No active tasks · Click to expand"
+  },
+  {
+    "key": "chat.agentPanel.noTrajectory",
+    "en": "No trajectory data"
+  },
+  {
+    "key": "chat.agentPanel.pause",
+    "en": "Pause"
+  },
+  {
+    "key": "chat.agentPanel.play",
+    "en": "Play"
+  },
+  {
+    "key": "chat.agentPanel.pool",
+    "en": "Pool"
+  },
+  {
+    "key": "chat.agentPanel.poolSummary",
+    "en": "Agent Pool ({{completed}}/{{total}})"
+  },
+  {
+    "key": "chat.agentPanel.poolTooltip",
+    "en": "Total {{total}} · Completed {{completed}} · Running {{running}} · Failed {{failed}}"
+  },
+  {
+    "key": "chat.agentPanel.prevStep",
+    "en": "Previous step"
+  },
+  {
+    "key": "chat.agentPanel.quality",
+    "en": "Quality"
+  },
+  {
+    "key": "chat.agentPanel.replay",
+    "en": "Replay"
+  },
+  {
+    "key": "chat.agentPanel.running",
+    "en": "{{count}} running"
+  },
+  {
+    "key": "chat.agentPanel.selectTrajectory",
+    "en": "Select a trajectory to replay"
+  },
+  {
+    "key": "chat.agentPanel.speed",
+    "en": "Speed"
+  },
+  {
+    "key": "chat.agentPanel.step",
+    "en": "Step"
+  },
+  {
+    "key": "chat.agentPanel.steps",
+    "en": "Steps"
+  },
+  {
+    "key": "chat.agentPanel.timeline",
+    "en": "Timeline"
+  },
+  {
+    "key": "chat.agentPanel.unableToLoad",
+    "en": "Unable to load trajectory"
+  },
+  {
+    "key": "chat.agentStats.pause",
+    "en": "Pause"
+  },
+  {
+    "key": "chat.agentStats.paused",
+    "en": "Paused"
+  },
+  {
+    "key": "chat.agentStats.pending",
+    "en": "Pending"
+  },
+  {
+    "key": "chat.agentStats.resume",
+    "en": "Resume"
+  },
+  {
+    "key": "chat.agentStats.running",
+    "en": "Running"
+  },
+  {
+    "key": "chat.agentStats.session",
+    "en": "sessions"
+  },
+  {
+    "key": "chat.agentStats.tokens",
+    "en": "tokens"
+  },
+  {
+    "key": "chat.agentStats.tool",
+    "en": "tools"
+  },
+  {
+    "key": "chat.attachmentOk",
+    "en": "OK"
+  },
+  {
+    "key": "chat.benchmarks.failed",
+    "en": "Failed"
+  },
+  {
+    "key": "chat.benchmarks.passed",
+    "en": "Passed"
+  },
+  {
+    "key": "chat.benchmarks.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "chat.benchmarks.results",
+    "en": "Results"
+  },
+  {
+    "key": "chat.benchmarks.run",
+    "en": "Run"
+  },
+  {
+    "key": "chat.benchmarks.tasks",
+    "en": "Tasks"
+  },
+  {
+    "key": "chat.benchmarks.title",
+    "en": "Benchmarks"
+  },
+  {
+    "key": "chat.categorySystemPromptPlaceholder",
+    "en": "Enter category system prompt..."
+  },
+  {
+    "key": "chat.chart.analysis",
+    "en": "Analysis"
+  },
+  {
+    "key": "chat.chart.analyzing",
+    "en": "Analyzing..."
+  },
+  {
+    "key": "chat.chart.avg",
+    "en": "Average"
+  },
+  {
+    "key": "chat.chart.chartImage",
+    "en": "Chart Image"
+  },
+  {
+    "key": "chat.chart.dataPoints",
+    "en": "Data Points"
+  },
+  {
+    "key": "chat.chart.insights",
+    "en": "Insights"
+  },
+  {
+    "key": "chat.chart.label",
+    "en": "Label"
+  },
+  {
+    "key": "chat.chart.max",
+    "en": "Max"
+  },
+  {
+    "key": "chat.chart.min",
+    "en": "Min"
+  },
+  {
+    "key": "chat.chart.noAnalysis",
+    "en": "No analysis available"
+  },
+  {
+    "key": "chat.chart.rawData",
+    "en": "Raw Data"
+  },
+  {
+    "key": "chat.chart.series",
+    "en": "Series"
+  },
+  {
+    "key": "chat.chart.summary",
+    "en": "Summary"
+  },
+  {
+    "key": "chat.chart.value",
+    "en": "Value"
+  },
+  {
+    "key": "chat.collaboration.copied",
+    "en": "Copied"
+  },
+  {
+    "key": "chat.collaboration.copyCode",
+    "en": "Copy code"
+  },
+  {
+    "key": "chat.collaboration.noSessions",
+    "en": "No collaboration sessions"
+  },
+  {
+    "key": "chat.collaboration.participants",
+    "en": "Participants"
+  },
+  {
+    "key": "chat.collaboration.session",
+    "en": "Session"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.codePlaceholder",
+    "en": "XXXX-XXXX"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.copied",
+    "en": "Copied"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.copy",
+    "en": "Copy"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.enterInviteCode",
+    "en": "Enter invite code"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.fileAccess",
+    "en": "File Access"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.inviteCode",
+    "en": "Invite Code"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.joinMode",
+    "en": "Join Mode"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.joinSession",
+    "en": "Join Session"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.modelAccess",
+    "en": "Model Access"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.permissions",
+    "en": "Permissions"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.requireApproval",
+    "en": "Require Approval"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.shareMode",
+    "en": "Share Mode"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.terminalAccess",
+    "en": "Terminal Access"
+  },
+  {
+    "key": "chat.collaboration.sessionShare.title",
+    "en": "Session Sharing"
+  },
+  {
+    "key": "chat.collaboration.sharedResources",
+    "en": "Shared Resources"
+  },
+  {
+    "key": "chat.collaboration.title",
+    "en": "Collaboration"
+  },
+  {
+    "key": "chat.context.app",
+    "en": "App"
+  },
+  {
+    "key": "chat.contextGraph.conversation",
+    "en": "Current conversation"
+  },
+  {
+    "key": "chat.contextGraph.edges.calls",
+    "en": "Calls"
+  },
+  {
+    "key": "chat.contextGraph.edges.enables",
+    "en": "Enables"
+  },
+  {
+    "key": "chat.contextGraph.edges.readWrite",
+    "en": "Read/Write"
+  },
+  {
+    "key": "chat.contextGraph.edges.retrieves",
+    "en": "Retrieves"
+  },
+  {
+    "key": "chat.contextGraph.edges.searches",
+    "en": "Search"
+  },
+  {
+    "key": "chat.contextGraph.edges.uses",
+    "en": "Uses"
+  },
+  {
+    "key": "chat.contextGraph.empty",
+    "en": "No context sources enabled"
+  },
+  {
+    "key": "chat.contextGraph.legend.conversation",
+    "en": "Conversation"
+  },
+  {
+    "key": "chat.contextGraph.legend.knowledge",
+    "en": "Knowledge"
+  },
+  {
+    "key": "chat.contextGraph.legend.mcp",
+    "en": "MCP"
+  },
+  {
+    "key": "chat.contextGraph.legend.memory",
+    "en": "Memory"
+  },
+  {
+    "key": "chat.contextGraph.legend.model",
+    "en": "Model"
+  },
+  {
+    "key": "chat.contextGraph.legend.search",
+    "en": "Search"
+  },
+  {
+    "key": "chat.contextGraph.legend.skill",
+    "en": "Skill"
+  },
+  {
+    "key": "chat.contextGraph.sourceCount",
+    "en": "{{count}} context source(s)"
+  },
+  {
+    "key": "chat.contextGraph.title",
+    "en": "Context Graph"
+  },
+  {
+    "key": "chat.conversationNotFound",
+    "en": "Conversation not found"
+  },
+  {
+    "key": "chat.copyMarkdown",
+    "en": "Copy Markdown"
+  },
+  {
+    "key": "chat.expertise",
+    "en": "Expertise"
+  },
+  {
+    "key": "chat.exportHtmlNoThinking",
+    "en": "Export HTML (No Thinking)"
+  },
+  {
+    "key": "chat.exportJsonNoThinking",
+    "en": "Export JSON (no thinking)"
+  },
+  {
+    "key": "chat.exportMdNoThinking",
+    "en": "Export Markdown (no thinking)"
+  },
+  {
+    "key": "chat.exportTxtNoThinking",
+    "en": "Export Text (no thinking)"
+  },
+  {
+    "key": "chat.extractMemories",
+    "en": "Extract Memories"
+  },
+  {
+    "key": "chat.extractMemoriesDesc",
+    "en": "Extract important information from the current conversation as long-term memories and store them in the selected namespace."
+  },
+  {
+    "key": "chat.extractMemoriesError",
+    "en": "Failed to extract memories"
+  },
+  {
+    "key": "chat.extractMemoriesNoNamespaces",
+    "en": "No memory namespaces found. Please create one first."
+  },
+  {
+    "key": "chat.extractMemoriesProcessing",
+    "en": "Extracting memories…"
+  },
+  {
+    "key": "chat.extractMemoriesSelectNamespace",
+    "en": "Select Memory Namespace"
+  },
+  {
+    "key": "chat.extractMemoriesSuccess",
+    "en": "Successfully extracted {{count}} memories"
+  },
+  {
+    "key": "chat.extractMemoriesTitle",
+    "en": "Extract Memories from Conversation"
+  },
+  {
+    "key": "chat.generalAssistant",
+    "en": "General Assistant"
+  },
+  {
+    "key": "chat.generation",
+    "en": "Generation"
+  },
+  {
+    "key": "chat.git.branchComparison",
+    "en": "Branch Comparison"
+  },
+  {
+    "key": "chat.git.commitError",
+    "en": "Commit failed"
+  },
+  {
+    "key": "chat.git.commitMessage",
+    "en": "Commit message"
+  },
+  {
+    "key": "chat.git.commits",
+    "en": "Commits"
+  },
+  {
+    "key": "chat.git.commitSuccess",
+    "en": "Committed successfully"
+  },
+  {
+    "key": "chat.git.createCommit",
+    "en": "Create Commit"
+  },
+  {
+    "key": "chat.git.emptyMessage",
+    "en": "Commit message cannot be empty"
+  },
+  {
+    "key": "chat.git.filesChanged",
+    "en": "Files changed"
+  },
+  {
+    "key": "chat.git.generatedSuggestion",
+    "en": "Suggestion generated"
+  },
+  {
+    "key": "chat.git.generateMessage",
+    "en": "Generate message"
+  },
+  {
+    "key": "chat.git.generateMessageError",
+    "en": "Failed to generate message"
+  },
+  {
+    "key": "chat.git.messagePlaceholder",
+    "en": "Enter commit message..."
+  },
+  {
+    "key": "chat.git.noRepo",
+    "en": "No Git repository found"
+  },
+  {
+    "key": "chat.git.noStagedChanges",
+    "en": "No staged changes"
+  },
+  {
+    "key": "chat.git.prDescription",
+    "en": "PR Description"
+  },
+  {
+    "key": "chat.git.stagedChanges",
+    "en": "Staged Changes"
+  },
+  {
+    "key": "chat.git.title",
+    "en": "Git Operations"
+  },
+  {
+    "key": "chat.insights",
+    "en": "Insights"
+  },
+  {
+    "key": "chat.inspector.session",
+    "en": "Session"
+  },
+  {
+    "key": "chat.inspector.sources",
+    "en": "Sources"
+  },
+  {
+    "key": "chat.inspector.title",
+    "en": "Inspector"
+  },
+  {
+    "key": "chat.lambda",
+    "en": "λ (TD)"
+  },
+  {
+    "key": "chat.mcp.mode",
+    "en": "MCP Mode"
+  },
+  {
+    "key": "chat.mcp.modeAuto",
+    "en": "Auto"
+  },
+  {
+    "key": "chat.mcp.modeAutoDesc",
+    "en": "Automatically enable all built-in MCP tools"
+  },
+  {
+    "key": "chat.mcp.modeDisabled",
+    "en": "Disabled"
+  },
+  {
+    "key": "chat.mcp.modeDisabledDesc",
+    "en": "Disable all MCP tool calls"
+  },
+  {
+    "key": "chat.mcp.modeManual",
+    "en": "Manual"
+  },
+  {
+    "key": "chat.mcp.modeManualDesc",
+    "en": "Manually select MCP servers to enable"
+  },
+  {
+    "key": "chat.messageArea",
+    "en": "Message Area"
+  },
+  {
+    "key": "chat.plugins.marketplace.disable",
+    "en": "Disable"
+  },
+  {
+    "key": "chat.plugins.marketplace.enable",
+    "en": "Enable"
+  },
+  {
+    "key": "chat.plugins.marketplace.install",
+    "en": "Install"
+  },
+  {
+    "key": "chat.plugins.marketplace.loading",
+    "en": "Loading..."
+  },
+  {
+    "key": "chat.plugins.marketplace.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "chat.plugins.marketplace.title",
+    "en": "Plugin Marketplace"
+  },
+  {
+    "key": "chat.showAllMessages",
+    "en": "Show all {{count}} messages"
+  },
+  {
+    "key": "chat.status",
+    "en": "Status"
+  },
+  {
+    "key": "chat.steer",
+    "en": "Steer"
+  },
+  {
+    "key": "chat.steerPlaceholder",
+    "en": "Enter steering instruction..."
+  },
+  {
+    "key": "chat.style",
+    "en": "Style"
+  },
+  {
+    "key": "chat.switchedTo",
+    "en": "Switched to: {{name}}"
+  },
+  {
+    "key": "chat.timeline.agent",
+    "en": "Agent"
+  },
+  {
+    "key": "chat.timeline.plan",
+    "en": "Plan"
+  },
+  {
+    "key": "chat.timeline.status",
+    "en": "Status"
+  },
+  {
+    "key": "chat.totalTokens",
+    "en": "Total Tokens"
+  },
+  {
+    "key": "chat.vision.analyzedImage",
+    "en": "Analyzed image"
+  },
+  {
+    "key": "chat.vision.analyzing",
+    "en": "Analyzing..."
+  },
+  {
+    "key": "chat.vision.description",
+    "en": "Description"
+  },
+  {
+    "key": "chat.vision.elements",
+    "en": "Elements"
+  },
+  {
+    "key": "chat.vision.extractedText",
+    "en": "Extracted text"
+  },
+  {
+    "key": "chat.vision.imageAnalysis",
+    "en": "Image Analysis"
+  },
+  {
+    "key": "chat.vision.model",
+    "en": "Model"
+  },
+  {
+    "key": "chat.vision.ui.actionable",
+    "en": "Actionable"
+  },
+  {
+    "key": "chat.vision.ui.analyzing",
+    "en": "Analyzing..."
+  },
+  {
+    "key": "chat.vision.ui.clickable",
+    "en": "Clickable"
+  },
+  {
+    "key": "chat.vision.ui.description",
+    "en": "Description"
+  },
+  {
+    "key": "chat.vision.ui.elementList",
+    "en": "Element List"
+  },
+  {
+    "key": "chat.vision.ui.elements",
+    "en": "Elements"
+  },
+  {
+    "key": "chat.vision.ui.noElements",
+    "en": "No elements found"
+  },
+  {
+    "key": "chat.vision.ui.screenshot",
+    "en": "Screenshot"
+  },
+  {
+    "key": "chat.vision.ui.static",
+    "en": "Static"
+  },
+  {
+    "key": "chat.vision.ui.title",
+    "en": "UI Analysis"
+  },
+  {
+    "key": "chat.vision.ui.types",
+    "en": "Types"
+  },
+  {
+    "key": "chat.waiting",
+    "en": "Waiting..."
+  },
+  {
+    "key": "chat.welcomePromptSocialMedia",
+    "en": "Social Media"
+  },
+  {
+    "key": "chat.wiki.empty",
+    "en": "Please add a wiki vault in settings first"
+  },
+  {
+    "key": "chat.wiki.title",
+    "en": "Wiki Vault"
+  },
+  {
+    "key": "chat.wikiRetrieval.error",
+    "en": "Wiki retrieval failed"
+  },
+  {
+    "key": "chat.wikiRetrieval.resultsCount",
+    "en": "{{count}} wiki results found"
+  },
+  {
+    "key": "chat.wikiRetrieval.searching",
+    "en": "Searching wiki vault…"
+  },
+  {
+    "key": "chat.workflow.agentProfileAdvanced",
+    "en": "Advanced"
+  },
+  {
+    "key": "chat.workflow.agentProfileAgency",
+    "en": "Agency"
+  },
+  {
+    "key": "chat.workflow.agentProfileAutoRole",
+    "en": "Auto Detect"
+  },
+  {
+    "key": "chat.workflow.agentProfileBuiltin",
+    "en": "Built-in"
+  },
+  {
+    "key": "chat.workflow.agentProfileBusiness",
+    "en": "Business"
+  },
+  {
+    "key": "chat.workflow.agentProfileCategory",
+    "en": "Category"
+  },
+  {
+    "key": "chat.workflow.agentProfileCreate",
+    "en": "Create Profile"
+  },
+  {
+    "key": "chat.workflow.agentProfileCustom",
+    "en": "Custom"
+  },
+  {
+    "key": "chat.workflow.agentProfileData",
+    "en": "Data"
+  },
+  {
+    "key": "chat.workflow.agentProfileDelete",
+    "en": "Delete this profile?"
+  },
+  {
+    "key": "chat.workflow.agentProfileDesc",
+    "en": "Description"
+  },
+  {
+    "key": "chat.workflow.agentProfileDesign",
+    "en": "Design"
+  },
+  {
+    "key": "chat.workflow.agentProfileDevelopment",
+    "en": "Development"
+  },
+  {
+    "key": "chat.workflow.agentProfileDevops",
+    "en": "DevOps"
+  },
+  {
+    "key": "chat.workflow.agentProfileDisallowedTools",
+    "en": "Disallowed Tools"
+  },
+  {
+    "key": "chat.workflow.agentProfileEdit",
+    "en": "Edit Profile"
+  },
+  {
+    "key": "chat.workflow.agentProfileEmpty",
+    "en": "No matching profiles"
+  },
+  {
+    "key": "chat.workflow.agentProfileGeneral",
+    "en": "General"
+  },
+  {
+    "key": "chat.workflow.agentProfileIcon",
+    "en": "Icon"
+  },
+  {
+    "key": "chat.workflow.agentProfileName",
+    "en": "Name"
+  },
+  {
+    "key": "chat.workflow.agentProfileNoDesc",
+    "en": "No description"
+  },
+  {
+    "key": "chat.workflow.agentProfilePermission",
+    "en": "Permission Mode"
+  },
+  {
+    "key": "chat.workflow.agentProfileRecommendedTools",
+    "en": "Recommended Tools"
+  },
+  {
+    "key": "chat.workflow.agentProfileRole",
+    "en": "Agent Role"
+  },
+  {
+    "key": "chat.workflow.agentProfileSearch",
+    "en": "Search..."
+  },
+  {
+    "key": "chat.workflow.agentProfileSecurity",
+    "en": "Security"
+  },
+  {
+    "key": "chat.workflow.agentProfileSystemPrompt",
+    "en": "System Prompt"
+  },
+  {
+    "key": "chat.workflow.agentProfileTags",
+    "en": "Tags"
+  },
+  {
+    "key": "chat.workflow.agentProfileTitle",
+    "en": "Agent Profiles"
+  },
+  {
+    "key": "chat.workflow.agentProfileWriting",
+    "en": "Writing"
+  },
+  {
+    "key": "chat.workflow.apiDesign.description",
+    "en": "Design and implement APIs following best practices."
+  },
+  {
+    "key": "chat.workflow.apiDesign.name",
+    "en": "API Design"
+  },
+  {
+    "key": "chat.workflow.applySemanticCheck",
+    "en": "Apply"
+  },
+  {
+    "key": "chat.workflow.applyUpgrade",
+    "en": "Apply Upgrade"
+  },
+  {
+    "key": "chat.workflow.archiveConfirmDesc",
+    "en": "Archive this execution result as a case record in the template?"
+  },
+  {
+    "key": "chat.workflow.archiveConfirmTitle",
+    "en": "Archive Workflow Session"
+  },
+  {
+    "key": "chat.workflow.archiveSession",
+    "en": "Archive Session"
+  },
+  {
+    "key": "chat.workflow.bugFix.description",
+    "en": "Systematically diagnose and fix bugs with root cause analysis."
+  },
+  {
+    "key": "chat.workflow.bugFix.name",
+    "en": "Bug Fix Workflow"
+  },
+  {
+    "key": "chat.workflow.codeReview.description",
+    "en": "Review code for bugs, security issues, performance problems, and best practices."
+  },
+  {
+    "key": "chat.workflow.codeReview.name",
+    "en": "Code Review"
+  },
+  {
+    "key": "chat.workflow.collectInputs.description",
+    "en": "Collect target language, framework, knowledge base ID, output directory and other project information."
+  },
+  {
+    "key": "chat.workflow.collectInputs.name",
+    "en": "Collect User Inputs"
+  },
+  {
+    "key": "chat.workflow.completedDesc",
+    "en": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded."
+  },
+  {
+    "key": "chat.workflow.completedTitle",
+    "en": "Workflow Completed"
+  },
+  {
+    "key": "chat.workflow.conversationMode",
+    "en": "Conversation Mode"
+  },
+  {
+    "key": "chat.workflow.conversationModeDesc",
+    "en": "Free conversation, no fixed workflow"
+  },
+  {
+    "key": "chat.workflow.dagHint",
+    "en": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG."
+  },
+  {
+    "key": "chat.workflow.dagView",
+    "en": "DAG"
+  },
+  {
+    "key": "chat.workflow.dagVisualization",
+    "en": "DAG Visualization"
+  },
+  {
+    "key": "chat.workflow.debugEnv.description",
+    "en": "Diagnose and fix environment configuration issues."
+  },
+  {
+    "key": "chat.workflow.debugEnv.name",
+    "en": "Environment Debug"
+  },
+  {
+    "key": "chat.workflow.decompositionSaved",
+    "en": "Decomposition workflow saved successfully"
+  },
+  {
+    "key": "chat.workflow.dependsOn",
+    "en": "Depends on:"
+  },
+  {
+    "key": "chat.workflow.dismiss",
+    "en": "Dismiss"
+  },
+  {
+    "key": "chat.workflow.docGen.description",
+    "en": "Generate comprehensive documentation for code, APIs, and projects."
+  },
+  {
+    "key": "chat.workflow.docGen.name",
+    "en": "Documentation Generator"
+  },
+  {
+    "key": "chat.workflow.duration",
+    "en": "Duration"
+  },
+  {
+    "key": "chat.workflow.existingSkill",
+    "en": "Existing Skill"
+  },
+  {
+    "key": "chat.workflow.explore.description",
+    "en": "Explore and understand an unfamiliar codebase systematically."
+  },
+  {
+    "key": "chat.workflow.explore.name",
+    "en": "Code Explorer"
+  },
+  {
+    "key": "chat.workflow.feature.description",
+    "en": "Systematically implement new features with design, development, and testing."
+  },
+  {
+    "key": "chat.workflow.feature.name",
+    "en": "Feature Development"
+  },
+  {
+    "key": "chat.workflow.generatedSkill",
+    "en": "Generated Skill"
+  },
+  {
+    "key": "chat.workflow.generatingUpgrade",
+    "en": "Generating upgrade suggestion..."
+  },
+  {
+    "key": "chat.workflow.inputSchema",
+    "en": "Input Schema"
+  },
+  {
+    "key": "chat.workflow.keepGeneratedSkill",
+    "en": "Keep Generated"
+  },
+  {
+    "key": "chat.workflow.knowledgeExtract.description",
+    "en": "Extract language-agnostic business knowledge from code for cross-language refactoring."
+  },
+  {
+    "key": "chat.workflow.knowledgeExtract.name",
+    "en": "Business Knowledge Extraction"
+  },
+  {
+    "key": "chat.workflow.knowledgeToCode.description",
+    "en": "Generate complete code implementation in target language from business knowledge base, supporting cross-language migration."
+  },
+  {
+    "key": "chat.workflow.knowledgeToCode.name",
+    "en": "Knowledge to Code"
+  },
+  {
+    "key": "chat.workflow.listView",
+    "en": "List"
+  },
+  {
+    "key": "chat.workflow.matchReasons",
+    "en": "Match Reasons"
+  },
+  {
+    "key": "chat.workflow.migration.description",
+    "en": "Help migrate codebase to new versions or frameworks."
+  },
+  {
+    "key": "chat.workflow.migration.name",
+    "en": "Migration & Upgrade"
+  },
+  {
+    "key": "chat.workflow.multiExpertCollab.description",
+    "en": "Launch multiple domain expert agents in parallel or serial collaboration to divide and conquer complex tasks."
+  },
+  {
+    "key": "chat.workflow.multiExpertCollab.name",
+    "en": "Multi-Expert Collaboration"
+  },
+  {
+    "key": "chat.workflow.outputSchema",
+    "en": "Output Schema"
+  },
+  {
+    "key": "chat.workflow.performance.description",
+    "en": "Analyze code performance bottlenecks and implement optimizations."
+  },
+  {
+    "key": "chat.workflow.performance.name",
+    "en": "Performance Optimization"
+  },
+  {
+    "key": "chat.workflow.refactor.description",
+    "en": "Safely refactor code with behavior-preserving transformations."
+  },
+  {
+    "key": "chat.workflow.refactor.name",
+    "en": "Refactoring Assistant"
+  },
+  {
+    "key": "chat.workflow.replaceWithExisting",
+    "en": "Use Existing"
+  },
+  {
+    "key": "chat.workflow.retries",
+    "en": "Retries:"
+  },
+  {
+    "key": "chat.workflow.searchPlaceholder",
+    "en": "Search templates..."
+  },
+  {
+    "key": "chat.workflow.security.description",
+    "en": "Perform comprehensive security vulnerability scan and risk assessment."
+  },
+  {
+    "key": "chat.workflow.security.name",
+    "en": "Security Audit"
+  },
+  {
+    "key": "chat.workflow.selectHint",
+    "en": "Select Workflow"
+  },
+  {
+    "key": "chat.workflow.semanticCheckApplied",
+    "en": "Skill replacement applied"
+  },
+  {
+    "key": "chat.workflow.semanticCheckDescription",
+    "en": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one."
+  },
+  {
+    "key": "chat.workflow.semanticCheckTitle",
+    "en": "Similar Skills Found"
+  },
+  {
+    "key": "chat.workflow.sessionCompletedHint",
+    "en": "This workflow is completed"
+  },
+  {
+    "key": "chat.workflow.skipSemanticCheck",
+    "en": "Skip"
+  },
+  {
+    "key": "chat.workflow.stepStatus",
+    "en": "Status:"
+  },
+  {
+    "key": "chat.workflow.suggestionDesc",
+    "en": "Detected your need is similar to workflow \"{{name}}\""
+  },
+  {
+    "key": "chat.workflow.suggestionHint",
+    "en": "Hint"
+  },
+  {
+    "key": "chat.workflow.suggestionReason",
+    "en": "Using a workflow provides more structured multi-step execution"
+  },
+  {
+    "key": "chat.workflow.switchToWorkflow",
+    "en": "Switch to Workflow"
+  },
+  {
+    "key": "chat.workflow.testGen.description",
+    "en": "Generate comprehensive test suites with unit, integration, and edge case tests."
+  },
+  {
+    "key": "chat.workflow.testGen.name",
+    "en": "Test Generator"
+  },
+  {
+    "key": "chat.workflow.title",
+    "en": "Agent Workflow Templates"
+  },
+  {
+    "key": "chat.workflow.unnamed",
+    "en": "Workflow"
+  },
+  {
+    "key": "chat.workflow.upgradedName",
+    "en": "Upgraded Name"
+  },
+  {
+    "key": "chat.workflow.upgradeError",
+    "en": "Failed to get upgrade suggestion"
+  },
+  {
+    "key": "chat.workflow.upgradeExisting",
+    "en": "Upgrade Existing"
+  },
+  {
+    "key": "chat.workflow.upgradeReasoning",
+    "en": "Upgrade Reasoning"
+  },
+  {
+    "key": "chat.workflow.upgradeSkillTitle",
+    "en": "Upgrade Skill"
+  },
+  {
+    "key": "chat.workflow.upgradeSuggestion",
+    "en": "LLM Upgrade Suggestion"
+  },
+  {
+    "key": "chat.workflow.viewDetails",
+    "en": "View Details"
+  },
+  {
+    "key": "chat.workflow.workflowStatus.cancelled",
+    "en": "Cancelled"
+  },
+  {
+    "key": "chat.workflow.workflowStatus.completed",
+    "en": "Completed"
+  },
+  {
+    "key": "chat.workflow.workflowStatus.created",
+    "en": "Created"
+  },
+  {
+    "key": "chat.workflow.workflowStatus.failed",
+    "en": "Failed"
+  },
+  {
+    "key": "chat.workflow.workflowStatus.partiallyCompleted",
+    "en": "Partially Completed"
+  },
+  {
+    "key": "chat.workflow.workflowStatus.running",
+    "en": "Running"
+  },
+  {
+    "key": "chat.workflowLabel",
+    "en": "Workflow"
+  },
+  {
+    "key": "cloudWorkspace.accessKeyRequired",
+    "en": "Please enter the Access Key"
+  },
+  {
+    "key": "cloudWorkspace.actions",
+    "en": "Actions"
+  },
+  {
+    "key": "cloudWorkspace.active",
+    "en": "Active"
+  },
+  {
+    "key": "cloudWorkspace.autoSync",
+    "en": "Auto Sync"
+  },
+  {
+    "key": "cloudWorkspace.browse",
+    "en": "Browse Cloud"
+  },
+  {
+    "key": "cloudWorkspace.browserTitle",
+    "en": "Cloud Directory Browser"
+  },
+  {
+    "key": "cloudWorkspace.bucketPlaceholder",
+    "en": "my-bucket"
+  },
+  {
+    "key": "cloudWorkspace.bucketRequired",
+    "en": "Please enter the Bucket name"
+  },
+  {
+    "key": "cloudWorkspace.configSaved",
+    "en": "Cloud storage configuration saved"
+  },
+  {
+    "key": "cloudWorkspace.configTitle",
+    "en": "Cloud Storage Configuration"
+  },
+  {
+    "key": "cloudWorkspace.configure",
+    "en": "Configure"
+  },
+  {
+    "key": "cloudWorkspace.conflict",
+    "en": "Conflict"
+  },
+  {
+    "key": "cloudWorkspace.conflictResolved",
+    "en": "Conflict resolved"
+  },
+  {
+    "key": "cloudWorkspace.conflicts",
+    "en": "Detected {{count}} conflicts"
+  },
+  {
+    "key": "cloudWorkspace.conflictsTitle",
+    "en": "Conflicts"
+  },
+  {
+    "key": "cloudWorkspace.conflictStrategy",
+    "en": "Current conflict resolution strategy: {{strategy}}"
+  },
+  {
+    "key": "cloudWorkspace.conflictType",
+    "en": "Conflict Type"
+  },
+  {
+    "key": "cloudWorkspace.currentPath",
+    "en": "Current Path"
+  },
+  {
+    "key": "cloudWorkspace.currentWorkspace",
+    "en": "Current Workspace"
+  },
+  {
+    "key": "cloudWorkspace.downloaded",
+    "en": "Downloaded {{count}} files"
+  },
+  {
+    "key": "cloudWorkspace.emptyDir",
+    "en": "Directory is empty"
+  },
+  {
+    "key": "cloudWorkspace.endpointRequired",
+    "en": "Please enter the Endpoint URL"
+  },
+  {
+    "key": "cloudWorkspace.fileName",
+    "en": "Name"
+  },
+  {
+    "key": "cloudWorkspace.goBack",
+    "en": "Go Back"
+  },
+  {
+    "key": "cloudWorkspace.keepBoth",
+    "en": "Keep Both"
+  },
+  {
+    "key": "cloudWorkspace.keepLocal",
+    "en": "Keep Local"
+  },
+  {
+    "key": "cloudWorkspace.keepRemote",
+    "en": "Keep Remote"
+  },
+  {
+    "key": "cloudWorkspace.listFailed",
+    "en": "Failed to list cloud directory: {{error}}"
+  },
+  {
+    "key": "cloudWorkspace.loadConflictsFailed",
+    "en": "Failed to load conflicts: {{error}}"
+  },
+  {
+    "key": "cloudWorkspace.localSize",
+    "en": "Local Size"
+  },
+  {
+    "key": "cloudWorkspace.noConflicts",
+    "en": "No conflicts"
+  },
+  {
+    "key": "cloudWorkspace.notConfigured",
+    "en": "Cloud storage not configured"
+  },
+  {
+    "key": "cloudWorkspace.noWorkspaceUri",
+    "en": "Workspace URI not set"
+  },
+  {
+    "key": "cloudWorkspace.passwordRequired",
+    "en": "Please enter the password"
+  },
+  {
+    "key": "cloudWorkspace.pendingConflicts",
+    "en": "{{count}} conflicts pending"
+  },
+  {
+    "key": "cloudWorkspace.providerPreset",
+    "en": "Provider Preset"
+  },
+  {
+    "key": "cloudWorkspace.providerPresetPlaceholder",
+    "en": "Select a provider preset (optional)"
+  },
+  {
+    "key": "cloudWorkspace.remoteSize",
+    "en": "Remote Size"
+  },
+  {
+    "key": "cloudWorkspace.resolveFailed",
+    "en": "Failed to resolve conflict: {{error}}"
+  },
+  {
+    "key": "cloudWorkspace.s3AccessKey",
+    "en": "Access Key"
+  },
+  {
+    "key": "cloudWorkspace.s3Bucket",
+    "en": "Bucket Name"
+  },
+  {
+    "key": "cloudWorkspace.s3Endpoint",
+    "en": "Endpoint URL"
+  },
+  {
+    "key": "cloudWorkspace.s3Region",
+    "en": "Region"
+  },
+  {
+    "key": "cloudWorkspace.s3Root",
+    "en": "Workspace Root Path"
+  },
+  {
+    "key": "cloudWorkspace.s3SecretKey",
+    "en": "Secret Key"
+  },
+  {
+    "key": "cloudWorkspace.secretKeyRequired",
+    "en": "Please enter the Secret Key"
+  },
+  {
+    "key": "cloudWorkspace.setAsWorkspace",
+    "en": "Set as Workspace"
+  },
+  {
+    "key": "cloudWorkspace.setAsWorkspaceSuccess",
+    "en": "Cloud path set as workspace: {{uri}}"
+  },
+  {
+    "key": "cloudWorkspace.size",
+    "en": "Size"
+  },
+  {
+    "key": "cloudWorkspace.storageType",
+    "en": "Storage Type"
+  },
+  {
+    "key": "cloudWorkspace.syncedUpToDate",
+    "en": "Already up to date"
+  },
+  {
+    "key": "cloudWorkspace.syncFailed",
+    "en": "Sync failed: {{error}}"
+  },
+  {
+    "key": "cloudWorkspace.syncResult",
+    "en": "Cached: {{downloaded}} files → {{cacheDir}}"
+  },
+  {
+    "key": "cloudWorkspace.syncSuccess",
+    "en": "Sync complete, downloaded {{downloaded}} files to {{cacheDir}}"
+  },
+  {
+    "key": "cloudWorkspace.uploaded",
+    "en": "Uploaded {{count}} files"
+  },
+  {
+    "key": "cloudWorkspace.usernameRequired",
+    "en": "Please enter the username"
+  },
+  {
+    "key": "cloudWorkspace.viewConflicts",
+    "en": "View Conflicts ({{count}})"
+  },
+  {
+    "key": "cloudWorkspace.webdavPassword",
+    "en": "Password"
+  },
+  {
+    "key": "cloudWorkspace.webdavPath",
+    "en": "WebDAV Path"
+  },
+  {
+    "key": "cloudWorkspace.webdavUrl",
+    "en": "WebDAV URL"
+  },
+  {
+    "key": "cloudWorkspace.webdavUrlRequired",
+    "en": "Please enter the WebDAV URL"
+  },
+  {
+    "key": "cloudWorkspace.webdavUsername",
+    "en": "Username"
+  },
+  {
+    "key": "commandPalette.actions",
+    "en": "Actions"
+  },
+  {
+    "key": "commandPalette.navigation",
+    "en": "Navigation"
+  },
+  {
+    "key": "common.actions",
+    "en": "Actions"
+  },
+  {
+    "key": "common.description",
+    "en": "Description"
+  },
+  {
+    "key": "common.general",
+    "en": "General"
+  },
+  {
+    "key": "common.mode",
+    "en": "Mode"
+  },
+  {
+    "key": "common.name",
+    "en": "Name"
+  },
+  {
+    "key": "common.no",
+    "en": "No"
+  },
+  {
+    "key": "common.port",
+    "en": "Port"
+  },
+  {
+    "key": "common.service",
+    "en": "Service"
+  },
+  {
+    "key": "common.source",
+    "en": "Source"
+  },
+  {
+    "key": "common.status",
+    "en": "Status"
+  },
+  {
+    "key": "common.style",
+    "en": "Style"
+  },
+  {
+    "key": "common.tag",
+    "en": "Tag"
+  },
+  {
+    "key": "common.tags",
+    "en": "Tags"
+  },
+  {
+    "key": "common.text",
+    "en": "Text"
+  },
+  {
+    "key": "common.type",
+    "en": "Type"
+  },
+  {
+    "key": "common.version",
+    "en": "Version"
+  },
+  {
+    "key": "computerControl.auto",
+    "en": "Auto"
+  },
+  {
+    "key": "computerControl.capture",
+    "en": "Screenshot"
+  },
+  {
+    "key": "computerControl.manual",
+    "en": "Manual"
+  },
+  {
+    "key": "continuation.appendContinue",
+    "en": "Continue (overwrite original)"
+  },
+  {
+    "key": "continuation.branchContinue",
+    "en": "Branch Continue (keep original)"
+  },
+  {
+    "key": "continuation.confirmContinue",
+    "en": "This message appears incomplete. Continue?"
+  },
+  {
+    "key": "continuation.continueFromHere",
+    "en": "Continue from here"
+  },
+  {
+    "key": "continuation.continueMsg",
+    "en": "Continue"
+  },
+  {
+    "key": "continuation.continuing",
+    "en": "Continuing…"
+  },
+  {
+    "key": "continuation.noPartial",
+    "en": "No messages to continue"
+  },
+  {
+    "key": "devtools.agentVersion",
+    "en": "Agent Version"
+  },
+  {
+    "key": "devtools.attributes",
+    "en": "Attributes"
+  },
+  {
+    "key": "devtools.avgPerSpan",
+    "en": "Avg Per Span"
+  },
+  {
+    "key": "devtools.cacheCreation",
+    "en": "Cache Creation"
+  },
+  {
+    "key": "devtools.cacheRead",
+    "en": "Cache Read"
+  },
+  {
+    "key": "devtools.cost",
+    "en": "Cost"
+  },
+  {
+    "key": "devtools.costOverview",
+    "en": "Cost Overview"
+  },
+  {
+    "key": "devtools.durationOverview",
+    "en": "Duration Overview"
+  },
+  {
+    "key": "devtools.errorCount",
+    "en": "Error Count"
+  },
+  {
+    "key": "devtools.errorRate",
+    "en": "Error Rate"
+  },
+  {
+    "key": "devtools.errors",
+    "en": "Errors"
+  },
+  {
+    "key": "devtools.events",
+    "en": "Events"
+  },
+  {
+    "key": "devtools.fineTune.addSample",
+    "en": "Add Sample to Dataset"
+  },
+  {
+    "key": "devtools.fineTune.datasetDescPlaceholder",
+    "en": "Enter dataset description"
+  },
+  {
+    "key": "devtools.fineTune.datasetName",
+    "en": "Dataset Name"
+  },
+  {
+    "key": "devtools.fineTune.datasetNamePlaceholder",
+    "en": "Enter dataset name"
+  },
+  {
+    "key": "devtools.fineTune.description",
+    "en": "Description"
+  },
+  {
+    "key": "devtools.fineTune.input",
+    "en": "Input"
+  },
+  {
+    "key": "devtools.fineTune.inputPlaceholder",
+    "en": "Enter input text"
+  },
+  {
+    "key": "devtools.fineTune.output",
+    "en": "Output"
+  },
+  {
+    "key": "devtools.fineTune.outputPlaceholder",
+    "en": "Enter output text"
+  },
+  {
+    "key": "devtools.fineTune.selectBaseModel",
+    "en": "Select a base model"
+  },
+  {
+    "key": "devtools.fineTune.selectDataset",
+    "en": "Select a dataset"
+  },
+  {
+    "key": "devtools.fineTune.systemPromptOptional",
+    "en": "System Prompt (optional)"
+  },
+  {
+    "key": "devtools.fineTune.systemPromptPlaceholder",
+    "en": "Enter system prompt"
+  },
+  {
+    "key": "devtools.inputs",
+    "en": "Inputs"
+  },
+  {
+    "key": "devtools.inputTokens",
+    "en": "Input Tokens"
+  },
+  {
+    "key": "devtools.outputs",
+    "en": "Outputs"
+  },
+  {
+    "key": "devtools.outputTokens",
+    "en": "Output Tokens"
+  },
+  {
+    "key": "devtools.parentSpan",
+    "en": "Parent Span"
+  },
+  {
+    "key": "devtools.performanceMetrics",
+    "en": "Performance Metrics"
+  },
+  {
+    "key": "devtools.spansCount",
+    "en": "Span Count"
+  },
+  {
+    "key": "devtools.startedAt",
+    "en": "Started At"
+  },
+  {
+    "key": "devtools.timeToFirstToken",
+    "en": "Time to First Token"
+  },
+  {
+    "key": "devtools.tokenDistribution",
+    "en": "Token Distribution"
+  },
+  {
+    "key": "devtools.toolRecommender.taskPlaceholder",
+    "en": "Describe your task (e.g., 'I need to search for information about Rust programming and write it to a file')"
+  },
+  {
+    "key": "devtools.totalCost",
+    "en": "Total Cost"
+  },
+  {
+    "key": "devtools.totalDuration",
+    "en": "Total Duration"
+  },
+  {
+    "key": "devtools.totalTokens",
+    "en": "Total Tokens"
+  },
+  {
+    "key": "devtools.traceId",
+    "en": "Trace ID"
+  },
+  {
+    "key": "devtools.userId",
+    "en": "User ID"
+  },
+  {
+    "key": "evolution.textGradGradients",
+    "en": "Gradients"
+  },
+  {
+    "key": "expertSelector.added",
+    "en": "Added"
+  },
+  {
+    "key": "expertSelector.category",
+    "en": "Category"
+  },
+  {
+    "key": "expertSelector.clear",
+    "en": "Clear"
+  },
+  {
+    "key": "expertSelector.confirmDelete",
+    "en": "Are you sure to delete this expert?"
+  },
+  {
+    "key": "expertSelector.customExported",
+    "en": "Custom experts exported"
+  },
+  {
+    "key": "expertSelector.deleted",
+    "en": "Deleted \"{{name}}\""
+  },
+  {
+    "key": "expertSelector.desc",
+    "en": "Description"
+  },
+  {
+    "key": "expertSelector.editTitle",
+    "en": "Edit Expert"
+  },
+  {
+    "key": "expertSelector.expertUpdated",
+    "en": "Expert updated"
+  },
+  {
+    "key": "expertSelector.exportCustom",
+    "en": "Export Custom Experts"
+  },
+  {
+    "key": "expertSelector.exportExternal",
+    "en": "Export External Experts"
+  },
+  {
+    "key": "expertSelector.exportFailed",
+    "en": "Export failed: {{error}}"
+  },
+  {
+    "key": "expertSelector.exportSuccess",
+    "en": "Export successful"
+  },
+  {
+    "key": "expertSelector.externalCleared",
+    "en": "All external experts cleared"
+  },
+  {
+    "key": "expertSelector.filter.all",
+    "en": "All Sources"
+  },
+  {
+    "key": "expertSelector.icon",
+    "en": "Icon"
+  },
+  {
+    "key": "expertSelector.import",
+    "en": "Import"
+  },
+  {
+    "key": "expertSelector.importedCount",
+    "en": "Imported {{count}} external experts"
+  },
+  {
+    "key": "expertSelector.importErrors",
+    "en": "Import completed with {{count}} errors: {{errors}}{{more}}"
+  },
+  {
+    "key": "expertSelector.importFailed",
+    "en": "Import failed: {{error}}"
+  },
+  {
+    "key": "expertSelector.importFromFolder",
+    "en": "Import Experts from Folder"
+  },
+  {
+    "key": "expertSelector.importPathHint",
+    "en": "Enter local repository path (e.g. ~/)"
+  },
+  {
+    "key": "expertSelector.importSuccess",
+    "en": "Successfully imported {{count}} experts"
+  },
+  {
+    "key": "expertSelector.importTools",
+    "en": "Matched {{count}} tools"
+  },
+  {
+    "key": "expertSelector.importWorkflows",
+    "en": "Automatically created {{count}} workflows"
+  },
+  {
+    "key": "expertSelector.moreErrors",
+    "en": " and {{count}} more errors"
+  },
+  {
+    "key": "expertSelector.name",
+    "en": "Name"
+  },
+  {
+    "key": "expertSelector.namePlaceholder",
+    "en": "e.g. Senior Architect"
+  },
+  {
+    "key": "expertSelector.newCustomTitle",
+    "en": "New Custom Expert"
+  },
+  {
+    "key": "expertSelector.noMatch",
+    "en": "No matching expert roles found"
+  },
+  {
+    "key": "expertSelector.prompt",
+    "en": "System Prompt"
+  },
+  {
+    "key": "expertSelector.promptPlaceholder",
+    "en": "Define the expert's role, capabilities and standards..."
+  },
+  {
+    "key": "expertSelector.reimport",
+    "en": "Re-import"
+  },
+  {
+    "key": "expertSelector.saveFailed",
+    "en": "Save failed: {{error}}"
+  },
+  {
+    "key": "expertSelector.searchPlaceholder",
+    "en": "Search expert name, description, tags..."
+  },
+  {
+    "key": "expertSelector.selectFolder",
+    "en": "Select expert folder"
+  },
+  {
+    "key": "expertSelector.sort.category",
+    "en": "By Category"
+  },
+  {
+    "key": "expertSelector.sort.name",
+    "en": "By Name"
+  },
+  {
+    "key": "expertSelector.sort.source",
+    "en": "By Source"
+  },
+  {
+    "key": "expertSelector.sortDir",
+    "en": "Ascending"
+  },
+  {
+    "key": "expertSelector.sortDirDesc",
+    "en": "Descending"
+  },
+  {
+    "key": "expertSelector.source.agency",
+    "en": "External"
+  },
+  {
+    "key": "expertSelector.source.builtin",
+    "en": "Builtin"
+  },
+  {
+    "key": "expertSelector.source.custom",
+    "en": "Custom"
+  },
+  {
+    "key": "expertSelector.title",
+    "en": "Select Expert Role"
+  },
+  {
+    "key": "expertSelector.tools",
+    "en": "{{count}} tools"
+  },
+  {
+    "key": "expertSelector.tryChangeSource",
+    "en": "Try changing the source filter"
+  },
+  {
+    "key": "expertSelector.tryCreateNew",
+    "en": "Click + New to create a custom expert"
+  },
+  {
+    "key": "expertSelector.tryModifySearch",
+    "en": "Try modifying your search criteria"
+  },
+  {
+    "key": "expertSelector.unnamed",
+    "en": "Unnamed Expert"
+  },
+  {
+    "key": "expertSelector.workflows",
+    "en": "{{count}} workflows"
+  },
+  {
+    "key": "files.columnActions",
+    "en": "Actions"
+  },
+  {
+    "key": "files.columnName",
+    "en": "Name"
+  },
+  {
+    "key": "files.confirmNo",
+    "en": "No"
+  },
+  {
+    "key": "files.images",
+    "en": "Images"
+  },
+  {
+    "key": "fineTune.addSample",
+    "en": "Add Sample"
+  },
+  {
+    "key": "fineTune.alpha",
+    "en": "Alpha"
+  },
+  {
+    "key": "fineTune.baseModel",
+    "en": "Base Model"
+  },
+  {
+    "key": "fineTune.batchSize",
+    "en": "Batch Size"
+  },
+  {
+    "key": "fineTune.createDataset",
+    "en": "Create Dataset"
+  },
+  {
+    "key": "fineTune.dataset",
+    "en": "Dataset"
+  },
+  {
+    "key": "fineTune.datasetDescPlaceholder",
+    "en": "Enter dataset description"
+  },
+  {
+    "key": "fineTune.datasetId",
+    "en": "Dataset ID"
+  },
+  {
+    "key": "fineTune.datasetManager",
+    "en": "Fine-Tune Dataset Manager"
+  },
+  {
+    "key": "fineTune.datasetName",
+    "en": "Dataset Name"
+  },
+  {
+    "key": "fineTune.datasetNamePlaceholder",
+    "en": "Enter dataset name"
+  },
+  {
+    "key": "fineTune.deleteDatasetConfirm",
+    "en": "Delete this dataset?"
+  },
+  {
+    "key": "fineTune.epochs",
+    "en": "Epochs"
+  },
+  {
+    "key": "fineTune.inputPlaceholder",
+    "en": "Enter input text"
+  },
+  {
+    "key": "fineTune.learningRate",
+    "en": "Learning Rate"
+  },
+  {
+    "key": "fineTune.loraOutput",
+    "en": "LoRA Output"
+  },
+  {
+    "key": "fineTune.loss",
+    "en": "Loss"
+  },
+  {
+    "key": "fineTune.noDatasets",
+    "en": "No datasets found. Create one to get started."
+  },
+  {
+    "key": "fineTune.outputPlaceholder",
+    "en": "Enter output text"
+  },
+  {
+    "key": "fineTune.rank",
+    "en": "Rank"
+  },
+  {
+    "key": "fineTune.samples",
+    "en": "Samples"
+  },
+  {
+    "key": "fineTune.selectBaseModel",
+    "en": "Select a base model"
+  },
+  {
+    "key": "fineTune.selectDataset",
+    "en": "Select a dataset"
+  },
+  {
+    "key": "fineTune.systemPromptOptional",
+    "en": "System Prompt (optional)"
+  },
+  {
+    "key": "fineTune.systemPromptPlaceholder",
+    "en": "Enter system prompt"
+  },
+  {
+    "key": "fineTune.trainingJobs",
+    "en": "Training Jobs"
+  },
+  {
+    "key": "gateway.cliProtocolHttp",
+    "en": "HTTP"
+  },
+  {
+    "key": "gateway.cliProtocolHttps",
+    "en": "HTTPS"
+  },
+  {
+    "key": "gateway.date",
+    "en": "Date"
+  },
+  {
+    "key": "gateway.format",
+    "en": "Format"
+  },
+  {
+    "key": "gateway.logError",
+    "en": "Error"
+  },
+  {
+    "key": "gateway.logStatus",
+    "en": "Status"
+  },
+  {
+    "key": "gateway.port",
+    "en": "Port"
+  },
+  {
+    "key": "gateway.title",
+    "en": "Gateway"
+  },
+  {
+    "key": "help.chat",
+    "en": "Chat"
+  },
+  {
+    "key": "help.gateway",
+    "en": "Gateway"
+  },
+  {
+    "key": "help.workflow",
+    "en": "Workflow"
+  },
+  {
+    "key": "knowledge.wikiTab",
+    "en": "Wiki"
+  },
+  {
+    "key": "link.actions",
+    "en": "Actions"
+  },
+  {
+    "key": "link.apiKey",
+    "en": "API Key"
+  },
+  {
+    "key": "link.endpoint",
+    "en": "Endpoint"
+  },
+  {
+    "key": "link.globalRpm",
+    "en": "Global RPM"
+  },
+  {
+    "key": "link.latency",
+    "en": "Latency"
+  },
+  {
+    "key": "link.modelNamePlaceholder",
+    "en": "GPT 5.4 Think"
+  },
+  {
+    "key": "link.noModelSelected",
+    "en": "No model selected"
+  },
+  {
+    "key": "link.noSkillSelected",
+    "en": "No skill selected"
+  },
+  {
+    "key": "link.pushSelected",
+    "en": "Push selected"
+  },
+  {
+    "key": "link.roundRobin",
+    "en": "Round Robin"
+  },
+  {
+    "key": "link.skillVersion",
+    "en": "Version"
+  },
+  {
+    "key": "link.statusError",
+    "en": "Error"
+  },
+  {
+    "key": "link.syncAllSkillsFailed",
+    "en": "Sync all skills failed"
+  },
+  {
+    "key": "link.syncAllSkillsSuccess",
+    "en": "Sync all skills successful"
+  },
+  {
+    "key": "link.typeCustom",
+    "en": "Custom"
+  },
+  {
+    "key": "link.updateSettingsFailed",
+    "en": "Update settings failed"
+  },
+  {
+    "key": "marketplace.allReviews",
+    "en": "All Reviews"
+  },
+  {
+    "key": "marketplace.author",
+    "en": "Author"
+  },
+  {
+    "key": "marketplace.categories",
+    "en": "Categories"
+  },
+  {
+    "key": "marketplace.customerReviews",
+    "en": "Customer Reviews"
+  },
+  {
+    "key": "marketplace.details",
+    "en": "Details"
+  },
+  {
+    "key": "marketplace.downloading",
+    "en": "Downloading \"{{name}}\"..."
+  },
+  {
+    "key": "marketplace.downloads",
+    "en": "Downloads"
+  },
+  {
+    "key": "marketplace.featured",
+    "en": "Featured"
+  },
+  {
+    "key": "marketplace.importInfo",
+    "en": "Import functionality - select a workflow file to import"
+  },
+  {
+    "key": "marketplace.importWorkflow",
+    "en": "Import Workflow"
+  },
+  {
+    "key": "marketplace.noReviews",
+    "en": "No reviews yet"
+  },
+  {
+    "key": "marketplace.noTemplates",
+    "en": "No templates found"
+  },
+  {
+    "key": "marketplace.noTemplatesFound",
+    "en": "No templates found"
+  },
+  {
+    "key": "marketplace.quickActions",
+    "en": "Quick Actions"
+  },
+  {
+    "key": "marketplace.ratingRequired",
+    "en": "Please select a rating"
+  },
+  {
+    "key": "marketplace.reviewDeleted",
+    "en": "Review deleted successfully"
+  },
+  {
+    "key": "marketplace.reviewDeleteFailed",
+    "en": "Failed to delete review"
+  },
+  {
+    "key": "marketplace.reviewPlaceholder",
+    "en": "Share your experience..."
+  },
+  {
+    "key": "marketplace.reviews",
+    "en": "Reviews"
+  },
+  {
+    "key": "marketplace.reviewSubmitFailed",
+    "en": "Failed to submit review"
+  },
+  {
+    "key": "marketplace.reviewSubmitted",
+    "en": "Review submitted successfully"
+  },
+  {
+    "key": "marketplace.reviewUpdated",
+    "en": "Review updated successfully"
+  },
+  {
+    "key": "marketplace.searchWorkflows",
+    "en": "Search workflows..."
+  },
+  {
+    "key": "marketplace.submitReview",
+    "en": "Submit Review"
+  },
+  {
+    "key": "marketplace.templates",
+    "en": "Templates"
+  },
+  {
+    "key": "marketplace.title",
+    "en": "Marketplace"
+  },
+  {
+    "key": "marketplace.writeReview",
+    "en": "Write Review"
+  },
+  {
+    "key": "marketplace.yourReview",
+    "en": "Your Review"
+  },
+  {
+    "key": "multiAgent.by",
+    "en": "by"
+  },
+  {
+    "key": "multiAgent.count",
+    "en": "{{running}} running / {{completed}} completed"
+  },
+  {
+    "key": "multiAgent.noAgents",
+    "en": "No agents registered"
+  },
+  {
+    "key": "multiAgent.noMemory",
+    "en": "No shared memory entries"
+  },
+  {
+    "key": "multiAgent.noMessages",
+    "en": "No messages"
+  },
+  {
+    "key": "multiAgent.selectAgent",
+    "en": "Select an agent to view messages"
+  },
+  {
+    "key": "multiAgent.status.completed",
+    "en": "Completed"
+  },
+  {
+    "key": "multiAgent.status.running",
+    "en": "Running"
+  },
+  {
+    "key": "multiAgent.tabs.agents",
+    "en": "Agents"
+  },
+  {
+    "key": "multiAgent.tabs.memory",
+    "en": "Memory"
+  },
+  {
+    "key": "multiAgent.tabs.messages",
+    "en": "Messages"
+  },
+  {
+    "key": "multiAgent.title",
+    "en": "Multi-Agent Status"
+  },
+  {
+    "key": "multiAgent.ttl",
+    "en": "TTL"
+  },
+  {
+    "key": "nav.app",
+    "en": "AxAgent"
+  },
+  {
+    "key": "nav.chat",
+    "en": "Chat"
+  },
+  {
+    "key": "nav.gateway",
+    "en": "Gateway"
+  },
+  {
+    "key": "nav.wiki",
+    "en": "Wiki"
+  },
+  {
+    "key": "nav.workflow",
+    "en": "Workflow"
+  },
+  {
+    "key": "notification.clear",
+    "en": "Clear"
+  },
+  {
+    "key": "notification.empty",
+    "en": "No notifications"
+  },
+  {
+    "key": "notification.hoursAgo",
+    "en": "{{count}}h ago"
+  },
+  {
+    "key": "notification.justNow",
+    "en": "Just now"
+  },
+  {
+    "key": "notification.markAllRead",
+    "en": "Mark all read"
+  },
+  {
+    "key": "notification.minutesAgo",
+    "en": "{{count}}m ago"
+  },
+  {
+    "key": "notification.title",
+    "en": "Notifications"
+  },
+  {
+    "key": "nudge.acceptanceRate",
+    "en": "Acceptance rate"
+  },
+  {
+    "key": "nudge.dismiss",
+    "en": "Dismiss"
+  },
+  {
+    "key": "nudge.execute",
+    "en": "Execute"
+  },
+  {
+    "key": "nudge.learningSuggestions",
+    "en": "Learning Suggestions"
+  },
+  {
+    "key": "nudge.snooze30",
+    "en": "Snooze (30 min)"
+  },
+  {
+    "key": "onboarding.presetOllama",
+    "en": "Ollama Local"
+  },
+  {
+    "key": "onboarding.presetOpenAI",
+    "en": "OpenAI Cloud"
+  },
+  {
+    "key": "plan.noPlans",
+    "en": "No plans yet"
+  },
+  {
+    "key": "plan.noPlansHint",
+    "en": "Switch to Plan First strategy to create one"
+  },
+  {
+    "key": "proactive.accept",
+    "en": "Accept"
+  },
+  {
+    "key": "proactive.add",
+    "en": "Add"
+  },
+  {
+    "key": "proactive.addReminder",
+    "en": "Add Reminder"
+  },
+  {
+    "key": "proactive.cancel",
+    "en": "Cancel"
+  },
+  {
+    "key": "proactive.complete",
+    "en": "Complete"
+  },
+  {
+    "key": "proactive.completed",
+    "en": "Completed"
+  },
+  {
+    "key": "proactive.contextPrediction",
+    "en": "Context Prediction"
+  },
+  {
+    "key": "proactive.delete",
+    "en": "Delete"
+  },
+  {
+    "key": "proactive.description",
+    "en": "Description"
+  },
+  {
+    "key": "proactive.descriptionPlaceholder",
+    "en": "Enter description..."
+  },
+  {
+    "key": "proactive.dismiss",
+    "en": "Dismiss"
+  },
+  {
+    "key": "proactive.dismissAll",
+    "en": "Dismiss All"
+  },
+  {
+    "key": "proactive.estimatedTime",
+    "en": "Estimated Time"
+  },
+  {
+    "key": "proactive.inDays",
+    "en": "In {{count}} days"
+  },
+  {
+    "key": "proactive.language",
+    "en": "Language"
+  },
+  {
+    "key": "proactive.loading",
+    "en": "Loading..."
+  },
+  {
+    "key": "proactive.moreSuggestions",
+    "en": "More Suggestions"
+  },
+  {
+    "key": "proactive.noPredictions",
+    "en": "No predictions"
+  },
+  {
+    "key": "proactive.noReminders",
+    "en": "No reminders"
+  },
+  {
+    "key": "proactive.prefetching",
+    "en": "Prefetching..."
+  },
+  {
+    "key": "proactive.prefetchReady",
+    "en": "Prefetch ready"
+  },
+  {
+    "key": "proactive.reminders",
+    "en": "Reminders"
+  },
+  {
+    "key": "proactive.scheduledAt",
+    "en": "Scheduled at"
+  },
+  {
+    "key": "proactive.snooze",
+    "en": "Snooze"
+  },
+  {
+    "key": "proactive.suggestedActions",
+    "en": "Suggested Actions"
+  },
+  {
+    "key": "proactive.suggestions",
+    "en": "Suggestions"
+  },
+  {
+    "key": "proactive.title",
+    "en": "Proactive Assistant"
+  },
+  {
+    "key": "proactive.titlePlaceholder",
+    "en": "Enter title..."
+  },
+  {
+    "key": "proactive.today",
+    "en": "Today"
+  },
+  {
+    "key": "proactive.tomorrow",
+    "en": "Tomorrow"
+  },
+  {
+    "key": "proactive.unknown",
+    "en": "Unknown"
+  },
+  {
+    "key": "proactive.yesterday",
+    "en": "Yesterday"
+  },
+  {
+    "key": "profile.codingStyle",
+    "en": "Coding Style"
+  },
+  {
+    "key": "profile.commentStyle",
+    "en": "Comment Style"
+  },
+  {
+    "key": "profile.communication",
+    "en": "Communication"
+  },
+  {
+    "key": "profile.confidence",
+    "en": "Profile Confidence"
+  },
+  {
+    "key": "profile.detailLevel",
+    "en": "Detail Level"
+  },
+  {
+    "key": "profile.documentStyle",
+    "en": "Document Style"
+  },
+  {
+    "key": "profile.indentationStyle",
+    "en": "Indentation Style"
+  },
+  {
+    "key": "profile.language",
+    "en": "Language"
+  },
+  {
+    "key": "profile.lastUpdated",
+    "en": "Last Updated"
+  },
+  {
+    "key": "profile.loading",
+    "en": "Loading profile..."
+  },
+  {
+    "key": "profile.namingConvention",
+    "en": "Naming Convention"
+  },
+  {
+    "key": "profile.options.camelCase",
+    "en": "camelCase"
+  },
+  {
+    "key": "profile.options.concise",
+    "en": "Concise"
+  },
+  {
+    "key": "profile.options.formal",
+    "en": "Formal"
+  },
+  {
+    "key": "profile.options.kebab-case",
+    "en": "kebab-case"
+  },
+  {
+    "key": "profile.options.minimal",
+    "en": "Minimal"
+  },
+  {
+    "key": "profile.options.neutral",
+    "en": "Neutral"
+  },
+  {
+    "key": "profile.options.PascalCase",
+    "en": "PascalCase"
+  },
+  {
+    "key": "profile.options.snake_case",
+    "en": "snake_case"
+  },
+  {
+    "key": "profile.tone",
+    "en": "Tone"
+  },
+  {
+    "key": "profile.userId",
+    "en": "User ID"
+  },
+  {
+    "key": "progressBar.executing",
+    "en": "Executing: {name}"
+  },
+  {
+    "key": "progressBar.tool.fileEdit",
+    "en": "Edit File"
+  },
+  {
+    "key": "progressBar.tool.fileRead",
+    "en": "Read File"
+  },
+  {
+    "key": "progressBar.tool.fileWrite",
+    "en": "Write File"
+  },
+  {
+    "key": "progressBar.tool.glob",
+    "en": "File Lookup"
+  },
+  {
+    "key": "progressBar.tool.grep",
+    "en": "Text Search"
+  },
+  {
+    "key": "progressBar.tool.mcp",
+    "en": "MCP Tool"
+  },
+  {
+    "key": "progressBar.tool.search",
+    "en": "Search"
+  },
+  {
+    "key": "progressBar.tool.task",
+    "en": "Sub-Task"
+  },
+  {
+    "key": "progressBar.tool.webFetch",
+    "en": "Web Fetch"
+  },
+  {
+    "key": "progressBar.tool.webSearch",
+    "en": "Web Search"
+  },
+  {
+    "key": "promptTemplates.abTest",
+    "en": "A/B Test"
+  },
+  {
+    "key": "promptTemplates.content",
+    "en": "Content"
+  },
+  {
+    "key": "promptTemplates.contentPlaceholder",
+    "en": "Template content with {variable} placeholders"
+  },
+  {
+    "key": "promptTemplates.contentRequired",
+    "en": "Please enter template content"
+  },
+  {
+    "key": "promptTemplates.created",
+    "en": "Template created"
+  },
+  {
+    "key": "promptTemplates.deleted",
+    "en": "Template deleted"
+  },
+  {
+    "key": "promptTemplates.deleteTemplate",
+    "en": "Delete Template"
+  },
+  {
+    "key": "promptTemplates.deleteTemplateConfirm",
+    "en": "Delete this template?"
+  },
+  {
+    "key": "promptTemplates.descPlaceholder",
+    "en": "Template description"
+  },
+  {
+    "key": "promptTemplates.descriptionPlaceholder",
+    "en": "Enter description..."
+  },
+  {
+    "key": "promptTemplates.edit",
+    "en": "Edit Template"
+  },
+  {
+    "key": "promptTemplates.editTemplate",
+    "en": "Edit Template"
+  },
+  {
+    "key": "promptTemplates.history",
+    "en": "History"
+  },
+  {
+    "key": "promptTemplates.namePlaceholder",
+    "en": "Template name"
+  },
+  {
+    "key": "promptTemplates.nameRequired",
+    "en": "Please enter a name"
+  },
+  {
+    "key": "promptTemplates.new",
+    "en": "New Template"
+  },
+  {
+    "key": "promptTemplates.newTemplate",
+    "en": "New Template"
+  },
+  {
+    "key": "promptTemplates.rollback",
+    "en": "Rollback"
+  },
+  {
+    "key": "promptTemplates.rollbackNotImplemented",
+    "en": "Rollback not implemented"
+  },
+  {
+    "key": "promptTemplates.searchPlaceholder",
+    "en": "Search templates..."
+  },
+  {
+    "key": "promptTemplates.templateCreated",
+    "en": "Template created"
+  },
+  {
+    "key": "promptTemplates.templateDeleted",
+    "en": "Template deleted"
+  },
+  {
+    "key": "promptTemplates.templateUpdated",
+    "en": "Template updated"
+  },
+  {
+    "key": "promptTemplates.title",
+    "en": "Prompt Templates"
+  },
+  {
+    "key": "promptTemplates.updated",
+    "en": "Template updated"
+  },
+  {
+    "key": "promptTemplates.variablesSchema",
+    "en": "Variables Schema"
+  },
+  {
+    "key": "promptTemplates.varsSchema",
+    "en": "Variables Schema (JSON)"
+  },
+  {
+    "key": "promptTemplates.varsSchemaPlaceholder",
+    "en": "{\"variable\": \"type\"}"
+  },
+  {
+    "key": "promptTemplates.version",
+    "en": "Version"
+  },
+  {
+    "key": "promptTemplates.versionHistory",
+    "en": "Version History: {{name}}"
+  },
+  {
+    "key": "quickbar.category.ai",
+    "en": "AI Chat"
+  },
+  {
+    "key": "quickbar.category.knowledge",
+    "en": "Knowledge"
+  },
+  {
+    "key": "quickbar.category.system",
+    "en": "System"
+  },
+  {
+    "key": "quickbar.category.tools",
+    "en": "Utilities"
+  },
+  {
+    "key": "quickbar.category.web",
+    "en": "Web Tools"
+  },
+  {
+    "key": "quickbar.clearRecent",
+    "en": "Clear"
+  },
+  {
+    "key": "quickbar.cmdLine",
+    "en": "Command Mode"
+  },
+  {
+    "key": "quickbar.cmdTile",
+    "en": "Tile Mode"
+  },
+  {
+    "key": "quickbar.command.agent",
+    "en": "Agent Task"
+  },
+  {
+    "key": "quickbar.command.agentDesc",
+    "en": "Run an intelligent task"
+  },
+  {
+    "key": "quickbar.command.calc",
+    "en": "Calculator"
+  },
+  {
+    "key": "quickbar.command.calcDesc",
+    "en": "Evaluate math expressions"
+  },
+  {
+    "key": "quickbar.command.chat",
+    "en": "Quick Chat"
+  },
+  {
+    "key": "quickbar.command.chatDesc",
+    "en": "Ask the AI a question"
+  },
+  {
+    "key": "quickbar.command.code",
+    "en": "Run Code"
+  },
+  {
+    "key": "quickbar.command.codeDesc",
+    "en": "Execute code snippets"
+  },
+  {
+    "key": "quickbar.command.continue",
+    "en": "Continue"
+  },
+  {
+    "key": "quickbar.command.continueDesc",
+    "en": "Resume the last conversation"
+  },
+  {
+    "key": "quickbar.command.files",
+    "en": "Search Files"
+  },
+  {
+    "key": "quickbar.command.filesDesc",
+    "en": "Search attachments"
+  },
+  {
+    "key": "quickbar.command.gateway",
+    "en": "Gateway"
+  },
+  {
+    "key": "quickbar.command.gatewayDesc",
+    "en": "Manage remote connections"
+  },
+  {
+    "key": "quickbar.command.memory",
+    "en": "Search Memory"
+  },
+  {
+    "key": "quickbar.command.memoryDesc",
+    "en": "Search conversation memory"
+  },
+  {
+    "key": "quickbar.command.model",
+    "en": "Switch Model"
+  },
+  {
+    "key": "quickbar.command.modelDesc",
+    "en": "Change the active model"
+  },
+  {
+    "key": "quickbar.command.new",
+    "en": "New Chat"
+  },
+  {
+    "key": "quickbar.command.newDesc",
+    "en": "Start a fresh conversation"
+  },
+  {
+    "key": "quickbar.command.search",
+    "en": "Search Knowledge"
+  },
+  {
+    "key": "quickbar.command.searchDesc",
+    "en": "Query the knowledge base"
+  },
+  {
+    "key": "quickbar.command.settings",
+    "en": "Settings"
+  },
+  {
+    "key": "quickbar.command.settingsDesc",
+    "en": "Open settings page"
+  },
+  {
+    "key": "quickbar.command.summarize",
+    "en": "Summarize URL"
+  },
+  {
+    "key": "quickbar.command.summarizeDesc",
+    "en": "Quick summary of a web page"
+  },
+  {
+    "key": "quickbar.command.translate",
+    "en": "Translate"
+  },
+  {
+    "key": "quickbar.command.translateDesc",
+    "en": "Translate to English"
+  },
+  {
+    "key": "quickbar.command.url",
+    "en": "Fetch URL"
+  },
+  {
+    "key": "quickbar.command.urlDesc",
+    "en": "Read web page content"
+  },
+  {
+    "key": "quickbar.command.wiki",
+    "en": "Save to Wiki"
+  },
+  {
+    "key": "quickbar.command.wikiDesc",
+    "en": "Store info in the knowledge base"
+  },
+  {
+    "key": "quickbar.hintTileMode",
+    "en": "Press / for command mode · Click any tile to act"
+  },
+  {
+    "key": "quickbar.inputPlaceholder",
+    "en": "Type / to see commands, or ask directly..."
+  },
+  {
+    "key": "quickbar.inputPlaceholderCommand",
+    "en": "Enter {{cmdLabel}} parameters…"
+  },
+  {
+    "key": "quickbar.recent",
+    "en": "Recent"
+  },
+  {
+    "key": "quickbar.result.continueAsk",
+    "en": "Follow up"
+  },
+  {
+    "key": "quickbar.result.copied",
+    "en": "Copied"
+  },
+  {
+    "key": "quickbar.result.copy",
+    "en": "Copy"
+  },
+  {
+    "key": "quickbar.result.createFailed",
+    "en": "Creation failed"
+  },
+  {
+    "key": "quickbar.result.current",
+    "en": "Active"
+  },
+  {
+    "key": "quickbar.result.error",
+    "en": "Error"
+  },
+  {
+    "key": "quickbar.result.modelSwitched",
+    "en": "Model switched"
+  },
+  {
+    "key": "quickbar.result.newConversation",
+    "en": "New conversation created"
+  },
+  {
+    "key": "quickbar.result.noKnowledge",
+    "en": "No matching knowledge found."
+  },
+  {
+    "key": "quickbar.result.noMemory",
+    "en": "No matching memories found."
+  },
+  {
+    "key": "quickbar.result.savedWiki",
+    "en": "Saved to wiki"
+  },
+  {
+    "key": "quickbar.result.saveWiki",
+    "en": "Save"
+  },
+  {
+    "key": "quickbar.result.saveWikiFailed",
+    "en": "Save failed"
+  },
+  {
+    "key": "quickbar.result.searchFailed",
+    "en": "Search failed"
+  },
+  {
+    "key": "quickbar.selectCommand",
+    "en": "Select a command..."
+  },
+  {
+    "key": "quickbar.title",
+    "en": "QuickBar"
+  },
+  {
+    "key": "recommendation.availableTools",
+    "en": "Available Tools"
+  },
+  {
+    "key": "recommendation.describePlaceholder",
+    "en": "Describe your task..."
+  },
+  {
+    "key": "recommendation.toolTitle",
+    "en": "Tool Recommendation"
+  },
+  {
+    "key": "review.commentPlaceholder",
+    "en": "Enter comment..."
+  },
+  {
+    "key": "review.deletedSuccess",
+    "en": "Deleted successfully"
+  },
+  {
+    "key": "review.failedToDelete",
+    "en": "Failed to delete"
+  },
+  {
+    "key": "review.failedToSubmit",
+    "en": "Failed to submit"
+  },
+  {
+    "key": "review.ratingRequired",
+    "en": "Rating is required"
+  },
+  {
+    "key": "review.submittedSuccess",
+    "en": "Submitted successfully"
+  },
+  {
+    "key": "review.updatedSuccess",
+    "en": "Updated successfully"
+  },
+  {
+    "key": "rl.avgReward",
+    "en": "Avg Reward"
+  },
+  {
+    "key": "rl.createPolicy",
+    "en": "Create New Policy"
+  },
+  {
+    "key": "rl.experiences",
+    "en": "Experiences"
+  },
+  {
+    "key": "rl.modelId",
+    "en": "Model ID"
+  },
+  {
+    "key": "rl.modelIdPlaceholder",
+    "en": "Enter model ID"
+  },
+  {
+    "key": "rl.modelIdRequired",
+    "en": "Please input model ID"
+  },
+  {
+    "key": "rl.policyDashboard",
+    "en": "RL Policy Dashboard"
+  },
+  {
+    "key": "rl.policyErrorRecovery",
+    "en": "Error Recovery"
+  },
+  {
+    "key": "rl.policyName",
+    "en": "Policy Name"
+  },
+  {
+    "key": "rl.policyNamePlaceholder",
+    "en": "Enter policy name"
+  },
+  {
+    "key": "rl.policyNameRequired",
+    "en": "Please input policy name"
+  },
+  {
+    "key": "rl.policyTaskDecomposition",
+    "en": "Task Decomposition"
+  },
+  {
+    "key": "rl.policyToolSelection",
+    "en": "Tool Selection"
+  },
+  {
+    "key": "rl.policyType",
+    "en": "Policy Type"
+  },
+  {
+    "key": "rl.policyTypePlaceholder",
+    "en": "Select policy type"
+  },
+  {
+    "key": "rl.policyTypeRequired",
+    "en": "Please select policy type"
+  },
+  {
+    "key": "rl.train",
+    "en": "Train"
+  },
+  {
+    "key": "search.caseSensitive",
+    "en": "Case sensitive"
+  },
+  {
+    "key": "search.clearRecent",
+    "en": "Clear recent"
+  },
+  {
+    "key": "search.filterName",
+    "en": "Filter name"
+  },
+  {
+    "key": "search.filters",
+    "en": "Filters"
+  },
+  {
+    "key": "search.limit",
+    "en": "Limit"
+  },
+  {
+    "key": "search.noResults",
+    "en": "No results"
+  },
+  {
+    "key": "search.placeholder",
+    "en": "Search..."
+  },
+  {
+    "key": "search.recentSearches",
+    "en": "Recent searches"
+  },
+  {
+    "key": "search.resultPrefix",
+    "en": "Below are web search results related to the question, please refer to them when answering:\n\n"
+  },
+  {
+    "key": "search.savedFilters",
+    "en": "Saved filters"
+  },
+  {
+    "key": "search.saveFilter",
+    "en": "Save filter"
+  },
+  {
+    "key": "search.saveFilterTitle",
+    "en": "Save Filter"
+  },
+  {
+    "key": "search.title",
+    "en": "Search"
+  },
+  {
+    "key": "search.useRegex",
+    "en": "Use regex"
+  },
+  {
+    "key": "settings.acp",
+    "en": "ACP"
+  },
+  {
+    "key": "settings.activeProfile",
+    "en": "Active Profile"
+  },
+  {
+    "key": "settings.agent.addShellCommand",
+    "en": "Add Shell Command"
+  },
+  {
+    "key": "settings.agent.agentConfig",
+    "en": "Agent Configuration"
+  },
+  {
+    "key": "settings.agent.baseDelay",
+    "en": "Base Delay (ms)"
+  },
+  {
+    "key": "settings.agent.capabilitiesLabel",
+    "en": "Capabilities"
+  },
+  {
+    "key": "settings.agent.commandAddedForEvent",
+    "en": "Command added for {{event}}"
+  },
+  {
+    "key": "settings.agent.commandRemoved",
+    "en": "Command removed"
+  },
+  {
+    "key": "settings.agent.confirmRemove",
+    "en": "Confirm removal?"
+  },
+  {
+    "key": "settings.agent.controlPanel",
+    "en": "Agent Control Panel"
+  },
+  {
+    "key": "settings.agent.controlPanelDesc",
+    "en": "Model selection, feature flags, agent management & hook configuration"
+  },
+  {
+    "key": "settings.agent.debugLevel",
+    "en": "Debug Level"
+  },
+  {
+    "key": "settings.agent.debugMode",
+    "en": "Debug Mode"
+  },
+  {
+    "key": "settings.agent.decompositionThreshold",
+    "en": "Decomposition Threshold"
+  },
+  {
+    "key": "settings.agent.descLabel",
+    "en": "Description"
+  },
+  {
+    "key": "settings.agent.enabled",
+    "en": "Enabled"
+  },
+  {
+    "key": "settings.agent.enableReflection",
+    "en": "Enable Reflection"
+  },
+  {
+    "key": "settings.agent.enableRetry",
+    "en": "Enable Retry"
+  },
+  {
+    "key": "settings.agent.enterShellCommand",
+    "en": "Enter shell command:"
+  },
+  {
+    "key": "settings.agent.errorRecovery",
+    "en": "Error Recovery"
+  },
+  {
+    "key": "settings.agent.eventConfig",
+    "en": "Event Config"
+  },
+  {
+    "key": "settings.agent.executionLog",
+    "en": "Execution Log"
+  },
+  {
+    "key": "settings.agent.exponentialBackoff",
+    "en": "Exponential Backoff"
+  },
+  {
+    "key": "settings.agent.featureFlags.coordinatorMode",
+    "en": "Coordinator Mode"
+  },
+  {
+    "key": "settings.agent.featureFlags.coordinatorModeDesc",
+    "en": "Agent runs as a coordinator, dispatching multiple subtasks"
+  },
+  {
+    "key": "settings.agent.featureFlags.dreamTask",
+    "en": "Dream Task"
+  },
+  {
+    "key": "settings.agent.featureFlags.dreamTaskDesc",
+    "en": "Execute background optimization and reflection tasks when idle"
+  },
+  {
+    "key": "settings.agent.featureFlags.forkSubagent",
+    "en": "Fork Sub-Agent"
+  },
+  {
+    "key": "settings.agent.featureFlags.forkSubagentDesc",
+    "en": "Allow agent to spawn sub-agents for parallel tasks"
+  },
+  {
+    "key": "settings.agent.featureFlags.proactiveMode",
+    "en": "Proactive Mode"
+  },
+  {
+    "key": "settings.agent.featureFlags.proactiveModeDesc",
+    "en": "Agent proactively predicts user needs and executes operations in advance"
+  },
+  {
+    "key": "settings.agent.featureFlags.swarmMode",
+    "en": "Swarm Mode"
+  },
+  {
+    "key": "settings.agent.featureFlags.swarmModeDesc",
+    "en": "Enable multi-agent swarm collaboration for complex tasks"
+  },
+  {
+    "key": "settings.agent.featureFlags.toolConcurrency",
+    "en": "Tool Concurrency"
+  },
+  {
+    "key": "settings.agent.featureFlags.toolConcurrencyDesc",
+    "en": "Allow simultaneous execution of multiple independent tool calls"
+  },
+  {
+    "key": "settings.agent.featureFlags.verificationAgent",
+    "en": "Verification Agent"
+  },
+  {
+    "key": "settings.agent.featureFlags.verificationAgentDesc",
+    "en": "Enable an independent verification agent to review execution results"
+  },
+  {
+    "key": "settings.agent.fullAccess",
+    "en": "Full Access"
+  },
+  {
+    "key": "settings.agent.fullAccessWarning",
+    "en": "In full access mode, the agent can execute arbitrary system commands and file operations. Use with caution."
+  },
+  {
+    "key": "settings.agent.general",
+    "en": "General"
+  },
+  {
+    "key": "settings.agent.hookEventConfig",
+    "en": "Hook Event Configuration"
+  },
+  {
+    "key": "settings.agent.hookEvents.configChange",
+    "en": "Config Change"
+  },
+  {
+    "key": "settings.agent.hookEvents.configChangeDesc",
+    "en": "Triggered when system configuration changes"
+  },
+  {
+    "key": "settings.agent.hookEvents.cwdChanged",
+    "en": "CWD Changed"
+  },
+  {
+    "key": "settings.agent.hookEvents.cwdChangedDesc",
+    "en": "Triggered when the current working directory changes"
+  },
+  {
+    "key": "settings.agent.hookEvents.elicitation",
+    "en": "Elicitation"
+  },
+  {
+    "key": "settings.agent.hookEvents.elicitationDesc",
+    "en": "Triggered when additional information is needed from the user"
+  },
+  {
+    "key": "settings.agent.hookEvents.elicitationResult",
+    "en": "Elicitation Result"
+  },
+  {
+    "key": "settings.agent.hookEvents.elicitationResultDesc",
+    "en": "Triggered after the user responds to an elicitation"
+  },
+  {
+    "key": "settings.agent.hookEvents.fileChanged",
+    "en": "File Changed"
+  },
+  {
+    "key": "settings.agent.hookEvents.fileChangedDesc",
+    "en": "Triggered when a monitored file changes"
+  },
+  {
+    "key": "settings.agent.hookEvents.instructionsLoaded",
+    "en": "Instructions Loaded"
+  },
+  {
+    "key": "settings.agent.hookEvents.instructionsLoadedDesc",
+    "en": "Triggered when agent instructions are loaded"
+  },
+  {
+    "key": "settings.agent.hookEvents.notification",
+    "en": "Notification"
+  },
+  {
+    "key": "settings.agent.hookEvents.notificationDesc",
+    "en": "System notification event"
+  },
+  {
+    "key": "settings.agent.hookEvents.permissionDenied",
+    "en": "Permission Denied"
+  },
+  {
+    "key": "settings.agent.hookEvents.permissionDeniedDesc",
+    "en": "Triggered when a permission request is denied"
+  },
+  {
+    "key": "settings.agent.hookEvents.permissionRequest",
+    "en": "Permission Request"
+  },
+  {
+    "key": "settings.agent.hookEvents.permissionRequestDesc",
+    "en": "Triggered when a tool call requests permission"
+  },
+  {
+    "key": "settings.agent.hookEvents.postCompact",
+    "en": "Post Compact"
+  },
+  {
+    "key": "settings.agent.hookEvents.postCompactDesc",
+    "en": "Triggered after context compaction completes"
+  },
+  {
+    "key": "settings.agent.hookEvents.postToolUse",
+    "en": "Post Tool Use"
+  },
+  {
+    "key": "settings.agent.hookEvents.postToolUseDesc",
+    "en": "Triggered after a tool call completes successfully"
+  },
+  {
+    "key": "settings.agent.hookEvents.postToolUseFailure",
+    "en": "Post Tool Use Failure"
+  },
+  {
+    "key": "settings.agent.hookEvents.postToolUseFailureDesc",
+    "en": "Triggered after a tool call fails"
+  },
+  {
+    "key": "settings.agent.hookEvents.preCompact",
+    "en": "Pre Compact"
+  },
+  {
+    "key": "settings.agent.hookEvents.preCompactDesc",
+    "en": "Triggered before context compaction"
+  },
+  {
+    "key": "settings.agent.hookEvents.preToolUse",
+    "en": "Pre Tool Use"
+  },
+  {
+    "key": "settings.agent.hookEvents.preToolUseDesc",
+    "en": "Triggered before a tool call is executed"
+  },
+  {
+    "key": "settings.agent.hookEvents.sessionEnd",
+    "en": "Session End"
+  },
+  {
+    "key": "settings.agent.hookEvents.sessionEndDesc",
+    "en": "Triggered when an agent session ends"
+  },
+  {
+    "key": "settings.agent.hookEvents.sessionStart",
+    "en": "Session Start"
+  },
+  {
+    "key": "settings.agent.hookEvents.sessionStartDesc",
+    "en": "Triggered when an agent session starts"
+  },
+  {
+    "key": "settings.agent.hookEvents.stop",
+    "en": "Stop"
+  },
+  {
+    "key": "settings.agent.hookEvents.stopDesc",
+    "en": "Triggered when the agent stops"
+  },
+  {
+    "key": "settings.agent.hookEvents.stopFailure",
+    "en": "Stop Failure"
+  },
+  {
+    "key": "settings.agent.hookEvents.stopFailureDesc",
+    "en": "Triggered when the agent fails to stop"
+  },
+  {
+    "key": "settings.agent.hookEvents.subagentStart",
+    "en": "Sub-Agent Start"
+  },
+  {
+    "key": "settings.agent.hookEvents.subagentStartDesc",
+    "en": "Triggered when a sub-agent starts"
+  },
+  {
+    "key": "settings.agent.hookEvents.subagentStop",
+    "en": "Sub-Agent Stop"
+  },
+  {
+    "key": "settings.agent.hookEvents.subagentStopDesc",
+    "en": "Triggered when a sub-agent stops"
+  },
+  {
+    "key": "settings.agent.hookEvents.taskCompleted",
+    "en": "Task Completed"
+  },
+  {
+    "key": "settings.agent.hookEvents.taskCompletedDesc",
+    "en": "Triggered when a task is completed"
+  },
+  {
+    "key": "settings.agent.hookEvents.taskCreated",
+    "en": "Task Created"
+  },
+  {
+    "key": "settings.agent.hookEvents.taskCreatedDesc",
+    "en": "Triggered when a new task is created"
+  },
+  {
+    "key": "settings.agent.hookEvents.teammateIdle",
+    "en": "Teammate Idle"
+  },
+  {
+    "key": "settings.agent.hookEvents.teammateIdleDesc",
+    "en": "Triggered when a teammate agent becomes idle"
+  },
+  {
+    "key": "settings.agent.hookEvents.userPromptSubmit",
+    "en": "User Prompt Submit"
+  },
+  {
+    "key": "settings.agent.hookEvents.userPromptSubmitDesc",
+    "en": "Triggered when the user submits a message"
+  },
+  {
+    "key": "settings.agent.hookEvents.worktreeCreate",
+    "en": "Worktree Create"
+  },
+  {
+    "key": "settings.agent.hookEvents.worktreeCreateDesc",
+    "en": "Triggered when a Git worktree is created"
+  },
+  {
+    "key": "settings.agent.hookEvents.worktreeRemove",
+    "en": "Worktree Remove"
+  },
+  {
+    "key": "settings.agent.hookEvents.worktreeRemoveDesc",
+    "en": "Triggered when a Git worktree is removed"
+  },
+  {
+    "key": "settings.agent.loading",
+    "en": "Loading..."
+  },
+  {
+    "key": "settings.agent.maxAttempts",
+    "en": "Max Attempts"
+  },
+  {
+    "key": "settings.agent.maxDepth",
+    "en": "Max Depth"
+  },
+  {
+    "key": "settings.agent.maxIterations",
+    "en": "Max Iterations"
+  },
+  {
+    "key": "settings.agent.maxSubtasks",
+    "en": "Max Subtasks"
+  },
+  {
+    "key": "settings.agent.noDescription",
+    "en": "No description"
+  },
+  {
+    "key": "settings.agent.noRegisteredAgents",
+    "en": "No registered agents"
+  },
+  {
+    "key": "settings.agent.noShellCommands",
+    "en": "No shell commands configured"
+  },
+  {
+    "key": "settings.agent.parallelExecution",
+    "en": "Parallel Execution"
+  },
+  {
+    "key": "settings.agent.permissionControl",
+    "en": "Permission Control"
+  },
+  {
+    "key": "settings.agent.permissionMode",
+    "en": "Permission Mode"
+  },
+  {
+    "key": "settings.agent.qualityThreshold",
+    "en": "Quality Threshold"
+  },
+  {
+    "key": "settings.agent.reactEngine",
+    "en": "ReAct Engine"
+  },
+  {
+    "key": "settings.agent.readOnly",
+    "en": "Read Only"
+  },
+  {
+    "key": "settings.agent.reflection",
+    "en": "Reflection & Self-Improvement"
+  },
+  {
+    "key": "settings.agent.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "settings.agent.resetDefaults",
+    "en": "Reset to defaults"
+  },
+  {
+    "key": "settings.agent.resultVerification",
+    "en": "Result Verification"
+  },
+  {
+    "key": "settings.agent.runtimeAgentList",
+    "en": "Runtime Agent List"
+  },
+  {
+    "key": "settings.agent.statusCancelled",
+    "en": "Cancelled"
+  },
+  {
+    "key": "settings.agent.statusCompleted",
+    "en": "Completed"
+  },
+  {
+    "key": "settings.agent.statusFailed",
+    "en": "Failed"
+  },
+  {
+    "key": "settings.agent.statusPending",
+    "en": "Pending"
+  },
+  {
+    "key": "settings.agent.statusRunning",
+    "en": "Running"
+  },
+  {
+    "key": "settings.agent.storeInsights",
+    "en": "Store Insights"
+  },
+  {
+    "key": "settings.agent.streamThoughts",
+    "en": "Stream Thoughts"
+  },
+  {
+    "key": "settings.agent.taskDecomposition",
+    "en": "Task Decomposition"
+  },
+  {
+    "key": "settings.agent.toolsLabel",
+    "en": "Tools"
+  },
+  {
+    "key": "settings.agent.typeLabel",
+    "en": "Type"
+  },
+  {
+    "key": "settings.agent.workspaceWrite",
+    "en": "Workspace Write"
+  },
+  {
+    "key": "settings.bocha",
+    "en": "Bocha"
+  },
+  {
+    "key": "settings.bubbleCompact",
+    "en": "Compact"
+  },
+  {
+    "key": "settings.bubbleMinimal",
+    "en": "Minimal"
+  },
+  {
+    "key": "settings.bubbleModern",
+    "en": "Modern"
+  },
+  {
+    "key": "settings.capability.Reasoning",
+    "en": "Reasoning"
+  },
+  {
+    "key": "settings.capability.Vision",
+    "en": "Vision"
+  },
+  {
+    "key": "settings.compressionPromptDefault",
+    "en": "You are a conversation summary assistant. Please compress the following conversation history into a concise summary.\n\nRequirements:\n1. Keep all user-expressed needs, preferences, and decisions\n2. Keep all key technical details (code snippets, configurations, error messages, etc.)\n3. Keep pending tasks and unresolved issues\n4. Organize in concise bullet points\n5. Keep the summary concise, no more than 500 words"
+  },
+  {
+    "key": "settings.conversationSettings",
+    "en": "Conversation"
+  },
+  {
+    "key": "settings.createProfile",
+    "en": "Create Profile"
+  },
+  {
+    "key": "settings.cron.added",
+    "en": "Cron job added"
+  },
+  {
+    "key": "settings.cron.addJob",
+    "en": "Add Cron Job"
+  },
+  {
+    "key": "settings.cron.deleteConfirm",
+    "en": "Delete this cron job?"
+  },
+  {
+    "key": "settings.cron.empty",
+    "en": "No cron jobs configured"
+  },
+  {
+    "key": "settings.cron.lastRun",
+    "en": "Last Run"
+  },
+  {
+    "key": "settings.cron.namePlaceholder",
+    "en": "Daily summary"
+  },
+  {
+    "key": "settings.cron.platform",
+    "en": "Platform (optional)"
+  },
+  {
+    "key": "settings.cron.platformPlaceholder",
+    "en": "telegram / discord / web"
+  },
+  {
+    "key": "settings.cron.promptPlaceholder",
+    "en": "Generate a daily summary of my inbox"
+  },
+  {
+    "key": "settings.cron.schedule",
+    "en": "Schedule (cron expression)"
+  },
+  {
+    "key": "settings.cron.scheduleExamples",
+    "en": "Examples: \"0 9 * * *\" (daily 9am), \"*/30 * * * *\" (every 30 min)"
+  },
+  {
+    "key": "settings.cron.schedulePlaceholder",
+    "en": "0 9 * * *"
+  },
+  {
+    "key": "settings.cron.title",
+    "en": "Cron Jobs"
+  },
+  {
+    "key": "settings.cron.validationRequired",
+    "en": "Name, schedule, and prompt are required"
+  },
+  {
+    "key": "settings.dashboardPlugins.name",
+    "en": "Name"
+  },
+  {
+    "key": "settings.dashboardPlugins.panels",
+    "en": "Panels"
+  },
+  {
+    "key": "settings.dashboardPlugins.status",
+    "en": "Status"
+  },
+  {
+    "key": "settings.defaultWorkspaceDir",
+    "en": "Default Workspace Directory"
+  },
+  {
+    "key": "settings.disabledProviders",
+    "en": "Disabled Providers"
+  },
+  {
+    "key": "settings.documentation",
+    "en": "Documentation"
+  },
+  {
+    "key": "settings.enabledProviders",
+    "en": "Enabled Providers"
+  },
+  {
+    "key": "settings.expandAll",
+    "en": "Expand all"
+  },
+  {
+    "key": "settings.gateway.apiServer",
+    "en": "API Server"
+  },
+  {
+    "key": "settings.gateway.autoSyncMessages",
+    "en": "Auto-sync Messages"
+  },
+  {
+    "key": "settings.gateway.botToken",
+    "en": "Bot Token"
+  },
+  {
+    "key": "settings.gateway.botTokenPlaceholder",
+    "en": "Enter bot token from @BotFather"
+  },
+  {
+    "key": "settings.gateway.discord",
+    "en": "Discord"
+  },
+  {
+    "key": "settings.gateway.discordBotTokenPlaceholder",
+    "en": "Enter bot token from Discord Developer Portal"
+  },
+  {
+    "key": "settings.gateway.discordWebhookUrlPlaceholder",
+    "en": "https://discord.com/api/webhooks/..."
+  },
+  {
+    "key": "settings.gateway.enableApiServer",
+    "en": "Enable REST API Server"
+  },
+  {
+    "key": "settings.gateway.enableDiscord",
+    "en": "Enable Discord"
+  },
+  {
+    "key": "settings.gateway.enableTelegram",
+    "en": "Enable Telegram"
+  },
+  {
+    "key": "settings.gateway.general",
+    "en": "General"
+  },
+  {
+    "key": "settings.gateway.saved",
+    "en": "Platform configuration saved"
+  },
+  {
+    "key": "settings.gateway.saveFailed",
+    "en": "Failed to save configuration"
+  },
+  {
+    "key": "settings.gateway.telegram",
+    "en": "Telegram"
+  },
+  {
+    "key": "settings.gateway.webhookSecret",
+    "en": "Webhook Secret (optional)"
+  },
+  {
+    "key": "settings.gateway.webhookSecretPlaceholder",
+    "en": "Secret for webhook validation"
+  },
+  {
+    "key": "settings.gateway.webhookUrl",
+    "en": "Webhook URL (optional)"
+  },
+  {
+    "key": "settings.gateway.webhookUrlPlaceholder",
+    "en": "https://your-domain.com/telegram/webhook"
+  },
+  {
+    "key": "settings.general",
+    "en": "General"
+  },
+  {
+    "key": "settings.github",
+    "en": "GitHub"
+  },
+  {
+    "key": "settings.groupLinks",
+    "en": "Links"
+  },
+  {
+    "key": "settings.groupWorkspace",
+    "en": "Workspace"
+  },
+  {
+    "key": "settings.imageGen.defaultProvider",
+    "en": "Default Provider"
+  },
+  {
+    "key": "settings.imageGen.providerDalle",
+    "en": "DALL-E 3 (OpenAI)"
+  },
+  {
+    "key": "settings.imageGen.providerFlux",
+    "en": "Flux (Replicate)"
+  },
+  {
+    "key": "settings.knowledge.actions",
+    "en": "Actions"
+  },
+  {
+    "key": "settings.knowledge.chunkIndex",
+    "en": "Index"
+  },
+  {
+    "key": "settings.knowledge.description",
+    "en": "Description"
+  },
+  {
+    "key": "settings.knowledge.docTitle",
+    "en": "Document"
+  },
+  {
+    "key": "settings.knowledge.docType",
+    "en": "Type"
+  },
+  {
+    "key": "settings.knowledge.documents",
+    "en": "Documents"
+  },
+  {
+    "key": "settings.knowledge.embeddingDimensionsAuto",
+    "en": "Auto"
+  },
+  {
+    "key": "settings.knowledge.name",
+    "en": "Name"
+  },
+  {
+    "key": "settings.knowledge.status",
+    "en": "Status"
+  },
+  {
+    "key": "settings.knowledge.statusLabel",
+    "en": "Status"
+  },
+  {
+    "key": "settings.knowledge.wikiTab",
+    "en": "Wiki"
+  },
+  {
+    "key": "settings.localTools.groupFetch",
+    "en": "Web Fetch"
+  },
+  {
+    "key": "settings.localTools.groupFilesystem",
+    "en": "File System"
+  },
+  {
+    "key": "settings.localTools.groupKnowledge",
+    "en": "Knowledge Base"
+  },
+  {
+    "key": "settings.localTools.groupMemory",
+    "en": "Memory Management"
+  },
+  {
+    "key": "settings.localTools.groupSearch",
+    "en": "Web Search"
+  },
+  {
+    "key": "settings.localTools.groupSearchFile",
+    "en": "File Search"
+  },
+  {
+    "key": "settings.localTools.groupSession",
+    "en": "Session Search"
+  },
+  {
+    "key": "settings.localTools.groupSkills",
+    "en": "Skill Management"
+  },
+  {
+    "key": "settings.localTools.groupStorage",
+    "en": "Object Storage"
+  },
+  {
+    "key": "settings.localTools.groupSystem",
+    "en": "System Commands"
+  },
+  {
+    "key": "settings.mcp.builtin",
+    "en": "Built-in tools"
+  },
+  {
+    "key": "settings.mcp.custom",
+    "en": "Custom"
+  },
+  {
+    "key": "settings.mcpServers.args",
+    "en": "Arguments"
+  },
+  {
+    "key": "settings.mcpServers.builtinFetch",
+    "en": "Fetch"
+  },
+  {
+    "key": "settings.mcpServers.name",
+    "en": "Name"
+  },
+  {
+    "key": "settings.mcpServers.transport",
+    "en": "Transport"
+  },
+  {
+    "key": "settings.memory.app",
+    "en": "App"
+  },
+  {
+    "key": "settings.memory.embeddingDimensionsAuto",
+    "en": "Auto"
+  },
+  {
+    "key": "settings.memory.global",
+    "en": "Global"
+  },
+  {
+    "key": "settings.memory.manual",
+    "en": "Manual"
+  },
+  {
+    "key": "settings.memory.namespaceName",
+    "en": "Name"
+  },
+  {
+    "key": "settings.memory.source",
+    "en": "Source"
+  },
+  {
+    "key": "settings.memory.syncWorkingMemory",
+    "en": "Sync Working Memory"
+  },
+  {
+    "key": "settings.memory.syncWorkingMemoryConfirm",
+    "en": "Sync all working memory entries to this namespace?"
+  },
+  {
+    "key": "settings.memory.syncWorkingMemoryError",
+    "en": "Sync failed: {{error}}"
+  },
+  {
+    "key": "settings.memory.syncWorkingMemorySuccess",
+    "en": "Synced {{count}} working memory entries"
+  },
+  {
+    "key": "settings.minutes",
+    "en": "minutes"
+  },
+  {
+    "key": "settings.modelGroup",
+    "en": "Model group"
+  },
+  {
+    "key": "settings.modelNamePlaceholder",
+    "en": "GPT 5.4 Think"
+  },
+  {
+    "key": "settings.modelType.Chat",
+    "en": "Chat"
+  },
+  {
+    "key": "settings.modelType.Embedding",
+    "en": "Embedding"
+  },
+  {
+    "key": "settings.newProfile",
+    "en": "New Profile"
+  },
+  {
+    "key": "settings.platform.apiServerPort",
+    "en": "API Server Port"
+  },
+  {
+    "key": "settings.platform.placeholder.dingtalkAgent",
+    "en": "DingTalk App AgentId"
+  },
+  {
+    "key": "settings.platform.status",
+    "en": "Status"
+  },
+  {
+    "key": "settings.platform.wechatMode",
+    "en": "Mode"
+  },
+  {
+    "key": "settings.profileDisplayName",
+    "en": "Profile Display Name"
+  },
+  {
+    "key": "settings.profileManager",
+    "en": "Profile Manager"
+  },
+  {
+    "key": "settings.profileName",
+    "en": "Profile Name"
+  },
+  {
+    "key": "settings.profiles",
+    "en": "Profiles"
+  },
+  {
+    "key": "settings.proxy",
+    "en": "Proxy"
+  },
+  {
+    "key": "settings.proxyHttp",
+    "en": "HTTP"
+  },
+  {
+    "key": "settings.proxySocks5",
+    "en": "SOCKS5"
+  },
+  {
+    "key": "settings.scheduler.conversation_stats",
+    "en": "Conversation Statistics"
+  },
+  {
+    "key": "settings.scheduler.conversation_statsDesc",
+    "en": "Analyze conversation patterns and statistics"
+  },
+  {
+    "key": "settings.scheduler.custom_report",
+    "en": "Custom Report"
+  },
+  {
+    "key": "settings.scheduler.custom_reportDesc",
+    "en": "Create a custom report based on your needs"
+  },
+  {
+    "key": "settings.scheduler.daily_summary",
+    "en": "Daily Summary Report"
+  },
+  {
+    "key": "settings.scheduler.daily_summaryDesc",
+    "en": "Generate a daily summary of conversations and activities"
+  },
+  {
+    "key": "settings.scheduler.insight_report",
+    "en": "Insight Report"
+  },
+  {
+    "key": "settings.scheduler.insight_reportDesc",
+    "en": "Generate insights from recent activities"
+  },
+  {
+    "key": "settings.scheduler.knowledge_graph_update",
+    "en": "Knowledge Graph Update"
+  },
+  {
+    "key": "settings.scheduler.knowledge_graph_updateDesc",
+    "en": "Update and optimize the knowledge graph"
+  },
+  {
+    "key": "settings.scheduler.minutes",
+    "en": "{{count}} min"
+  },
+  {
+    "key": "settings.scheduler.pauseTask",
+    "en": "Pause"
+  },
+  {
+    "key": "settings.scheduler.startTime",
+    "en": "Start"
+  },
+  {
+    "key": "settings.scheduler.status",
+    "en": "Status"
+  },
+  {
+    "key": "settings.scheduler.taskActive",
+    "en": "Active"
+  },
+  {
+    "key": "settings.scheduler.taskDescription",
+    "en": "Description"
+  },
+  {
+    "key": "settings.scheduler.weekly_summary",
+    "en": "Weekly Summary Report"
+  },
+  {
+    "key": "settings.scheduler.weekly_summaryDesc",
+    "en": "Generate a weekly summary report"
+  },
+  {
+    "key": "settings.scheduler.workflow_bug_fix",
+    "en": "Bug Fix Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_bug_fixDesc",
+    "en": "Systematic bug diagnosis and fix workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_code_review",
+    "en": "Code Review Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_code_reviewDesc",
+    "en": "Automated code review with multi-agent analysis"
+  },
+  {
+    "key": "settings.scheduler.workflow_doc_gen",
+    "en": "Documentation Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_doc_genDesc",
+    "en": "Generate comprehensive documentation"
+  },
+  {
+    "key": "settings.scheduler.workflow_explore",
+    "en": "Code Exploration Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_exploreDesc",
+    "en": "Explore and understand codebase"
+  },
+  {
+    "key": "settings.scheduler.workflow_knowledge_extract",
+    "en": "Knowledge Extraction Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_knowledge_extractDesc",
+    "en": "Extract domain knowledge from code"
+  },
+  {
+    "key": "settings.scheduler.workflow_knowledge_to_code",
+    "en": "Knowledge to Code Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_knowledge_to_codeDesc",
+    "en": "Generate code from knowledge base"
+  },
+  {
+    "key": "settings.scheduler.workflow_performance",
+    "en": "Performance Optimization Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_performanceDesc",
+    "en": "Performance analysis and optimization"
+  },
+  {
+    "key": "settings.scheduler.workflow_refactor",
+    "en": "Refactoring Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_refactorDesc",
+    "en": "Safe refactoring with behavior preservation"
+  },
+  {
+    "key": "settings.scheduler.workflow_test_gen",
+    "en": "Test Generation Workflow"
+  },
+  {
+    "key": "settings.scheduler.workflow_test_genDesc",
+    "en": "Generate complete test suites"
+  },
+  {
+    "key": "settings.searchProviders.bocha",
+    "en": "Bocha"
+  },
+  {
+    "key": "settings.searchProviders.name",
+    "en": "Name"
+  },
+  {
+    "key": "settings.searchProviders.type",
+    "en": "Type"
+  },
+  {
+    "key": "settings.searchProviders.zhipu",
+    "en": "Zhipu"
+  },
+  {
+    "key": "settings.shortcutAction.showQuickBar",
+    "en": "Show QuickBar"
+  },
+  {
+    "key": "settings.skillsHub.downloads",
+    "en": "Downloads"
+  },
+  {
+    "key": "settings.skillsHub.name",
+    "en": "Name"
+  },
+  {
+    "key": "settings.skillsHub.version",
+    "en": "Version"
+  },
+  {
+    "key": "settings.storage.images",
+    "en": "Images"
+  },
+  {
+    "key": "settings.tabSystem",
+    "en": "System"
+  },
+  {
+    "key": "settings.themePreset",
+    "en": "Theme Preset"
+  },
+  {
+    "key": "settings.themeSystem",
+    "en": "System"
+  },
+  {
+    "key": "settings.titleSummaryPromptDefault",
+    "en": "Based on the following conversation content, generate a short and concise title (no more than 20 characters). Return only the title text, do not include quotes or any additional explanations."
+  },
+  {
+    "key": "settings.toolSemanticCheck.checkingTool",
+    "en": "Checking for tools similar to {{tool}}"
+  },
+  {
+    "key": "settings.toolSemanticCheck.description",
+    "en": "Find similar tools and upgrade existing ones using AI"
+  },
+  {
+    "key": "settings.toolSemanticCheck.empty",
+    "en": "Enter a search term to find similar tools"
+  },
+  {
+    "key": "settings.toolSemanticCheck.emptySearch",
+    "en": "Please enter a search term"
+  },
+  {
+    "key": "settings.toolSemanticCheck.existingTool",
+    "en": "Existing Tool"
+  },
+  {
+    "key": "settings.toolSemanticCheck.generatedTool",
+    "en": "Generated Tool"
+  },
+  {
+    "key": "settings.toolSemanticCheck.matches",
+    "en": "{{count}} matches"
+  },
+  {
+    "key": "settings.toolSemanticCheck.noDescription",
+    "en": "No description"
+  },
+  {
+    "key": "settings.toolSemanticCheck.noMatches",
+    "en": "No similar tools found"
+  },
+  {
+    "key": "settings.toolSemanticCheck.performUpgrade",
+    "en": "Perform Upgrade"
+  },
+  {
+    "key": "settings.toolSemanticCheck.reasoning",
+    "en": "Reasoning"
+  },
+  {
+    "key": "settings.toolSemanticCheck.searchPlaceholder",
+    "en": "Enter tool name or description"
+  },
+  {
+    "key": "settings.toolSemanticCheck.similarity",
+    "en": "Similarity"
+  },
+  {
+    "key": "settings.toolSemanticCheck.title",
+    "en": "Tool Semantic Check"
+  },
+  {
+    "key": "settings.toolSemanticCheck.toolType",
+    "en": "Tool Type"
+  },
+  {
+    "key": "settings.toolSemanticCheck.upgrade",
+    "en": "Upgrade"
+  },
+  {
+    "key": "settings.toolSemanticCheck.upgradeModalTitle",
+    "en": "Upgrade Tool"
+  },
+  {
+    "key": "settings.toolSemanticCheck.upgradeSuccess",
+    "en": "Tool upgrade suggestion generated"
+  },
+  {
+    "key": "settings.toolSemanticCheck.upgradeSuggestion",
+    "en": "Upgrade Suggestion"
+  },
+  {
+    "key": "settings.topP",
+    "en": "Top P"
+  },
+  {
+    "key": "settings.userProfile.codingStyle",
+    "en": "Coding Style"
+  },
+  {
+    "key": "settings.userProfile.commentStyle",
+    "en": "Comment Style"
+  },
+  {
+    "key": "settings.userProfile.communication",
+    "en": "Communication"
+  },
+  {
+    "key": "settings.userProfile.confidence",
+    "en": "Profile Confidence"
+  },
+  {
+    "key": "settings.userProfile.indentationStyle",
+    "en": "Indentation Style"
+  },
+  {
+    "key": "settings.userProfile.lastUpdated",
+    "en": "Last Updated"
+  },
+  {
+    "key": "settings.userProfile.loading",
+    "en": "Loading profile..."
+  },
+  {
+    "key": "settings.userProfile.namingConvention",
+    "en": "Naming Convention"
+  },
+  {
+    "key": "settings.userProfile.options.casual",
+    "en": "Casual"
+  },
+  {
+    "key": "settings.userProfile.options.formal",
+    "en": "Formal"
+  },
+  {
+    "key": "settings.userProfile.options.minimal",
+    "en": "Minimal"
+  },
+  {
+    "key": "settings.userProfile.options.neutral",
+    "en": "Neutral"
+  },
+  {
+    "key": "settings.userProfile.overview",
+    "en": "Profile Overview"
+  },
+  {
+    "key": "settings.userProfile.title",
+    "en": "User Profile"
+  },
+  {
+    "key": "settings.userProfile.userId",
+    "en": "User ID"
+  },
+  {
+    "key": "settings.version",
+    "en": "Version"
+  },
+  {
+    "key": "settings.webhook.secret",
+    "en": "Secret"
+  },
+  {
+    "key": "settings.webhook.status",
+    "en": "Status"
+  },
+  {
+    "key": "settings.webhook.title",
+    "en": "Webhooks"
+  },
+  {
+    "key": "settings.webhook.url",
+    "en": "URL"
+  },
+  {
+    "key": "settings.webhooks",
+    "en": "Webhooks"
+  },
+  {
+    "key": "settings.website",
+    "en": "Website"
+  },
+  {
+    "key": "settings.workflow.createNew",
+    "en": "Create New Template"
+  },
+  {
+    "key": "settings.workflow.description",
+    "en": "Manage workflow templates and editor settings"
+  },
+  {
+    "key": "settings.workflow.openEditor",
+    "en": "Open Editor"
+  },
+  {
+    "key": "settings.workflow.title",
+    "en": "Workflow Settings"
+  },
+  {
+    "key": "settings.workflow.visualEditor",
+    "en": "Visual Editor"
+  },
+  {
+    "key": "settings.workflow.visualEditorDesc",
+    "en": "Create and edit workflows with drag-and-drop DAG editor"
+  },
+  {
+    "key": "settings.zhipu",
+    "en": "Zhipu"
+  },
+  {
+    "key": "shortcuts.conflictApp1",
+    "en": "Feishu/WeChat/Enterprise WeChat/DingTalk"
+  },
+  {
+    "key": "shortcuts.conflictApp2",
+    "en": "QQ/WeChat"
+  },
+  {
+    "key": "shortcuts.conflictApp3",
+    "en": "WeChat (Windows)"
+  },
+  {
+    "key": "sidebar.collapse",
+    "en": "Collapse sidebar"
+  },
+  {
+    "key": "sidebar.expand",
+    "en": "Expand sidebar"
+  },
+  {
+    "key": "sidebar.sectionInfrastructure",
+    "en": "Infrastructure"
+  },
+  {
+    "key": "sidebar.sectionPlugins",
+    "en": "Plugins"
+  },
+  {
+    "key": "skill.content",
+    "en": "Content"
+  },
+  {
+    "key": "skill.contentPlaceholder",
+    "en": "Enter skill content..."
+  },
+  {
+    "key": "skill.contentRequired",
+    "en": "Content is required"
+  },
+  {
+    "key": "skill.create",
+    "en": "Create"
+  },
+  {
+    "key": "skill.createTitle",
+    "en": "Create New Skill"
+  },
+  {
+    "key": "skill.deps.allSatisfied",
+    "en": "All skill dependencies satisfied"
+  },
+  {
+    "key": "skill.deps.installed",
+    "en": "Installed"
+  },
+  {
+    "key": "skill.deps.missing",
+    "en": "Missing"
+  },
+  {
+    "key": "skill.deps.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "skill.deps.title",
+    "en": "Dependency Check"
+  },
+  {
+    "key": "skill.description",
+    "en": "Description"
+  },
+  {
+    "key": "skill.descriptionPlaceholder",
+    "en": "Enter description..."
+  },
+  {
+    "key": "skill.edit",
+    "en": "Edit"
+  },
+  {
+    "key": "skill.editPlaceholder",
+    "en": "Write the full skill content..."
+  },
+  {
+    "key": "skill.editTitle",
+    "en": "Edit Skill"
+  },
+  {
+    "key": "skill.loadingPage",
+    "en": "Loading skill page..."
+  },
+  {
+    "key": "skill.name",
+    "en": "Name"
+  },
+  {
+    "key": "skill.namePlaceholder",
+    "en": "Enter name..."
+  },
+  {
+    "key": "skill.nameRequired",
+    "en": "Name is required"
+  },
+  {
+    "key": "skill.patch",
+    "en": "Patch"
+  },
+  {
+    "key": "skill.patchPlaceholder",
+    "en": "Describe the issue and fix..."
+  },
+  {
+    "key": "skill.patchTitle",
+    "en": "Patch Skill"
+  },
+  {
+    "key": "skill.proposal.confidence",
+    "en": "Confidence"
+  },
+  {
+    "key": "skill.proposal.create",
+    "en": "Create"
+  },
+  {
+    "key": "skill.proposal.created",
+    "en": "Skill created"
+  },
+  {
+    "key": "skill.proposal.dismiss",
+    "en": "Dismiss"
+  },
+  {
+    "key": "skill.proposal.empty",
+    "en": "No skill proposals"
+  },
+  {
+    "key": "skill.proposal.error",
+    "en": "Creation failed"
+  },
+  {
+    "key": "skill.proposal.failedWorkflow",
+    "en": "Failed workflow"
+  },
+  {
+    "key": "skill.proposal.hint",
+    "en": "These skills are auto-generated from successful Agent workflows"
+  },
+  {
+    "key": "skill.proposal.partialSuccess",
+    "en": "Partial success"
+  },
+  {
+    "key": "skill.proposal.successWorkflow",
+    "en": "Successful workflow"
+  },
+  {
+    "key": "skill.proposal.title",
+    "en": "Skill Proposal"
+  },
+  {
+    "key": "skill.proposal.viewContent",
+    "en": "View content"
+  },
+  {
+    "key": "skill.stats.avgSuccess",
+    "en": "Average Success Rate"
+  },
+  {
+    "key": "skill.stats.avgTime",
+    "en": "Average Time"
+  },
+  {
+    "key": "skill.stats.empty",
+    "en": "No usage data yet"
+  },
+  {
+    "key": "skill.stats.error",
+    "en": "Failed to load statistics"
+  },
+  {
+    "key": "skill.stats.loading",
+    "en": "Loading..."
+  },
+  {
+    "key": "skill.stats.neverUsed",
+    "en": "Never used"
+  },
+  {
+    "key": "skill.stats.perSkill",
+    "en": "Per-Skill Stats"
+  },
+  {
+    "key": "skill.stats.quality",
+    "en": "Quality Score"
+  },
+  {
+    "key": "skill.stats.successRate",
+    "en": "Success Rate"
+  },
+  {
+    "key": "skill.stats.title",
+    "en": "Skill Execution Dashboard"
+  },
+  {
+    "key": "skill.stats.totalSkills",
+    "en": "Active Skills"
+  },
+  {
+    "key": "skill.stats.totalUsages",
+    "en": "Total Usages"
+  },
+  {
+    "key": "skill.stats.usedCount",
+    "en": "Used {{count}} times"
+  },
+  {
+    "key": "skillEditor.invokeArgs",
+    "en": "Arguments (JSON)"
+  },
+  {
+    "key": "skillEditor.storeOp",
+    "en": "Operation"
+  },
+  {
+    "key": "skills.atomic",
+    "en": "Atomic"
+  },
+  {
+    "key": "skills.cancel",
+    "en": "Cancel"
+  },
+  {
+    "key": "skills.contentPlaceholder",
+    "en": "# My Skill\n\n## Overview\nDescribe what this skill does...\n\n## Steps\n1. Step one\n2. Step two\n..."
+  },
+  {
+    "key": "skills.contentRequired",
+    "en": "Skill content is required"
+  },
+  {
+    "key": "skills.convertToWorkflow",
+    "en": "Convert to Workflow"
+  },
+  {
+    "key": "skills.create",
+    "en": "Create"
+  },
+  {
+    "key": "skills.createTitle",
+    "en": "Create New Skill"
+  },
+  {
+    "key": "skills.decomposeSuccess",
+    "en": "Atomic skills extracted successfully"
+  },
+  {
+    "key": "skills.description",
+    "en": "Description"
+  },
+  {
+    "key": "skills.descriptionPlaceholder",
+    "en": "Short description of what this skill does"
+  },
+  {
+    "key": "skills.dismiss",
+    "en": "Dismiss"
+  },
+  {
+    "key": "skills.edit",
+    "en": "Edit"
+  },
+  {
+    "key": "skills.editPlaceholder",
+    "en": "Write the full skill body (frontmatter will be preserved)..."
+  },
+  {
+    "key": "skills.editTitle",
+    "en": "Edit Skill: {{name}}"
+  },
+  {
+    "key": "skills.install",
+    "en": "Install"
+  },
+  {
+    "key": "skills.loadMore",
+    "en": "Load More"
+  },
+  {
+    "key": "skills.marketplace.title",
+    "en": "Marketplace"
+  },
+  {
+    "key": "skills.namePlaceholder",
+    "en": "e.g. deploy-to-aws"
+  },
+  {
+    "key": "skills.nameRequired",
+    "en": "Skill name is required"
+  },
+  {
+    "key": "skills.newest",
+    "en": "Newest"
+  },
+  {
+    "key": "skills.patch",
+    "en": "Patch"
+  },
+  {
+    "key": "skills.patchPlaceholder",
+    "en": "Describe the issue and the fix..."
+  },
+  {
+    "key": "skills.patchTitle",
+    "en": "Patch Skill: {{name}}"
+  },
+  {
+    "key": "skills.popular",
+    "en": "Popular"
+  },
+  {
+    "key": "skills.proposal.confidence",
+    "en": "confidence"
+  },
+  {
+    "key": "skills.proposal.create",
+    "en": "Create"
+  },
+  {
+    "key": "skills.proposal.created",
+    "en": "Skill '{{name}}' created"
+  },
+  {
+    "key": "skills.proposal.dismiss",
+    "en": "Dismiss"
+  },
+  {
+    "key": "skills.proposal.empty",
+    "en": "No skill proposals yet. Complete complex Agent tasks to generate suggestions."
+  },
+  {
+    "key": "skills.proposal.error",
+    "en": "Failed to create skill"
+  },
+  {
+    "key": "skills.proposal.failedWorkflow",
+    "en": "Failed Workflow"
+  },
+  {
+    "key": "skills.proposal.hint",
+    "en": "These skills were auto-generated from your successful Agent workflows. Review and create them to automate similar tasks."
+  },
+  {
+    "key": "skills.proposal.partialSuccess",
+    "en": "Partial Success"
+  },
+  {
+    "key": "skills.proposal.successWorkflow",
+    "en": "Successful Workflow"
+  },
+  {
+    "key": "skills.proposal.title",
+    "en": "Skill Proposals"
+  },
+  {
+    "key": "skills.proposal.viewContent",
+    "en": "View suggested content"
+  },
+  {
+    "key": "skills.proposals",
+    "en": "Proposals"
+  },
+  {
+    "key": "skills.save",
+    "en": "Save"
+  },
+  {
+    "key": "skills.sort",
+    "en": "Sort"
+  },
+  {
+    "key": "skills.sortLatest",
+    "en": "Latest"
+  },
+  {
+    "key": "skills.sortPopular",
+    "en": "Popular"
+  },
+  {
+    "key": "skills.sortStars",
+    "en": "Stars"
+  },
+  {
+    "key": "skills.source.agents",
+    "en": "Agents"
+  },
+  {
+    "key": "skills.source.axagent",
+    "en": "AxAgent"
+  },
+  {
+    "key": "skills.source.claude",
+    "en": "Claude"
+  },
+  {
+    "key": "skills.uninstall",
+    "en": "Uninstall"
+  },
+  {
+    "key": "skills.update",
+    "en": "Update"
+  },
+  {
+    "key": "style.adjustments",
+    "en": "Adjustments"
+  },
+  {
+    "key": "style.applied",
+    "en": "Applied"
+  },
+  {
+    "key": "style.applying",
+    "en": "Applying..."
+  },
+  {
+    "key": "style.applyStyle",
+    "en": "Apply Style"
+  },
+  {
+    "key": "style.codeSamples",
+    "en": "Code Samples"
+  },
+  {
+    "key": "style.descriptions.abstraction",
+    "en": "Abstraction: from concrete to abstract concepts"
+  },
+  {
+    "key": "style.descriptions.commentRatio",
+    "en": "Comment Ratio: density of comments in code"
+  },
+  {
+    "key": "style.descriptions.density",
+    "en": "Information Density: compactness of output"
+  },
+  {
+    "key": "style.descriptions.explanationLength",
+    "en": "Explanation Length: thoroughness of explanations"
+  },
+  {
+    "key": "style.descriptions.formality",
+    "en": "Formality: formal vs casual language"
+  },
+  {
+    "key": "style.descriptions.naming",
+    "en": "Naming: variable and function naming conventions"
+  },
+  {
+    "key": "style.descriptions.structure",
+    "en": "Structure: organization of content"
+  },
+  {
+    "key": "style.descriptions.technicalDepth",
+    "en": "Technical Depth: level of technical detail"
+  },
+  {
+    "key": "style.dimensions.abstraction",
+    "en": "Abstraction"
+  },
+  {
+    "key": "style.dimensions.label",
+    "en": "Dimensions"
+  },
+  {
+    "key": "style.dimensions.structure",
+    "en": "Structure"
+  },
+  {
+    "key": "style.dimensionsCount",
+    "en": "{{count}} dimensions"
+  },
+  {
+    "key": "style.labels.abstract",
+    "en": "Abstract"
+  },
+  {
+    "key": "style.labels.advanced",
+    "en": "Advanced"
+  },
+  {
+    "key": "style.labels.basic",
+    "en": "Basic"
+  },
+  {
+    "key": "style.labels.brief",
+    "en": "Brief"
+  },
+  {
+    "key": "style.labels.camelCase",
+    "en": "camelCase"
+  },
+  {
+    "key": "style.labels.casual",
+    "en": "Casual"
+  },
+  {
+    "key": "style.labels.compact",
+    "en": "Compact"
+  },
+  {
+    "key": "style.labels.comprehensive",
+    "en": "Comprehensive"
+  },
+  {
+    "key": "style.labels.concrete",
+    "en": "Concrete"
+  },
+  {
+    "key": "style.labels.detailed",
+    "en": "Detailed"
+  },
+  {
+    "key": "style.labels.formal",
+    "en": "Formal"
+  },
+  {
+    "key": "style.labels.minimal",
+    "en": "Minimal"
+  },
+  {
+    "key": "style.labels.simple",
+    "en": "Simple"
+  },
+  {
+    "key": "style.labels.snakeCase",
+    "en": "snake_case"
+  },
+  {
+    "key": "style.labels.spacious",
+    "en": "Spacious"
+  },
+  {
+    "key": "style.labels.structured",
+    "en": "Structured"
+  },
+  {
+    "key": "style.noPatterns",
+    "en": "No style patterns"
+  },
+  {
+    "key": "style.noTemplates",
+    "en": "No style templates"
+  },
+  {
+    "key": "style.original",
+    "en": "Original"
+  },
+  {
+    "key": "style.patterns",
+    "en": "Patterns"
+  },
+  {
+    "key": "style.presets.maximal",
+    "en": "Maximal"
+  },
+  {
+    "key": "style.presets.minimal",
+    "en": "Minimal"
+  },
+  {
+    "key": "style.presets.neutral",
+    "en": "Neutral"
+  },
+  {
+    "key": "style.reset",
+    "en": "Reset"
+  },
+  {
+    "key": "style.showMorePatterns",
+    "en": "Show more patterns"
+  },
+  {
+    "key": "style.showMoreTemplates",
+    "en": "Show more templates"
+  },
+  {
+    "key": "style.sourceStyle",
+    "en": "Source Style"
+  },
+  {
+    "key": "style.styled",
+    "en": "Styled"
+  },
+  {
+    "key": "style.targetStyle",
+    "en": "Target Style"
+  },
+  {
+    "key": "style.templates",
+    "en": "Templates"
+  },
+  {
+    "key": "style.totalProfiles",
+    "en": "Total Profiles"
+  },
+  {
+    "key": "style.totalSamples",
+    "en": "Total Samples"
+  },
+  {
+    "key": "style.usedCount",
+    "en": "Used {{count}} times"
+  },
+  {
+    "key": "style.variants",
+    "en": "Variants"
+  },
+  {
+    "key": "task.bash",
+    "en": "bash"
+  },
+  {
+    "key": "terminal.offline",
+    "en": "Offline"
+  },
+  {
+    "key": "terminal.online",
+    "en": "Online"
+  },
+  {
+    "key": "titlebar.lastLocal",
+    "en": "Local"
+  },
+  {
+    "key": "topicGroup.collapsed",
+    "en": "Collapsed"
+  },
+  {
+    "key": "topicGroup.delete",
+    "en": "Delete group"
+  },
+  {
+    "key": "topicGroup.mergeUp",
+    "en": "Merge with above"
+  },
+  {
+    "key": "topicGroup.rename",
+    "en": "Rename"
+  },
+  {
+    "key": "topicGroup.splitGroup",
+    "en": "Split group"
+  },
+  {
+    "key": "topicGroup.splitHere",
+    "en": "Split here"
+  },
+  {
+    "key": "traceExplorer.selectTrace",
+    "en": "Select a trace to view details"
+  },
+  {
+    "key": "userProfile.emoji",
+    "en": "Emoji"
+  },
+  {
+    "key": "wiki.common.actions",
+    "en": "Actions"
+  },
+  {
+    "key": "wiki.common.back",
+    "en": "Back"
+  },
+  {
+    "key": "wiki.common.close",
+    "en": "Close"
+  },
+  {
+    "key": "wiki.common.overview",
+    "en": "Overview"
+  },
+  {
+    "key": "wiki.common.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "wiki.compile.compiling",
+    "en": "Compiling..."
+  },
+  {
+    "key": "wiki.compile.noPages",
+    "en": "No pages were generated"
+  },
+  {
+    "key": "wiki.compile.noResults",
+    "en": "No compilation results"
+  },
+  {
+    "key": "wiki.compile.pages",
+    "en": "pages"
+  },
+  {
+    "key": "wiki.compile.preview",
+    "en": "Preview"
+  },
+  {
+    "key": "wiki.compile.previewTitle",
+    "en": "Compilation Preview"
+  },
+  {
+    "key": "wiki.compile.recompile",
+    "en": "Recompile"
+  },
+  {
+    "key": "wiki.compile.saveAll",
+    "en": "Save All"
+  },
+  {
+    "key": "wiki.compile.saved",
+    "en": "Compilation results saved"
+  },
+  {
+    "key": "wiki.contentPlaceholder",
+    "en": "Enter content..."
+  },
+  {
+    "key": "wiki.emptyNotes",
+    "en": "No notes yet"
+  },
+  {
+    "key": "wiki.graph.edges",
+    "en": "Edges"
+  },
+  {
+    "key": "wiki.graph.empty",
+    "en": "No graph data"
+  },
+  {
+    "key": "wiki.graph.filterByTags",
+    "en": "Filter by tags"
+  },
+  {
+    "key": "wiki.graph.filterByType",
+    "en": "Filter by type"
+  },
+  {
+    "key": "wiki.graph.filters",
+    "en": "Filters"
+  },
+  {
+    "key": "wiki.graph.loadError",
+    "en": "Load failed"
+  },
+  {
+    "key": "wiki.graph.loading",
+    "en": "Loading..."
+  },
+  {
+    "key": "wiki.graph.nodes",
+    "en": "Nodes"
+  },
+  {
+    "key": "wiki.graph.noWikiId",
+    "en": "No Wiki ID specified"
+  },
+  {
+    "key": "wiki.graph.stats",
+    "en": "Stats"
+  },
+  {
+    "key": "wiki.graph.title",
+    "en": "Knowledge Graph"
+  },
+  {
+    "key": "wiki.graph.type.concept",
+    "en": "Concept"
+  },
+  {
+    "key": "wiki.graph.type.entity",
+    "en": "Entity"
+  },
+  {
+    "key": "wiki.graph.type.note",
+    "en": "Note"
+  },
+  {
+    "key": "wiki.graph.type.source",
+    "en": "Source"
+  },
+  {
+    "key": "wiki.ingest.docx",
+    "en": "Word Document"
+  },
+  {
+    "key": "wiki.ingest.file",
+    "en": "File"
+  },
+  {
+    "key": "wiki.ingest.folder",
+    "en": "Folder"
+  },
+  {
+    "key": "wiki.ingest.folderPath",
+    "en": "Folder path"
+  },
+  {
+    "key": "wiki.ingest.folderPathPlaceholder",
+    "en": "Enter folder path..."
+  },
+  {
+    "key": "wiki.ingest.folderPathRequired",
+    "en": "Folder path is required"
+  },
+  {
+    "key": "wiki.ingest.history",
+    "en": "Import history"
+  },
+  {
+    "key": "wiki.ingest.markdown",
+    "en": "Markdown"
+  },
+  {
+    "key": "wiki.ingest.notion",
+    "en": "Notion"
+  },
+  {
+    "key": "wiki.ingest.path",
+    "en": "Path"
+  },
+  {
+    "key": "wiki.ingest.pathPlaceholder",
+    "en": "Enter path..."
+  },
+  {
+    "key": "wiki.ingest.pdf",
+    "en": "PDF"
+  },
+  {
+    "key": "wiki.ingest.results",
+    "en": "Import results"
+  },
+  {
+    "key": "wiki.ingest.sourceType",
+    "en": "Source type"
+  },
+  {
+    "key": "wiki.ingest.sourceTypeRequired",
+    "en": "Source type is required"
+  },
+  {
+    "key": "wiki.ingest.start",
+    "en": "Start import"
+  },
+  {
+    "key": "wiki.ingest.title",
+    "en": "Import Source"
+  },
+  {
+    "key": "wiki.ingest.titlePlaceholder",
+    "en": "Enter title..."
+  },
+  {
+    "key": "wiki.ingest.type",
+    "en": "Type"
+  },
+  {
+    "key": "wiki.ingest.upload",
+    "en": "Upload"
+  },
+  {
+    "key": "wiki.ingest.uploadFile",
+    "en": "Upload file"
+  },
+  {
+    "key": "wiki.ingest.uploadHint",
+    "en": "Drop files or click to upload"
+  },
+  {
+    "key": "wiki.ingest.url",
+    "en": "URL"
+  },
+  {
+    "key": "wiki.ingest.urlInvalid",
+    "en": "Invalid URL format"
+  },
+  {
+    "key": "wiki.ingest.urlRequired",
+    "en": "URL is required"
+  },
+  {
+    "key": "wiki.ingest.web",
+    "en": "Web"
+  },
+  {
+    "key": "wiki.insertLink",
+    "en": "Insert Link"
+  },
+  {
+    "key": "wiki.lastCompiled",
+    "en": "Last compiled"
+  },
+  {
+    "key": "wiki.lastLinted",
+    "en": "Last linted"
+  },
+  {
+    "key": "wiki.linkedNoteTitle",
+    "en": "New Linked Note"
+  },
+  {
+    "key": "wiki.linkedPrefix",
+    "en": "Related"
+  },
+  {
+    "key": "wiki.linkedRef",
+    "en": "Related"
+  },
+  {
+    "key": "wiki.lint.averageScore",
+    "en": "Average score"
+  },
+  {
+    "key": "wiki.lint.code",
+    "en": "Code"
+  },
+  {
+    "key": "wiki.lint.details",
+    "en": "Details"
+  },
+  {
+    "key": "wiki.lint.issues",
+    "en": "Issues"
+  },
+  {
+    "key": "wiki.lint.line",
+    "en": "Line"
+  },
+  {
+    "key": "wiki.lint.loadError",
+    "en": "Load failed"
+  },
+  {
+    "key": "wiki.lint.message",
+    "en": "Message"
+  },
+  {
+    "key": "wiki.lint.noIssues",
+    "en": "No issues"
+  },
+  {
+    "key": "wiki.lint.noResults",
+    "en": "No results"
+  },
+  {
+    "key": "wiki.lint.note",
+    "en": "Note"
+  },
+  {
+    "key": "wiki.lint.rerun",
+    "en": "Re-run"
+  },
+  {
+    "key": "wiki.lint.runLint",
+    "en": "Run lint"
+  },
+  {
+    "key": "wiki.lint.score",
+    "en": "Score"
+  },
+  {
+    "key": "wiki.lint.scoreUpdated",
+    "en": "Score updated"
+  },
+  {
+    "key": "wiki.lint.selectNote",
+    "en": "Select note"
+  },
+  {
+    "key": "wiki.lint.severity",
+    "en": "Severity"
+  },
+  {
+    "key": "wiki.lint.success",
+    "en": "Lint complete"
+  },
+  {
+    "key": "wiki.lint.totalIssues",
+    "en": "Total issues"
+  },
+  {
+    "key": "wiki.lint.totalNotes",
+    "en": "Total notes"
+  },
+  {
+    "key": "wiki.lint.updateScore",
+    "en": "Update score"
+  },
+  {
+    "key": "wiki.lint.viewDetails",
+    "en": "View details"
+  },
+  {
+    "key": "wiki.llm.backToList",
+    "en": "Back to list"
+  },
+  {
+    "key": "wiki.llm.compile",
+    "en": "Compile"
+  },
+  {
+    "key": "wiki.llm.compileErrors",
+    "en": "Compile errors"
+  },
+  {
+    "key": "wiki.llm.compileSuccess",
+    "en": "Compiled successfully"
+  },
+  {
+    "key": "wiki.llm.confirmDelete",
+    "en": "Confirm delete?"
+  },
+  {
+    "key": "wiki.llm.create",
+    "en": "Create"
+  },
+  {
+    "key": "wiki.llm.createSuccess",
+    "en": "Created successfully"
+  },
+  {
+    "key": "wiki.llm.createWiki",
+    "en": "Create Wiki"
+  },
+  {
+    "key": "wiki.llm.deleteSuccess",
+    "en": "Deleted successfully"
+  },
+  {
+    "key": "wiki.llm.descriptionPlaceholder",
+    "en": "Enter description..."
+  },
+  {
+    "key": "wiki.llm.fileUploaded",
+    "en": "File uploaded"
+  },
+  {
+    "key": "wiki.llm.ingestError",
+    "en": "Import failed"
+  },
+  {
+    "key": "wiki.llm.ingestSource",
+    "en": "Import source"
+  },
+  {
+    "key": "wiki.llm.ingestSuccess",
+    "en": "Imported successfully"
+  },
+  {
+    "key": "wiki.llm.lintReport",
+    "en": "Lint report"
+  },
+  {
+    "key": "wiki.llm.lowQualityWarning",
+    "en": "Low quality, improvements recommended"
+  },
+  {
+    "key": "wiki.llm.namePlaceholder",
+    "en": "Enter name..."
+  },
+  {
+    "key": "wiki.llm.nameRequired",
+    "en": "Name is required"
+  },
+  {
+    "key": "wiki.llm.newCompiledContent",
+    "en": "New compiled content"
+  },
+  {
+    "key": "wiki.llm.noScore",
+    "en": "No score yet"
+  },
+  {
+    "key": "wiki.llm.operations",
+    "en": "Operations"
+  },
+  {
+    "key": "wiki.llm.pathPlaceholder",
+    "en": "Enter path..."
+  },
+  {
+    "key": "wiki.llm.pathRequired",
+    "en": "Path is required"
+  },
+  {
+    "key": "wiki.llm.readyToSave",
+    "en": "Ready to save"
+  },
+  {
+    "key": "wiki.llm.recompile",
+    "en": "Recompile"
+  },
+  {
+    "key": "wiki.llm.select",
+    "en": "Select"
+  },
+  {
+    "key": "wiki.llm.selectSourcesFirst",
+    "en": "Please select sources first"
+  },
+  {
+    "key": "wiki.llm.sources",
+    "en": "Sources"
+  },
+  {
+    "key": "wiki.llm.stats.lastCompile",
+    "en": "Last compile"
+  },
+  {
+    "key": "wiki.llm.stats.operations",
+    "en": "Operations"
+  },
+  {
+    "key": "wiki.llm.stats.sources",
+    "en": "Sources"
+  },
+  {
+    "key": "wiki.llm.stats.totalWikis",
+    "en": "Total Wikis"
+  },
+  {
+    "key": "wiki.llm.title",
+    "en": "Wiki Management"
+  },
+  {
+    "key": "wiki.llm.uploadError",
+    "en": "Upload failed"
+  },
+  {
+    "key": "wiki.llm.viewInGraph",
+    "en": "View in graph"
+  },
+  {
+    "key": "wiki.llm.viewSource",
+    "en": "View source"
+  },
+  {
+    "key": "wiki.llm.wikiList",
+    "en": "Wiki List"
+  },
+  {
+    "key": "wiki.llmNote",
+    "en": "LLM Note"
+  },
+  {
+    "key": "wiki.log.completed",
+    "en": "Completed"
+  },
+  {
+    "key": "wiki.log.failed",
+    "en": "Failed"
+  },
+  {
+    "key": "wiki.log.filterStatus",
+    "en": "Filter by status"
+  },
+  {
+    "key": "wiki.log.filterType",
+    "en": "Filter by type"
+  },
+  {
+    "key": "wiki.log.noOperations",
+    "en": "No operations"
+  },
+  {
+    "key": "wiki.log.operationDetail",
+    "en": "Operation detail"
+  },
+  {
+    "key": "wiki.log.running",
+    "en": "Running"
+  },
+  {
+    "key": "wiki.log.title",
+    "en": "Operation Log"
+  },
+  {
+    "key": "wiki.log.total",
+    "en": "Total"
+  },
+  {
+    "key": "wiki.newNoteDefault",
+    "en": "New Note"
+  },
+  {
+    "key": "wiki.noSources",
+    "en": "No sources"
+  },
+  {
+    "key": "wiki.noteNotFound",
+    "en": "Note not found"
+  },
+  {
+    "key": "wiki.notes",
+    "en": "Notes"
+  },
+  {
+    "key": "wiki.operation.compile",
+    "en": "Compile"
+  },
+  {
+    "key": "wiki.operation.completedAt",
+    "en": "Completed at"
+  },
+  {
+    "key": "wiki.operation.createdAt",
+    "en": "Created at"
+  },
+  {
+    "key": "wiki.operation.details",
+    "en": "Details"
+  },
+  {
+    "key": "wiki.operation.duration",
+    "en": "Duration"
+  },
+  {
+    "key": "wiki.operation.error",
+    "en": "Error"
+  },
+  {
+    "key": "wiki.operation.id",
+    "en": "ID"
+  },
+  {
+    "key": "wiki.operation.ingest",
+    "en": "Ingest"
+  },
+  {
+    "key": "wiki.operation.lint",
+    "en": "Lint"
+  },
+  {
+    "key": "wiki.operation.noOperations",
+    "en": "No operations"
+  },
+  {
+    "key": "wiki.operation.page",
+    "en": "Page"
+  },
+  {
+    "key": "wiki.operation.result",
+    "en": "Result"
+  },
+  {
+    "key": "wiki.operation.schema",
+    "en": "Schema"
+  },
+  {
+    "key": "wiki.operation.source",
+    "en": "Source"
+  },
+  {
+    "key": "wiki.operation.status",
+    "en": "Status"
+  },
+  {
+    "key": "wiki.operation.sync",
+    "en": "Sync"
+  },
+  {
+    "key": "wiki.operation.type",
+    "en": "Type"
+  },
+  {
+    "key": "wiki.pageNotFound",
+    "en": "Page not found"
+  },
+  {
+    "key": "wiki.pageType",
+    "en": "Page Type"
+  },
+  {
+    "key": "wiki.quality.errors",
+    "en": "Errors"
+  },
+  {
+    "key": "wiki.quality.errorsDesc",
+    "en": "{{count}} structural errors found"
+  },
+  {
+    "key": "wiki.quality.excellent",
+    "en": "Excellent"
+  },
+  {
+    "key": "wiki.quality.factors",
+    "en": "Quality Factors"
+  },
+  {
+    "key": "wiki.quality.fair",
+    "en": "Fair"
+  },
+  {
+    "key": "wiki.quality.good",
+    "en": "Good"
+  },
+  {
+    "key": "wiki.quality.issueList",
+    "en": "Issue List"
+  },
+  {
+    "key": "wiki.quality.issues",
+    "en": "Issues"
+  },
+  {
+    "key": "wiki.quality.more",
+    "en": "More"
+  },
+  {
+    "key": "wiki.quality.noData",
+    "en": "No data"
+  },
+  {
+    "key": "wiki.quality.poor",
+    "en": "Poor"
+  },
+  {
+    "key": "wiki.quality.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "wiki.quality.suggestions",
+    "en": "Suggestions"
+  },
+  {
+    "key": "wiki.quality.suggestionsDesc",
+    "en": "{{count}} improvement suggestions"
+  },
+  {
+    "key": "wiki.quality.title",
+    "en": "Quality Assessment"
+  },
+  {
+    "key": "wiki.quality.warnings",
+    "en": "Warnings"
+  },
+  {
+    "key": "wiki.quality.warningsDesc",
+    "en": "{{count}} potential issues found"
+  },
+  {
+    "key": "wiki.qualityScore",
+    "en": "Quality Score"
+  },
+  {
+    "key": "wiki.save",
+    "en": "Save"
+  },
+  {
+    "key": "wiki.saved",
+    "en": "Saved"
+  },
+  {
+    "key": "wiki.schema.create",
+    "en": "Create"
+  },
+  {
+    "key": "wiki.schema.created",
+    "en": "Created"
+  },
+  {
+    "key": "wiki.schema.createdAt",
+    "en": "Created at"
+  },
+  {
+    "key": "wiki.schema.deleteConfirm",
+    "en": "Confirm delete?"
+  },
+  {
+    "key": "wiki.schema.deleted",
+    "en": "Deleted"
+  },
+  {
+    "key": "wiki.schema.description",
+    "en": "Description"
+  },
+  {
+    "key": "wiki.schema.descriptionPlaceholder",
+    "en": "Enter description..."
+  },
+  {
+    "key": "wiki.schema.edit",
+    "en": "Edit"
+  },
+  {
+    "key": "wiki.schema.noSchemas",
+    "en": "No schemas"
+  },
+  {
+    "key": "wiki.schema.schema",
+    "en": "Schema"
+  },
+  {
+    "key": "wiki.schema.schemaHelp",
+    "en": "Define the data structure of the Wiki"
+  },
+  {
+    "key": "wiki.schema.title",
+    "en": "Schema Management"
+  },
+  {
+    "key": "wiki.schema.updated",
+    "en": "Updated"
+  },
+  {
+    "key": "wiki.schema.version",
+    "en": "Version"
+  },
+  {
+    "key": "wiki.searchPlaceholder",
+    "en": "Search Wiki..."
+  },
+  {
+    "key": "wiki.selectWiki",
+    "en": "Select Wiki"
+  },
+  {
+    "key": "wiki.selectWikiPrompt",
+    "en": "Please select a Wiki"
+  },
+  {
+    "key": "wiki.source.chunks",
+    "en": "Chunks"
+  },
+  {
+    "key": "wiki.source.deleteNotImplemented",
+    "en": "Delete not implemented"
+  },
+  {
+    "key": "wiki.source.path",
+    "en": "Path"
+  },
+  {
+    "key": "wiki.source.status",
+    "en": "Status"
+  },
+  {
+    "key": "wiki.source.title",
+    "en": "Source"
+  },
+  {
+    "key": "wiki.source.type",
+    "en": "Type"
+  },
+  {
+    "key": "wiki.sources",
+    "en": "Sources"
+  },
+  {
+    "key": "wiki.sync.byWiki",
+    "en": "By Wiki"
+  },
+  {
+    "key": "wiki.sync.capacity",
+    "en": "Capacity"
+  },
+  {
+    "key": "wiki.sync.emptyQueue",
+    "en": "Queue is empty"
+  },
+  {
+    "key": "wiki.sync.error",
+    "en": "Sync failed"
+  },
+  {
+    "key": "wiki.sync.failed",
+    "en": "Sync failed"
+  },
+  {
+    "key": "wiki.sync.linkCreated",
+    "en": "Link created"
+  },
+  {
+    "key": "wiki.sync.linkDeleted",
+    "en": "Link deleted"
+  },
+  {
+    "key": "wiki.sync.more",
+    "en": "More"
+  },
+  {
+    "key": "wiki.sync.noteCreated",
+    "en": "Note created"
+  },
+  {
+    "key": "wiki.sync.noteDeleted",
+    "en": "Note deleted"
+  },
+  {
+    "key": "wiki.sync.noteUpdated",
+    "en": "Note updated"
+  },
+  {
+    "key": "wiki.sync.pending",
+    "en": "Pending"
+  },
+  {
+    "key": "wiki.sync.processing",
+    "en": "Processing..."
+  },
+  {
+    "key": "wiki.sync.processNow",
+    "en": "Process now"
+  },
+  {
+    "key": "wiki.sync.processStarted",
+    "en": "Processing started"
+  },
+  {
+    "key": "wiki.sync.queue",
+    "en": "Queue"
+  },
+  {
+    "key": "wiki.sync.refresh",
+    "en": "Refresh"
+  },
+  {
+    "key": "wiki.sync.retryCount",
+    "en": "Retry count"
+  },
+  {
+    "key": "wiki.sync.selectKnowledgeBase",
+    "en": "Select Knowledge Base"
+  },
+  {
+    "key": "wiki.sync.selectWiki",
+    "en": "Select Wiki"
+  },
+  {
+    "key": "wiki.sync.success",
+    "en": "Synced to Knowledge Base"
+  },
+  {
+    "key": "wiki.sync.title",
+    "en": "Sync"
+  },
+  {
+    "key": "wiki.sync.toKnowledgeBase",
+    "en": "Sync to Knowledge Base"
+  },
+  {
+    "key": "wiki.sync.toKnowledgeBaseTitle",
+    "en": "Sync Note to Knowledge Base"
+  },
+  {
+    "key": "wiki.sync.toWiki",
+    "en": "Sync to Wiki"
+  },
+  {
+    "key": "wiki.sync.toWikiTitle",
+    "en": "Sync Document to Wiki"
+  },
+  {
+    "key": "wiki.sync.usage",
+    "en": "Usage"
+  },
+  {
+    "key": "wiki.sync.wikiError",
+    "en": "Sync to Wiki failed"
+  },
+  {
+    "key": "wiki.sync.wikiSuccess",
+    "en": "Synced to Wiki"
+  },
+  {
+    "key": "wiki.titlePlaceholder",
+    "en": "Enter title..."
+  },
+  {
+    "key": "wiki.userNote",
+    "en": "User Note"
+  },
+  {
+    "key": "wiki.wiki.description",
+    "en": "Description"
+  },
+  {
+    "key": "wiki.wiki.name",
+    "en": "Name"
+  },
+  {
+    "key": "wiki.wiki.rootPath",
+    "en": "Root Path"
+  },
+  {
+    "key": "wiki.wiki.schemaVersion",
+    "en": "Schema Version"
+  },
+  {
+    "key": "workEngine.cancel",
+    "en": "Cancel"
+  },
+  {
+    "key": "workEngine.cancelExecution",
+    "en": "Cancel Execution"
+  },
+  {
+    "key": "workEngine.configureProviderFirst",
+    "en": "Please configure a default AI provider in settings first"
+  },
+  {
+    "key": "workEngine.confirmCancelExecution",
+    "en": "Confirm cancel current execution?"
+  },
+  {
+    "key": "workEngine.duration",
+    "en": "Duration"
+  },
+  {
+    "key": "workEngine.executionHistory",
+    "en": "Execution History"
+  },
+  {
+    "key": "workEngine.executionId",
+    "en": "Execution ID"
+  },
+  {
+    "key": "workEngine.nodeProgress",
+    "en": "Node Progress"
+  },
+  {
+    "key": "workEngine.noExecutionHistory",
+    "en": "No execution history"
+  },
+  {
+    "key": "workEngine.pause",
+    "en": "Pause"
+  },
+  {
+    "key": "workEngine.pauseExecution",
+    "en": "Pause Execution"
+  },
+  {
+    "key": "workEngine.resume",
+    "en": "Resume"
+  },
+  {
+    "key": "workEngine.resumeExecution",
+    "en": "Resume Execution"
+  },
+  {
+    "key": "workEngine.start",
+    "en": "Start"
+  },
+  {
+    "key": "workEngine.startExecution",
+    "en": "Start Execution"
+  },
+  {
+    "key": "workEngine.startFailed",
+    "en": "Start failed"
+  },
+  {
+    "key": "workEngine.startTime",
+    "en": "Start Time"
+  },
+  {
+    "key": "workEngine.status",
+    "en": "Status"
+  },
+  {
+    "key": "workEngine.statusCancelled",
+    "en": "Cancelled"
+  },
+  {
+    "key": "workEngine.statusCompleted",
+    "en": "Completed"
+  },
+  {
+    "key": "workEngine.statusFailed",
+    "en": "Failed"
+  },
+  {
+    "key": "workEngine.statusPaused",
+    "en": "Paused"
+  },
+  {
+    "key": "workEngine.statusPending",
+    "en": "Pending"
+  },
+  {
+    "key": "workEngine.statusRunning",
+    "en": "Running"
+  },
+  {
+    "key": "workEngine.workflowStarted",
+    "en": "Workflow started"
+  },
+  {
+    "key": "workflow.agentNode.expert",
+    "en": "Expert"
+  },
+  {
+    "key": "workflow.agentNode.roleDeveloper",
+    "en": "Developer"
+  },
+  {
+    "key": "workflow.agentNode.roleExecutor",
+    "en": "Executor"
+  },
+  {
+    "key": "workflow.agentNode.rolePlanner",
+    "en": "Planner"
+  },
+  {
+    "key": "workflow.agentNode.roleResearcher",
+    "en": "Researcher"
+  },
+  {
+    "key": "workflow.agentNode.roleReviewer",
+    "en": "Reviewer"
+  },
+  {
+    "key": "workflow.agentNode.roleSynthesizer",
+    "en": "Synthesizer"
+  },
+  {
+    "key": "workflow.aiAssistant",
+    "en": "AI Assistant"
+  },
+  {
+    "key": "workflow.aiPanel.aiAssistant",
+    "en": "AI Assistant"
+  },
+  {
+    "key": "workflow.aiPanel.canvasStatus",
+    "en": "{{nodes}} nodes, {{edges}} edges"
+  },
+  {
+    "key": "workflow.aiPanel.clickCanvasToAdd",
+    "en": "Selected \"{{label}}\" — click on the canvas to place the node"
+  },
+  {
+    "key": "workflow.aiPanel.copiedToClipboard",
+    "en": "Copied to clipboard"
+  },
+  {
+    "key": "workflow.aiPanel.copy",
+    "en": "Copy"
+  },
+  {
+    "key": "workflow.aiPanel.currentCanvasState",
+    "en": "Current canvas state:"
+  },
+  {
+    "key": "workflow.aiPanel.describeContext",
+    "en": "Describe the workflow context and goals"
+  },
+  {
+    "key": "workflow.aiPanel.describeWorkflow",
+    "en": "Describe your workflow"
+  },
+  {
+    "key": "workflow.aiPanel.dragHint",
+    "en": "Drag these node types from the left panel onto the canvas"
+  },
+  {
+    "key": "workflow.aiPanel.enterAgentPrompt",
+    "en": "Enter Agent Prompt to optimize"
+  },
+  {
+    "key": "workflow.aiPanel.enterContext",
+    "en": "Please enter context information"
+  },
+  {
+    "key": "workflow.aiPanel.enterPromptToOptimize",
+    "en": "Please enter a prompt to optimize"
+  },
+  {
+    "key": "workflow.aiPanel.enterWorkflowDesc",
+    "en": "Please enter a workflow description"
+  },
+  {
+    "key": "workflow.aiPanel.generateBtn",
+    "en": "Generate Workflow"
+  },
+  {
+    "key": "workflow.aiPanel.generatePlaceholder",
+    "en": "Example: Create a code review workflow that explores the codebase structure..."
+  },
+  {
+    "key": "workflow.aiPanel.generating",
+    "en": "Generating..."
+  },
+  {
+    "key": "workflow.aiPanel.generationFailed",
+    "en": "Generation failed"
+  },
+  {
+    "key": "workflow.aiPanel.getRecommendation",
+    "en": "Get Recommendation"
+  },
+  {
+    "key": "workflow.aiPanel.noRecommendations",
+    "en": "No recommendations yet"
+  },
+  {
+    "key": "workflow.aiPanel.optimizationFailed",
+    "en": "Optimization failed"
+  },
+  {
+    "key": "workflow.aiPanel.optimizeBtn",
+    "en": "Optimize Prompt"
+  },
+  {
+    "key": "workflow.aiPanel.optimizedResult",
+    "en": "Optimized Result"
+  },
+  {
+    "key": "workflow.aiPanel.optimizePlaceholder",
+    "en": "Paste your prompt..."
+  },
+  {
+    "key": "workflow.aiPanel.optimizing",
+    "en": "Optimizing..."
+  },
+  {
+    "key": "workflow.aiPanel.promptOptimized",
+    "en": "Prompt optimized"
+  },
+  {
+    "key": "workflow.aiPanel.recommendationFailed",
+    "en": "Recommendation failed"
+  },
+  {
+    "key": "workflow.aiPanel.recommendationGenerated",
+    "en": "Recommendations generated"
+  },
+  {
+    "key": "workflow.aiPanel.recommendedNodeTypes",
+    "en": "Recommended Node Types"
+  },
+  {
+    "key": "workflow.aiPanel.recommending",
+    "en": "Recommending..."
+  },
+  {
+    "key": "workflow.aiPanel.recommendPlaceholder",
+    "en": "Example: I'm building an automated testing workflow..."
+  },
+  {
+    "key": "workflow.aiPanel.replaceCanvasWarning",
+    "en": "Generated workflow will replace current canvas content"
+  },
+  {
+    "key": "workflow.aiPanel.tabGenerateWorkflow",
+    "en": "Generate Workflow"
+  },
+  {
+    "key": "workflow.aiPanel.tabOptimizePrompt",
+    "en": "Optimize Prompt"
+  },
+  {
+    "key": "workflow.aiPanel.tabRecommend",
+    "en": "Recommend Nodes"
+  },
+  {
+    "key": "workflow.aiPanel.workflowGenerated",
+    "en": "Workflow generated"
+  },
+  {
+    "key": "workflow.applySemanticCheck",
+    "en": "Apply"
+  },
+  {
+    "key": "workflow.applyUpgrade",
+    "en": "Apply Upgrade"
+  },
+  {
+    "key": "workflow.categories.agent",
+    "en": "Agent"
+  },
+  {
+    "key": "workflow.categories.integration",
+    "en": "Integration"
+  },
+  {
+    "key": "workflow.categories.llm",
+    "en": "LLM"
+  },
+  {
+    "key": "workflow.codeNode.lineCount",
+    "en": "{{count}} lines"
+  },
+  {
+    "key": "workflow.conditionNode.clickToEdit",
+    "en": "Click to edit conditions"
+  },
+  {
+    "key": "workflow.conditionNode.moreConditions",
+    "en": "+{{count}} more"
+  },
+  {
+    "key": "workflow.conditionNode.opContains",
+    "en": "contains"
+  },
+  {
+    "key": "workflow.conditionNode.opEndsWith",
+    "en": "ends with"
+  },
+  {
+    "key": "workflow.conditionNode.opIsEmpty",
+    "en": "is empty"
+  },
+  {
+    "key": "workflow.conditionNode.opIsNotEmpty",
+    "en": "not empty"
+  },
+  {
+    "key": "workflow.conditionNode.opNotContains",
+    "en": "not contains"
+  },
+  {
+    "key": "workflow.conditionNode.opRegexMatch",
+    "en": "regex"
+  },
+  {
+    "key": "workflow.conditionNode.opStartsWith",
+    "en": "starts with"
+  },
+  {
+    "key": "workflow.conditionNode.title",
+    "en": "Condition"
+  },
+  {
+    "key": "workflow.confirmDeleteTemplate",
+    "en": "Are you sure you want to delete template \"{{name}}\"?"
+  },
+  {
+    "key": "workflow.currentVersion",
+    "en": "Current Version"
+  },
+  {
+    "key": "workflow.debug.avgNodeTime",
+    "en": "Avg Node Time"
+  },
+  {
+    "key": "workflow.debug.failed",
+    "en": "Failed"
+  },
+  {
+    "key": "workflow.debug.nodeExecutions",
+    "en": "Node Executions"
+  },
+  {
+    "key": "workflow.debug.selectedNodeDetails",
+    "en": "Selected Node Details"
+  },
+  {
+    "key": "workflow.debug.successful",
+    "en": "Successful"
+  },
+  {
+    "key": "workflow.debug.totalDuration",
+    "en": "Total Duration"
+  },
+  {
+    "key": "workflow.debugPanel",
+    "en": "Debug Panel"
+  },
+  {
+    "key": "workflow.decompositionSaved",
+    "en": "Decomposition saved"
+  },
+  {
+    "key": "workflow.delayNode.until",
+    "en": "Until"
+  },
+  {
+    "key": "workflow.description",
+    "en": "Description"
+  },
+  {
+    "key": "workflow.documentParserNode.notSelected",
+    "en": "Not selected"
+  },
+  {
+    "key": "workflow.documentParserNode.notSet",
+    "en": "Not set"
+  },
+  {
+    "key": "workflow.dragToStart",
+    "en": "Drag nodes from the left panel to start building your workflow"
+  },
+  {
+    "key": "workflow.enterOrPasteJson",
+    "en": "Please enter or paste JSON data"
+  },
+  {
+    "key": "workflow.enterTemplateId",
+    "en": "Please enter a template ID"
+  },
+  {
+    "key": "workflow.existingSkill",
+    "en": "Existing Skill"
+  },
+  {
+    "key": "workflow.export",
+    "en": "Export"
+  },
+  {
+    "key": "workflow.exportFailed",
+    "en": "Export failed"
+  },
+  {
+    "key": "workflow.exportNotFoundOrFailed",
+    "en": "Template not found or export failed"
+  },
+  {
+    "key": "workflow.exportResultJson",
+    "en": "Export Result (JSON)"
+  },
+  {
+    "key": "workflow.exportSuccess",
+    "en": "Template exported successfully"
+  },
+  {
+    "key": "workflow.exportTemplateIdPlaceholder",
+    "en": "Enter template ID to export"
+  },
+  {
+    "key": "workflow.generatedSkill",
+    "en": "Generated Skill"
+  },
+  {
+    "key": "workflow.generatingUpgrade",
+    "en": "Generating upgrade suggestion..."
+  },
+  {
+    "key": "workflow.importExport.batchImport",
+    "en": "Batch Import"
+  },
+  {
+    "key": "workflow.importExport.batchImportSuccess",
+    "en": "Successfully imported {{count}} workflow template(s)"
+  },
+  {
+    "key": "workflow.importExport.batchResult",
+    "en": "Imported {{count}}"
+  },
+  {
+    "key": "workflow.importExport.copied",
+    "en": "Copied"
+  },
+  {
+    "key": "workflow.importExport.copiedToClipboard",
+    "en": "Copied to clipboard"
+  },
+  {
+    "key": "workflow.importExport.copy",
+    "en": "Copy"
+  },
+  {
+    "key": "workflow.importExport.dragOrClickUpload",
+    "en": "Click or drag file here to upload"
+  },
+  {
+    "key": "workflow.importExport.edgeCount",
+    "en": "Edge Count"
+  },
+  {
+    "key": "workflow.importExport.enterTemplateId",
+    "en": "Enter template ID to export"
+  },
+  {
+    "key": "workflow.importExport.errorCount",
+    "en": "{{count}} error(s)"
+  },
+  {
+    "key": "workflow.importExport.export",
+    "en": "Export"
+  },
+  {
+    "key": "workflow.importExport.exportFailed",
+    "en": "Export failed"
+  },
+  {
+    "key": "workflow.importExport.exportNotFound",
+    "en": "Template not found or export failed"
+  },
+  {
+    "key": "workflow.importExport.exportResultJson",
+    "en": "Export Result (JSON)"
+  },
+  {
+    "key": "workflow.importExport.exportSuccess",
+    "en": "Template exported successfully"
+  },
+  {
+    "key": "workflow.importExport.exportTemplate",
+    "en": "Export Template"
+  },
+  {
+    "key": "workflow.importExport.fileReadFailed",
+    "en": "File read failed"
+  },
+  {
+    "key": "workflow.importExport.format",
+    "en": "Format"
+  },
+  {
+    "key": "workflow.importExport.formatAxAgent",
+    "en": "AxAgent Format"
+  },
+  {
+    "key": "workflow.importExport.formatN8n",
+    "en": "n8n Format"
+  },
+  {
+    "key": "workflow.importExport.import",
+    "en": "Import"
+  },
+  {
+    "key": "workflow.importExport.importFailed",
+    "en": "Import failed"
+  },
+  {
+    "key": "workflow.importExport.importFailedWithError",
+    "en": "Import failed: {{error}}"
+  },
+  {
+    "key": "workflow.importExport.importHint",
+    "en": "Importing will create a new copy of the template. Imported templates are custom by default (not preset)."
+  },
+  {
+    "key": "workflow.importExport.importSuccess",
+    "en": "Successfully imported {{count}} workflow(s)"
+  },
+  {
+    "key": "workflow.importExport.importTemplate",
+    "en": "Import Template"
+  },
+  {
+    "key": "workflow.importExport.invalidJson",
+    "en": "Invalid JSON format"
+  },
+  {
+    "key": "workflow.importExport.moreErrors",
+    "en": "...and {{count}} more errors"
+  },
+  {
+    "key": "workflow.importExport.n8nBatchImport",
+    "en": "n8n Batch Import"
+  },
+  {
+    "key": "workflow.importExport.n8nResult",
+    "en": "Imported {{imported}} · Skipped {{skipped}}"
+  },
+  {
+    "key": "workflow.importExport.nodeCount",
+    "en": "Node Count"
+  },
+  {
+    "key": "workflow.importExport.noJsonFound",
+    "en": "No JSON files found in directory"
+  },
+  {
+    "key": "workflow.importExport.or",
+    "en": "or"
+  },
+  {
+    "key": "workflow.importExport.pasteJsonData",
+    "en": "Paste JSON Data"
+  },
+  {
+    "key": "workflow.importExport.pasteJsonPlaceholder",
+    "en": "Paste template JSON data..."
+  },
+  {
+    "key": "workflow.importExport.pleaseEnterId",
+    "en": "Please enter a template ID"
+  },
+  {
+    "key": "workflow.importExport.pleaseEnterJson",
+    "en": "Please enter or paste JSON data"
+  },
+  {
+    "key": "workflow.importExport.preview",
+    "en": "Import Preview"
+  },
+  {
+    "key": "workflow.importExport.selectFolder",
+    "en": "Select folder to batch import workflows"
+  },
+  {
+    "key": "workflow.importExport.selectN8nDir",
+    "en": "Select n8n workflow directory to import"
+  },
+  {
+    "key": "workflow.importExport.templateId",
+    "en": "Template ID"
+  },
+  {
+    "key": "workflow.importExport.templateImportSuccess",
+    "en": "Template imported successfully"
+  },
+  {
+    "key": "workflow.importExport.title",
+    "en": "Import/Export Template"
+  },
+  {
+    "key": "workflow.importExport.uploadJsonFile",
+    "en": "Upload JSON File"
+  },
+  {
+    "key": "workflow.importExport.viewAllErrors",
+    "en": "View all {{count}} errors"
+  },
+  {
+    "key": "workflow.importExport.workflowName",
+    "en": "Workflow Name"
+  },
+  {
+    "key": "workflow.importExportTemplates",
+    "en": "Import/Export Templates"
+  },
+  {
+    "key": "workflow.importFailed",
+    "en": "Import failed"
+  },
+  {
+    "key": "workflow.importNote",
+    "en": "Import will create a new copy of the template. Imported templates are custom templates by default (not presets)."
+  },
+  {
+    "key": "workflow.importSuccess",
+    "en": "Template imported successfully"
+  },
+  {
+    "key": "workflow.inputSchema",
+    "en": "Input Schema"
+  },
+  {
+    "key": "workflow.invalidJson",
+    "en": "Invalid JSON format"
+  },
+  {
+    "key": "workflow.keepGeneratedSkill",
+    "en": "Keep Generated"
+  },
+  {
+    "key": "workflow.leftPanel.legacySuffix",
+    "en": "(Legacy)"
+  },
+  {
+    "key": "workflow.leftPanel.nodesTab",
+    "en": "Nodes"
+  },
+  {
+    "key": "workflow.leftPanel.searchNodes",
+    "en": "Search nodes..."
+  },
+  {
+    "key": "workflow.leftPanel.searchTemplates",
+    "en": "Search templates..."
+  },
+  {
+    "key": "workflow.leftPanel.templatesTab",
+    "en": "Templates"
+  },
+  {
+    "key": "workflow.loadingVersion",
+    "en": "Loading version..."
+  },
+  {
+    "key": "workflow.loadThisVersion",
+    "en": "Load This Version"
+  },
+  {
+    "key": "workflow.loopNode.continueOnError",
+    "en": "Continue on error"
+  },
+  {
+    "key": "workflow.loopNode.doWhile",
+    "en": "Do While"
+  },
+  {
+    "key": "workflow.loopNode.forEach",
+    "en": "For Each"
+  },
+  {
+    "key": "workflow.loopNode.steps",
+    "en": "{{count}} steps"
+  },
+  {
+    "key": "workflow.loopNode.until",
+    "en": "Until"
+  },
+  {
+    "key": "workflow.loopNode.while",
+    "en": "While"
+  },
+  {
+    "key": "workflow.matchReasons",
+    "en": "Match Reasons"
+  },
+  {
+    "key": "workflow.mergeNode.all",
+    "en": "All"
+  },
+  {
+    "key": "workflow.mergeNode.first",
+    "en": "First"
+  },
+  {
+    "key": "workflow.mergeNode.inputCount",
+    "en": "{{count}} inputs"
+  },
+  {
+    "key": "workflow.mergeNode.last",
+    "en": "Last"
+  },
+  {
+    "key": "workflow.newTemplate",
+    "en": "New Template"
+  },
+  {
+    "key": "workflow.nodeCopied",
+    "en": "Node copied"
+  },
+  {
+    "key": "workflow.nodeDropFailed",
+    "en": "Failed to place node: {{error}}"
+  },
+  {
+    "key": "workflow.nodesPasted",
+    "en": "{{count}} nodes pasted"
+  },
+  {
+    "key": "workflow.nodeTypes.agent",
+    "en": "Agent"
+  },
+  {
+    "key": "workflow.nodeTypes.condition",
+    "en": "Condition"
+  },
+  {
+    "key": "workflow.nodeTypes.llm",
+    "en": "LLM"
+  },
+  {
+    "key": "workflow.nodeTypes.parallel",
+    "en": "Parallel"
+  },
+  {
+    "key": "workflow.nodeTypes.validation",
+    "en": "Validation"
+  },
+  {
+    "key": "workflow.noMatchingTemplates",
+    "en": "No matching templates"
+  },
+  {
+    "key": "workflow.noRedoAvailable",
+    "en": "No actions to redo"
+  },
+  {
+    "key": "workflow.noTemplates",
+    "en": "No templates yet"
+  },
+  {
+    "key": "workflow.noUndoAvailable",
+    "en": "No actions to undo"
+  },
+  {
+    "key": "workflow.noVersionHistory",
+    "en": "No version history"
+  },
+  {
+    "key": "workflow.outputSchema",
+    "en": "Output Schema"
+  },
+  {
+    "key": "workflow.parallelNode.anyComplete",
+    "en": "Any complete"
+  },
+  {
+    "key": "workflow.parallelNode.branch",
+    "en": "Branch {{index}}"
+  },
+  {
+    "key": "workflow.parallelNode.clickToAdd",
+    "en": "Click to add branch"
+  },
+  {
+    "key": "workflow.parallelNode.moreBranches",
+    "en": "{{count}} more branches"
+  },
+  {
+    "key": "workflow.parallelNode.waitForAll",
+    "en": "Wait for all"
+  },
+  {
+    "key": "workflow.pasteJsonData",
+    "en": "Paste JSON Data"
+  },
+  {
+    "key": "workflow.pasteJsonPlaceholder",
+    "en": "Paste template JSON data..."
+  },
+  {
+    "key": "workflow.previewInDevelopment",
+    "en": "Preview feature is in development"
+  },
+  {
+    "key": "workflow.props.aboutMinutes",
+    "en": "≈ {{count}} minutes"
+  },
+  {
+    "key": "workflow.props.aboutSeconds",
+    "en": "{{count}} seconds"
+  },
+  {
+    "key": "workflow.props.actualValue",
+    "en": "Actual"
+  },
+  {
+    "key": "workflow.props.addBranch",
+    "en": "Add Branch"
+  },
+  {
+    "key": "workflow.props.addCondition",
+    "en": "Add Condition"
+  },
+  {
+    "key": "workflow.props.addInputMappingHint",
+    "en": "Click \"Add\" to create an input mapping"
+  },
+  {
+    "key": "workflow.props.addMapping",
+    "en": "+ Add"
+  },
+  {
+    "key": "workflow.props.addStep",
+    "en": "Add Step"
+  },
+  {
+    "key": "workflow.props.agentRole",
+    "en": "Agent Role"
+  },
+  {
+    "key": "workflow.props.andAllTrue",
+    "en": "AND - All conditions must be true"
+  },
+  {
+    "key": "workflow.props.anyBranchHint",
+    "en": "Continue as soon as any branch completes"
+  },
+  {
+    "key": "workflow.props.arrayVar",
+    "en": "Array Variable"
+  },
+  {
+    "key": "workflow.props.assertion",
+    "en": "Assertions"
+  },
+  {
+    "key": "workflow.props.assertions",
+    "en": "Assertions"
+  },
+  {
+    "key": "workflow.props.asyncExecution",
+    "en": "Async Execution"
+  },
+  {
+    "key": "workflow.props.atomicSkill",
+    "en": "Atomic Skill"
+  },
+  {
+    "key": "workflow.props.authNone",
+    "en": "No Auth"
+  },
+  {
+    "key": "workflow.props.authType",
+    "en": "Auth Type"
+  },
+  {
+    "key": "workflow.props.backoffStrategy",
+    "en": "Backoff Strategy"
+  },
+  {
+    "key": "workflow.props.baseDelayMs",
+    "en": "Base Delay (ms)"
+  },
+  {
+    "key": "workflow.props.branchName",
+    "en": "Branch Name"
+  },
+  {
+    "key": "workflow.props.branchTitle",
+    "en": "Branch {{index}}"
+  },
+  {
+    "key": "workflow.props.clickToAddAssertion",
+    "en": "Click \"Add\" to create an assertion"
+  },
+  {
+    "key": "workflow.props.clickToAddBranch",
+    "en": "Click \"Add Branch\" to create the first parallel branch"
+  },
+  {
+    "key": "workflow.props.clickToAddCondition",
+    "en": "Click \"Add Condition\" to create the first condition"
+  },
+  {
+    "key": "workflow.props.clickToAddInputMapping",
+    "en": "Click \"Add\" to create an input mapping"
+  },
+  {
+    "key": "workflow.props.clickToAddMapping",
+    "en": "Click \"Add\" to create input mapping"
+  },
+  {
+    "key": "workflow.props.code",
+    "en": "Code"
+  },
+  {
+    "key": "workflow.props.codeInputOutputHint",
+    "en": "(Input: input, Output: return)"
+  },
+  {
+    "key": "workflow.props.codeInputParams",
+    "en": "Input params: input"
+  },
+  {
+    "key": "workflow.props.codePlaceholder",
+    "en": "Enter your code..."
+  },
+  {
+    "key": "workflow.props.codeReturnHint",
+    "en": "Return value will be stored in output_var"
+  },
+  {
+    "key": "workflow.props.conditionValue",
+    "en": "Value"
+  },
+  {
+    "key": "workflow.props.conditionVarPath",
+    "en": "Variable Path (e.g. input.status)"
+  },
+  {
+    "key": "workflow.props.connectInputsHint",
+    "en": "Connect nodes to this node's input port on the canvas"
+  },
+  {
+    "key": "workflow.props.contains",
+    "en": "Contains"
+  },
+  {
+    "key": "workflow.props.contextConversationHistory",
+    "en": "Conversation History"
+  },
+  {
+    "key": "workflow.props.contextKnowledgeBase",
+    "en": "Knowledge Base: {{name}}"
+  },
+  {
+    "key": "workflow.props.contextSourcesCount",
+    "en": "Context Sources ({{count}})"
+  },
+  {
+    "key": "workflow.props.continueCondition",
+    "en": "Continue Condition"
+  },
+  {
+    "key": "workflow.props.continueConditionExample",
+    "en": "e.g. count < 10 && hasMore"
+  },
+  {
+    "key": "workflow.props.continueOnError",
+    "en": "Continue on Error"
+  },
+  {
+    "key": "workflow.props.cronExpression",
+    "en": "Cron Expression"
+  },
+  {
+    "key": "workflow.props.custom",
+    "en": "Custom"
+  },
+  {
+    "key": "workflow.props.customExpression",
+    "en": "Custom expression..."
+  },
+  {
+    "key": "workflow.props.defaultCodeJsComment",
+    "en": "// Input: input\n// Return value will be stored in output_var"
+  },
+  {
+    "key": "workflow.props.defaultCodePythonComment",
+    "en": "# Input: input\n# Return value will be stored in output_var"
+  },
+  {
+    "key": "workflow.props.delayHours",
+    "en": "Delay Hours"
+  },
+  {
+    "key": "workflow.props.delayMinutes",
+    "en": "Delay Minutes"
+  },
+  {
+    "key": "workflow.props.delaySeconds",
+    "en": "Delay Seconds"
+  },
+  {
+    "key": "workflow.props.delayType",
+    "en": "Delay Type"
+  },
+  {
+    "key": "workflow.props.delayUntil",
+    "en": "Delay Until"
+  },
+  {
+    "key": "workflow.props.delayUntilHint",
+    "en": "Supports ISO 8601 format or variable references"
+  },
+  {
+    "key": "workflow.props.delayUntilPlaceholder",
+    "en": "ISO 8601 time or variable"
+  },
+  {
+    "key": "workflow.props.description",
+    "en": "Description"
+  },
+  {
+    "key": "workflow.props.equals",
+    "en": "Equals"
+  },
+  {
+    "key": "workflow.props.eventType",
+    "en": "Event Type"
+  },
+  {
+    "key": "workflow.props.exists",
+    "en": "Exists"
+  },
+  {
+    "key": "workflow.props.expectedValue",
+    "en": "Expected"
+  },
+  {
+    "key": "workflow.props.expertRole",
+    "en": "Expert Role"
+  },
+  {
+    "key": "workflow.props.exponential",
+    "en": "Exponential"
+  },
+  {
+    "key": "workflow.props.failStrategy",
+    "en": "Failure Strategy"
+  },
+  {
+    "key": "workflow.props.finalOutputHint",
+    "en": "Final output variable for the workflow"
+  },
+  {
+    "key": "workflow.props.fixed",
+    "en": "Fixed"
+  },
+  {
+    "key": "workflow.props.hours",
+    "en": "Hours"
+  },
+  {
+    "key": "workflow.props.httpMethod",
+    "en": "HTTP Method"
+  },
+  {
+    "key": "workflow.props.inputCount",
+    "en": "Input Count ({{count}})"
+  },
+  {
+    "key": "workflow.props.inputVarDocument",
+    "en": "document"
+  },
+  {
+    "key": "workflow.props.inputVariable",
+    "en": "Input Variable"
+  },
+  {
+    "key": "workflow.props.itemsVarExample",
+    "en": "e.g. input.items"
+  },
+  {
+    "key": "workflow.props.iterateVar",
+    "en": "Iteration Variable"
+  },
+  {
+    "key": "workflow.props.iterateVarExample",
+    "en": "e.g. item"
+  },
+  {
+    "key": "workflow.props.linear",
+    "en": "Linear"
+  },
+  {
+    "key": "workflow.props.logicalAnd",
+    "en": "AND - All conditions are true"
+  },
+  {
+    "key": "workflow.props.logicalOp",
+    "en": "Logical Operator"
+  },
+  {
+    "key": "workflow.props.logicalOr",
+    "en": "OR - Any condition is true"
+  },
+  {
+    "key": "workflow.props.loopBodySteps",
+    "en": "Loop Body Steps ({{count}})"
+  },
+  {
+    "key": "workflow.props.loopDoWhile",
+    "en": "↻ DoWhile"
+  },
+  {
+    "key": "workflow.props.loopForEach",
+    "en": "🔁 ForEach"
+  },
+  {
+    "key": "workflow.props.loopType",
+    "en": "Loop Type"
+  },
+  {
+    "key": "workflow.props.loopUntil",
+    "en": "🔚 Until"
+  },
+  {
+    "key": "workflow.props.loopWhile",
+    "en": "⏳ While"
+  },
+  {
+    "key": "workflow.props.manualNoConfig",
+    "en": "Manual trigger requires no configuration"
+  },
+  {
+    "key": "workflow.props.matches",
+    "en": "Matches"
+  },
+  {
+    "key": "workflow.props.mergeAll",
+    "en": "All - Wait for all inputs"
+  },
+  {
+    "key": "workflow.props.mergeFirst",
+    "en": "First - Use first completed input"
+  },
+  {
+    "key": "workflow.props.mergeLast",
+    "en": "Last - Use last completed input"
+  },
+  {
+    "key": "workflow.props.mergeType",
+    "en": "Merge Type"
+  },
+  {
+    "key": "workflow.props.minutes",
+    "en": "Minutes"
+  },
+  {
+    "key": "workflow.props.noLoopBodySteps",
+    "en": "No loop body steps"
+  },
+  {
+    "key": "workflow.props.noLoopSteps",
+    "en": "No loop body steps yet"
+  },
+  {
+    "key": "workflow.props.noSteps",
+    "en": "No steps"
+  },
+  {
+    "key": "workflow.props.notSet",
+    "en": "Not set"
+  },
+  {
+    "key": "workflow.props.opContains",
+    "en": "Contains"
+  },
+  {
+    "key": "workflow.props.opEndsWith",
+    "en": "Ends With"
+  },
+  {
+    "key": "workflow.props.opIsEmpty",
+    "en": "Is Empty"
+  },
+  {
+    "key": "workflow.props.opIsNotEmpty",
+    "en": "Not Empty"
+  },
+  {
+    "key": "workflow.props.opNotContains",
+    "en": "Not Contains"
+  },
+  {
+    "key": "workflow.props.opRegexMatch",
+    "en": "Regex Match"
+  },
+  {
+    "key": "workflow.props.opStartsWith",
+    "en": "Starts With"
+  },
+  {
+    "key": "workflow.props.orAnyTrue",
+    "en": "OR - Any condition is true"
+  },
+  {
+    "key": "workflow.props.outputVar",
+    "en": "Output Variable"
+  },
+  {
+    "key": "workflow.props.outputVarDefault",
+    "en": "agent_output"
+  },
+  {
+    "key": "workflow.props.outputVarParsed",
+    "en": "parsed_content"
+  },
+  {
+    "key": "workflow.props.outputVarRetrieved",
+    "en": "retrieved_content"
+  },
+  {
+    "key": "workflow.props.outputVarSubworkflow",
+    "en": "subworkflow_output"
+  },
+  {
+    "key": "workflow.props.outputVarTool",
+    "en": "tool_output"
+  },
+  {
+    "key": "workflow.props.outputVarWorkflow",
+    "en": "workflow_output"
+  },
+  {
+    "key": "workflow.props.parserType",
+    "en": "Parser Type"
+  },
+  {
+    "key": "workflow.props.plainText",
+    "en": "📃 Plain Text"
+  },
+  {
+    "key": "workflow.props.prompt",
+    "en": "Prompt"
+  },
+  {
+    "key": "workflow.props.promptPlaceholder",
+    "en": "Enter your prompt..."
+  },
+  {
+    "key": "workflow.props.query",
+    "en": "Query"
+  },
+  {
+    "key": "workflow.props.queryPlaceholder",
+    "en": "Enter search query..."
+  },
+  {
+    "key": "workflow.props.retryPolicy",
+    "en": "Retry Policy"
+  },
+  {
+    "key": "workflow.props.retryStrategy",
+    "en": "Retry Strategy"
+  },
+  {
+    "key": "workflow.props.roleDeveloper",
+    "en": "💻 Developer"
+  },
+  {
+    "key": "workflow.props.roleExecutor",
+    "en": "⚙️ Executor"
+  },
+  {
+    "key": "workflow.props.rolePlanner",
+    "en": "📋 Planner"
+  },
+  {
+    "key": "workflow.props.roleResearcher",
+    "en": "🔍 Researcher"
+  },
+  {
+    "key": "workflow.props.roleReviewer",
+    "en": "👀 Reviewer"
+  },
+  {
+    "key": "workflow.props.roleSynthesizer",
+    "en": "🔬 Synthesizer"
+  },
+  {
+    "key": "workflow.props.seconds",
+    "en": "Seconds"
+  },
+  {
+    "key": "workflow.props.selectContextSources",
+    "en": "Select context sources..."
+  },
+  {
+    "key": "workflow.props.selectExpert",
+    "en": "Select Expert"
+  },
+  {
+    "key": "workflow.props.selectNodeToAdd",
+    "en": "Select node to add"
+  },
+  {
+    "key": "workflow.props.selectSubWorkflow",
+    "en": "Select sub-workflow..."
+  },
+  {
+    "key": "workflow.props.selectTools",
+    "en": "Select tools..."
+  },
+  {
+    "key": "workflow.props.similarityThreshold",
+    "en": "Similarity Threshold"
+  },
+  {
+    "key": "workflow.props.stopCondition",
+    "en": "Stop Condition"
+  },
+  {
+    "key": "workflow.props.stopConditionExample",
+    "en": "e.g. isComplete == true"
+  },
+  {
+    "key": "workflow.props.systemPromptPlaceholder",
+    "en": "Define the agent's behavior and capabilities..."
+  },
+  {
+    "key": "workflow.props.temperatureHint",
+    "en": "0: Deterministic ↑ | 2: Random ↑"
+  },
+  {
+    "key": "workflow.props.timeoutSecondsParallel",
+    "en": "Timeout (seconds)"
+  },
+  {
+    "key": "workflow.props.timezone",
+    "en": "Timezone"
+  },
+  {
+    "key": "workflow.props.toolsCount",
+    "en": "Tools ({{count}})"
+  },
+  {
+    "key": "workflow.props.topK",
+    "en": "Top K"
+  },
+  {
+    "key": "workflow.props.triggerConfig",
+    "en": "Trigger Config"
+  },
+  {
+    "key": "workflow.props.untilSpecifiedTime",
+    "en": "Until Specified Time"
+  },
+  {
+    "key": "workflow.props.variable",
+    "en": "Variable"
+  },
+  {
+    "key": "workflow.props.waitForAllBranches",
+    "en": "Wait for all branches"
+  },
+  {
+    "key": "workflow.props.waitForAllHint",
+    "en": "Will wait for all branches to complete before continuing"
+  },
+  {
+    "key": "workflow.props.waitForAnyHint",
+    "en": "Continue as soon as any branch completes"
+  },
+  {
+    "key": "workflow.props.webhookPath",
+    "en": "Path"
+  },
+  {
+    "key": "workflow.publishInDevelopment",
+    "en": "Publish feature is in development"
+  },
+  {
+    "key": "workflow.replaceExisting",
+    "en": "Replace Existing"
+  },
+  {
+    "key": "workflow.replaceWithExisting",
+    "en": "Use Existing"
+  },
+  {
+    "key": "workflow.rightPanel.addTagsPlaceholder",
+    "en": "Add tags..."
+  },
+  {
+    "key": "workflow.rightPanel.deleteEdge",
+    "en": "Delete Edge"
+  },
+  {
+    "key": "workflow.rightPanel.description",
+    "en": "Description"
+  },
+  {
+    "key": "workflow.rightPanel.edgeLabelPlaceholder",
+    "en": "Edge label (optional)"
+  },
+  {
+    "key": "workflow.rightPanel.edgeType",
+    "en": "Edge Type"
+  },
+  {
+    "key": "workflow.rightPanel.edgeTypeConditionFalse",
+    "en": "Condition-False"
+  },
+  {
+    "key": "workflow.rightPanel.edgeTypeConditionTrue",
+    "en": "Condition-True"
+  },
+  {
+    "key": "workflow.rightPanel.edgeTypeDirect",
+    "en": "Direct"
+  },
+  {
+    "key": "workflow.rightPanel.edgeTypeError",
+    "en": "Error"
+  },
+  {
+    "key": "workflow.rightPanel.edgeTypeLoopBack",
+    "en": "Loop Back"
+  },
+  {
+    "key": "workflow.rightPanel.edgeTypeMerge",
+    "en": "Merge"
+  },
+  {
+    "key": "workflow.rightPanel.edgeTypeParallelBranch",
+    "en": "Parallel Branch"
+  },
+  {
+    "key": "workflow.rightPanel.icon",
+    "en": "Icon"
+  },
+  {
+    "key": "workflow.rightPanel.iconBot",
+    "en": "🤖 Bot"
+  },
+  {
+    "key": "workflow.rightPanel.iconCode",
+    "en": "💻 Code"
+  },
+  {
+    "key": "workflow.rightPanel.iconDocument",
+    "en": "📄 Document"
+  },
+  {
+    "key": "workflow.rightPanel.iconGitBranch",
+    "en": "🔀 Git Branch"
+  },
+  {
+    "key": "workflow.rightPanel.iconLayers",
+    "en": "📚 Layers"
+  },
+  {
+    "key": "workflow.rightPanel.iconZap",
+    "en": "⚡ Zap"
+  },
+  {
+    "key": "workflow.rightPanel.name",
+    "en": "Name"
+  },
+  {
+    "key": "workflow.rightPanel.selectEdgeToEdit",
+    "en": "Select an edge to edit properties"
+  },
+  {
+    "key": "workflow.rightPanel.selectNodeOrEdge",
+    "en": "Select a node or edge to edit properties"
+  },
+  {
+    "key": "workflow.rightPanel.selectNodeToEdit",
+    "en": "Select a node to edit properties"
+  },
+  {
+    "key": "workflow.rightPanel.tagAgent",
+    "en": "Agent"
+  },
+  {
+    "key": "workflow.rightPanel.tagAi",
+    "en": "AI"
+  },
+  {
+    "key": "workflow.rightPanel.tagAutomation",
+    "en": "Automation"
+  },
+  {
+    "key": "workflow.rightPanel.tagChatbot",
+    "en": "Chatbot"
+  },
+  {
+    "key": "workflow.rightPanel.tagDataProcessing",
+    "en": "Data Processing"
+  },
+  {
+    "key": "workflow.rightPanel.tags",
+    "en": "Tags"
+  },
+  {
+    "key": "workflow.rightPanel.tagWorkflow",
+    "en": "Workflow"
+  },
+  {
+    "key": "workflow.rightPanel.unsupportedNodeType",
+    "en": "Editing this node type is not supported yet"
+  },
+  {
+    "key": "workflow.saveAsNew",
+    "en": "Save as New"
+  },
+  {
+    "key": "workflow.saved",
+    "en": "Saved"
+  },
+  {
+    "key": "workflow.searchTemplates",
+    "en": "Search templates..."
+  },
+  {
+    "key": "workflow.selectTemplate",
+    "en": "Select Template"
+  },
+  {
+    "key": "workflow.semanticCheckApplied",
+    "en": "Semantic check applied"
+  },
+  {
+    "key": "workflow.semanticCheckDescription",
+    "en": "The following generated skills have high semantic similarity with existing skills"
+  },
+  {
+    "key": "workflow.semanticCheckTitle",
+    "en": "Similar Skills Found"
+  },
+  {
+    "key": "workflow.shortcuts.copy",
+    "en": "Copy Node"
+  },
+  {
+    "key": "workflow.shortcuts.delete",
+    "en": "Delete Selected Node"
+  },
+  {
+    "key": "workflow.shortcuts.paste",
+    "en": "Paste Node"
+  },
+  {
+    "key": "workflow.shortcuts.redo",
+    "en": "Redo"
+  },
+  {
+    "key": "workflow.shortcuts.save",
+    "en": "Save"
+  },
+  {
+    "key": "workflow.shortcuts.title",
+    "en": "Shortcuts"
+  },
+  {
+    "key": "workflow.shortcuts.undo",
+    "en": "Undo"
+  },
+  {
+    "key": "workflow.similarity",
+    "en": "Similarity"
+  },
+  {
+    "key": "workflow.similarWorkflowsExplanation",
+    "en": "Found workflows similar to the current one"
+  },
+  {
+    "key": "workflow.similarWorkflowsFound",
+    "en": "Similar workflows found"
+  },
+  {
+    "key": "workflow.skills",
+    "en": "Skills"
+  },
+  {
+    "key": "workflow.skipSemanticCheck",
+    "en": "Skip"
+  },
+  {
+    "key": "workflow.statusBar.dagEditor",
+    "en": "DAG Editor"
+  },
+  {
+    "key": "workflow.statusBar.error",
+    "en": "{{count}} errors"
+  },
+  {
+    "key": "workflow.statusBar.fitView",
+    "en": "Fit View"
+  },
+  {
+    "key": "workflow.statusBar.resetZoom",
+    "en": "Reset Zoom"
+  },
+  {
+    "key": "workflow.statusBar.valid",
+    "en": "Workflow valid"
+  },
+  {
+    "key": "workflow.statusBar.warning",
+    "en": "{{count}} warnings"
+  },
+  {
+    "key": "workflow.subWorkflowNode.async",
+    "en": "Async"
+  },
+  {
+    "key": "workflow.tag",
+    "en": "Tag"
+  },
+  {
+    "key": "workflow.templateId",
+    "en": "Template ID"
+  },
+  {
+    "key": "workflow.templateList.confirmDelete",
+    "en": "Confirm Delete"
+  },
+  {
+    "key": "workflow.templateList.confirmDeleteMessage",
+    "en": "Are you sure you want to delete template \"{{name}}\"?"
+  },
+  {
+    "key": "workflow.templateList.copied",
+    "en": "Template duplicated"
+  },
+  {
+    "key": "workflow.templateList.copyFailed",
+    "en": "Duplicate failed"
+  },
+  {
+    "key": "workflow.templateList.custom",
+    "en": "Custom"
+  },
+  {
+    "key": "workflow.templateList.delete",
+    "en": "Delete"
+  },
+  {
+    "key": "workflow.templateList.deleted",
+    "en": "Template deleted"
+  },
+  {
+    "key": "workflow.templateList.deleteFailed",
+    "en": "Delete failed"
+  },
+  {
+    "key": "workflow.templateList.duplicate",
+    "en": "Duplicate"
+  },
+  {
+    "key": "workflow.templateList.edit",
+    "en": "Edit"
+  },
+  {
+    "key": "workflow.templateList.irreversible",
+    "en": "This action cannot be undone"
+  },
+  {
+    "key": "workflow.templateList.newTemplate",
+    "en": "New Template"
+  },
+  {
+    "key": "workflow.templateList.noDescription",
+    "en": "No description"
+  },
+  {
+    "key": "workflow.templateList.noMatchFound",
+    "en": "No matching templates found"
+  },
+  {
+    "key": "workflow.templateList.noTemplates",
+    "en": "No templates"
+  },
+  {
+    "key": "workflow.templateList.preset",
+    "en": "Preset"
+  },
+  {
+    "key": "workflow.templateList.readonly",
+    "en": "Read-only"
+  },
+  {
+    "key": "workflow.templateList.searchPlaceholder",
+    "en": "Search templates..."
+  },
+  {
+    "key": "workflow.templateList.tagPlaceholder",
+    "en": "Tags"
+  },
+  {
+    "key": "workflow.templateList.typePlaceholder",
+    "en": "Type"
+  },
+  {
+    "key": "workflow.templateList.versionHistory",
+    "en": "Version History"
+  },
+  {
+    "key": "workflow.templateList.view",
+    "en": "View"
+  },
+  {
+    "key": "workflow.templateName",
+    "en": "Template Name"
+  },
+  {
+    "key": "workflow.toolNode.inputCount",
+    "en": "{{count}} inputs"
+  },
+  {
+    "key": "workflow.type",
+    "en": "Type"
+  },
+  {
+    "key": "workflow.upgradedName",
+    "en": "Upgraded Name"
+  },
+  {
+    "key": "workflow.upgradeError",
+    "en": "Upgrade failed"
+  },
+  {
+    "key": "workflow.upgradeExisting",
+    "en": "Upgrade Existing"
+  },
+  {
+    "key": "workflow.upgradeReasoning",
+    "en": "Upgrade Reasoning"
+  },
+  {
+    "key": "workflow.upgradeSkillTitle",
+    "en": "Upgrade Skill"
+  },
+  {
+    "key": "workflow.upgradeSuggestion",
+    "en": "Upgrade Suggestion"
+  },
+  {
+    "key": "workflow.uploadHint",
+    "en": "Click or drag file to this area to upload"
+  },
+  {
+    "key": "workflow.uploadJsonFile",
+    "en": "Upload JSON File"
+  },
+  {
+    "key": "workflow.validationFailed",
+    "en": "Validation failed"
+  },
+  {
+    "key": "workflow.validationNode.assertionCount",
+    "en": "{{count}} assertions"
+  },
+  {
+    "key": "workflow.validationNode.title",
+    "en": "Validation"
+  },
+  {
+    "key": "workflow.vectorRetrieveNode.threshold",
+    "en": "Threshold:"
+  },
+  {
+    "key": "workflow.versionHistory.currentVersion",
+    "en": "Current version"
+  },
+  {
+    "key": "workflow.versionHistory.loadedVersion",
+    "en": "Loaded version {{version}}"
+  },
+  {
+    "key": "workflow.versionHistory.loadFailed",
+    "en": "Failed to load version history"
+  },
+  {
+    "key": "workflow.versionHistory.loading",
+    "en": "Loading version..."
+  },
+  {
+    "key": "workflow.versionHistory.loadThisVersion",
+    "en": "Load this version"
+  },
+  {
+    "key": "workflow.versionHistory.loadVersionFailed",
+    "en": "Failed to load version"
+  },
+  {
+    "key": "workflow.versionHistory.noHistory",
+    "en": "No version history"
+  },
+  {
+    "key": "workflow.versionHistory.title",
+    "en": "Version History - {{name}}"
+  },
+  {
+    "key": "workflow.versionHistory.version",
+    "en": "Version {{version}}"
+  },
+  {
+    "key": "workflow.versionHistoryLoadFailed",
+    "en": "Failed to load version history"
+  },
+  {
+    "key": "workflow.versionHistoryTitle",
+    "en": "Version History - {{name}}"
+  },
+  {
+    "key": "workflow.versionLoaded",
+    "en": "Version {{version}} loaded"
+  },
+  {
+    "key": "workflow.versionLoadFailed",
+    "en": "Failed to load version"
+  },
+  {
+    "key": "workflow.versionNumber",
+    "en": "Version {{version}}"
+  },
+  {
+    "key": "workflow.workflowSavedAsNew",
+    "en": "Workflow saved as new"
+  },
+  {
+    "key": "workflow.workflowUpdated",
+    "en": "Workflow updated"
+  }
+]
