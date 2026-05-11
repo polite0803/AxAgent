@@ -37,7 +37,27 @@ pub use app_state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // ── 全局 panic hook：确保 panic 信息在进程退出前写入日志 ──
+    // ── 日志 / tracing（必须在 panic hook 之前初始化） ─
+    #[cfg(target_os = "android")]
+    {
+        android_logger::init_once(
+            android_logger::Config::default()
+                .with_max_level(log::LevelFilter::Info)
+                .with_tag("AxAgent"),
+        );
+        tracing_log::LogTracer::init().expect("Failed to init LogTracer");
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+            )
+            .init();
+    }
+
+    // ── 全局 panic hook ──
     std::panic::set_hook(Box::new(|info| {
         let msg = match (
             info.payload().downcast_ref::<&str>(),
@@ -60,6 +80,9 @@ pub fn run() {
         std::thread::sleep(std::time::Duration::from_millis(100));
     }));
 
+    #[cfg(target_os = "android")]
+    tracing::info!("AxAgent starting on Android (tracing -> log -> logcat)");
+
     // ── TLS crypto provider ──
     if rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
@@ -78,27 +101,6 @@ pub fn run() {
         } else {
             tracing::info!("TLS: aws-lc-rs unavailable, using ring fallback");
         }
-    }
-
-    // ── 日志 / tracing ─
-    #[cfg(target_os = "android")]
-    {
-        android_logger::init_once(
-            android_logger::Config::default()
-                .with_max_level(log::LevelFilter::Info)
-                .with_tag("AxAgent"),
-        );
-        tracing_log::LogTracer::init().expect("Failed to init LogTracer");
-        tracing::info!("AxAgent starting on Android (tracing -> log -> logcat)");
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        tracing_subscriber::fmt()
-            .with_env_filter(
-                tracing_subscriber::EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-            )
-            .init();
     }
 
     axagent_tools::builtin_handlers::init_builtin_handlers();
