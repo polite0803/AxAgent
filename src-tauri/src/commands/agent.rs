@@ -1779,16 +1779,14 @@ pub async fn agent_query(
             );
 
             // Emit agent-done event
-            let resolved_model = provider
-                .models
-                .iter()
-                .find(|m| m.model_id == request.model_id);
             let cost_usd = estimate_cost_usd(
                 &request.model_id,
                 summary.usage.input_tokens as u64,
                 summary.usage.output_tokens as u64,
-                resolved_model.and_then(|m| m.input_price_per_mtok),
-                resolved_model.and_then(|m| m.output_price_per_mtok),
+                resolved_model.as_ref().and_then(|m| m.input_price_per_mtok),
+                resolved_model
+                    .as_ref()
+                    .and_then(|m| m.output_price_per_mtok),
             );
             let blocks: Vec<AgentContentBlock> = summary
                 .assistant_messages
